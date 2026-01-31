@@ -1,6 +1,6 @@
 # Story 2.1: Ticket Creation UI - Minimal Input Form
 
-Status: review
+Status: done
 
 ## Story
 
@@ -326,7 +326,8 @@ Claude Sonnet 4.5 (1M context) [claude-sonnet-4-5-20250929[1m]]
 ### Completion Notes List
 
 **Completed:** 2026-01-31
-**Definition of Done:** All acceptance criteria met, form functional, error handling complete
+**Marked Done:** 2026-01-31
+**Definition of Done:** All acceptance criteria met, form functional, error handling complete, Firestore persistence verified
 
 **Task 1 & 2: Service Layer Created:**
 - Created TicketService with POST /api/tickets integration

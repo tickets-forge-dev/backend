@@ -45,8 +45,8 @@ development_status:
 
   # Epic 2: Ticket Creation & AEC Engine
   epic-2: contexted
-  2-1-ticket-creation-ui-minimal-input-form: review
-  2-2-generation-progress-transparent-8-step-ui: backlog
+  2-1-ticket-creation-ui-minimal-input-form: done
+  2-2-generation-progress-transparent-8-step-ui: drafted
   2-3-aec-domain-model-schema-and-persistence: backlog
   2-4-ticket-detail-view-aec-rendering: backlog
   epic-2-retrospective: optional
@@ -73,3 +73,15 @@ development_status:
   5-2-linear-integration-graphql-export: backlog
   5-3-export-appendices-dev-and-qa-context: backlog
   epic-5-retrospective: optional
+
+  # Epic 6: Quick Document Generation (v1 Enhancement)
+  epic-6: backlog
+  6-1-document-domain-model-and-firestore-storage: backlog
+  6-2-ai-powered-repository-analyzer: backlog
+  6-3-upload-document-endpoint-and-ui: backlog
+  6-4-mastra-workflow-auto-generate-prd: backlog
+  6-5-mastra-workflow-auto-generate-architecture: backlog
+  6-6-document-generation-wizard-ui: backlog
+  6-7-document-viewer-and-editor: backlog
+  6-8-mastra-workspace-indexing-for-rag: backlog
+  epic-6-retrospective: optional

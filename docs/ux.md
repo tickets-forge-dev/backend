@@ -4270,3 +4270,226 @@ _In collaboration with: BMad_
 _Aligned with: Architecture (Winston), PRD (John), Epics (John)_
 _Date: 2026-01-30_
 _Ready for Implementation: Phase 4 (Development)_
+
+---
+
+## Epic 6: Document Generation UX
+
+**Added:** 2026-01-31 for v1
+
+### Screen: Generate Project Context Wizard
+
+**Purpose:** Auto-generate PRD and Architecture with minimal user input
+
+**Entry Point:**
+- Prompt on first ticket creation (if no docs exist)
+- Settings → Project Documents → "Generate" button
+
+**Layout:**
+
+```
+┌─────────────────────────────────────────────┐
+│  Generate Project Context                   │
+│  ─────────────────────────────────────────  │
+│                                             │
+│  [Progress: Step 2 of 7]                    │
+│  ━━━━━━━━━━━━━━━━━━━━━━░░░░░░░░░░ 30%      │
+│                                             │
+│  ✓ Repository analyzed                      │
+│  ⏳ Generating PRD...                        │
+│                                             │
+│  ┌─────────────────────────────────────┐   │
+│  │ Who is the primary user?            │   │
+│  │                                     │   │
+│  │  [Product Manager] (selected)       │   │
+│  │  [Developer]                        │   │
+│  │  [End User]                         │   │
+│  │  [Other]                            │   │
+│  └─────────────────────────────────────┘   │
+│                                             │
+│  [Continue]                                 │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+**Interaction:**
+
+1. **Initial State:**
+   - Shows progress bar (0%)
+   - "Analyzing repository..." message
+
+2. **When Suspended (Chip Question):**
+   - Progress pauses
+   - Question text displays
+   - 2-4 chip options shown
+   - User selects chip
+   - [Continue] button enabled
+   - Clicking Continue resumes workflow
+
+3. **Generating State:**
+   - Progress animates
+   - Current step shown ("Generating PRD...")
+   - Can close modal (continues in background)
+
+4. **Success State:**
+   - ✅ "Documents generated!"
+   - Links to view PRD and Architecture
+   - [Continue to Ticket Creation] button
+
+**UX Principles:**
+
+- **No chat** - Workflow-driven, not conversational
+- **Minimal questions** - Max 3 total, only if confidence <70%
+- **Chips only** - No text input (unless "Other" selected)
+- **Progress visible** - Always show current step
+- **Can abandon** - Close modal, continues in background
+- **Linear minimalism** - Clean, focused UI
+
+**Anti-Patterns:**
+
+❌ Multi-step wizard with many screens
+❌ Text input fields for every question
+❌ Hiding progress
+❌ Blocking UI during generation
+❌ Conversational chat interface
+
+---
+
+### Screen: Upload Document
+
+**Purpose:** Manually upload existing PRD or Architecture
+
+**Layout:**
+
+```
+┌─────────────────────────────────────────────┐
+│  Project Documents                          │
+│  ─────────────────────────────────────────  │
+│                                             │
+│  [PRD Tab] [Architecture Tab]               │
+│                                             │
+│  ┌─────────────────────────────────────┐   │
+│  │ Paste markdown or upload .md file   │   │
+│  │                                     │   │
+│  │ # PRD: My Project                   │   │
+│  │                                     │   │
+│  │ ## Vision                           │   │
+│  │ ...                                 │   │
+│  │                                     │   │
+│  │                                     │   │
+│  │                                     │   │
+│  └─────────────────────────────────────┘   │
+│                                             │
+│  OR                                         │
+│                                             │
+│  [Choose .md file to upload]                │
+│                                             │
+│  [Preview] [Save]                           │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+**Interaction:**
+
+- Textarea for paste (large, 20+ rows)
+- File upload button (<100KB limit)
+- Preview shows rendered markdown
+- Save button stores to Firestore
+
+---
+
+### Screen: Document Viewer/Editor
+
+**Purpose:** View and edit PRD or Architecture
+
+**Layout:**
+
+```
+┌─────────────────────────────────────────────┐
+│  PRD: Executable Tickets          [Edit]    │
+│  ─────────────────────────────────────────  │
+│  Auto-generated | Version 2 | Updated 1h ago│
+│                                             │
+│  ┌─────────────────────────────────────┐   │
+│  │ ## Vision                           │   │
+│  │ Executable Tickets transforms...    │   │
+│  │                                     │   │
+│  │ ## Users                            │   │
+│  │ - Primary: Product Managers         │   │
+│  │ ...                                 │   │
+│  │                                     │   │
+│  │ (Rendered markdown preview)         │   │
+│  └─────────────────────────────────────┘   │
+│                                             │
+│  [Regenerate] [View History] [Export .md]   │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+**Edit Mode:**
+
+- Textarea replaces preview
+- [Save] [Cancel] buttons
+- Auto-saves draft to localStorage
+- Version increments on save
+
+---
+
+### Prompt: No Context Found
+
+**Trigger:** First ticket creation, no PRD/Architecture exist
+
+**Layout:**
+
+```
+┌─────────────────────────────────────────────┐
+│  ⚠️ No project context found                 │
+│                                             │
+│  Generating tickets without PRD and         │
+│  Architecture produces less accurate        │
+│  results.                                   │
+│                                             │
+│  [Auto-Generate] [Upload Manually] [Skip]   │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+**Button Priority:**
+- **Auto-Generate** - Primary button (recommended)
+- **Upload Manually** - Secondary button
+- **Skip** - Ghost button (not recommended)
+
+**Behavior:**
+- Auto-Generate → Opens wizard modal
+- Upload → Navigates to Settings
+- Skip → Continues with ticket creation (shows warning in UI)
+
+---
+
+### Integration with Ticket Creation
+
+**Enhanced Flow (Epic 6):**
+
+```
+Step 1: Check for PRD/Architecture
+  ↓ Not found
+  ↓
+Step 2: Show prompt (Generate/Upload/Skip)
+  ↓ User selects Auto-Generate
+  ↓
+Step 3: Wizard runs (background or modal)
+  - Progress visible
+  - Chip questions if needed
+  - Can close and continue later
+  ↓ Complete
+  ↓
+Step 4: "✅ Context ready!"
+  ↓
+Step 5: Continue with ticket creation
+  ↓
+AEC generates with 85%+ accuracy
+```
+
+**UX North Star:** PM generates PRD + Architecture + First Ticket in <15 minutes total
+
+---

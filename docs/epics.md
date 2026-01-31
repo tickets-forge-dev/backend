@@ -1067,16 +1067,19 @@ So that I have all necessary information to implement and verify.
 
 ## Epic Summary
 
-All epics complete! Here's the coverage:
+All epics with functional requirements coverage:
 
-| Epic | Stories | FRs Covered |
-|------|---------|-------------|
-| Epic 1: Foundation | 2 | Infrastructure |
-| Epic 2: Ticket Creation & AEC Engine | 4 | FR1, FR2, FR4 |
-| Epic 3: Clarification & Validation | 3 | FR3, FR5 |
-| Epic 4: Code Intelligence & Estimation | 5 | FR6, FR8, FR9, FR10 |
-| Epic 5: Export & Integrations | 3 | FR7 |
-| **TOTAL** | **17 stories** | **All FRs covered** |
+| Epic | Stories | FRs Covered | Priority |
+|------|---------|-------------|----------|
+| Epic 1: Foundation | 2 | Infrastructure | P0 |
+| Epic 2: Ticket Creation & AEC Engine | 4 | FR1, FR2, FR4 | P0 |
+| Epic 3: Clarification & Validation | 3 | FR3, FR5 | P1 |
+| Epic 4: Code Intelligence & Estimation | 5 | FR6, FR8, FR9, FR10 | P1-P2 |
+| Epic 5: Export & Integrations | 3 | FR7 | P1 |
+| **Epic 6: Quick Document Generation** | **8** | **Enhanced FR1, FR4** | **P0 (v1)** |
+| **TOTAL** | **25 stories** | **All FRs + enhancements** | |
+
+**Note:** Epic 6 added for v1 to enable solo PMs without existing documentation (85%+ AEC accuracy vs 60% without context)
 
 ---
 
@@ -1090,3 +1093,428 @@ All epics complete! Here's the coverage:
 - AEC is single source of truth throughout
 - Ready for UX Design and Architecture workflows
 
+
+## Epic 6: Quick Document Generation
+
+**Goal:** Auto-generate concise PRD and Architecture documents using AI-powered repository analysis to provide context for better AEC generation.
+
+**Value:** Enables solo PMs without existing docs to get high-quality executable tickets. Transforms "no context" scenario from 60% AEC accuracy to 85%+ through intelligent document generation.
+
+**Covers:** Enhanced FR1, FR4 (better AEC quality through context)
+
+**Priority:** v1 (implements Phase 2 "Quick Generate" - fast, concise, AI-powered)
+
+---
+
+### Story 6.1: Document Domain Model and Firestore Storage
+
+As a backend engineer,
+I want a Document entity with Firestore persistence,
+So that PRD and Architecture documents can be stored, versioned, and queried.
+
+**Acceptance Criteria:**
+
+**Given** the document domain is implemented
+**When** this story is complete
+**Then** a Document domain entity exists with:
+- `id: string`
+- `workspaceId: string`
+- `type: 'prd' | 'architecture'`
+- `content: string` (markdown)
+- `version: number`
+- `source: 'auto-generated' | 'uploaded' | 'edited'`
+- `createdAt: Date`
+- `updatedAt: Date`
+
+**And** DocumentRepository interface defined:
+- `save(doc: Document): Promise<void>`
+- `findByWorkspaceAndType(workspaceId, type): Promise<Document | null>`
+- `exists(workspaceId, type): Promise<boolean>`
+- `listVersions(workspaceId, type): Promise<Document[]>`
+
+**And** Firestore implementation:
+- Path: `workspaces/{workspaceId}/documents/{type}`
+- Version history: `workspaces/{workspaceId}/document-versions/{type}-v{n}`
+- Mapper for domain ↔ Firestore
+
+**Prerequisites:** None (new module)
+
+**Technical Notes:**
+- Domain entity: `backend/src/documents/domain/Document.ts`
+- Repository: `backend/src/documents/application/ports/DocumentRepository.ts`
+- Firestore impl: `backend/src/documents/infrastructure/persistence/FirestoreDocumentRepository.ts`
+- Follow same Clean Architecture pattern as tickets module
+
+---
+
+### Story 6.2: AI-Powered Repository Analyzer
+
+As a backend system,
+I want to analyze any repository dynamically using AI to detect its tech stack,
+So that PRD/Architecture generation has accurate technology context regardless of platform.
+
+**Acceptance Criteria:**
+
+**Given** a repository path or GitHub URL
+**When** the analyzer runs
+**Then** it scans the repository discovering all files without assumptions
+**And** an AI agent identifies which files are relevant for tech stack analysis
+**And** the system reads the identified files (max 15 for efficiency)
+**And** an AI agent analyzes the files to determine:
+- Platform type (web, mobile, desktop, game, backend-only, cli, embedded)
+- Complete tech stack (frontend, backend, database, auth, state management)
+- Architecture pattern (Clean Architecture, MVC, microservices, etc.)
+- Key patterns (repository, DI, event sourcing, etc.)
+- Confidence score (0-1)
+
+**And** the analysis works for ANY tech stack:
+- Web: React, Vue, Angular, Svelte, Next.js, Nuxt, etc.
+- Mobile: Flutter, React Native, Swift, Kotlin, Ionic
+- Backend: Node.js, Python, Go, Rust, Java, PHP, Ruby, .NET
+- Game: Unity, Unreal, Godot
+- Desktop: Electron, Tauri, Qt, WinForms
+- Other: CLI tools, embedded systems
+
+**And** analysis is version-aware:
+- Reports specific versions (e.g., "Next.js 15.5" not just "Next.js")
+- Detects from package managers (npm, pip, cargo, pub, etc.)
+
+**And** if confidence <0.7:
+- Analysis includes `uncertainties: string[]` listing unknowns
+- Used to generate chip questions for user
+
+**Prerequisites:** None
+
+**Technical Notes:**
+- Service: `backend/src/documents/application/services/RepoAnalyzer.ts`
+- Uses ILLMContentGenerator (Ollama for dev, Claude for prod)
+- Two LLM calls: (1) Identify relevant files, (2) Analyze tech stack
+- Structured output with Zod schema validation
+- Scans max depth 3, excludes node_modules/.git/build folders
+- Reads max 15 files, 5000 chars each (token efficiency)
+
+**Covers:** Foundation for Story 6.3-6.4
+
+---
+
+### Story 6.3: Upload Document Endpoint and UI
+
+As a Product Manager,
+I want to upload my existing PRD or Architecture document,
+So that I can provide project context without using auto-generation.
+
+**Acceptance Criteria:**
+
+**Given** the user navigates to Settings → Project Documents
+**When** the page loads
+**Then** upload sections for PRD and Architecture are displayed
+
+**And** the user can:
+- Paste markdown content directly into textarea
+- Upload .md file from their computer
+- Preview rendered markdown before saving
+- Save to workspace
+
+**And** when the user saves a document:
+- Backend validates markdown format
+- Document stored in Firestore: `workspaces/{id}/documents/{type}`
+- Document indexed in Mastra workspace for search
+- Success message displayed
+
+**And** uploaded documents are used:
+- AEC generation uses uploaded docs for context
+- Same priority as auto-generated docs
+- Can be edited or regenerated later
+
+**Prerequisites:** Story 6.1 (document storage)
+
+**Technical Notes:**
+- Backend endpoint: POST /api/documents/upload
+- DTO: `{ type: 'prd' | 'architecture', content: string }`
+- Frontend component: `client/src/documents/components/UploadDocument.tsx`
+- Uses shadcn/ui: Textarea, Button, Tabs
+- Markdown preview with react-markdown
+- File upload with HTML5 File API
+
+---
+
+### Story 6.4: Mastra Workflow - Auto-Generate PRD
+
+As a Product Manager,
+I want the system to auto-generate a concise PRD from my project description,
+So that I have project context without writing documentation manually.
+
+**Acceptance Criteria:**
+
+**Given** the user triggers "Auto-Generate PRD"
+**When** the generation workflow runs
+**Then** a Mastra workflow executes with these steps:
+1. Analyze repository (Story 6.2 - AI-powered)
+2. Search existing workspace for similar patterns (Mastra RAG)
+3. Generate concise PRD using LLM with context
+4. If confidence <0.7, suspend for chip questions
+5. Resume with user answers
+6. Save to Firestore
+7. Index in Mastra workspace
+
+**And** the generated PRD is concise:
+- Maximum 1000 words
+- 5 core sections: Vision, Users, Goals (top 3), Features (MVP, max 5), NFRs (key only)
+- Markdown format
+- No fluff, actionable content
+
+**And** chip questions asked only when needed:
+- Maximum 3 questions total
+- Only if confidence <0.7
+- Examples: "Primary user?", "Auth method?", "Deployment target?"
+- Each question has 2-4 chip options
+
+**And** generation uses context:
+- Tech stack from repository analysis
+- Similar tickets from workspace search (RAG)
+- Existing README/docs if found
+- Previous PRDs in workspace (learning from patterns)
+
+**And** the workflow can be tracked:
+- Frontend shows progress: "Analyzing repo..." → "Generating PRD..."
+- Real-time status updates
+- Shows chip questions when suspended
+- Shows success with link to document
+
+**Prerequisites:** Story 6.1 (storage), Story 6.2 (analyzer)
+
+**Technical Notes:**
+- Mastra workflow: `backend/src/documents/workflows/generate-prd.workflow.ts`
+- Uses Mastra `createWorkflow()` with `createStep()`
+- Sequential chaining: analyze → search → generate → save
+- Suspend/resume for chip questions
+- Integrates with Mastra workspace (RAG)
+- Controller: POST /api/documents/generate-prd
+- Frontend: `client/src/documents/components/GeneratePRDWizard.tsx`
+
+**Covers:** Auto-generation path (primary focus per user requirements)
+
+---
+
+### Story 6.5: Mastra Workflow - Auto-Generate Architecture
+
+As a backend engineer,
+I want the system to auto-generate a concise Architecture document from PRD and tech stack,
+So that architectural decisions are documented for consistent AEC generation.
+
+**Acceptance Criteria:**
+
+**Given** a PRD exists (auto-generated or uploaded)
+**When** the user triggers "Auto-Generate Architecture"
+**Then** a Mastra workflow executes:
+1. Load PRD from Firestore
+2. Use repository analysis from Story 6.2
+3. Search workspace for architecture patterns (RAG)
+4. Generate concise Architecture using LLM
+5. If tech choices unclear, suspend for chip questions
+6. Resume with user answers
+7. Save to Firestore
+8. Index in workspace
+
+**And** the generated Architecture is concise:
+- Maximum 800 words
+- 4 core sections: Tech Stack, Key Decisions (5-7 only), Folder Structure, Patterns
+- Focus on DECISIONS not descriptions
+- Markdown format
+
+**And** chip questions for tech choices only:
+- Examples: "State management?", "API pattern?", "Deployment platform?"
+- Only if ambiguous from tech stack detection
+- Maximum 3 questions
+
+**And** generation is context-aware:
+- Uses PRD for business requirements
+- Uses tech stack analysis for technology constraints
+- Searches for similar architecture patterns (RAG)
+- Follows detected folder structure
+
+**Prerequisites:** Story 6.4 (PRD generated or uploaded)
+
+**Technical Notes:**
+- Mastra workflow: `backend/src/documents/workflows/generate-architecture.workflow.ts`
+- Similar pattern to Story 6.4 (suspend/resume, chip questions)
+- Uses PRD as input context
+- Controller: POST /api/documents/generate-architecture
+- Frontend: Same wizard component, different workflow
+
+---
+
+### Story 6.6: Document Generation Wizard UI
+
+As a Product Manager,
+I want a simple wizard to auto-generate PRD and Architecture,
+So that I can quickly create project context with minimal effort.
+
+**Acceptance Criteria:**
+
+**Given** the user has no PRD or Architecture
+**When** they create their first ticket
+**Then** a prompt appears: "No project context found. Generate now?"
+**And** options shown:
+- "Auto-Generate" (primary)
+- "Upload Manually" (secondary)
+- "Skip" (ghost)
+
+**And** when user clicks "Auto-Generate":
+- Wizard modal opens
+- Step 1: Shows "Analyzing repository..." with progress
+- Step 2: If suspended, shows chip questions
+- User selects chips (not text input unless "Other")
+- Step 3: Shows "Generating PRD..." with progress
+- Step 4: If suspended, shows PRD chip questions
+- User answers
+- Step 5: Shows "Generating Architecture..."
+- Step 6: If suspended, shows Architecture chip questions
+- Step 7: Shows "Complete! ✅ Documents generated"
+
+**And** progress persists:
+- If user closes modal, workflow continues in background
+- Can reopen to see current progress
+- Can navigate away and return
+
+**And** when user clicks "Upload Manually":
+- Navigates to Settings → Project Documents
+- Shows upload interface
+
+**And** when user clicks "Skip":
+- Proceeds with ticket creation (degraded AEC quality)
+- Can generate docs later from Settings
+
+**Prerequisites:** Story 6.4, 6.5 (workflows ready)
+
+**Technical Notes:**
+- Component: `client/src/documents/components/GenerateDocsWizard.tsx`
+- Uses Mastra workflow streaming for progress
+- Chip questions with Badge components (from Epic 1)
+- Progress indicator with step numbers (1/7, 2/7, etc.)
+- Polls workflow status or uses webhooks for real-time updates
+- Modal uses shadcn Dialog component
+
+---
+
+### Story 6.7: Document Viewer and Editor
+
+As a Product Manager,
+I want to view and edit generated or uploaded PRD and Architecture,
+So that I can refine documents after auto-generation or upload.
+
+**Acceptance Criteria:**
+
+**Given** PRD or Architecture exists
+**When** user navigates to Settings → Project Documents
+**Then** document viewer is displayed with:
+- Rendered markdown preview
+- "Edit" button
+- Document metadata (source, version, last updated)
+
+**And** when user clicks "Edit":
+- Textarea appears with raw markdown
+- "Save" and "Cancel" buttons shown
+- Can modify content
+
+**And** when user clicks "Save":
+- Document version incremented
+- Previous version saved to version history
+- New content saved to Firestore
+- Workspace re-indexed with updated content
+- Success message shown
+
+**And** version history is accessible:
+- "View History" link
+- Shows list of versions with timestamps
+- Can restore previous version
+
+**Prerequisites:** Story 6.1 (storage)
+
+**Technical Notes:**
+- Component: `client/src/documents/components/DocumentViewer.tsx`
+- Uses react-markdown for preview
+- Inline editing with Textarea
+- Version history in Accordion component
+- Backend: PATCH /api/documents/:type
+
+---
+
+### Story 6.8: Mastra Workspace Indexing for RAG
+
+As a backend system,
+I want to index PRD, Architecture, and completed AECs in Mastra workspace,
+So that future PRD/Architecture generation can search existing patterns (RAG).
+
+**Acceptance Criteria:**
+
+**Given** Mastra workspace is configured
+**When** a document is created or updated
+**Then** it is automatically indexed for search
+
+**And** the following content is indexed:
+- Generated or uploaded PRD
+- Generated or uploaded Architecture
+- Completed AECs (title, description, acceptance criteria)
+- Repository README (if exists)
+
+**And** indexing uses hybrid search:
+- BM25 for keyword matching (free, fast)
+- Vector search for semantic similarity (Ollama embeddings - free)
+- Configurable fallback to BM25-only
+
+**And** search is used during generation:
+- PRD generation searches for similar projects
+- Architecture generation searches for similar tech stacks
+- Results feed into LLM prompts as context
+
+**And** indexing is incremental:
+- New documents indexed on creation
+- Updated documents re-indexed on save
+- Deleted documents removed from index
+
+**Prerequisites:** None (can be first story in Epic 6)
+
+**Technical Notes:**
+- Mastra Workspace with BM25 + vector search
+- Vector embeddings via Ollama (nomic-embed-text model - free)
+- Service: `backend/src/documents/application/services/WorkspaceIndexingService.ts`
+- Auto-index on document save
+- Search in generatePRDStep and generateArchitectureStep
+- Storage: Pinecone (cloud) or Qdrant (self-hosted) or Postgres (reuse DB)
+
+---
+
+## Epic 6 Summary
+
+**Stories:** 7 total (was 5, added analyzer detail and indexing)
+
+| Story | Title | Effort |
+|---|---|---|
+| 6.1 | Document Domain & Firestore Storage | Small |
+| 6.2 | AI-Powered Repository Analyzer | Medium |
+| 6.3 | Upload Document UI | Small |
+| 6.4 | Auto-Generate PRD (Mastra Workflow) | Medium |
+| 6.5 | Auto-Generate Architecture (Mastra Workflow) | Medium |
+| 6.6 | Generation Wizard UI | Medium |
+| 6.7 | Document Viewer/Editor | Small |
+| 6.8 | Mastra Workspace Indexing (RAG) | Medium |
+
+**Total Effort:** Similar to Epic 2 (8 stories)
+
+**Timeline:** After Epic 2 complete (Option B confirmed)
+
+**Key Technologies:**
+- Mastra workflows (suspend/resume for chip questions)
+- Mastra workspace (search & indexing for RAG)
+- AI-powered analysis (no hardcoded tech stack detection)
+- Firestore storage (not Firebase Storage for text docs)
+- Ollama embeddings (free vector search)
+
+**Outcome:**
+- Solo PMs can auto-generate PRD + Architecture in <10 minutes
+- 85%+ AEC accuracy (vs 60% without context)
+- Works for ANY tech stack (Flutter, Unity, Django, Go, etc.)
+- Concise outputs (<2000 words combined)
+
+---

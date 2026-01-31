@@ -263,3 +263,84 @@ UI, agents, exports are projections.
 Executable Tickets is not a productivity tool.  
 It is a **contract system between intent and execution**.
 
+
+---
+
+## Epic 6: Quick Document Generation (v1 Enhancement)
+
+**Added:** 2026-01-31
+**Priority:** P0 (v1 must-have)
+
+### Problem
+
+Solo PMs or new projects have no existing PRD/Architecture documentation. Without this context, AEC generation produces generic outputs with ~60% accuracy.
+
+### Solution
+
+**Auto-generate concise PRD and Architecture** using AI-powered repository analysis:
+- Fast (<10 minutes)
+- Concise (3-5 pages combined)
+- Context-aware (RAG searches existing patterns)
+- Human-in-loop (chip questions for critical decisions only)
+- Works for ANY tech stack (no hardcoded detection)
+
+### User Flow
+
+**Scenario: First-time user without docs**
+
+1. User creates first ticket: "Add user authentication"
+2. System detects: No PRD/Architecture in workspace
+3. Prompt appears: "Generate project context?" [Auto-Generate] [Upload] [Skip]
+4. User clicks "Auto-Generate"
+5. Wizard shows progress:
+   - ✓ Analyzing repository (AI detects: Next.js + NestJS + Firebase)
+   - ⏳ Generating PRD...
+   - [Suspended] Chip question: "Primary user?" [PM] [Developer] [End User]
+   - User selects [PM]
+   - ⏳ Completing PRD...
+   - ✓ PRD generated
+   - ⏳ Generating Architecture...
+   - ✓ Architecture generated
+6. Success: "✅ Context ready! Generating your ticket..."
+7. AEC generation proceeds with 85%+ accuracy
+
+**Time:** 5-10 minutes total (vs hours of manual writing)
+
+### Functional Requirements
+
+**FR11:** Users can auto-generate PRD from project description (P0)
+**FR12:** Users can auto-generate Architecture from PRD + repo analysis (P0)
+**FR13:** System analyzes ANY tech stack dynamically using AI (no hardcoding) (P0)
+**FR14:** System asks max 3 chip questions only when confidence <70% (P1)
+**FR15:** Users can upload existing PRD/Architecture manually (P1)
+**FR16:** System indexes documents for RAG-powered generation (P2)
+**FR17:** Users can view/edit generated documents with version history (P1)
+
+### Success Metrics
+
+- 70%+ of new users use auto-generate (vs upload)
+- Average generation time <10 minutes
+- Generated doc quality: 80%+ user approval rate
+- AEC accuracy improvement: 60% → 85%+ with docs
+
+### Non-Goals (Epic 6)
+
+- Comprehensive 50-page documentation (keep it concise)
+- Multi-agent party mode conversations (single agent, fast)
+- Chat interface (workflow-driven only)
+- Perfect accuracy (80%+ is good enough for v1)
+
+### Epic 6 Coverage Map
+
+| Story | Covered FRs |
+|-------|-------------|
+| 6.1 | FR11, FR12 (storage foundation) |
+| 6.2 | FR13 (AI-powered analyzer) |
+| 6.3 | FR15 (manual upload) |
+| 6.4 | FR11, FR14, FR16 (PRD generation) |
+| 6.5 | FR12, FR14, FR16 (Architecture generation) |
+| 6.6 | FR11, FR12, FR14 (wizard UI) |
+| 6.7 | FR17 (viewer/editor) |
+| 6.8 | FR16 (RAG indexing) |
+
+---

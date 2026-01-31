@@ -1256,3 +1256,53 @@ Epic 2 is self-contained. External integrations arrive in:
 *Generated with comprehensive synthesis from PRD, Architecture, and Epic documents*
 *Following BMad Method technical specification template*
 *Date: 2026-01-31*
+
+---
+
+## Story 2.5: Advanced Context Input (Enhancement)
+
+**Added:** 2026-01-31 (Post Epic 2 core completion)
+
+### Purpose
+Enhance ticket creation with repository selection and rich context input (Slack conversations, meeting notes, file attachments).
+
+### Acceptance Criteria
+
+1. **Repository Selector**
+   - Dropdown showing all connected/indexed repositories
+   - Default repository from workspace settings
+   - Optional (can leave blank for auto-detect)
+
+2. **Rich Context Input**
+   - Larger textarea (10+ rows) or rich text editor
+   - Placeholder: "Paste Slack conversations, meeting notes, Jira links..."
+   - Support for markdown formatting
+   - Character limit: 10,000
+
+3. **Context Source Tracking**
+   - Track where context came from (manual, slack-paste, jira-link)
+   - Store in AEC for audit trail
+
+4. **File Attachments (Optional)**
+   - Upload screenshots, diagrams, mockups
+   - Store in Firebase Storage
+   - Reference URLs in AEC
+
+### Implementation Notes
+
+- Requires Settings → Repositories (configure connected repos)
+- Repository field added to CreateTicketDto and AEC entity
+- contextSource field added to AEC
+- Larger description field in UI
+- File upload integration with Firebase Storage
+
+### Dependencies
+
+- Epic 4 Stories 4.1-4.2 (GitHub integration and repo indexing) for full repo dropdown
+- For v1: Can implement with manual text input for repo name
+
+### Deferred Until
+
+- After Stories 2.1-2.4 complete (Epic 2 core)
+- Before Epic 3 or in parallel with Epic 3
+
