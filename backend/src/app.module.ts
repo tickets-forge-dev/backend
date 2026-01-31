@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { SharedModule } from './shared/shared.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -7,8 +9,9 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Feature modules will be added in subsequent stories
-    // TicketsModule (Story 2.x)
+    SharedModule,
+    TicketsModule,
+    // Additional feature modules will be added in subsequent stories
     // IndexingModule (Story 4.x)
     // IntegrationsModule (Story 5.x)
   ],

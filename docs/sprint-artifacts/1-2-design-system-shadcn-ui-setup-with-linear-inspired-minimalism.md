@@ -1,6 +1,6 @@
 # Story 1.2: Design System - shadcn/ui Setup with Linear-Inspired Minimalism
 
-Status: review
+Status: done
 
 ## Story
 
@@ -344,6 +344,9 @@ Claude Sonnet 4.5 (1M context) [claude-sonnet-4-5-20250929[1m]]
 
 ### Completion Notes List
 
+**Completed:** 2026-01-31
+**Definition of Done:** All acceptance criteria met, code reviewed, tests passing, Internal Server Error fixed
+
 **shadcn/ui Installation (Task 1):**
 - Installed 10 shadcn/ui components: button, input, textarea, badge, card, dialog, dropdown-menu, accordion, radio-group, label
 - All components placed in `client/src/core/components/ui/` as per architecture
@@ -414,13 +417,19 @@ Claude Sonnet 4.5 (1M context) [claude-sonnet-4-5-20250929[1m]]
 - client/app/(main)/settings/page.tsx
 
 **MODIFIED Files:**
-- client/app/page.tsx (simplified to redirect to /tickets)
-- client/app/layout.tsx (verified - already has theme preload script from Story 1.1)
+- client/app/page.tsx (updated to use design tokens and shadcn/ui components, added navigation links)
 - client/package.json (added lucide-react dependency via pnpm)
 - client/tailwind.config.js (updated by shadcn/ui CLI)
 
+**DELETED Files:**
+- client/app/(main)/page.tsx (removed to fix route conflict - route groups don't create URL segments)
+
 ## Change Log
 
+- 2026-01-31 08:35: Bug fix - Route conflict resolved, server now returns HTTP 200
+  - Removed duplicate app/(main)/page.tsx causing Internal Server Error
+  - Updated root page.tsx to use design tokens and navigation links
+  - Verified dev server working correctly
 - 2026-01-31 08:31: Story implementation complete - All tasks done, ready for review
   - Installed 10 shadcn/ui components via CLI
   - Created ThemeToggle component with icon cycling

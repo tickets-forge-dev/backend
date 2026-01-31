@@ -40,11 +40,11 @@ development_status:
   # Epic 1: Foundation
   epic-1: in-progress
   1-1-project-setup-and-repository-initialization: done
-  1-2-design-system-shadcn-ui-setup-with-linear-inspired-minimalism: review
-  epic-1-retrospective: optional
+  1-2-design-system-shadcn-ui-setup-with-linear-inspired-minimalism: done
+  epic-1-retrospective: done
 
   # Epic 2: Ticket Creation & AEC Engine
-  epic-2: backlog
+  epic-2: contexted
   2-1-ticket-creation-ui-minimal-input-form: backlog
   2-2-generation-progress-transparent-8-step-ui: backlog
   2-3-aec-domain-model-schema-and-persistence: backlog

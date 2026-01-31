@@ -4,7 +4,7 @@ import * as admin from 'firebase-admin';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
-  private app: admin.app.App;
+  private app!: admin.app.App;
 
   constructor(private configService: ConfigService) {}
 
