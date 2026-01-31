@@ -4,7 +4,8 @@ import * as admin from 'firebase-admin';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
-  private app!: admin.app.App;
+  private app: admin.app.App | null = null;
+  private isConfigured = false;
 
   constructor(private configService: ConfigService) {}
 
@@ -17,31 +18,53 @@ export class FirebaseService implements OnModuleInit {
 
     if (!projectId || !privateKey || !clientEmail) {
       console.warn(
-        'Firebase Admin SDK not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env',
+        '⚠️  Firebase Admin SDK not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env',
+      );
+      console.warn(
+        '   Backend will run without Firebase (API endpoints available, but persistence disabled)',
       );
       return;
     }
 
-    this.app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        privateKey,
-        clientEmail,
-      }),
-    });
+    try {
+      this.app = admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          privateKey,
+          clientEmail,
+        }),
+      });
 
-    console.log('✅ Firebase Admin SDK initialized');
+      this.isConfigured = true;
+      console.log('✅ Firebase Admin SDK initialized');
+    } catch (error) {
+      console.error('❌ Firebase initialization failed:', error);
+      console.warn('   Backend will run without Firebase');
+    }
   }
 
   getAuth() {
+    if (!this.app) {
+      throw new Error('Firebase not configured. Cannot access Auth.');
+    }
     return admin.auth(this.app);
   }
 
   getFirestore() {
+    if (!this.app) {
+      throw new Error('Firebase not configured. Cannot access Firestore.');
+    }
     return admin.firestore(this.app);
   }
 
   getStorage() {
+    if (!this.app) {
+      throw new Error('Firebase not configured. Cannot access Storage.');
+    }
     return admin.storage(this.app);
+  }
+
+  isFirebaseConfigured(): boolean {
+    return this.isConfigured;
   }
 }
