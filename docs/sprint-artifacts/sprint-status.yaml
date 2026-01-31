@@ -39,8 +39,8 @@ story_location: '{project-root}/docs/sprint-artifacts'
 development_status:
   # Epic 1: Foundation
   epic-1: in-progress
-  1-1-project-setup-and-repository-initialization: review
-  1-2-design-system-shadcn-ui-setup-with-linear-inspired-minimalism: backlog
+  1-1-project-setup-and-repository-initialization: done
+  1-2-design-system-shadcn-ui-setup-with-linear-inspired-minimalism: in-progress
   epic-1-retrospective: optional
 
   # Epic 2: Ticket Creation & AEC Engine
