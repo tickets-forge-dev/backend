@@ -1,0 +1,226 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>Design System - shadcn/ui Setup with Linear-Inspired Minimalism</title>
+    <status>drafted</status>
+    <generatedAt>2026-01-31</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-2-design-system-shadcn-ui-setup-with-linear-inspired-minimalism.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>frontend developer</asA>
+    <iWant>a design system built on shadcn/ui with Linear-inspired minimalism</iWant>
+    <soThat>the UI is consistent, calm, and professional across all screens</soThat>
+    <tasks>
+      - Task 1: Initialize shadcn/ui and install base components (AC: #1)
+      - Task 2: Create design tokens system in globals.css (AC: #2)
+      - Task 3: Implement Linear design discipline in global styles (AC: #3)
+      - Task 4: Implement dark mode system with theme switching (AC: #4, #5, #6)
+      - Task 5: Create page templates (AC: #7)
+      - Task 6: Implement component patterns (AC: #8)
+      - Task 7: Verify accessibility requirements (AC: #9)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. shadcn/ui Configuration - shadcn/ui initialized with neutral base color, component aliases configured (@/core/components/ui/*), all required base components installed (button, input, textarea, badge, card, dialog, dropdown-menu)
+
+    2. Design Tokens System - Complete design tokens in globals.css with: Neutral scale (50-950), Semantic colors (green, amber, red, blue, purple), Typography scale (12px-22px), Spacing scale (4px base grid), Border radii (small 4px, medium 8px, large 12px), Minimal shadows
+
+    3. Linear Design Discipline - Linear principles enforced: No cards inside cards (flat surfaces), Max content width 720-840px with left-aligned text, Whitespace over dividers (minimal borders), Generous spacing between sections
+
+    4. Dark Mode Support - Full dark mode with: Light/dark palettes in globals.css using data-theme attribute, All components use design tokens (no hardcoded colors), Theme toggle component (System/Light/Dark icons), localStorage + Firestore sync, System theme detection + OS change listener, Smooth transitions (200ms), WCAG 2.1 AA contrast, No flash on load (preload pattern)
+
+    5. Theme Switcher UI - Theme switcher in user profile menu (icon button with tooltip) and Settings → Appearance (radio buttons with live preview)
+
+    6. Dark Mode Component Adaptations - Components adapt for dark mode: Primary button inverted colors, Readiness badges higher opacity (0.2 vs 0.1), Code blocks with dark background, Semantic colors brightened for visibility, All components use design tokens
+
+    7. Page Templates - Five page templates: Default Layout (minimal header, centered content), Tickets List (table/cards with filter bar), Ticket Detail (full-width sections with inline editing), Create Ticket (minimal centered form), Settings (sectioned layout)
+
+    8. Component Patterns - Minimal patterns: Rounded chips (subtle background change), Text-based badges, Button hierarchy (primary/secondary/ghost), Clean form inputs (minimal borders, visible focus), Text/subtle animations (no spinners)
+
+    9. Accessibility Requirements (WCAG 2.1 Level AA) - Color contrast ≥4.5:1 (normal text), ≥3:1 (large text), Keyboard navigation functional, Focus indicators visible (2px blue outline with offset), Screen reader compatible (ARIA labels, semantic HTML), Touch targets ≥44px, No time-pressure interactions
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture: Executable Tickets</title>
+        <section>Epic 1: Foundation - Story 1.2</section>
+        <snippet>Epic 1: Foundation - Story 1.2: shadcn/ui + design tokens setup, Linear-inspired minimalism principles, Component library initialization. Frontend uses Next.js 15 App Router with shadcn/ui component library following Linear's minimalist design philosophy.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture: Executable Tickets</title>
+        <section>Project Structure - Frontend</section>
+        <snippet>Frontend structure: client/src/core/components/ui/ for shadcn/ui components, client/app/globals.css for design tokens, client/src/stores/ for Zustand stores. Import alias @/* for src/, @/core/* for core components.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>forge - Epic Breakdown</title>
+        <section>Story 1.2: Design System</section>
+        <snippet>Complete design system with shadcn/ui initialization, design tokens (colors, typography, spacing, radii, shadows), Linear-inspired minimalism, full dark mode support with theme switching, page templates, WCAG 2.1 AA accessibility compliance.</snippet>
+      </doc>
+      <doc>
+        <path>CLAUDE.md</path>
+        <title>Project Development Behavior</title>
+        <section>Architecture Rules - Client</section>
+        <snippet>Always add new TypeScript files under src/, use feature-by-structure organization, file naming: PascalCase.tsx (components), kebab-case.ts (others), use shadcn/ui components from @/core/components/ui/, UI renders state and triggers actions only (business logic in Zustand stores).</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>client/app/globals.css</path>
+        <kind>stylesheet</kind>
+        <symbol>Design Tokens (partial)</symbol>
+        <lines>1-50+</lines>
+        <reason>Design tokens already partially implemented with neutral palette, semantic colors, backgrounds, borders, text colors, typography scale. Need to complete and refine for full shadcn/ui integration and dark mode support.</reason>
+      </file>
+      <file>
+        <path>client/src/hooks/useTheme.ts</path>
+        <kind>hook</kind>
+        <symbol>useTheme</symbol>
+        <lines>1-61</lines>
+        <reason>Theme switching hook already implemented with localStorage persistence, system theme detection, and OS change listener. Implements System/Light/Dark mode switching. TODO: Firestore sync for cross-device consistency (deferred to Story 2.x+).</reason>
+      </file>
+      <file>
+        <path>client/src/lib/firebase.ts</path>
+        <kind>config</kind>
+        <symbol>Firebase initialization</symbol>
+        <lines>all</lines>
+        <reason>Firebase already configured for Auth, Firestore, Storage. Will be used for theme preference sync in future stories.</reason>
+      </file>
+      <file>
+        <path>client/src/lib/utils.ts</path>
+        <kind>utility</kind>
+        <symbol>cn (className utility)</symbol>
+        <lines>all</lines>
+        <reason>Utility functions for className merging (tailwind-merge + clsx). Used by shadcn/ui components for className composition.</reason>
+      </file>
+      <file>
+        <path>client/app/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>RootLayout</symbol>
+        <lines>all</lines>
+        <reason>Root layout component that will wrap application with theme provider. Imports globals.css for design tokens.</reason>
+      </file>
+      <file>
+        <path>client/app/page.tsx</path>
+        <kind>page</kind>
+        <symbol>Home</symbol>
+        <lines>all</lines>
+        <reason>Current home page with Firebase connection verification. Will be updated to demonstrate design system components and theme switching.</reason>
+      </file>
+      <file>
+        <path>client/tsconfig.json</path>
+        <kind>config</kind>
+        <symbol>Path aliases</symbol>
+        <lines>22-30</lines>
+        <reason>TypeScript path aliases already configured: @/* for root, @/core/* for core components (including @/core/components/ui/* for shadcn/ui), @/stores/*, @/services/*, @/hooks/*, @/lib/*.</reason>
+      </file>
+      <file>
+        <path>client/package.json</path>
+        <kind>config</kind>
+        <symbol>Dependencies</symbol>
+        <lines>all</lines>
+        <reason>Next.js 15, React 19, Zustand, Firebase, Tailwind CSS already installed. Has @radix-ui/react-slot, class-variance-authority, clsx, tailwind-merge (shadcn/ui dependencies). Missing: other @radix-ui/* component primitives (will be installed via shadcn/ui CLI).</reason>
+      </file>
+      <file>
+        <path>client/src/core/components/ui/</path>
+        <kind>directory</kind>
+        <symbol>Empty directory</symbol>
+        <lines>n/a</lines>
+        <reason>Empty directory created for shadcn/ui components. Will be populated by running `npx shadcn@latest add` commands for button, input, textarea, badge, card, dialog, dropdown-menu, accordion, radio-group components.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="next" version="^15.5.11" />
+        <package name="react" version="^19.0.0" />
+        <package name="react-dom" version="^19.0.0" />
+        <package name="zustand" version="^4.5.0" />
+        <package name="firebase" version="^10.8.0" />
+        <package name="tailwindcss" version="^3.4.1" />
+        <package name="@radix-ui/react-slot" version="^1.2.4" />
+        <package name="class-variance-authority" version="^0.7.1" />
+        <package name="clsx" version="^2.1.1" />
+        <package name="tailwind-merge" version="^3.4.0" />
+        <package name="typescript" version="^5.3.3" />
+      </node>
+      <note>shadcn/ui will install additional @radix-ui/* packages as needed: @radix-ui/react-dialog, @radix-ui/react-dropdown-menu, @radix-ui/react-accordion, @radix-ui/react-radio-group, etc.</note>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - MANDATORY: Use dependency injection system via useServices() hook for all services (from CLAUDE.md)
+    - Use Zustand for state management with lazy service access in stores
+    - Follow clean architecture: UI → Use Cases → Repositories → APIs (no business logic in components)
+    - Always add new TypeScript files under src/
+    - Use feature-by-structure organization
+    - File naming: PascalCase.tsx (components), kebab-case.ts (others)
+    - Use shadcn/ui components from @/core/components/ui/
+    - All components must handle loading, error, and empty states
+    - Never use hardcoded colors - always use design tokens
+    - Maintain Linear-inspired minimalism: "If it feels slightly boring, you're doing it right"
+    - No cards inside cards (flat surfaces only)
+    - Whitespace over borders and dividers
+    - Max content width 720-840px, left-aligned text
+    - Generous spacing between sections
+    - WCAG 2.1 Level AA compliance mandatory for all components
+    - No flash of wrong theme on page load (use preload pattern)
+    - Theme preference: localStorage (immediate) → Firestore (sync, deferred to Story 2.x+)
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>useTheme</name>
+      <kind>React Hook</kind>
+      <signature>export function useTheme(): { theme: Theme; setTheme: (newTheme: Theme) => void } where Theme = 'system' | 'light' | 'dark'</signature>
+      <path>client/src/hooks/useTheme.ts</path>
+    </interface>
+    <interface>
+      <name>cn (className utility)</name>
+      <kind>Utility Function</kind>
+      <signature>export function cn(...inputs: ClassValue[]): string</signature>
+      <path>client/src/lib/utils.ts</path>
+    </interface>
+    <interface>
+      <name>shadcn/ui CLI</name>
+      <kind>CLI Tool</kind>
+      <signature>npx shadcn@latest init (one-time setup), npx shadcn@latest add [component] (install components)</signature>
+      <path>External CLI - https://ui.shadcn.com/docs/cli</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing strategy from Story 1.2 Dev Notes: Visual testing (manual verification in light/dark modes, multiple browsers, mobile viewport), Accessibility testing (axe DevTools for automated audit, manual keyboard navigation, screen reader testing with NVDA/VoiceOver, WebAIM Contrast Checker), Theme switching testing (no flash on load, mode cycling, localStorage persistence, OS theme detection, cross-tab sync). Use Jest for unit tests, React Testing Library for component tests.
+    </standards>
+    <locations>
+      - Component tests co-located: client/src/core/components/ui/*.spec.tsx
+      - Integration tests: client/src/__tests__/
+      - E2E tests: (deferred to later stories)
+    </locations>
+    <ideas>
+      - AC#1: Test shadcn/ui components render correctly with neutral theme
+      - AC#2: Test design token CSS variables exist and have correct values (both light and dark)
+      - AC#3: Test max-width constraint applied, no nested cards in DOM
+      - AC#4: Test theme switching (System/Light/Dark) updates data-theme attribute correctly
+      - AC#4: Test localStorage persistence (set theme, reload, verify theme applied)
+      - AC#4: Test OS theme change detection (mock matchMedia change event)
+      - AC#4: Test no flash on load (theme applied before React hydration)
+      - AC#5: Test theme toggle component cycles through modes
+      - AC#6: Test dark mode component adaptations (check computed styles match design tokens)
+      - AC#7: Test page templates render with correct structure
+      - AC#8: Test component patterns (chips, badges, buttons, inputs) match design specs
+      - AC#9: Test color contrast ratios with automated tool (axe-core)
+      - AC#9: Test keyboard navigation (tab order, focus indicators)
+      - AC#9: Test ARIA attributes present and correct
+    </ideas>
+  </tests>
+</story-context>
