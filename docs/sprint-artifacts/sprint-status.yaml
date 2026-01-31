@@ -1,0 +1,75 @@
+# Sprint Status Tracking - Executable Tickets (forge)
+# Generated: 2026-01-30
+# Project: forge
+# Project Key: executable-tickets
+# Tracking System: file-system
+# Story Location: {project-root}/docs/sprint-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2026-01-30
+project: forge
+project_key: executable-tickets
+tracking_system: file-system
+story_location: '{project-root}/docs/sprint-artifacts'
+
+development_status:
+  # Epic 1: Foundation
+  epic-1: in-progress
+  1-1-project-setup-and-repository-initialization: review
+  1-2-design-system-shadcn-ui-setup-with-linear-inspired-minimalism: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Ticket Creation & AEC Engine
+  epic-2: backlog
+  2-1-ticket-creation-ui-minimal-input-form: backlog
+  2-2-generation-progress-transparent-8-step-ui: backlog
+  2-3-aec-domain-model-schema-and-persistence: backlog
+  2-4-ticket-detail-view-aec-rendering: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Clarification & Validation
+  epic-3: backlog
+  3-1-validation-engine-multi-criteria-scoring: backlog
+  3-2-question-generation-intelligent-clarification: backlog
+  3-3-validation-results-ui-explainable-scores: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Code Intelligence & Estimation
+  epic-4: backlog
+  4-1-github-app-integration-read-only-repo-access: backlog
+  4-2-code-indexing-build-repo-index-for-query: backlog
+  4-3-openapi-spec-sync-api-contract-awareness: backlog
+  4-4-drift-detection-snapshot-change-flagging: backlog
+  4-5-effort-estimation-multi-factor-calculation: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Export & Integrations
+  epic-5: backlog
+  5-1-jira-integration-oauth-and-export: backlog
+  5-2-linear-integration-graphql-export: backlog
+  5-3-export-appendices-dev-and-qa-context: backlog
+  epic-5-retrospective: optional
