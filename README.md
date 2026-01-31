@@ -1,13 +1,15 @@
-# Executable Tickets
+# Forge
 
 Transform minimal product intent into validated, code-aware, execution-ready tickets for Jira and Linear.
 
+**Product Name:** Forge (formerly "Executable Tickets" in planning docs)
+
 ## Project Structure
 
-This is a Turborepo monorepo containing:
+**Forge** is a Turborepo monorepo containing:
 
 ```
-executable-tickets/
+forge/
 ├── backend/             # NestJS 10 backend (port 3000)
 ├── client/              # Next.js 15 frontend (port 3001)
 ├── packages/

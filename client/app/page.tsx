@@ -25,7 +25,16 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="text-center">
-        <h1 className="text-4xl font-semibold mb-4">Executable Tickets</h1>
+        <div className="mb-6 flex justify-center">
+          <img
+            src="/forge-icon.png"
+            alt="Forge"
+            width={120}
+            height={120}
+            className="rounded-2xl"
+          />
+        </div>
+        <h1 className="text-4xl font-semibold mb-4">Forge</h1>
         <p className="text-gray-600 mb-8">
           Transform product intent into execution-ready tickets
         </p>
