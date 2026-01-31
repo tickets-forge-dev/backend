@@ -15,7 +15,7 @@ import { UpdateAECDto } from '../dto/UpdateAECDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import { Inject } from '@nestjs/common';
 
-@Controller('api/tickets')
+@Controller('tickets')
 export class TicketsController {
   constructor(
     private readonly createTicketUseCase: CreateTicketUseCase,

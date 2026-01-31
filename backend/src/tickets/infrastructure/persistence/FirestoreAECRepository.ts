@@ -4,14 +4,25 @@ import { AECRepository } from '../../application/ports/AECRepository';
 import { AEC } from '../../domain/aec/AEC';
 import { AECMapper, AECDocument } from './mappers/AECMapper';
 import { AECNotFoundError } from '../../../shared/domain/exceptions/DomainExceptions';
+import { FirebaseService } from '../../../shared/infrastructure/firebase/firebase.config';
 
 @Injectable()
 export class FirestoreAECRepository implements AECRepository {
-  constructor(private readonly firestore: Firestore) {}
+  private firestore: Firestore | null = null;
+
+  constructor(private readonly firebaseService: FirebaseService) {}
+
+  private getFirestore(): Firestore {
+    if (!this.firestore) {
+      this.firestore = this.firebaseService.getFirestore();
+    }
+    return this.firestore;
+  }
 
   async save(aec: AEC): Promise<void> {
+    const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
-    const docRef = this.firestore
+    const docRef = firestore
       .collection('workspaces')
       .doc(aec.workspaceId)
       .collection('aecs')
@@ -21,9 +32,10 @@ export class FirestoreAECRepository implements AECRepository {
   }
 
   async findById(id: string): Promise<AEC | null> {
+    const firestore = this.getFirestore();
     // Note: This simplified implementation doesn't enforce workspace isolation
     // In production, workspaceId should be passed as parameter
-    const snapshot = await this.firestore
+    const snapshot = await firestore
       .collectionGroup('aecs')
       .where('id', '==', id)
       .limit(1)
@@ -38,7 +50,8 @@ export class FirestoreAECRepository implements AECRepository {
   }
 
   async findByWorkspace(workspaceId: string): Promise<AEC[]> {
-    const snapshot = await this.firestore
+    const firestore = this.getFirestore();
+    const snapshot = await firestore
       .collection('workspaces')
       .doc(workspaceId)
       .collection('aecs')
@@ -51,8 +64,9 @@ export class FirestoreAECRepository implements AECRepository {
   }
 
   async update(aec: AEC): Promise<void> {
+    const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
-    const docRef = this.firestore
+    const docRef = firestore
       .collection('workspaces')
       .doc(aec.workspaceId)
       .collection('aecs')

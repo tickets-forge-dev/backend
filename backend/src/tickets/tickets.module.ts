@@ -4,7 +4,7 @@ import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
 import { FirestoreAECRepository } from './infrastructure/persistence/FirestoreAECRepository';
 import { AEC_REPOSITORY } from './application/ports/AECRepository';
-import { Firestore } from 'firebase-admin/firestore';
+import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 
 @Module({
   controllers: [TicketsController],
@@ -13,10 +13,7 @@ import { Firestore } from 'firebase-admin/firestore';
     UpdateAECUseCase,
     {
       provide: AEC_REPOSITORY,
-      useFactory: (firestore: Firestore) => {
-        return new FirestoreAECRepository(firestore);
-      },
-      inject: ['FIRESTORE'],
+      useClass: FirestoreAECRepository,
     },
   ],
   exports: [CreateTicketUseCase, UpdateAECUseCase, AEC_REPOSITORY],

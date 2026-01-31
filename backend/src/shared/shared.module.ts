@@ -10,22 +10,10 @@ import { LLM_CONTENT_GENERATOR } from './application/ports/ILLMContentGenerator'
     FirebaseService,
     LLMConfigService,
     {
-      provide: 'FIRESTORE',
-      useFactory: (firebaseService: FirebaseService) => {
-        // Return null if Firebase not configured (for local dev without Firebase)
-        if (!firebaseService.isFirebaseConfigured()) {
-          console.warn('⚠️  FIRESTORE provider: Firebase not configured, returning null');
-          return null;
-        }
-        return firebaseService.getFirestore();
-      },
-      inject: [FirebaseService],
-    },
-    {
       provide: LLM_CONTENT_GENERATOR,
       useClass: MastraContentGenerator,
     },
   ],
-  exports: [FirebaseService, 'FIRESTORE', LLM_CONTENT_GENERATOR, LLMConfigService],
+  exports: [FirebaseService, LLM_CONTENT_GENERATOR, LLMConfigService],
 })
 export class SharedModule {}
