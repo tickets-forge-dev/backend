@@ -2,8 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@repo/shared-types'],
-  experimental: {
-    turbo: {},
+  turbopack: {
+    root: '../',
   },
 };
 
