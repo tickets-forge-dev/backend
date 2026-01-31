@@ -2,26 +2,345 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens will be added in Story 1.2 */
+/* ============================================ */
+/* FORGE DESIGN TOKENS - Linear + GitHub Style */
+/* ============================================ */
+
 :root {
-  /* Placeholder - Story 1.2 will add complete Linear + GitHub tokens */
-  --background: #ffffff;
-  --foreground: #18181b;
+  /* Neutral Palette (Grayscale) - Very subtle, minimal contrast */
+  --gray-50: #fafafa;
+  --gray-100: #f4f4f5;
+  --gray-200: #e4e4e7;
+  --gray-300: #d4d4d8;
+  --gray-400: #a1a1aa;
+  --gray-500: #71717a;
+  --gray-600: #52525b;
+  --gray-700: #3f3f46;
+  --gray-800: #27272a;
+  --gray-900: #18181b;
+
+  /* Semantic Colors */
+  --green: #10b981;     /* Ready/success ≥75 */
+  --amber: #f59e0b;     /* Needs input 50-74 */
+  --red: #ef4444;       /* Blocked <50 */
+  --blue: #3b82f6;      /* Info/links */
+  --purple: #8b5cf6;    /* Accent (Linear's purple) */
+
+  /* Backgrounds */
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
+  --bg-hover: #f4f4f5;
+  --bg-active: #e4e4e7;
+
+  /* Borders */
+  --border: #e4e4e7;    /* Very subtle borders */
+  --border-hover: #d4d4d8;
+
+  /* Text */
+  --text: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+  --text-placeholder: #a1a1aa;
+
+  /* Typography - System fonts like GitHub */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Type Scale - Linear's compact sizing */
+  --text-xs: 11px;      /* Metadata (GitHub PR labels) */
+  --text-sm: 12px;      /* Labels, captions */
+  --text-base: 13px;    /* Body text (Linear standard) */
+  --text-md: 14px;      /* Emphasized body */
+  --text-lg: 16px;      /* Section headers */
+  --text-xl: 18px;      /* Page titles */
+  --text-2xl: 20px;     /* Hero titles (rare) */
+
+  /* Line Heights - Tight like Linear */
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.5;
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;   /* Use sparingly */
+  --font-semibold: 600; /* Rare - only major headers */
+
+  /* Spacing System - 8px Grid */
+  --space-0: 0;
+  --space-1: 4px;   /* Tight spacing */
+  --space-2: 8px;   /* Base unit */
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Layout Spacing - Generous like Linear */
+  --section-gap: 48px;   /* Between major sections */
+  --card-gap: 16px;      /* Between cards/items */
+  --inline-gap: 12px;    /* Between inline elements */
+
+  /* Border Radius - Subtle like Linear */
+  --radius-sm: 4px;     /* Inputs */
+  --radius: 6px;        /* Standard (Linear's default) */
+  --radius-md: 8px;     /* Cards */
+  --radius-lg: 12px;    /* Modals */
+  --radius-full: 9999px; /* Pills, badges */
+
+  /* Shadows - Barely Visible */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  /* Layout Constants */
+  --content-max: 840px;  /* Main content (Linear's width) */
+  --content-narrow: 640px; /* Forms, focused content */
+  --nav-width: 240px;    /* Sidebar (if used) */
+
+  /* Z-Index Hierarchy */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-toast: 1060;
 }
 
+/* Dark Mode - System Preference */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
+    --bg: #0a0a0a;
+    --bg-subtle: #18181b;
+    --bg-hover: #27272a;
+    --bg-active: #3f3f46;
+    --border: #27272a;
+    --border-hover: #3f3f46;
+
+    --text: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+    --text-placeholder: #71717a;
+
+    /* Semantic colors brightened for dark background */
+    --green: #10b981;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+
+    /* Shadows darker and more prominent */
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.6);
   }
 }
 
+/* Dark Mode - Forced via data attribute */
+[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --bg-subtle: #18181b;
+  --bg-hover: #27272a;
+  --bg-active: #3f3f46;
+  --border: #27272a;
+  --border-hover: #3f3f46;
+
+  --text: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-placeholder: #71717a;
+
+  --green: #10b981;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Light Mode - Forced via data attribute */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
+  --bg-hover: #f4f4f5;
+  --bg-active: #e4e4e7;
+  --border: #e4e4e7;
+  --border-hover: #d4d4d8;
+
+  --text: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+  --text-placeholder: #a1a1aa;
+
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================ */
+/* BASE STYLES */
+/* ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
-  color: var(--foreground);
-  background: var(--background);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth transitions between themes */
+* {
+  transition: background-color 200ms ease-in-out,
+              border-color 200ms ease-in-out,
+              color 200ms ease-in-out;
 }
 
 /* Disable transitions on page load to avoid flash */
 .preload * {
   transition: none !important;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================ */
+/* LINEAR MINIMALISM OVERRIDES */
+/* ============================================ */
+
+/* Remove default shadows from shadcn components */
+.shadow-sm {
+  box-shadow: none;
+}
+
+.shadow-md {
+  box-shadow: none;
+}
+
+/* Flatten buttons */
+.btn-primary {
+  background: var(--text);
+  color: white;
+  box-shadow: none;
+  font-weight: var(--font-medium);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .btn-primary {
+  background: #ffffff;
+  color: #0a0a0a;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+  background: #f4f4f5;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+/* Minimize input styling */
+.input {
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.input:focus {
+  border-color: var(--blue);
+  box-shadow: none;
+  outline: none;
+}
+
+/* Flatten cards */
+.card {
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+/* Simplify badges */
+.badge {
+  font-weight: var(--font-medium);
+  box-shadow: none;
+}
+
+/* Dark mode badge adaptations */
+[data-theme="dark"] .badge-ready {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+[data-theme="dark"] .badge-needs-input {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .badge-blocked {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+/* Code blocks - Dark mode adaptation */
+[data-theme="dark"] code,
+[data-theme="dark"] pre {
+  background: #18181b;
+  color: #e4e4e7;
+  border-color: #27272a;
+}
+
+/* ============================================ */
+/* ACCESSIBILITY - WCAG 2.1 AA */
+/* ============================================ */
+
+/* Focus indicators - Always visible, never remove */
+*:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--text);
+  color: white;
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+
+.skip-link:focus {
+  left: 16px;
 }

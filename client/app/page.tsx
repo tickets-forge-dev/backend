@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { auth, firestore } from '@/lib/firebase';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function Home() {
   const [firebaseStatus, setFirebaseStatus] = useState('Checking...');
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    const next = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system';
+    setTheme(next);
+  };
 
   useEffect(() => {
     // Test Firebase connection
@@ -47,10 +54,24 @@ export default function Home() {
             </p>
           )}
         </div>
-        <p className="text-sm text-gray-500">
-          Project setup complete. Start implementing Story 1.2 (Design System)
+        <p className="text-sm text-gray-500 mb-6">
+          Project setup complete. Story 1.2 (Design System) in progress...
         </p>
+        <div className="flex gap-2 justify-center">
+          <button
+            onClick={cycleTheme}
+            className="px-4 py-2 rounded border text-sm"
+            style={{
+              background: 'var(--bg-hover)',
+              borderColor: 'var(--border)',
+              color: 'var(--text)',
+            }}
+          >
+            Theme: {theme.charAt(0).toUpperCase() + theme.slice(1)}
+          </button>
+        </div>
       </div>
     </main>
   );
+}
 }
