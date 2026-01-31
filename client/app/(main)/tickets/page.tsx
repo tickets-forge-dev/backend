@@ -1,18 +1,25 @@
 import { Card } from '@/core/components/ui/card';
 import { Input } from '@/core/components/ui/input';
 import { Badge } from '@/core/components/ui/badge';
+import { Button } from '@/core/components/ui/button';
+import Link from 'next/link';
 
 export default function TicketsListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
-          Tickets
-        </h1>
-        <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Manage executable tickets
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
+            Tickets
+          </h1>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Manage executable tickets
+          </p>
+        </div>
+        <Link href="/tickets/create">
+          <Button>New Ticket</Button>
+        </Link>
       </div>
 
       {/* Filter bar */}
