@@ -16,10 +16,21 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+console.log('✅ Firebase initialized:', {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain,
+});
+
 // Initialize services
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
 export const storage = getStorage(app);
+
+console.log('✅ Firebase services ready:', {
+  auth: !!auth,
+  firestore: !!firestore,
+  storage: !!storage,
+});
 
 // Enable Firestore offline persistence
 if (typeof window !== 'undefined') {
