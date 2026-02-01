@@ -143,6 +143,8 @@ This PRD defines **UX, system behavior, agent rules, schemas, validation logic, 
 User enters:
 - Title (required)
 - Description (optional)
+- Repository selection (via GitHub integration) *(Updated)*
+- Branch selection (auto-detects default, manual override) *(NEW)*
 
 ### 9.2 Generation Transparency
 UI shows:
