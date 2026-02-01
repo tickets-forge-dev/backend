@@ -5,6 +5,7 @@ import { CodeSnapshot, ApiSnapshot } from '../value-objects/Snapshot';
 import { Question } from '../value-objects/Question';
 import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
+import { RepositoryContext } from '../value-objects/RepositoryContext';
 import {
   InvalidStateTransitionError,
   InsufficientReadinessError,
@@ -31,6 +32,7 @@ export class AEC {
     private _validationResults: ValidationResult[],
     private _externalIssue: ExternalIssue | null,
     private _driftDetectedAt: Date | null,
+    private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
   ) {}
@@ -40,6 +42,7 @@ export class AEC {
     workspaceId: string,
     title: string,
     description?: string,
+    repositoryContext?: RepositoryContext,
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -65,6 +68,7 @@ export class AEC {
       [],
       null,
       null,
+      repositoryContext ?? null,
       new Date(),
       new Date(),
     );
@@ -90,6 +94,7 @@ export class AEC {
     validationResults: ValidationResult[],
     externalIssue: ExternalIssue | null,
     driftDetectedAt: Date | null,
+    repositoryContext: RepositoryContext | null,
     createdAt: Date,
     updatedAt: Date,
   ): AEC {
@@ -112,6 +117,7 @@ export class AEC {
       validationResults,
       externalIssue,
       driftDetectedAt,
+      repositoryContext,
       createdAt,
       updatedAt,
     );
@@ -211,6 +217,11 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  setRepositoryContext(repositoryContext: RepositoryContext): void {
+    this._repositoryContext = repositoryContext;
+    this._updatedAt = new Date();
+  }
+
   // Private helper
   private calculateReadinessScore(results: ValidationResult[]): number {
     if (results.length === 0) return 0;
@@ -272,6 +283,9 @@ export class AEC {
   }
   get driftDetectedAt(): Date | null {
     return this._driftDetectedAt;
+  }
+  get repositoryContext(): RepositoryContext | null {
+    return this._repositoryContext;
   }
   get updatedAt(): Date {
     return this._updatedAt;

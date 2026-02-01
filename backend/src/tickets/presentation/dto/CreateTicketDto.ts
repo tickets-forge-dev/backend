@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsOptional, MinLength, MaxLength, Matches } from 'class-validator';
 
 export class CreateTicketDto {
   @IsString()
@@ -9,4 +9,18 @@ export class CreateTicketDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/, {
+    message: 'repositoryFullName must be in format "owner/repo"',
+  })
+  repositoryFullName?: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9/_-]+$/, {
+    message: 'branchName must contain only alphanumeric, /, -, _',
+  })
+  branchName?: string;
 }
