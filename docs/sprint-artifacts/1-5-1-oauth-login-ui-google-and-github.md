@@ -1,6 +1,6 @@
 # Story 1.5.1: OAuth Login UI - Google and GitHub
 
-Status: review
+Status: done
 
 ## Story
 
@@ -369,7 +369,8 @@ Claude Sonnet 4.5 (1M context) [claude-sonnet-4-5-20250929[1m]]
 ### Completion Notes List
 
 **Completed:** 2026-01-31
-**Definition of Done:** OAuth UI complete, awaiting Firebase Console configuration
+**Marked Done:** 2026-01-31
+**Definition of Done:** OAuth UI complete, Firebase OAuth credentials provided, ready for testing
 
 **Task 2: Auth Service & Store Created:**
 - AuthService with signInWithGoogle(), signInWithGitHub(), signOut()
