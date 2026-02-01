@@ -29,6 +29,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({ user, isLoading: false });
 
+      // Initialize workspace on backend (first login or existing)
+      await authService.initializeWorkspace();
+
       // Navigate to tickets (will be done in component)
     } catch (error: any) {
       set({ isLoading: false, error: error.message });
@@ -43,6 +46,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user = await authService.signInWithGitHub();
 
       set({ user, isLoading: false });
+
+      // Initialize workspace on backend
+      await authService.initializeWorkspace();
 
       // Navigate to tickets (will be done in component)
     } catch (error: any) {

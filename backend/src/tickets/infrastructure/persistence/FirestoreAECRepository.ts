@@ -22,6 +22,7 @@ export class FirestoreAECRepository implements AECRepository {
   async save(aec: AEC): Promise<void> {
     const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
+
     const docRef = firestore
       .collection('workspaces')
       .doc(aec.workspaceId)
@@ -29,6 +30,8 @@ export class FirestoreAECRepository implements AECRepository {
       .doc(aec.id);
 
     await docRef.set(doc);
+
+    console.log(`✅ AEC saved successfully to Firestore`);
   }
 
   async findById(id: string): Promise<AEC | null> {

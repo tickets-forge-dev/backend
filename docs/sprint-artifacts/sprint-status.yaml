@@ -89,5 +89,5 @@ development_status:
   # Epic 1.5: OAuth Authentication (Added for v1)
   epic-1.5: backlog
   1-5-1-oauth-login-ui-google-and-github: done
-  1-5-2-backend-auth-guards-and-workspace-isolation: backlog
+  1-5-2-backend-auth-guards-and-workspace-isolation: review
   epic-1.5-retrospective: optional

@@ -7,6 +7,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateTicketUseCase } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
@@ -14,8 +15,12 @@ import { CreateTicketDto } from '../dto/CreateTicketDto';
 import { UpdateAECDto } from '../dto/UpdateAECDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import { Inject } from '@nestjs/common';
+import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
+import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
+import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 
 @Controller('tickets')
+@UseGuards(FirebaseAuthGuard, WorkspaceGuard)
 export class TicketsController {
   constructor(
     private readonly createTicketUseCase: CreateTicketUseCase,
@@ -26,11 +31,10 @@ export class TicketsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createTicket(@Body() dto: CreateTicketDto) {
-    // TODO: Extract workspaceId from Firebase Auth token (Story 2.3)
-    // For now, using hardcoded workspace for development
-    const workspaceId = 'ws_dev';
-
+  async createTicket(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: CreateTicketDto,
+  ) {
     const aec = await this.createTicketUseCase.execute({
       workspaceId,
       title: dto.title,
@@ -41,19 +45,25 @@ export class TicketsController {
   }
 
   @Get(':id')
-  async getTicket(@Param('id') id: string) {
+  async getTicket(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
     const aec = await this.aecRepository.findById(id);
     if (!aec) {
       throw new Error('AEC not found');
     }
+
+    // Verify AEC belongs to user's workspace
+    if (aec.workspaceId !== workspaceId) {
+      throw new Error('AEC not found'); // Don't reveal it exists in another workspace
+    }
+
     return this.mapToResponse(aec);
   }
 
   @Get()
-  async listTickets() {
-    // TODO: Extract workspaceId from Firebase Auth token
-    const workspaceId = 'ws_dev';
-
+  async listTickets(@WorkspaceId() workspaceId: string) {
     const aecs = await this.aecRepository.findByWorkspace(workspaceId);
     return aecs.map((aec) => this.mapToResponse(aec));
   }

@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { auth } from '@/lib/firebase';
 
 export interface CreateTicketRequest {
   title: string;
@@ -46,6 +47,16 @@ export class TicketService {
         'Content-Type': 'application/json',
       },
       timeout: 30000, // 30 second timeout
+    });
+
+    // Add Firebase ID token to all requests
+    this.client.interceptors.request.use(async (config) => {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
     });
   }
 

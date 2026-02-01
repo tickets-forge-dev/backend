@@ -1,0 +1,183 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1.5</epicId>
+    <storyId>2</storyId>
+    <title>Backend Auth Guards and Workspace Isolation</title>
+    <status>drafted</status>
+    <generatedAt>2026-01-31</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-5-2-backend-auth-guards-and-workspace-isolation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>backend engineer</asA>
+    <iWant>Firebase token validation and workspace isolation</iWant>
+    <soThat>only authenticated users can access their workspace's data</soThat>
+    <tasks>
+      - Task 1: Create Firebase Auth Guard (validate tokens)
+      - Task 2: Create Workspace Guard and @WorkspaceId decorator
+      - Task 3: Create Workspace domain and repository
+      - Task 4: Implement workspace creation on first login
+      - Task 5: Apply guards to all endpoints, remove hardcoded workspaceId
+      - Task 6: Deploy Firestore Security Rules
+      - Task 7: Test authentication end-to-end
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Firebase Auth Guard - All /api/tickets require Authorization: Bearer token, validates with Firebase Admin SDK, returns 401 if missing/invalid, 403 if expired
+
+    2. Workspace Isolation - WorkspaceGuard extracts workspaceId from user, adds to request context, @WorkspaceId() decorator provides to controllers, users scoped to their workspace
+
+    3. Workspace Creation on First Login - New users get workspace auto-created, workspaceId format ws_{uid}, workspace document in Firestore, user document created, custom claims set
+
+    4. Remove Hardcoded Workspace - No workspaceId: 'ws_dev' in code, all use cases extract from context, CreateTicketUseCase uses real workspaceId
+
+    5. Firestore Security Rules - Workspace isolation at DB level, users can only read/write their workspace, enforced by custom claims
+
+    6. Token Refresh Handling - Firebase SDK auto-refreshes expired tokens, backend accepts refreshed tokens
+
+    7. Unauthenticated Request Handling - Returns 401 for missing token, does not execute use case, frontend redirects to /login on 401
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic 1.5: OAuth Authentication</title>
+        <section>Story 1.5.2</section>
+        <snippet>Backend Firebase token validation, workspace isolation via guards, workspace creation on first login, custom claims for workspaceId, Firestore Security Rules enforcement.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Security Architecture - Authentication</section>
+        <snippet>Firebase Auth: Identity provider Google/GitHub. Token validation: Backend validates every request via FirebaseAuthGuard. Workspace Isolation: Token contains workspace claim enforced by WorkspaceGuard. Firestore Security Rules enforce at DB level.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>backend/src/shared/infrastructure/firebase/firebase.config.ts</path>
+        <kind>service</kind>
+        <symbol>FirebaseService</symbol>
+        <lines>all</lines>
+        <reason>Already initialized with getAuth(), getFirestore(). Used by FirebaseAuthGuard to validate tokens via admin.auth().verifyIdToken(). Also used to set custom claims via setCustomUserClaims().</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/presentation/controllers/tickets.controller.ts</path>
+        <kind>controller</kind>
+        <symbol>TicketsController</symbol>
+        <lines>all</lines>
+        <reason>Currently has hardcoded workspaceId: 'ws_dev'. Needs: @UseGuards(FirebaseAuthGuard, WorkspaceGuard), @WorkspaceId() decorator in methods, remove hardcoded workspace.</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/application/use-cases/CreateTicketUseCase.ts</path>
+        <kind>use-case</kind>
+        <symbol>CreateTicketUseCase</symbol>
+        <lines>all</lines>
+        <reason>Accepts workspaceId in command. No changes needed to use case - controller will pass real workspaceId instead of hardcoded.</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/domain/aec/AEC.ts</path>
+        <kind>entity</kind>
+        <symbol>AEC</symbol>
+        <lines>all</lines>
+        <reason>AEC entity has workspaceId field. No changes needed - already supports workspace isolation at domain level.</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/infrastructure/persistence/FirestoreAECRepository.ts</path>
+        <kind>repository</kind>
+        <symbol>FirestoreAECRepository</symbol>
+        <lines>all</lines>
+        <reason>Queries workspaces/{workspaceId}/aecs. Already scoped correctly. Uses workspaceId from AEC entity. No changes needed.</reason>
+      </file>
+      <file>
+        <path>backend/src/app.module.ts</path>
+        <kind>module</kind>
+        <symbol>AppModule</symbol>
+        <lines>all</lines>
+        <reason>Needs to import new modules: WorkspacesModule (for workspace CRUD), AuthModule (for /auth/init endpoint).</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <backend>
+        <package name="@nestjs/common" version="^10.3.0" />
+        <package name="@nestjs/core" version="^10.3.0" />
+        <package name="firebase-admin" version="^12.0.0" />
+        <package name="class-validator" version="^0.14.1" />
+        <package name="zod" version="^3.22.4" />
+      </backend>
+      <note>All required packages already installed. Firebase Admin SDK has verifyIdToken() and setCustomUserClaims() methods available.</note>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Follow Clean Architecture (guards in presentation layer, workspace in domain)
+    - Domain has no framework dependencies (Workspace entity pure TypeScript)
+    - Guards must run in order: FirebaseAuthGuard first, then WorkspaceGuard
+    - Custom claims set after workspace creation (for performance on future requests)
+    - WorkspaceId decorator extracts from request.workspaceId (set by WorkspaceGuard)
+    - All endpoints protected except /auth/init (needs FirebaseAuthGuard only)
+    - Firestore Security Rules are last line of defense (guards + rules)
+    - Error messages user-friendly (401: "Unauthorized", 403: "Forbidden")
+    - Token validation happens on EVERY request (stateless)
+    - WorkspaceId format: ws_{first 12 chars of uid} for readability
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>FirebaseAuthGuard</name>
+      <kind>NestJS Guard</kind>
+      <signature>canActivate(context: ExecutionContext): Promise&lt;boolean&gt; - Validates Bearer token, attaches user to request</signature>
+      <path>backend/src/shared/presentation/guards/FirebaseAuthGuard.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>WorkspaceGuard</name>
+      <kind>NestJS Guard</kind>
+      <signature>canActivate(context: ExecutionContext): Promise&lt;boolean&gt; - Extracts workspaceId, attaches to request</signature>
+      <path>backend/src/shared/presentation/guards/WorkspaceGuard.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>@WorkspaceId()</name>
+      <kind>Parameter Decorator</kind>
+      <signature>@WorkspaceId() workspaceId: string - Extracts workspaceId from request context</signature>
+      <path>backend/src/shared/presentation/decorators/WorkspaceId.decorator.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>admin.auth().verifyIdToken()</name>
+      <kind>Firebase Admin Method</kind>
+      <signature>verifyIdToken(token: string): Promise&lt;DecodedIdToken&gt; - Validates Firebase ID token, returns user data</signature>
+      <path>firebase-admin SDK</path>
+    </interface>
+    <interface>
+      <name>admin.auth().setCustomUserClaims()</name>
+      <kind>Firebase Admin Method</kind>
+      <signature>setCustomUserClaims(uid: string, claims: object): Promise&lt;void&gt; - Sets custom claims on user token</signature>
+      <path>firebase-admin SDK</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests for guards (mock Firebase Admin SDK). Integration tests for protected endpoints (test with/without token). Test workspace isolation (user A can't access user B's data). Test workspace creation on first login. Test custom claims set correctly.
+    </standards>
+    <locations>
+      - Unit tests: backend/src/shared/presentation/guards/*.spec.ts
+      - Integration tests: backend/test/auth.e2e-spec.ts
+      - Use case tests: backend/src/workspaces/application/use-cases/*.spec.ts
+    </locations>
+    <ideas>
+      - AC#1: Mock Firebase verifyIdToken, test guard returns true with valid token
+      - AC#1: Test guard throws UnauthorizedException with invalid token
+      - AC#2: Test WorkspaceGuard extracts workspaceId and attaches to request
+      - AC#3: Test CreateWorkspaceUseCase creates workspace with correct ID format
+      - AC#4: Test controller extracts workspaceId via @WorkspaceId() decorator
+      - AC#5: Mock Firestore security rules validation
+      - AC#7: Test 401 response when no Authorization header
+      - Integration: Create ticket with valid token, verify saved to correct workspace
+      - Integration: Try to access another workspace's ticket, verify 403 or empty results
+    </ideas>
+  </tests>
+</story-context>
