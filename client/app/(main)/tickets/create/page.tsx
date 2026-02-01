@@ -7,13 +7,17 @@ import { Textarea } from '@/core/components/ui/textarea';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { GenerationProgress } from '@/src/tickets/components/GenerationProgress';
+import { useAuthStore } from '@/stores/auth.store';
 
 export default function CreateTicketPage() {
   const router = useRouter();
   const { createTicket, isCreating, createError, clearCreateError } = useTicketsStore();
+  const { user } = useAuthStore();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [createdAecId, setCreatedAecId] = useState<string | null>(null);
 
   // Form validation - title must be at least 3 characters
   const isValid = title.trim().length >= 3;
@@ -28,15 +32,47 @@ export default function CreateTicketPage() {
     const aec = await createTicket(title.trim(), description.trim() || undefined);
 
     if (aec) {
-      // Success - navigate to ticket detail page
-      router.push(`/tickets/${aec.id}`);
+      // Success - show generation progress
+      setCreatedAecId(aec.id);
     }
     // Error state handled by store - displayed below
+  };
+
+  const handleGenerationComplete = () => {
+    console.log('🎉 [CreateTicketPage] Generation complete, navigating to detail');
+    if (createdAecId) {
+      router.push(`/tickets/${createdAecId}`);
+    }
   };
 
   const handleCancel = () => {
     router.push('/tickets');
   };
+
+  // Show generation progress after ticket created
+  if (createdAecId && user) {
+    // Match backend's workspace ID format: ws_{first 12 chars of uid}
+    const workspaceId = `ws_${user.uid.substring(0, 12)}`;
+    
+    return (
+      <div className="mx-auto max-w-[var(--content-max)]">
+        <div className="mb-8">
+          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
+            Generating Ticket
+          </h1>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            AI is analyzing your request and building an executable ticket
+          </p>
+        </div>
+
+        <GenerationProgress
+          aecId={createdAecId}
+          workspaceId={workspaceId}
+          onComplete={handleGenerationComplete}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-[var(--content-narrow)]">

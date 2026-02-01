@@ -48,9 +48,12 @@ export class LLMConfigService {
    */
   getModel(type: ModelType) {
     const modelId = type === 'fast' ? this.fastModel : this.mainModel;
+    console.log(`🔧 [LLMConfig] getModel(${type}) -> ${modelId} via ${this.provider}`);
 
     if (this.provider === 'ollama') {
-      return ollama(modelId);
+      const model = ollama(modelId);
+      console.log(`🔧 [LLMConfig] Created Ollama model instance`);
+      return model;
     } else {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       if (!apiKey) {

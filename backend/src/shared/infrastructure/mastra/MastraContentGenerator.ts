@@ -26,10 +26,29 @@ export class MastraContentGenerator implements ILLMContentGenerator {
     );
   }
 
+  /**
+   * Strip markdown code blocks from LLM response
+   * LLMs often wrap JSON in ```json...``` blocks
+   */
+  private stripMarkdown(text: string): string {
+    // Remove ```json and ``` wrapper
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.slice(7);
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.slice(3);
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.slice(0, -3);
+    }
+    return cleaned.trim();
+  }
+
   async extractIntent(input: {
     title: string;
     description?: string;
   }): Promise<IntentExtraction> {
+    console.log('🤖 [MastraContentGenerator] extractIntent called');
     const model = this.llmConfig.getModel('fast');
 
     const prompt = `Extract the core intent and relevant keywords from this ticket request:
@@ -43,17 +62,26 @@ Respond with JSON:
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }`;
 
-    const result = await generateText({
-      model,
-      prompt,
-    });
+    console.log('🤖 [MastraContentGenerator] Calling LLM...');
+    
+    try {
+      const result = await generateText({
+        model,
+        prompt,
+      });
 
-    // Parse structured output
-    const parsed = JSON.parse(result.text);
-    return {
-      intent: parsed.intent,
-      keywords: parsed.keywords,
-    };
+      console.log('🤖 [MastraContentGenerator] LLM response received:', result.text.substring(0, 100));
+
+      // Parse structured output (strip markdown if present)
+      const parsed = JSON.parse(this.stripMarkdown(result.text));
+      return {
+        intent: parsed.intent,
+        keywords: parsed.keywords,
+      };
+    } catch (error) {
+      console.error('❌ [MastraContentGenerator] extractIntent failed:', error);
+      throw error;
+    }
   }
 
   async detectType(intent: string): Promise<TypeDetection> {
@@ -80,7 +108,7 @@ Guidelines:
       prompt,
     });
 
-    const parsed = JSON.parse(result.text);
+    const parsed = JSON.parse(this.stripMarkdown(result.text));
     return {
       type: parsed.type,
       confidence: parsed.confidence,
@@ -121,7 +149,7 @@ Guidelines:
       prompt,
     });
 
-    const parsed = JSON.parse(result.text);
+    const parsed = JSON.parse(this.stripMarkdown(result.text));
     return {
       acceptanceCriteria: parsed.acceptanceCriteria,
       assumptions: parsed.assumptions,
@@ -168,7 +196,7 @@ Guidelines:
       prompt,
     });
 
-    const parsed = JSON.parse(result.text);
+    const parsed = JSON.parse(this.stripMarkdown(result.text));
     return {
       questions: parsed.questions,
     };
