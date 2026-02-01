@@ -7,6 +7,7 @@ import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -15,7 +16,7 @@ interface TicketDetailPageProps {
 export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const router = useRouter();
   const [ticketId, setTicketId] = useState<string | null>(null);
-  const { currentTicket, isLoading, fetchError, fetchTicket } = useTicketsStore();
+  const { currentTicket, isLoading, fetchError, fetchTicket, updateTicket } = useTicketsStore();
 
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
@@ -65,6 +66,17 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       ? 'bg-[var(--amber)]'
       : 'bg-[var(--red)]';
 
+  // Handle inline editing save
+  const handleSaveAcceptanceCriteria = async (items: string[]) => {
+    if (!ticketId) return;
+    await updateTicket(ticketId, { acceptanceCriteria: items });
+  };
+
+  const handleSaveAssumptions = async (items: string[]) => {
+    if (!ticketId) return;
+    await updateTicket(ticketId, { assumptions: items });
+  };
+
   return (
     <div className="space-y-8">
       {/* Header with title, type, and readiness badge */}
@@ -96,13 +108,12 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             Acceptance Criteria
           </h2>
           <Card className="p-4">
-            <ol className="space-y-2 text-[var(--text-base)] text-[var(--text-secondary)]">
-              {currentTicket.acceptanceCriteria.map((criterion, index) => (
-                <li key={index}>
-                  {index + 1}. {criterion}
-                </li>
-              ))}
-            </ol>
+            <InlineEditableList
+              items={currentTicket.acceptanceCriteria}
+              type="numbered"
+              onSave={handleSaveAcceptanceCriteria}
+              emptyMessage="No acceptance criteria yet"
+            />
           </Card>
         </section>
       )}
@@ -114,11 +125,12 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             Assumptions
           </h2>
           <Card className="p-4">
-            <ul className="space-y-2 text-[var(--text-base)] text-[var(--text-secondary)]">
-              {currentTicket.assumptions.map((assumption, index) => (
-                <li key={index}>• {assumption}</li>
-              ))}
-            </ul>
+            <InlineEditableList
+              items={currentTicket.assumptions}
+              type="bulleted"
+              onSave={handleSaveAssumptions}
+              emptyMessage="No assumptions yet"
+            />
           </Card>
         </section>
       )}

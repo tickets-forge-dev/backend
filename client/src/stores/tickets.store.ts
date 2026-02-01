@@ -10,11 +10,17 @@ interface TicketsState {
   isLoading: boolean;
   loadError: string | null;
   fetchError: string | null;
+  isUpdating: boolean;
+  updateError: string | null;
 
   // Actions
   createTicket: (title: string, description?: string) => Promise<AECResponse | null>;
   loadTickets: () => Promise<void>;
   fetchTicket: (id: string) => Promise<void>;
+  updateTicket: (
+    id: string,
+    data: { acceptanceCriteria?: string[]; assumptions?: string[] }
+  ) => Promise<boolean>;
   clearCreateError: () => void;
 }
 
@@ -26,6 +32,8 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   isLoading: false,
   loadError: null,
   fetchError: null,
+  isUpdating: false,
+  updateError: null,
 
   createTicket: async (title: string, description?: string) => {
     set({ isCreating: true, createError: null });
@@ -73,6 +81,32 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to load ticket';
       set({ isLoading: false, fetchError: errorMessage });
+    }
+  },
+
+  updateTicket: async (
+    id: string,
+    data: { acceptanceCriteria?: string[]; assumptions?: string[] }
+  ) => {
+    set({ isUpdating: true, updateError: null });
+
+    try {
+      const { ticketService } = useServices();
+      const updatedTicket = await ticketService.update(id, data);
+
+      // Update current ticket
+      set({ currentTicket: updatedTicket, isUpdating: false });
+
+      // Also update in tickets list if present
+      set((state) => ({
+        tickets: state.tickets.map((t) => (t.id === id ? updatedTicket : t)),
+      }));
+
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update ticket';
+      set({ isUpdating: false, updateError: errorMessage });
+      return false;
     }
   },
 
