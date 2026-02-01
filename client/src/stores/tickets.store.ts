@@ -4,23 +4,28 @@ import type { AECResponse } from '@/services/ticket.service';
 
 interface TicketsState {
   tickets: AECResponse[];
+  currentTicket: AECResponse | null;
   isCreating: boolean;
   createError: string | null;
   isLoading: boolean;
   loadError: string | null;
+  fetchError: string | null;
 
   // Actions
   createTicket: (title: string, description?: string) => Promise<AECResponse | null>;
   loadTickets: () => Promise<void>;
+  fetchTicket: (id: string) => Promise<void>;
   clearCreateError: () => void;
 }
 
 export const useTicketsStore = create<TicketsState>((set, get) => ({
   tickets: [],
+  currentTicket: null,
   isCreating: false,
   createError: null,
   isLoading: false,
   loadError: null,
+  fetchError: null,
 
   createTicket: async (title: string, description?: string) => {
     set({ isCreating: true, createError: null });
@@ -54,6 +59,20 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to load tickets';
       set({ isLoading: false, loadError: errorMessage });
+    }
+  },
+
+  fetchTicket: async (id: string) => {
+    set({ isLoading: true, fetchError: null, currentTicket: null });
+
+    try {
+      const { ticketService } = useServices();
+      const ticket = await ticketService.getById(id);
+
+      set({ currentTicket: ticket, isLoading: false });
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to load ticket';
+      set({ isLoading: false, fetchError: errorMessage });
     }
   },
 
