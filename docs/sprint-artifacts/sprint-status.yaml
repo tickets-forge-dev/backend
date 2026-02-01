@@ -85,3 +85,9 @@ development_status:
   6-7-document-viewer-and-editor: backlog
   6-8-mastra-workspace-indexing-for-rag: backlog
   epic-6-retrospective: optional
+
+  # Epic 1.5: OAuth Authentication (Added for v1)
+  epic-1.5: backlog
+  1-5-1-oauth-login-ui-google-and-github: review
+  1-5-2-backend-auth-guards-and-workspace-isolation: backlog
+  epic-1.5-retrospective: optional

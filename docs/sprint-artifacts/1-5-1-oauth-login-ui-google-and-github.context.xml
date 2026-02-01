@@ -1,0 +1,214 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1.5</epicId>
+    <storyId>1</storyId>
+    <title>OAuth Login UI - Google and GitHub</title>
+    <status>drafted</status>
+    <generatedAt>2026-01-31</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-5-1-oauth-login-ui-google-and-github.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to sign in with my Google or GitHub account</iWant>
+    <soThat>I can access the application without creating passwords</soThat>
+    <tasks>
+      - Task 1: Configure Firebase OAuth providers (manual setup)
+      - Task 2: Create auth service and store (signInWithGoogle, signInWithGitHub, signOut)
+      - Task 3: Create login page with OAuth buttons
+      - Task 4: Add auth check to protected routes (redirect if not authenticated)
+      - Task 5: Add user menu to header (avatar, sign out)
+      - Task 6: Install OAuth icons
+      - Task 7: Test OAuth flows end-to-end
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Redirect Unauthenticated Users - Protected routes redirect to /login when not authenticated
+
+    2. Login Page Display - Centered card with Forge logo, 2 OAuth buttons (Google primary, GitHub secondary), no email/password fields, uses (auth) layout
+
+    3. Google OAuth Flow - Click "Continue with Google" → Firebase popup → Authorize → Create user if first time → Redirect to /tickets → Session persists
+
+    4. GitHub OAuth Flow - Click "Continue with GitHub" → Same flow as Google → Supports GitHub orgs
+
+    5. OAuth Error Handling - Display friendly error messages (popup blocked, user cancelled, network error), allow retry
+
+    6. Authenticated User Experience - Access all routes, user info in header (avatar, name), sign out option in dropdown menu
+
+    7. Auth State Persistence - Session persists across browser refresh via Firebase onAuthStateChanged listener
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic 1.5: OAuth Authentication</title>
+        <section>Story 1.5.1</section>
+        <snippet>OAuth-only authentication (Google + GitHub). No email/password forms. Firebase Auth handles session, popup flow, user creation. Simpler than traditional auth - just 2 buttons.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Authentication & Authorization</section>
+        <snippet>Firebase Auth for identity. Token-based auth with workspace claim. Frontend stores token in memory. Backend validates on every request via FirebaseAuthGuard. Workspace isolation enforced.</snippet>
+      </doc>
+      <doc>
+        <path>CLAUDE.md</path>
+        <title>Project Standards</title>
+        <section>Client Rules</section>
+        <snippet>MANDATORY: use dependency injection via useServices() hook. Use Zustand for state management. No business logic in components. Handle loading, error, empty states.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>client/src/lib/firebase.ts</path>
+        <kind>config</kind>
+        <symbol>Firebase initialization</symbol>
+        <lines>all</lines>
+        <reason>Firebase already initialized with auth, firestore, storage. Need to add GoogleAuthProvider and GithubAuthProvider exports for OAuth.</reason>
+      </file>
+      <file>
+        <path>client/app/(auth)/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>AuthLayout</symbol>
+        <lines>all</lines>
+        <reason>Already exists from Story 1.2. Centered card layout perfect for login page. Will be reused for /login route.</reason>
+      </file>
+      <file>
+        <path>client/src/core/components/ui/button.tsx</path>
+        <kind>component</kind>
+        <symbol>Button</symbol>
+        <lines>all</lines>
+        <reason>shadcn Button with variants (default for Google primary, secondary for GitHub). Supports disabled state during loading.</reason>
+      </file>
+      <file>
+        <path>client/src/core/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>Card</symbol>
+        <lines>all</lines>
+        <reason>Container for login form. Already used in create ticket page.</reason>
+      </file>
+      <file>
+        <path>client/src/core/components/ui/dropdown-menu.tsx</path>
+        <kind>component</kind>
+        <symbol>DropdownMenu</symbol>
+        <lines>all</lines>
+        <reason>For user menu in header (avatar click → dropdown with user info + sign out option).</reason>
+      </file>
+      <file>
+        <path>client/app/(main)/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>MainLayout</symbol>
+        <lines>all</lines>
+        <reason>Main app layout with header. Needs: (1) AuthCheck wrapper, (2) User menu added to header next to ThemeToggle.</reason>
+      </file>
+      <file>
+        <path>client/src/services/index.ts</path>
+        <kind>service</kind>
+        <symbol>useServices</symbol>
+        <lines>all</lines>
+        <reason>Dependency injection hook. Need to add authService instance. Pattern established in Story 2.1.</reason>
+      </file>
+      <file>
+        <path>client/src/stores/tickets.store.ts</path>
+        <kind>store</kind>
+        <symbol>useTicketsStore</symbol>
+        <lines>all</lines>
+        <reason>Reference for Zustand store pattern. auth.store.ts will follow same structure (state + actions).</reason>
+      </file>
+      <file>
+        <path>client/package.json</path>
+        <kind>config</kind>
+        <symbol>Dependencies</symbol>
+        <lines>all</lines>
+        <reason>Firebase SDK already installed. Has getAuth, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, onAuthStateChanged available.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="firebase" version="^10.8.0" />
+        <package name="next" version="^15.5.11" />
+        <package name="react" version="^19.0.0" />
+        <package name="zustand" version="^4.5.0" />
+        <package name="lucide-react" version="latest" />
+      </node>
+      <note>All required packages already installed. Firebase Auth SDK included in firebase package. OAuth providers (GoogleAuthProvider, GithubAuthProvider) available from firebase/auth module.</note>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - MANDATORY: use useServices() hook for auth service (CLAUDE.md)
+    - Use Zustand for auth state management
+    - NO business logic in components (OAuth calls in service/store only)
+    - NO email/password fields (OAuth-only)
+    - NO signup page (OAuth handles registration automatically)
+    - Handle loading states (disable buttons during OAuth)
+    - Handle error states (popup blocked, user cancelled, network errors)
+    - Persist auth state using Firebase onAuthStateChanged (automatic)
+    - Redirect to /login when not authenticated (AuthCheck wrapper)
+    - User info from OAuth: displayName, email, photoURL
+    - Sign out clears Firebase session and redirects to /login
+    - All new files under src/
+    - File naming: PascalCase.tsx for components, kebab-case.ts for services/stores
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>signInWithPopup</name>
+      <kind>Firebase Auth Method</kind>
+      <signature>signInWithPopup(auth: Auth, provider: AuthProvider): Promise&lt;UserCredential&gt;</signature>
+      <path>firebase/auth module</path>
+    </interface>
+    <interface>
+      <name>onAuthStateChanged</name>
+      <kind>Firebase Auth Listener</kind>
+      <signature>onAuthStateChanged(auth: Auth, callback: (user: User | null) => void): Unsubscribe</signature>
+      <path>firebase/auth module</path>
+    </interface>
+    <interface>
+      <name>AuthService</name>
+      <kind>Service Class</kind>
+      <signature>class AuthService { signInWithGoogle(), signInWithGitHub(), signOut(), getCurrentUser() }</signature>
+      <path>client/src/services/auth.service.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>useAuthStore</name>
+      <kind>Zustand Store</kind>
+      <signature>{ user: User | null, isLoading: boolean, error: string | null, signInWithGoogle(), signInWithGitHub(), signOut() }</signature>
+      <path>client/src/stores/auth.store.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>AuthCheck</name>
+      <kind>React Component</kind>
+      <signature>AuthCheck({ children }): ReactNode - Wraps protected routes, redirects if not authenticated</signature>
+      <path>client/src/lib/auth-check.tsx (to be created)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Manual testing for OAuth flows (Google/GitHub popups). Unit tests for auth store with mocked Firebase. Component tests for login page and AuthCheck redirect. Test error scenarios: popup blocked, user cancels, network failure. Test session persistence across refresh.
+    </standards>
+    <locations>
+      - Unit tests: client/src/stores/auth.store.spec.ts, client/src/services/auth.service.spec.ts
+      - Component tests: client/app/(auth)/login/page.spec.tsx
+      - Integration tests: Full OAuth flow (manual or E2E with Playwright)
+    </locations>
+    <ideas>
+      - AC#1: Test unauthenticated redirect to /login
+      - AC#2: Test login page renders with 2 OAuth buttons
+      - AC#3: Mock Google OAuth popup, verify signInWithGoogle called
+      - AC#4: Mock GitHub OAuth popup, verify signInWithGitHub called
+      - AC#5: Test error display when OAuth fails
+      - AC#6: Test user info displays in header after login
+      - AC#7: Test onAuthStateChanged persists session on refresh
+      - Store: Mock Firebase signInWithPopup, verify store updates
+      - AuthCheck: Test redirect when user is null
+      - Sign out: Test Firebase signOut called, redirects to /login
+    </ideas>
+  </tests>
+</story-context>

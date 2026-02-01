@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, GithubAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -31,6 +31,10 @@ console.log('✅ Firebase services ready:', {
   firestore: !!firestore,
   storage: !!storage,
 });
+
+// OAuth providers
+export const googleProvider = new GoogleAuthProvider();
+export const githubProvider = new GithubAuthProvider();
 
 // Enable Firestore offline persistence
 if (typeof window !== 'undefined') {

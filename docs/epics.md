@@ -1518,3 +1518,138 @@ So that future PRD/Architecture generation can search existing patterns (RAG).
 - Concise outputs (<2000 words combined)
 
 ---
+
+---
+
+## Epic 1.5: OAuth Authentication
+
+**Goal:** Enable users to authenticate with Google or GitHub OAuth, creating isolated workspaces for multi-tenancy.
+
+**Value:** Provides proper user authentication and workspace isolation before ticket creation. No email/password - OAuth only for simplicity.
+
+**Priority:** P0 (foundation - added to v1 plan)
+
+---
+
+### Story 1.5.1: OAuth Login UI - Google and GitHub
+
+As a user,
+I want to sign in with my Google or GitHub account,
+So that I can access the application without creating passwords.
+
+**Acceptance Criteria:**
+
+**Given** an unauthenticated user visits the app
+**When** they navigate to any protected route
+**Then** they are redirected to /login
+
+**And** the login page displays:
+- App logo and title ("Forge")
+- Tagline: "Transform product intent into execution-ready tickets"
+- "Continue with Google" button (primary, with Google icon)
+- "Continue with GitHub" button (secondary, with GitHub icon)
+- No email/password fields
+- No signup link (OAuth handles registration)
+- Uses (auth) layout from Epic 1 (centered card)
+
+**And** when user clicks "Continue with Google":
+- Firebase Auth Google OAuth popup opens
+- User authorizes with Google account
+- On success: User object created in Firebase Auth (if first time)
+- Redirected to /tickets
+- Auth state persists across browser refresh
+
+**And** when user clicks "Continue with GitHub":
+- Firebase Auth GitHub OAuth popup opens
+- Same flow as Google
+- Supports GitHub organizations
+
+**And** when OAuth fails:
+- Error message displayed below buttons
+- User can retry
+- Common errors handled: "Popup blocked", "User cancelled"
+
+**And** authenticated users:
+- Can navigate freely in app
+- See their user info in header (avatar, name)
+- Can sign out from user menu
+
+**Prerequisites:** Story 1.2 (design system with buttons, cards)
+
+**Technical Notes:**
+- Use Firebase Auth SDK: `signInWithPopup(auth, GoogleAuthProvider)`
+- Auth state management: `onAuthStateChanged` listener
+- Store: `client/src/stores/auth.store.ts` with Zustand
+- Protected routes: Wrap (main) layout with auth check
+- Icons: Use lucide-react icons (already installed)
+- Firebase Console setup: Enable Google and GitHub providers
+- GitHub OAuth App: Create at github.com/settings/developers
+
+**Covers:** User authentication (OAuth-only)
+
+---
+
+### Story 1.5.2: Backend Auth Guards and Workspace Isolation
+
+As a backend engineer,
+I want Firebase token validation and workspace isolation,
+So that only authenticated users can access their workspace's data.
+
+**Acceptance Criteria:**
+
+**Given** Firebase Auth is configured
+**When** this story is complete
+**Then** all /api/tickets endpoints require authentication:
+- Request must include `Authorization: Bearer <firebase-token>` header
+- FirebaseAuthGuard validates token with Firebase Admin SDK
+- Returns 401 if token missing or invalid
+- Returns 403 if token expired
+
+**And** workspace isolation is enforced:
+- Token decoded to extract user email/uid
+- WorkspaceGuard maps user to workspaceId
+- Request context includes workspaceId automatically
+- Controllers use `@WorkspaceId() workspaceId: string` decorator
+
+**And** workspace creation on first login:
+- When new user authenticates (first time)
+- Backend creates workspace document: `workspaces/{workspaceId}`
+- workspaceId format: `ws_{hash(email)}` or `ws_{uid}`
+- User document created: `workspaces/{workspaceId}/users/{uid}`
+- User assigned as owner
+
+**And** Firestore Security Rules enforce isolation:
+```javascript
+match /workspaces/{workspaceId}/{document=**} {
+  allow read, write: if request.auth != null &&
+    request.auth.token.workspaceId == workspaceId;
+}
+```
+
+**And** existing tickets use real workspaces:
+- Remove hardcoded `workspaceId: 'ws_dev'`
+- Extract from request context
+- All AECs scoped to user's workspace
+
+**Prerequisites:** Story 1.5.1 (frontend auth)
+
+**Technical Notes:**
+- Guard: `backend/src/shared/presentation/guards/FirebaseAuthGuard.ts`
+- Guard: `backend/src/shared/presentation/guards/WorkspaceGuard.ts`
+- Decorator: `backend/src/shared/presentation/decorators/WorkspaceId.decorator.ts`
+- Use case: `backend/src/workspaces/application/use-cases/CreateWorkspaceUseCase.ts`
+- Domain: `backend/src/workspaces/domain/Workspace.ts`
+- Apply guards to all controllers: `@UseGuards(FirebaseAuthGuard, WorkspaceGuard)`
+- Update TicketsController to use workspaceId from context (not hardcoded)
+
+**Covers:** Backend authentication and multi-tenancy
+
+---
+
+## Epic 1.5 Summary
+
+**Stories:** 2 (OAuth-only, no email/password)
+**Effort:** Small-Medium (much simpler than full auth)
+**Timeline:** NOW (before continuing Epic 2)
+
+---
