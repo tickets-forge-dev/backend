@@ -4,18 +4,22 @@
 
 ---
 ## 0. Document Metadata
-- Version: 1.0
+- Version: 1.1
 - Status: Final (Execution-ready)
 - Audience: Product, Engineering, Design, AI/Agents
-- Last Updated: 2026-01-30
+- Last Updated: 2026-02-01
+- Revision: Added Safety Zones & Zone-Based Execution Model
 
 ---
 ## 1. Executive Summary
 
 Executable Tickets is a system that transforms minimal product intent into validated, code-aware, execution-ready tickets for Jira and Linear.  
-The system introduces a new primitive: the **Agent Executable Contract (AEC)** — a machine-verifiable contract that binds product intent, code reality, API contracts, validation rules, QA verification, and estimation into a single source of truth.
+The system introduces a new primitive: the **Agent Executable Contract (AEC)** — a machine-verifiable contract that binds product intent, code reality, API contracts, validation rules, QA verification, estimation, and **safety zones** into a single source of truth.
 
-This PRD defines **UX, system behavior, agent rules, schemas, validation logic, and delivery epics** in sufficient detail to begin implementation immediately.
+**Key Innovation: Safety Zones & Zone-Based Execution**  
+The AEC includes intelligent guard-rails that detect dangerous code modifications and suggest safer alternatives, ensuring tickets are not just "executable" but "safely executable."
+
+This PRD defines **UX, system behavior, agent rules, schemas, validation logic, safety rails, and delivery epics** in sufficient detail to begin implementation immediately.
 
 ---
 ## 2. Problem Statement (Expanded)
@@ -50,6 +54,7 @@ This PRD defines **UX, system behavior, agent rules, schemas, validation logic, 
 4. **PM-first, never PM-only**
 5. **Agents must be auditable**
 6. **Assumptions must be explicit**
+7. **Safety first, execution second** *(NEW)*
 
 ---
 ## 4. Users & Personas
@@ -143,17 +148,27 @@ User enters:
 UI shows:
 1. Intent extraction
 2. Type detection
-3. Repo index query
+3. Repo index query (with safety zone detection)
 4. API snapshot resolution
 5. Ticket drafting
 6. Validation
 7. Question prep
 8. Estimation
+9. Safety assessment *(NEW)*
 
 Each step:
 - Human-readable
 - Expandable details
 - Retryable
+
+### 9.3 Safety Assessment *(NEW)*
+After generation, UI displays:
+- **Safety Score** (0-100)
+- **Zone Breakdown**: 🟢 Safe / 🟡 Caution / 🔴 Danger / ⚪ Read-Only
+- **Risk Details**: Why files are dangerous
+- **Alternative Approaches**: Safer ways to implement
+- **Required Approvals**: Security reviews, senior sign-offs
+- **Execution Restrictions**: Guardrails before merge
 
 ### 9.3 Clarification
 - Max 3 questions

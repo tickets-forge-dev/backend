@@ -65,6 +65,7 @@ development_status:
   4-3-openapi-spec-sync-api-contract-awareness: backlog
   4-4-drift-detection-snapshot-change-flagging: backlog
   4-5-effort-estimation-multi-factor-calculation: backlog
+  4-6-safety-rails-and-zone-detection: backlog
   epic-4-retrospective: optional
 
   # Epic 5: Export & Integrations
