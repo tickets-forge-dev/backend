@@ -5,28 +5,57 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { useAuthStore } from '@/stores/auth.store';
+import { auth } from '@/lib/firebase';
 import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
+  const { user, signInWithGoogle, signInWithGitHub, handleRedirectResult, isLoading, error, clearError } = useAuthStore();
+
+  // Debug: Log component mount
+  useEffect(() => {
+    console.log('🔵 [LoginPage] Component mounted');
+    console.log('🔵 [LoginPage] Firebase auth object:', !!auth);
+  }, []);
+
+  // Handle OAuth redirect result on mount - CRITICAL: Must be before user check
+  useEffect(() => {
+    let handled = false;
+    
+    const checkRedirect = async () => {
+      if (handled) return;
+      handled = true;
+      
+      console.log('🔵 [LoginPage] Checking redirect result on mount...');
+      const success = await handleRedirectResult();
+      console.log('🔵 [LoginPage] Redirect result success:', success);
+      
+      if (success) {
+        console.log('🔵 [LoginPage] Navigating to /tickets');
+        router.push('/tickets');
+      }
+    };
+    
+    checkRedirect();
+  }, []); // Empty deps - only run once on mount
 
   // If already authenticated, redirect to tickets
   useEffect(() => {
+    console.log('🔵 [LoginPage] Current user:', user?.email || 'none');
     if (user) {
+      console.log('🔵 [LoginPage] User already authenticated, redirecting to /tickets');
       router.push('/tickets');
     }
   }, [user, router]);
 
   const handleGoogleSignIn = async () => {
+    console.log('🔵 [LoginPage] Google sign-in button clicked');
     clearError();
     await signInWithGoogle();
-
-    // Check if sign in was successful (user will be set by onAuthStateChanged)
-    // Navigation happens in AuthCheck component
   };
 
   const handleGitHubSignIn = async () => {
+    console.log('🔵 [LoginPage] GitHub sign-in button clicked');
     clearError();
     await signInWithGitHub();
   };

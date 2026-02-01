@@ -1,6 +1,6 @@
 # Story 1.5.2: Backend Auth Guards and Workspace Isolation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -437,6 +437,10 @@ Claude Sonnet 4.5 (1M context) [claude-sonnet-4-5-20250929[1m]]
 - client/src/services/auth.service.ts (added initializeWorkspace, getIdToken)
 - client/src/services/ticket.service.ts (added axios interceptor for Bearer token)
 - client/src/stores/auth.store.ts (calls initializeWorkspace after OAuth)
+
+### Completion Notes
+**Completed:** 2026-01-31
+**Definition of Done:** All acceptance criteria met, code reviewed, tests passing
 
 ## Change Log
 

@@ -14,18 +14,33 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
-      setUser(user);
-      setAuthenticated(!!user);
-      setLoading(false);
+    let isMounted = true;
+    let isInitial = true;
 
-      // Redirect to login if not authenticated (unless already on login page)
-      if (!user && pathname !== '/login') {
-        router.push('/login');
+    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
+      if (isMounted) {
+        setUser(user);
+        setAuthenticated(!!user);
+        setLoading(false);
+
+        // Only redirect on subsequent checks, not initial load
+        // This prevents redirect loops when auth state updates
+        if (isInitial) {
+          isInitial = false;
+          return;
+        }
+
+        // Redirect to login if not authenticated (unless already on login page)
+        if (!user && pathname !== '/login') {
+          router.push('/login');
+        }
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [pathname, router, setUser]);
 
   // Show loading state while checking auth

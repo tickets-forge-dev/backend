@@ -1,6 +1,6 @@
 # Story 2.2: Generation Progress - Transparent 8-Step UI
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -327,7 +327,7 @@ From [CLAUDE.md](../../CLAUDE.md):
 
 ### Context Reference
 
-<!-- Path(s) to story context XML will be added here by context workflow -->
+- [Story Context](./2-2-generation-progress-transparent-8-step-ui.context.xml)
 
 ### Agent Model Used
 

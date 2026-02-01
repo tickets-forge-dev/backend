@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { AuthInitializer } from '@/src/components/AuthInitializer';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
+        <AuthInitializer />
         <div id="main-content">{children}</div>
         <Script id="remove-preload" strategy="afterInteractive">
           {`

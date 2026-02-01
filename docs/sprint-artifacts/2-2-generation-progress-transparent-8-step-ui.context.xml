@@ -1,0 +1,193 @@
+<story-context id="2-2-generation-progress-transparent-8-step-ui" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2.2</storyId>
+    <title>Generation Progress - Transparent 8-Step UI</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2026-01-31</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/2-2-generation-progress-transparent-8-step-ui.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Product Manager</asA>
+    <iWant>to see real-time progress through ticket generation steps</iWant>
+    <soThat>I trust the system and understand what's happening</soThat>
+    <tasks>
+      <task id="1" ac="1,2,3">Create GenerationProgress component with 8 steps, status indicators, expandable details</task>
+      <task id="2" ac="3,6">Implement Firestore real-time listener for AEC generationState</task>
+      <task id="3" ac="4">Wire generation into create flow, navigate to detail on complete</task>
+      <task id="4" ac="5,7">Implement step retry functionality</task>
+      <task id="5" ac="7">Add timeout handling with user-friendly messages</task>
+      <task id="6" ac="2,3">Backend: Create GenerationOrchestrator service for 8-step orchestration</task>
+      <task id="7" ac="2">Backend: Implement LLM steps (1,2,5,7) via ILLMContentGenerator</task>
+      <task id="8" ac="2">Backend: Implement stub steps (3,4,6,8) for Epic 2</task>
+      <task id="9">Write tests for component and orchestrator</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1">UI displays 8 steps vertically with step number, title, status indicator, expandable details, retry button</ac>
+    <ac id="2">8 steps shown: Intent extraction, Type detection, Repo index query, API snapshot resolution, Ticket drafting, Validation, Question prep, Estimation</ac>
+    <ac id="3">Real-time updates: status changes pending → in-progress → complete, details populate, next step auto-starts</ac>
+    <ac id="4">On complete: UI transitions to ticket detail view, AEC status updates to 'validated'</ac>
+    <ac id="5">On failure: step shows error status, error message in details, retry button appears</ac>
+    <ac id="6">Progress persists in Firestore - user can navigate away and return</ac>
+    <ac id="7">Step timeout: 30s max per step, user-friendly timeout message, retry available</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-2.md" title="Epic 2 Technical Specification" section="Story 2.2" snippet="GenerationProgress.tsx subscribes to AEC via Firestore listener. Backend GenerationOrchestrator executes 8 steps. Steps 1,2,5,7 use LLM. Steps 3,4,6,8 are stubs." />
+      <doc path="docs/epics.md" title="Epics Document" section="Story 2.2" snippet="Real-time progress through 8 generation steps with retry capability. AEC generationState field tracks step completion." />
+      <doc path="docs/architecture.md" title="Architecture" section="Real-time Updates" snippet="Backend updates Firestore after each step. Frontend subscribes via onSnapshot listener. No WebSockets needed." />
+      <doc path="docs/prd.md" title="PRD" section="FR2" snippet="System shows real-time progress through 8 generation steps with transparency into each phase." />
+    </docs>
+
+    <code>
+      <!-- Backend: Domain -->
+      <file path="backend/src/tickets/domain/aec/AEC.ts" kind="entity" symbol="AEC" reason="Core domain entity with updateGenerationState() method for step tracking" />
+      <file path="backend/src/tickets/domain/value-objects/GenerationState.ts" kind="value-object" symbol="GenerationState, GenerationStateFactory" reason="Defines 8-step structure with status tracking per step" />
+
+      <!-- Backend: Application -->
+      <file path="backend/src/tickets/application/use-cases/CreateTicketUseCase.ts" kind="use-case" symbol="CreateTicketUseCase" reason="Orchestrates ticket creation - will call GenerationOrchestrator" />
+      <file path="backend/src/tickets/application/ports/AECRepository.ts" kind="port" symbol="AECRepository" reason="Repository interface for persisting AEC after each step" />
+
+      <!-- Backend: Infrastructure -->
+      <file path="backend/src/tickets/infrastructure/persistence/FirestoreAECRepository.ts" kind="repository" symbol="FirestoreAECRepository" reason="Firestore persistence - writes trigger frontend updates" />
+      <file path="backend/src/tickets/presentation/controllers/tickets.controller.ts" kind="controller" symbol="TicketsController" reason="REST endpoints for ticket creation and retry" />
+
+      <!-- Frontend: Services -->
+      <file path="client/src/services/ticket.service.ts" kind="service" symbol="TicketService" reason="HTTP client with Bearer token auth - has create(), getById()" />
+      <file path="client/src/services/index.ts" kind="di" symbol="useServices" reason="Dependency injection hook for services" />
+
+      <!-- Frontend: Stores -->
+      <file path="client/src/stores/tickets.store.ts" kind="store" symbol="useTicketsStore" reason="Zustand store for ticket state management" />
+
+      <!-- Frontend: UI Components (shadcn) -->
+      <file path="client/src/core/components/ui/accordion.tsx" kind="component" symbol="Accordion" reason="Expandable step details" />
+      <file path="client/src/core/components/ui/badge.tsx" kind="component" symbol="Badge" reason="Status indicators for steps" />
+      <file path="client/src/core/components/ui/button.tsx" kind="component" symbol="Button" reason="Retry button" />
+      <file path="client/src/core/components/ui/card.tsx" kind="component" symbol="Card" reason="Step container" />
+    </code>
+
+    <dependencies>
+      <frontend>
+        <package name="next" version="15.x" />
+        <package name="react" version="19.x" />
+        <package name="zustand" version="4.x" />
+        <package name="firebase" version="10.x" note="For Firestore onSnapshot listener" />
+        <package name="axios" version="1.x" />
+        <package name="lucide-react" version="0.563.x" note="Icons for step status" />
+        <package name="@radix-ui/react-accordion" version="1.2.x" />
+      </frontend>
+      <backend>
+        <package name="@nestjs/common" version="10.x" />
+        <package name="firebase-admin" version="12.x" note="Firestore writes" />
+        <package name="ai" version="6.x" note="AI SDK for LLM calls" />
+        <package name="@ai-sdk/openai" version="3.x" />
+        <package name="@ai-sdk/anthropic" version="3.x" />
+        <package name="zod" version="3.x" note="Structured output validation" />
+      </backend>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="GenerationState" kind="type">
+      <signature>
+interface GenerationState {
+  currentStep: number;
+  steps: GenerationStep[];
+}
+interface GenerationStep {
+  id: number;
+  title: string;
+  status: 'pending' | 'in-progress' | 'complete' | 'failed';
+  details?: string;
+  error?: string;
+}
+      </signature>
+      <path>backend/src/tickets/domain/value-objects/GenerationState.ts</path>
+    </interface>
+
+    <interface name="AEC.updateGenerationState" kind="method">
+      <signature>updateGenerationState(generationState: GenerationState): void</signature>
+      <path>backend/src/tickets/domain/aec/AEC.ts:173</path>
+    </interface>
+
+    <interface name="AECRepository" kind="port">
+      <signature>
+interface AECRepository {
+  save(aec: AEC): Promise&lt;void&gt;;
+  findById(id: string): Promise&lt;AEC | null&gt;;
+  findByWorkspace(workspaceId: string): Promise&lt;AEC[]&gt;;
+  update(aec: AEC): Promise&lt;void&gt;;
+}
+      </signature>
+      <path>backend/src/tickets/application/ports/AECRepository.ts</path>
+    </interface>
+
+    <interface name="TicketService.create" kind="method">
+      <signature>async create(data: CreateTicketRequest): Promise&lt;AECResponse&gt;</signature>
+      <path>client/src/services/ticket.service.ts:63</path>
+    </interface>
+
+    <interface name="TicketService.getById" kind="method">
+      <signature>async getById(id: string): Promise&lt;AECResponse&gt;</signature>
+      <path>client/src/services/ticket.service.ts:75</path>
+    </interface>
+
+    <interface name="POST /api/tickets" kind="REST">
+      <signature>POST /api/tickets { title: string, description?: string } → AECResponse (201)</signature>
+      <path>backend/src/tickets/presentation/controllers/tickets.controller.ts</path>
+    </interface>
+
+    <interface name="Firestore onSnapshot" kind="listener">
+      <signature>
+firestore.doc(`workspaces/${workspaceId}/aecs/${aecId}`).onSnapshot(snapshot => {
+  const data = snapshot.data();
+  setGenerationState(data?.generationState);
+});
+      </signature>
+      <path>Firebase client SDK pattern</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="CLAUDE.md">MANDATORY: use useServices() hook for all services - dependency injection pattern</constraint>
+    <constraint source="CLAUDE.md">Use Zustand for state management with lazy service access in stores</constraint>
+    <constraint source="CLAUDE.md">No business logic in UI hooks or components - generation logic in backend</constraint>
+    <constraint source="CLAUDE.md">Always handle loading, error, and empty states in components</constraint>
+    <constraint source="architecture.md">Clean Architecture: domain has no framework dependencies</constraint>
+    <constraint source="architecture.md">All mutations through use cases → domain → repository</constraint>
+    <constraint source="tech-spec">Each generation step: &lt;10s typical, 30s timeout</constraint>
+    <constraint source="tech-spec">Total generation target: &lt;60 seconds</constraint>
+    <constraint source="tech-spec">LLM calls: Steps 1,2,5,7 via ILLMContentGenerator. Steps 3,4,6,8 are stubs.</constraint>
+    <constraint source="tech-spec">Firestore write after EACH step completion for real-time updates</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Jest for unit and integration tests. Test files co-located with source or in __tests__ folder.
+      Frontend: Test component rendering, Firestore listener mocking, status transitions.
+      Backend: Test orchestrator step execution, repository mock, timeout handling.
+      Coverage target: 80% domain/application, 60% infrastructure/UI.
+    </standards>
+    <locations>
+      <pattern>backend/src/**/*.spec.ts</pattern>
+      <pattern>client/src/**/*.test.tsx</pattern>
+    </locations>
+    <ideas>
+      <idea ac="1">Test GenerationProgress renders all 8 steps with correct titles and status icons</idea>
+      <idea ac="2">Test step titles match spec: Intent extraction, Type detection, etc.</idea>
+      <idea ac="3">Test Firestore listener updates component state on snapshot change</idea>
+      <idea ac="4">Test navigation to detail view when all steps complete</idea>
+      <idea ac="5">Test retry button appears on failed step, calls retry endpoint</idea>
+      <idea ac="6">Test component shows persisted progress after remount</idea>
+      <idea ac="7">Test timeout error message is user-friendly, retry button works</idea>
+      <idea>Backend: Test GenerationOrchestrator executes 8 steps sequentially</idea>
+      <idea>Backend: Test step failure marks step as failed, stores error</idea>
+      <idea>Backend: Test Firestore update called after each step</idea>
+    </ideas>
+  </tests>
+</story-context>

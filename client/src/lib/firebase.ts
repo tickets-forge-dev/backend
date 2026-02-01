@@ -19,10 +19,16 @@ const app = initializeApp(firebaseConfig);
 console.log('✅ Firebase initialized:', {
   projectId: firebaseConfig.projectId,
   authDomain: firebaseConfig.authDomain,
+  currentOrigin: typeof window !== 'undefined' ? window.location.origin : 'server'
 });
 
 // Initialize services
 export const auth = getAuth(app);
+
+// Force emulator connection for local development if needed
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  console.log('🔧 Running on localhost - auth will redirect to current origin');
+}
 export const firestore = getFirestore(app);
 export const storage = getStorage(app);
 
