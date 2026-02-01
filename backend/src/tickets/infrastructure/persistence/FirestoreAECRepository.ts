@@ -23,6 +23,15 @@ export class FirestoreAECRepository implements AECRepository {
     const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
 
+    const path = `workspaces/${aec.workspaceId}/aecs/${aec.id}`;
+    console.log(`📝 [FirestoreAECRepository] Saving AEC to path: ${path}`);
+    console.log(`📝 [FirestoreAECRepository] Document data:`, {
+      id: doc.id,
+      workspaceId: doc.workspaceId,
+      title: doc.title,
+      status: doc.status,
+    });
+
     const docRef = firestore
       .collection('workspaces')
       .doc(aec.workspaceId)
@@ -31,25 +40,35 @@ export class FirestoreAECRepository implements AECRepository {
 
     await docRef.set(doc);
 
-    console.log(`✅ AEC saved successfully to Firestore`);
+    console.log(`✅ AEC saved successfully to Firestore at ${path}`);
   }
 
   async findById(id: string): Promise<AEC | null> {
     const firestore = this.getFirestore();
-    // Note: This simplified implementation doesn't enforce workspace isolation
-    // In production, workspaceId should be passed as parameter
-    const snapshot = await firestore
-      .collectionGroup('aecs')
-      .where('id', '==', id)
-      .limit(1)
-      .get();
-
-    if (snapshot.empty) {
+    
+    // Note: We use collectionGroup to find across all workspaces
+    // This requires the workspaceId to be validated by auth guards
+    // For now, we need to scan all workspaces (not ideal but works)
+    
+    try {
+      // Get all workspaces
+      const workspacesSnapshot = await firestore.collection('workspaces').listDocuments();
+      
+      // Try to find the AEC in each workspace
+      for (const workspaceRef of workspacesSnapshot) {
+        const aecRef = workspaceRef.collection('aecs').doc(id);
+        const aecDoc = await aecRef.get();
+        
+        if (aecDoc.exists) {
+          return AECMapper.toDomain(aecDoc.data() as AECDocument);
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('❌ [FirestoreAECRepository] findById error:', error);
       return null;
     }
-
-    const doc = snapshot.docs[0].data() as AECDocument;
-    return AECMapper.toDomain(doc);
   }
 
   async findByWorkspace(workspaceId: string): Promise<AEC[]> {
