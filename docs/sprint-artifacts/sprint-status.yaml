@@ -1,5 +1,5 @@
 # Sprint Status Tracking - Executable Tickets (forge)
-# Generated: 2026-02-02T18:24:01.571Z
+# Generated: 2026-02-02T22:13:46.466Z
 # Project: forge
 # Project Key: forge
 # Tracking System: file-system
@@ -30,7 +30,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-02-02T18:24:01.571Z
+generated: 2026-02-02T22:13:46.466Z
 project: forge
 project_key: forge
 tracking_system: file-system
@@ -92,3 +92,10 @@ development_status:
   1-5-1-oauth-login-ui-google-and-github: done
   1-5-2-backend-auth-guards-and-workspace-isolation: done
   epic-1-5-retrospective: optional
+
+# Recent Enhancements (2026-02-02):
+# - Ticket creation flow: Repository selector now shows only indexed repos
+# - Index details made expandable for compact UI
+# - Repository context fully integrated into ticket generation (Step 3)
+# - Settings moved to user dropdown menu
+# - Fixed GitHub token authentication for repository validation
