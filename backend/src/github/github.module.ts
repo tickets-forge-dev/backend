@@ -12,7 +12,7 @@ import { GitHubController } from './presentation/controllers/github.controller';
 import { GitHubOAuthController } from './presentation/controllers/github-oauth.controller';
 import { GitHubTokenService } from './application/services/github-token.service';
 import { FirestoreGitHubIntegrationRepository } from './infrastructure/persistence/firestore-github-integration.repository';
-import { getFirestore } from 'firebase-admin/firestore';
+import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 
 const GITHUB_INTEGRATION_REPOSITORY = 'GITHUB_INTEGRATION_REPOSITORY';
 
@@ -23,10 +23,20 @@ const GITHUB_INTEGRATION_REPOSITORY = 'GITHUB_INTEGRATION_REPOSITORY';
     GitHubTokenService,
     {
       provide: GITHUB_INTEGRATION_REPOSITORY,
-      useFactory: () => {
-        const firestore = getFirestore();
-        return new FirestoreGitHubIntegrationRepository(firestore);
+      useFactory: (firebaseService: FirebaseService) => {
+        try {
+          if (!firebaseService.isFirebaseConfigured()) {
+            console.warn('⚠️  GitHub Integration Repository: Firebase not configured, using null repository');
+            return null;
+          }
+          const firestore = firebaseService.getFirestore();
+          return new FirestoreGitHubIntegrationRepository(firestore);
+        } catch (error) {
+          console.warn('⚠️  GitHub Integration Repository: Failed to initialize, using null repository');
+          return null;
+        }
       },
+      inject: [FirebaseService],
     },
   ],
   exports: [GitHubTokenService, GITHUB_INTEGRATION_REPOSITORY],
