@@ -372,7 +372,7 @@ export function GitHubIntegration() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  Selected repositories are automatically indexed for code-aware ticket generation
+                  Selected repositories are automatically indexed. This process clones the repo, analyzes the code structure, and extracts key information for AI-powered ticket generation.
                 </p>
 
                 {/* Selected Repositories with Indexing Status */}
@@ -432,8 +432,8 @@ export function GitHubIntegration() {
                           )}
                           {status?.status === 'pending' && (
                             <>
-                              <Clock className="h-3 w-3 text-yellow-600" />
-                              <span className="text-xs text-yellow-600">Starting...</span>
+                              <Clock className="h-3 w-3 text-yellow-600 animate-pulse" />
+                              <span className="text-xs text-yellow-600">Cloning repository...</span>
                             </>
                           )}
                           {isQueued && !status && (
@@ -446,9 +446,9 @@ export function GitHubIntegration() {
                           )}
                           {!status && !isQueued && (
                             <>
-                              <Clock className="h-3 w-3 text-gray-400" />
-                              <span className="text-xs text-gray-400">
-                                Waiting to start...
+                              <Clock className="h-3 w-3 text-blue-500 animate-pulse" />
+                              <span className="text-xs text-blue-600">
+                                Initializing indexing job...
                               </span>
                             </>
                           )}

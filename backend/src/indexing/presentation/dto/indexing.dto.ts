@@ -62,6 +62,9 @@ export class IndexStatusResponseDto {
   @ApiProperty({ description: 'Index ID' })
   indexId!: string;
 
+  @ApiProperty({ description: 'Repository ID from GitHub' })
+  repositoryId!: number;
+
   @ApiProperty({ description: 'Repository name' })
   repositoryName!: string;
 

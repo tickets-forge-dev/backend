@@ -122,10 +122,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       
       // Update or create jobs with existing indexes
       for (const index of indexes) {
-        // Always update with latest index data (including summary)
         jobs.set(index.repositoryName, {
           jobId: index.indexId,
-          repositoryId: index.repositoryName.split('/')[1] ? 0 : 0, // TODO: correlate with repo list
+          repositoryId: index.repositoryId,
           repositoryName: index.repositoryName,
           indexId: index.indexId,
           status: index,

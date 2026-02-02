@@ -75,6 +75,7 @@ export interface IndexJob {
 
 export interface IndexStatus {
   indexId: string;
+  repositoryId: number;
   repositoryName: string;
   status: 'pending' | 'indexing' | 'completed' | 'failed';
   filesIndexed: number;

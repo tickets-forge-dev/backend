@@ -140,6 +140,7 @@ export class IndexingController {
 
     return {
       indexId: index.id,
+      repositoryId: index.repositoryId,
       repositoryName: index.repositoryName,
       status: index.status,
       filesIndexed: index.filesIndexed,
@@ -258,6 +259,7 @@ export class IndexingController {
 
     return indexes.map((index) => ({
       indexId: index.id,
+      repositoryId: index.repositoryId,
       repositoryName: index.repositoryName,
       status: index.status,
       filesIndexed: index.filesIndexed,
