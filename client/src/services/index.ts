@@ -1,5 +1,6 @@
 import { TicketService } from './ticket.service';
 import { AuthService } from './auth.service';
+import { GitHubService } from './github.service';
 
 /**
  * Dependency Injection Hook (MANDATORY per CLAUDE.md)
@@ -10,6 +11,7 @@ import { AuthService } from './auth.service';
 
 let ticketServiceInstance: TicketService | null = null;
 let authServiceInstance: AuthService | null = null;
+let gitHubServiceInstance: GitHubService | null = null;
 
 export function useServices() {
   // Lazy initialization - create service instances only once
@@ -21,8 +23,13 @@ export function useServices() {
     authServiceInstance = new AuthService();
   }
 
+  if (!gitHubServiceInstance) {
+    gitHubServiceInstance = new GitHubService();
+  }
+
   return {
     ticketService: ticketServiceInstance,
     authService: authServiceInstance,
+    gitHubService: gitHubServiceInstance,
   };
 }

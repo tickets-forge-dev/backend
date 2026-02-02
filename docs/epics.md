@@ -423,6 +423,75 @@ So that I can review acceptance criteria, assumptions, and readiness before expo
 
 ---
 
+### Story 2.5: AEC XML Serialization Format
+
+As a developer or AI agent,
+I want the AEC available in a machine-readable XML format,
+So that external systems and agents can parse, validate, and execute tickets programmatically.
+
+**Acceptance Criteria:**
+
+**Given** the AEC domain model exists
+**When** this story is complete
+**Then** an XML schema (XSD) is defined at `docs/schemas/aec-v1.xsd` with:
+- Complete schema for all AEC elements (metadata, intent, requirements, implementation, validation, snapshots, tracking, export)
+- Proper namespacing: `https://executable-tickets.com/schema/aec/v1`
+- Validation rules for required/optional fields
+- Documentation for all elements and attributes
+
+**And** the AEC domain entity has XML serialization methods:
+- `toXML(): string` - generates valid XML conforming to schema
+- Handles null values, CDATA escaping, ISO timestamps
+- Includes all AEC data (acceptance criteria, assumptions, estimates, validation results)
+- Unit tests verify XML output validity against XSD
+
+**And** the AEC domain entity has XML deserialization:
+- Static `fromXML(xml: string): AEC` method
+- Parses XML back to AEC domain entity
+- Validates against XSD schema before parsing
+- Handles malformed XML gracefully with clear error messages
+- Unit tests verify round-trip conversion (AEC → XML → AEC)
+
+**And** XML export is integrated into the system:
+- "Download AEC.xml" button in ticket detail UI
+- XML included as attachment when exporting to Jira/Linear
+- Optional storage in Firebase Storage bucket: `/aec-exports/{aecId}.xml`
+- Generated on-demand (not stored by default in v1)
+
+**And** the XML format includes all critical sections:
+- `<metadata>` - id, workspace, status, readiness, timestamps
+- `<intent>` - title, description, type, user story
+- `<requirements>` - acceptance criteria (with Given/When/Then), assumptions
+- `<implementation>` - tasks, interfaces, artifacts, repoPaths
+- `<validation>` - results, constraints, questions
+- `<snapshots>` - repositoryContext, codeSnapshot, apiSnapshot
+- `<tracking>` - generationState, estimate
+- `<export>` - externalIssue, appendices (if exported)
+
+**And** documentation exists:
+- Complete XML specification in `docs/aec-xml-specification.md`
+- Usage examples for export, version control, agent execution
+- Migration path from v1 → v2 → v3
+
+**Prerequisites:** Story 2.3 (AEC Domain Model)
+
+**Technical Notes:**
+- Schema file: `docs/schemas/aec-v1.xsd`
+- Implementation: Add `toXML()` and `fromXML()` methods to `backend/src/tickets/domain/aec/AEC.ts`
+- Use `xml2js` or `fast-xml-parser` for XML generation/parsing
+- Unit tests: `backend/src/tickets/domain/aec/AEC.xml.spec.ts`
+- Export integration: Update `ExportToJiraUseCase` and `ExportToLinearUseCase`
+- UI: Add download button in `src/tickets/components/TicketDetail.tsx`
+- Storage: Optional Firebase Storage integration via `IStorageService` port
+- **Design Decision:** TypeScript AEC domain entity remains source of truth. XML is a projection/export format, not a replacement.
+- **Out of Scope for v1:** XML as primary storage, real-time XML updates, XML-based API endpoints
+
+**Covers:** FR4 (extended), foundation for external agent execution
+
+**Priority:** P2 (Nice to have for v1, required for v2 with external agent integration)
+
+---
+
 ## Epic 3: Clarification & Validation
 
 **Goal:** Improve ticket quality through intelligent questioning and comprehensive validation.

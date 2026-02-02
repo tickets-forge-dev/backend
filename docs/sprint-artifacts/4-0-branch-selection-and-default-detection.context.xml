@@ -1,0 +1,201 @@
+<story-context id="4-0-branch-selection-and-default-detection" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>0</storyId>
+    <title>Branch Selection &amp; Default Detection</title>
+    <status>drafted</status>
+    <generatedAt>2026-02-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-0-branch-selection-and-default-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Product Manager</asA>
+    <iWant>to select which branch to analyze when creating a ticket</iWant>
+    <soThat>the system generates code-aware tickets based on the correct code state</soThat>
+    <tasks>
+      <task id="1" ac="3">Extend AEC Domain Model - Add RepositoryContext to AEC (PARTIALLY DONE - field exists, needs CreateTicketUseCase integration)</task>
+      <task id="2" ac="1,6">Create GitHub Service - backend methods for repo/branch info (ALREADY EXISTS at shared/infrastructure/github)</task>
+      <task id="3" ac="6">Create GitHub Controller - REST endpoints for frontend (NEW)</task>
+      <task id="4" ac="1,7">Implement Default Branch Caching - Firestore cache with 24hr TTL (NEW)</task>
+      <task id="5" ac="3,4">Update CreateTicketUseCase - integrate GitHubService and RepositoryContext (PARTIAL - DTO ready, logic needed)</task>
+      <task id="6" ac="2,5">Create BranchSelector Component - dropdown with metadata (NEW)</task>
+      <task id="7" ac="5,7">Create RepositorySelector Component - connected repos display (NEW)</task>
+      <task id="8" ac="5">Update CreateTicketForm - add repository/branch section (NEW)</task>
+      <task id="9" ac="5">Update Zustand Store - branch selection state (NEW)</task>
+      <task id="10" ac="2,6">Create GitHub Service (Frontend) - API calls (NEW)</task>
+      <task id="11" ac="7">Handle Edge Cases - error states, fallbacks (NEW)</task>
+      <task id="12" ac="all">Write Tests - unit and integration (NEW)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1">Automatic Default Branch Detection - query GitHub API, auto-select, cache 24hr</ac>
+    <ac id="2">Branch Selector Component - dropdown with metadata, star for default, search/filter</ac>
+    <ac id="3">Repository Context in AEC - store repositoryFullName, branchName, commitSha, isDefaultBranch, selectedAt</ac>
+    <ac id="4">Backend Validation - verify repo access, branch exists, capture commit SHA</ac>
+    <ac id="5">CreateTicket Form Enhancement - repository/branch section, Linear minimalism</ac>
+    <ac id="6">GitHub API Endpoints - GET repos/:owner/:repo and branches, authenticated</ac>
+    <ac id="7">Edge Case Handling - no GitHub, empty repo, deleted branch, rate limits</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/4-1-branch-selection-design.md" title="Branch Selection Design" section="Full Design Spec" snippet="Comprehensive UI/UX design, technical implementation details, edge cases, and testing strategy for branch selection feature." />
+      <doc path="docs/prd_epic4_additions.md" title="Epic 4 PRD Additions" section="Story 4.0" snippet="Problem statement, technical requirements, AEC schema extension, and success criteria for branch selection." />
+      <doc path="docs/architecture.md" title="Architecture" section="Clean Architecture, AEC Domain" snippet="Feature-based modules with presentation/application/domain/infrastructure layers. AEC is core domain entity with state machine." />
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Epic 4: Code Intelligence" snippet="Epic 4 covers code intelligence including GitHub integration, code indexing, and branch awareness." />
+    </docs>
+
+    <code>
+      <!-- Backend: Domain Layer (EXISTING - ready to use) -->
+      <file path="backend/src/tickets/domain/value-objects/RepositoryContext.ts" kind="value-object" symbol="RepositoryContext" reason="ALREADY EXISTS: Full implementation with repositoryFullName, branchName, commitSha, isDefaultBranch, selectedAt, validation, helpers" />
+      <file path="backend/src/tickets/domain/aec/AEC.ts" kind="entity" symbol="AEC" lines="35,setRepositoryContext" reason="ALREADY HAS repositoryContext property and setter - needs integration in CreateTicketUseCase" />
+      <file path="backend/src/tickets/domain/value-objects/AECStatus.ts" kind="enum" symbol="AECStatus" reason="Status enum: DRAFT, VALIDATED, READY, CREATED, DRIFTED" />
+
+      <!-- Backend: Application Layer -->
+      <file path="backend/src/tickets/application/use-cases/CreateTicketUseCase.ts" kind="use-case" symbol="CreateTicketUseCase" reason="NEEDS UPDATE: Add repositoryFullName/branchName handling, integrate GitHubApiService" />
+      <file path="backend/src/tickets/application/ports/AECRepository.ts" kind="port" symbol="AECRepository" reason="Repository interface - already supports repositoryContext through AEC entity" />
+
+      <!-- Backend: Infrastructure - GitHub (EXISTING) -->
+      <file path="backend/src/shared/infrastructure/github/github-api.service.ts" kind="service" symbol="GitHubApiService" reason="ALREADY EXISTS: getRepository, getDefaultBranch, listBranches, getBranchHead, verifyRepositoryAccess, verifyBranchExists - all needed methods present" />
+
+      <!-- Backend: Presentation Layer -->
+      <file path="backend/src/tickets/presentation/controllers/tickets.controller.ts" kind="controller" symbol="TicketsController" reason="Existing controller - may need new endpoints or use existing create with branch params" />
+      <file path="backend/src/tickets/presentation/dto/CreateTicketDto.ts" kind="dto" symbol="CreateTicketDto" reason="ALREADY HAS optional repositoryFullName and branchName with validation - ready to use" />
+
+      <!-- Backend: Infrastructure - Persistence -->
+      <file path="backend/src/tickets/infrastructure/persistence/FirestoreAECRepository.ts" kind="repository" symbol="FirestoreAECRepository" reason="Firestore repository - mapper already handles repositoryContext" />
+      <file path="backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts" kind="mapper" symbol="AECMapper" reason="Maps AEC entity to/from Firestore - handles repositoryContext" />
+
+      <!-- Backend: Module Configuration -->
+      <file path="backend/src/tickets/tickets.module.ts" kind="module" symbol="TicketsModule" reason="Module config - may need to import GitHubApiService" />
+      <file path="backend/src/shared/shared.module.ts" kind="module" symbol="SharedModule" reason="Shared module - GitHubApiService needs to be exported" />
+
+      <!-- Frontend: Store -->
+      <file path="client/src/stores/tickets.store.ts" kind="store" symbol="useTicketsStore" reason="Zustand store - NEEDS UPDATE: add selectedRepository, selectedBranch, availableBranches state and actions" />
+
+      <!-- Frontend: Services -->
+      <file path="client/src/services/ticket.service.ts" kind="service" symbol="TicketService" reason="Ticket API service - CreateTicketRequest already supports optional repositoryFullName/branchName" />
+      <file path="client/src/services/index.ts" kind="barrel" symbol="useServices" reason="Service registry - NEEDS UPDATE: add GitHubService" />
+      <file path="client/src/services/auth.service.ts" kind="service" symbol="AuthService" reason="Auth service pattern to follow for new services" />
+
+      <!-- Frontend: Components (existing patterns) -->
+      <file path="client/src/tickets/components/GenerationProgress.tsx" kind="component" symbol="GenerationProgress" reason="Reference component for UI patterns and styling" />
+
+      <!-- Frontend: UI Components -->
+      <file path="client/src/core/components/ui/select.tsx" kind="ui" symbol="Select" reason="shadcn/ui Select component - use for BranchSelector dropdown" />
+      <file path="client/src/core/components/ui/command.tsx" kind="ui" symbol="Command" reason="shadcn/ui Command - use for searchable branch list" />
+    </code>
+
+    <dependencies>
+      <backend>
+        <package name="@octokit/rest" version="^20.1.2" note="ALREADY INSTALLED - GitHub API client" />
+        <package name="@nestjs/common" version="^10.3.0" note="NestJS framework" />
+        <package name="class-validator" version="^0.14.1" note="DTO validation" />
+        <package name="firebase-admin" version="^12.0.0" note="Firestore for caching" />
+      </backend>
+      <frontend>
+        <package name="zustand" version="^4.5.0" note="State management" />
+        <package name="axios" version="^1.6.5" note="HTTP client" />
+        <package name="@radix-ui/react-select" version="^2.0.0" note="Select primitives via shadcn" />
+      </frontend>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="RepositoryContext" kind="value-object" path="backend/src/tickets/domain/value-objects/RepositoryContext.ts">
+      <signature>
+interface RepositoryContext {
+  repositoryFullName: string;  // "owner/repo"
+  branchName: string;          // "main"
+  commitSha: string;           // HEAD SHA at selection
+  isDefaultBranch: boolean;
+  selectedAt: Date;
+  // Helpers: owner, repo getters, hasDrifted(), equals()
+}
+      </signature>
+    </interface>
+
+    <interface name="GitHubApiService" kind="service" path="backend/src/shared/infrastructure/github/github-api.service.ts">
+      <signature>
+class GitHubApiService {
+  getRepository(owner: string, repo: string): Promise&lt;GitHubRepository&gt;
+  getDefaultBranch(owner: string, repo: string): Promise&lt;string&gt;
+  listBranches(owner: string, repo: string): Promise&lt;GitHubBranch[]&gt;
+  getBranchHead(owner: string, repo: string, branch: string): Promise&lt;string&gt;
+  verifyRepositoryAccess(owner: string, repo: string): Promise&lt;boolean&gt;
+  verifyBranchExists(owner: string, repo: string, branch: string): Promise&lt;boolean&gt;
+}
+      </signature>
+    </interface>
+
+    <interface name="CreateTicketDto" kind="dto" path="backend/src/tickets/presentation/dto/CreateTicketDto.ts">
+      <signature>
+class CreateTicketDto {
+  @IsString() @Length(3, 500) title: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @Matches(/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/) repositoryFullName?: string;
+  @IsOptional() @Matches(/^[a-zA-Z0-9_\/-]+$/) branchName?: string;
+}
+      </signature>
+    </interface>
+
+    <interface name="GitHubController (NEW)" kind="controller" path="backend/src/github/presentation/controllers/github.controller.ts">
+      <signature>
+@Controller('github')
+class GitHubController {
+  @Get('repos/:owner/:repo')
+  getRepository(@Param('owner') owner, @Param('repo') repo): Promise&lt;RepositoryResponse&gt;
+
+  @Get('repos/:owner/:repo/branches')
+  getBranches(@Param('owner') owner, @Param('repo') repo): Promise&lt;BranchesResponse&gt;
+}
+      </signature>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="CLAUDE.md">Clean Architecture: domain has no framework dependencies</constraint>
+    <constraint source="CLAUDE.md">Use dependency injection via useServices() hook for frontend services</constraint>
+    <constraint source="CLAUDE.md">Handle loading, error, and empty states in components</constraint>
+    <constraint source="CLAUDE.md">Use shadcn/ui components from @/core/components/ui/</constraint>
+    <constraint source="architecture.md">Guards: FirebaseAuthGuard + WorkspaceGuard on all endpoints</constraint>
+    <constraint source="architecture.md">Repository pattern: all Firestore access via repositories</constraint>
+    <constraint source="architecture.md">Mapper pattern: domain ↔ Firestore ↔ DTO conversions</constraint>
+    <constraint source="design-spec">Branch caching: 24-hour TTL in Firestore workspaces/{id}/repositoryCache</constraint>
+    <constraint source="design-spec">95% users should stick with default branch (UX metric)</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Use Jest for unit tests. Tests co-located with source (*.spec.ts). Mock external services (GitHubApiService, Firestore). Test domain logic independently. Frontend components tested with React Testing Library.
+    </standards>
+    <locations>
+      <location>backend/src/**/*.spec.ts</location>
+      <location>client/src/**/*.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test getDefaultBranch with various repo configs (main, master, develop, trunk fallback)</idea>
+      <idea ac="1">Test caching: cache hit returns cached value, cache miss fetches from GitHub</idea>
+      <idea ac="2">Test BranchSelector renders branches with metadata, marks default with star</idea>
+      <idea ac="2">Test branch search/filter functionality</idea>
+      <idea ac="3">Test RepositoryContext validation (repo format, branch names)</idea>
+      <idea ac="3">Test AEC.setRepositoryContext updates entity correctly</idea>
+      <idea ac="4">Test CreateTicketUseCase validates repo access before creating ticket</idea>
+      <idea ac="4">Test error handling for 404 (repo not found), 403 (access revoked)</idea>
+      <idea ac="5">Test CreateTicketForm disables submit until branch selected</idea>
+      <idea ac="6">Test GitHub endpoints return correct data structure</idea>
+      <idea ac="7">Test "No GitHub connected" state shows connect button</idea>
+      <idea ac="7">Test empty repository shows appropriate message</idea>
+    </ideas>
+  </tests>
+
+  <notes>
+    <note type="important">Much of the backend foundation ALREADY EXISTS - focus on wiring and frontend</note>
+    <note type="architecture">GitHubApiService exists but is NOT exported from SharedModule - needs to be added</note>
+    <note type="pattern">Follow existing service pattern in auth.service.ts for new github.service.ts</note>
+    <note type="ux">Default branch auto-selection is critical - 95% of users should not change it</note>
+    <note type="dependency">Story 4.1 (GitHub App Integration) is blocked by this story</note>
+  </notes>
+</story-context>

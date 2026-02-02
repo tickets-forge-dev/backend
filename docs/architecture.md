@@ -896,6 +896,59 @@ Workspace (Firebase Auth tenant)
         linear: { token, teamId }
 ```
 
+### AEC XML Serialization Format
+
+**Purpose:** Machine-readable export format for external systems and AI agents.
+
+**Status:** Specification complete (Story 2.5), implementation pending.
+
+**Design Decision:** TypeScript AEC domain entity remains the **source of truth**. XML is a **projection/export format** for:
+- External AI agent execution
+- Jira/Linear/GitHub export attachments
+- Version control alongside code
+- Human-readable documentation archives
+- Schema-validated contracts (XSD)
+
+**Schema Location:** `docs/schemas/aec-v1.xsd`
+
+**Serialization Methods:**
+```typescript
+class AEC {
+  // ... existing domain methods ...
+
+  // XML export (Story 2.5)
+  toXML(): string;
+  static fromXML(xml: string): AEC;
+}
+```
+
+**XML Structure:**
+```xml
+<aec id="aec_abc123" version="1.0" xmlns="https://executable-tickets.com/schema/aec/v1">
+  <metadata><!-- id, workspace, status, readiness, timestamps --></metadata>
+  <intent><!-- title, description, type, user story --></intent>
+  <requirements><!-- acceptance criteria (BDD format), assumptions --></requirements>
+  <implementation><!-- tasks, interfaces, artifacts, repoPaths --></implementation>
+  <validation><!-- results, constraints, questions --></validation>
+  <snapshots><!-- repositoryContext, codeSnapshot, apiSnapshot --></snapshots>
+  <tracking><!-- generationState, estimate --></tracking>
+  <export><!-- externalIssue, dev/QA appendices (if exported) --></export>
+</aec>
+```
+
+**Integration Points:**
+- Export use cases: Attach XML to Jira/Linear issues
+- Download button: Ticket detail UI → Firebase Storage URL
+- Version control: Optional commit alongside code changes
+- External agents: Parse XML for autonomous execution
+
+**Implementation Phase:**
+- **v1 (Story 2.5):** On-demand XML generation, export attachments
+- **v2:** Optional Firebase Storage persistence at `/aec-exports/{aecId}.xml`
+- **v3:** XML-first workflows for distributed agent execution
+
+**Complete Specification:** See `docs/aec-xml-specification.md`
+
 ---
 
 ## API Contracts

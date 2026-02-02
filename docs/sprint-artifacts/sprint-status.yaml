@@ -44,11 +44,12 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Ticket Creation & AEC Engine
-  epic-2: done
+  epic-2: in-progress
   2-1-ticket-creation-ui-minimal-input-form: done
   2-2-generation-progress-transparent-8-step-ui: done
   2-3-aec-domain-model-schema-and-persistence: done
   2-4-ticket-detail-view-aec-rendering: done
+  2-5-aec-xml-serialization-format: drafted
   epic-2-retrospective: optional
 
   # Epic 3: Clarification & Validation
@@ -60,8 +61,8 @@ development_status:
 
   # Epic 4: Code Intelligence & Estimation
   epic-4: in-progress
-  4-0-branch-selection-and-default-detection: backlog
-  4-1-github-app-integration-read-only-repo-access: backlog
+  4-0-branch-selection-and-default-detection: done
+  4-1-github-app-integration-read-only-repo-access: in-progress
   4-2-code-indexing-build-repo-index-for-query: backlog
   4-3-openapi-spec-sync-api-contract-awareness: backlog
   4-4-drift-detection-snapshot-change-flagging: backlog

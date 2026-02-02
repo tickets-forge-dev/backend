@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useServices } from '@/services/index';
 import type { AECResponse } from '@/services/ticket.service';
+import type { BranchInfo } from '@/services/github.service';
 
 interface TicketsState {
   tickets: AECResponse[];
@@ -13,6 +14,14 @@ interface TicketsState {
   isUpdating: boolean;
   updateError: string | null;
 
+  // Branch selection state (AC#5, Task 9)
+  selectedRepository: string | null; // "owner/repo"
+  selectedBranch: string | null;
+  availableBranches: BranchInfo[];
+  defaultBranch: string | null;
+  isBranchesLoading: boolean;
+  branchesError: string | null;
+
   // Actions
   createTicket: (title: string, description?: string) => Promise<AECResponse | null>;
   loadTickets: () => Promise<void>;
@@ -22,6 +31,11 @@ interface TicketsState {
     data: { acceptanceCriteria?: string[]; assumptions?: string[] }
   ) => Promise<boolean>;
   clearCreateError: () => void;
+
+  // Branch selection actions (AC#5, Task 9)
+  setRepository: (repositoryFullName: string | null) => Promise<void>;
+  setBranch: (branchName: string | null) => void;
+  clearBranchSelection: () => void;
 }
 
 export const useTicketsStore = create<TicketsState>((set, get) => ({
@@ -35,17 +49,36 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   isUpdating: false,
   updateError: null,
 
+  // Branch selection state (AC#5, Task 9)
+  selectedRepository: null,
+  selectedBranch: null,
+  availableBranches: [],
+  defaultBranch: null,
+  isBranchesLoading: false,
+  branchesError: null,
+
   createTicket: async (title: string, description?: string) => {
     set({ isCreating: true, createError: null });
 
     try {
       const { ticketService } = useServices();
-      const aec = await ticketService.create({ title, description });
+      const { selectedRepository, selectedBranch } = get();
 
-      // Add to local tickets list
+      const aec = await ticketService.create({
+        title,
+        description,
+        repositoryFullName: selectedRepository || undefined,
+        branchName: selectedBranch || undefined,
+      });
+
+      // Add to local tickets list and clear branch selection
       set((state) => ({
         tickets: [aec, ...state.tickets],
         isCreating: false,
+        selectedRepository: null,
+        selectedBranch: null,
+        availableBranches: [],
+        defaultBranch: null,
       }));
 
       return aec;
@@ -112,5 +145,69 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
 
   clearCreateError: () => {
     set({ createError: null });
+  },
+
+  // Branch selection actions (AC#5, Task 9)
+  setRepository: async (repositoryFullName: string | null) => {
+    if (!repositoryFullName) {
+      set({
+        selectedRepository: null,
+        selectedBranch: null,
+        availableBranches: [],
+        defaultBranch: null,
+        branchesError: null,
+      });
+      return;
+    }
+
+    set({
+      selectedRepository: repositoryFullName,
+      selectedBranch: null,
+      availableBranches: [],
+      defaultBranch: null,
+      isBranchesLoading: true,
+      branchesError: null,
+    });
+
+    try {
+      const { gitHubService } = useServices();
+      const parts = repositoryFullName.split('/');
+      if (parts.length !== 2) {
+        throw new Error('Invalid repository format');
+      }
+
+      const [owner, repo] = parts;
+      const branchesResponse = await gitHubService.getBranches(owner, repo);
+
+      // Auto-select default branch (AC#1)
+      set({
+        availableBranches: branchesResponse.branches,
+        defaultBranch: branchesResponse.defaultBranch,
+        selectedBranch: branchesResponse.defaultBranch,
+        isBranchesLoading: false,
+      });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load branches';
+      set({
+        isBranchesLoading: false,
+        branchesError: errorMessage,
+        availableBranches: [],
+        defaultBranch: null,
+      });
+    }
+  },
+
+  setBranch: (branchName: string | null) => {
+    set({ selectedBranch: branchName });
+  },
+
+  clearBranchSelection: () => {
+    set({
+      selectedRepository: null,
+      selectedBranch: null,
+      availableBranches: [],
+      defaultBranch: null,
+      branchesError: null,
+    });
   },
 }));

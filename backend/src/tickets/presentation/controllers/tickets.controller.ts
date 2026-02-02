@@ -39,6 +39,8 @@ export class TicketsController {
       workspaceId,
       title: dto.title,
       description: dto.description,
+      repositoryFullName: dto.repositoryFullName,
+      branchName: dto.branchName,
     });
 
     return this.mapToResponse(aec);
@@ -99,6 +101,15 @@ export class TicketsController {
       validationResults: aec.validationResults,
       externalIssue: aec.externalIssue,
       driftDetectedAt: aec.driftDetectedAt,
+      repositoryContext: aec.repositoryContext
+        ? {
+            repositoryFullName: aec.repositoryContext.repositoryFullName,
+            branchName: aec.repositoryContext.branchName,
+            commitSha: aec.repositoryContext.commitSha,
+            isDefaultBranch: aec.repositoryContext.isDefaultBranch,
+            selectedAt: aec.repositoryContext.selectedAt,
+          }
+        : null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };

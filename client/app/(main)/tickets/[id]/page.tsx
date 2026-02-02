@@ -167,7 +167,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               </p>
               {currentTicket.estimate.drivers && currentTicket.estimate.drivers.length > 0 && (
                 <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                  {currentTicket.estimate.drivers.map((driver, index) => (
+                  {currentTicket.estimate.drivers.map((driver: string, index: number) => (
                     <li key={index}>• {driver}</li>
                   ))}
                 </ul>
@@ -191,7 +191,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                     {index + 1}. {question.text}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {question.options.map((option) => (
+                    {question.options.map((option: { value: string; label: string }) => (
                       <Badge
                         key={option.value}
                         variant="outline"

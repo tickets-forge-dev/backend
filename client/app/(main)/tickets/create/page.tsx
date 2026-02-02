@@ -8,6 +8,8 @@ import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { GenerationProgress } from '@/src/tickets/components/GenerationProgress';
+import { RepositorySelector } from '@/src/tickets/components/RepositorySelector';
+import { BranchSelector } from '@/src/tickets/components/BranchSelector';
 import { useAuthStore } from '@/stores/auth.store';
 
 export default function CreateTicketPage() {
@@ -151,6 +153,21 @@ export default function CreateTicketPage() {
               onChange={(e) => setDescription(e.target.value)}
               disabled={isCreating}
             />
+          </div>
+
+          {/* Repository & Branch Section (AC#5, Task 8) */}
+          <div className="border-t border-[var(--border)] pt-6 space-y-4">
+            <div>
+              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] mb-1">
+                Repository Context{' '}
+                <span className="text-[var(--text-tertiary)] font-normal">(optional)</span>
+              </h3>
+              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">
+                Select a repository for code-aware ticket generation
+              </p>
+            </div>
+            <RepositorySelector />
+            <BranchSelector />
           </div>
 
           <div className="flex gap-3 justify-end">

@@ -4,6 +4,8 @@ import { auth } from '@/lib/firebase';
 export interface CreateTicketRequest {
   title: string;
   description?: string;
+  repositoryFullName?: string;
+  branchName?: string;
 }
 
 export interface AECResponse {

@@ -147,7 +147,7 @@ export function InlineEditableList({
             {type === 'numbered' ? `${index + 1}.` : '•'}
           </span>
           <Textarea
-            ref={(el) => (textareaRefs.current[index] = el)}
+            ref={(el) => { textareaRefs.current[index] = el; }}
             value={item}
             onChange={(e) => handleItemChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, index)}

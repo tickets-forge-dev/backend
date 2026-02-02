@@ -1,6 +1,15 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType } from '../../../domain/value-objects/AECStatus';
+import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { Timestamp } from 'firebase-admin/firestore';
+
+export interface RepositoryContextDocument {
+  repositoryFullName: string;
+  branchName: string;
+  commitSha: string;
+  isDefaultBranch: boolean;
+  selectedAt: Timestamp;
+}
 
 export interface AECDocument {
   id: string;
@@ -21,12 +30,24 @@ export interface AECDocument {
   validationResults: any[];
   externalIssue: any | null;
   driftDetectedAt: Timestamp | null;
+  repositoryContext: RepositoryContextDocument | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
 export class AECMapper {
   static toDomain(doc: AECDocument): AEC {
+    // Reconstitute repository context if present
+    const repositoryContext = doc.repositoryContext
+      ? RepositoryContext.create({
+          repositoryFullName: doc.repositoryContext.repositoryFullName,
+          branchName: doc.repositoryContext.branchName,
+          commitSha: doc.repositoryContext.commitSha,
+          isDefaultBranch: doc.repositoryContext.isDefaultBranch,
+          selectedAt: doc.repositoryContext.selectedAt.toDate(),
+        })
+      : null;
+
     return AEC.reconstitute(
       doc.id,
       doc.workspaceId,
@@ -46,12 +67,24 @@ export class AECMapper {
       doc.validationResults,
       doc.externalIssue,
       doc.driftDetectedAt?.toDate() ?? null,
+      repositoryContext,
       doc.createdAt.toDate(),
       doc.updatedAt.toDate(),
     );
   }
 
   static toFirestore(aec: AEC): AECDocument {
+    // Map repository context if present
+    const repositoryContext: RepositoryContextDocument | null = aec.repositoryContext
+      ? {
+          repositoryFullName: aec.repositoryContext.repositoryFullName,
+          branchName: aec.repositoryContext.branchName,
+          commitSha: aec.repositoryContext.commitSha,
+          isDefaultBranch: aec.repositoryContext.isDefaultBranch,
+          selectedAt: Timestamp.fromDate(aec.repositoryContext.selectedAt),
+        }
+      : null;
+
     return {
       id: aec.id,
       workspaceId: aec.workspaceId,
@@ -73,6 +106,7 @@ export class AECMapper {
       driftDetectedAt: aec.driftDetectedAt
         ? Timestamp.fromDate(aec.driftDetectedAt)
         : null,
+      repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),
       updatedAt: Timestamp.fromDate(aec.updatedAt),
     };
