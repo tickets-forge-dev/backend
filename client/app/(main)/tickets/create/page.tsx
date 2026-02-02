@@ -41,7 +41,7 @@ export default function CreateTicketPage() {
   };
 
   const handleGenerationComplete = () => {
-    console.log('🎉 [CreateTicketPage] Generation complete, navigating to detail');
+    console.log('🎉 [CreateTicketPage] User clicked View Ticket, navigating to detail');
     if (createdAecId) {
       router.push(`/tickets/${createdAecId}`);
     }
@@ -71,6 +71,7 @@ export default function CreateTicketPage() {
           aecId={createdAecId}
           workspaceId={workspaceId}
           onComplete={handleGenerationComplete}
+          showContinueButton={true}
         />
       </div>
     );

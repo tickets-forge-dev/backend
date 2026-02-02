@@ -26,11 +26,13 @@ interface GenerationProgressProps {
   aecId: string;
   workspaceId: string;
   onComplete?: () => void;
+  showContinueButton?: boolean;
 }
 
-export function GenerationProgress({ aecId, workspaceId, onComplete }: GenerationProgressProps) {
+export function GenerationProgress({ aecId, workspaceId, onComplete, showContinueButton = false }: GenerationProgressProps) {
   const [generationState, setGenerationState] = useState<GenerationState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     console.log('🔵 [GenerationProgress] Subscribing to AEC updates:', aecId);
@@ -55,7 +57,12 @@ export function GenerationProgress({ aecId, workspaceId, onComplete }: Generatio
 
           if (allStepsComplete) {
             console.log('✅ [GenerationProgress] All 8 steps complete!');
-            onComplete?.();
+            setIsComplete(true);
+            
+            // Only auto-navigate if showContinueButton is false
+            if (!showContinueButton) {
+              onComplete?.();
+            }
           }
         }
       },
@@ -107,9 +114,15 @@ export function GenerationProgress({ aecId, workspaceId, onComplete }: Generatio
         <h2 className="text-[var(--text-lg)] font-medium text-[var(--text)]">
           Generation Progress
         </h2>
-        <Badge variant="outline">
-          Step {generationState.currentStep} of 8
-        </Badge>
+        {isComplete ? (
+          <Badge className="bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20">
+            ✓ Complete
+          </Badge>
+        ) : (
+          <Badge variant="outline">
+            Step {generationState.currentStep} of 8
+          </Badge>
+        )}
       </div>
 
       <Accordion type="single" collapsible className="space-y-3">
@@ -182,6 +195,28 @@ export function GenerationProgress({ aecId, workspaceId, onComplete }: Generatio
           </AccordionItem>
         ))}
       </Accordion>
+
+      {/* Show Continue button when complete and showContinueButton prop is true */}
+      {isComplete && showContinueButton && (
+        <Card className="p-6 mt-6 bg-[var(--green)]/5 border-[var(--green)]/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-8 w-8 text-[var(--green)]" />
+              <div>
+                <h3 className="text-[var(--text-base)] font-medium text-[var(--text)]">
+                  Ticket Generated Successfully
+                </h3>
+                <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-0.5">
+                  Your executable ticket is ready to review
+                </p>
+              </div>
+            </div>
+            <Button onClick={onComplete} size="lg">
+              View Ticket
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
