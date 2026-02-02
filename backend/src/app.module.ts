@@ -4,6 +4,7 @@ import { SharedModule } from './shared/shared.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { GitHubModule } from './github/github.module';
+import { IndexingModule } from './indexing/indexing.module';
 
 @Module({
   imports: [
@@ -15,8 +16,8 @@ import { GitHubModule } from './github/github.module';
     WorkspacesModule,
     TicketsModule,
     GitHubModule,
+    IndexingModule,
     // Additional feature modules will be added in subsequent stories
-    // IndexingModule (Story 4.x)
     // IntegrationsModule (Story 5.x)
   ],
   controllers: [],

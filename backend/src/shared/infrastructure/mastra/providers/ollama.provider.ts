@@ -48,7 +48,7 @@ export const createOllamaProvider = (baseURL?: string) => {
  * Create a chat model instance
  * @param modelId - Ollama model name (e.g., 'qwen2.5-coder:latest', 'llama3.1')
  */
-export const ollama = (modelId: string) => {
+export const ollama = (modelId: string): any => {
   const provider = createOllamaProvider();
   return provider.chat(modelId);
 };

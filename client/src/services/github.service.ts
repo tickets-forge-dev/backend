@@ -57,6 +57,39 @@ export interface RepositoriesResponse {
   totalCount: number;
 }
 
+// Story 4.2: Code Indexing types
+export interface IndexJob {
+  indexId: string;
+  message: string;
+}
+
+export interface IndexStatus {
+  indexId: string;
+  repositoryName: string;
+  status: 'pending' | 'indexing' | 'completed' | 'failed';
+  filesIndexed: number;
+  totalFiles: number;
+  filesSkipped: number;
+  parseErrors: number;
+  progress: number;
+  createdAt: string;
+  completedAt?: string;
+  indexDurationMs: number;
+  errorDetails?: {
+    type: string;
+    message: string;
+  };
+}
+
+export interface IndexStats {
+  totalFiles: number;
+  filesIndexed: number;
+  filesSkipped: number;
+  parseErrors: number;
+  languages: Record<string, number>;
+  successRate: number;
+}
+
 export class GitHubService {
   private client: AxiosInstance;
 
@@ -157,6 +190,45 @@ export class GitHubService {
    */
   async disconnect(): Promise<void> {
     await this.client.post('/github/oauth/disconnect');
+  }
+
+  /**
+   * Start indexing for a repository
+   * Story 4.2 - AC#3: Trigger indexing job
+   */
+  async startIndexing(
+    repositoryId: number,
+    repositoryName: string,
+    commitSha: string
+  ): Promise<IndexJob> {
+    const response = await this.client.post<IndexJob>('/indexing/start', {
+      repositoryId,
+      repositoryName,
+      commitSha,
+    });
+    return response.data;
+  }
+
+  /**
+   * Get indexing status
+   * Story 4.2 - AC#3: Poll indexing progress
+   */
+  async getIndexingStatus(indexId: string): Promise<IndexStatus> {
+    const response = await this.client.get<IndexStatus>(
+      `/indexing/status/${indexId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get index statistics
+   * Story 4.2: View language breakdown and quality metrics
+   */
+  async getIndexStats(indexId: string): Promise<IndexStats> {
+    const response = await this.client.get<IndexStats>(
+      `/indexing/stats/${indexId}`
+    );
+    return response.data;
   }
 
   /**

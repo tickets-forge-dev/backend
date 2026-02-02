@@ -46,7 +46,7 @@ export class LLMConfigService {
    * Get model instance based on type and provider
    * @param type - 'fast' for classification (steps 1,2,7), 'main' for content generation (step 5)
    */
-  getModel(type: ModelType) {
+  getModel(type: ModelType): any {
     const modelId = type === 'fast' ? this.fastModel : this.mainModel;
     console.log(`🔧 [LLMConfig] getModel(${type}) -> ${modelId} via ${this.provider}`);
 

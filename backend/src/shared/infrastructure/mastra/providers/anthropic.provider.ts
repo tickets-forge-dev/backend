@@ -17,7 +17,7 @@ export const createAnthropicProvider = (apiKey: string) => {
  * Create a Claude model instance
  * @param modelId - Claude model name
  */
-export const claude = (apiKey: string, modelId: string) => {
+export const claude = (apiKey: string, modelId: string): any => {
   const provider = createAnthropicProvider(apiKey);
   return provider.chat(modelId);
 };
