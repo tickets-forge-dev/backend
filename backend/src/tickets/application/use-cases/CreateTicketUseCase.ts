@@ -3,6 +3,8 @@ import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { GenerationOrchestrator } from '../services/GenerationOrchestrator';
 import { GitHubApiService } from '../../../shared/infrastructure/github/github-api.service';
+import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
+import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
 
 export interface CreateTicketCommand {
@@ -11,7 +13,6 @@ export interface CreateTicketCommand {
   description?: string;
   repositoryFullName?: string;
   branchName?: string;
-  githubAccessToken?: string;
 }
 
 @Injectable()
@@ -21,6 +22,9 @@ export class CreateTicketUseCase {
     private readonly aecRepository: AECRepository,
     private readonly generationOrchestrator: GenerationOrchestrator,
     private readonly gitHubApiService: GitHubApiService,
+    @Inject(GITHUB_INTEGRATION_REPOSITORY)
+    private readonly githubIntegrationRepository: GitHubIntegrationRepository,
+    private readonly githubTokenService: GitHubTokenService,
   ) {}
 
   async execute(command: CreateTicketCommand): Promise<AEC> {
@@ -32,10 +36,19 @@ export class CreateTicketUseCase {
 
     if (command.repositoryFullName && command.branchName) {
       console.log('🎫 [CreateTicketUseCase] Repository context provided:', command.repositoryFullName, '@', command.branchName);
+      
+      // Fetch GitHub access token from integration
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(command.workspaceId);
+      if (!integration) {
+        throw new ForbiddenException('GitHub not connected. Please connect GitHub in Settings.');
+      }
+
+      const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+
       repositoryContext = await this.buildRepositoryContext(
         command.repositoryFullName,
         command.branchName,
-        command.githubAccessToken,
+        accessToken,
       );
     }
 
@@ -75,7 +88,7 @@ export class CreateTicketUseCase {
   private async buildRepositoryContext(
     repositoryFullName: string,
     branchName: string,
-    githubAccessToken?: string,
+    githubAccessToken: string,
   ): Promise<RepositoryContext> {
     const [owner, repo] = repositoryFullName.split('/');
 
