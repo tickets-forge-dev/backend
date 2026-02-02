@@ -102,8 +102,8 @@ export class GenerationOrchestrator {
       );
 
       // Step 6: Validation (Epic 3 - Story 3-1)
+      console.log('🔍 [Step 6] Running comprehensive validation...');
       const validationResults = await this.executeStep(aec, 6, async () => {
-        console.log('🔍 [Step 6] Running validation engine...');
         return await this.validationEngine.validate(aec);
       });
 
@@ -111,10 +111,34 @@ export class GenerationOrchestrator {
       aec.validate(validationResults);
       await this.aecRepository.update(aec);
 
-      // Log validation summary
+      // Log detailed validation summary
       const summary = this.validationEngine.getValidationSummary(validationResults);
-      console.log(`✅ [Step 6] Validation complete: ${(summary.overallScore * 100).toFixed(0)}% (${summary.passed ? 'PASS' : 'FAIL'})`);
-      console.log(`   Passed: ${summary.passedValidators}/${summary.totalValidators}, Issues: ${summary.totalIssues}, Critical: ${summary.criticalIssues}`);
+      console.log(`\n📊 [Validation Summary]`);
+      console.log(`   Overall Score: ${(summary.overallScore * 100).toFixed(1)}% ${summary.passed ? '✅ PASS' : '❌ FAIL'}`);
+      console.log(`   Validators Passed: ${summary.passedValidators}/${summary.totalValidators}`);
+      console.log(`   Total Issues Found: ${summary.totalIssues}`);
+      console.log(`   Critical Blockers: ${summary.criticalIssues}`);
+      
+      // Log individual validator results
+      console.log(`\n   Individual Scores:`);
+      validationResults.forEach(vr => {
+        const icon = vr.passed ? '✅' : '❌';
+        const score = (vr.score * 100).toFixed(0);
+        const weight = vr.weight.toFixed(1);
+        console.log(`     ${icon} ${vr.criterion.padEnd(20)} ${score}% (weight: ${weight})`);
+      });
+      
+      // Log issues if any
+      const allIssues = validationResults.flatMap(vr => vr.issues);
+      if (allIssues.length > 0) {
+        console.log(`\n   ⚠️  Issues Detected:`);
+        allIssues.slice(0, 5).forEach((issue, i) => {
+          console.log(`     ${i + 1}. ${issue}`);
+        });
+        if (allIssues.length > 5) {
+          console.log(`     ... and ${allIssues.length - 5} more`);
+        }
+      }
 
       // Step 7: Question prep (LLM)
       const questionSet = await this.executeStep(aec, 7, async () => {
@@ -160,6 +184,59 @@ export class GenerationOrchestrator {
    * Execute a single generation step with timeout and error handling
    * Updates generationState before/after step execution
    */
+  /**
+   * Format step result for PM-friendly display
+   */
+  private formatStepDetails(stepNum: number, result: any): string {
+    switch (stepNum) {
+      case 1: // Intent extraction
+        return `Identified user intent: "${result.intent?.substring(0, 100) || 'Processing user request'}..."`;
+      
+      case 2: // Type detection
+        return `Detected as ${result.type} ticket${result.confidence ? ` (${Math.round(result.confidence * 100)}% confidence)` : ''}`;
+      
+      case 3: // Repo index query
+        if (!result || result.length === 0) {
+          return 'No repository context selected';
+        }
+        const codeFileCount = (result.match(/```/g) || []).length / 2;
+        return `Found ${Math.floor(codeFileCount)} relevant code ${codeFileCount === 1 ? 'file' : 'files'} from repository`;
+      
+      case 4: // API snapshot
+        return result ? 'API documentation loaded' : 'No external API documentation needed';
+      
+      case 5: // Ticket drafting
+        const acCount = result.acceptanceCriteria?.length || 0;
+        const assumptionCount = result.assumptions?.length || 0;
+        return `Generated ${acCount} acceptance ${acCount === 1 ? 'criterion' : 'criteria'} and ${assumptionCount} ${assumptionCount === 1 ? 'assumption' : 'assumptions'}`;
+      
+      case 6: // Validation
+        if (Array.isArray(result)) {
+          const passed = result.filter(r => r.passed).length;
+          const total = result.length;
+          const overallScore = result.reduce((sum, r) => sum + (r.score * r.weight), 0) / 
+                              result.reduce((sum, r) => sum + r.weight, 0);
+          return `Validation complete: ${passed}/${total} criteria passed (${Math.round(overallScore * 100)}% overall score)`;
+        }
+        return 'Validation complete';
+      
+      case 7: // Question generation
+        const questionCount = result.questions?.length || 0;
+        return questionCount > 0 
+          ? `Generated ${questionCount} clarification ${questionCount === 1 ? 'question' : 'questions'} to refine requirements`
+          : 'No clarification questions needed';
+      
+      case 8: // Estimation
+        if (result.min && result.max) {
+          return `Estimated ${result.min}-${result.max} hours (${result.confidence} confidence)`;
+        }
+        return 'Effort estimation complete';
+      
+      default:
+        return 'Step complete';
+    }
+  }
+
   private async executeStep<T>(
     aec: AEC,
     stepNum: number,
@@ -168,25 +245,42 @@ export class GenerationOrchestrator {
     const state = aec.generationState;
     const step = state.steps[stepNum - 1];
 
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`🔄 [Step ${stepNum}/${state.steps.length}] ${step.title}`);
+    console.log(`${'='.repeat(60)}`);
+
     // Mark step as in-progress
     step.status = 'in-progress';
     state.currentStep = stepNum;
     aec.updateGenerationState(state);
     await this.aecRepository.update(aec);
 
+    const startTime = Date.now();
+
     try {
       // Execute with timeout
+      console.log(`⏳ [Step ${stepNum}] Executing...`);
       const result = await this.withTimeout(stepFn(), this.STEP_TIMEOUT_MS);
+      
+      const duration = Date.now() - startTime;
+      
+      // Format user-friendly details
+      const userFriendlyDetails = this.formatStepDetails(stepNum, result);
 
       // Mark step as complete
       step.status = 'complete';
-      step.details = JSON.stringify(result);
+      step.details = userFriendlyDetails;
       delete step.error;
       aec.updateGenerationState(state);
       await this.aecRepository.update(aec);
 
+      console.log(`✅ [Step ${stepNum}] Complete in ${duration}ms`);
+      console.log(`📝 [Step ${stepNum}] ${userFriendlyDetails}`);
+
       return result;
     } catch (error: any) {
+      const duration = Date.now() - startTime;
+      
       // Mark step as failed
       step.status = 'failed';
       step.error =
@@ -195,6 +289,9 @@ export class GenerationOrchestrator {
           : error.message || 'Unknown error occurred';
       aec.updateGenerationState(state);
       await this.aecRepository.update(aec);
+
+      console.error(`❌ [Step ${stepNum}] Failed after ${duration}ms`);
+      console.error(`❌ [Step ${stepNum}] Error:`, error.message);
 
       throw error;
     }
