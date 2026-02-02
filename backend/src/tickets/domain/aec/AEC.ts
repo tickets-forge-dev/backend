@@ -140,6 +140,37 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Get overall validation score (weighted average 0.0-1.0)
+   */
+  get overallValidationScore(): number {
+    if (this._validationResults.length === 0) return 0;
+
+    const totalWeight = this._validationResults.reduce((sum, r) => sum + r.weight, 0);
+    if (totalWeight === 0) return 0;
+
+    const weightedSum = this._validationResults.reduce(
+      (sum, r) => sum + r.weightedScore,
+      0,
+    );
+
+    return weightedSum / totalWeight;
+  }
+
+  /**
+   * Check if validation passed (score >= 0.7 threshold)
+   */
+  get validationPassed(): boolean {
+    return this.overallValidationScore >= 0.7;
+  }
+
+  /**
+   * Check if there are any critical blockers
+   */
+  get hasCriticalBlockers(): boolean {
+    return this._validationResults.some(r => r.hasCriticalIssues());
+  }
+
   markReady(codeSnapshot: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
     if (this._status !== AECStatus.VALIDATED) {
       throw new InvalidStateTransitionError(
