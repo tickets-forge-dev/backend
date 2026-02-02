@@ -1,19 +1,29 @@
 import { Card } from '@/core/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/core/components/ui/radio-group';
 import { Label } from '@/core/components/ui/label';
+import { Button } from '@/core/components/ui/button';
 import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
+import Link from 'next/link';
+import { X } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
     <div className="space-y-12">
       {/* Header */}
-      <div>
-        <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
-          Settings
-        </h1>
-        <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Manage your preferences
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
+            Settings
+          </h1>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Manage your preferences
+          </p>
+        </div>
+        <Link href="/tickets">
+          <Button variant="ghost" size="icon">
+            <X className="h-4 w-4" />
+          </Button>
+        </Link>
       </div>
 
       {/* Integrations Section */}
