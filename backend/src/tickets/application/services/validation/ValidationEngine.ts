@@ -10,6 +10,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { AEC } from '../../../domain/aec/AEC';
 import { ValidationResult } from '../../../domain/value-objects/ValidationResult';
 import { IValidator } from './IValidator';
+import { ValidationMetrics, ValidationMetric } from './ValidationMetrics';
 
 @Injectable()
 export class ValidationEngine {
@@ -63,6 +64,28 @@ export class ValidationEngine {
     console.log(`📊 [ValidationEngine] Overall Score: ${(overallScore * 100).toFixed(0)}%`);
     console.log(`📊 [ValidationEngine] Passed: ${passedCount}/${results.length}`);
     console.log(`📊 [ValidationEngine] Failed: ${failedCount}/${results.length}`);
+
+    // Record metrics for telemetry
+    const summary = this.getValidationSummary(results);
+    const metric: ValidationMetric = {
+      aecId: aec.id,
+      workspaceId: aec.workspaceId,
+      timestamp: new Date(),
+      overallScore: summary.overallScore,
+      passed: summary.passed,
+      validatorScores: results.map(r => ({
+        validator: r.criterion,
+        score: r.score,
+        passed: r.passed,
+      })),
+      totalValidators: summary.totalValidators,
+      passedValidators: summary.passedValidators,
+      failedValidators: summary.failedValidators,
+      totalIssues: summary.totalIssues,
+      criticalIssues: summary.criticalIssues,
+      duration,
+    };
+    ValidationMetrics.recordValidation(metric);
 
     return results;
   }
