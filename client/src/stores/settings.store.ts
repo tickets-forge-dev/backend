@@ -61,6 +61,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({
         githubConnected: status.connected,
         githubConnectionStatus: status,
+        selectedRepositories: status.selectedRepositories || [],
         isLoadingConnection: false,
       });
 

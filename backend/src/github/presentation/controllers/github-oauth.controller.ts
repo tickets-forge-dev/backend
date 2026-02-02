@@ -82,7 +82,10 @@ export class GitHubOAuthController {
     const clientId = this.configService.get<string>('GITHUB_CLIENT_ID');
     const redirectUri = this.configService.get<string>('GITHUB_OAUTH_REDIRECT_URI');
 
+    this.logger.log(`GitHub OAuth config check - ClientID: ${clientId ? '✓ set' : '✗ missing'}, RedirectURI: ${redirectUri ? '✓ set' : '✗ missing'}`);
+
     if (!clientId || !redirectUri) {
+      this.logger.error('GitHub OAuth not configured - missing env vars');
       throw new InternalServerErrorException('GitHub OAuth not configured');
     }
 
@@ -90,6 +93,8 @@ export class GitHubOAuthController {
     const state = this.tokenService.generateState();
     session.state = state;
     session.workspaceId = workspaceId;
+
+    this.logger.log(`📝 Session created - State: ${state.substring(0, 8)}..., Workspace: ${workspaceId}, Session ID: ${(session as any).id || 'unknown'}`);
 
     const oauthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,repo&state=${state}`;
 
@@ -113,9 +118,11 @@ export class GitHubOAuthController {
     @Session() session: OAuthSession,
   ): Promise<{ url: string }> {
     try {
+      this.logger.log(`🔍 Callback received - State from GitHub: ${state.substring(0, 8)}..., State in session: ${session.state?.substring(0, 8) || 'NONE'}, Session ID: ${(session as any).id || 'unknown'}`);
+
       // Validate state parameter (CSRF protection)
       if (!session.state || !this.tokenService.validateState(state, session.state)) {
-        this.logger.error('OAuth state validation failed');
+        this.logger.error(`❌ OAuth state validation failed - Session state: ${session.state ? 'exists' : 'missing'}, GitHub state: ${state ? 'exists' : 'missing'}`);
         return { url: `${this.configService.get('FRONTEND_URL')}/settings?error=invalid_state` };
       }
 
@@ -328,6 +335,15 @@ export class GitHubOAuthController {
         accountType: integration.accountType,
         connectedAt: integration.connectedAt,
         selectedRepositoryCount: integration.selectedRepositoryCount,
+        selectedRepositories: integration.selectedRepositories.map((repo) => ({
+          id: repo.id,
+          fullName: repo.fullName,
+          name: repo.name,
+          owner: repo.owner,
+          private: repo.isPrivate,
+          defaultBranch: repo.defaultBranch,
+          url: repo.url,
+        })),
       };
     } catch (error: any) {
       this.logger.error('Failed to get connection status:', error.message);

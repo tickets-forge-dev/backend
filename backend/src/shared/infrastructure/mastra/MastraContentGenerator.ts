@@ -27,21 +27,42 @@ export class MastraContentGenerator implements ILLMContentGenerator {
   }
 
   /**
-   * Strip markdown code blocks from LLM response
-   * LLMs often wrap JSON in ```json...``` blocks
+   * Strip markdown code blocks from LLM response and extract JSON
+   * LLMs often wrap JSON in ```json...``` blocks and add extra text
    */
   private stripMarkdown(text: string): string {
-    // Remove ```json and ``` wrapper
     let cleaned = text.trim();
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.slice(7);
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.slice(3);
+
+    // If wrapped in code fence, extract content between fences
+    if (cleaned.includes('```')) {
+      // Match content between ```json and ``` (or just ``` and ```)
+      const match = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (match && match[1]) {
+        cleaned = match[1].trim();
+      } else {
+        // Fallback: simple fence removal
+        if (cleaned.startsWith('```json')) {
+          cleaned = cleaned.slice(7);
+        } else if (cleaned.startsWith('```')) {
+          cleaned = cleaned.slice(3);
+        }
+        if (cleaned.endsWith('```')) {
+          cleaned = cleaned.slice(0, -3);
+        }
+        cleaned = cleaned.trim();
+      }
     }
-    if (cleaned.endsWith('```')) {
-      cleaned = cleaned.slice(0, -3);
+
+    // Additional safety: try to find JSON object/array if still has extra text
+    // This handles cases where LLM adds commentary before/after JSON
+    if (cleaned.includes('\n\n') || (!cleaned.startsWith('{') && !cleaned.startsWith('['))) {
+      const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if (jsonMatch && jsonMatch[1]) {
+        cleaned = jsonMatch[1].trim();
+      }
     }
-    return cleaned.trim();
+
+    return cleaned;
   }
 
   async extractIntent(input: {
@@ -150,11 +171,44 @@ Guidelines:
     });
 
     const parsed = JSON.parse(this.stripMarkdown(result.text));
+
+    // Normalize acceptance criteria to strings (LLM might return objects with {given, when, then})
+    const normalizedAC = this.normalizeAcceptanceCriteria(parsed.acceptanceCriteria);
+
     return {
-      acceptanceCriteria: parsed.acceptanceCriteria,
+      acceptanceCriteria: normalizedAC,
       assumptions: parsed.assumptions,
       repoPaths: parsed.repoPaths,
     };
+  }
+
+  /**
+   * Normalize acceptance criteria to string format
+   * LLMs sometimes return {given, when, then} objects instead of strings
+   */
+  private normalizeAcceptanceCriteria(criteria: any[]): string[] {
+    if (!Array.isArray(criteria)) {
+      return [];
+    }
+
+    return criteria.map((ac, index) => {
+      // If it's already a string, return as-is
+      if (typeof ac === 'string') {
+        return ac;
+      }
+
+      // If it's an object with {given, when, then}, convert to string
+      if (typeof ac === 'object' && ac !== null) {
+        if (ac.given && ac.when && ac.then) {
+          return `Given ${ac.given}, When ${ac.when}, Then ${ac.then}`;
+        }
+        // Fallback: stringify the object
+        return JSON.stringify(ac);
+      }
+
+      // Fallback: convert to string
+      return String(ac);
+    });
   }
 
   async generateQuestions(input: {

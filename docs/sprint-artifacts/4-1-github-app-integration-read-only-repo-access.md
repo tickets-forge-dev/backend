@@ -305,8 +305,46 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+**Session 2026-02-02:**
+- ✅ Fixed GitHub OAuth session persistence issue
+  - Added express-session middleware to backend
+  - Configured session cookies with proper settings (httpOnly, sameSite: lax)
+  - Added withCredentials: true to frontend axios client
+  - Session state now persists across OAuth redirect flow
+
+- ✅ Completed repository selection persistence (AC #5)
+  - Extended GET /connection endpoint to return selectedRepositories array
+  - Updated frontend ConnectionStatus interface
+  - Modified store to populate selectedRepositories on load
+  - Selection now persists across page refreshes
+
+- ✅ All core acceptance criteria complete (AC #1-5)
+  - AC #1: Settings Integration Page ✓
+  - AC #2: GitHub OAuth Flow ✓
+  - AC #3: Token Exchange & Storage ✓
+  - AC #4: Repository List Display ✓
+  - AC #5: Repository Selection for Indexing ✓
+
+**Remaining:**
+- AC #6: Webhook Configuration (deferred to Story 4.2)
+- AC #7: Disconnect Flow (implemented but needs testing)
+- AC #8: Error Handling (partially implemented)
+
 ### File List
+
+**Backend:**
+- `backend/src/main.ts` - Added session middleware configuration
+- `backend/src/github/presentation/controllers/github-oauth.controller.ts` - Extended connection endpoint with selectedRepositories
+- `backend/src/shared/infrastructure/firebase/firebase.config.ts` - Improved error handling (ServiceUnavailableException)
+
+**Frontend:**
+- `client/src/services/github.service.ts` - Added withCredentials, updated ConnectionStatus interface
+- `client/src/stores/settings.store.ts` - Modified loadGitHubStatus to populate selectedRepositories
+
+**Dependencies:**
+- Added: express-session, @types/express-session
 
 ## Change Log
 
+- 2026-02-02: Session persistence and repository selection loading implemented
 - 2026-02-01: Story drafted by create-story workflow

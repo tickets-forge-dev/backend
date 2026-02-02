@@ -38,6 +38,7 @@ export interface ConnectionStatus {
   accountType?: 'User' | 'Organization';
   connectedAt?: string;
   selectedRepositoryCount?: number;
+  selectedRepositories?: GitHubRepositoryItem[];
 }
 
 export interface GitHubRepositoryItem {
@@ -69,6 +70,7 @@ export class GitHubService {
         'Content-Type': 'application/json',
       },
       timeout: 30000,
+      withCredentials: true, // Required for session cookies
     });
 
     // Add Firebase ID token to all requests

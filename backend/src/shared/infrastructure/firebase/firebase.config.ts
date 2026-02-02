@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 
@@ -66,21 +66,27 @@ export class FirebaseService implements OnModuleInit {
 
   getAuth() {
     if (!this.app) {
-      throw new Error('Firebase not configured. Cannot access Auth.');
+      throw new ServiceUnavailableException(
+        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env'
+      );
     }
     return admin.auth(this.app);
   }
 
   getFirestore() {
     if (!this.app) {
-      throw new Error('Firebase not configured. Cannot access Firestore.');
+      throw new ServiceUnavailableException(
+        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env'
+      );
     }
     return admin.firestore(this.app);
   }
 
   getStorage() {
     if (!this.app) {
-      throw new Error('Firebase not configured. Cannot access Storage.');
+      throw new ServiceUnavailableException(
+        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env'
+      );
     }
     return admin.storage(this.app);
   }

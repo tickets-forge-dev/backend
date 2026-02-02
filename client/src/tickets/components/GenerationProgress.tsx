@@ -48,10 +48,13 @@ export function GenerationProgress({ aecId, workspaceId, onComplete }: Generatio
           console.log('🔵 [GenerationProgress] AEC updated:', data.generationState);
           
           setGenerationState(data.generationState);
-          
-          // Check if all steps complete
-          if (data.generationState?.steps?.every((s: GenerationStep) => s.status === 'complete')) {
-            console.log('✅ [GenerationProgress] All steps complete!');
+
+          // Check if all steps complete (must have 8 steps AND all complete)
+          const steps = data.generationState?.steps || [];
+          const allStepsComplete = steps.length === 8 && steps.every((s: GenerationStep) => s.status === 'complete');
+
+          if (allStepsComplete) {
+            console.log('✅ [GenerationProgress] All 8 steps complete!');
             onComplete?.();
           }
         }
