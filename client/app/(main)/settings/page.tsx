@@ -1,6 +1,7 @@
 import { Card } from '@/core/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/core/components/ui/radio-group';
 import { Label } from '@/core/components/ui/label';
+import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
 
 export default function SettingsPage() {
   return (
@@ -14,6 +15,20 @@ export default function SettingsPage() {
           Manage your preferences
         </p>
       </div>
+
+      {/* Integrations Section */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
+            Integrations
+          </h2>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Connect external services
+          </p>
+        </div>
+
+        <GitHubIntegration />
+      </section>
 
       {/* Sectioned layout with clear hierarchy */}
       <section className="space-y-4">
