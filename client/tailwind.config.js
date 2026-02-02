@@ -9,6 +9,20 @@ module.exports = {
   ],
   theme: {
   	extend: {
+  		colors: {
+  			popover: {
+  				DEFAULT: 'var(--popover)',
+  				foreground: 'var(--popover-foreground)'
+  			},
+  			accent: {
+  				DEFAULT: 'var(--bg-hover)',
+  				foreground: 'var(--text)'
+  			},
+  			muted: {
+  				DEFAULT: 'var(--bg-subtle)',
+  				foreground: 'var(--text-secondary)'
+  			}
+  		},
   		keyframes: {
   			'accordion-down': {
   				from: {

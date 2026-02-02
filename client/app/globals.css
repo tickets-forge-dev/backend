@@ -31,6 +31,10 @@
   --bg-subtle: #fafafa;
   --bg-hover: #f4f4f5;
   --bg-active: #e4e4e7;
+  
+  /* Popover/Dropdown backgrounds */
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
 
   /* Borders */
   --border: #e4e4e7;    /* Very subtle borders */
@@ -118,6 +122,10 @@
     --bg-active: #3f3f46;
     --border: #27272a;
     --border-hover: #3f3f46;
+    
+    /* Popover/Dropdown backgrounds */
+    --popover: #18181b;
+    --popover-foreground: #fafafa;
 
     --text: #fafafa;
     --text-secondary: #a1a1aa;
@@ -145,6 +153,10 @@
   --bg-active: #3f3f46;
   --border: #27272a;
   --border-hover: #3f3f46;
+  
+  /* Popover/Dropdown backgrounds */
+  --popover: #18181b;
+  --popover-foreground: #fafafa;
 
   --text: #fafafa;
   --text-secondary: #a1a1aa;
@@ -169,6 +181,10 @@
   --bg-active: #e4e4e7;
   --border: #e4e4e7;
   --border-hover: #d4d4d8;
+  
+  /* Popover/Dropdown backgrounds */
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
 
   --text: #18181b;
   --text-secondary: #52525b;
