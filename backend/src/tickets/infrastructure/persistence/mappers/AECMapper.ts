@@ -1,7 +1,18 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
+import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { Timestamp } from 'firebase-admin/firestore';
+
+export interface ValidationResultDocument {
+  criterion: string;
+  passed: boolean;
+  score: number;
+  weight: number;
+  issues: string[];
+  blockers: string[];
+  message: string;
+}
 
 export interface RepositoryContextDocument {
   repositoryFullName: string;
@@ -27,7 +38,7 @@ export interface AECDocument {
   apiSnapshot: any | null;
   questions: any[];
   estimate: any | null;
-  validationResults: any[];
+  validationResults: ValidationResultDocument[];
   externalIssue: any | null;
   driftDetectedAt?: Timestamp | null;
   driftReason?: string | null;
@@ -49,6 +60,19 @@ export class AECMapper {
         })
       : null;
 
+    // Reconstitute validation results
+    const validationResults = doc.validationResults.map((vr) =>
+      ValidationResult.create({
+        criterion: vr.criterion as ValidatorType,
+        passed: vr.passed,
+        score: vr.score,
+        weight: vr.weight,
+        issues: vr.issues,
+        blockers: vr.blockers,
+        message: vr.message,
+      }),
+    );
+
     return AEC.reconstitute(
       doc.id,
       doc.workspaceId,
@@ -65,7 +89,7 @@ export class AECMapper {
       doc.apiSnapshot,
       doc.questions,
       doc.estimate,
-      doc.validationResults,
+      validationResults,
       doc.externalIssue,
       doc.driftDetectedAt?.toDate() ?? null,
       doc.driftReason ?? null,
@@ -103,7 +127,7 @@ export class AECMapper {
       apiSnapshot: aec.apiSnapshot,
       questions: aec.questions,
       estimate: aec.estimate,
-      validationResults: aec.validationResults,
+      validationResults: aec.validationResults.map((vr) => vr.toPlainObject()),
       externalIssue: aec.externalIssue,
       driftDetectedAt: aec.driftDetectedAt
         ? Timestamp.fromDate(aec.driftDetectedAt)
