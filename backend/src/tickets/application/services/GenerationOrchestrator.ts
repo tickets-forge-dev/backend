@@ -130,14 +130,17 @@ export class GenerationOrchestrator {
       aec.setEstimate(estimate);
 
       // Mark as validated with results
-      const finalValidationResults: ValidationResult[] = validationResults.map((v) => ({
-        validatorType: 'structural' as ValidatorType,
-        passed: v.passed,
-        score: v.score,
-        weight: v.weight,
-        issues: [],
-        blockers: [],
-      }));
+      const finalValidationResults: ValidationResult[] = validationResults.map((v) =>
+        ValidationResult.create({
+          criterion: ValidatorType.COMPLETENESS, // Stub uses completeness for now
+          passed: v.passed,
+          score: v.score,
+          weight: v.weight,
+          issues: [],
+          blockers: [],
+          message: v.message || 'Validation placeholder',
+        }),
+      );
       aec.validate(finalValidationResults);
 
       // Final save with validated status
