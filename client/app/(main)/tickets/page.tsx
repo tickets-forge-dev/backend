@@ -3,6 +3,7 @@ import { Input } from '@/core/components/ui/input';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
+import { Settings } from 'lucide-react';
 
 export default function TicketsListPage() {
   return (
@@ -17,9 +18,16 @@ export default function TicketsListPage() {
             Manage executable tickets
           </p>
         </div>
-        <Link href="/tickets/create">
-          <Button>New Ticket</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/settings">
+            <Button variant="outline" size="icon">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/tickets/create">
+            <Button>New Ticket</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter bar */}
