@@ -4,9 +4,17 @@ import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
 import { EstimateEffortUseCase } from './application/use-cases/EstimateEffortUseCase';
 import { GenerationOrchestrator } from './application/services/GenerationOrchestrator';
+import { ValidationEngine } from './application/services/validation/ValidationEngine';
 import { FirestoreAECRepository } from './infrastructure/persistence/FirestoreAECRepository';
 import { DriftDetectorService } from './infrastructure/services/drift-detector.service';
 import { EstimationEngineService } from './infrastructure/services/estimation-engine.service';
+import { CompletenessValidator } from './infrastructure/services/validators/CompletenessValidator';
+import { TestabilityValidator } from './infrastructure/services/validators/TestabilityValidator';
+import { ClarityValidator } from './infrastructure/services/validators/ClarityValidator';
+import { FeasibilityValidator } from './infrastructure/services/validators/FeasibilityValidator';
+import { ConsistencyValidator } from './infrastructure/services/validators/ConsistencyValidator';
+import { ContextAlignmentValidator } from './infrastructure/services/validators/ContextAlignmentValidator';
+import { ScopeValidator } from './infrastructure/services/validators/ScopeValidator';
 import { AEC_REPOSITORY } from './application/ports/AECRepository';
 import { DRIFT_DETECTOR } from './application/services/drift-detector.interface';
 import { ESTIMATION_ENGINE } from './application/services/estimation-engine.interface';
@@ -22,6 +30,45 @@ import { GitHubModule } from '../github/github.module';
     UpdateAECUseCase,
     EstimateEffortUseCase,
     GenerationOrchestrator,
+    ValidationEngine,
+    // Validators
+    CompletenessValidator,
+    TestabilityValidator,
+    ClarityValidator,
+    FeasibilityValidator,
+    ConsistencyValidator,
+    ContextAlignmentValidator,
+    ScopeValidator,
+    // Validator array injection
+    {
+      provide: 'VALIDATORS',
+      useFactory: (
+        completeness: CompletenessValidator,
+        testability: TestabilityValidator,
+        clarity: ClarityValidator,
+        feasibility: FeasibilityValidator,
+        consistency: ConsistencyValidator,
+        contextAlignment: ContextAlignmentValidator,
+        scope: ScopeValidator,
+      ) => [
+        completeness,
+        testability,
+        clarity,
+        feasibility,
+        consistency,
+        contextAlignment,
+        scope,
+      ],
+      inject: [
+        CompletenessValidator,
+        TestabilityValidator,
+        ClarityValidator,
+        FeasibilityValidator,
+        ConsistencyValidator,
+        ContextAlignmentValidator,
+        ScopeValidator,
+      ],
+    },
     {
       provide: AEC_REPOSITORY,
       useClass: FirestoreAECRepository,
