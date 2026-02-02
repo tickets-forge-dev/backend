@@ -9,7 +9,8 @@ import { GenerationStateFactory } from '../../domain/value-objects/GenerationSta
 import { TicketType } from '../../domain/value-objects/AECStatus';
 import { Question } from '../../domain/value-objects/Question';
 import { Estimate } from '../../domain/value-objects/Estimate';
-import { ValidationResult, ValidatorType } from '../../domain/value-objects/ValidationResult';
+import { ValidationResult } from '../../domain/value-objects/ValidationResult';
+import { ValidationEngine } from './validation/ValidationEngine';
 import { IndexQueryService } from '../../../indexing/application/services/index-query.service';
 import { IndexRepository, INDEX_REPOSITORY } from '../../../indexing/domain/IndexRepository';
 
@@ -41,6 +42,7 @@ export class GenerationOrchestrator {
     private readonly indexQueryService: IndexQueryService,
     @Inject(INDEX_REPOSITORY)
     private readonly indexRepository: IndexRepository,
+    private readonly validationEngine: ValidationEngine,
   ) {}
 
   /**
@@ -99,16 +101,33 @@ export class GenerationOrchestrator {
         draft.repoPaths,
       );
 
-      // Step 6: Validation (stub - Epic 3)
+      // Step 6: Validation (Epic 3 - Story 3-1)
       const validationResults = await this.executeStep(aec, 6, async () => {
-        return this.stubValidation();
+        console.log('🔍 [Step 6] Running validation engine...');
+        return await this.validationEngine.validate(aec);
       });
+
+      // Mark AEC as validated with results
+      aec.validate(validationResults);
+      await this.aecRepository.update(aec);
+
+      // Log validation summary
+      const summary = this.validationEngine.getValidationSummary(validationResults);
+      console.log(`✅ [Step 6] Validation complete: ${(summary.overallScore * 100).toFixed(0)}% (${summary.passed ? 'PASS' : 'FAIL'})`);
+      console.log(`   Passed: ${summary.passedValidators}/${summary.totalValidators}, Issues: ${summary.totalIssues}, Critical: ${summary.criticalIssues}`);
 
       // Step 7: Question prep (LLM)
       const questionSet = await this.executeStep(aec, 7, async () => {
+        // Pass validation results to question generation
         return await this.llmGenerator.generateQuestions({
           draft,
-          validationIssues: validationResults,
+          validationIssues: validationResults.map(vr => ({
+            criterion: vr.criterion,
+            passed: vr.passed,
+            score: vr.score,
+            issues: vr.issues,
+            message: vr.message,
+          })),
         });
       });
 
@@ -128,20 +147,6 @@ export class GenerationOrchestrator {
       });
 
       aec.setEstimate(estimate);
-
-      // Mark as validated with results
-      const finalValidationResults: ValidationResult[] = validationResults.map((v) =>
-        ValidationResult.create({
-          criterion: ValidatorType.COMPLETENESS, // Stub uses completeness for now
-          passed: v.passed,
-          score: v.score,
-          weight: v.weight,
-          issues: [],
-          blockers: [],
-          message: v.message || 'Validation placeholder',
-        }),
-      );
-      aec.validate(finalValidationResults);
 
       // Final save with validated status
       await this.aecRepository.update(aec);
@@ -297,39 +302,6 @@ export class GenerationOrchestrator {
   private async stubApiSnapshot(): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return '';
-  }
-
-  /**
-   * Stub: Validation (Epic 3)
-   * Returns placeholder validation results
-   */
-  private async stubValidation(): Promise<
-    Array<{
-      criterion: string;
-      score: number;
-      weight: number;
-      passed: boolean;
-      message: string;
-    }>
-  > {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    return [
-      {
-        criterion: 'completeness',
-        score: 60,
-        weight: 1,
-        passed: true,
-        message: 'Basic information present',
-      },
-      {
-        criterion: 'clarity',
-        score: 50,
-        weight: 1,
-        passed: true,
-        message: 'Placeholder validation - Epic 3 will implement full scoring',
-      },
-    ];
   }
 
   /**
