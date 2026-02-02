@@ -28,6 +28,8 @@ export class ConsistencyValidator extends BaseValidator {
     issues: string[];
     blockers: string[];
   }> {
+    console.log(`   🔍 [ConsistencyValidator] Checking for contradictions...`);
+    
     const issues: string[] = [];
     const blockers: string[] = [];
 
@@ -67,13 +69,22 @@ export class ConsistencyValidator extends BaseValidator {
       }
     }
 
+    if (contradictionCount > 0) {
+      console.log(`      ⚠️  Found ${contradictionCount} potential contradictions`);
+    } else {
+      console.log(`      ✅ No contradictions detected`);
+    }
+
     // Score based on contradictions
     let score = 1.0 - (contradictionCount * 0.2);
     score = Math.max(0, Math.min(1, score));
 
     if (contradictionCount > 2) {
       blockers.push('Multiple contradictions detected - requirements must be reconciled');
+      console.log(`      ❌ Critical: ${contradictionCount} contradictions is too many`);
     }
+
+    console.log(`   📊 [ConsistencyValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
 
     return { score, issues, blockers };
   }

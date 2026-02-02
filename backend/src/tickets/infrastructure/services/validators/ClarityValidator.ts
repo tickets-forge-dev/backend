@@ -36,6 +36,8 @@ export class ClarityValidator extends BaseValidator {
     issues: string[];
     blockers: string[];
   }> {
+    console.log(`   🔍 [ClarityValidator] Analyzing requirement clarity...`);
+    
     const issues: string[] = [];
     const blockers: string[] = [];
 
@@ -47,16 +49,20 @@ export class ClarityValidator extends BaseValidator {
       ...aec.assumptions,
     ].join('\n');
 
+    console.log(`      📝 Analyzing ${textToAnalyze.length} chars of text...`);
+
     // Use LLM to analyze clarity
     const analysis = await this.analyzeClarityWithLLM(textToAnalyze);
 
     // Build issues list
     if (analysis.vaguePhrases.length > 0) {
       issues.push(`Found ${analysis.vaguePhrases.length} vague phrase(s): ${analysis.vaguePhrases.slice(0, 3).join(', ')}`);
+      console.log(`      ⚠️  ${analysis.vaguePhrases.length} vague phrases detected`);
     }
 
     if (analysis.ambiguousStatements.length > 0) {
       issues.push(`Found ${analysis.ambiguousStatements.length} ambiguous statement(s)`);
+      console.log(`      ⚠️  ${analysis.ambiguousStatements.length} ambiguous statements`);
     }
 
     // Add suggestions as issues
@@ -65,7 +71,10 @@ export class ClarityValidator extends BaseValidator {
     // Critical blocker if score is very low
     if (analysis.score < 0.4) {
       blockers.push('Requirements are too vague to implement - needs significant clarification');
+      console.log(`      ❌ Critical: Requirements too vague`);
     }
+
+    console.log(`   📊 [ClarityValidator] Final score: ${(analysis.score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
 
     return {
       score: analysis.score,

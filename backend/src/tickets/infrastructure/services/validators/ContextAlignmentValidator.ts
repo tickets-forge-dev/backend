@@ -25,11 +25,14 @@ export class ContextAlignmentValidator extends BaseValidator {
     issues: string[];
     blockers: string[];
   }> {
+    console.log(`   🔍 [ContextAlignmentValidator] Checking repository context alignment...`);
+    
     const issues: string[] = [];
     const blockers: string[] = [];
 
     // If no repository context, this validator passes by default
     if (!aec.repositoryContext) {
+      console.log(`      ℹ️  No repository context (optional)`);
       return {
         score: 1.0,
         issues: [],
@@ -37,12 +40,15 @@ export class ContextAlignmentValidator extends BaseValidator {
       };
     }
 
+    console.log(`      📦 Repository: ${aec.repositoryContext.repositoryFullName}`);
+
     // Check if suggested repository paths seem valid
     let score = 0.8; // Base score when context exists
 
     if (!aec.repoPaths || aec.repoPaths.length === 0) {
       issues.push('Repository context provided but no specific file paths suggested');
       score -= 0.2;
+      console.log(`      ⚠️  No file paths suggested`);
     } else {
       // Validate path formats
       const invalidPaths = aec.repoPaths.filter(path => !this.isValidPath(path));
@@ -50,15 +56,21 @@ export class ContextAlignmentValidator extends BaseValidator {
       if (invalidPaths.length > 0) {
         issues.push(`${invalidPaths.length} path(s) have invalid format`);
         score -= invalidPaths.length * 0.1;
+        console.log(`      ⚠️  ${invalidPaths.length} invalid paths`);
+      } else {
+        console.log(`      ✅ All ${aec.repoPaths.length} paths valid`);
       }
 
       // Bonus for having multiple relevant paths
       if (aec.repoPaths.length >= 3) {
         score += 0.2;
+        console.log(`      ✅ Good coverage: ${aec.repoPaths.length} paths`);
       }
     }
 
     score = Math.max(0, Math.min(1, score));
+
+    console.log(`   📊 [ContextAlignmentValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
 
     return { score, issues, blockers };
   }

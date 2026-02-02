@@ -29,6 +29,8 @@ export class FeasibilityValidator extends BaseValidator {
     issues: string[];
     blockers: string[];
   }> {
+    console.log(`   🔍 [FeasibilityValidator] Analyzing technical feasibility...`);
+    
     const issues: string[] = [];
     const blockers: string[] = [];
 
@@ -48,26 +50,38 @@ export class FeasibilityValidator extends BaseValidator {
     ].join(' ');
 
     let score = 0.9; // Assume feasible unless proven otherwise
+    let impossibilityCount = 0;
 
     for (const pattern of impossibilityPatterns) {
       if (pattern.test(allText)) {
         score -= 0.3;
         issues.push(`Potentially unrealistic requirement detected: ${pattern.source}`);
+        impossibilityCount++;
       }
+    }
+
+    if (impossibilityCount > 0) {
+      console.log(`      ⚠️  Found ${impossibilityCount} unrealistic patterns`);
+    } else {
+      console.log(`      ✅ No obvious impossibilities detected`);
     }
 
     // Check if scope seems reasonable
     if (aec.acceptanceCriteria.length > 10) {
       score -= 0.1;
       issues.push('Large number of acceptance criteria may indicate overly broad scope');
+      console.log(`      ⚠️  ${aec.acceptanceCriteria.length} ACs may be too ambitious`);
     }
 
     // Add blocker for critical feasibility issues
     if (score < 0.5) {
       blockers.push('Requirements contain technical impossibilities or unrealistic expectations');
+      console.log(`      ❌ Critical feasibility issues detected`);
     }
 
     score = Math.max(0, Math.min(1, score));
+
+    console.log(`   📊 [FeasibilityValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
 
     return { score, issues, blockers };
   }
