@@ -54,7 +54,7 @@ development_status:
 
   # Epic 3: Clarification & Validation
   epic-3: backlog
-  3-1-validation-engine-multi-criteria-scoring: drafted
+  3-1-validation-engine-multi-criteria-scoring: ready-for-dev
   3-2-question-generation-intelligent-clarification: backlog
   3-3-validation-results-ui-explainable-scores: backlog
   epic-3-retrospective: optional

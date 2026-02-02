@@ -1,8 +1,9 @@
 # Story 3-1: Validation Engine - Multi-criteria Scoring
 
 **Epic:** 3 - Clarification & Validation  
-**Status:** In Progress  
-**Created:** 2026-02-02
+**Status:** Ready for Dev  
+**Created:** 2026-02-02  
+**Context:** [Story Context XML](./3-1-validation-engine-multi-criteria-scoring.context.xml)
 
 ## Story Overview
 

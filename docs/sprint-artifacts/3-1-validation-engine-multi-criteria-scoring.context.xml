@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Story Context: 3-1-validation-engine-multi-criteria-scoring
+  Generated: 2026-02-02T22:23:18.208Z
+  Epic: 3 - Clarification & Validation
+  Status: ready-for-dev
+-->
+<story-context
+  id="3-1-validation-engine-multi-criteria-scoring"
+  epic="3"
+  title="Validation Engine - Multi-criteria Scoring"
+  status="ready-for-dev">
+
+  <!-- User Story -->
+  <user-story>
+    <as-a>user creating executable tickets</as-a>
+    <i-want>generated tickets to be automatically validated for quality</i-want>
+    <so-that>I can trust the output meets production standards without manual review</so-that>
+  </user-story>
+
+  <!-- Acceptance Criteria -->
+  <acceptance-criteria>
+    <criterion id="AC1" priority="must">
+      <title>Validation Criteria Definition</title>
+      <description>Define 7 validation criteria for AEC tickets: Completeness, Clarity, Testability, Feasibility, Consistency, Context Alignment, Scope Appropriateness</description>
+    </criterion>
+
+    <criterion id="AC2" priority="must">
+      <title>Scoring Algorithm</title>
+      <description>Each criterion has weight (0.0-1.0), scoring function (returns 0.0-1.0), pass threshold. Overall score calculated as weighted average. Minimum overall threshold: 0.7 (70%)</description>
+    </criterion>
+
+    <criterion id="AC3" priority="must">
+      <title>ValidationResult Domain Model</title>
+      <description>Create ValidationResult value object with: criterion, passed, score, weight, issues[], blockers[], message</description>
+    </criterion>
+
+    <criterion id="AC4" priority="must">
+      <title>ValidationEngine Service</title>
+      <description>Application service with validate(aec: AEC) method. Runs all validators in parallel. Returns array of validation results. Deterministic.</description>
+    </criterion>
+
+    <criterion id="AC5" priority="must">
+      <title>Individual Validators</title>
+      <description>Implement validator for each criterion. Each validator is separate class/function. Validators use LLM for subjective criteria, rules for objective criteria.</description>
+    </criterion>
+
+    <criterion id="AC6" priority="must">
+      <title>AEC Domain Integration</title>
+      <description>Add validationResults array to AEC aggregate. Add validate() method. Updates AEC status based on validation. Stores results for UI display.</description>
+    </criterion>
+
+    <criterion id="AC7" priority="must">
+      <title>Persistence</title>
+      <description>ValidationResults stored in Firestore with AEC. Mapped to/from domain correctly. Can retrieve validation history.</description>
+    </criterion>
+
+    <criterion id="AC8" priority="must">
+      <title>Step 6 Integration</title>
+      <description>Update GenerationOrchestrator Step 6 (currently stub). Call ValidationEngine after ticket drafting. Store results in AEC. Continue to next step regardless of score.</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- Tasks and Subtasks -->
+  <tasks>
+    <task id="T1" priority="must">
+      <title>Domain Models</title>
+      <subtasks>
+        <subtask id="T1.1">Create ValidatorType enum with 7 types</subtask>
+        <subtask id="T1.2">Update ValidationResult value object (already exists, needs enhancement)</subtask>
+        <subtask id="T1.3">Add validation methods to AEC aggregate</subtask>
+        <subtask id="T1.4">Write unit tests for domain models</subtask>
+      </subtasks>
+    </task>
+
+    <task id="T2" priority="must">
+      <title>Validator Interface & Base</title>
+      <subtasks>
+        <subtask id="T2.1">Define IValidator interface</subtask>
+        <subtask id="T2.2">Create base validator class with common logic</subtask>
+        <subtask id="T2.3">Set up validator registration pattern</subtask>
+      </subtasks>
+    </task>
+
+    <task id="T3" priority="must">
+      <title>Rule-Based Validators</title>
+      <subtasks>
+        <subtask id="T3.1">Implement CompletenessValidator</subtask>
+        <subtask id="T3.2">Implement TestabilityValidator (rule portion)</subtask>
+        <subtask id="T3.3">Write unit tests for each</subtask>
+      </subtasks>
+    </task>
+
+    <task id="T4" priority="must">
+      <title>LLM-Based Validators</title>
+      <subtasks>
+        <subtask id="T4.1">Add validation prompts to LLM service</subtask>
+        <subtask id="T4.2">Implement ClarityValidator</subtask>
+        <subtask id="T4.3">Implement FeasibilityValidator</subtask>
+        <subtask id="T4.4">Implement ConsistencyValidator</subtask>
+        <subtask id="T4.5">Implement ContextAlignmentValidator</subtask>
+        <subtask id="T4.6">Write integration tests</subtask>
+      </subtasks>
+    </task>
+
+    <task id="T5" priority="must">
+      <title>ValidationEngine Service</title>
+      <subtasks>
+        <subtask id="T5.1">Create application service class</subtask>
+        <subtask id="T5.2">Implement parallel validation execution</subtask>
+        <subtask id="T5.3">Calculate weighted scores</subtask>
+        <subtask id="T5.4">Write tests with mock validators</subtask>
+      </subtasks>
+    </task>
+
+    <task id="T6" priority="must">
+      <title>Persistence</title>
+      <subtasks>
+        <subtask id="T6.1">Add ValidationResult to Firestore schema</subtask>
+        <subtask id="T6.2">Update AECMapper to handle validation results</subtask>
+        <subtask id="T6.3">Test persistence round-trip</subtask>
+      </subtasks>
+    </task>
+
+    <task id="T7" priority="must">
+      <title>GenerationOrchestrator Integration</title>
+      <subtasks>
+        <subtask id="T7.1">Replace Step 6 stub with actual validation</subtask>
+        <subtask id="T7.2">Store results in AEC</subtask>
+        <subtask id="T7.3">Add logging and error handling</subtask>
+        <subtask id="T7.4">Test end-to-end generation flow</subtask>
+      </subtasks>
+    </task>
+
+    <task id="T8" priority="must">
+      <title>Testing</title>
+      <subtasks>
+        <subtask id="T8.1">Unit tests for all validators</subtask>
+        <subtask id="T8.2">Integration tests for ValidationEngine</subtask>
+        <subtask id="T8.3">End-to-end test: ticket creation → validation</subtask>
+        <subtask id="T8.4">Test edge cases (missing sections, empty content)</subtask>
+      </subtasks>
+    </task>
+  </tasks>
+
+  <!-- Relevant Documentation and Code Artifacts -->
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 3: Clarification & Validation</section>
+        <snippet>FR5: System validates tickets against structural, behavioral, testability, risk, permission criteria. Epic 3 covers FR3 (clarification questions) and FR5 (validation).</snippet>
+      </doc>
+      
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Clean Architecture - Feature Modules</section>
+        <snippet>Feature-based modules with internal presentation/application/domain/infrastructure layers. Mastra handles LLM content generation. Everything else uses deterministic REST APIs and domain services.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Validation Pattern</section>
+        <snippet>Layered validation: Controller + Use Case + Domain. Defense in depth, each layer validates its concerns.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/AEC_XML_FORMAT_SUMMARY.md</path>
+        <title>AEC XML Format</title>
+        <section>Validation Section</section>
+        <snippet>Validation results stored in &lt;validation-results&gt; with criterion, passed, score, weight, issues, and blockers.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>backend/src/tickets/domain/value-objects/ValidationResult.ts</path>
+        <kind>value-object</kind>
+        <symbol>ValidationResult, ValidatorType</symbol>
+        <lines>1-22</lines>
+        <reason>Existing ValidationResult interface - needs enhancement for new 7-criteria system</reason>
+      </file>
+
+      <file>
+        <path>backend/src/tickets/domain/aec/AEC.ts</path>
+        <kind>domain-aggregate</kind>
+        <symbol>AEC</symbol>
+        <lines>1-80</lines>
+        <reason>AEC aggregate root - need to add validation methods here</reason>
+      </file>
+
+      <file>
+        <path>backend/src/tickets/application/services/GenerationOrchestrator.ts</path>
+        <kind>application-service</kind>
+        <symbol>GenerationOrchestrator</symbol>
+        <lines>1-300</lines>
+        <reason>Step 6 currently a stub (stubValidation) - needs to be replaced with actual ValidationEngine call</reason>
+      </file>
+
+      <file>
+        <path>backend/src/tickets/infrastructure/persistence/FirestoreAECRepository.ts</path>
+        <kind>repository</kind>
+        <symbol>FirestoreAECRepository</symbol>
+        <reason>Persistence layer - need to ensure ValidationResults are properly mapped</reason>
+      </file>
+
+      <file>
+        <path>backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts</path>
+        <kind>mapper</kind>
+        <symbol>AECMapper</symbol>
+        <reason>DTO ↔ Domain mapping - needs to handle validation results</reason>
+      </file>
+
+      <file>
+        <path>backend/src/shared/application/ports/ILLMContentGenerator.ts</path>
+        <kind>port-interface</kind>
+        <symbol>ILLMContentGenerator</symbol>
+        <reason>LLM service interface - need to add validation prompts for subjective validators</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <backend>
+        <dep name="@nestjs/common" version="^10.3.0">NestJS core for Injectable services</dep>
+        <dep name="@ai-sdk/anthropic" version="^3.0.33">LLM integration for subjective validation</dep>
+        <dep name="@ai-sdk/openai" version="^3.0.23">Alternative LLM provider</dep>
+      </backend>
+    </dependencies>
+  </artifacts>
+
+  <!-- Existing Interfaces to Reuse -->
+  <interfaces>
+    <interface>
+      <name>ILLMContentGenerator</name>
+      <kind>port-interface</kind>
+      <signature>
+interface ILLMContentGenerator {
+  extractIntent(input: { title: string; description?: string }): Promise&lt;{ intent: string }&gt;;
+  detectType(intent: string): Promise&lt;{ type: TicketType }&gt;;
+  generateDraft(input: { intent: string; type: string; repoContext: string; apiContext: string }): Promise&lt;Draft&gt;;
+  generateQuestions(input: { aec: AEC; validationResults: ValidationResult[] }): Promise&lt;Question[]&gt;;
+  // Add: validation methods for subjective criteria
+}
+      </signature>
+      <path>backend/src/shared/application/ports/ILLMContentGenerator.ts</path>
+    </interface>
+
+    <interface>
+      <name>AECRepository</name>
+      <kind>port-interface</kind>
+      <signature>
+interface AECRepository {
+  save(aec: AEC): Promise&lt;void&gt;;
+  update(aec: AEC): Promise&lt;void&gt;;
+  findById(id: string): Promise&lt;AEC | null&gt;;
+  findByWorkspace(workspaceId: string): Promise&lt;AEC[]&gt;;
+}
+      </signature>
+      <path>backend/src/tickets/application/ports/AECRepository.ts</path>
+    </interface>
+
+    <interface>
+      <name>ValidationResult (existing)</name>
+      <kind>value-object-interface</kind>
+      <signature>
+export type ValidatorType = 'structural' | 'behavioral' | 'testability' | 'risk' | 'permissions';
+
+export interface ValidationResult {
+  validatorType: ValidatorType;
+  passed: boolean;
+  score: number; // 0-100
+  weight: number;
+  issues: ValidationIssue[];
+  blockers: ValidationIssue[];
+}
+
+// NEEDS UPDATE: Expand ValidatorType to 7 types, change score range to 0.0-1.0, add message field
+      </signature>
+      <path>backend/src/tickets/domain/value-objects/ValidationResult.ts</path>
+    </interface>
+  </interfaces>
+
+  <!-- Development Constraints -->
+  <constraints>
+    <constraint type="architecture">
+      <rule>Follow Clean Architecture - domain must not depend on NestJS or external frameworks</rule>
+      <source>docs/architecture.md</source>
+    </constraint>
+
+    <constraint type="architecture">
+      <rule>Use Cases are the only entry points for business operations</rule>
+      <source>docs/architecture.md</source>
+    </constraint>
+
+    <constraint type="architecture">
+      <rule>Infrastructure implements ports defined in application/domain</rule>
+      <source>docs/architecture.md</source>
+    </constraint>
+
+    <constraint type="pattern">
+      <rule>Use Ports & Adapters for external dependencies</rule>
+      <source>docs/architecture.md - Decision Summary</source>
+    </constraint>
+
+    <constraint type="pattern">
+      <rule>Repository pattern for persistence</rule>
+      <source>docs/architecture.md - Decision Summary</source>
+    </constraint>
+
+    <constraint type="pattern">
+      <rule>Mappers for boundary translation (DTO ↔ Domain, Domain ↔ Persistence)</rule>
+      <source>docs/architecture.md - Decision Summary</source>
+    </constraint>
+
+    <constraint type="validation">
+      <rule>Layered validation: Controller + Use Case + Domain. Each layer validates its concerns.</rule>
+      <source>docs/architecture.md - Validation Pattern</source>
+    </constraint>
+
+    <constraint type="testing">
+      <rule>Test pyramid: many unit tests, some integration tests, few e2e tests</rule>
+      <source>docs/architecture.md - Testing Strategy</source>
+    </constraint>
+
+    <constraint type="error-handling">
+      <rule>Throw exceptions (caught by NestJS exception filter). Custom filter maps domain exceptions to HTTP codes.</rule>
+      <source>docs/architecture.md - Error Handling</source>
+    </constraint>
+
+    <constraint type="typing">
+      <rule>Strong typing: avoid 'any'. Error handling must be typed.</rule>
+      <source>CLAUDE.md</source>
+    </constraint>
+
+    <constraint type="code-quality">
+      <rule>Prefer small functions and explicit types. No hidden side effects. No large utils dumping grounds.</rule>
+      <source>CLAUDE.md</source>
+    </constraint>
+
+    <constraint type="llm-integration">
+      <rule>Mastra handles LLM content generation (4 steps only: intent, type, draft, questions). Everything else uses deterministic services.</rule>
+      <source>docs/architecture.md - Key Architectural Principle</source>
+    </constraint>
+
+    <constraint type="validation-specific">
+      <rule>Validation is informative, not blocking. User always sees the ticket. Continue to questions regardless of validation score.</rule>
+      <source>docs/sprint-artifacts/3-1-validation-engine-multi-criteria-scoring.md</source>
+    </constraint>
+
+    <constraint type="validation-specific">
+      <rule>LLM prompts for validation must be deterministic (temperature = 0)</rule>
+      <source>docs/sprint-artifacts/3-1-validation-engine-multi-criteria-scoring.md</source>
+    </constraint>
+  </constraints>
+
+  <!-- Testing Standards -->
+  <tests>
+    <standards>
+Test pyramid approach: many unit tests (>80% coverage), some integration tests, few e2e tests. Use Jest for backend testing. Mock external dependencies at ports. Domain layer tests must not depend on any framework. Application layer tests mock repositories. Infrastructure tests may use test containers for Firestore emulator.
+    </standards>
+
+    <locations>
+      <location>backend/src/**/__tests__/**/*.spec.ts</location>
+      <location>backend/src/**/*.spec.ts</location>
+      <location>backend/test/**/*.e2e-spec.ts</location>
+    </locations>
+
+    <ideas>
+      <test-idea for="AC1-AC3">
+        <description>Unit tests for ValidationResult value object creation, validation, and score calculations</description>
+        <coverage>Domain layer - ValidationResult</coverage>
+      </test-idea>
+
+      <test-idea for="AC3-AC6">
+        <description>Unit tests for AEC.validate() method, ensuring validation results are stored and overall scores calculated correctly</description>
+        <coverage>Domain layer - AEC aggregate</coverage>
+      </test-idea>
+
+      <test-idea for="AC4-AC5">
+        <description>Unit tests for each validator (7 validators) with various AEC inputs. Test pass/fail thresholds, score calculations, issue detection.</description>
+        <coverage>Infrastructure layer - Individual validators</coverage>
+      </test-idea>
+
+      <test-idea for="AC4">
+        <description>Integration test for ValidationEngine: inject mock validators, verify parallel execution, weighted score calculation</description>
+        <coverage>Application layer - ValidationEngine service</coverage>
+      </test-idea>
+
+      <test-idea for="AC7">
+        <description>Integration test for persistence: save AEC with validation results, retrieve, verify ValidationResults mapped correctly</description>
+        <coverage>Infrastructure layer - Repository and Mapper</coverage>
+      </test-idea>
+
+      <test-idea for="AC8">
+        <description>Integration test for GenerationOrchestrator Step 6: mock ValidationEngine, verify it's called after drafting, results stored in AEC</description>
+        <coverage>Application layer - GenerationOrchestrator</coverage>
+      </test-idea>
+
+      <test-idea for="AC1-AC8">
+        <description>End-to-end test: POST /api/tickets → generation completes → verify validation results in Firestore → GET ticket shows validation</description>
+        <coverage>Full stack integration</coverage>
+      </test-idea>
+
+      <test-idea for="AC5">
+        <description>Edge case tests: empty AEC, missing sections, very long content, AEC with repository context vs without</description>
+        <coverage>Validator robustness</coverage>
+      </test-idea>
+    </ideas>
+  </tests>
+
+  <!-- Additional Context -->
+  <notes>
+    <note type="implementation">
+Current ValidationResult uses types 'structural', 'behavioral', 'testability', 'risk', 'permissions'. Story requires 7 new types: 'completeness', 'clarity', 'testability', 'feasibility', 'consistency', 'context_alignment', 'scope'. Update ValidatorType enum accordingly.
+    </note>
+
+    <note type="implementation">
+GenerationOrchestrator Step 6 currently calls stubValidation() which returns placeholder results. Replace with actual ValidationEngine.validate() call.
+    </note>
+
+    <note type="architecture">
+ValidationEngine should be registered in TicketsModule providers. Validators can be injected as an array or registered dynamically.
+    </note>
+
+    <note type="future">
+Consider making validator set pluggable for future custom validators. Validators should be configurable (weights, thresholds) via config.
+    </note>
+
+    <note type="testing">
+LLM-based validators (clarity, feasibility, consistency, context_alignment) will need integration tests with actual LLM calls. Consider using deterministic prompts and snapshot testing.
+    </note>
+  </notes>
+
+</story-context>
