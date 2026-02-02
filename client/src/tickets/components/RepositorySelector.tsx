@@ -1,60 +1,82 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useTicketsStore } from '@/stores/tickets.store';
-import { Input } from '@/core/components/ui/input';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useServices } from '@/hooks/useServices';
 import { Button } from '@/core/components/ui/button';
-import { GitBranch, X, Loader2 } from 'lucide-react';
+import { GitBranch, X, CheckCircle2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/core/components/ui/select';
 
 /**
  * Repository Selector Component (AC#5, Task 7)
  *
- * Allows users to select or enter a GitHub repository.
- * In Story 4.1, this will be enhanced to show connected repositories.
- * For now, accepts manual input in "owner/repo" format.
+ * Shows dropdown of successfully indexed repositories only.
+ * These repos provide code context for AI-powered ticket generation.
  */
 export function RepositorySelector() {
+  const { githubService } = useServices();
   const {
     selectedRepository,
     setRepository,
-    isBranchesLoading,
     clearBranchSelection,
   } = useTicketsStore();
 
-  const [inputValue, setInputValue] = useState(selectedRepository || '');
-  const [error, setError] = useState<string | null>(null);
+  const {
+    githubConnected,
+    selectedRepositories,
+    indexingJobs,
+    loadGitHubStatus,
+  } = useSettingsStore();
 
-  const handleSubmit = async () => {
-    const trimmed = inputValue.trim();
-
-    if (!trimmed) {
-      setError('Please enter a repository');
-      return;
+  // Load GitHub status on mount if not already loaded
+  useEffect(() => {
+    if (!githubConnected) {
+      loadGitHubStatus(githubService);
     }
+  }, []);
 
-    // Validate format: owner/repo
-    const parts = trimmed.split('/');
-    if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      setError('Format must be "owner/repo"');
-      return;
+  // Get only completed indexed repositories
+  const completedRepos = selectedRepositories.filter((repo) => {
+    for (const [_, job] of indexingJobs.entries()) {
+      if (job.repositoryId === repo.id && job.status?.status === 'completed') {
+        return true;
+      }
     }
+    return false;
+  });
 
-    setError(null);
-    await setRepository(trimmed);
+  const handleSelect = async (repoFullName: string) => {
+    await setRepository(repoFullName);
   };
 
   const handleClear = () => {
-    setInputValue('');
-    setError(null);
     clearBranchSelection();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  // If no GitHub connection or no indexed repos
+  if (!githubConnected || completedRepos.length === 0) {
+    return (
+      <div className="space-y-2">
+        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          Repository
+        </label>
+        <div className="p-3 border border-[var(--border)] rounded-md bg-[var(--bg-subtle)]">
+          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+            {!githubConnected
+              ? 'Connect GitHub and index repositories in Settings to enable code-aware ticket generation'
+              : 'No indexed repositories available. Index a repository in Settings first.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // If repository is already selected, show it with clear option
   if (selectedRepository) {
@@ -65,9 +87,12 @@ export function RepositorySelector() {
         </label>
         <div className="flex items-center gap-2">
           <div className="flex-1 flex items-center gap-2 h-10 px-3 border border-[var(--border)] rounded-md bg-[var(--bg-subtle)]">
-            <GitBranch className="h-4 w-4 text-[var(--text-tertiary)]" />
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
             <span className="text-[var(--text-sm)] text-[var(--text)]">
               {selectedRepository}
+            </span>
+            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] ml-auto">
+              Indexed
             </span>
           </div>
           <Button
@@ -88,34 +113,37 @@ export function RepositorySelector() {
       <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
         Repository
       </label>
-      <div className="flex items-center gap-2">
-        <Input
-          placeholder="owner/repo (e.g., facebook/react)"
-          value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value);
-            setError(null);
-          }}
-          onKeyDown={handleKeyDown}
-          className={error ? 'border-[var(--red)]' : ''}
-        />
-        <Button
-          onClick={handleSubmit}
-          disabled={isBranchesLoading}
-          className="shrink-0"
-        >
-          {isBranchesLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            'Load'
-          )}
-        </Button>
-      </div>
-      {error && (
-        <p className="text-[var(--text-xs)] text-[var(--red)]">{error}</p>
-      )}
+      <Select onValueChange={handleSelect}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select an indexed repository..." />
+        </SelectTrigger>
+        <SelectContent>
+          {completedRepos.map((repo) => {
+            // Get index stats for this repo
+            let filesIndexed = 0;
+            for (const [_, job] of indexingJobs.entries()) {
+              if (job.repositoryId === repo.id && job.status?.status === 'completed') {
+                filesIndexed = job.status.filesIndexed;
+                break;
+              }
+            }
+
+            return (
+              <SelectItem key={repo.id} value={repo.fullName}>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <span>{repo.fullName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({filesIndexed} files)
+                  </span>
+                </div>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
       <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-        Enter a public GitHub repository or one you have access to
+        Only indexed repositories are shown. The code context helps generate accurate tickets.
       </p>
     </div>
   );
