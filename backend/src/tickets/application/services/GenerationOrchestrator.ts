@@ -10,6 +10,8 @@ import { TicketType } from '../../domain/value-objects/AECStatus';
 import { Question } from '../../domain/value-objects/Question';
 import { Estimate } from '../../domain/value-objects/Estimate';
 import { ValidationResult, ValidatorType } from '../../domain/value-objects/ValidationResult';
+import { IndexQueryService } from '../../../indexing/application/services/index-query.service';
+import { IndexRepository, INDEX_REPOSITORY } from '../../../indexing/domain/IndexRepository';
 
 /**
  * Application Service - Generation Orchestrator
@@ -36,6 +38,9 @@ export class GenerationOrchestrator {
     private readonly aecRepository: AECRepository,
     @Inject(LLM_CONTENT_GENERATOR)
     private readonly llmGenerator: ILLMContentGenerator,
+    private readonly indexQueryService: IndexQueryService,
+    @Inject(INDEX_REPOSITORY)
+    private readonly indexRepository: IndexRepository,
   ) {}
 
   /**
@@ -66,9 +71,9 @@ export class GenerationOrchestrator {
         return await this.llmGenerator.detectType(intent.intent);
       });
 
-      // Step 3: Repo index query (stub - Epic 4)
+      // Step 3: Repo index query (Epic 4.2 - Code Context)
       const repoContext = await this.executeStep(aec, 3, async () => {
-        return this.stubRepoQuery();
+        return this.queryRepoIndex(aec, intent.intent);
       });
 
       // Step 4: API snapshot resolution (stub - Epic 4)
@@ -210,17 +215,80 @@ export class GenerationOrchestrator {
   // ============================================
 
   /**
-   * Stub: Repo index query (Epic 4)
-   * Returns empty string for now
+   * Query repo index for relevant code context
+   * Uses the selected repository's index to find relevant modules
    */
-  private async stubRepoQuery(): Promise<string> {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return '';
+  private async queryRepoIndex(aec: AEC, intent: string): Promise<string> {
+    // If no repository context selected, return empty
+    if (!aec.repositoryContext) {
+      console.log('🔍 [GenerationOrchestrator] No repository context, skipping index query');
+      return '';
+    }
+
+    try {
+      const { repositoryFullName } = aec.repositoryContext;
+      console.log(`🔍 [GenerationOrchestrator] Querying index for repo: ${repositoryFullName}`);
+
+      // Find all indexes for this workspace
+      const indexes = await this.indexRepository.findByWorkspace(aec.workspaceId);
+
+      // Find the latest completed index for this repository by name
+      const completedIndex = indexes.find(
+        idx => idx.repositoryName === repositoryFullName && idx.status === 'completed'
+      );
+
+      if (!completedIndex) {
+        console.log(`⚠️ [GenerationOrchestrator] No completed index found for ${repositoryFullName}`);
+        return '';
+      }
+
+      console.log(`🔍 [GenerationOrchestrator] Found index: ${completedIndex.id}, querying with intent...`);
+
+      // Query index for relevant modules
+      const modules = await this.indexQueryService.findModulesByIntent(
+        intent,
+        completedIndex.id,
+        10, // Top 10 most relevant modules
+      );
+
+      console.log(`✅ [GenerationOrchestrator] Found ${modules.length} relevant modules`);
+
+      // Format modules into context string for LLM
+      if (modules.length === 0) {
+        return '';
+      }
+
+      const contextLines = [
+        `# Repository Context: ${repositoryFullName}`,
+        `# Found ${modules.length} relevant code modules:\n`,
+      ];
+
+      for (const module of modules) {
+        contextLines.push(`## ${module.path} (${module.language})`);
+        contextLines.push(`Relevance: ${(module.relevanceScore * 100).toFixed(0)}%`);
+        contextLines.push(`Summary: ${module.summary}`);
+        
+        if (module.exports.length > 0) {
+          contextLines.push(`Exports: ${module.exports.join(', ')}`);
+        }
+        if (module.classes.length > 0) {
+          contextLines.push(`Classes: ${module.classes.join(', ')}`);
+        }
+        if (module.functions.length > 0) {
+          contextLines.push(`Functions: ${module.functions.join(', ')}`);
+        }
+        contextLines.push(''); // Empty line between modules
+      }
+
+      return contextLines.join('\n');
+    } catch (error) {
+      console.error('❌ [GenerationOrchestrator] Index query failed:', error);
+      return ''; // Graceful degradation - continue without context
+    }
   }
 
   /**
-   * Stub: API snapshot resolution (Epic 4)
+   * Stub: API snapshot resolution (Epic 4.3)
    * Returns empty string for now
    */
   private async stubApiSnapshot(): Promise<string> {
