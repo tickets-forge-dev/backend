@@ -8,6 +8,7 @@ import { Card } from '@/core/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
+import { ValidationResults } from '@/src/tickets/components/ValidationResults';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -100,6 +101,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           Ready {readinessScore}
         </Badge>
       </div>
+
+      {/* Validation Results */}
+      {currentTicket.validationResults && currentTicket.validationResults.length > 0 && (
+        <ValidationResults
+          validationResults={currentTicket.validationResults}
+          overallScore={currentTicket.readinessScore}
+        />
+      )}
 
       {/* Acceptance Criteria */}
       {currentTicket.acceptanceCriteria && currentTicket.acceptanceCriteria.length > 0 && (
