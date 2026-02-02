@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
 import { GitHubRepositoryItem } from '@/services/github.service';
-import { Github, Check, AlertCircle, Loader2, Search, Database, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Github, Check, AlertCircle, Loader2, Search, Database, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { IndexingSummaryCard } from './IndexingSummary';
 
 export function GitHubIntegration() {
@@ -171,6 +171,18 @@ export function GitHubIntegration() {
       }
     }
     return null;
+  };
+
+  const [expandedRepos, setExpandedRepos] = useState<Set<number>>(new Set());
+
+  const toggleRepoExpansion = (repoId: number) => {
+    const newExpanded = new Set(expandedRepos);
+    if (newExpanded.has(repoId)) {
+      newExpanded.delete(repoId);
+    } else {
+      newExpanded.add(repoId);
+    }
+    setExpandedRepos(newExpanded);
   };
 
   const filteredRepositories = githubRepositories.filter((repo) =>
@@ -386,82 +398,112 @@ export function GitHubIntegration() {
                     return (
                       <div
                         key={repo.id}
-                        className="p-3 rounded-md border space-y-2"
+                        className="p-3 rounded-md border"
                       >
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium truncate flex-1">{repo.fullName}</p>
+                          <div 
+                            className="flex items-center gap-2 flex-1 cursor-pointer"
+                            onClick={() => status?.status === 'completed' && status.summary && toggleRepoExpansion(repo.id)}
+                          >
+                            <p className="text-sm font-medium truncate">{repo.fullName}</p>
+                            
+                            {/* Status Badge */}
+                            <div className="flex items-center gap-1.5">
+                              {status?.status === 'completed' && (
+                                <>
+                                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {status.filesIndexed} files
+                                  </span>
+                                </>
+                              )}
+                              {status?.status === 'failed' && (
+                                <>
+                                  <XCircle className="h-3 w-3 text-red-600" />
+                                  <span className="text-xs text-red-600">Failed</span>
+                                </>
+                              )}
+                              {isRepoIndexing && status && (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                                  <span className="text-xs text-blue-600">
+                                    {status.progress}%
+                                  </span>
+                                </>
+                              )}
+                              {status?.status === 'pending' && (
+                                <>
+                                  <Clock className="h-3 w-3 text-yellow-600 animate-pulse" />
+                                  <span className="text-xs text-yellow-600">Cloning...</span>
+                                </>
+                              )}
+                              {isQueued && !status && (
+                                <>
+                                  <Database className="h-3 w-3 text-gray-600" />
+                                  <span className="text-xs text-gray-600">
+                                    Queued ({queuePosition + 1})
+                                  </span>
+                                </>
+                              )}
+                              {!status && !isQueued && (
+                                <>
+                                  <Clock className="h-3 w-3 text-blue-500 animate-pulse" />
+                                  <span className="text-xs text-blue-600">
+                                    Initializing...
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                           
-                          {/* Only show Re-index button for completed or failed */}
-                          {status?.status === 'failed' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStartIndexing(repo)}
-                              disabled={isIndexing}
-                            >
-                              Retry
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {/* Retry button for failed */}
+                            {status?.status === 'failed' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStartIndexing(repo)}
+                                disabled={isIndexing}
+                              >
+                                Retry
+                              </Button>
+                            )}
+                            
+                            {/* Expand/Collapse button for completed with summary */}
+                            {status?.status === 'completed' && status.summary && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleRepoExpansion(repo.id)}
+                                className="h-6 w-6 p-0"
+                              >
+                                {expandedRepos.has(repo.id) ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Status Display */}
-                        <div className="flex items-center gap-2">
-                          {status?.status === 'completed' && (
-                            <>
-                              <CheckCircle2 className="h-3 w-3 text-green-600" />
-                              <span className="text-xs text-muted-foreground">
-                                Ready • {status.filesIndexed} files indexed
-                              </span>
-                            </>
-                          )}
-                          {status?.status === 'failed' && (
-                            <>
-                              <XCircle className="h-3 w-3 text-red-600" />
-                              <span className="text-xs text-red-600">
-                                Failed{status.errorDetails ? `: ${status.errorDetails.message}` : ''}
-                              </span>
-                            </>
-                          )}
-                          {isRepoIndexing && status && (
-                            <>
-                              <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
-                              <span className="text-xs text-blue-600">
-                                Indexing... {status.progress}% ({status.filesIndexed}/{status.totalFiles} files)
-                              </span>
-                            </>
-                          )}
-                          {status?.status === 'pending' && (
-                            <>
-                              <Clock className="h-3 w-3 text-yellow-600 animate-pulse" />
-                              <span className="text-xs text-yellow-600">Cloning repository...</span>
-                            </>
-                          )}
-                          {isQueued && !status && (
-                            <>
-                              <Database className="h-3 w-3 text-gray-600" />
-                              <span className="text-xs text-gray-600">
-                                Queued (position {queuePosition + 1})
-                              </span>
-                            </>
-                          )}
-                          {!status && !isQueued && (
-                            <>
-                              <Clock className="h-3 w-3 text-blue-500 animate-pulse" />
-                              <span className="text-xs text-blue-600">
-                                Initializing indexing job...
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        {/* Expandable details */}
+                        {expandedRepos.has(repo.id) && status?.status === 'completed' && status.summary && (
+                          <div className="mt-3 pt-3 border-t">
+                            <IndexingSummaryCard
+                              summary={status.summary}
+                              filesIndexed={status.filesIndexed}
+                              repoSizeMB={status.repoSizeMB || 0}
+                              durationMs={status.indexDurationMs}
+                            />
+                          </div>
+                        )}
 
-                        {/* Show summary when completed */}
-                        {status?.status === 'completed' && status.summary && (
-                          <IndexingSummaryCard
-                            summary={status.summary}
-                            filesIndexed={status.filesIndexed}
-                            repoSizeMB={status.repoSizeMB || 0}
-                            durationMs={status.indexDurationMs}
-                          />
+                        {/* Show error details if failed */}
+                        {status?.status === 'failed' && status.errorDetails && (
+                          <div className="mt-2 text-xs text-red-600">
+                            {status.errorDetails.message}
+                          </div>
                         )}
                       </div>
                     );
