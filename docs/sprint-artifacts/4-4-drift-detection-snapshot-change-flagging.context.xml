@@ -1,0 +1,229 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.4</storyId>
+    <title>Drift Detection - Snapshot Change Flagging</title>
+    <status>drafted</status>
+    <generatedAt>2026-02-02T19:31:22.444Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-4-drift-detection-snapshot-change-flagging.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Product Manager</asA>
+    <iWant>to be notified when code or API snapshots change after ticket creation</iWant>
+    <soThat>I know when a ticket may be outdated</soThat>
+    <tasks>
+      - Update AEC domain model with drift fields (driftReason)
+      - Create IDriftDetector interface in application layer
+      - Implement DriftDetectorService in infrastructure
+      - Create DetectDriftUseCase for orchestration
+      - Extend GitHub webhook handler to trigger drift detection
+      - Query AECs with matching repo and open status
+      - Compare snapshots and update AEC status
+      - Create DriftBanner component (frontend)
+      - Implement refresh ticket functionality
+      - Write unit tests for drift detector
+      - Write integration tests for E2E drift detection
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    AC1: System checks open AECs when GitHub push webhook received
+    AC2: Compares current commit SHA with AEC codeSnapshot.commitSha
+    AC3: Compares current API spec hash with AEC apiSnapshot.hash
+    AC4: Updates AEC status to 'drifted' if mismatch detected
+    AC5: Sets driftDetectedAt timestamp when drift detected
+    AC6: Sets driftReason with old/new snapshot values
+    AC7: Drift detection runs async, doesn't block webhook response
+    AC8: Only checks AECs with status 'ready' or 'created'
+    AC9: UI displays amber warning banner when ticket status is 'drifted'
+    AC10: Banner shows drift reason with old → new values
+    AC11: "Refresh Ticket" button available to regenerate ticket
+    AC12: Refresh keeps user edits (ACs, assumptions)
+    AC13: Refresh updates snapshots and changes status to 'validated'
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>System Architecture - Data Snapshots</section>
+        <snippet>Code snapshot = commit SHA. API snapshot = OpenAPI hash. System maintains snapshot awareness for drift detection when code changes after ticket creation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Epic 4 Technical Details</section>
+        <snippet>Epic 4 includes DriftDetector. GitHub webhooks → Bull queue → background indexing. Drift detection compares snapshots. Updates AEC status when drift detected.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Agent Executable Contract (AEC)</section>
+        <snippet>AEC is versioned, snapshot-locked, machine-verifiable contract. Includes codeSnapshot, apiSnapshot, driftDetectedAt fields. Domain entity with state machine for status transitions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 4.4 Details</section>
+        <snippet>Covers FR8: System detects when code/API snapshots change and flags drift. Prerequisites: Story 4.2 (indexing), 4.3 (API sync), 2.3 (AEC model) all completed.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>backend/src/tickets/domain/aec/AEC.ts</path>
+        <kind>entity</kind>
+        <symbol>AEC</symbol>
+        <lines>1-250</lines>
+        <reason>Core domain entity - already has driftDetectedAt field, needs driftReason added. Contains status state machine.</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/value-objects/AECStatus.ts</path>
+        <kind>value-object</kind>
+        <symbol>AECStatus</symbol>
+        <reason>Status enum - needs 'drifted' status added to existing states</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/value-objects/Snapshot.ts</path>
+        <kind>value-object</kind>
+        <symbol>CodeSnapshot, ApiSnapshot</symbol>
+        <lines>1-20</lines>
+        <reason>Existing snapshot value objects with commitSha and hash fields used for comparison</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/github/infrastructure/webhooks/github-webhook.handler.ts</path>
+        <kind>controller</kind>
+        <symbol>GitHubWebhookHandler</symbol>
+        <lines>1-150</lines>
+        <reason>Existing webhook handler - extend handlePush to trigger drift detection</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/tickets.module.ts</path>
+        <kind>module</kind>
+        <symbol>TicketsModule</symbol>
+        <reason>Feature module - wire up drift detector service and use case</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/indexing/domain/entities/ApiSpec.ts</path>
+        <kind>entity</kind>
+        <symbol>ApiSpec</symbol>
+        <reason>API spec entity with hash field - used to get current API spec hash for comparison</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/indexing/application/services/api-spec-indexer.interface.ts</path>
+        <kind>interface</kind>
+        <symbol>IApiSpecIndexer</symbol>
+        <reason>Service to query current API spec by repo name - needed for drift comparison</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@nestjs/common" version="^10.3.0" dev="false" notes="EXISTING - NestJS core" />
+        <package name="@nestjs/config" version="^3.1.1" dev="false" notes="EXISTING - Configuration" />
+        <package name="firebase-admin" version="^12.0.0" dev="false" notes="EXISTING - Firestore for querying AECs" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Follow Clean Architecture: domain changes must not depend on infrastructure
+    - AEC entity already has driftDetectedAt field - add driftReason: string | null
+    - Add 'drifted' to AECStatus enum (domain layer)
+    - IDriftDetector interface goes in tickets/application/services/
+    - DriftDetectorService implementation in tickets/infrastructure/services/
+    - DetectDriftUseCase in tickets/application/use-cases/
+    - Drift detection must be async and non-blocking (don't block webhook response)
+    - Only check AECs with status 'ready' or 'created' (open tickets)
+    - Query Firestore efficiently: filter by workspace, repo, and status
+    - Log drift detection results for debugging
+    - Frontend DriftBanner in client/src/features/tickets/components/
+    - Use existing shadcn/ui components for banner (Alert variant)
+    - Refresh ticket functionality can be placeholder (full implementation in future story)
+    - All tests must pass 100% before story is done
+    - Use TypeScript strict mode
+    - Follow existing naming conventions
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>IDriftDetector</name>
+      <kind>TypeScript Interface</kind>
+      <signature>
+        interface IDriftDetector {
+          detectDrift(workspaceId: string, repositoryName: string, commitSha: string): Promise&lt;void&gt;;
+          detectApiDrift(workspaceId: string, repositoryName: string, specHash: string): Promise&lt;void&gt;;
+        }
+      </signature>
+      <path>backend/src/tickets/application/services/drift-detector.interface.ts</path>
+    </interface>
+    <interface>
+      <name>DetectDriftUseCase</name>
+      <kind>TypeScript Class</kind>
+      <signature>
+        class DetectDriftUseCase {
+          async execute(params: {
+            workspaceId: string;
+            repositoryName: string;
+            commitSha: string;
+          }): Promise&lt;DriftDetectionResult&gt;;
+        }
+      </signature>
+      <path>backend/src/tickets/application/use-cases/detect-drift.use-case.ts</path>
+    </interface>
+    <interface>
+      <name>AEC Status Update</name>
+      <kind>Domain Method</kind>
+      <signature>
+        class AEC {
+          markDrifted(reason: string): void;
+        }
+      </signature>
+      <path>backend/src/tickets/domain/aec/AEC.ts</path>
+    </interface>
+    <interface>
+      <name>DriftBanner</name>
+      <kind>React Component</kind>
+      <signature>
+        function DriftBanner({ ticket }: { ticket: Ticket }): JSX.Element | null;
+      </signature>
+      <path>client/src/features/tickets/components/DriftBanner.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Follow existing testing patterns in backend/src/tickets tests. Use Jest for unit tests, NestJS testing utilities for integration tests. Mock external dependencies (Firestore, GitHub webhooks, indexing services). Test files colocated with source in __tests__ directories or .spec.ts files. Aim for 100% coverage of new code. Test both happy paths and edge cases (no snapshots, no drift, multiple AECs).
+    </standards>
+
+    <locations>
+      backend/src/tickets/application/services/__tests__/
+      backend/src/tickets/application/use-cases/__tests__/
+      backend/src/tickets/infrastructure/services/__tests__/
+      backend/src/tickets/domain/aec/__tests__/
+      client/src/features/tickets/components/__tests__/
+    </locations>
+
+    <ideas>
+      <test ac="AC1" desc="Queries open AECs when webhook received" />
+      <test ac="AC2" desc="Compares commit SHA and detects code drift" />
+      <test ac="AC3" desc="Compares API spec hash and detects API drift" />
+      <test ac="AC4" desc="Updates AEC status to 'drifted'" />
+      <test ac="AC5" desc="Sets driftDetectedAt timestamp" />
+      <test ac="AC6" desc="Sets driftReason with old → new values" />
+      <test ac="AC7" desc="Drift detection runs async (non-blocking)" />
+      <test ac="AC8" desc="Only checks 'ready' and 'created' status AECs" />
+      <test ac="AC8" desc="Skips AECs with status 'validated' or 'exported'" />
+      <test ac="AC2" desc="No drift detected when commit SHA matches" />
+      <test ac="AC3" desc="No drift detected when API hash matches" />
+      <test ac="AC1" desc="Handles AECs with no snapshots gracefully" />
+      <test ac="AC9" desc="DriftBanner renders when status is 'drifted'" />
+      <test ac="AC9" desc="DriftBanner hidden when status is not 'drifted'" />
+      <test ac="AC10" desc="Banner displays drift reason correctly" />
+      <test ac="AC11" desc="Refresh button exists and is clickable" />
+    </ideas>
+  </tests>
+</story-context>

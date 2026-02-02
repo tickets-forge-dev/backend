@@ -14,6 +14,7 @@ interface IndexingJobState {
   jobId: string;
   repositoryId: number;
   repositoryName: string;
+  indexId?: string;
   status: IndexStatus | null;
   pollingInterval: NodeJS.Timeout | null;
 }
@@ -27,6 +28,8 @@ interface SettingsState {
   
   // Indexing State (Story 4.2)
   indexingJobs: Map<string, IndexingJobState>;
+  indexingQueue: number[]; // Repository IDs waiting to be indexed
+  maxConcurrentIndexing: number; // Limit concurrent indexing
   isIndexing: boolean;
   indexingError: string | null;
   
@@ -53,6 +56,9 @@ interface SettingsState {
   pollIndexingStatus: (githubService: GitHubService, indexId: string) => void;
   stopPolling: (indexId: string) => void;
   clearIndexingError: () => void;
+  loadExistingIndexes: (githubService: GitHubService) => Promise<void>;
+  queueRepositoriesForIndexing: (githubService: GitHubService, repositories: GitHubRepositoryItem[]) => Promise<void>;
+  processIndexingQueue: (githubService: GitHubService) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -62,6 +68,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   githubRepositories: [],
   selectedRepositories: [],
   indexingJobs: new Map(),
+  indexingQueue: [],
+  maxConcurrentIndexing: 3, // Max 3 concurrent indexing jobs
   isIndexing: false,
   indexingError: null,
   isLoadingConnection: false,
@@ -87,9 +95,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         isLoadingConnection: false,
       });
 
-      // If connected, auto-load repositories
+      // If connected, auto-load repositories and existing indexes
       if (status.connected) {
         get().loadRepositories(githubService);
+        get().loadExistingIndexes(githubService);
       }
     } catch (error: any) {
       console.error('Failed to load GitHub status:', error);
@@ -99,6 +108,36 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         githubConnected: false,
         githubConnectionStatus: null,
       });
+    }
+  },
+
+  /**
+   * Load existing indexes for selected repositories
+   * Shows summaries for completed indexes
+   */
+  loadExistingIndexes: async (githubService: GitHubService) => {
+    try {
+      const indexes = await githubService.listIndexes();
+      const jobs = new Map(get().indexingJobs);
+      
+      // Update or create jobs with existing indexes
+      for (const index of indexes) {
+        // Always update with latest index data (including summary)
+        jobs.set(index.repositoryName, {
+          jobId: index.indexId,
+          repositoryId: index.repositoryName.split('/')[1] ? 0 : 0, // TODO: correlate with repo list
+          repositoryName: index.repositoryName,
+          indexId: index.indexId,
+          status: index,
+          pollingInterval: null,
+        });
+      }
+      
+      set({ indexingJobs: jobs });
+      console.log(`✅ Loaded ${indexes.length} existing indexes with summaries`);
+    } catch (error: any) {
+      console.error('Failed to load existing indexes:', error);
+      // Don't throw - this is graceful degradation
     }
   },
 
@@ -147,23 +186,98 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   /**
    * Select repositories for indexing
-   * AC#5: Save repository selection
+   * AC#5: Save repository selection + Auto-start indexing (only for newly selected repos)
    */
   selectRepositories: async (
     githubService: GitHubService,
     repositories: GitHubRepositoryItem[]
   ) => {
     try {
+      // Get previously selected repos BEFORE updating
+      const previouslySelected = get().selectedRepositories;
+      const previousIds = new Set(previouslySelected.map(r => r.id));
+      
       await githubService.selectRepositories(repositories);
       set({
         selectedRepositories: repositories,
       });
+      
+      // Auto-start indexing ONLY for newly selected repositories
+      const newRepos = repositories.filter(repo => !previousIds.has(repo.id));
+      
+      if (newRepos.length > 0) {
+        console.log(`🔄 Auto-queuing ${newRepos.length} newly selected repositories for indexing`);
+        get().queueRepositoriesForIndexing(githubService, newRepos);
+      } else {
+        console.log('ℹ️ No new repositories to index');
+      }
     } catch (error: any) {
       console.error('Failed to select repositories:', error);
       set({
         repositoriesError: error.response?.data?.message || 'Failed to save repository selection',
       });
-      throw error; // Re-throw so UI can handle
+      throw error;
+    }
+  },
+
+  /**
+   * Queue repositories for indexing with concurrency control
+   */
+  queueRepositoriesForIndexing: async (
+    githubService: GitHubService,
+    repositories: GitHubRepositoryItem[]
+  ) => {
+    // Add to queue
+    const queue = [...get().indexingQueue, ...repositories.map(r => r.id)];
+    set({ indexingQueue: queue });
+    
+    // Start processing queue
+    get().processIndexingQueue(githubService);
+  },
+
+  /**
+   * Process indexing queue with concurrency limits
+   */
+  processIndexingQueue: async (githubService: GitHubService) => {
+    const { indexingQueue, indexingJobs, maxConcurrentIndexing, selectedRepositories } = get();
+    
+    // Count currently indexing jobs
+    let activeCount = 0;
+    for (const [_, job] of indexingJobs.entries()) {
+      if (job.status?.status === 'indexing' || job.status?.status === 'pending') {
+        activeCount++;
+      }
+    }
+    
+    // Start new jobs up to the limit
+    while (activeCount < maxConcurrentIndexing && indexingQueue.length > 0) {
+      const repoId = indexingQueue[0];
+      const repo = selectedRepositories.find(r => r.id === repoId);
+      
+      if (!repo) {
+        // Remove from queue if repo not found
+        set({ indexingQueue: indexingQueue.slice(1) });
+        continue;
+      }
+      
+      // Remove from queue
+      set({ indexingQueue: indexingQueue.slice(1) });
+      
+      // Start indexing
+      console.log(`🚀 Starting indexing for ${repo.fullName} (${activeCount + 1}/${maxConcurrentIndexing})`);
+      
+      try {
+        // Get latest commit
+        const branches = await githubService.getBranches(repo.owner, repo.name);
+        const defaultBranch = branches.branches.find(b => b.name === repo.defaultBranch);
+        
+        if (defaultBranch) {
+          await get().startIndexing(githubService, repo.id, repo.fullName, defaultBranch.commitSha);
+          activeCount++;
+        }
+      } catch (error) {
+        console.error(`Failed to start indexing for ${repo.fullName}:`, error);
+      }
     }
   },
 
@@ -261,6 +375,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           // Stop polling if completed or failed
           if (status.status === 'completed' || status.status === 'failed') {
             get().stopPolling(indexId);
+            
+            // Process queue when a job completes
+            get().processIndexingQueue(githubService);
           }
         }
       } catch (error: any) {

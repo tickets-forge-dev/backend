@@ -18,7 +18,9 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Index } from '../../domain/Index';
 import { IndexRepository, INDEX_REPOSITORY } from '../../domain/IndexRepository';
+import { IApiSpecIndexer, API_SPEC_INDEXER } from './api-spec-indexer.interface';
 import { FileParserService } from './file-parser.service';
+import simpleGit from 'simple-git';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
@@ -31,6 +33,8 @@ export class RepoIndexerService {
   constructor(
     @Inject(INDEX_REPOSITORY)
     private readonly indexRepository: IndexRepository,
+    @Inject(API_SPEC_INDEXER)
+    private readonly apiSpecIndexer: IApiSpecIndexer,
     private readonly fileParserService: FileParserService,
     private readonly configService: ConfigService,
   ) {}
@@ -65,6 +69,16 @@ export class RepoIndexerService {
     await this.indexRepository.save(index);
 
     let tempDir: string | null = null;
+    const indexingSummary = {
+      filesIndexed: 0,
+      languagesDetected: new Set<string>(),
+      hasDocumentation: false,
+      hasTests: false,
+      hasApiSpec: false,
+      documentationFiles: [] as string[],
+      testFiles: [] as string[],
+      configFiles: [] as string[],
+    };
 
     try {
       // Clone repository to temp directory
@@ -100,6 +114,28 @@ export class RepoIndexerService {
           index.addFile(fileMetadata);
           processedCount++;
 
+          // Collect summary information
+          if (fileMetadata.language) {
+            indexingSummary.languagesDetected.add(fileMetadata.language);
+          }
+          
+          // Detect documentation files
+          if (this.isDocumentationFile(relativePath)) {
+            indexingSummary.hasDocumentation = true;
+            indexingSummary.documentationFiles.push(relativePath);
+          }
+          
+          // Detect test files
+          if (this.isTestFile(relativePath)) {
+            indexingSummary.hasTests = true;
+            indexingSummary.testFiles.push(relativePath);
+          }
+          
+          // Detect config files
+          if (this.isConfigFile(relativePath)) {
+            indexingSummary.configFiles.push(relativePath);
+          }
+
           // Update progress every 10 files
           if (processedCount % 10 === 0) {
             await this.indexRepository.updateProgress(
@@ -115,18 +151,45 @@ export class RepoIndexerService {
         }
       }
 
+      indexingSummary.filesIndexed = processedCount;
+
       // Calculate repo size
       const repoSizeMB = await this.calculateRepoSize(tempDir);
       index.repoSizeMB = repoSizeMB;
 
+      // Index API specs (Story 4.3)
+      this.logger.log('Indexing API specifications...');
+      try {
+        await this.apiSpecIndexer.indexApiSpecs(
+          workspaceId,
+          repositoryName,
+          commitSha,
+        );
+        indexingSummary.hasApiSpec = true;
+      } catch (error) {
+        const err = error as Error;
+        this.logger.warn(`API spec indexing failed: ${err.message}`);
+      }
+
       // Mark complete
       const duration = Date.now() - startTime;
       index.markComplete(duration);
+      
+      // Set summary
+      index.summary = {
+        languagesDetected: Array.from(indexingSummary.languagesDetected),
+        hasDocumentation: indexingSummary.hasDocumentation,
+        hasTests: indexingSummary.hasTests,
+        hasApiSpec: indexingSummary.hasApiSpec,
+        documentationFiles: indexingSummary.documentationFiles,
+        testFiles: indexingSummary.testFiles,
+        configFiles: indexingSummary.configFiles,
+      };
+      
       await this.indexRepository.save(index);
 
-      this.logger.log(
-        `Indexing complete: ${repositoryName} - ${index.filesIndexed} files in ${duration}ms`,
-      );
+      // Log detailed summary
+      this.logIndexingSummary(repositoryName, duration, repoSizeMB, indexingSummary);
 
       return indexId;
     } catch (error) {
@@ -151,7 +214,6 @@ export class RepoIndexerService {
 
   /**
    * Clone repository to temporary directory
-   * TODO: Implement with simple-git when installed
    */
   private async cloneRepository(
     repositoryName: string,
@@ -165,23 +227,37 @@ export class RepoIndexerService {
 
     await fs.mkdir(tempDir, { recursive: true });
 
-    // TODO: Implement git clone when simple-git is installed
-    // const git = simpleGit();
-    // const cloneUrl = `https://x-access-token:${accessToken}@github.com/${repositoryName}.git`;
-    //
-    // await git.clone(cloneUrl, tempDir, ['--depth', '1', '--single-branch']);
-    // await git.cwd(tempDir);
-    // await git.checkout(commitSha);
+    try {
+      const git = simpleGit();
+      const cloneUrl = `https://x-access-token:${accessToken}@github.com/${repositoryName}.git`;
 
-    this.logger.log(`Cloned ${repositoryName} to ${tempDir}`);
+      this.logger.log(`Cloning ${repositoryName} from GitHub...`);
 
-    // For now, create a mock structure for testing
-    await fs.writeFile(
-      path.join(tempDir, 'README.md'),
-      '# Test Repository\n\nThis is a mock file for testing without git clone.',
-    );
+      // Clone with depth 1 for faster cloning
+      await git.clone(cloneUrl, tempDir, ['--depth', '1', '--single-branch', '--no-tags']);
 
-    return tempDir;
+      this.logger.log(`Cloned ${repositoryName} to ${tempDir}`);
+
+      // Checkout specific commit if needed (might require fetching more history)
+      const repoGit = simpleGit(tempDir);
+      const currentSha = await repoGit.revparse(['HEAD']);
+      
+      if (currentSha.trim() !== commitSha) {
+        this.logger.log(`Checking out specific commit ${commitSha.substring(0, 7)}...`);
+        try {
+          await repoGit.fetch(['origin', commitSha]);
+          await repoGit.checkout(commitSha);
+        } catch (error) {
+          this.logger.warn(`Could not checkout specific commit, using HEAD: ${(error as Error).message}`);
+        }
+      }
+
+      return tempDir;
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to clone repository: ${err.message}`);
+      throw new Error(`Failed to clone repository: ${err.message}`);
+    }
   }
 
   /**
@@ -267,5 +343,115 @@ export class RepoIndexerService {
    */
   private generateIndexId(): string {
     return `idx_${crypto.randomBytes(12).toString('hex')}`;
+  }
+
+  /**
+   * Check if file is documentation
+   */
+  private isDocumentationFile(filePath: string): boolean {
+    const fileName = path.basename(filePath).toLowerCase();
+    const dirName = path.dirname(filePath).toLowerCase();
+    
+    return (
+      fileName.startsWith('readme') ||
+      fileName === 'contributing.md' ||
+      fileName === 'changelog.md' ||
+      fileName === 'license' ||
+      fileName === 'license.md' ||
+      dirName.includes('docs') ||
+      dirName.includes('documentation') ||
+      filePath.toLowerCase().endsWith('.mdx')
+    );
+  }
+
+  /**
+   * Check if file is a test file
+   */
+  private isTestFile(filePath: string): boolean {
+    const fileName = path.basename(filePath).toLowerCase();
+    const dirName = path.dirname(filePath).toLowerCase();
+    
+    return (
+      fileName.includes('.test.') ||
+      fileName.includes('.spec.') ||
+      fileName.endsWith('_test.py') ||
+      fileName.endsWith('_test.go') ||
+      dirName.includes('__tests__') ||
+      dirName.includes('test') ||
+      dirName.includes('tests') ||
+      dirName.includes('spec')
+    );
+  }
+
+  /**
+   * Check if file is a configuration file
+   */
+  private isConfigFile(filePath: string): boolean {
+    const fileName = path.basename(filePath).toLowerCase();
+    
+    return (
+      fileName === 'package.json' ||
+      fileName === 'tsconfig.json' ||
+      fileName === 'webpack.config.js' ||
+      fileName === 'jest.config.js' ||
+      fileName === '.eslintrc' ||
+      fileName === '.eslintrc.json' ||
+      fileName === '.prettierrc' ||
+      fileName === 'dockerfile' ||
+      fileName === 'docker-compose.yml' ||
+      fileName === '.env.example' ||
+      fileName === 'makefile' ||
+      fileName.endsWith('.config.js') ||
+      fileName.endsWith('.config.ts') ||
+      fileName.endsWith('.yml') ||
+      fileName.endsWith('.yaml')
+    );
+  }
+
+  /**
+   * Log detailed indexing summary
+   */
+  private logIndexingSummary(
+    repositoryName: string,
+    duration: number,
+    repoSizeMB: number,
+    summary: {
+      filesIndexed: number;
+      languagesDetected: Set<string>;
+      hasDocumentation: boolean;
+      hasTests: boolean;
+      hasApiSpec: boolean;
+      documentationFiles: string[];
+      testFiles: string[];
+      configFiles: string[];
+    },
+  ): void {
+    const languages = Array.from(summary.languagesDetected).join(', ') || 'none detected';
+    
+    this.logger.log(`
+╔════════════════════════════════════════════════════════════════╗
+║  Indexing Complete: ${repositoryName.padEnd(43)}║
+╠════════════════════════════════════════════════════════════════╣
+║  📊 Summary:                                                   ║
+║    • Files indexed: ${String(summary.filesIndexed).padEnd(46)}║
+║    • Repository size: ${String(repoSizeMB).padEnd(44)} MB    ║
+║    • Duration: ${String((duration / 1000).toFixed(2)).padEnd(49)} sec  ║
+║    • Languages: ${languages.padEnd(47)}║
+║                                                                ║
+║  📚 Documentation:                                             ║
+║    • Has docs: ${(summary.hasDocumentation ? '✓ Yes' : '✗ No').padEnd(49)}║
+${summary.documentationFiles.length > 0 ? `║    • Found: ${summary.documentationFiles.slice(0, 2).join(', ').padEnd(50)}║` : ''}
+║                                                                ║
+║  🧪 Tests:                                                     ║
+║    • Has tests: ${(summary.hasTests ? '✓ Yes' : '✗ No').padEnd(48)}║
+${summary.testFiles.length > 0 ? `║    • Test files: ${String(summary.testFiles.length).padEnd(45)}║` : ''}
+║                                                                ║
+║  🔌 API Specifications:                                        ║
+║    • Has API spec: ${(summary.hasApiSpec ? '✓ Yes' : '✗ No').padEnd(45)}║
+║                                                                ║
+║  ⚙️  Configuration:                                            ║
+║    • Config files: ${String(summary.configFiles.length).padEnd(45)}║
+╚════════════════════════════════════════════════════════════════╝
+    `.trim());
   }
 }

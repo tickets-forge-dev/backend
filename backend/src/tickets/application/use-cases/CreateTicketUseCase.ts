@@ -11,6 +11,7 @@ export interface CreateTicketCommand {
   description?: string;
   repositoryFullName?: string;
   branchName?: string;
+  githubAccessToken?: string;
 }
 
 @Injectable()
@@ -34,6 +35,7 @@ export class CreateTicketUseCase {
       repositoryContext = await this.buildRepositoryContext(
         command.repositoryFullName,
         command.branchName,
+        command.githubAccessToken,
       );
     }
 
@@ -73,6 +75,7 @@ export class CreateTicketUseCase {
   private async buildRepositoryContext(
     repositoryFullName: string,
     branchName: string,
+    githubAccessToken?: string,
   ): Promise<RepositoryContext> {
     const [owner, repo] = repositoryFullName.split('/');
 
@@ -81,22 +84,22 @@ export class CreateTicketUseCase {
     }
 
     // Verify repository access (AC#4)
-    const hasAccess = await this.gitHubApiService.verifyRepositoryAccess(owner, repo);
+    const hasAccess = await this.gitHubApiService.verifyRepositoryAccess(owner, repo, githubAccessToken);
     if (!hasAccess) {
       throw new ForbiddenException(`Repository ${repositoryFullName} not found or access revoked`);
     }
 
     // Verify branch exists (AC#4)
-    const branchExists = await this.gitHubApiService.verifyBranchExists(owner, repo, branchName);
+    const branchExists = await this.gitHubApiService.verifyBranchExists(owner, repo, branchName, githubAccessToken);
     if (!branchExists) {
       throw new BadRequestException(`Branch "${branchName}" not found in ${repositoryFullName}`);
     }
 
     // Get HEAD commit SHA (AC#4)
-    const commitSha = await this.gitHubApiService.getBranchHead(owner, repo, branchName);
+    const commitSha = await this.gitHubApiService.getBranchHead(owner, repo, branchName, githubAccessToken);
 
     // Check if this is the default branch (AC#3)
-    const defaultBranch = await this.gitHubApiService.getDefaultBranch(owner, repo);
+    const defaultBranch = await this.gitHubApiService.getDefaultBranch(owner, repo, githubAccessToken);
     const isDefaultBranch = branchName === defaultBranch;
 
     console.log('🎫 [CreateTicketUseCase] Repository context built:', {

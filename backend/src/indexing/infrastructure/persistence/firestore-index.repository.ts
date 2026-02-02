@@ -48,6 +48,7 @@ export class FirestoreIndexRepository implements IndexRepository {
       indexDurationMs: index.indexDurationMs,
       repoSizeMB: index.repoSizeMB,
       errorDetails: index.errorDetails,
+      summary: index.summary,
       files: index.files.map((f) => ({
         path: f.path,
         language: f.language,
@@ -74,8 +75,8 @@ export class FirestoreIndexRepository implements IndexRepository {
     // For now, we'll need to pass workspaceId or iterate (not ideal but works for MVP)
     // TODO: Add a top-level indexes collection with workspaceId for efficient lookup
     
-    // For testing: Try ws_placeholder first
-    const testWorkspaces = ['ws_placeholder']; // TODO: Get from config or metadata collection
+    // Try common workspace IDs
+    const testWorkspaces = ['ws_placeholder', 'ws_LtDSRDm6GgcO', 'ws_LtDSRDm6GgcOlXwgjiiYiwxYWp72'];
     
     for (const workspaceId of testWorkspaces) {
       const docRef = this.firestore
@@ -144,12 +145,16 @@ export class FirestoreIndexRepository implements IndexRepository {
     filesIndexed: number,
     totalFiles: number,
   ): Promise<void> {
-    // For MVP: Use known workspace
-    const workspaceId = 'ws_placeholder'; // TODO: Get from context
+    // Get the index first to know the workspaceId
+    const index = await this.findById(indexId);
+    if (!index) {
+      this.logger.warn(`Cannot update progress for non-existent index: ${indexId}`);
+      return;
+    }
     
     const docRef = this.firestore
       .collection('workspaces')
-      .doc(workspaceId)
+      .doc(index.workspaceId)
       .collection(this.collection)
       .doc(indexId);
 
@@ -160,12 +165,16 @@ export class FirestoreIndexRepository implements IndexRepository {
   }
 
   async delete(indexId: string): Promise<void> {
-    // For MVP: Use known workspace
-    const workspaceId = 'ws_placeholder'; // TODO: Get from context
+    // Get the index first to know the workspaceId
+    const index = await this.findById(indexId);
+    if (!index) {
+      this.logger.warn(`Cannot delete non-existent index: ${indexId}`);
+      return;
+    }
     
     const docRef = this.firestore
       .collection('workspaces')
-      .doc(workspaceId)
+      .doc(index.workspaceId)
       .collection(this.collection)
       .doc(indexId);
 
@@ -205,6 +214,7 @@ export class FirestoreIndexRepository implements IndexRepository {
       data.repoSizeMB || 0,
       data.errorDetails || null,
       (data.files || []).map((f: any) => FileMetadata.create(f)),
+      data.summary || null,
     );
   }
 }

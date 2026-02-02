@@ -108,6 +108,25 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
   }
 
   /**
+   * Delete integration by workspace ID (optimized)
+   */
+  async deleteByWorkspaceId(workspaceId: string): Promise<void> {
+    try {
+      await this.firestore
+        .collection(this.collectionPath)
+        .doc(workspaceId)
+        .collection('integrations')
+        .doc('github')
+        .delete();
+
+      this.logger.log(`Deleted GitHub integration from workspace ${workspaceId}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to delete integration for workspace ${workspaceId}:`, error.message);
+      throw new Error(`Failed to delete GitHub integration: ${error.message}`);
+    }
+  }
+
+  /**
    * Delete integration
    * AC#7: Disconnect and remove integration
    */
@@ -121,14 +140,7 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
         return;
       }
 
-      await this.firestore
-        .collection(this.collectionPath)
-        .doc(integration.workspaceId)
-        .collection('integrations')
-        .doc('github')
-        .delete();
-
-      this.logger.log(`Deleted GitHub integration ${id} from workspace ${integration.workspaceId}`);
+      await this.deleteByWorkspaceId(integration.workspaceId);
     } catch (error: any) {
       this.logger.error(`Failed to delete integration ${id}:`, error.message);
       throw new Error(`Failed to delete GitHub integration: ${error.message}`);

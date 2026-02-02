@@ -86,6 +86,9 @@ export class IndexStatusResponseDto {
   @ApiProperty({ description: 'Progress percentage (0-100)' })
   progress!: number;
 
+  @ApiProperty({ description: 'Repository size in MB' })
+  repoSizeMB!: number;
+
   @ApiProperty({ description: 'Index creation timestamp' })
   createdAt!: Date;
 
@@ -94,6 +97,17 @@ export class IndexStatusResponseDto {
 
   @ApiProperty({ description: 'Indexing duration in milliseconds' })
   indexDurationMs!: number;
+
+  @ApiProperty({ description: 'Indexing summary with detected features', required: false })
+  summary?: {
+    languagesDetected: string[];
+    hasDocumentation: boolean;
+    hasTests: boolean;
+    hasApiSpec: boolean;
+    documentationFiles: string[];
+    testFiles: string[];
+    configFiles: string[];
+  };
 
   @ApiProperty({ description: 'Error details if failed', required: false })
   errorDetails?: {

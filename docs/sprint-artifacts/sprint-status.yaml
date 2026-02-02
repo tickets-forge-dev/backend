@@ -1,7 +1,7 @@
 # Sprint Status Tracking - Executable Tickets (forge)
-# Generated: 2026-01-31
+# Generated: 2026-02-02T18:24:01.571Z
 # Project: forge
-# Project Key: executable-tickets
+# Project Key: forge
 # Tracking System: file-system
 # Story Location: {project-root}/docs/sprint-artifacts
 
@@ -30,9 +30,9 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-01-31
+generated: 2026-02-02T18:24:01.571Z
 project: forge
-project_key: executable-tickets
+project_key: forge
 tracking_system: file-system
 story_location: '{project-root}/docs/sprint-artifacts'
 
@@ -44,13 +44,13 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Ticket Creation & AEC Engine
-  epic-2: in-progress
+  epic-2: done
   2-1-ticket-creation-ui-minimal-input-form: done
   2-2-generation-progress-transparent-8-step-ui: done
   2-3-aec-domain-model-schema-and-persistence: done
   2-4-ticket-detail-view-aec-rendering: done
-  2-5-aec-xml-serialization-format: drafted
-  epic-2-retrospective: optional
+  2-5-aec-xml-serialization-format: done
+  epic-2-retrospective: completed
 
   # Epic 3: Clarification & Validation
   epic-3: backlog
@@ -60,24 +60,22 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Code Intelligence & Estimation
-  epic-4: in-progress
-  4-0-branch-selection-and-default-detection: done
+  epic-4: done
   4-1-github-app-integration-read-only-repo-access: done
   4-2-code-indexing-build-repo-index-for-query: done
-  4-3-openapi-spec-sync-api-contract-awareness: backlog
-  4-4-drift-detection-snapshot-change-flagging: backlog
-  4-5-effort-estimation-multi-factor-calculation: backlog
-  4-6-safety-rails-and-zone-detection: backlog
+  4-3-openapi-spec-sync-api-contract-awareness: done
+  4-4-drift-detection-snapshot-change-flagging: done
+  4-5-effort-estimation-multi-factor-calculation: done
   epic-4-retrospective: optional
 
   # Epic 5: Export & Integrations
   epic-5: backlog
-  5-1-jira-integration-oauth-and-export: backlog
+  5-1-jira-integration-oauth-export: backlog
   5-2-linear-integration-graphql-export: backlog
-  5-3-export-appendices-dev-and-qa-context: backlog
+  5-3-export-appendices-dev-qa-context: backlog
   epic-5-retrospective: optional
 
-  # Epic 6: Quick Document Generation (v1 Enhancement)
+  # Epic 6: Quick Document Generation
   epic-6: backlog
   6-1-document-domain-model-and-firestore-storage: backlog
   6-2-ai-powered-repository-analyzer: backlog
@@ -89,8 +87,8 @@ development_status:
   6-8-mastra-workspace-indexing-for-rag: backlog
   epic-6-retrospective: optional
 
-  # Epic 1.5: OAuth Authentication (Added for v1)
-  epic-1.5: done
+  # Epic 1.5: OAuth Authentication
+  epic-1-5: done
   1-5-1-oauth-login-ui-google-and-github: done
   1-5-2-backend-auth-guards-and-workspace-isolation: done
-  epic-1.5-retrospective: optional
+  epic-1-5-retrospective: optional

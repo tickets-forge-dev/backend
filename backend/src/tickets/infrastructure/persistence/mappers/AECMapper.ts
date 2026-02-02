@@ -29,7 +29,8 @@ export interface AECDocument {
   estimate: any | null;
   validationResults: any[];
   externalIssue: any | null;
-  driftDetectedAt: Timestamp | null;
+  driftDetectedAt?: Timestamp | null;
+  driftReason?: string | null;
   repositoryContext: RepositoryContextDocument | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -67,6 +68,7 @@ export class AECMapper {
       doc.validationResults,
       doc.externalIssue,
       doc.driftDetectedAt?.toDate() ?? null,
+      doc.driftReason ?? null,
       repositoryContext,
       doc.createdAt.toDate(),
       doc.updatedAt.toDate(),

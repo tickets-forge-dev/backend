@@ -19,6 +19,16 @@ export interface ErrorDetails {
   stack?: string;
 }
 
+export interface IndexSummary {
+  languagesDetected: string[];
+  hasDocumentation: boolean;
+  hasTests: boolean;
+  hasApiSpec: boolean;
+  documentationFiles: string[];
+  testFiles: string[];
+  configFiles: string[];
+}
+
 export class Index {
   constructor(
     public readonly id: string,
@@ -37,6 +47,7 @@ export class Index {
     public repoSizeMB: number,
     public errorDetails: ErrorDetails | null,
     public files: FileMetadata[],
+    public summary: IndexSummary | null,
   ) {}
 
   /**
@@ -66,6 +77,7 @@ export class Index {
       0, // repoSizeMB
       null, // errorDetails
       [], // files
+      null, // summary
     );
   }
 

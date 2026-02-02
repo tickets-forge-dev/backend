@@ -32,6 +32,7 @@ export class AEC {
     private _validationResults: ValidationResult[],
     private _externalIssue: ExternalIssue | null,
     private _driftDetectedAt: Date | null,
+    private _driftReason: string | null,
     private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
@@ -68,6 +69,7 @@ export class AEC {
       [],
       null,
       null,
+      null,
       repositoryContext ?? null,
       new Date(),
       new Date(),
@@ -94,6 +96,7 @@ export class AEC {
     validationResults: ValidationResult[],
     externalIssue: ExternalIssue | null,
     driftDetectedAt: Date | null,
+    driftReason: string | null,
     repositoryContext: RepositoryContext | null,
     createdAt: Date,
     updatedAt: Date,
@@ -117,6 +120,7 @@ export class AEC {
       validationResults,
       externalIssue,
       driftDetectedAt,
+      driftReason,
       repositoryContext,
       createdAt,
       updatedAt,
@@ -222,6 +226,17 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  markDrifted(reason: string): void {
+    if (this._status !== AECStatus.READY && this._status !== AECStatus.CREATED) {
+      // Only mark open tickets as drifted
+      return;
+    }
+    this._status = AECStatus.DRIFTED;
+    this._driftDetectedAt = new Date();
+    this._driftReason = reason;
+    this._updatedAt = new Date();
+  }
+
   // Private helper
   private calculateReadinessScore(results: ValidationResult[]): number {
     if (results.length === 0) return 0;
@@ -283,6 +298,9 @@ export class AEC {
   }
   get driftDetectedAt(): Date | null {
     return this._driftDetectedAt;
+  }
+  get driftReason(): string | null {
+    return this._driftReason;
   }
   get repositoryContext(): RepositoryContext | null {
     return this._repositoryContext;

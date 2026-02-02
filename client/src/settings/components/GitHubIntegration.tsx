@@ -21,6 +21,7 @@ import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
 import { GitHubRepositoryItem } from '@/services/github.service';
 import { Github, Check, AlertCircle, Loader2, Search, Database, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { IndexingSummaryCard } from './IndexingSummary';
 
 export function GitHubIntegration() {
   const { githubService } = useServices();
@@ -30,6 +31,7 @@ export function GitHubIntegration() {
     githubRepositories,
     selectedRepositories,
     indexingJobs,
+    indexingQueue,
     isIndexing,
     indexingError,
     isLoadingConnection,
@@ -117,7 +119,25 @@ export function GitHubIntegration() {
     }
   };
 
+  const [indexingRepoId, setIndexingRepoId] = useState<number | null>(null);
+
+  // Clear indexing repo ID once the job appears in the store
+  useEffect(() => {
+    if (indexingRepoId !== null) {
+      // Check if a job for this repo exists
+      for (const [_, job] of indexingJobs.entries()) {
+        if (job.repositoryId === indexingRepoId) {
+          setIndexingRepoId(null);
+          break;
+        }
+      }
+    }
+  }, [indexingJobs, indexingRepoId]);
+
   const handleStartIndexing = async (repo: GitHubRepositoryItem) => {
+    // Immediately set loading state for this specific repo
+    setIndexingRepoId(repo.id);
+    
     try {
       // Get the latest commit SHA for the default branch
       const branches = await githubService.getBranches(repo.owner, repo.name);
@@ -125,6 +145,7 @@ export function GitHubIntegration() {
       
       if (!defaultBranch) {
         console.error('Default branch not found');
+        setIndexingRepoId(null);
         return;
       }
 
@@ -134,9 +155,12 @@ export function GitHubIntegration() {
         repo.fullName,
         defaultBranch.commitSha
       );
+      
+      // Clear immediately after starting (store will handle the rest)
+      setIndexingRepoId(null);
     } catch (error) {
-      // Error handled by store
       console.error('Failed to start indexing:', error);
+      setIndexingRepoId(null);
     }
   };
 
@@ -324,6 +348,21 @@ export function GitHubIntegration() {
                   </div>
                 </div>
 
+                {/* Queue Status */}
+                {indexingQueue.length > 0 && (
+                  <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-3 flex items-start gap-2">
+                    <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 animate-pulse" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        {indexingQueue.length} {indexingQueue.length === 1 ? 'repository' : 'repositories'} queued for indexing
+                      </p>
+                      <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
+                        Processing up to 3 repositories at a time
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Indexing Error */}
                 {indexingError && (
                   <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 flex items-start gap-2">
@@ -333,75 +372,97 @@ export function GitHubIntegration() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  Index repositories to enable code-aware ticket generation
+                  Selected repositories are automatically indexed for code-aware ticket generation
                 </p>
 
                 {/* Selected Repositories with Indexing Status */}
                 <div className="space-y-2">
                   {selectedRepositories.map((repo) => {
                     const status = getIndexingStatus(repo.id);
-                    const isRepoIndexing = status?.status === 'indexing' || status?.status === 'pending';
+                    const isRepoIndexing = status?.status === 'indexing' || status?.status === 'pending' || indexingRepoId === repo.id;
+                    const queuePosition = indexingQueue.indexOf(repo.id);
+                    const isQueued = queuePosition !== -1;
 
                     return (
                       <div
                         key={repo.id}
-                        className="flex items-center justify-between p-3 rounded-md border"
+                        className="p-3 rounded-md border space-y-2"
                       >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{repo.fullName}</p>
-                          {status && (
-                            <div className="flex items-center gap-2 mt-1">
-                              {status.status === 'completed' && (
-                                <>
-                                  <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                  <span className="text-xs text-muted-foreground">
-                                    Indexed ({status.filesIndexed} files)
-                                  </span>
-                                </>
-                              )}
-                              {status.status === 'failed' && (
-                                <>
-                                  <XCircle className="h-3 w-3 text-red-600" />
-                                  <span className="text-xs text-red-600">
-                                    Failed{status.errorDetails ? `: ${status.errorDetails.message}` : ''}
-                                  </span>
-                                </>
-                              )}
-                              {isRepoIndexing && (
-                                <>
-                                  <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
-                                  <span className="text-xs text-blue-600">
-                                    Indexing... {status.progress}% ({status.filesIndexed}/{status.totalFiles} files)
-                                  </span>
-                                </>
-                              )}
-                              {status.status === 'pending' && (
-                                <>
-                                  <Clock className="h-3 w-3 text-yellow-600" />
-                                  <span className="text-xs text-yellow-600">Pending...</span>
-                                </>
-                              )}
-                            </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium truncate flex-1">{repo.fullName}</p>
+                          
+                          {/* Only show Re-index button for completed or failed */}
+                          {status?.status === 'failed' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStartIndexing(repo)}
+                              disabled={isIndexing}
+                            >
+                              Retry
+                            </Button>
                           )}
                         </div>
 
-                        <Button
-                          size="sm"
-                          variant={status?.status === 'completed' ? 'outline' : 'default'}
-                          onClick={() => handleStartIndexing(repo)}
-                          disabled={isIndexing || isRepoIndexing}
-                        >
-                          {isRepoIndexing ? (
+                        {/* Status Display */}
+                        <div className="flex items-center gap-2">
+                          {status?.status === 'completed' && (
                             <>
-                              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                              Indexing...
+                              <CheckCircle2 className="h-3 w-3 text-green-600" />
+                              <span className="text-xs text-muted-foreground">
+                                Ready • {status.filesIndexed} files indexed
+                              </span>
                             </>
-                          ) : status?.status === 'completed' ? (
-                            'Re-index'
-                          ) : (
-                            'Index Now'
                           )}
-                        </Button>
+                          {status?.status === 'failed' && (
+                            <>
+                              <XCircle className="h-3 w-3 text-red-600" />
+                              <span className="text-xs text-red-600">
+                                Failed{status.errorDetails ? `: ${status.errorDetails.message}` : ''}
+                              </span>
+                            </>
+                          )}
+                          {isRepoIndexing && status && (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                              <span className="text-xs text-blue-600">
+                                Indexing... {status.progress}% ({status.filesIndexed}/{status.totalFiles} files)
+                              </span>
+                            </>
+                          )}
+                          {status?.status === 'pending' && (
+                            <>
+                              <Clock className="h-3 w-3 text-yellow-600" />
+                              <span className="text-xs text-yellow-600">Starting...</span>
+                            </>
+                          )}
+                          {isQueued && !status && (
+                            <>
+                              <Database className="h-3 w-3 text-gray-600" />
+                              <span className="text-xs text-gray-600">
+                                Queued (position {queuePosition + 1})
+                              </span>
+                            </>
+                          )}
+                          {!status && !isQueued && (
+                            <>
+                              <Clock className="h-3 w-3 text-gray-400" />
+                              <span className="text-xs text-gray-400">
+                                Waiting to start...
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Show summary when completed */}
+                        {status?.status === 'completed' && status.summary && (
+                          <IndexingSummaryCard
+                            summary={status.summary}
+                            filesIndexed={status.filesIndexed}
+                            repoSizeMB={status.repoSizeMB || 0}
+                            durationMs={status.indexDurationMs}
+                          />
+                        )}
                       </div>
                     );
                   })}

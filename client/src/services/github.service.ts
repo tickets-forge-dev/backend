@@ -58,6 +58,16 @@ export interface RepositoriesResponse {
 }
 
 // Story 4.2: Code Indexing types
+export interface IndexSummary {
+  languagesDetected: string[];
+  hasDocumentation: boolean;
+  hasTests: boolean;
+  hasApiSpec: boolean;
+  documentationFiles: string[];
+  testFiles: string[];
+  configFiles: string[];
+}
+
 export interface IndexJob {
   indexId: string;
   message: string;
@@ -72,9 +82,11 @@ export interface IndexStatus {
   filesSkipped: number;
   parseErrors: number;
   progress: number;
+  repoSizeMB: number;
   createdAt: string;
   completedAt?: string;
   indexDurationMs: number;
+  summary?: IndexSummary;
   errorDetails?: {
     type: string;
     message: string;
@@ -108,10 +120,17 @@ export class GitHubService {
 
     // Add Firebase ID token to all requests
     this.client.interceptors.request.use(async (config) => {
-      const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const token = await user.getIdToken();
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log('🔐 [GitHubService] Added auth token to request:', config.url);
+        } else {
+          console.warn('⚠️ [GitHubService] No auth user found for request:', config.url);
+        }
+      } catch (error) {
+        console.error('❌ [GitHubService] Failed to get auth token:', error);
       }
       return config;
     });
@@ -205,6 +224,8 @@ export class GitHubService {
       repositoryId,
       repositoryName,
       commitSha,
+    }, {
+      timeout: 120000, // 2 minutes for git clone + indexing to start
     });
     return response.data;
   }
@@ -216,6 +237,19 @@ export class GitHubService {
   async getIndexingStatus(indexId: string): Promise<IndexStatus> {
     const response = await this.client.get<IndexStatus>(
       `/indexing/status/${indexId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * List all indexes for a repository or all repositories
+   * Story 4.2: View index status
+   */
+  async listIndexes(repositoryId?: number): Promise<IndexStatus[]> {
+    const params = repositoryId ? { repositoryId } : {};
+    const response = await this.client.get<IndexStatus[]>(
+      '/indexing/list',
+      { params }
     );
     return response.data;
   }

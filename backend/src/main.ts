@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { HttpLoggingInterceptor } from './shared/infrastructure/interceptors/http-logging.interceptor';
 import session = require('express-session');
 
 async function bootstrap() {
@@ -9,6 +10,9 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix('api');
+
+  // Global HTTP logging interceptor
+  app.useGlobalInterceptors(new HttpLoggingInterceptor());
 
   // Session configuration (required for OAuth flow)
   app.use(
@@ -56,7 +60,9 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
+  console.log(`🚀 Server running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`📊 HTTP Logging: Enabled`);
 }
 
 bootstrap();

@@ -20,9 +20,12 @@ import {
   UnauthorizedException,
   BadRequestException,
   HttpCode,
+  Inject,
+  Optional,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { IDriftDetector, DRIFT_DETECTOR } from '../../../tickets/application/services/drift-detector.interface';
 import * as crypto from 'crypto';
 
 interface PushPayload {
@@ -66,7 +69,11 @@ interface PullRequestPayload {
 export class GitHubWebhookHandler {
   private readonly logger = new Logger(GitHubWebhookHandler.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() @Inject(DRIFT_DETECTOR)
+    private readonly driftDetector?: IDriftDetector,
+  ) {}
 
   /**
    * Handle GitHub webhook events
@@ -121,6 +128,28 @@ export class GitHubWebhookHandler {
 
     // Extract branch name from ref (e.g., "refs/heads/main" -> "main")
     const branch = ref.replace('refs/heads/', '');
+
+    // Trigger drift detection (Story 4.4) - non-blocking
+    try {
+      // TODO: Extract workspaceId from repository context or config
+      // For now, using a placeholder - will need proper workspace mapping
+      const workspaceId = 'default-workspace';
+      
+      if (this.driftDetector) {
+        await this.driftDetector.detectDrift(
+          workspaceId,
+          repository.full_name,
+          commitSha,
+        );
+      } else {
+        this.logger.warn('Drift detector not available - skipping drift detection');
+      }
+    } catch (error) {
+      this.logger.error(
+        `Drift detection failed for ${repository.full_name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      // Don't throw - drift detection failure shouldn't block webhook
+    }
 
     // TODO (Story 4.2): Queue re-indexing job
     // await this.indexingQueue.add('reindex-repository', {

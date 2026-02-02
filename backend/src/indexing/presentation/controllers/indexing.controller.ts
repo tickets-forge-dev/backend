@@ -20,6 +20,8 @@ import {
   HttpStatus,
   NotFoundException,
   BadRequestException,
+  Inject,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,7 +32,10 @@ import {
 import { RepoIndexerService } from '../../application/services/repo-indexer.service';
 import { IndexQueryService } from '../../application/services/index-query.service';
 import { IndexRepository, INDEX_REPOSITORY } from '../../domain/IndexRepository';
-import { Inject } from '@nestjs/common';
+import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
+import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
+import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
+import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import {
   StartIndexingDto,
   QueryIndexDto,
@@ -38,14 +43,10 @@ import {
   ModuleResponseDto,
   IndexStatsResponseDto,
 } from '../dto/indexing.dto';
-// TODO: Import guards when implementing security (Task 12)
-// import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
-// import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
-// import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId';
 
 @ApiTags('indexing')
 @Controller('indexing')
-// @UseGuards(FirebaseAuthGuard, WorkspaceGuard) // TODO: Enable when guards are ready
+@UseGuards(FirebaseAuthGuard, WorkspaceGuard)
 @ApiBearerAuth()
 export class IndexingController {
   constructor(
@@ -53,6 +54,9 @@ export class IndexingController {
     private readonly indexQueryService: IndexQueryService,
     @Inject(INDEX_REPOSITORY)
     private readonly indexRepository: IndexRepository,
+    @Inject(GITHUB_INTEGRATION_REPOSITORY)
+    private readonly githubIntegrationRepository: GitHubIntegrationRepository,
+    private readonly githubTokenService: GitHubTokenService,
   ) {}
 
   /**
@@ -77,23 +81,19 @@ export class IndexingController {
   })
   async startIndexing(
     @Body() dto: StartIndexingDto,
-    // @WorkspaceId() workspaceId: string, // TODO: Get from guard
+    @Req() req: any,
   ): Promise<{ indexId: string; message: string }> {
-    // TODO: Get access token from GitHub integration
-    // For now, use placeholder
-    const workspaceId = 'ws_placeholder';
-    const accessToken = 'placeholder_token';
+    const workspaceId = req.workspaceId;
 
     try {
-      // For MVP: Call service directly (no queue yet)
-      // TODO: When Redis is set up, queue the job instead
-      // const job = await this.indexingQueue.add('index-repository', {
-      //   workspaceId,
-      //   repositoryId: dto.repositoryId,
-      //   repositoryName: dto.repositoryName,
-      //   commitSha: dto.commitSha,
-      //   accessToken,
-      // });
+      // Get access token from GitHub integration
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
+      
+      if (!integration) {
+        throw new BadRequestException('GitHub not connected. Please connect GitHub first.');
+      }
+
+      const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
 
       const indexId = await this.repoIndexerService.index(
         workspaceId,
@@ -147,9 +147,11 @@ export class IndexingController {
       filesSkipped: index.filesSkipped,
       parseErrors: index.parseErrors,
       progress: index.getProgress(),
+      repoSizeMB: index.repoSizeMB,
       createdAt: index.createdAt,
       completedAt: index.completedAt || undefined,
       indexDurationMs: index.indexDurationMs,
+      summary: index.summary || undefined,
       errorDetails: index.errorDetails || undefined,
     };
   }
@@ -242,10 +244,10 @@ export class IndexingController {
     type: [IndexStatusResponseDto],
   })
   async listIndexes(
-    // @WorkspaceId() workspaceId: string, // TODO: Get from guard
+    @Req() req: any,
     @Query('repositoryId') repositoryId?: number,
   ): Promise<IndexStatusResponseDto[]> {
-    const workspaceId = 'ws_placeholder'; // TODO: Get from guard
+    const workspaceId = req.workspaceId;
 
     const indexes = repositoryId
       ? await this.indexRepository.findByWorkspaceAndRepo(
@@ -263,9 +265,11 @@ export class IndexingController {
       filesSkipped: index.filesSkipped,
       parseErrors: index.parseErrors,
       progress: index.getProgress(),
+      repoSizeMB: index.repoSizeMB,
       createdAt: index.createdAt,
       completedAt: index.completedAt || undefined,
       indexDurationMs: index.indexDurationMs,
+      summary: index.summary || undefined,
       errorDetails: index.errorDetails || undefined,
     }));
   }

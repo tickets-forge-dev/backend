@@ -16,11 +16,16 @@ import {
   Logger,
   NotFoundException,
   ForbiddenException,
+  Req,
+  UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { GitHubApiService } from '../../../shared/infrastructure/github/github-api.service';
+import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../domain/GitHubIntegrationRepository';
+import { GitHubTokenService } from '../../application/services/github-token.service';
 import {
   RepositoryResponseDto,
   BranchesResponseDto,
@@ -33,7 +38,12 @@ import {
 export class GitHubController {
   private readonly logger = new Logger(GitHubController.name);
 
-  constructor(private readonly gitHubApiService: GitHubApiService) {}
+  constructor(
+    private readonly gitHubApiService: GitHubApiService,
+    @Inject(GITHUB_INTEGRATION_REPOSITORY)
+    private readonly gitHubIntegrationRepository: GitHubIntegrationRepository,
+    private readonly gitHubTokenService: GitHubTokenService,
+  ) {}
 
   /**
    * Get repository information including default branch
@@ -53,11 +63,13 @@ export class GitHubController {
   async getRepository(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
+    @Req() req: any,
   ): Promise<RepositoryResponseDto> {
     this.logger.log(`Getting repository: ${owner}/${repo}`);
 
     try {
-      const repository = await this.gitHubApiService.getRepository(owner, repo);
+      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+      const repository = await this.gitHubApiService.getRepository(owner, repo, accessToken);
 
       return {
         fullName: repository.fullName,
@@ -98,12 +110,14 @@ export class GitHubController {
   async getBranches(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
+    @Req() req: any,
   ): Promise<BranchesResponseDto> {
     this.logger.log(`Getting branches for: ${owner}/${repo}`);
 
     try {
-      const branches = await this.gitHubApiService.listBranches(owner, repo);
-      const defaultBranch = await this.gitHubApiService.getDefaultBranch(owner, repo);
+      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+      const branches = await this.gitHubApiService.listBranches(owner, repo, accessToken);
+      const defaultBranch = await this.gitHubApiService.getDefaultBranch(owner, repo, accessToken);
 
       const branchDtos: BranchDto[] = branches.map((branch) => ({
         name: branch.name,
@@ -135,5 +149,19 @@ export class GitHubController {
 
       throw error;
     }
+  }
+
+  /**
+   * Helper: Get and decrypt GitHub access token for workspace
+   */
+  private async getWorkspaceAccessToken(workspaceId: string): Promise<string> {
+    const integration = await this.gitHubIntegrationRepository.findByWorkspaceId(workspaceId);
+    
+    if (!integration) {
+      throw new UnauthorizedException('GitHub integration not found. Please connect GitHub first.');
+    }
+
+    const accessToken = await this.gitHubTokenService.decryptToken(integration.encryptedAccessToken);
+    return accessToken;
   }
 }

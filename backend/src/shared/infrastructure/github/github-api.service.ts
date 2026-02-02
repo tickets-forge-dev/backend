@@ -35,29 +35,25 @@ export interface GitHubBranch {
 @Injectable()
 export class GitHubApiService {
   private readonly logger = new Logger(GitHubApiService.name);
-  private octokit: Octokit;
 
-  constructor() {
-    // Initialize with GitHub token from environment
-    const githubToken = process.env.GITHUB_TOKEN;
-    
-    if (!githubToken) {
-      this.logger.warn('GITHUB_TOKEN not set - GitHub API calls will be unauthenticated');
-    }
-
-    this.octokit = new Octokit({
-      auth: githubToken,
+  /**
+   * Create an Octokit instance with the provided access token
+   */
+  private createOctokit(accessToken?: string): Octokit {
+    return new Octokit({
+      auth: accessToken,
     });
   }
 
   /**
    * Get repository information including default branch
    */
-  async getRepository(owner: string, repo: string): Promise<GitHubRepository> {
+  async getRepository(owner: string, repo: string, accessToken?: string): Promise<GitHubRepository> {
     try {
       this.logger.log(`Fetching repository: ${owner}/${repo}`);
       
-      const { data } = await this.octokit.rest.repos.get({
+      const octokit = this.createOctokit(accessToken);
+      const { data } = await octokit.rest.repos.get({
         owner,
         repo,
       });
@@ -82,30 +78,32 @@ export class GitHubApiService {
   /**
    * Get default branch for a repository
    */
-  async getDefaultBranch(owner: string, repo: string): Promise<string> {
+  async getDefaultBranch(owner: string, repo: string, accessToken?: string): Promise<string> {
     try {
-      const repository = await this.getRepository(owner, repo);
+      const repository = await this.getRepository(owner, repo, accessToken);
       return repository.defaultBranch;
     } catch (error: any) {
       this.logger.error(`Failed to get default branch for ${owner}/${repo}:`, error.message);
       
       // Fallback to common default branches
-      return this.guessDefaultBranch(owner, repo);
+      return this.guessDefaultBranch(owner, repo, accessToken);
     }
   }
 
   /**
    * List all branches in a repository
    */
-  async listBranches(owner: string, repo: string): Promise<GitHubBranch[]> {
+  async listBranches(owner: string, repo: string, accessToken?: string): Promise<GitHubBranch[]> {
     try {
       this.logger.log(`Listing branches for ${owner}/${repo}`);
       
+      const octokit = this.createOctokit(accessToken);
+      
       // Get default branch first
-      const defaultBranch = await this.getDefaultBranch(owner, repo);
+      const defaultBranch = await this.getDefaultBranch(owner, repo, accessToken);
       
       // Get all branches
-      const { data: branches } = await this.octokit.rest.repos.listBranches({
+      const { data: branches } = await octokit.rest.repos.listBranches({
         owner,
         repo,
         per_page: 100, // Get up to 100 branches
@@ -115,7 +113,7 @@ export class GitHubApiService {
       const branchesWithDetails = await Promise.all(
         branches.map(async (branch) => {
           try {
-            const { data: commit } = await this.octokit.rest.repos.getCommit({
+            const { data: commit } = await octokit.rest.repos.getCommit({
               owner,
               repo,
               ref: branch.commit.sha,
@@ -164,11 +162,12 @@ export class GitHubApiService {
   /**
    * Get HEAD commit SHA for a specific branch
    */
-  async getBranchHead(owner: string, repo: string, branch: string): Promise<string> {
+  async getBranchHead(owner: string, repo: string, branch: string, accessToken?: string): Promise<string> {
     try {
       this.logger.log(`Getting HEAD commit for ${owner}/${repo}@${branch}`);
       
-      const { data } = await this.octokit.rest.repos.getBranch({
+      const octokit = this.createOctokit(accessToken);
+      const { data } = await octokit.rest.repos.getBranch({
         owner,
         repo,
         branch,
@@ -189,9 +188,9 @@ export class GitHubApiService {
   /**
    * Verify if a repository is accessible
    */
-  async verifyRepositoryAccess(owner: string, repo: string): Promise<boolean> {
+  async verifyRepositoryAccess(owner: string, repo: string, accessToken?: string): Promise<boolean> {
     try {
-      await this.getRepository(owner, repo);
+      await this.getRepository(owner, repo, accessToken);
       return true;
     } catch (error) {
       return false;
@@ -201,9 +200,9 @@ export class GitHubApiService {
   /**
    * Verify if a branch exists
    */
-  async verifyBranchExists(owner: string, repo: string, branch: string): Promise<boolean> {
+  async verifyBranchExists(owner: string, repo: string, branch: string, accessToken?: string): Promise<boolean> {
     try {
-      await this.getBranchHead(owner, repo, branch);
+      await this.getBranchHead(owner, repo, branch, accessToken);
       return true;
     } catch (error) {
       return false;
@@ -213,13 +212,13 @@ export class GitHubApiService {
   /**
    * Fallback: Guess default branch by trying common names
    */
-  private async guessDefaultBranch(owner: string, repo: string): Promise<string> {
+  private async guessDefaultBranch(owner: string, repo: string, accessToken?: string): Promise<string> {
     const commonDefaults = ['main', 'master', 'develop', 'trunk'];
     
     this.logger.log(`Guessing default branch for ${owner}/${repo}`);
     
     for (const branch of commonDefaults) {
-      const exists = await this.verifyBranchExists(owner, repo, branch);
+      const exists = await this.verifyBranchExists(owner, repo, branch, accessToken);
       if (exists) {
         this.logger.log(`Found branch "${branch}" - using as default`);
         return branch;

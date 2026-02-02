@@ -3,7 +3,7 @@
  * Run: npx ts-node test-ollama.ts
  */
 
-import { ollama } from './src/shared/infrastructure/mastra/providers/ollama.provider';
+import { ollama } from '../src/shared/infrastructure/mastra/providers/ollama.provider';
 import { generateText } from 'ai';
 
 async function testOllama() {

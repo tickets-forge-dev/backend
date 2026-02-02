@@ -11,6 +11,8 @@
 
 import { GitHubIntegration } from './GitHubIntegration';
 
+export const GITHUB_INTEGRATION_REPOSITORY = 'GITHUB_INTEGRATION_REPOSITORY';
+
 export interface GitHubIntegrationRepository {
   /**
    * Find integration by workspace ID
@@ -28,9 +30,14 @@ export interface GitHubIntegrationRepository {
   save(integration: GitHubIntegration): Promise<void>;
 
   /**
-   * Delete integration
+   * Delete integration by ID
    */
   delete(id: string): Promise<void>;
+
+  /**
+   * Delete integration by workspace ID (optimized - no collection group query)
+   */
+  deleteByWorkspaceId(workspaceId: string): Promise<void>;
 
   /**
    * Check if workspace has integration

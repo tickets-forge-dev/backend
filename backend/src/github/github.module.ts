@@ -1,24 +1,18 @@
-/**
- * GitHub Module
- *
- * Provides GitHub API integration:
- * - Repository and branch operations (Story 4.0)
- * - OAuth integration and token management (Story 4.1)
- */
-
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GitHubController } from './presentation/controllers/github.controller';
 import { GitHubOAuthController } from './presentation/controllers/github-oauth.controller';
+import { GitHubWebhookHandler } from './infrastructure/webhooks/github-webhook.handler';
 import { GitHubTokenService } from './application/services/github-token.service';
+import { GITHUB_INTEGRATION_REPOSITORY } from './domain/GitHubIntegrationRepository';
 import { FirestoreGitHubIntegrationRepository } from './infrastructure/persistence/firestore-github-integration.repository';
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
-
-const GITHUB_INTEGRATION_REPOSITORY = 'GITHUB_INTEGRATION_REPOSITORY';
+import { SharedModule } from '../shared/shared.module';
+import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
-  imports: [ConfigModule],
-  controllers: [GitHubController, GitHubOAuthController],
+  imports: [ConfigModule, SharedModule, forwardRef(() => TicketsModule)],
+  controllers: [GitHubController, GitHubOAuthController, GitHubWebhookHandler],
   providers: [
     GitHubTokenService,
     {

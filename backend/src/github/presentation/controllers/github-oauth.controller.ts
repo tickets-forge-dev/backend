@@ -35,11 +35,9 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { GitHubTokenService } from '../../application/services/github-token.service';
-import { GitHubIntegrationRepository } from '../../domain/GitHubIntegrationRepository';
+import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../domain/GitHubIntegrationRepository';
 import { GitHubIntegration } from '../../domain/GitHubIntegration';
 import { GitHubRepository } from '../../domain/GitHubRepository';
-
-const GITHUB_INTEGRATION_REPOSITORY = 'GITHUB_INTEGRATION_REPOSITORY';
 
 interface OAuthSession {
   state?: string;
@@ -240,6 +238,11 @@ export class GitHubOAuthController {
     @Body() body: { repositories: Array<{ id: number; fullName: string; name: string; owner: string; private: boolean; defaultBranch: string; url: string }> },
   ) {
     try {
+      if (!this.integrationRepository) {
+        this.logger.error('Integration repository is null - Firebase may not be configured');
+        throw new InternalServerErrorException('GitHub integration repository not available');
+      }
+
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
       if (!integration) {
@@ -270,8 +273,13 @@ export class GitHubOAuthController {
         selectedCount: repositories.length,
       };
     } catch (error: any) {
-      this.logger.error('Failed to select repositories:', error.message);
-      throw new InternalServerErrorException('Failed to select repositories');
+      this.logger.error('Failed to select repositories:', error.message, error.stack);
+      
+      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      
+      throw new InternalServerErrorException(`Failed to select repositories: ${error.message}`);
     }
   }
 
@@ -287,24 +295,45 @@ export class GitHubOAuthController {
     description: 'GitHub disconnected successfully',
   })
   async disconnect(@WorkspaceId() workspaceId: string) {
+    this.logger.log(`Attempting to disconnect GitHub for workspace ${workspaceId}`);
+    
     try {
+      if (!this.integrationRepository) {
+        this.logger.error('Integration repository is null - Firebase may not be configured');
+        throw new InternalServerErrorException('GitHub integration repository not available');
+      }
+
+      this.logger.log(`Looking for integration for workspace ${workspaceId}`);
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
       if (!integration) {
+        this.logger.warn(`No integration found for workspace ${workspaceId}`);
         throw new NotFoundException('GitHub not connected');
       }
 
-      await this.integrationRepository.delete(integration.id);
+      this.logger.log(`Found integration for workspace ${workspaceId}, deleting...`);
+      
+      // Use direct delete by workspace ID to avoid collection group query
+      await this.integrationRepository.deleteByWorkspaceId(workspaceId);
 
-      this.logger.log(`Disconnected GitHub for workspace ${workspaceId}`);
+      this.logger.log(`Successfully disconnected GitHub for workspace ${workspaceId}`);
 
       return {
         success: true,
         message: 'GitHub disconnected successfully',
       };
     } catch (error: any) {
-      this.logger.error('Failed to disconnect GitHub:', error.message);
-      throw new InternalServerErrorException('Failed to disconnect GitHub');
+      this.logger.error(`Failed to disconnect GitHub for workspace ${workspaceId}:`, error.message, error.stack);
+      
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      
+      throw new InternalServerErrorException(`Failed to disconnect GitHub: ${error.message}`);
     }
   }
 
