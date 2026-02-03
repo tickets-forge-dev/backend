@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GitHubController } from './presentation/controllers/github.controller';
 import { GitHubOAuthController } from './presentation/controllers/github-oauth.controller';
@@ -8,10 +8,9 @@ import { GITHUB_INTEGRATION_REPOSITORY } from './domain/GitHubIntegrationReposit
 import { FirestoreGitHubIntegrationRepository } from './infrastructure/persistence/firestore-github-integration.repository';
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 import { SharedModule } from '../shared/shared.module';
-import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
-  imports: [ConfigModule, SharedModule, forwardRef(() => TicketsModule)],
+  imports: [ConfigModule, SharedModule],
   controllers: [GitHubController, GitHubOAuthController, GitHubWebhookHandler],
   providers: [
     GitHubTokenService,
