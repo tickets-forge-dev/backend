@@ -1,4 +1,9 @@
-import { AECStatus, TicketType } from '../value-objects/AECStatus';
+import {
+  AECStatus,
+  TicketType,
+  VALID_TRANSITIONS,
+  REQUIRED_FIELDS,
+} from '../value-objects/AECStatus';
 import { GenerationState } from '../value-objects/GenerationState';
 import { Estimate } from '../value-objects/Estimate';
 import { CodeSnapshot, ApiSnapshot } from '../value-objects/Snapshot';
@@ -35,6 +40,9 @@ export class AEC {
     private _externalIssue: ExternalIssue | null,
     private _driftDetectedAt: Date | null,
     private _driftReason: string | null,
+    private _failureReason: string | null, // NEW: Phase B Fix #9
+    private _lockedBy: string | null, // NEW: Phase B Fix #6 - workflow run ID
+    private _lockedAt: Date | null, // NEW: Phase B Fix #6
     private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
@@ -78,6 +86,9 @@ export class AEC {
       null,
       null,
       null,
+      null, // failureReason
+      null, // lockedBy
+      null, // lockedAt
       repositoryContext ?? null,
       new Date(),
       new Date(),
@@ -106,6 +117,9 @@ export class AEC {
     externalIssue: ExternalIssue | null,
     driftDetectedAt: Date | null,
     driftReason: string | null,
+    failureReason: string | null,
+    lockedBy: string | null,
+    lockedAt: Date | null,
     repositoryContext: RepositoryContext | null,
     createdAt: Date,
     updatedAt: Date,
@@ -131,6 +145,9 @@ export class AEC {
       externalIssue,
       driftDetectedAt,
       driftReason,
+      failureReason,
+      lockedBy,
+      lockedAt,
       repositoryContext,
       createdAt,
       updatedAt,
@@ -138,16 +155,183 @@ export class AEC {
   }
 
   // State machine transitions
-  validate(validationResults: ValidationResult[]): void {
-    if (this._status !== AECStatus.DRAFT) {
+  /**
+   * Phase B Fix #7: State machine with transition validation
+   * Validates that the transition from current status to target status is allowed
+   */
+  private validateTransition(targetStatus: AECStatus): void {
+    const allowedTransitions = VALID_TRANSITIONS[this._status];
+    if (!allowedTransitions.includes(targetStatus)) {
       throw new InvalidStateTransitionError(
-        `Cannot validate from ${this._status}`,
+        `Invalid transition from ${this._status} to ${targetStatus}. Allowed: ${allowedTransitions.join(', ')}`,
       );
     }
+  }
+
+  /**
+   * Phase B Fix #7: Validate required fields for target status
+   */
+  private validateRequiredFields(targetStatus: AECStatus): void {
+    const required = REQUIRED_FIELDS[targetStatus];
+    const missing: string[] = [];
+
+    for (const field of required) {
+      switch (field) {
+        case 'title':
+          if (!this._title) missing.push('title');
+          break;
+        case 'type':
+          if (!this._type) missing.push('type');
+          break;
+        case 'acceptanceCriteria':
+          if (this._acceptanceCriteria.length === 0)
+            missing.push('acceptanceCriteria');
+          break;
+        case 'codeSnapshot':
+          if (!this._codeSnapshot) missing.push('codeSnapshot');
+          break;
+        case 'externalIssue':
+          if (!this._externalIssue) missing.push('externalIssue');
+          break;
+        case 'preImplementationFindings':
+          if (this._preImplementationFindings.length === 0)
+            missing.push('preImplementationFindings');
+          break;
+        case 'questions':
+          if (this._questions.length === 0) missing.push('questions');
+          break;
+        case 'driftReason':
+          if (!this._driftReason) missing.push('driftReason');
+          break;
+        case 'failureReason':
+          if (!this._failureReason) missing.push('failureReason');
+          break;
+      }
+    }
+
+    if (missing.length > 0) {
+      throw new InvalidStateTransitionError(
+        `Cannot transition to ${targetStatus}. Missing required fields: ${missing.join(', ')}`,
+      );
+    }
+  }
+
+  /**
+   * Phase B Fix #6: Lock AEC for workflow execution
+   */
+  lock(workflowRunId: string): void {
+    if (this._lockedBy) {
+      throw new Error(
+        `AEC is already locked by workflow ${this._lockedBy}. Cannot start new workflow.`,
+      );
+    }
+    this._lockedBy = workflowRunId;
+    this._lockedAt = new Date();
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Phase B Fix #6: Unlock AEC after workflow completion
+   */
+  unlock(): void {
+    this._lockedBy = null;
+    this._lockedAt = null;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Phase B Fix #6: Check if AEC is locked
+   */
+  get isLocked(): boolean {
+    return this._lockedBy !== null;
+  }
+
+  /**
+   * Phase B Fix #6: Check if locked by specific workflow
+   */
+  isLockedBy(workflowRunId: string): boolean {
+    return this._lockedBy === workflowRunId;
+  }
+
+  /**
+   * Phase B Fix #6: Force unlock (for error recovery)
+   */
+  forceUnlock(): void {
+    this._lockedBy = null;
+    this._lockedAt = null;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Phase B Fix #9: Mark AEC as failed with reason
+   */
+  markAsFailed(reason: string): void {
+    this.validateTransition(AECStatus.FAILED);
+    this._status = AECStatus.FAILED;
+    this._failureReason = reason;
+    this._updatedAt = new Date();
+    // Auto-unlock on failure
+    this.unlock();
+  }
+
+  /**
+   * Transition to GENERATING status (workflow started)
+   */
+  startGenerating(workflowRunId: string): void {
+    this.validateTransition(AECStatus.GENERATING);
+    this.lock(workflowRunId);
+    this._status = AECStatus.GENERATING;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Suspend workflow at findings review checkpoint
+   */
+  suspendForFindingsReview(findings: Finding[]): void {
+    this.validateTransition(AECStatus.SUSPENDED_FINDINGS);
+    this._preImplementationFindings = findings;
+    this._status = AECStatus.SUSPENDED_FINDINGS;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Suspend workflow at questions checkpoint
+   */
+  suspendForQuestions(questions: Question[]): void {
+    this.validateTransition(AECStatus.SUSPENDED_QUESTIONS);
+    this._questions = questions;
+    this._status = AECStatus.SUSPENDED_QUESTIONS;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Resume workflow from suspension (user chose to proceed)
+   */
+  resumeGenerating(): void {
+    this.validateTransition(AECStatus.GENERATING);
+    this._status = AECStatus.GENERATING;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * User chose to edit - revert to draft and unlock
+   */
+  revertToDraft(): void {
+    this.validateTransition(AECStatus.DRAFT);
+    this._status = AECStatus.DRAFT;
+    this._updatedAt = new Date();
+    this.unlock();
+  }
+
+  validate(validationResults: ValidationResult[]): void {
+    this.validateTransition(AECStatus.VALIDATED);
+    this.validateRequiredFields(AECStatus.VALIDATED);
     this._validationResults = validationResults;
     this._readinessScore = this.calculateReadinessScore(validationResults);
     this._status = AECStatus.VALIDATED;
     this._updatedAt = new Date();
+    // Unlock after successful generation
+    this.unlock();
   }
 
   /**
@@ -182,11 +366,8 @@ export class AEC {
   }
 
   markReady(codeSnapshot: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
-    if (this._status !== AECStatus.VALIDATED) {
-      throw new InvalidStateTransitionError(
-        `Cannot mark ready from ${this._status}`,
-      );
-    }
+    this.validateTransition(AECStatus.READY);
+    this.validateRequiredFields(AECStatus.READY);
     if (this._readinessScore < 75) {
       throw new InsufficientReadinessError(
         `Score ${this._readinessScore} < 75`,
@@ -199,11 +380,8 @@ export class AEC {
   }
 
   export(externalIssue: ExternalIssue): void {
-    if (this._status !== AECStatus.READY) {
-      throw new InvalidStateTransitionError(
-        `Cannot export from ${this._status}`,
-      );
-    }
+    this.validateTransition(AECStatus.CREATED);
+    this.validateRequiredFields(AECStatus.CREATED);
     this._externalIssue = externalIssue;
     this._status = AECStatus.CREATED;
     this._updatedAt = new Date();
@@ -215,8 +393,10 @@ export class AEC {
     ) {
       return;
     }
+    this.validateTransition(AECStatus.DRIFTED);
     this._status = AECStatus.DRIFTED;
     this._driftDetectedAt = new Date();
+    this._driftReason = reason;
     this._updatedAt = new Date();
   }
 
@@ -366,5 +546,14 @@ export class AEC {
   }
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+  get failureReason(): string | null {
+    return this._failureReason;
+  }
+  get lockedBy(): string | null {
+    return this._lockedBy;
+  }
+  get lockedAt(): Date | null {
+    return this._lockedAt;
   }
 }

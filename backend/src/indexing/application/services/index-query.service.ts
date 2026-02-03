@@ -108,6 +108,62 @@ export class IndexQueryService {
   }
 
   /**
+   * Phase B Fix #8: Check if index is ready for querying
+   * Returns status information about the index
+   */
+  async getIndexStatus(indexId: string): Promise<{
+    exists: boolean;
+    status: 'completed' | 'in-progress' | 'failed' | 'unknown';
+    ready: boolean;
+    message: string;
+  }> {
+    try {
+      const index = await this.indexRepository.findById(indexId);
+
+      if (!index) {
+        return {
+          exists: false,
+          status: 'unknown',
+          ready: false,
+          message: 'Index not found',
+        };
+      }
+
+      const ready = index.status === 'completed';
+      let message = '';
+
+      switch (index.status) {
+        case 'completed':
+          message = `Index ready (${index.filesIndexed} files indexed)`;
+          break;
+        case 'in-progress':
+          message = `Indexing in progress (${index.filesIndexed}/${index.totalFiles} files)`;
+          break;
+        case 'failed':
+          message = 'Indexing failed';
+          break;
+        default:
+          message = `Index status: ${index.status}`;
+      }
+
+      return {
+        exists: true,
+        status: index.status as any,
+        ready,
+        message,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get index status: ${error.message}`, error.stack);
+      return {
+        exists: false,
+        status: 'unknown',
+        ready: false,
+        message: `Error checking index: ${error.message}`,
+      };
+    }
+  }
+
+  /**
    * Get index statistics
    */
   async getIndexStats(indexId: string): Promise<IndexStats> {

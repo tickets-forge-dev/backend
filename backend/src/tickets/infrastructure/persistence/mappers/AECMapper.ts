@@ -45,6 +45,9 @@ export interface AECDocument {
   externalIssue: any | null;
   driftDetectedAt?: Timestamp | null;
   driftReason?: string | null;
+  failureReason?: string | null; // NEW: Phase B Fix #9
+  lockedBy?: string | null; // NEW: Phase B Fix #6
+  lockedAt?: Timestamp | null; // NEW: Phase B Fix #6
   repositoryContext: RepositoryContextDocument | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -152,6 +155,9 @@ export class AECMapper {
       doc.externalIssue,
       doc.driftDetectedAt?.toDate() ?? null,
       doc.driftReason ?? null,
+      doc.failureReason ?? null,
+      doc.lockedBy ?? null,
+      doc.lockedAt?.toDate() ?? null,
       repositoryContext,
       doc.createdAt.toDate(),
       doc.updatedAt.toDate(),
@@ -204,6 +210,9 @@ export class AECMapper {
         ? Timestamp.fromDate(aec.driftDetectedAt)
         : null,
       driftReason: aec.driftReason,
+      failureReason: aec.failureReason,
+      lockedBy: aec.lockedBy,
+      lockedAt: aec.lockedAt ? Timestamp.fromDate(aec.lockedAt) : null,
       repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),
       updatedAt: Timestamp.fromDate(aec.updatedAt),

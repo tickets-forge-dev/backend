@@ -1,0 +1,570 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context
+  xmlns="https://executable-tickets.com/schema/story-context/v1"
+  version="1.0"
+  story-id="7.10"
+  story-key="7-10-mastra-enhancements-human-in-the-loop"
+  epic-id="7"
+  created="2026-02-03T21:15:21Z">
+
+  <!-- ========================================
+       STORY IDENTITY
+       ======================================== -->
+  <story>
+    <title>Mastra Workflow Refactor - Human-In-The-Loop</title>
+    <as-a>ticket generation system</as-a>
+    <i-want>to refactor from orchestrator-based to Mastra workflow-based architecture with Human-In-The-Loop (HITL) capability</i-want>
+    <so-that>users can review critical findings and answer questions mid-generation, with workflow state persisted across server restarts</so-that>
+
+    <tasks>
+      <!-- Phase A: Critical Fixes (COMPLETE ✅) -->
+      <task id="A1" status="done">Fix method signature mismatch - Add getOrCreateWorkspace() wrapper</task>
+      <task id="A2" status="done">Add missing indexId field to RepositoryContext value object and mapper</task>
+      <task id="A3" status="done">Create and register MastraContentGenerator service</task>
+      <task id="A4" status="done">Register IndexQueryService with graceful degradation</task>
+
+      <!-- Phase B: High Priority Fixes -->
+      <task id="B1" status="done">Implement workflow data persistence to AEC (step 11)</task>
+      <task id="B2" status="todo">Add AEC locking mechanism to prevent race conditions</task>
+      <task id="B3" status="todo">Add state machine with transition validation to AEC domain</task>
+      <task id="B4" status="todo">Add workspace readiness check before querying index</task>
+      <task id="B5" status="todo">Improve async error handling with markAsFailed()</task>
+
+      <!-- Phase C: Testing -->
+      <task id="C1" status="todo">Test happy path without repository</task>
+      <task id="C2" status="todo">Test happy path with repository and indexing</task>
+      <task id="C3" status="todo">Test suspension at critical findings checkpoint</task>
+      <task id="C4" status="todo">Test suspension at questions checkpoint</task>
+      <task id="C5" status="todo">Test error handling when services unavailable</task>
+      <task id="C6" status="todo">Test workflow resume after server crash</task>
+
+      <!-- Phase D: Frontend Implementation -->
+      <task id="D1" status="todo">Create TicketGenerationProgress component with real-time updates</task>
+      <task id="D2" status="todo">Create FindingsReviewModal component for suspension point 1</task>
+      <task id="D3" status="todo">Create QuestionsWizard component for suspension point 2</task>
+      <task id="D4" status="todo">Add workflow state management to Zustand store</task>
+      <task id="D5" status="todo">Implement Firestore real-time subscription for progress</task>
+    </tasks>
+  </story>
+
+  <!-- ========================================
+       ACCEPTANCE CRITERIA
+       ======================================== -->
+  <acceptanceCriteria>
+    <criterion id="AC1">
+      <description>Workflow executes all 11 steps without errors (happy path)</description>
+      <status>partial</status>
+      <notes>Steps 1-11 implemented, Phase A fixes complete, Phase B partial</notes>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Workflow suspends at step 4 if critical findings exist, waits for user action</description>
+      <status>implemented</status>
+      <notes>Suspension logic in place, UI not implemented</notes>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Workflow suspends at step 9 if questions exist, waits for user answers</description>
+      <status>implemented</status>
+      <notes>Suspension logic in place, UI not implemented</notes>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>User can proceed/edit/cancel at findings review suspension point</description>
+      <status>pending</status>
+      <notes>Backend ready, requires Phase D frontend implementation</notes>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>User can answer questions or skip at questions suspension point</description>
+      <status>pending</status>
+      <notes>Backend ready, requires Phase D frontend implementation</notes>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Generated content (AC, assumptions, repo paths) persisted to AEC entity</description>
+      <status>complete</status>
+      <notes>Fix #5 implemented - step 11 saves outputs to Firestore</notes>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>Workflow state persists to LibSQL and resumes after server restart</description>
+      <status>implemented</status>
+      <notes>Mastra manages LibSQL persistence automatically</notes>
+    </criterion>
+
+    <criterion id="AC8">
+      <description>Real-time progress updates shown to user via Firestore (sub-500ms latency)</description>
+      <status>partial</status>
+      <notes>Backend updates generationState, frontend subscription not implemented</notes>
+    </criterion>
+
+    <criterion id="AC9">
+      <description>Workflow completes in less than 60 seconds on happy path</description>
+      <status>pending</status>
+      <notes>Requires testing to verify performance</notes>
+    </criterion>
+
+    <criterion id="AC10">
+      <description>Graceful degradation when services unavailable (indexing, API context)</description>
+      <status>complete</status>
+      <notes>All services have try-catch with fallbacks</notes>
+    </criterion>
+  </acceptanceCriteria>
+
+  <!-- ========================================
+       ARTIFACTS
+       ======================================== -->
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>Agent Executable Contract (AEC) Schema</section>
+        <snippet>Defines the AEC as single source of truth with acceptance criteria, assumptions, code snapshots, and validation findings</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Clean Architecture + Mastra Integration</section>
+        <snippet>System uses NestJS backend with Clean Architecture layers. Mastra handles LLM content generation for 4 specific steps only (intent extraction, type detection, drafting, question generation)</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 7: Code-Aware Validation</section>
+        <snippet>Epic 7 focuses on code-aware validation, quick preflight checks, and integrating Mastra workflows with HITL capability</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/STORY_7.10_MASTRA_WORKFLOW_REFACTOR.md</path>
+        <title>Story 7.10 Specification</title>
+        <section>Complete Story Definition</section>
+        <snippet>Comprehensive specification including architecture, implementation phases, success criteria, and rollout plan. Phase A complete (4/4 fixes), Phase B 20% complete (1/5 fixes)</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/7-10-CRITICAL-FIXES.md</path>
+        <title>Phase A Critical Fixes</title>
+        <section>Implementation Guide</section>
+        <snippet>Detailed fix guide for 4 critical issues blocking workflow execution. All fixes implemented and committed</snippet>
+      </doc>
+      <doc>
+        <path>docs/wireframes/HITL-UX-SUMMARY.md</path>
+        <title>HITL UX Specification</title>
+        <section>Frontend Wireframes and States</section>
+        <snippet>Complete UX specification for 7 generation states including wireframes for FindingsReviewModal and QuestionsWizard components</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>backend/src/tickets/workflows/ticket-generation.workflow.ts</path>
+        <kind>workflow</kind>
+        <symbol>ticketGenerationWorkflow</symbol>
+        <lines>1-400</lines>
+        <reason>11-step Mastra workflow with 2 suspension points - core implementation</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/shared/infrastructure/mastra/MastraContentGenerator.ts</path>
+        <kind>service</kind>
+        <symbol>MastraContentGenerator</symbol>
+        <lines>1-250</lines>
+        <reason>LLM service for intent extraction, type detection, and content drafting</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/AEC.ts</path>
+        <kind>domain entity</kind>
+        <symbol>AEC</symbol>
+        <lines>1-300</lines>
+        <reason>Core domain entity with generationState, acceptanceCriteria, assumptions, repositoryContext</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/RepositoryContext.ts</path>
+        <kind>value object</kind>
+        <symbol>RepositoryContext</symbol>
+        <lines>1-50</lines>
+        <reason>Contains indexId field (added in Fix #2) for workspace integration</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts</path>
+        <kind>mapper</kind>
+        <symbol>AECMapper</symbol>
+        <lines>1-400</lines>
+        <reason>Maps AEC domain entity to/from Firestore, handles indexId persistence</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/infrastructure/persistence/FirestoreAECRepository.ts</path>
+        <kind>repository</kind>
+        <symbol>FirestoreAECRepository</symbol>
+        <lines>1-200</lines>
+        <reason>Persistence layer for AEC entity with real-time update capabilities</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/application/use-cases/CreateTicketUseCase.ts</path>
+        <kind>use case</kind>
+        <symbol>CreateTicketUseCase</symbol>
+        <lines>1-150</lines>
+        <reason>Initiates workflow execution, generates indexId for repository context</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/workspaces/application/services/MastraWorkspaceFactory.ts</path>
+        <kind>service</kind>
+        <symbol>MastraWorkspaceFactory</symbol>
+        <lines>1-200</lines>
+        <reason>Creates Mastra workspace instances, includes getOrCreateWorkspace() wrapper (Fix #1)</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/validation/agents/FindingsToQuestionsAgent.ts</path>
+        <kind>agent</kind>
+        <symbol>FindingsToQuestionsAgent</symbol>
+        <lines>1-150</lines>
+        <reason>Generates clarifying questions from validation findings (workflow step 8)</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/validation/agents/QuickPreflightValidator.ts</path>
+        <kind>agent</kind>
+        <symbol>QuickPreflightValidator</symbol>
+        <lines>1-250</lines>
+        <reason>Code-aware validation agent (workflow step 3) - from Story 7.3</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/indexing/application/services/IndexQueryService.ts</path>
+        <kind>service</kind>
+        <symbol>IndexQueryService</symbol>
+        <lines>1-150</lines>
+        <reason>Queries code index for relevant files (workflow step 5), gracefully degraded in module</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/tickets.module.ts</path>
+        <kind>module</kind>
+        <symbol>TicketsModule</symbol>
+        <lines>1-100</lines>
+        <reason>NestJS module registration - includes MastraContentGenerator and conditional IndexQueryService</reason>
+      </artifact>
+      <artifact>
+        <path>client/app/(main)/tickets/create/page.tsx</path>
+        <kind>page component</kind>
+        <symbol>CreateTicketPage</symbol>
+        <lines>1-150</lines>
+        <reason>Ticket creation UI - needs enhancement for progress display and HITL suspension points</reason>
+      </artifact>
+      <artifact>
+        <path>client/app/(main)/tickets/[id]/page.tsx</path>
+        <kind>page component</kind>
+        <symbol>TicketDetailPage</symbol>
+        <lines>1-200</lines>
+        <reason>Ticket detail view - will display findings and questions during generation</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@mastra/core" version="^1.1.0">Workflow engine with LibSQL persistence and LLM integrations</package>
+        <package name="@nestjs/core" version="^10.3.0">NestJS framework core</package>
+        <package name="@nestjs/common" version="^10.3.0">NestJS common utilities</package>
+        <package name="firebase-admin" version="^12.0.0">Firebase Admin SDK for Firestore persistence</package>
+        <package name="@ai-sdk/openai" version="^1.0.10">OpenAI SDK for LLM calls</package>
+        <package name="class-validator" version="^0.14.1">Validation decorators for DTOs</package>
+        <package name="class-transformer" version="^0.5.1">Object transformation for DTOs</package>
+        <package name="zod" version="^3.22.4">Schema validation for workflow inputs/outputs</package>
+        <package name="simple-git" version="^3.30.0">Git operations for repository analysis</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <!-- ========================================
+       CONSTRAINTS
+       ======================================== -->
+  <constraints>
+    <constraint type="architecture">
+      <rule>Clean Architecture: presentation → application → domain ← infrastructure</rule>
+      <rule>Domain must not depend on NestJS, Firebase, HTTP, or external SDKs</rule>
+      <rule>Use Cases are the only entry points for business operations</rule>
+      <rule>Infrastructure implements ports defined in application/domain</rule>
+    </constraint>
+
+    <constraint type="mastra-usage">
+      <rule>Mastra handles ONLY LLM content generation (4 steps): intent extraction, type detection, drafting, question generation</rule>
+      <rule>Deterministic operations (validation, estimation, indexing, export) use REST APIs and domain services</rule>
+      <rule>Workflow state stored in LibSQL (Mastra managed), final data in Firestore (application managed)</rule>
+    </constraint>
+
+    <constraint type="workflow-patterns">
+      <rule>Workflows must have suspension points for HITL interactions</rule>
+      <rule>All steps must update generationState in Firestore for real-time UI updates</rule>
+      <rule>Error handling must persist failure state to Firestore (no silent failures)</rule>
+      <rule>Services must gracefully degrade when optional dependencies unavailable</rule>
+    </constraint>
+
+    <constraint type="testing">
+      <rule>Use cases must have unit tests (where feasible)</rule>
+      <rule>Validation logic must be deterministic and testable</rule>
+      <rule>Store actions must be testable (mock infrastructure adapters)</rule>
+      <rule>Critical flows have integration tests</rule>
+    </constraint>
+
+    <constraint type="ui">
+      <rule>UI renders state and triggers actions only - NO business logic in components</rule>
+      <rule>Business logic lives in Zustand store actions and/or application use-cases</rule>
+      <rule>Hooks are lifecycle/subscription only</rule>
+      <rule>Follow Atomic Design: atoms → molecules → organisms → templates → pages</rule>
+    </constraint>
+
+    <constraint type="data-flow">
+      <rule>Dual storage pattern: LibSQL for workflow execution state, Firestore for persisted AEC data</rule>
+      <rule>Workflow outputs saved to both stores (step 11 finalizes to Firestore)</rule>
+      <rule>Frontend subscribes to Firestore for real-time updates (not LibSQL)</rule>
+      <rule>Workflow can resume from LibSQL state after server restart</rule>
+    </constraint>
+  </constraints>
+
+  <!-- ========================================
+       INTERFACES
+       ======================================== -->
+  <interfaces>
+    <interface>
+      <name>CreateTicketUseCase.execute()</name>
+      <kind>Use Case Method</kind>
+      <signature>execute(dto: CreateTicketDto): Promise&lt;AEC&gt;</signature>
+      <path>backend/src/tickets/application/use-cases/CreateTicketUseCase.ts</path>
+      <notes>Entry point for ticket creation - initiates workflow execution</notes>
+    </interface>
+
+    <interface>
+      <name>TicketGenerationWorkflow</name>
+      <kind>Mastra Workflow</kind>
+      <signature>workflow&lt;TicketGenerationInput, TicketGenerationState&gt;</signature>
+      <path>backend/src/tickets/workflows/ticket-generation.workflow.ts</path>
+      <notes>11-step workflow with 2 suspension points (step 4: findings, step 9: questions)</notes>
+    </interface>
+
+    <interface>
+      <name>MastraContentGenerator.extractIntent()</name>
+      <kind>Service Method</kind>
+      <signature>extractIntent(title: string, description: string): Promise&lt;{ intent: string, ticketType: string }&gt;</signature>
+      <path>backend/src/shared/infrastructure/mastra/MastraContentGenerator.ts</path>
+      <notes>LLM-powered intent extraction (workflow step 1)</notes>
+    </interface>
+
+    <interface>
+      <name>QuickPreflightValidator.validate()</name>
+      <kind>Agent Method</kind>
+      <signature>validate(aec: AEC, workspace: Workspace): Promise&lt;ValidationResult&gt;</signature>
+      <path>backend/src/validation/agents/QuickPreflightValidator.ts</path>
+      <notes>Code-aware validation with fast checks (workflow step 3)</notes>
+    </interface>
+
+    <interface>
+      <name>FindingsToQuestionsAgent.generateQuestions()</name>
+      <kind>Agent Method</kind>
+      <signature>generateQuestions(findings: Finding[], draft: Draft): Promise&lt;Question[]&gt;</signature>
+      <path>backend/src/validation/agents/FindingsToQuestionsAgent.ts</path>
+      <notes>Converts findings into clarifying questions (workflow step 8)</notes>
+    </interface>
+
+    <interface>
+      <name>AECRepository.save()</name>
+      <kind>Repository Method</kind>
+      <signature>save(aec: AEC): Promise&lt;void&gt;</signature>
+      <path>backend/src/tickets/application/ports/AECRepository.ts</path>
+      <notes>Persists AEC entity to Firestore with real-time update capability</notes>
+    </interface>
+
+    <interface>
+      <name>POST /api/tickets</name>
+      <kind>REST Endpoint</kind>
+      <signature>POST /api/tickets { title, description, workspaceId, repositoryId? }</signature>
+      <path>backend/src/tickets/presentation/tickets.controller.ts</path>
+      <notes>Creates new ticket and initiates workflow execution</notes>
+    </interface>
+
+    <interface>
+      <name>POST /api/tickets/:id/resume</name>
+      <kind>REST Endpoint</kind>
+      <signature>POST /api/tickets/:id/resume { action: 'proceed' | 'edit' | 'cancel' | 'skip', answers? }</signature>
+      <path>backend/src/tickets/presentation/tickets.controller.ts</path>
+      <notes>Resumes suspended workflow with user action/answers (Phase D requirement)</notes>
+    </interface>
+
+    <interface>
+      <name>WorkflowStore</name>
+      <kind>Zustand Store</kind>
+      <signature>interface { workflowState, currentStep, findings, questions, resumeWorkflow(), submitAnswers() }</signature>
+      <path>client/store/workflowStore.ts</path>
+      <notes>Frontend state management for HITL workflow interactions (Phase D)</notes>
+    </interface>
+  </interfaces>
+
+  <!-- ========================================
+       TESTS
+       ======================================== -->
+  <tests>
+    <standards>
+      Testing follows NestJS conventions with Jest. Unit tests for use cases and domain logic use mocked dependencies. Integration tests use test Firestore instance. Frontend tests use React Testing Library with mocked Zustand stores. Critical workflows have end-to-end tests covering happy path and error scenarios.
+    </standards>
+
+    <locations>
+      <location>backend/src/**/__tests__/*.spec.ts</location>
+      <location>backend/test/integration/*.e2e-spec.ts</location>
+      <location>client/app/**/__tests__/*.test.tsx</location>
+      <location>packages/shared-types/__tests__/*.spec.ts</location>
+    </locations>
+
+    <ideas>
+      <idea criterion="AC1">
+        Test: Workflow executes all 11 steps without errors
+        Setup: Mock all external services (LLM, indexing, validation)
+        Assert: Workflow completes, all steps executed in order, AEC persisted with correct data
+      </idea>
+
+      <idea criterion="AC2">
+        Test: Workflow suspends at step 4 when critical findings exist
+        Setup: Mock QuickPreflightValidator to return critical findings
+        Assert: Workflow suspends at step 4, status = 'suspended-findings', findings persisted to state
+      </idea>
+
+      <idea criterion="AC3">
+        Test: Workflow suspends at step 9 when questions exist
+        Setup: Mock FindingsToQuestionsAgent to return 3 questions
+        Assert: Workflow suspends at step 9, status = 'suspended-questions', questions persisted to state
+      </idea>
+
+      <idea criterion="AC4">
+        Test: User can proceed/edit/cancel at findings review
+        Setup: Create suspended workflow at step 4
+        Actions: Call resume endpoint with each action type
+        Assert: Proceed continues workflow, Edit cancels and preserves data, Cancel deletes AEC
+      </idea>
+
+      <idea criterion="AC5">
+        Test: User can submit answers or skip questions
+        Setup: Create suspended workflow at step 9
+        Actions: Call resume with answers, then test skip action
+        Assert: Answers passed to step 10 for refinement, Skip proceeds without refinement
+      </idea>
+
+      <idea criterion="AC6">
+        Test: Generated content persisted to AEC
+        Setup: Execute workflow to completion
+        Assert: AEC contains acceptanceCriteria, assumptions, repositoryContext from workflow outputs
+      </idea>
+
+      <idea criterion="AC7">
+        Test: Workflow resumes after server restart
+        Setup: Start workflow, simulate server crash before completion
+        Actions: Restart server, resume workflow
+        Assert: Workflow continues from last checkpoint, completes successfully
+      </idea>
+
+      <idea criterion="AC8">
+        Test: Real-time progress updates via Firestore
+        Setup: Start workflow, subscribe to AEC document in Firestore
+        Assert: generationState.status updates on each step within 500ms
+      </idea>
+
+      <idea criterion="AC9">
+        Test: Workflow completes in under 60 seconds (happy path)
+        Setup: Execute workflow with realistic data, no suspensions
+        Assert: Total execution time &lt; 60 seconds
+      </idea>
+
+      <idea criterion="AC10">
+        Test: Graceful degradation when services unavailable
+        Setup: Disable IndexQueryService, execute workflow
+        Assert: Workflow completes without index data, no crashes, appropriate fallback messages
+      </idea>
+
+      <idea criterion="Phase-B-Fix-2">
+        Test: AEC locking prevents race conditions
+        Setup: Start workflow, attempt to edit AEC via API during execution
+        Assert: Edit request rejected with 409 Conflict, lock released after workflow completes
+      </idea>
+
+      <idea criterion="Phase-B-Fix-3">
+        Test: State machine validates transitions
+        Setup: Attempt invalid transitions (e.g., draft → ready without AC)
+        Assert: Transition rejected, error message explains required fields
+      </idea>
+
+      <idea criterion="Phase-D">
+        Test: FindingsReviewModal user interactions
+        Setup: Render modal with critical findings
+        Actions: Click Proceed, Edit, Cancel buttons
+        Assert: Correct API calls made, workflow resumed/cancelled appropriately
+      </idea>
+
+      <idea criterion="Phase-D">
+        Test: QuestionsWizard submission flow
+        Setup: Render wizard with 3 questions
+        Actions: Answer all questions, submit
+        Assert: Answers sent to resume endpoint, workflow continues with refinement
+      </idea>
+    </ideas>
+  </tests>
+
+  <!-- ========================================
+       IMPLEMENTATION NOTES
+       ======================================== -->
+  <notes>
+    <note priority="critical">
+      Phase A (Critical Fixes) is COMPLETE. All 4 fixes implemented:
+      1. MastraWorkspaceFactory.getOrCreateWorkspace() wrapper added
+      2. RepositoryContext.indexId field added with mapper updates
+      3. MastraContentGenerator service created and registered
+      4. IndexQueryService registered with graceful degradation
+    </note>
+
+    <note priority="high">
+      Phase B (High Priority) is 20% COMPLETE (1/5 fixes):
+      ✅ Fix #5: Workflow data persistence (step 11 saves to AEC)
+      ⏳ Fix #6: AEC locking mechanism (prevent race conditions)
+      ⏳ Fix #7: State machine with transition validation
+      ⏳ Fix #8: Workspace readiness check before querying
+      ⏳ Fix #9: Improved async error handling
+    </note>
+
+    <note priority="medium">
+      Phase C (Testing) is NOT STARTED. 10 test cases identified covering:
+      - Happy paths (with/without repository)
+      - Suspension points (findings, questions)
+      - Error scenarios (service unavailable, indexing in progress)
+      - Race conditions and state transitions
+      - Performance and crash recovery
+    </note>
+
+    <note priority="medium">
+      Phase D (Frontend) is NOT STARTED. Requires 3 main components:
+      1. TicketGenerationProgress - Real-time step-by-step progress display
+      2. FindingsReviewModal - HITL suspension point 1 (critical findings)
+      3. QuestionsWizard - HITL suspension point 2 (clarifying questions)
+      Plus Zustand store integration and Firestore subscriptions
+    </note>
+
+    <note priority="info">
+      Dual Storage Pattern: LibSQL (Mastra) stores workflow execution state and step outputs.
+      Firestore (application) stores final persisted AEC data. Frontend subscribes to Firestore
+      for real-time updates. Workflow can resume from LibSQL after crash.
+    </note>
+
+    <note priority="info">
+      Documentation created during this story (32,000+ words):
+      - STORY_7.10_MASTRA_WORKFLOW_REFACTOR.md (comprehensive spec)
+      - 7-10-CRITICAL-FIXES.md (Phase A implementation guide)
+      - 7-10-PHASE-AB-COMPLETE.md (progress tracking)
+      - HITL-UX-SUMMARY.md (wireframes and UX spec for Phase D)
+      - EPIC_7_STATUS_UPDATE_2026-02-03.md (epic-level summary)
+    </note>
+
+    <note priority="warning">
+      Git revert event occurred during Phase A implementation. All work was successfully
+      recovered and committed. Recovery summary documented in RECOVERY_SUMMARY_2026-02-03.md.
+    </note>
+
+    <note priority="recommendation">
+      Complete Phase B before starting Phase D (frontend). This ensures data integrity,
+      prevents race conditions, and validates state transitions before exposing HITL
+      UI to users. Estimated effort: 6-9 hours for Phase B, 4-6 hours for Phase C,
+      8-12 hours for Phase D.
+    </note>
+  </notes>
+
+</story-context>
