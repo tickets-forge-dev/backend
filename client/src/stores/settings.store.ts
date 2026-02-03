@@ -124,7 +124,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       
       // Update or create jobs with existing indexes
       for (const index of indexes) {
-        jobs.set(index.repositoryName, {
+        jobs.set(index.indexId, {  // Use indexId as key, not repositoryName!
           jobId: index.indexId,
           repositoryId: index.repositoryId,
           repositoryName: index.repositoryName,
