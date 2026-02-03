@@ -39,6 +39,7 @@ export interface AECDocument {
   questions: any[];
   estimate: any | null;
   validationResults: ValidationResultDocument[];
+  preImplementationFindings: any[];
   externalIssue: any | null;
   driftDetectedAt?: Timestamp | null;
   driftReason?: string | null;
@@ -112,6 +113,17 @@ export class AECMapper {
       })
       .filter((vr): vr is ValidationResult => vr !== null);
 
+    // Map preImplementationFindings (Epic 7.3)
+    const preImplementationFindings = Array.isArray(doc.preImplementationFindings)
+      ? doc.preImplementationFindings.map((f: any) => Finding.create({
+          category: f.category,
+          severity: f.severity,
+          message: f.message,
+          location: f.location,
+          suggestion: f.suggestion,
+        }))
+      : [];
+
     return AEC.reconstitute(
       doc.id,
       doc.workspaceId,
@@ -129,6 +141,7 @@ export class AECMapper {
       doc.questions,
       doc.estimate,
       validationResults,
+      preImplementationFindings,
       doc.externalIssue,
       doc.driftDetectedAt?.toDate() ?? null,
       doc.driftReason ?? null,
@@ -167,10 +180,18 @@ export class AECMapper {
       questions: aec.questions,
       estimate: aec.estimate,
       validationResults: aec.validationResults.map((vr) => vr.toPlainObject()),
+      preImplementationFindings: aec.preImplementationFindings.map((f) => ({
+        category: f.category,
+        severity: f.severity,
+        message: f.message,
+        location: f.location,
+        suggestion: f.suggestion,
+      })),
       externalIssue: aec.externalIssue,
       driftDetectedAt: aec.driftDetectedAt
         ? Timestamp.fromDate(aec.driftDetectedAt)
         : null,
+      driftReason: aec.driftReason,
       repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),
       updatedAt: Timestamp.fromDate(aec.updatedAt),

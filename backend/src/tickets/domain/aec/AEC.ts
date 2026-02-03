@@ -40,7 +40,7 @@ export class AEC {
     private _updatedAt: Date,
   ) {
     // Validate findings limit
-    if (_preImplementationFindings.length > 10) {
+    if (_preImplementationFindings && _preImplementationFindings.length > 10) {
       throw new Error('Maximum 10 pre-implementation findings allowed');
     }
   }
