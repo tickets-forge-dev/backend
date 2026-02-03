@@ -60,7 +60,18 @@ Comprehensive guide including:
 ## Epic 7 Overview
 
 ### Goal
-Transform validation from abstract scoring to concrete, developer-ready insights by analyzing actual cloned codebases using Mastra workspace.
+Transform validation from abstract scoring to concrete, developer-ready insights using **Quick Preflight Validation** on actual cloned codebases.
+
+### Critical Design Principle
+**This is NOT Claude Code. This is a FAST preflight check system.**
+
+| Metric | Claude Code | Epic 7 Preflight |
+|--------|-------------|------------------|
+| **Time** | 5-30 minutes | 10-30 seconds |
+| **Cost** | $0.50-$2.00 | $0.01-$0.05 |
+| **Tokens** | 50k-200k | 2k-5k |
+| **Scope** | Full implementation | Critical blockers only |
+| **Value** | Complete code | Fast validation |
 
 ### Value Proposition
 **Before Epic 7:**
@@ -69,42 +80,45 @@ Validation Result: Risk score 65/100
 Issues: High complexity detected
 ```
 
-**After Epic 7:**
+**After Epic 7 (10-30 seconds later):**
 ```
-🔴 CRITICAL | Security Gap
-Missing security headers middleware
+🔴 CRITICAL | Implementation Blocker
+helmet package required but not installed
 
-The ticket requires "improve API security" but the helmet
-package is not installed in the Express application.
+Validation attempted to verify "add helmet security headers"
+requirement but discovered package is missing.
 
-📍 Code location: backend/src/main.ts
+📍 Code location: backend/package.json
 💡 Suggestion: Add acceptance criteria:
    "GIVEN the API is running
     WHEN a response is sent
-    THEN security headers (X-Frame-Options, CSP) are included"
+    THEN helmet security headers are included"
 
-   Install: npm install helmet
-   Add: app.use(helmet())
+   Install: pnpm add helmet
+   Add to main.ts: app.use(helmet())
 
-Evidence: $ npm list helmet
-          └── (empty)
+Evidence (validated in 3 seconds):
+   $ npm list helmet
+   └── (empty)
+
+Performance: 3 checks, 12 seconds, 2.3k tokens, $0.014
 
 [Add to Acceptance Criteria] [Dismiss]
 ```
 
 ### Stories Breakdown
 
-| Story | Title | Complexity |
-|-------|-------|------------|
-| 7.1 | Mastra Workspace Configuration | Medium |
-| 7.2 | Code Analysis Skills | Medium |
-| 7.3 | Pre-Implementation Simulation Agent | Large |
-| 7.4 | Security Analysis Agent | Medium |
-| 7.5 | Architecture Validation Agent | Medium |
-| 7.6 | Concrete Findings UI | Large |
-| 7.7 | Developer Appendix Enhancement | Small |
+| Story | Title | Complexity | Focus |
+|-------|-------|------------|-------|
+| 7.1 | Mastra Workspace Configuration | Medium | Infrastructure |
+| 7.2 | Quick Check Skills | Small | Efficient commands |
+| 7.3 | Quick Preflight Validator | Medium | Fast validation core |
+| 7.4 | Security-Focused Validator | Small | Specialized checks |
+| 7.5 | Architecture-Focused Validator | Small | Specialized checks |
+| 7.6 | Concrete Findings UI | Large | User interface |
+| 7.7 | Developer Appendix Enhancement | Small | Export integration |
 
-**Total Effort:** Large (similar to Epic 2 or Epic 4)
+**Total Effort:** Medium-Large (faster than originally planned - efficiency focus)
 
 ---
 

@@ -1797,11 +1797,11 @@ const workspace = new Workspace({
 
 ---
 
-### Story 7.2: Code Analysis Skills - Reusable Analysis Patterns
+### Story 7.2: Quick Check Skills - Fast, Targeted Validation Patterns
 
 As a validation engineer,
-I want reusable skills for common analysis patterns,
-So that agents can consistently analyze security, architecture, and dependencies.
+I want reusable skills with FAST, efficient commands,
+So that agents can validate critical assumptions in seconds (not minutes).
 
 **Acceptance Criteria:**
 
@@ -1809,56 +1809,94 @@ So that agents can consistently analyze security, architecture, and dependencies
 **When** this story is complete
 **Then** the following skills exist in `/workspace/skills/`:
 
-**Skill 1: Security Audit**
-- File: `/workspace/skills/security-audit/SKILL.md`
-- Detects missing security packages (helmet, cors, rate-limiter)
-- Checks for hardcoded secrets, API keys
-- Validates auth middleware usage
-- References: OWASP Top 10, security best practices
+**Skill 1: Security Quick Check**
+- File: `/workspace/skills/security-quick-check/SKILL.md`
+- **FAST commands only** (1-3 seconds each):
+  - `npm list helmet cors express-rate-limit` - Check security packages
+  - `grep -r "process.env" --include="*.ts"` - Find hardcoded env vars
+  - `grep -r "password\|secret\|api.?key" --include="*.ts"` - Find secrets
+- **No deep analysis** - just verify presence/absence
+- **Targeted only** - skip if ticket not security-related
+- References: OWASP Top 10 checklist
 
-**Skill 2: Architecture Validation**
-- File: `/workspace/skills/architecture-validation/SKILL.md`
-- Verifies folder structure matches detected architecture
-- Checks for Clean Architecture boundaries (domain/application/infrastructure)
-- Detects pattern violations
+**Skill 2: Architecture Quick Check**
+- File: `/workspace/skills/architecture-quick-check/SKILL.md`
+- **FAST commands only** (1-3 seconds each):
+  - `find src -type d -name "domain"` - Verify layer structure
+  - `grep -r "import.*infrastructure" src/domain/` - Check boundary violations
+  - `find . -name "*.module.ts"` - Verify module structure
+- **Pattern matching only** - no deep exploration
+- **Targeted only** - skip if ticket not architecture-related
 - References: Clean Architecture, DDD patterns
 
-**Skill 3: Dependency Audit**
-- File: `/workspace/skills/dependency-audit/SKILL.md`
-- Checks package.json for missing dependencies
-- Detects outdated packages with known vulnerabilities
-- Validates peer dependencies
-- Scripts: `scripts/check-deps.sh`
+**Skill 3: Dependency Quick Check**
+- File: `/workspace/skills/dependency-quick-check/SKILL.md`
+- **FAST commands only** (1-3 seconds each):
+  - `npm list <package-name>` - Verify specific package exists
+  - `npm outdated --json` - Check outdated packages (if needed)
+  - `grep -r "from '@/" package.json` - Check workspace imports
+- **One package at a time** - validate what ticket needs only
+- **Targeted only** - skip if dependencies not mentioned in AC
+- Scripts: `scripts/check-deps.sh` (optional wrapper)
 
-**Skill 4: Test Coverage Check**
-- File: `/workspace/skills/test-coverage/SKILL.md`
-- Verifies test files exist for acceptance criteria
-- Checks test naming conventions
-- Validates test setup (Jest, Vitest, etc.)
+**Skill 4: Test Pattern Quick Check**
+- File: `/workspace/skills/test-pattern-quick-check/SKILL.md`
+- **FAST commands only** (1-3 seconds each):
+  - `find . -name "*.spec.ts" -o -name "*.test.ts"` - Find test files
+  - `grep -r "describe\|test\|it" src/**/*.spec.ts` - Verify test structure
+  - `npm run test -- --listTests` - Verify test runner setup
+- **Pattern verification only** - don't run tests
+- **Targeted only** - skip if AC don't mention tests
+- References: Jest/Vitest conventions
 
 **And** each skill follows [agentskills.io spec](https://agentskills.io):
 ```markdown
 ---
-name: security-audit
-description: Audits codebase for security best practices
+name: security-quick-check
+description: Fast security validation for ticket assumptions (seconds, not minutes)
 version: 1.0.0
-tags: [security, validation]
+tags: [security, validation, quick-check]
+performance: fast-only
 ---
 
-# Security Audit
+# Security Quick Check
 
-You are a security auditor. When analyzing a ticket:
+**CRITICAL: This is a FAST validator, not a comprehensive security audit.**
 
-1. Check if security-related AC exist
-2. Scan package.json for security packages
-3. Use sandbox to grep for auth patterns
-4. Identify missing security measures
+**Performance Constraints:**
+- Maximum 3 commands per validation
+- Each command must complete in 1-3 seconds
+- Only check assumptions mentioned in ticket AC
+- Skip if ticket has no security-related AC
 
-## Commands to run
+**When to activate:**
+- Ticket mentions: "security", "auth", "helmet", "cors", "secrets"
+- AC include: security headers, authentication, authorization
 
-- `npm list helmet cors express-rate-limit`
-- `grep -r "process.env" --include="*.ts" --include="*.js"`
-- `grep -r "password\|secret\|api.?key" --include="*.ts"`
+**Quick checks to run:**
+
+1. **Missing security packages** (if AC mentions them):
+   ```bash
+   npm list helmet cors express-rate-limit
+   ```
+   ✅ Package exists → skip, no finding
+   ❌ Package missing → create finding with suggestion
+
+2. **Hardcoded secrets** (if AC mentions auth/credentials):
+   ```bash
+   grep -r "process.env" --include="*.ts" src/
+   ```
+   ✅ Uses env vars → skip, no finding
+   ❌ Hardcoded found → create finding
+
+3. **Auth patterns** (if AC mentions authentication):
+   ```bash
+   grep -r "passport\|jwt\|auth" src/main.ts src/app.module.ts
+   ```
+   ✅ Auth setup found → skip, no finding
+   ❌ No auth found → create finding
+
+**STOP after 3 checks or first blocker found.**
 ```
 
 **And** skills are discoverable:
@@ -1871,155 +1909,200 @@ You are a security auditor. When analyzing a ticket:
 **Technical Notes:**
 - Store skills in `backend/workspace/skills/` directory
 - Create one skill directory per analysis type
-- Include references and scripts as needed
+- **CRITICAL:** All skills must be FAST (1-3 seconds per command)
+- Skills should validate specific assumptions, not perform deep analysis
+- Include command examples that complete quickly
 - Skills auto-indexed if search enabled on workspace
+
+**Performance Guidance:**
+- ✅ GOOD: `npm list helmet`, `grep -r "pattern" src/`, `find . -name "*.spec.ts"`
+- ❌ BAD: Reading 20 files, running test suites, complex analysis
+- Rule of thumb: If a command takes >3 seconds, it's too slow for preflight
 
 ---
 
-### Story 7.3: Pre-Implementation Simulation Agent
+### Story 7.3: Quick Preflight Validator
 
 As a validation system,
-I want an agent that simulates ticket implementation and identifies gaps,
-So that concrete issues are found before developers see the ticket.
+I want a fast preflight validator that checks critical assumptions,
+So that blockers are found in seconds (not minutes) before developers see the ticket.
+
+**Performance Requirements (CRITICAL):**
+- ⏱️ **Execution time:** 10-30 seconds (hard limit: 30s)
+- 💰 **Token usage:** 2k-5k tokens (hard limit: 5k)
+- 🔧 **Tool calls:** 3-7 max
+- 💵 **Cost:** $0.01-$0.05 per ticket
 
 **Acceptance Criteria:**
 
 **Given** an AEC exists and workspace is configured
-**When** the simulation agent runs
+**When** the preflight validator runs
 **Then** the agent:
-- Reads AEC XML (acceptance criteria, assumptions, repo paths)
-- Activates relevant skills based on ticket type
-- Uses sandbox to explore codebase:
-  - `find . -name "*.ts" -path "*/domain/*"` (check repo paths exist)
-  - `npm list <package>` (verify dependencies)
-  - `grep -r "<pattern>" <path>` (find existing code patterns)
-- Simulates implementation steps mentally (no code execution)
-- Identifies gaps, conflicts, missing context
+- Parses acceptance criteria to extract TOP 3 critical assumptions only
+- For each assumption, runs ONE quick targeted check
+- Uses fast commands only: `npm list`, `grep`, `find`, `tsc --noEmit`
+- Returns findings ONLY for blockers (skip if everything looks fine)
+- Completes within 30 seconds hard limit
+
+**And** agent does NOT:
+- ❌ Read more than 5 files
+- ❌ Write any code or implementations
+- ❌ Run full test suites
+- ❌ Explore entire codebase
+- ❌ Perform deep analysis
 
 **And** agent generates findings:
 ```typescript
 interface Finding {
   category: 'gap' | 'conflict' | 'missing-dependency' | 'architectural-mismatch';
   severity: 'critical' | 'high' | 'medium' | 'low';
-  description: string; // "Repository path 'src/domain/tickets' does not exist"
-  codeLocation?: string; // File path or line number
-  suggestion: string; // "Create domain entity or update repo paths in ticket"
+  description: string; // "helmet package not installed"
+  codeLocation?: string; // File path
+  suggestion: string; // "Install: pnpm add helmet"
   confidence: number; // 0-1
-  evidence?: string; // Command output, grep results
+  evidence?: string; // "$ npm list helmet\n└── (empty)"
 }
 ```
 
-**And** example findings:
-- **Gap:** "Ticket assumes REST API but no API endpoints found in codebase"
-- **Conflict:** "Acceptance criteria mentions 'user profile' but no User domain entity exists"
-- **Missing dependency:** "Ticket requires JWT validation but 'jsonwebtoken' not in package.json"
-- **Architectural mismatch:** "Ticket places logic in presentation layer, violates Clean Architecture"
+**And** example efficient checks:
+- **Dependency check:** `npm list helmet` (2s, 0 tokens) → Missing ❌
+- **File exists:** `find src -name main.ts` (1s, 0 tokens) → Found ✅
+- **Pattern match:** `grep -n "app.use" src/main.ts` (1s, 0 tokens) → Found injection point ✅
+- **Type check:** `npx tsc --noEmit src/main.ts` (3s, 0 tokens) → OK ✅
+
+**And** example findings (blockers only):
+- **Missing dependency:** "helmet package not installed (verified: npm list)"
+- **File missing:** "Repo path 'src/domain/user/User.ts' does not exist"
+- **Type error:** "Cannot import 'jsonwebtoken' - TypeScript compilation fails"
 
 **And** agent output stored in AEC:
 - `preImplementationFindings: Finding[]`
-- Replaces or augments abstract validation scores
-- Used by UI to show concrete issues
+- Augments abstract validation scores from Epic 3
+- Used by UI to show concrete blockers
 
-**Prerequisites:** Story 7.2 (skills available)
+**And** performance is tracked:
+- Log execution time, token usage, tool calls
+- Alert if exceeds constraints
+- Metrics exported for monitoring
+
+**Prerequisites:** Story 7.2 (efficient check skills)
 
 **Technical Notes:**
-- Agent: `backend/src/validation/agents/PreImplementationAgent.ts`
-- Model: Use GPT-4o or Claude Sonnet (needs reasoning capability)
-- Instructions: "You simulate implementation and identify gaps using workspace tools"
-- Integrate into validation pipeline after step 6
+- Agent: `backend/src/validation/agents/QuickPreflightValidator.ts` ✅ DONE
+- Model: Claude Sonnet 4.5 (same as existing LLM)
+- Max tokens: 5k hard limit
+- Timeout: 30s with Promise.race
+- Instructions emphasize: "BE FAST. CHECK BLOCKERS ONLY."
+- Integrate into validation pipeline as optional enhancement
 - Store findings in AEC via repository
 
 ---
 
-### Story 7.4: Security Analysis Agent
+### Story 7.4: Security-Focused Validator (Quick Check)
 
 As a validation system,
-I want a specialized agent that audits security requirements,
-So that security gaps are identified with concrete recommendations.
+I want a security-focused validator that checks security assumptions quickly,
+So that security-related blockers are found in seconds.
+
+**Performance Requirements (CRITICAL):**
+- ⏱️ **Execution time:** 5-10 seconds max
+- 💰 **Token usage:** 1k-2k tokens max
+- 🔧 **Tool calls:** 2-4 max (security checks only)
+- 💵 **Cost:** $0.005-$0.02 per ticket
 
 **Acceptance Criteria:**
 
-**Given** a ticket has security-related AC or description mentions security
-**When** the security agent runs
+**Given** a ticket has security-related AC (mentions: security, auth, helmet, cors, secrets)
+**When** the security validator runs
 **Then** the agent:
-- Activates `security-audit` skill
-- Uses sandbox to scan codebase:
-  - `npm list helmet cors express-rate-limit csurf`
-  - `grep -r "helmet\|cors" --include="*.ts"`
-  - `find . -name "*auth*.ts"`
-- Analyzes findings against ticket requirements
-- Generates security-specific findings
+- Activates `security-quick-check` skill
+- Runs FAST targeted checks only (2-4 commands):
+  - `npm list helmet cors express-rate-limit` - Check security packages
+  - `grep -r "process.env" src/ --include="*.ts"` - Find env var usage
+  - `grep -r "password\|secret\|key" src/ --include="*.ts"` - Find hardcoded secrets
+- Returns findings ONLY if critical security assumptions fail
+- Skips if everything looks fine
 
-**And** example concrete findings:
-- **Missing package:** "Ticket requires 'improve security headers' but helmet package not installed. Run: `npm install helmet`"
-- **Missing middleware:** "No CORS middleware detected in Express app. Add: `app.use(cors(options))`"
-- **Hardcoded secrets:** "API keys found in code (auth/config.ts:12). Move to environment variables"
-- **Weak validation:** "No input validation on user endpoints. Add: `express-validator` middleware"
+**And** example concrete findings (blockers only):
+- **Missing package:** "AC requires helmet security headers but package not installed. Install: `pnpm add helmet`"
+- **Hardcoded secret:** "API key hardcoded in auth/config.ts:12. Move to .env: `API_KEY=xxx`"
+- **Missing CORS:** "AC requires CORS but not found in main.ts. Add: `app.use(cors())`"
 
-**And** findings include remediation:
-- Specific package to install
-- Code snippet to add
-- File location where to add it
-- Link to security docs (OWASP, npm package docs)
+**And** findings are actionable:
+- Exact command to run (`pnpm add helmet`)
+- File location (when relevant)
+- What to add to AC if needed
+- Evidence from command output
 
 **And** integration:
-- Runs only for tickets with security keywords
+- Only runs for security-related tickets (keyword detection)
+- Uses same QuickPreflightValidator with security-focused prompt
 - Findings added to `preImplementationFindings`
 - Tagged with `category: 'security'`
 
-**Prerequisites:** Story 7.3 (simulation agent working)
+**Prerequisites:** Story 7.3 (QuickPreflightValidator working)
 
 **Technical Notes:**
-- Agent: `backend/src/validation/agents/SecurityAnalysisAgent.ts`
-- Triggered by keywords: security, auth, permission, encryption, XSS, CSRF, injection
-- Uses security-audit skill
-- Can be extended with SAST tools (eslint-plugin-security, semgrep)
+- Option 1: Extend QuickPreflightValidator with security-specific instructions
+- Option 2: Create SecurityFocusedValidator extending base validator
+- Triggered by keywords: security, auth, permission, helmet, cors, secrets
+- Uses security-quick-check skill
+- Same performance constraints as Story 7.3
 
 ---
 
-### Story 7.5: Architecture Validation Agent
+### Story 7.5: Architecture-Focused Validator (Quick Check)
 
 As a validation system,
-I want an agent that validates architectural assumptions,
-So that tickets don't violate established patterns.
+I want an architecture-focused validator that checks architectural assumptions quickly,
+So that pattern violations are caught in seconds.
+
+**Performance Requirements (CRITICAL):**
+- ⏱️ **Execution time:** 5-10 seconds max
+- 💰 **Token usage:** 1k-2k tokens max
+- 🔧 **Tool calls:** 2-4 max (architecture checks only)
+- 💵 **Cost:** $0.005-$0.02 per ticket
 
 **Acceptance Criteria:**
 
-**Given** a ticket specifies repo paths or architectural changes
-**When** the architecture agent runs
+**Given** a ticket specifies repo paths or mentions architectural patterns
+**When** the architecture validator runs
 **Then** the agent:
-- Activates `architecture-validation` skill
-- Reads project's architecture document (if exists from Epic 6)
-- Uses sandbox to verify folder structure:
-  - `find . -type d -name "domain" -o -name "application" -o -name "infrastructure"`
-  - `grep -r "@Controller\|@Injectable" --include="*.ts"`
-- Checks if ticket assumptions match actual architecture
-- Validates Clean Architecture boundaries
+- Activates `architecture-quick-check` skill
+- Runs FAST targeted checks only (2-4 commands):
+  - `find src -type d -name "domain"` - Verify layer structure
+  - `grep -r "import.*infrastructure" src/domain/` - Check boundary violations
+  - `find . -name "*.module.ts"` - Verify NestJS module structure
+- Returns findings ONLY if architectural assumptions fail
+- Skips if everything looks fine
 
-**And** example concrete findings:
-- **Wrong layer:** "Ticket places business logic in presentation layer. Should be in application/use-cases"
-- **Missing entity:** "Ticket assumes Ticket domain entity exists but not found in domain/ folder"
-- **Pattern violation:** "Ticket has controller calling repository directly. Should use use case"
-- **Wrong pattern:** "Ticket assumes REST API but codebase uses GraphQL (found @Resolver decorators)"
+**And** example concrete findings (blockers only):
+- **Wrong layer:** "AC places logic in controller but no use case found. Add use case: src/tickets/application/CreateTicketUseCase.ts"
+- **Missing entity:** "AC assumes User entity but not found in domain/. Create: src/users/domain/User.ts"
+- **Pattern violation:** "AC has controller calling repository directly. Violates clean architecture - use use case instead"
+- **File not found:** "Repo path 'src/tickets/domain/Ticket.ts' specified but doesn't exist"
 
-**And** findings include:
-- Current architecture pattern detected
-- What the ticket assumes
-- What actually exists in code
-- Suggested fix (update ticket or change approach)
+**And** findings are actionable:
+- What file is missing or wrong
+- Where it should be (correct layer/path)
+- What pattern to follow
+- Example from existing code (if available)
 
 **And** integration:
-- Runs for all tickets (architectural validation always relevant)
+- Runs for tickets with repo paths or architecture keywords
+- Uses same QuickPreflightValidator with architecture-focused prompt
 - Findings added to `preImplementationFindings`
 - Tagged with `category: 'architecture'`
 
-**Prerequisites:** Story 7.3 (simulation agent working)
+**Prerequisites:** Story 7.3 (QuickPreflightValidator working)
 
 **Technical Notes:**
-- Agent: `backend/src/validation/agents/ArchitectureValidationAgent.ts`
-- Uses architecture-validation skill
-- Can read Architecture.md if generated (Epic 6 integration)
-- Detects patterns: NestJS decorators, folder structure, imports
+- Option 1: Extend QuickPreflightValidator with architecture-specific instructions
+- Option 2: Create ArchitectureFocusedValidator extending base validator
+- Triggered by: repo paths specified OR keywords (layer, module, clean architecture, DDD)
+- Uses architecture-quick-check skill
+- Can read Architecture.md if exists (Epic 6 integration)
+- Same performance constraints as Story 7.3
 
 ---
 

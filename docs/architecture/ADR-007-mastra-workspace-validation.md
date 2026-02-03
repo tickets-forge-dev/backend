@@ -28,7 +28,25 @@ Make validation at least as good as what a developer gets using Claude Code or C
 
 ## Decision
 
-We will integrate **Mastra v1 Workspace** to run analysis agents on cloned repositories, transforming validation from abstract scoring to concrete, actionable findings.
+We will integrate **Mastra v1 Workspace** to run **Quick Preflight Validators** on cloned repositories, transforming validation from abstract scoring to concrete, actionable findings.
+
+### Critical Constraint: Speed & Efficiency
+
+**This is NOT a full implementation tool.** We're building a **fast preflight check system**, not another Claude Code.
+
+**Why:**
+- Full implementation = 5-30 minutes, 50k-200k tokens (too slow/expensive)
+- Preflight validation = 10-30 seconds, 2k-5k tokens (fast/cheap)
+- Must provide value BEYOND "just use Claude Code yourself"
+
+**Strategy:**
+- ✅ Validate critical assumptions only (not full implementation)
+- ✅ Quick targeted checks (5 checks max, 30 seconds)
+- ✅ Catch blockers early (before developer starts)
+- ✅ Skip everything that looks fine
+- ❌ Don't explore entire codebase
+- ❌ Don't write complete implementations
+- ❌ Don't run full test suites
 
 ### Architecture Components
 
@@ -93,11 +111,12 @@ We will integrate **Mastra v1 Workspace** to run analysis agents on cloned repos
 - **Skills**: Reusable analysis patterns following [agentskills.io](https://agentskills.io) spec
 - **Tool Safety**: Delete operations disabled, read operations unrestricted
 
-**2. Analysis Agents (not validators)**
-- Agents use workspace tools to explore codebase
-- Agents simulate implementation mentally (no code generation/execution)
+**2. Quick Preflight Validators (not full implementers)**
+- Agents validate critical assumptions only (5 checks max)
+- Agents use targeted commands (npm list, grep, find, tsc --noEmit)
 - Agents generate findings with evidence, not scores
-- Multiple specialized agents run in parallel (security, architecture, etc.)
+- Execution time: 10-30 seconds, 2k-5k tokens
+- Multiple validators can run in parallel for different focus areas
 
 **3. Finding Structure**
 ```typescript
@@ -144,10 +163,11 @@ interface Finding {
 
 ### Negative
 
-**Performance Impact:**
-- Analysis requires cloned repository (disk space, clone time)
-- Sandbox commands add latency (mitigated by caching workspace)
-- LLM calls for agents increase cost (but improve quality significantly)
+**Performance Impact (MITIGATED):**
+- Analysis requires cloned repository (disk space, clone time) - Already done in Epic 4
+- Quick validation: 10-30 seconds (acceptable for ticket creation flow)
+- Token usage: 2k-5k per ticket (manageable cost: ~$0.01-0.03 per ticket)
+- Workspace caching eliminates repeat overhead
 
 **Complexity:**
 - Mastra workspace adds new dependency and learning curve
@@ -176,6 +196,41 @@ interface Finding {
 - Comprehensive documentation (this ADR + integration guide)
 - Example skills provided (security, architecture, deps, tests)
 - Skills use standard agentskills.io spec (community support)
+
+---
+
+## Performance Constraints
+
+**Non-Negotiable Requirements:**
+
+| Metric | Target | Max Acceptable |
+|--------|--------|----------------|
+| **Execution Time** | 10-20 seconds | 30 seconds |
+| **Token Usage** | 2k-3k tokens | 5k tokens |
+| **Tool Calls** | 3-5 calls | 7 calls |
+| **Cost per Ticket** | $0.01-0.02 | $0.05 |
+| **Files Read** | 2-5 files | 10 files |
+
+**Strategy to Meet Constraints:**
+
+1. **Targeted Validation** - Only check critical assumptions from AC
+2. **Smart Routing** - Different validators for different ticket types
+3. **Early Exit** - Stop on first blocker, don't validate everything
+4. **Command Efficiency** - One command per assumption (npm list, grep, find)
+5. **Token Optimization** - Minimal prompts, structured output only
+
+**Example Performance Profile:**
+```
+Ticket: "Add helmet security headers"
+
+Checks:
+1. npm list helmet          → 2s, 0 tokens (pure command)
+2. find src -name main.ts   → 1s, 0 tokens (pure command)
+3. Agent analysis           → 8s, 2.5k tokens (LLM call)
+4. Generate findings        → 2s, included above
+
+Total: 13s, 2.5k tokens, $0.015 ✅
+```
 
 ---
 
