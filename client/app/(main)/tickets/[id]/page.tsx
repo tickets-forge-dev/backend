@@ -5,7 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
-import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/core/components/ui/dialog';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
@@ -121,46 +129,15 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <Badge className={`${readinessBadgeClass} text-white`}>
             Ready {readinessScore}
           </Badge>
-          {showDeleteConfirm ? (
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                Delete this ticket?
-              </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  'Confirm'
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-[var(--red)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-[var(--red)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
         </div>
       </div>
 
@@ -290,6 +267,52 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           Export to Jira
         </Button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-[var(--red)]" />
+              Delete Ticket
+            </DialogTitle>
+            <DialogDescription className="text-[var(--text-base)]">
+              Are you sure you want to delete this ticket? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+              <strong className="text-[var(--text)]">Ticket:</strong> {currentTicket.title}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Ticket
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
