@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { useServices } from '@/services/index';
-import type { AECResponse } from '@/services/ticket.service';
+import type { AECResponse, ValidationResult } from '@/services/ticket.service';
 import type { BranchInfo } from '@/services/github.service';
 
 interface TicketsState {
@@ -16,6 +16,10 @@ interface TicketsState {
   isDeleting: boolean;
   deleteError: string | null;
 
+  // Input validation state
+  isValidating: boolean;
+  validationError: string | null;
+
   // Branch selection state (AC#5, Task 9)
   selectedRepository: string | null; // "owner/repo"
   selectedBranch: string | null;
@@ -26,6 +30,7 @@ interface TicketsState {
 
   // Actions
   createTicket: (title: string, description?: string) => Promise<AECResponse | null>;
+  validateUserInput: (input: string) => Promise<ValidationResult>;
   loadTickets: () => Promise<void>;
   fetchTicket: (id: string) => Promise<void>;
   updateTicket: (
@@ -34,6 +39,7 @@ interface TicketsState {
   ) => Promise<boolean>;
   deleteTicket: (id: string) => Promise<boolean>;
   clearCreateError: () => void;
+  clearValidationError: () => void;
 
   // Branch selection actions (AC#5, Task 9)
   setRepository: (repositoryFullName: string | null) => Promise<void>;
@@ -53,6 +59,10 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   updateError: null,
   isDeleting: false,
   deleteError: null,
+
+  // Input validation state
+  isValidating: false,
+  validationError: null,
 
   // Branch selection state (AC#5, Task 9)
   selectedRepository: null,
@@ -148,8 +158,37 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
     }
   },
 
+  validateUserInput: async (input: string): Promise<ValidationResult> => {
+    set({ isValidating: true, validationError: null });
+
+    try {
+      const { ticketService } = useServices();
+      const result = await ticketService.validateInput(input);
+
+      set({ isValidating: false });
+
+      if (!result.isValid) {
+        set({ validationError: result.message || 'Input validation failed. Please provide a more detailed description.' });
+      }
+
+      return result;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to validate input';
+      set({ isValidating: false, validationError: errorMessage });
+      return {
+        isValid: false,
+        processedInput: input,
+        message: errorMessage,
+      };
+    }
+  },
+
   clearCreateError: () => {
     set({ createError: null });
+  },
+
+  clearValidationError: () => {
+    set({ validationError: null });
   },
 
   deleteTicket: async (id: string) => {

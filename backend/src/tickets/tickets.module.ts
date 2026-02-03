@@ -4,6 +4,8 @@ import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from './application/use-cases/DeleteAECUseCase';
 import { EstimateEffortUseCase } from './application/use-cases/EstimateEffortUseCase';
+import { ValidateInputUseCase } from './application/use-cases/ValidateInputUseCase';
+import { TicketInputValidatorAgent } from '../validation/agents/TicketInputValidatorAgent';
 import { GenerationOrchestrator } from './application/services/GenerationOrchestrator';
 import { ValidationEngine } from './application/services/validation/ValidationEngine';
 import { FirestoreAECRepository } from './infrastructure/persistence/FirestoreAECRepository';
@@ -31,6 +33,8 @@ import { GitHubModule } from '../github/github.module';
     UpdateAECUseCase,
     DeleteAECUseCase,
     EstimateEffortUseCase,
+    ValidateInputUseCase,
+    TicketInputValidatorAgent,
     GenerationOrchestrator,
     ValidationEngine,
     // Validators

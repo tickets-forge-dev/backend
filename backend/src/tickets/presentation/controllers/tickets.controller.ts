@@ -13,8 +13,10 @@ import {
 import { CreateTicketUseCase } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
+import { ValidateInputUseCase } from '../../application/use-cases/ValidateInputUseCase';
 import { CreateTicketDto } from '../dto/CreateTicketDto';
 import { UpdateAECDto } from '../dto/UpdateAECDto';
+import { ValidateInputDto } from '../dto/ValidateInputDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import { Inject } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
@@ -28,6 +30,7 @@ export class TicketsController {
     private readonly createTicketUseCase: CreateTicketUseCase,
     private readonly updateAECUseCase: UpdateAECUseCase,
     private readonly deleteAECUseCase: DeleteAECUseCase,
+    private readonly validateInputUseCase: ValidateInputUseCase,
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
   ) {}
@@ -47,6 +50,14 @@ export class TicketsController {
     });
 
     return this.mapToResponse(aec);
+  }
+
+  @Post('validate-input')
+  @HttpCode(HttpStatus.OK)
+  async validateInput(@Body() dto: ValidateInputDto) {
+    return await this.validateInputUseCase.execute({
+      input: dto.input,
+    });
   }
 
   @Get(':id')

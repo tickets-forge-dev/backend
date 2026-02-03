@@ -33,6 +33,7 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
   const [generationState, setGenerationState] = useState<GenerationState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     console.log('🔵 [GenerationProgress] Subscribing to AEC updates:', aecId);
@@ -48,17 +49,23 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
         if (snapshot.exists()) {
           const data = snapshot.data();
           console.log('🔵 [GenerationProgress] AEC updated:', data.generationState);
-          
+
           setGenerationState(data.generationState);
 
           // Check if all steps complete (must have 8 steps AND all complete)
           const steps = data.generationState?.steps || [];
           const allStepsComplete = steps.length === 8 && steps.every((s: GenerationStep) => s.status === 'complete');
 
+          // Auto-expand the step that's currently in progress
+          const inProgressStep = steps.find((s: GenerationStep) => s.status === 'in-progress');
+          if (inProgressStep) {
+            setExpandedStep(`step-${inProgressStep.id}`);
+          }
+
           if (allStepsComplete) {
             console.log('✅ [GenerationProgress] All 8 steps complete!');
             setIsComplete(true);
-            
+
             // Only auto-navigate if showContinueButton is false
             if (!showContinueButton) {
               onComplete?.();
@@ -125,7 +132,13 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
         )}
       </div>
 
-      <Accordion type="single" collapsible className="space-y-3">
+      <Accordion
+        type="single"
+        collapsible
+        className="space-y-3"
+        value={expandedStep}
+        onValueChange={setExpandedStep}
+      >
         {generationState.steps.map((step) => (
           <AccordionItem
             key={step.id}

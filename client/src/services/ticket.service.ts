@@ -8,6 +8,12 @@ export interface CreateTicketRequest {
   branchName?: string;
 }
 
+export interface ValidationResult {
+  isValid: boolean;
+  processedInput: string;
+  message?: string;
+}
+
 export interface AECResponse {
   id: string;
   workspaceId: string;
@@ -79,6 +85,25 @@ export class TicketService {
         throw new Error(error.response.data.message);
       }
       throw new Error('Failed to create ticket. Please try again.');
+    }
+  }
+
+  async validateInput(input: string): Promise<ValidationResult> {
+    console.log('🔍 [TicketService] Validating input');
+    
+    try {
+      const response = await this.client.post<ValidationResult>('/tickets/validate-input', {
+        input,
+      });
+      console.log('🔍 [TicketService] Validation result:', response.data.isValid);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [TicketService] Validation failed:', error.response?.data || error.message);
+      
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to validate input. Please try again.');
     }
   }
 
