@@ -278,7 +278,8 @@ export class AEC {
       0,
     );
 
-    return Math.round(weightedScore / totalWeight);
+    // Return as percentage (0-100) rounded to nearest integer
+    return Math.round((weightedScore / totalWeight) * 100);
   }
 
   // Getters (immutable from outside)
