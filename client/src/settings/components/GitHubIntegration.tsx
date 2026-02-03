@@ -247,7 +247,7 @@ export function GitHubIntegration() {
               <p className="text-sm text-[var(--text-secondary)] mb-4">
                 Read-only access to your repositories. No code writes.
               </p>
-              <Button onClick={handleConnect} disabled={isConnecting} className="bg-[var(--purple)] text-[var(--text-button)] hover:bg-[var(--purple)]/90">
+              <Button onClick={handleConnect} disabled={isConnecting} className="bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)]">
                 {isConnecting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

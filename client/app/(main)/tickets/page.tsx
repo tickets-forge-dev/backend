@@ -102,7 +102,7 @@ export default function TicketsListPage() {
           </p>
         </div>
         <Link href="/tickets/create">
-          <Button className="bg-[var(--purple)] text-[var(--text-button)] hover:bg-[var(--purple)]/90 rounded-lg px-4 py-2 font-medium transition-colors">
+          <Button className="bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] rounded-lg px-4 py-2 font-medium transition-colors">
             New Ticket
           </Button>
         </Link>

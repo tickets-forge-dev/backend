@@ -49,6 +49,11 @@
   /* Button text - soft white that's easy on eyes */
   --text-button: #ffffff;
 
+  /* Primary button colors - Light mode */
+  --btn-primary-bg: #18181b;       /* Nearly black background */
+  --btn-primary-text: #ffffff;     /* White text */
+  --btn-primary-hover: #27272a;    /* Slightly lighter on hover */
+
   /* Typography - System fonts like GitHub */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -138,6 +143,11 @@
     /* Button text - soft white that's easy on eyes in dark mode */
     --text-button: #ebebeb;
 
+    /* Primary button colors - Dark mode (inverted) */
+    --btn-primary-bg: #fafafa;       /* White background */
+    --btn-primary-text: #18181b;     /* Black text */
+    --btn-primary-hover: #f4f4f5;    /* Slightly darker on hover */
+
     /* Semantic colors - comfortable, not too bright */
     --green: #10b981;
     --amber: #fbbf24;
@@ -171,6 +181,11 @@
 
   /* Button text - soft white that's easy on eyes in dark mode */
   --text-button: #ebebeb;
+
+  /* Primary button colors - Dark mode (inverted) */
+  --btn-primary-bg: #fafafa;       /* White background */
+  --btn-primary-text: #18181b;     /* Black text */
+  --btn-primary-hover: #f4f4f5;    /* Slightly darker on hover */
 
   --green: #10b981;
   --amber: #fbbf24;

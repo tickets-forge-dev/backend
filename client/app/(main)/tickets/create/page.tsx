@@ -160,7 +160,7 @@ export default function CreateTicketPage() {
                 Connect your GitHub account to enable code-aware ticket generation. This allows the AI to understand your codebase and create more accurate, contextual tickets.
               </p>
               <Link href="/settings">
-                <Button size="sm" className="gap-2 bg-[var(--purple)] text-[var(--text-button)] hover:bg-[var(--purple)]/90">
+                <Button size="sm" className="gap-2 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)]">
                   <Settings className="h-4 w-4" />
                   Go to Settings
                   <ArrowRight className="h-4 w-4" />
@@ -184,7 +184,7 @@ export default function CreateTicketPage() {
                 You need to select and index at least one repository to create code-aware tickets. Go to Settings to add repositories.
               </p>
               <Link href="/settings">
-                <Button size="sm" className="gap-2 bg-[var(--purple)] text-[var(--text-button)] hover:bg-[var(--purple)]/90">
+                <Button size="sm" className="gap-2 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)]">
                   <Settings className="h-4 w-4" />
                   Go to Settings
                   <ArrowRight className="h-4 w-4" />
