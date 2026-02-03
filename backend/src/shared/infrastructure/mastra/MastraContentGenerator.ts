@@ -35,7 +35,7 @@ export class MastraContentGenerator implements ILLMContentGenerator {
     const agentConfig: any = {
       id: 'content-generator',
       name: 'Content Generator',
-      model: modelName,  // Model string like "anthropic/claude-sonnet-4" or "ollama/qwen2.5-coder"
+      model: modelName,  // Model string like "anthropic/claude-sonnet-4" or "qwen2.5-coder:latest"
       instructions: 'You are a helpful assistant that responds with valid JSON only. Do not add commentary, just return the requested JSON structure.',
     };
 
