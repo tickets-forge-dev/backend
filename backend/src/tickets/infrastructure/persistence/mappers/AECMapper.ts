@@ -60,47 +60,57 @@ export class AECMapper {
         })
       : null;
 
-    // Reconstitute validation results
+    // Reconstitute validation results with comprehensive safety checks
     const validationResults = (doc.validationResults || [])
       .filter((vr) => {
         // Skip invalid validation results
-        const hasValidScore = typeof vr.score === 'number' && !isNaN(vr.score);
-        const hasValidWeight = typeof vr.weight === 'number' && !isNaN(vr.weight);
-        const hasCriterion = vr.criterion && typeof vr.criterion === 'string';
-        return hasCriterion && hasValidScore && hasValidWeight;
+        if (!vr || typeof vr !== 'object') return false;
+        
+        const hasValidScore = typeof vr.score === 'number' && !isNaN(vr.score) && isFinite(vr.score);
+        const hasValidWeight = typeof vr.weight === 'number' && !isNaN(vr.weight) && isFinite(vr.weight);
+        const hasCriterion = vr.criterion && typeof vr.criterion === 'string' && vr.criterion.trim().length > 0;
+        const hasMessage = vr.message && typeof vr.message === 'string' && vr.message.trim().length > 0;
+        
+        return hasCriterion && hasValidScore && hasValidWeight && hasMessage;
       })
       .map((vr) => {
-        // Handle legacy data where scores might be stored as percentages (0-100)
-        let normalizedScore = vr.score;
-        let normalizedWeight = vr.weight;
-        
-        // Normalize scores if they're > 1 (likely percentages)
-        if (normalizedScore > 1) {
-          normalizedScore = Math.min(normalizedScore / 100, 1.0);
+        try {
+          // Handle legacy data where scores might be stored as percentages (0-100)
+          let normalizedScore = vr.score;
+          let normalizedWeight = vr.weight;
+          
+          // Normalize scores if they're > 1 (likely percentages)
+          if (normalizedScore > 1) {
+            normalizedScore = Math.min(normalizedScore / 100, 1.0);
+          }
+          if (normalizedWeight > 1) {
+            normalizedWeight = Math.min(normalizedWeight / 100, 1.0);
+          }
+          
+          // Clamp to valid range [0, 1]
+          normalizedScore = Math.max(0, Math.min(1, normalizedScore));
+          normalizedWeight = Math.max(0, Math.min(1, normalizedWeight));
+          
+          // Ensure message exists (fallback for legacy data)
+          const message = vr.message && vr.message.trim().length > 0 
+            ? vr.message 
+            : `Validation check for ${vr.criterion}`;
+          
+          return ValidationResult.create({
+            criterion: vr.criterion as ValidatorType,
+            passed: vr.passed === true,
+            score: normalizedScore,
+            weight: normalizedWeight,
+            issues: Array.isArray(vr.issues) ? vr.issues : [],
+            blockers: Array.isArray(vr.blockers) ? vr.blockers : [],
+            message: message,
+          });
+        } catch (error) {
+          console.error(`Failed to create ValidationResult for ${vr.criterion}:`, error);
+          return null;
         }
-        if (normalizedWeight > 1) {
-          normalizedWeight = Math.min(normalizedWeight / 100, 1.0);
-        }
-        
-        // Clamp to valid range [0, 1]
-        normalizedScore = Math.max(0, Math.min(1, normalizedScore));
-        normalizedWeight = Math.max(0, Math.min(1, normalizedWeight));
-        
-        // Ensure message exists (fallback for legacy data)
-        const message = vr.message && vr.message.trim().length > 0 
-          ? vr.message 
-          : `Validation check for ${vr.criterion}`;
-        
-        return ValidationResult.create({
-          criterion: vr.criterion as ValidatorType,
-          passed: vr.passed,
-          score: normalizedScore,
-          weight: normalizedWeight,
-          issues: vr.issues || [],
-          blockers: vr.blockers || [],
-          message: message,
-        });
-      });
+      })
+      .filter((vr): vr is ValidationResult => vr !== null);
 
     return AEC.reconstitute(
       doc.id,
