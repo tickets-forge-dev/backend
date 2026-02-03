@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Agent } from '@mastra/core/agent';
 import { LLMConfigService } from './llm.config';
+import { createOllamaProvider } from './providers/ollama.provider';
 import {
   ILLMContentGenerator,
   IntentExtraction,
@@ -35,7 +36,6 @@ export class MastraContentGenerator implements ILLMContentGenerator {
     const agentConfig: any = {
       id: 'content-generator',
       name: 'Content Generator',
-      model: modelName,  // Model string like "anthropic/claude-sonnet-4" or "qwen2.5-coder:latest"
       instructions: 'You are a helpful assistant that responds with valid JSON only. Do not add commentary, just return the requested JSON structure.',
     };
 
@@ -45,11 +45,17 @@ export class MastraContentGenerator implements ILLMContentGenerator {
       if (!apiKey) {
         throw new Error('ANTHROPIC_API_KEY not set in .env');
       }
+      agentConfig.model = modelName; // Use model string like "anthropic/claude-sonnet-4"
       agentConfig.apiKeys = {
         ANTHROPIC_API_KEY: apiKey,
       };
     } else if (provider === 'ollama') {
-      agentConfig.baseUrl = this.llmConfig.getOllamaBaseUrl();
+      // For Ollama, create model instance using AI SDK
+      const baseURL = this.llmConfig.getOllamaBaseUrl();
+      const ollamaProvider = createOllamaProvider(baseURL);
+      // Extract model name without provider prefix
+      const modelId = modelName.replace('ollama/', '');
+      agentConfig.model = ollamaProvider.chat(modelId);
     }
 
     return new Agent(agentConfig);

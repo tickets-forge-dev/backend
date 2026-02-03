@@ -17,6 +17,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.0.10",
     "@apidevtools/swagger-parser": "^12.1.0",
     "@google-cloud/firestore": "^8.2.0",
     "@mastra/core": "^1.1.0",

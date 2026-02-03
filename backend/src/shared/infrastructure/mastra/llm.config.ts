@@ -47,16 +47,15 @@ export class LLMConfigService {
   /**
    * Get model name string for Mastra Agent
    * @param type - 'fast' for classification (steps 1,2,7), 'main' for content generation (step 5)
-   * @returns Model string like "anthropic/claude-sonnet-4" or just "qwen2.5-coder:latest" for Ollama
+   * @returns Model string like "anthropic/claude-sonnet-4" or "ollama/qwen2.5-coder:latest"
    */
   getModelName(type: ModelType): string {
     const modelId = type === 'fast' ? this.fastModel : this.mainModel;
     
     if (this.provider === 'ollama') {
-      // For Ollama with baseUrl, just return the model name without prefix
-      return modelId;
+      // Mastra requires provider prefix even with baseUrl
+      return `ollama/${modelId}`;
     } else {
-      // For Anthropic, use provider prefix
       return `anthropic/${modelId}`;
     }
   }
