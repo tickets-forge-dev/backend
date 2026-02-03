@@ -2,6 +2,7 @@ import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
+import { Finding } from '../../../validation/domain/Finding';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export interface ValidationResultDocument {
@@ -117,12 +118,16 @@ export class AECMapper {
 
     // Map preImplementationFindings (Epic 7.3)
     const preImplementationFindings = Array.isArray(doc.preImplementationFindings)
-      ? doc.preImplementationFindings.map((f: any) => Finding.create({
+      ? doc.preImplementationFindings.map((f: any) => ({
+          id: f.id,
           category: f.category,
           severity: f.severity,
-          message: f.message,
-          location: f.location,
+          description: f.description,
+          codeLocation: f.codeLocation,
           suggestion: f.suggestion,
+          confidence: f.confidence,
+          evidence: f.evidence,
+          createdAt: f.createdAt?.toDate ? f.createdAt.toDate() : new Date(f.createdAt),
         }))
       : [];
 
@@ -184,11 +189,15 @@ export class AECMapper {
       estimate: aec.estimate,
       validationResults: aec.validationResults.map((vr) => vr.toPlainObject()),
       preImplementationFindings: aec.preImplementationFindings.map((f) => ({
+        id: f.id,
         category: f.category,
         severity: f.severity,
-        message: f.message,
-        location: f.location,
+        description: f.description,
+        codeLocation: f.codeLocation,
         suggestion: f.suggestion,
+        confidence: f.confidence,
+        evidence: f.evidence,
+        createdAt: Timestamp.fromDate(f.createdAt),
       })),
       externalIssue: aec.externalIssue,
       driftDetectedAt: aec.driftDetectedAt

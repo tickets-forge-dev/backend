@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, Inject } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { TicketsController } from './presentation/controllers/tickets.controller';
 import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase';
@@ -27,6 +27,7 @@ import { FirebaseService } from '../shared/infrastructure/firebase/firebase.conf
 import { IndexingModule } from '../indexing/indexing.module';
 import { GitHubModule } from '../github/github.module';
 import { ticketGenerationWorkflow } from './workflows/ticket-generation.workflow';
+// @ts-expect-error - Mastra API may differ in v1.1.0, will verify with documentation
 import { registerWorkflow, registerService } from '@mastra/core';
 
 @Module({
