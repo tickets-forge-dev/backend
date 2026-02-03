@@ -18,46 +18,75 @@ export default function TicketsListPage() {
     loadTickets();
   }, [loadTickets]);
 
-  // Filter tickets
-  const filteredTickets = tickets.filter((ticket) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.description?.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter and sort tickets - most recently updated first
+  const filteredTickets = tickets
+    .filter((ticket) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'ready' && ticket.status === 'ready') ||
-      (statusFilter === 'needs-input' && ticket.questions && ticket.questions.length > 0);
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'ready' && ticket.status === 'ready') ||
+        (statusFilter === 'needs-input' && ticket.questions && ticket.questions.length > 0);
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Sort by updatedAt (most recent first)
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
 
   const getStatusBadge = (ticket: any) => {
     if (ticket.status === 'ready') {
-      return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Ready</Badge>;
+      return (
+        <Badge className="bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20 text-[10px] font-normal">
+          Ready
+        </Badge>
+      );
     }
     if (ticket.questions && ticket.questions.length > 0) {
-      return <Badge variant="outline" className="border-amber-500/20 text-amber-600">Needs Input</Badge>;
+      return (
+        <Badge className="bg-[var(--amber)]/10 text-[var(--amber)] border-[var(--amber)]/20 text-[10px] font-normal">
+          Needs Input
+        </Badge>
+      );
     }
-    return <Badge variant="outline">Draft</Badge>;
+    return (
+      <Badge variant="outline" className="text-[10px] font-normal border-[var(--border)]/30">
+        Draft
+      </Badge>
+    );
   };
 
   const getTypeBadge = (type: string | null) => {
     if (!type) return null;
-    
-    const typeColors: Record<string, string> = {
-      feature: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-      bug: 'bg-red-500/10 text-red-600 border-red-500/20',
-      improvement: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-      chore: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-    };
 
+    // Subtle gray for all types - Linear-inspired minimalism
     return (
-      <Badge variant="outline" className={typeColors[type] || ''}>
+      <Badge variant="outline" className="bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)]/20 text-[10px] font-normal">
         {type}
       </Badge>
     );
+  };
+
+  // Format relative time (Linear-style)
+  const getRelativeTime = (date: string | Date) => {
+    const now = new Date();
+    const past = new Date(date);
+    const diffMs = now.getTime() - past.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -73,7 +102,9 @@ export default function TicketsListPage() {
           </p>
         </div>
         <Link href="/tickets/create">
-          <Button>New Ticket</Button>
+          <Button className="bg-[var(--purple)] text-[var(--text-button)] hover:bg-[var(--purple)]/90 rounded-lg px-4 py-2 font-medium transition-colors">
+            New Ticket
+          </Button>
         </Link>
       </div>
 
@@ -142,46 +173,45 @@ export default function TicketsListPage() {
       )}
 
       {!isLoading && !loadError && filteredTickets.length > 0 && (
-        <div className="space-y-3">
-          {filteredTickets.map((ticket) => (
-            <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
-              <div className="p-5 rounded-lg bg-[var(--bg)] hover:bg-[var(--bg-subtle)] border border-[var(--border)]/30 hover:border-[var(--border)] transition-all cursor-pointer">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-[var(--text-base)] font-medium text-[var(--text)] truncate">
+        <div className="border-t border-[var(--border)]">
+          {filteredTickets.map((ticket, index) => {
+            const readinessScore = ticket.readinessScore || 0;
+            const readinessBadgeClass =
+              readinessScore >= 75
+                ? 'bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20 text-[11px] font-medium'
+                : readinessScore >= 50
+                ? 'bg-[var(--amber)]/10 text-[var(--amber)] border-[var(--amber)]/20 text-[11px] font-medium'
+                : 'bg-[var(--red)]/10 text-[var(--red)] border-[var(--red)]/20 text-[11px] font-medium';
+
+            return (
+              <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
+                <div className="group px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between gap-6">
+                    {/* Left: Title + Badges */}
+                    <div className="flex-1 min-w-0 flex items-center gap-3">
+                      <h3 className="text-[var(--text-sm)] font-normal text-[var(--text)] truncate group-hover:text-[var(--text)] transition-colors">
                         {ticket.title}
                       </h3>
-                      {getTypeBadge(ticket.type)}
-                      {getStatusBadge(ticket)}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {getTypeBadge(ticket.type)}
+                        {getStatusBadge(ticket)}
+                      </div>
                     </div>
-                    
-                    {ticket.description && (
-                      <p className="text-[var(--text-sm)] text-[var(--text-secondary)] line-clamp-2 mb-3">
-                        {ticket.description}
-                      </p>
-                    )}
 
-                    <div className="flex items-center gap-4 text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                      <span>ID: {ticket.id.split('_')[1]?.substring(0, 8)}</span>
-                      {ticket.acceptanceCriteria.length > 0 && (
-                        <span>{ticket.acceptanceCriteria.length} AC</span>
-                      )}
-                      {ticket.assumptions.length > 0 && (
-                        <span>{ticket.assumptions.length} Assumptions</span>
-                      )}
-                      {ticket.estimate && (
-                        <span>Est: {ticket.estimate.range}</span>
-                      )}
-                      <span className="ml-auto">
-                        {new Date(ticket.createdAt).toLocaleDateString()}
+                    {/* Right: Readiness + Time */}
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                        {getRelativeTime(ticket.updatedAt)}
                       </span>
+                      <Badge variant="outline" className={readinessBadgeClass}>
+                        {readinessScore}%
+                      </Badge>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

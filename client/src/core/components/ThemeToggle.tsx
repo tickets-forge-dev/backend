@@ -41,7 +41,7 @@ export function ThemeToggle() {
       onClick={cycleTheme}
       aria-label={`Theme: ${getLabel()}. Click to cycle through themes.`}
       title={getLabel()}
-      className="h-9 w-9"
+      className="h-8 w-8 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
     >
       {getIcon()}
     </Button>

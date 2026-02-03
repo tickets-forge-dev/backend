@@ -223,9 +223,9 @@ export function GitHubIntegration() {
       <CardContent className="space-y-4">
         {/* Connection Error */}
         {connectionError && (
-          <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
-            <p className="text-sm text-red-600 dark:text-red-400">{connectionError}</p>
+          <div className="rounded p-3 border-l-[3px] border-l-[var(--red)] bg-[var(--bg-subtle)] flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5" />
+            <p className="text-sm text-[var(--red)]">{connectionError}</p>
           </div>
         )}
 
@@ -239,13 +239,13 @@ export function GitHubIntegration() {
         {/* Not Connected State */}
         {!isLoadingConnection && !githubConnected && (
           <div className="space-y-4">
-            <div className="rounded-lg border border-dashed p-6 text-center">
-              <Github className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
-              <h3 className="font-medium mb-1">Connect GitHub</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+            <div className="rounded p-6 text-center bg-[var(--bg-subtle)]">
+              <Github className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-3" />
+              <h3 className="font-medium mb-1 text-[var(--text)]">Connect GitHub</h3>
+              <p className="text-sm text-[var(--text-secondary)] mb-4">
                 Read-only access to your repositories. No code writes.
               </p>
-              <Button onClick={handleConnect} disabled={isConnecting}>
+              <Button onClick={handleConnect} disabled={isConnecting} className="bg-[var(--purple)] text-[var(--text-button)] hover:bg-[var(--purple)]/90">
                 {isConnecting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -317,9 +317,9 @@ export function GitHubIntegration() {
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : repositoriesError ? (
-                <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
-                  <p className="text-sm text-red-600 dark:text-red-400">{repositoriesError}</p>
+                <div className="rounded-md bg-[var(--bg-subtle)] border-l-[3px] border-l-[var(--red)] p-3 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5" />
+                  <p className="text-sm text-[var(--red)]">{repositoriesError}</p>
                 </div>
               ) : filteredRepositories.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
@@ -362,10 +362,10 @@ export function GitHubIntegration() {
 
                 {/* Queue Status */}
                 {indexingQueue.length > 0 && (
-                  <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-3 flex items-start gap-2">
-                    <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 animate-pulse" />
+                  <div className="rounded-md bg-[var(--bg-subtle)] border-l-[3px] border-l-[var(--blue)] p-3 flex items-start gap-2">
+                    <Database className="h-4 w-4 text-[var(--blue)] mt-0.5 animate-pulse" />
                     <div>
-                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                      <p className="text-sm font-medium text-[var(--blue)]">
                         {indexingQueue.length} {indexingQueue.length === 1 ? 'repository' : 'repositories'} queued for indexing
                       </p>
                       <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
@@ -377,9 +377,9 @@ export function GitHubIntegration() {
 
                 {/* Indexing Error */}
                 {indexingError && (
-                  <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
-                    <p className="text-sm text-red-600 dark:text-red-400">{indexingError}</p>
+                  <div className="rounded-md bg-[var(--bg-subtle)] border-l-[3px] border-l-[var(--red)] p-3 flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5" />
+                    <p className="text-sm text-[var(--red)]">{indexingError}</p>
                   </div>
                 )}
 

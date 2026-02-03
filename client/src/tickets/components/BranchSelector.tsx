@@ -61,7 +61,7 @@ export function BranchSelector() {
         <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
           Branch
         </label>
-        <div className="flex items-center gap-2 h-10 px-3 border border-[var(--red)]/50 rounded-md bg-[var(--red)]/5">
+        <div className="flex items-center gap-2 h-10 px-3 border-l-2 border-l-[var(--red)] rounded-md bg-[var(--bg-subtle)]">
           <AlertCircle className="h-4 w-4 text-[var(--red)]" />
           <span className="text-[var(--text-sm)] text-[var(--red)]">
             {branchesError}

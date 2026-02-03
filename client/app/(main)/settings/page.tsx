@@ -55,33 +55,31 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Card className="p-4">
-          <div className="space-y-3">
-            <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-              Theme
-            </h3>
-            <RadioGroup value={theme} onValueChange={setTheme} className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="system" id="system" />
-                <Label htmlFor="system" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
-                  System
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="light" id="light" />
-                <Label htmlFor="light" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
-                  Light
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="dark" id="dark" />
-                <Label htmlFor="dark" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
-                  Dark
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </Card>
+        <div className="space-y-3">
+          <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+            Theme
+          </h3>
+          <RadioGroup value={theme} onValueChange={setTheme} className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="system" id="system" />
+              <Label htmlFor="system" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
+                System
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="light" id="light" />
+              <Label htmlFor="light" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
+                Light
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="dark" id="dark" />
+              <Label htmlFor="dark" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
+                Dark
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
       </section>
 
       <section className="space-y-4">
@@ -94,11 +92,9 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Card className="p-6">
-          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Account settings coming soon...
-          </p>
-        </Card>
+        <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          Account settings coming soon...
+        </p>
       </section>
     </div>
   );

@@ -50,7 +50,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
   if (fetchError || !currentTicket) {
     return (
-      <Card className="p-6">
+      <div className="p-6 border-l-[3px] border-l-[var(--red)] bg-[var(--bg-subtle)] rounded">
         <div className="text-center">
           <p className="text-[var(--text-base)] text-[var(--red)]">
             {fetchError || 'Ticket not found'}
@@ -63,7 +63,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             Back to Tickets
           </Button>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -146,14 +146,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Acceptance Criteria
           </h2>
-          <Card className="p-4">
+          <div className="pl-4 border-l-2 border-l-[var(--border)]">
             <InlineEditableList
               items={currentTicket.acceptanceCriteria}
               type="numbered"
               onSave={handleSaveAcceptanceCriteria}
               emptyMessage="No acceptance criteria yet"
             />
-          </Card>
+          </div>
         </section>
       )}
 
@@ -163,14 +163,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Assumptions
           </h2>
-          <Card className="p-4">
+          <div className="pl-4 border-l-2 border-l-[var(--border)]">
             <InlineEditableList
               items={currentTicket.assumptions}
               type="bulleted"
               onSave={handleSaveAssumptions}
               emptyMessage="No assumptions yet"
             />
-          </Card>
+          </div>
         </section>
       )}
 
@@ -180,13 +180,13 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Affected Code
           </h2>
-          <Card className="p-4">
+          <div className="pl-4 border-l-2 border-l-[var(--border)]">
             <ul className="space-y-1 text-[var(--text-sm)] font-mono text-[var(--text-secondary)]">
               {currentTicket.repoPaths.map((path, index) => (
                 <li key={index}>{path}</li>
               ))}
             </ul>
-          </Card>
+          </div>
         </section>
       )}
 
@@ -196,7 +196,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Estimate
           </h2>
-          <Card className="p-4">
+          <div className="pl-4 border-l-2 border-l-[var(--border)]">
             <div className="space-y-2">
               <p className="text-[var(--text-base)] text-[var(--text)]">
                 {currentTicket.estimate.min}-{currentTicket.estimate.max} hours{' '}
@@ -212,7 +212,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 </ul>
               )}
             </div>
-          </Card>
+          </div>
         </section>
       )}
 
@@ -222,7 +222,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Clarification Needed
           </h2>
-          <Card className="p-4">
+          <div className="pl-4 border-l-[3px] border-l-[var(--amber)]">
             <div className="space-y-4">
               {currentTicket.questions.slice(0, 3).map((question, index) => (
                 <div key={question.id || index} className="space-y-2">
@@ -248,7 +248,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
         </section>
       )}
 
