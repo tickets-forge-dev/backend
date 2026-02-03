@@ -101,4 +101,24 @@ export class FirestoreAECRepository implements AECRepository {
 
     await docRef.update(doc as any);
   }
+
+  async delete(aecId: string, workspaceId: string): Promise<void> {
+    const firestore = this.getFirestore();
+    const path = `workspaces/${workspaceId}/aecs/${aecId}`;
+    console.log(`🗑️ [FirestoreAECRepository] Deleting AEC from path: ${path}`);
+
+    const docRef = firestore
+      .collection('workspaces')
+      .doc(workspaceId)
+      .collection('aecs')
+      .doc(aecId);
+
+    const exists = await docRef.get();
+    if (!exists.exists) {
+      throw new AECNotFoundError(aecId);
+    }
+
+    await docRef.delete();
+    console.log(`✅ [FirestoreAECRepository] AEC deleted successfully from ${path}`);
+  }
 }

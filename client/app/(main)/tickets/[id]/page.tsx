@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
@@ -17,7 +17,8 @@ interface TicketDetailPageProps {
 export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const router = useRouter();
   const [ticketId, setTicketId] = useState<string | null>(null);
-  const { currentTicket, isLoading, fetchError, fetchTicket, updateTicket } = useTicketsStore();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { currentTicket, isLoading, fetchError, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
 
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
@@ -78,6 +79,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     await updateTicket(ticketId, { assumptions: items });
   };
 
+  const handleDelete = async () => {
+    if (!ticketId) return;
+    const success = await deleteTicket(ticketId);
+    if (success) {
+      router.push('/tickets');
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Back button */}
@@ -108,9 +117,51 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             Ticket #{currentTicket.id}
           </p>
         </div>
-        <Badge className={`${readinessBadgeClass} text-white`}>
-          Ready {readinessScore}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge className={`${readinessBadgeClass} text-white`}>
+            Ready {readinessScore}
+          </Badge>
+          {showDeleteConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                Delete this ticket?
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Confirm'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-[var(--red)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Validation Results */}

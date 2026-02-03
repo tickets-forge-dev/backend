@@ -102,4 +102,8 @@ export class TicketService {
     );
     return response.data;
   }
+
+  async delete(id: string): Promise<void> {
+    await this.client.delete(`/tickets/${id}`);
+  }
 }

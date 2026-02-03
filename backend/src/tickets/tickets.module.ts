@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TicketsController } from './presentation/controllers/tickets.controller';
 import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
+import { DeleteAECUseCase } from './application/use-cases/DeleteAECUseCase';
 import { EstimateEffortUseCase } from './application/use-cases/EstimateEffortUseCase';
 import { GenerationOrchestrator } from './application/services/GenerationOrchestrator';
 import { ValidationEngine } from './application/services/validation/ValidationEngine';
@@ -28,6 +29,7 @@ import { GitHubModule } from '../github/github.module';
   providers: [
     CreateTicketUseCase,
     UpdateAECUseCase,
+    DeleteAECUseCase,
     EstimateEffortUseCase,
     GenerationOrchestrator,
     ValidationEngine,

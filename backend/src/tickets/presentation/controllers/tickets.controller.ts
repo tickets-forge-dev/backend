@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   HttpCode,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CreateTicketUseCase } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
+import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
 import { CreateTicketDto } from '../dto/CreateTicketDto';
 import { UpdateAECDto } from '../dto/UpdateAECDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
@@ -25,6 +27,7 @@ export class TicketsController {
   constructor(
     private readonly createTicketUseCase: CreateTicketUseCase,
     private readonly updateAECUseCase: UpdateAECUseCase,
+    private readonly deleteAECUseCase: DeleteAECUseCase,
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
   ) {}
@@ -79,6 +82,15 @@ export class TicketsController {
     });
 
     return this.mapToResponse(aec);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteTicket(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    await this.deleteAECUseCase.execute(id, workspaceId);
   }
 
   private mapToResponse(aec: any) {

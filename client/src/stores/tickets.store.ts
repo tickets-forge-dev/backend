@@ -13,6 +13,8 @@ interface TicketsState {
   fetchError: string | null;
   isUpdating: boolean;
   updateError: string | null;
+  isDeleting: boolean;
+  deleteError: string | null;
 
   // Branch selection state (AC#5, Task 9)
   selectedRepository: string | null; // "owner/repo"
@@ -30,6 +32,7 @@ interface TicketsState {
     id: string,
     data: { acceptanceCriteria?: string[]; assumptions?: string[] }
   ) => Promise<boolean>;
+  deleteTicket: (id: string) => Promise<boolean>;
   clearCreateError: () => void;
 
   // Branch selection actions (AC#5, Task 9)
@@ -48,6 +51,8 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   fetchError: null,
   isUpdating: false,
   updateError: null,
+  isDeleting: false,
+  deleteError: null,
 
   // Branch selection state (AC#5, Task 9)
   selectedRepository: null,
@@ -145,6 +150,28 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
 
   clearCreateError: () => {
     set({ createError: null });
+  },
+
+  deleteTicket: async (id: string) => {
+    set({ isDeleting: true, deleteError: null });
+
+    try {
+      const { ticketService } = useServices();
+      await ticketService.delete(id);
+
+      // Remove from tickets list
+      set((state) => ({
+        tickets: state.tickets.filter((t) => t.id !== id),
+        currentTicket: state.currentTicket?.id === id ? null : state.currentTicket,
+        isDeleting: false,
+      }));
+
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to delete ticket';
+      set({ isDeleting: false, deleteError: errorMessage });
+      return false;
+    }
   },
 
   // Branch selection actions (AC#5, Task 9)
