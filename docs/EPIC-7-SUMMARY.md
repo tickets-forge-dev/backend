@@ -1,8 +1,60 @@
 # Epic 7: Code-Aware Validation - Summary
 
-**Status:** Planned
+**Status:** IN PROGRESS (70% Complete - 7/10 stories done)
 **Created:** 2026-02-02
+**Last Updated:** 2026-02-03
 **Priority:** P0 (Critical for v1 quality)
+
+---
+
+## Current Progress (2026-02-03)
+
+### Story Status (10 stories)
+
+| Story | Status | Progress | Completion Date |
+|-------|--------|----------|-----------------|
+| 7.1: Architecture Design | ✅ DONE | 100% | 2026-01-15 |
+| 7.2: Workspace Integration | ✅ DONE | 100% | 2026-01-22 |
+| 7.3: Quick Preflight Validator | ✅ DONE | 100% | 2026-01-28 |
+| 7.4: API Context Gathering | ⏸️ DEFERRED | 0% | Moved to Epic 8 |
+| 7.5: Validator Framework | ✅ DONE | 100% | 2026-01-30 |
+| 7.6: Findings to Questions | ✅ DONE | 100% | 2026-02-01 |
+| 7.7: Real-time Progress | ⏸️ DEFERRED | 0% | Covered by 7.10 |
+| 7.8: Drift Detection | ✅ DONE | 100% | 2026-02-02 |
+| 7.9: Ticket Input Validation | ✅ DONE | 100% | 2026-02-02 |
+| **7.10: Mastra Workflow Refactor** | **🔄 IN PROGRESS** | **15%** | **ETA: Feb 23** |
+
+**Epic Progress**: 7 complete, 1 in progress, 2 deferred = **70% complete**
+
+### Story 7.10 Details (Current Sprint)
+
+**Goal**: Replace GenerationOrchestrator with Mastra workflow, enable HITL
+
+**Phase Breakdown**:
+- ✅ Phase A: Critical Fixes (4/4) - **COMPLETE**
+- ⏳ Phase B: High Priority (1/5) - **20% COMPLETE**
+- ⏳ Phase C: Testing (0/10) - **NOT STARTED**
+- ⏳ Phase D: Frontend (0/3) - **NOT STARTED**
+
+**Recent Achievements** (2026-02-03):
+- ✅ Created 11-step HITL workflow (450 lines)
+- ✅ Created MastraContentGenerator service (150 lines)
+- ✅ Created FindingsToQuestionsAgent (200 lines)
+- ✅ Added indexId to RepositoryContext domain
+- ✅ Registered workflow and services with Mastra
+- ✅ Complete UX specification with wireframes
+- ✅ 32,000 words of documentation
+- ✅ Recovered from git revert, all work safe
+
+**Next Steps**: Complete Phase B fixes (6-9 hours), then testing and frontend.
+
+**Documentation**:
+- [Story 7.10 Details](./sprint-artifacts/STORY_7.10_MASTRA_WORKFLOW_REFACTOR.md)
+- [Critical Fixes Guide](./sprint-artifacts/7-10-CRITICAL-FIXES.md)
+- [Progress Tracking](./sprint-artifacts/7-10-PHASE-AB-COMPLETE.md)
+- [Epic Status Update](./sprint-artifacts/EPIC_7_STATUS_UPDATE_2026-02-03.md)
+- [Completion Roadmap](./EPIC_7_COMPLETION_ROADMAP.md)
+- [UX Specification](./wireframes/HITL-UX-SUMMARY.md)
 
 ---
 
