@@ -41,6 +41,8 @@ This document provides the complete epic and story breakdown for forge, decompos
 | Epic 3: Clarification & Validation | FR3, FR5 |
 | Epic 4: Code Intelligence & Estimation | FR6, FR8, FR9, FR10 |
 | Epic 5: Export & Integrations | FR7 |
+| Epic 6: Quick Document Generation | Enhanced FR1, FR4 |
+| Epic 7: Code-Aware Validation | Enhanced FR5 (concrete validation) |
 
 ---
 
@@ -1141,14 +1143,16 @@ All epics with functional requirements coverage:
 | Epic | Stories | FRs Covered | Priority |
 |------|---------|-------------|----------|
 | Epic 1: Foundation | 2 | Infrastructure | P0 |
-| Epic 2: Ticket Creation & AEC Engine | 4 | FR1, FR2, FR4 | P0 |
+| Epic 1.5: OAuth Authentication | 2 | Auth & Multi-tenancy | P0 |
+| Epic 2: Ticket Creation & AEC Engine | 5 | FR1, FR2, FR4 | P0 |
 | Epic 3: Clarification & Validation | 3 | FR3, FR5 | P1 |
 | Epic 4: Code Intelligence & Estimation | 5 | FR6, FR8, FR9, FR10 | P1-P2 |
 | Epic 5: Export & Integrations | 3 | FR7 | P1 |
-| **Epic 6: Quick Document Generation** | **8** | **Enhanced FR1, FR4** | **P0 (v1)** |
-| **TOTAL** | **25 stories** | **All FRs + enhancements** | |
+| Epic 6: Quick Document Generation | 8 | Enhanced FR1, FR4 | P0 (v1) |
+| **Epic 7: Code-Aware Validation** | **7** | **Enhanced FR5** | **P0 (critical)** |
+| **TOTAL** | **35 stories** | **All FRs + enhancements** | |
 
-**Note:** Epic 6 added for v1 to enable solo PMs without existing documentation (85%+ AEC accuracy vs 60% without context)
+**Note:** Epic 7 transforms validation from abstract scoring to concrete, code-aware findings using Mastra workspace analysis
 
 ---
 
@@ -1720,5 +1724,451 @@ match /workspaces/{workspaceId}/{document=**} {
 **Stories:** 2 (OAuth-only, no email/password)
 **Effort:** Small-Medium (much simpler than full auth)
 **Timeline:** NOW (before continuing Epic 2)
+
+---
+
+## Epic 7: Code-Aware Validation & Pre-Implementation Analysis
+
+**Goal:** Transform validation from abstract scoring to concrete, developer-ready insights by using Mastra workspace to run analysis agents on the actual cloned codebase.
+
+**Value:** Tickets become at least as valuable as what developers get from Claude Code/Cursor. PMs receive concrete feedback like "Add helmet package for security headers" instead of "Risk score: 65". Eliminates false alarms and wasted developer time.
+
+**Covers:** Enhanced FR5 (concrete validation with real code analysis)
+
+**Priority:** P0 (critical for v1 quality)
+
+**Technical Foundation:** Mastra v1 workspace with LocalFilesystem, LocalSandbox, and Skills for analyzing cloned repositories and simulating implementations.
+
+---
+
+### Story 7.1: Mastra Workspace Configuration for Repository Analysis
+
+As a backend engineer,
+I want to configure Mastra workspace for each indexed repository,
+So that analysis agents can read files and execute commands in the codebase.
+
+**Acceptance Criteria:**
+
+**Given** a repository has been indexed (Epic 4)
+**When** validation runs for a ticket affecting that repository
+**Then** a Mastra workspace is created with:
+- `LocalFilesystem` with `basePath` pointing to cloned repo directory
+- `LocalSandbox` with `workingDirectory` set to repo root
+- Tool configuration: Read operations enabled, write operations disabled (safety)
+- Skills directory configured for analysis patterns
+
+**And** workspace initialization:
+- Creates workspace on first validation run
+- Reuses existing workspace for subsequent validations
+- Refreshes workspace when repository commits change (git pull)
+
+**And** tool safety configuration:
+```typescript
+const workspace = new Workspace({
+  filesystem: new LocalFilesystem({
+    basePath: './cloned-repos/user-org-repo-name',
+    readOnly: true, // Safety: agents can't modify code
+  }),
+  sandbox: new LocalSandbox({
+    workingDirectory: './cloned-repos/user-org-repo-name',
+  }),
+  skills: ['/workspace/skills'], // Analysis skills
+  tools: {
+    [WORKSPACE_TOOLS.FILESYSTEM.DELETE]: { enabled: false },
+    [WORKSPACE_TOOLS.SANDBOX.EXECUTE_COMMAND]: {
+      requireApproval: false, // Auto-run safe commands
+    },
+  },
+});
+```
+
+**And** workspace lifecycle:
+- `init()` called before first analysis
+- Workspace persists across multiple ticket validations
+- Cleanup on repository deletion
+
+**Prerequisites:** Story 4.2 (repo cloning exists)
+
+**Technical Notes:**
+- Path: `backend/src/validation/infrastructure/MastraWorkspaceFactory.ts`
+- Store workspace instances in memory cache (per repository)
+- Use repository `indexId` to map to workspace
+- Integrate with existing `RepoIndexer` service
+
+---
+
+### Story 7.2: Code Analysis Skills - Reusable Analysis Patterns
+
+As a validation engineer,
+I want reusable skills for common analysis patterns,
+So that agents can consistently analyze security, architecture, and dependencies.
+
+**Acceptance Criteria:**
+
+**Given** the Mastra workspace is configured
+**When** this story is complete
+**Then** the following skills exist in `/workspace/skills/`:
+
+**Skill 1: Security Audit**
+- File: `/workspace/skills/security-audit/SKILL.md`
+- Detects missing security packages (helmet, cors, rate-limiter)
+- Checks for hardcoded secrets, API keys
+- Validates auth middleware usage
+- References: OWASP Top 10, security best practices
+
+**Skill 2: Architecture Validation**
+- File: `/workspace/skills/architecture-validation/SKILL.md`
+- Verifies folder structure matches detected architecture
+- Checks for Clean Architecture boundaries (domain/application/infrastructure)
+- Detects pattern violations
+- References: Clean Architecture, DDD patterns
+
+**Skill 3: Dependency Audit**
+- File: `/workspace/skills/dependency-audit/SKILL.md`
+- Checks package.json for missing dependencies
+- Detects outdated packages with known vulnerabilities
+- Validates peer dependencies
+- Scripts: `scripts/check-deps.sh`
+
+**Skill 4: Test Coverage Check**
+- File: `/workspace/skills/test-coverage/SKILL.md`
+- Verifies test files exist for acceptance criteria
+- Checks test naming conventions
+- Validates test setup (Jest, Vitest, etc.)
+
+**And** each skill follows [agentskills.io spec](https://agentskills.io):
+```markdown
+---
+name: security-audit
+description: Audits codebase for security best practices
+version: 1.0.0
+tags: [security, validation]
+---
+
+# Security Audit
+
+You are a security auditor. When analyzing a ticket:
+
+1. Check if security-related AC exist
+2. Scan package.json for security packages
+3. Use sandbox to grep for auth patterns
+4. Identify missing security measures
+
+## Commands to run
+
+- `npm list helmet cors express-rate-limit`
+- `grep -r "process.env" --include="*.ts" --include="*.js"`
+- `grep -r "password\|secret\|api.?key" --include="*.ts"`
+```
+
+**And** skills are discoverable:
+- Agent receives list of available skills
+- Agent activates relevant skills based on ticket content
+- Skill instructions added to agent context
+
+**Prerequisites:** Story 7.1 (workspace configured)
+
+**Technical Notes:**
+- Store skills in `backend/workspace/skills/` directory
+- Create one skill directory per analysis type
+- Include references and scripts as needed
+- Skills auto-indexed if search enabled on workspace
+
+---
+
+### Story 7.3: Pre-Implementation Simulation Agent
+
+As a validation system,
+I want an agent that simulates ticket implementation and identifies gaps,
+So that concrete issues are found before developers see the ticket.
+
+**Acceptance Criteria:**
+
+**Given** an AEC exists and workspace is configured
+**When** the simulation agent runs
+**Then** the agent:
+- Reads AEC XML (acceptance criteria, assumptions, repo paths)
+- Activates relevant skills based on ticket type
+- Uses sandbox to explore codebase:
+  - `find . -name "*.ts" -path "*/domain/*"` (check repo paths exist)
+  - `npm list <package>` (verify dependencies)
+  - `grep -r "<pattern>" <path>` (find existing code patterns)
+- Simulates implementation steps mentally (no code execution)
+- Identifies gaps, conflicts, missing context
+
+**And** agent generates findings:
+```typescript
+interface Finding {
+  category: 'gap' | 'conflict' | 'missing-dependency' | 'architectural-mismatch';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  description: string; // "Repository path 'src/domain/tickets' does not exist"
+  codeLocation?: string; // File path or line number
+  suggestion: string; // "Create domain entity or update repo paths in ticket"
+  confidence: number; // 0-1
+  evidence?: string; // Command output, grep results
+}
+```
+
+**And** example findings:
+- **Gap:** "Ticket assumes REST API but no API endpoints found in codebase"
+- **Conflict:** "Acceptance criteria mentions 'user profile' but no User domain entity exists"
+- **Missing dependency:** "Ticket requires JWT validation but 'jsonwebtoken' not in package.json"
+- **Architectural mismatch:** "Ticket places logic in presentation layer, violates Clean Architecture"
+
+**And** agent output stored in AEC:
+- `preImplementationFindings: Finding[]`
+- Replaces or augments abstract validation scores
+- Used by UI to show concrete issues
+
+**Prerequisites:** Story 7.2 (skills available)
+
+**Technical Notes:**
+- Agent: `backend/src/validation/agents/PreImplementationAgent.ts`
+- Model: Use GPT-4o or Claude Sonnet (needs reasoning capability)
+- Instructions: "You simulate implementation and identify gaps using workspace tools"
+- Integrate into validation pipeline after step 6
+- Store findings in AEC via repository
+
+---
+
+### Story 7.4: Security Analysis Agent
+
+As a validation system,
+I want a specialized agent that audits security requirements,
+So that security gaps are identified with concrete recommendations.
+
+**Acceptance Criteria:**
+
+**Given** a ticket has security-related AC or description mentions security
+**When** the security agent runs
+**Then** the agent:
+- Activates `security-audit` skill
+- Uses sandbox to scan codebase:
+  - `npm list helmet cors express-rate-limit csurf`
+  - `grep -r "helmet\|cors" --include="*.ts"`
+  - `find . -name "*auth*.ts"`
+- Analyzes findings against ticket requirements
+- Generates security-specific findings
+
+**And** example concrete findings:
+- **Missing package:** "Ticket requires 'improve security headers' but helmet package not installed. Run: `npm install helmet`"
+- **Missing middleware:** "No CORS middleware detected in Express app. Add: `app.use(cors(options))`"
+- **Hardcoded secrets:** "API keys found in code (auth/config.ts:12). Move to environment variables"
+- **Weak validation:** "No input validation on user endpoints. Add: `express-validator` middleware"
+
+**And** findings include remediation:
+- Specific package to install
+- Code snippet to add
+- File location where to add it
+- Link to security docs (OWASP, npm package docs)
+
+**And** integration:
+- Runs only for tickets with security keywords
+- Findings added to `preImplementationFindings`
+- Tagged with `category: 'security'`
+
+**Prerequisites:** Story 7.3 (simulation agent working)
+
+**Technical Notes:**
+- Agent: `backend/src/validation/agents/SecurityAnalysisAgent.ts`
+- Triggered by keywords: security, auth, permission, encryption, XSS, CSRF, injection
+- Uses security-audit skill
+- Can be extended with SAST tools (eslint-plugin-security, semgrep)
+
+---
+
+### Story 7.5: Architecture Validation Agent
+
+As a validation system,
+I want an agent that validates architectural assumptions,
+So that tickets don't violate established patterns.
+
+**Acceptance Criteria:**
+
+**Given** a ticket specifies repo paths or architectural changes
+**When** the architecture agent runs
+**Then** the agent:
+- Activates `architecture-validation` skill
+- Reads project's architecture document (if exists from Epic 6)
+- Uses sandbox to verify folder structure:
+  - `find . -type d -name "domain" -o -name "application" -o -name "infrastructure"`
+  - `grep -r "@Controller\|@Injectable" --include="*.ts"`
+- Checks if ticket assumptions match actual architecture
+- Validates Clean Architecture boundaries
+
+**And** example concrete findings:
+- **Wrong layer:** "Ticket places business logic in presentation layer. Should be in application/use-cases"
+- **Missing entity:** "Ticket assumes Ticket domain entity exists but not found in domain/ folder"
+- **Pattern violation:** "Ticket has controller calling repository directly. Should use use case"
+- **Wrong pattern:** "Ticket assumes REST API but codebase uses GraphQL (found @Resolver decorators)"
+
+**And** findings include:
+- Current architecture pattern detected
+- What the ticket assumes
+- What actually exists in code
+- Suggested fix (update ticket or change approach)
+
+**And** integration:
+- Runs for all tickets (architectural validation always relevant)
+- Findings added to `preImplementationFindings`
+- Tagged with `category: 'architecture'`
+
+**Prerequisites:** Story 7.3 (simulation agent working)
+
+**Technical Notes:**
+- Agent: `backend/src/validation/agents/ArchitectureValidationAgent.ts`
+- Uses architecture-validation skill
+- Can read Architecture.md if generated (Epic 6 integration)
+- Detects patterns: NestJS decorators, folder structure, imports
+
+---
+
+### Story 7.6: Concrete Findings UI - Replace Abstract Scores
+
+As a Product Manager,
+I want to see concrete, actionable findings instead of abstract validation scores,
+So that I know exactly what to fix in the ticket.
+
+**Acceptance Criteria:**
+
+**Given** pre-implementation analysis has run
+**When** viewing ticket detail page
+**Then** the Validation section shows:
+- List of findings grouped by category (Security, Architecture, Gaps, Dependencies)
+- Each finding displays:
+  - Severity badge (Critical/High/Medium/Low)
+  - Description (concrete problem)
+  - Code location (if applicable, clickable link to GitHub)
+  - Suggestion (what to add to ticket)
+  - "Add to Ticket" button
+
+**And** finding card example:
+```
+🔴 CRITICAL | Security Gap
+Missing security headers middleware
+
+The ticket requires "improve API security" but the helmet package
+is not installed in the Express application.
+
+📍 Code location: backend/src/main.ts
+💡 Suggestion: Add acceptance criteria:
+   "GIVEN the API is running
+    WHEN a response is sent
+    THEN security headers (X-Frame-Options, CSP) are included"
+
+   Install: npm install helmet
+   Add: app.use(helmet())
+
+[Add to Acceptance Criteria] [Dismiss]
+```
+
+**And** "Add to Acceptance Criteria" button:
+- Injects suggested AC into AEC
+- Marks finding as "addressed"
+- Re-runs validation (score should improve)
+
+**And** abstract validation scores:
+- Still calculated for compatibility
+- Displayed as secondary info (collapsed by default)
+- Concrete findings are primary UI
+
+**And** filtering/sorting:
+- Filter by category, severity
+- Sort by severity, confidence
+- Show/hide addressed findings
+
+**Prerequisites:** Stories 7.3-7.5 (findings generated)
+
+**Technical Notes:**
+- Component: `client/src/tickets/components/ConcreteFindings.tsx`
+- Use shadcn Card, Badge, Accordion
+- Link to GitHub: `https://github.com/{owner}/{repo}/blob/{sha}/{path}`
+- Store dismissed findings in AEC metadata
+
+---
+
+### Story 7.7: Developer Appendix Enhancement with Analysis Findings
+
+As a developer,
+I want exported tickets to include pre-implementation analysis findings,
+So that I have concrete guidance when implementing.
+
+**Acceptance Criteria:**
+
+**Given** a ticket is exported to Jira/Linear
+**When** the export use case runs
+**Then** the Dev Appendix includes new section:
+
+```markdown
+## Pre-Implementation Analysis
+
+### Security Findings
+🔴 **Missing helmet package**
+- Location: backend/src/main.ts
+- Action: Install helmet (`npm install helmet`) and configure
+- Code: `app.use(helmet())`
+
+### Architecture Findings
+🟡 **Business logic in wrong layer**
+- Location: Acceptance criteria suggest logic in controller
+- Action: Move logic to use case (CreateTicketUseCase)
+- Pattern: Follow Clean Architecture boundaries
+
+### Dependency Findings
+🟢 **All required packages present**
+- express, @nestjs/core, firebase-admin detected
+
+### Code Locations
+- Auth module: `backend/src/auth/`
+- Ticket domain: `backend/src/tickets/domain/`
+- Controllers: `backend/src/tickets/presentation/controllers/`
+```
+
+**And** format is LLM-friendly:
+- Claude Code and Cursor can parse markdown sections
+- Code snippets in proper syntax highlighting
+- Links to GitHub are absolute URLs
+- Findings ordered by severity
+
+**And** export includes:
+- All findings (not just critical)
+- Evidence/command outputs (grep results, npm list output)
+- Suggested commands to run locally
+
+**And** when ticket has no findings:
+- Show "✅ Pre-implementation analysis: No issues found"
+- Still include code locations and patterns
+
+**Prerequisites:** Story 7.6 (findings UI working), Story 5.1 or 5.2 (export exists)
+
+**Technical Notes:**
+- Update `ExportTemplateBuilder.ts` to include findings
+- Format findings as markdown with emoji indicators
+- Append to existing Dev Appendix section
+- Include in both Jira and Linear exports
+
+---
+
+## Epic 7 Summary
+
+**Stories:** 7 total
+**Effort:** Large (similar to Epic 2 or 4)
+**Dependencies:** Epic 4 (repo indexing/cloning)
+
+**Technology Stack:**
+- Mastra v1 Workspace (LocalFilesystem, LocalSandbox)
+- Agent Skills (agentskills.io spec)
+- Analysis agents (GPT-4o or Claude Sonnet)
+- Shell commands via sandbox (npm, grep, find, git)
+
+**Key Outcomes:**
+- Validation transforms from abstract scores to concrete findings
+- PMs get actionable feedback: "Install helmet package" not "Risk score: 65"
+- Developers receive tickets at least as good as using Claude Code/Cursor directly
+- Reduces false alarms and wasted implementation time
+- Analysis runs in Mastra sandbox using actual cloned codebase
+
+**Innovation:**
+This epic represents a paradigm shift in ticket validation - from static scoring to dynamic code analysis. By simulating implementation in a real environment, we catch issues that abstract validators miss.
 
 ---
