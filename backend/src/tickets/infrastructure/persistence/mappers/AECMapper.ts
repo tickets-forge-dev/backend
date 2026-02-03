@@ -61,17 +61,21 @@ export class AECMapper {
       : null;
 
     // Reconstitute validation results
-    const validationResults = doc.validationResults.map((vr) =>
-      ValidationResult.create({
+    const validationResults = doc.validationResults.map((vr) => {
+      // Handle legacy data where scores might be stored as percentages (0-100)
+      const normalizedScore = vr.score > 1 ? vr.score / 100 : vr.score;
+      const normalizedWeight = vr.weight > 1 ? vr.weight / 100 : vr.weight;
+      
+      return ValidationResult.create({
         criterion: vr.criterion as ValidatorType,
         passed: vr.passed,
-        score: vr.score,
-        weight: vr.weight,
+        score: normalizedScore,
+        weight: normalizedWeight,
         issues: vr.issues,
         blockers: vr.blockers,
         message: vr.message,
-      }),
-    );
+      });
+    });
 
     return AEC.reconstitute(
       doc.id,
