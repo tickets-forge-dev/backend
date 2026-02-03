@@ -5,6 +5,7 @@ import { TicketsModule } from './tickets/tickets.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { GitHubModule } from './github/github.module';
 import { IndexingModule } from './indexing/indexing.module';
+import { ValidationModule } from './validation/validation.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { IndexingModule } from './indexing/indexing.module';
     TicketsModule,
     GitHubModule,
     IndexingModule,
+    ValidationModule, // Epic 7: Code-Aware Validation
     // Additional feature modules will be added in subsequent stories
     // IntegrationsModule (Story 5.x)
   ],
