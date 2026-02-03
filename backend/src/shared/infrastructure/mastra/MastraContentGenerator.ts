@@ -32,7 +32,7 @@ export class MastraContentGenerator implements ILLMContentGenerator {
    */
   private createAgent(modelName: string): Agent {
     const provider = this.llmConfig.getProvider();
-    
+
     const agentConfig: any = {
       id: 'content-generator',
       name: 'Content Generator',
@@ -50,12 +50,15 @@ export class MastraContentGenerator implements ILLMContentGenerator {
         ANTHROPIC_API_KEY: apiKey,
       };
     } else if (provider === 'ollama') {
-      // For Ollama, create model instance using AI SDK
+      // For Ollama, create a provider and get the model object
       const baseURL = this.llmConfig.getOllamaBaseUrl();
-      const ollamaProvider = createOllamaProvider(baseURL);
-      // Extract model name without provider prefix
-      const modelId = modelName.replace('ollama/', '');
-      agentConfig.model = ollamaProvider.chat(modelId);
+      const ollama = createOllamaProvider(`${baseURL}/v1`);
+      
+      // Extract model ID from modelName (e.g., "ollama/minimax-m2:cloud" -> "minimax-m2:cloud")
+      const modelId = modelName.replace(/^ollama\//, '');
+      
+      // Pass the model object directly (v5 compatible)
+      agentConfig.model = ollama(modelId);
     }
 
     return new Agent(agentConfig);
@@ -122,7 +125,7 @@ Respond with JSON:
     console.log('🤖 [MastraContentGenerator] Calling LLM...');
     
     try {
-      const result = await agent.generate(prompt);
+      const result = await agent.generateLegacy(prompt);
 
       console.log('🤖 [MastraContentGenerator] LLM response received:', result.text.substring(0, 100));
 
@@ -158,7 +161,7 @@ Guidelines:
 - "bug" = fix broken behavior
 - "task" = chore, refactor, documentation, cleanup`;
 
-    const result = await agent.generate(prompt);
+    const result = await agent.generateLegacy(prompt);
 
     const parsed = JSON.parse(this.stripMarkdown(result.text));
     return {
@@ -197,7 +200,7 @@ Guidelines:
 - Repo paths should be actual files likely to change (based on context)
 - Keep it concise and actionable`;
 
-    const result = await agent.generate(prompt);
+    const result = await agent.generateLegacy(prompt);
 
     const parsed = JSON.parse(this.stripMarkdown(result.text));
 
@@ -275,7 +278,7 @@ Guidelines:
 - Each question must have 2-4 options
 - Default assumption required for each`;
 
-    const result = await agent.generate(prompt);
+    const result = await agent.generateLegacy(prompt);
 
     const parsed = JSON.parse(this.stripMarkdown(result.text));
     return {

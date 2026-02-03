@@ -17,7 +17,7 @@ export class LLMConfigService {
   private provider: LLMProvider;
   private fastModel: string;
   private mainModel: string;
-  private ollamaBaseUrl: string = 'http://localhost:11434/v1'; // Default value
+  private ollamaBaseUrl: string = 'http://localhost:11434'; // Default value
 
   constructor(private configService: ConfigService) {
     this.provider = this.configService.get<LLMProvider>('LLM_PROVIDER') || 'ollama';
@@ -25,9 +25,9 @@ export class LLMConfigService {
     // Model configuration based on provider
     if (this.provider === 'ollama') {
       // Ollama models (local debugging)
-      this.fastModel = this.configService.get('OLLAMA_FAST_MODEL') || 'qwen2.5-coder:latest';
-      this.mainModel = this.configService.get('OLLAMA_MAIN_MODEL') || 'qwen2.5-coder:latest';
-      this.ollamaBaseUrl = this.configService.get('OLLAMA_BASE_URL') || 'http://localhost:11434/v1';
+      this.fastModel = this.configService.get('OLLAMA_FAST_MODEL') || 'minimax-m2:cloud';
+      this.mainModel = this.configService.get('OLLAMA_MAIN_MODEL') || 'minimax-m2:cloud';
+      this.ollamaBaseUrl = this.configService.get('OLLAMA_BASE_URL') || 'http://localhost:11434';
 
       console.log(`🔧 LLM Provider: Ollama (DEBUG MODE)`);
       console.log(`   Fast model: ${this.fastModel}`);
@@ -47,13 +47,13 @@ export class LLMConfigService {
   /**
    * Get model name string for Mastra Agent
    * @param type - 'fast' for classification (steps 1,2,7), 'main' for content generation (step 5)
-   * @returns Model string like "anthropic/claude-sonnet-4" or "ollama/qwen2.5-coder:latest"
+   * @returns Model string like "anthropic/claude-sonnet-4" or "ollama/minimax-m2:cloud"
    */
   getModelName(type: ModelType): string {
     const modelId = type === 'fast' ? this.fastModel : this.mainModel;
-    
+
     if (this.provider === 'ollama') {
-      // Mastra requires provider prefix even with baseUrl
+      // Use ollama provider prefix for Ollama models
       return `ollama/${modelId}`;
     } else {
       return `anthropic/${modelId}`;
