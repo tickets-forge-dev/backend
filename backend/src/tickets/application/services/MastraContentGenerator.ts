@@ -11,7 +11,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { LLMConfigService } from '../../../shared/infrastructure/llm/llm-config.service';
+import { LLMConfigService } from '../../../shared/infrastructure/mastra/llm.config';
 
 export interface ExtractIntentResult {
   intent: string;

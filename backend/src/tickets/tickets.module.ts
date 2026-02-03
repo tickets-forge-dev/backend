@@ -26,9 +26,9 @@ import { ESTIMATION_ENGINE } from './application/services/estimation-engine.inte
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 import { IndexingModule } from '../indexing/indexing.module';
 import { GitHubModule } from '../github/github.module';
-import { ticketGenerationWorkflow } from './workflows/ticket-generation.workflow';
-// @ts-expect-error - Mastra API may differ in v1.1.0, will verify with documentation
-import { registerWorkflow, registerService } from '@mastra/core';
+// Temporarily disabled due to Mastra ESM/CJS compatibility issue
+// import { ticketGenerationWorkflow } from './workflows/ticket-generation.workflow';
+// import { registerWorkflow, registerService } from '@mastra/core';
 
 @Module({
   imports: [IndexingModule, GitHubModule],
@@ -105,59 +105,13 @@ export class TicketsModule implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    console.log('🔧 [TicketsModule] Registering Mastra workflow and services...');
-
-    try {
-      // Register ticket generation workflow
-      registerWorkflow('ticket-generation', ticketGenerationWorkflow);
-      console.log('✅ [TicketsModule] Registered ticket-generation workflow');
-
-      // Register core services
-      registerService('AECRepository', this.aecRepository);
-      registerService('ValidationEngine', this.validationEngine);
-
-      // Register MastraContentGenerator
-      const contentGenerator = this.moduleRef.get(MastraContentGenerator, { strict: false });
-      if (contentGenerator) {
-        registerService('MastraContentGenerator', contentGenerator);
-        console.log('✅ [TicketsModule] Registered MastraContentGenerator');
-      }
-
-      // Register validation services
-      const workspaceFactory = this.moduleRef.get('MastraWorkspaceFactory', { strict: false });
-      if (workspaceFactory) {
-        registerService('MastraWorkspaceFactory', workspaceFactory);
-        console.log('✅ [TicketsModule] Registered MastraWorkspaceFactory');
-      }
-
-      const preflightValidator = this.moduleRef.get('QuickPreflightValidator', { strict: false });
-      if (preflightValidator) {
-        registerService('QuickPreflightValidator', preflightValidator);
-        console.log('✅ [TicketsModule] Registered QuickPreflightValidator');
-      }
-
-      const findingsAgent = this.moduleRef.get('FindingsToQuestionsAgent', { strict: false });
-      if (findingsAgent) {
-        registerService('FindingsToQuestionsAgent', findingsAgent);
-        console.log('✅ [TicketsModule] Registered FindingsToQuestionsAgent');
-      }
-
-      // Register IndexQueryService with graceful fallback
-      try {
-        const { IndexQueryService } = await import('../indexing/application/services/index-query.service');
-        const indexQueryService = this.moduleRef.get(IndexQueryService, { strict: false });
-        if (indexQueryService) {
-          registerService('IndexQueryService', indexQueryService);
-          console.log('✅ [TicketsModule] Registered IndexQueryService');
-        }
-      } catch (error) {
-        console.warn('⚠️ [TicketsModule] IndexQueryService not available - workflow will use graceful fallback');
-      }
-
-      console.log('✅ [TicketsModule] Mastra workflow registration complete');
-    } catch (error) {
-      console.error('❌ [TicketsModule] Failed to register Mastra workflow:', error);
-      throw error;
-    }
+    // TEMP: Mastra workflow registration disabled due to ESM/CJS compatibility issue
+    console.log('⚠️  [TicketsModule] Mastra workflow registration temporarily disabled');
+    console.log('⚠️  [TicketsModule] Reason: @mastra/core v1.1.0 has ESM dependency incompatibility');
+    console.log('⚠️  [TicketsModule] Status: Backend will start, but workflow execution unavailable');
+    console.log('⚠️  [TicketsModule] Fix needed: Mastra v2.0 or ESM configuration');
+    
+    // Rest of module initializes normally
+    console.log('✅ [TicketsModule] Module providers registered (AEC, Validation, etc.)');
   }
 }
