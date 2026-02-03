@@ -1,0 +1,518 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context
+  xmlns="https://executable-tickets.com/schema/story-context/v1"
+  version="1.0"
+  story-id="7.3"
+  story-key="7-3-quick-preflight-validator"
+  epic-id="7"
+  created="2026-02-03T04:22:00Z">
+
+  <!-- ========================================
+       STORY IDENTITY
+       ======================================== -->
+  <story>
+    <title>Quick Preflight Validator</title>
+    <as-a>validation system</as-a>
+    <i-want>a fast preflight validator that checks critical assumptions</i-want>
+    <so-that>blockers are found in seconds (not minutes) before developers see the ticket</so-that>
+  </story>
+
+  <!-- ========================================
+       ACCEPTANCE CRITERIA
+       ======================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <given>an AEC exists and workspace is configured</given>
+      <when>the preflight validator runs</when>
+      <then>agent parses AC to extract TOP 3 critical assumptions, runs ONE quick check per assumption, uses fast commands (npm list, grep, find, tsc), returns findings ONLY for blockers, completes within 30 seconds</then>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Agent does NOT: read more than 5 files, write code, run full test suites, explore entire codebase, perform deep analysis</description>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Agent generates findings with structure: category (gap/conflict/missing-dependency/architectural-mismatch), severity (critical/high/medium/low), description, codeLocation, suggestion, confidence (0-1), evidence</description>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>Example efficient checks: npm list helmet (2s), find src -name main.ts (1s), grep "app.use" src/main.ts (1s), tsc --noEmit (3s)</description>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>Example findings: "helmet package not installed (verified: npm list)", "Repo path 'src/domain/user/User.ts' does not exist", "Cannot import 'jsonwebtoken' - TypeScript compilation fails"</description>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Agent output stored in AEC.preImplementationFindings[] augmenting abstract validation scores from Epic 3</description>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>Performance tracked: log execution time, token usage, tool calls, alert if exceeds constraints, export metrics for monitoring</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================
+       STORY TASKS
+       ======================================== -->
+  <tasks>
+    <task id="TASK-1" title="Enhance QuickPreflightValidator Agent">
+      <layer>Application (Validation Agent)</layer>
+      <subtask id="1.1">Review existing QuickPreflightValidator implementation at backend/src/validation/agents/QuickPreflightValidator.ts</subtask>
+      <subtask id="1.2">Add skill discovery integration (discover skills from workspace, select based on AEC keywords, load instructions into context)</subtask>
+      <subtask id="1.3">Implement assumption extraction (parse AEC acceptance criteria, extract TOP 3 critical assumptions, prioritize blockers)</subtask>
+      <subtask id="1.4">Add performance tracking (log execution time, track tokens, count tool calls, export metrics)</subtask>
+      <subtask id="1.5">Implement timeout enforcement (Promise.race with 30s timeout, graceful degradation, return partial findings)</subtask>
+    </task>
+
+    <task id="TASK-2" title="Integrate Skills into Agent Workflow">
+      <layer>Application (Agent Logic)</layer>
+      <subtask id="2.1">Implement skill selection logic (match AEC keywords to skill activation, select 1-2 skills max, skip if no match)</subtask>
+      <subtask id="2.2">Add skill instructions to agent context (load SKILL.md content, inject into system prompt)</subtask>
+      <subtask id="2.3">Implement finding generation from skill results (parse command output, generate Finding objects, categorize, set severity)</subtask>
+    </task>
+
+    <task id="TASK-3" title="Add Finding Storage to AEC Domain">
+      <layer>Domain + Infrastructure</layer>
+      <subtask id="3.1">Update AEC domain entity with preImplementationFindings: Finding[] field (max 10 findings)</subtask>
+      <subtask id="3.2">Update AEC mapper to convert Finding objects to/from Firestore</subtask>
+      <subtask id="3.3">Update Firestore schema with preImplementationFindings array, index by category and severity</subtask>
+    </task>
+
+    <task id="TASK-4" title="Create ValidateAECWithPreflightUseCase">
+      <layer>Application (Use Case)</layer>
+      <subtask id="4.1">Create use case at backend/src/tickets/application/use-cases/ValidateAECWithPreflightUseCase.ts</subtask>
+      <subtask id="4.2">Implement logic: load AEC, get workspace, create agent, run validation, store findings, update metadata</subtask>
+      <subtask id="4.3">Add error handling: timeout errors, workspace errors, agent errors with graceful degradation</subtask>
+      <subtask id="4.4">Integrate with ValidationEngine from Epic 3 as optional step after abstract validation</subtask>
+    </task>
+
+    <task id="TASK-5" title="Add Controller Endpoint for Preflight Validation">
+      <layer>Presentation (REST API)</layer>
+      <subtask id="5.1">Add endpoint POST /api/tickets/:aecId/validate/preflight to TicketsController</subtask>
+      <subtask id="5.2">Create PreflightValidationResponseDto with findings[], performanceMetrics, completedAt</subtask>
+      <subtask id="5.3">Implement endpoint handler calling ValidateAECWithPreflightUseCase</subtask>
+      <subtask id="5.4">Add OpenAPI/Swagger documentation with examples</subtask>
+    </task>
+
+    <task id="TASK-6" title="Performance Optimization and Constraints Enforcement">
+      <layer>Cross-cutting</layer>
+      <subtask id="6.1">Implement token usage tracking (wrap LLM calls with counter, accumulate, stop at 5k)</subtask>
+      <subtask id="6.2">Implement tool call limiting (count sandbox executions, stop after 7, prioritize blockers)</subtask>
+      <subtask id="6.3">Add performance alerts (warning at 25s, error at 30s, track cost $0.01-$0.05)</subtask>
+      <subtask id="6.4">Optimize agent instructions (emphasize "BE FAST. CHECK BLOCKERS ONLY.", examples, skip if no blockers)</subtask>
+    </task>
+  </tasks>
+
+  <!-- ========================================
+       ARTIFACTS: DOCUMENTATION
+       ======================================== -->
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Validation Pipeline</section>
+        <snippet>Abstract validation (Epic 3) produces scores. Preflight validation (Epic 7) produces concrete findings. Findings augment scores, not replace. ValidationEngine orchestrates both.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 7.3: Quick Preflight Validator</section>
+        <snippet>Performance-constrained validator: 10-30s execution, 2k-5k tokens, 3-7 tool calls, $0.01-$0.05 cost. Extracts TOP 3 assumptions, runs fast checks (npm, grep, find), returns blocker findings only.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/sprint-artifacts/7-2-quick-check-skills-fast-targeted-validation-patterns.md</path>
+        <title>Story 7.2 - Quick Check Skills</title>
+        <section>Skills Reference</section>
+        <snippet>4 skills available: security-quick-check, architecture-quick-check, dependency-quick-check, test-pattern-quick-check. Each follows agentskills.io spec with 1-3 second commands. Skills configured at backend/workspace/skills/.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/sprint-artifacts/7-3-quick-preflight-validator.md</path>
+        <title>Story 7.3 Draft</title>
+        <section>Full Story</section>
+        <snippet>Complete story with performance requirements, 6 tasks, skill integration, Finding domain storage, use case orchestration, REST endpoint. Priority P0, 6-8 hour estimate.</snippet>
+      </doc>
+    </docs>
+
+    <!-- ========================================
+         ARTIFACTS: CODE
+         ======================================== -->
+    <code>
+      <file>
+        <path>backend/src/validation/agents/QuickPreflightValidator.ts</path>
+        <kind>agent</kind>
+        <symbol>QuickPreflightValidator</symbol>
+        <lines>1-150</lines>
+        <reason>Existing agent - needs skill discovery, assumption extraction, performance tracking, timeout enforcement</reason>
+      </file>
+
+      <file>
+        <path>backend/src/validation/domain/Finding.ts</path>
+        <kind>domain-entity</kind>
+        <symbol>Finding, FindingFactory</symbol>
+        <lines>1-132</lines>
+        <reason>Finding domain entity with schema validation, factory methods for creating different finding types</reason>
+      </file>
+
+      <file>
+        <path>backend/src/validation/infrastructure/MastraWorkspaceFactory.ts</path>
+        <kind>service</kind>
+        <symbol>MastraWorkspaceFactory</symbol>
+        <reason>Provides workspace for agent with skills configured at ./workspace/skills</reason>
+      </file>
+
+      <file>
+        <path>backend/src/tickets/domain/aec/AEC.ts</path>
+        <kind>domain-entity</kind>
+        <symbol>AEC</symbol>
+        <reason>Needs preImplementationFindings: Finding[] field added</reason>
+      </file>
+
+      <file>
+        <path>backend/src/tickets/application/use-cases/CreateTicketUseCase.ts</path>
+        <kind>use-case</kind>
+        <symbol>CreateTicketUseCase</symbol>
+        <reason>Reference for use case pattern - new ValidateAECWithPreflightUseCase will follow similar structure</reason>
+      </file>
+
+      <file>
+        <path>backend/src/tickets/application/services/validation/ValidationEngine.ts</path>
+        <kind>service</kind>
+        <symbol>ValidationEngine</symbol>
+        <reason>Existing validation orchestrator from Epic 3 - preflight validation integrates here as optional step</reason>
+      </file>
+
+      <file>
+        <path>backend/workspace/skills/</path>
+        <kind>directory</kind>
+        <reason>Skills created in Story 7.2 - agent discovers and uses these for validation</reason>
+      </file>
+    </code>
+
+    <!-- ========================================
+         ARTIFACTS: DEPENDENCIES
+         ======================================== -->
+    <dependencies>
+      <node>
+        <package name="@mastra/core" version="latest">
+          <reason>Agent, Workspace imports for validation agent</reason>
+        </package>
+        <package name="zod" version="^3.22.0">
+          <reason>Schema validation for Finding entity</reason>
+        </package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <!-- ========================================
+       INTERFACES
+       ======================================== -->
+  <interfaces>
+    <interface>
+      <name>Finding Domain Entity</name>
+      <kind>domain-type</kind>
+      <signature>
+interface Finding {
+  id: string;
+  category: 'gap' | 'conflict' | 'missing-dependency' | 'architectural-mismatch' | 'security';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  description: string;
+  codeLocation?: string;
+  suggestion: string;
+  confidence: number; // 0-1
+  evidence?: string;
+  createdAt: Date;
+}
+      </signature>
+      <path>backend/src/validation/domain/Finding.ts</path>
+    </interface>
+
+    <interface>
+      <name>QuickPreflightValidator.validate()</name>
+      <kind>agent-method</kind>
+      <signature>async validate(aec: AEC, workspace: Workspace): Promise&lt;Finding[]&gt;</signature>
+      <path>backend/src/validation/agents/QuickPreflightValidator.ts</path>
+    </interface>
+
+    <interface>
+      <name>AEC.preImplementationFindings</name>
+      <kind>domain-field</kind>
+      <signature>preImplementationFindings: Finding[]</signature>
+      <path>backend/src/tickets/domain/aec/AEC.ts</path>
+    </interface>
+
+    <interface>
+      <name>POST /api/tickets/:aecId/validate/preflight</name>
+      <kind>rest-endpoint</kind>
+      <signature>
+Request: POST /api/tickets/:aecId/validate/preflight
+Auth: Required (Firebase token)
+Response: { findings: Finding[], performanceMetrics: { duration: number, tokens: number, toolCalls: number }, completedAt: string }
+      </signature>
+      <path>backend/src/tickets/presentation/controllers/TicketsController.ts</path>
+    </interface>
+  </interfaces>
+
+  <!-- ========================================
+       CONSTRAINTS
+       ======================================== -->
+  <constraints>
+    <constraint>
+      <category>performance</category>
+      <description>CRITICAL HARD LIMITS: Execution 30s max, Tokens 5k max, Tool calls 7 max, Cost $0.05 max - enforce with Promise.race timeout, token counter, tool call counter</description>
+    </constraint>
+
+    <constraint>
+      <category>performance</category>
+      <description>Extract only TOP 3 critical assumptions from AEC - not all assumptions, prioritize blockers first</description>
+    </constraint>
+
+    <constraint>
+      <category>performance</category>
+      <description>One quick check per assumption maximum - fast commands only (npm list, grep, find, tsc --noEmit)</description>
+    </constraint>
+
+    <constraint>
+      <category>scope</category>
+      <description>Agent must NOT: read more than 5 files, write any code, run full test suites, explore entire codebase, perform deep analysis</description>
+    </constraint>
+
+    <constraint>
+      <category>output</category>
+      <description>Return findings ONLY for blockers - skip and return empty array if everything looks fine (don't manufacture findings)</description>
+    </constraint>
+
+    <constraint>
+      <category>domain</category>
+      <description>AEC.preImplementationFindings limited to max 10 findings to prevent bloat</description>
+    </constraint>
+
+    <constraint>
+      <category>integration</category>
+      <description>Preflight validation augments abstract validation scores from Epic 3 - doesn't replace them. Both displayed in UI.</description>
+    </constraint>
+
+    <constraint>
+      <category>error-handling</category>
+      <description>Timeout or errors should NOT block ticket creation - return empty findings array and log warning</description>
+    </constraint>
+  </constraints>
+
+  <!-- ========================================
+       TESTS
+       ======================================== -->
+  <tests>
+    <standards>
+      <standard>Performance tests verify 10-30s execution, under 5k tokens, max 7 tool calls</standard>
+      <standard>Unit tests for assumption extraction, skill selection, finding generation</standard>
+      <standard>Integration tests for full validation flow with real workspace</standard>
+      <standard>E2E tests for REST endpoint with authentication and workspace isolation</standard>
+    </standards>
+
+    <locations>
+      <location>backend/src/validation/agents/__tests__/QuickPreflightValidator.spec.ts</location>
+      <location>backend/src/tickets/application/use-cases/__tests__/ValidateAECWithPreflightUseCase.spec.ts</location>
+      <location>backend/src/__tests__/integration/preflight-validation.integration.spec.ts</location>
+    </locations>
+
+    <ideas>
+      <test-idea criterion-id="AC1">
+        <description>Test agent extracts TOP 3 assumptions from AEC with 10 assumptions, prioritizes blockers</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC1">
+        <description>Test agent runs ONE check per assumption and completes in under 30 seconds</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC2">
+        <description>Test agent does NOT read more than 5 files during validation</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC3">
+        <description>Test Finding objects have correct structure: category, severity, description, suggestion, confidence, evidence</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC4">
+        <description>Test efficient checks: npm list (2s), find (1s), grep (1s), tsc (3s) - measure actual execution time</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC5">
+        <description>Test finding generation for missing dependency, missing file, type error cases</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC6">
+        <description>Test findings stored in AEC.preImplementationFindings and persisted to Firestore</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC7">
+        <description>Test performance tracking logs execution time, token usage, tool calls with correct values</description>
+      </test-idea>
+    </ideas>
+  </tests>
+
+  <!-- ========================================
+       DEV NOTES
+       ======================================== -->
+  <dev-notes>
+    <note category="performance">
+      <title>Performance Constraints Enforcement</title>
+      <content>
+CRITICAL HARD LIMITS:
+- Execution: 30 seconds (Promise.race timeout)
+- Tokens: 5k max (token counter with early stop)
+- Tool calls: 7 max (sandbox execution counter)
+- Cost: $0.05 max (track based on tokens)
+
+Enforcement Strategy:
+1. Wrap validation in Promise.race([validate(), timeout(30000)])
+2. Token counter: accumulate tokens from each LLM call, stop if approaching 5k
+3. Tool call counter: increment on each sandbox.execute(), stop at 7
+4. Log metrics: execution time, tokens, tool calls, cost after each validation
+
+Optimization:
+- Extract only TOP 3 assumptions (not all)
+- One check per assumption (not multiple attempts)
+- Fast commands only: npm list (2s), grep (1s), find (1s), tsc (3s)
+- Skip if no blockers found (don't manufacture findings)
+- Don't read more than 5 files
+      </content>
+    </note>
+
+    <note category="architecture">
+      <title>Validation Flow Integration</title>
+      <content>
+Validation Pipeline (Epic 3 + Epic 7):
+
+AEC Created (Epic 2)
+  ↓
+ValidationEngine.validate(aec)
+  ↓
+  ├─ Abstract Validators (Epic 3)
+  │  ├─ Structural (title length, AC count)
+  │  ├─ Behavioral (Given/When/Then format)
+  │  ├─ Testability (deterministic criteria)
+  │  ├─ Risk (auth/DB/API changes)
+  │  └─ Permissions (repo access)
+  │  ↓
+  │  Produces: validationResults[], readinessScore
+  │
+  └─ Preflight Validator (Epic 7.3) ← NEW
+     ├─ Extract TOP 3 critical assumptions
+     ├─ Discover relevant skills from workspace
+     ├─ Run fast checks (npm, grep, find)
+     └─ Generate findings for blockers only
+     ↓
+     Produces: preImplementationFindings[]
+
+UI Display:
+- Abstract scores (Epic 3) shown as overall readiness badge
+- Concrete findings (Epic 7) shown as actionable issue list
+- Findings augment scores, don't replace them
+      </content>
+    </note>
+
+    <note category="skills-integration">
+      <title>Skill Discovery and Usage</title>
+      <content>
+Skills from Story 7.2:
+1. security-quick-check - helmet, CORS, secrets detection
+2. architecture-quick-check - layer structure, boundaries
+3. dependency-quick-check - package verification
+4. test-pattern-quick-check - test files, structure
+
+Skill Selection Logic:
+1. Parse AEC title + acceptance criteria for keywords
+2. Match keywords to skill activation criteria:
+   - "security", "auth", "helmet" → security-quick-check
+   - "layer", "module", "architecture" → architecture-quick-check
+   - "install", "package", "dependency" → dependency-quick-check
+   - "test", "testing", "Jest" → test-pattern-quick-check
+3. Select 1-2 most relevant skills (not all)
+4. Load SKILL.md content for selected skills
+5. Inject skill instructions into agent system prompt
+6. Agent follows skill commands (max 3 per skill)
+
+Integration:
+- workspace.skills = ['./workspace/skills']
+- Skills auto-discovered by Mastra workspace
+- Agent calls listAvailableSkills() to get skill metadata
+- Skill instructions guide agent on what commands to run
+      </content>
+    </note>
+
+    <note category="learnings-from-7.2">
+      <title>Story 7.2 Context - Skills Ready</title>
+      <content>
+Skills Created in Story 7.2:
+- backend/workspace/skills/security-quick-check/SKILL.md
+- backend/workspace/skills/architecture-quick-check/SKILL.md
+- backend/workspace/skills/dependency-quick-check/SKILL.md
+- backend/workspace/skills/test-pattern-quick-check/SKILL.md
+
+Skill Format (agentskills.io):
+- Frontmatter: name, description, version, tags, performance
+- Performance constraints: max 3 commands, 1-3s each
+- Activation criteria: keywords triggering skill
+- Quick checks: bash command examples
+- Decision logic: ✅ skip if found, ❌ create finding if missing
+
+Configuration:
+- MastraWorkspaceFactory already has: skills: ['./workspace/skills']
+- Skills path configured, workspace auto-discovers
+- QuickPreflightValidator can discover skills via workspace
+- Skill instructions loaded into agent context
+
+Reusable Patterns:
+- Fast commands: npm list, grep, find (1-3 seconds each)
+- Targeted checks only (skip if not relevant)
+- Evidence-based findings (command output as proof)
+- Blocker-focused (don't check everything)
+
+[Source: 7-2-quick-check-skills-fast-targeted-validation-patterns.context.xml]
+      </content>
+    </note>
+
+    <note category="implementation">
+      <title>Key Implementation Files</title>
+      <content>
+Files to Modify:
+1. backend/src/validation/agents/QuickPreflightValidator.ts
+   - Add skill discovery logic
+   - Implement assumption extraction
+   - Add performance tracking
+   - Enforce timeout with Promise.race
+
+2. backend/src/tickets/domain/aec/AEC.ts
+   - Add field: preImplementationFindings: Finding[]
+   - Validation: max 10 findings
+
+3. backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts
+   - Map Finding[] to/from Firestore
+   - Handle null/undefined findings
+
+Files to Create:
+1. backend/src/tickets/application/use-cases/ValidateAECWithPreflightUseCase.ts
+   - Orchestrates preflight validation
+   - Loads AEC, gets workspace, runs agent
+   - Stores findings, updates metadata
+
+2. backend/src/tickets/presentation/dtos/PreflightValidationResponseDto.ts
+   - DTO for REST response
+   - findings[], performanceMetrics, completedAt
+
+3. backend/src/validation/agents/__tests__/QuickPreflightValidator.spec.ts
+   - Unit tests for agent logic
+
+Files to Reference:
+- backend/src/validation/domain/Finding.ts (already exists)
+- backend/src/validation/infrastructure/MastraWorkspaceFactory.ts (Story 7.1)
+- backend/src/tickets/application/services/validation/ValidationEngine.ts (Epic 3)
+      </content>
+    </note>
+  </dev-notes>
+
+</story-context>

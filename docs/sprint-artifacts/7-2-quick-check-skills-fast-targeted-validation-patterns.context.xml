@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context
+  xmlns="https://executable-tickets.com/schema/story-context/v1"
+  version="1.0"
+  story-id="7.2"
+  story-key="7-2-quick-check-skills-fast-targeted-validation-patterns"
+  epic-id="7"
+  created="2026-02-03T04:16:00Z">
+
+  <!-- ========================================
+       STORY IDENTITY
+       ======================================== -->
+  <story>
+    <title>Quick Check Skills - Fast, Targeted Validation Patterns</title>
+    <as-a>validation engineer</as-a>
+    <i-want>reusable skills with FAST, efficient commands</i-want>
+    <so-that>agents can validate critical assumptions in seconds (not minutes)</so-that>
+  </story>
+
+  <!-- ========================================
+       ACCEPTANCE CRITERIA
+       ======================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <given>Mastra workspace is configured</given>
+      <when>this story is complete</when>
+      <then>4 skills exist in backend/workspace/skills/ directory</then>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Skill 1: Security Quick Check exists at backend/workspace/skills/security-quick-check/SKILL.md with FAST commands only (1-3 seconds each): npm list helmet cors express-rate-limit, grep for hardcoded env vars and secrets</description>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Skill 2: Architecture Quick Check exists at backend/workspace/skills/architecture-quick-check/SKILL.md with FAST commands only: find domain layer, grep for boundary violations, find module files</description>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>Skill 3: Dependency Quick Check exists at backend/workspace/skills/dependency-quick-check/SKILL.md with FAST commands only: npm list for specific packages, npm outdated, grep workspace imports</description>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>Skill 4: Test Pattern Quick Check exists at backend/workspace/skills/test-pattern-quick-check/SKILL.md with FAST commands only: find test files, grep test structure, verify test runner</description>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Each skill follows agentskills.io spec with frontmatter (name, description, version, tags, performance), performance constraints section, activation criteria, quick checks with examples, decision logic</description>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>Skills are discoverable: agents receive list of available skills, activate relevant skills based on ticket content, skill instructions added to agent context</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================
+       STORY TASKS
+       ======================================== -->
+  <tasks>
+    <task id="TASK-1" title="Create Skills Directory Structure">
+      <layer>Infrastructure (Workspace)</layer>
+      <subtask id="1.1">Create skills directory structure at backend/workspace/skills/ with subdirectories for each skill</subtask>
+      <subtask id="1.2">Add skills to .gitignore exception to ensure committed to version control</subtask>
+    </task>
+
+    <task id="TASK-2" title="Implement Security Quick Check Skill">
+      <layer>Infrastructure (Validation Skills)</layer>
+      <subtask id="2.1">Create SKILL.md for security-quick-check following agentskills.io format</subtask>
+      <subtask id="2.2">Define performance constraints (max 3 commands, 1-3s each, skip if not security-related)</subtask>
+      <subtask id="2.3">Define activation criteria (keywords: security, auth, helmet, cors, secrets)</subtask>
+      <subtask id="2.4">Document 3 quick checks: missing packages (npm list), hardcoded secrets (grep), auth patterns (grep)</subtask>
+      <subtask id="2.5">Add stopping criteria (stop after 3 checks or first blocker)</subtask>
+    </task>
+
+    <task id="TASK-3" title="Implement Architecture Quick Check Skill">
+      <layer>Infrastructure (Validation Skills)</layer>
+      <subtask id="3.1">Create SKILL.md for architecture-quick-check following agentskills.io format</subtask>
+      <subtask id="3.2">Define activation criteria (keywords: layer, module, clean architecture, DDD, boundary)</subtask>
+      <subtask id="3.3">Document 3 quick checks: layer structure (find), boundary violations (grep), module structure (find)</subtask>
+    </task>
+
+    <task id="TASK-4" title="Implement Dependency Quick Check Skill">
+      <layer>Infrastructure (Validation Skills)</layer>
+      <subtask id="4.1">Create SKILL.md for dependency-quick-check</subtask>
+      <subtask id="4.2">Define activation criteria (AC mentions packages/dependencies)</subtask>
+      <subtask id="4.3">Document 3 quick checks: specific package (npm list), outdated packages (npm outdated), workspace imports (grep)</subtask>
+      <subtask id="4.4">Create optional wrapper script scripts/check-deps.sh</subtask>
+    </task>
+
+    <task id="TASK-5" title="Implement Test Pattern Quick Check Skill">
+      <layer>Infrastructure (Validation Skills)</layer>
+      <subtask id="5.1">Create SKILL.md for test-pattern-quick-check</subtask>
+      <subtask id="5.2">Define activation criteria (AC mentions test, testing, Jest, Vitest)</subtask>
+      <subtask id="5.3">Document 3 quick checks: find test files, verify structure (grep), verify runner (npm)</subtask>
+      <subtask id="5.4">Add guidance: don't run tests (too slow), just verify setup</subtask>
+    </task>
+
+    <task id="TASK-6" title="Skill Discovery and Documentation">
+      <layer>Infrastructure (Workspace)</layer>
+      <subtask id="6.1">Create backend/workspace/skills/README.md with agentskills.io format explanation and performance guidelines</subtask>
+      <subtask id="6.2">Update MastraWorkspaceFactory.ts to include skills path configuration</subtask>
+      <subtask id="6.3">Implement listAvailableSkills() method for agent discovery</subtask>
+    </task>
+  </tasks>
+
+  <!-- ========================================
+       ARTIFACTS: DOCUMENTATION
+       ======================================== -->
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Mastra Integration</section>
+        <snippet>Mastra handles LLM content generation with predictable JSON schemas. Infrastructure layer uses port/adapter pattern. Mastra workspace configured with LocalFilesystem and LocalSandbox.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 7: Code-Aware Validation</section>
+        <snippet>Epic 7 transforms validation from abstract scoring to concrete code-aware findings. Story 7.2 creates reusable skills with FAST commands (1-3 seconds) for targeted validation. Performance critical: max 3 commands per skill.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/sprint-artifacts/7-2-quick-check-skills-fast-targeted-validation-patterns.md</path>
+        <title>Story 7.2 Draft</title>
+        <section>Full Story</section>
+        <snippet>Complete story with 4 skills (security, architecture, dependency, test), 6 tasks, agentskills.io spec compliance. Priority P0, 4-6 hour estimate.</snippet>
+      </doc>
+    </docs>
+
+    <!-- ========================================
+         ARTIFACTS: CODE
+         ======================================== -->
+    <code>
+      <file>
+        <path>backend/src/validation/infrastructure/MastraWorkspaceFactory.ts</path>
+        <kind>service</kind>
+        <symbol>MastraWorkspaceFactory</symbol>
+        <lines>1-100</lines>
+        <reason>Existing workspace factory from Story 7.1 - needs skills path configuration update</reason>
+      </file>
+
+      <file>
+        <path>backend/src/validation/domain/Finding.ts</path>
+        <kind>domain-entity</kind>
+        <symbol>Finding</symbol>
+        <reason>Domain entity for validation findings - skills will produce findings based on command results</reason>
+      </file>
+
+      <file>
+        <path>backend/src/validation/agents/QuickPreflightValidator.ts</path>
+        <kind>agent</kind>
+        <symbol>QuickPreflightValidator</symbol>
+        <reason>Validation agent that will consume skills created in this story (Story 7.3 dependency)</reason>
+      </file>
+
+      <file>
+        <path>backend/workspace/skills/</path>
+        <kind>directory</kind>
+        <reason>Target directory for skills - currently empty, will contain 4 skill subdirectories with SKILL.md files</reason>
+      </file>
+    </code>
+
+    <!-- ========================================
+         ARTIFACTS: DEPENDENCIES
+         ======================================== -->
+    <dependencies>
+      <node>
+        <package name="@mastra/core" version="latest">
+          <reason>Workspace, LocalFilesystem, LocalSandbox imports</reason>
+        </package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <!-- ========================================
+       INTERFACES
+       ======================================== -->
+  <interfaces>
+    <interface>
+      <name>agentskills.io Specification</name>
+      <kind>external-standard</kind>
+      <signature>
+---
+name: skill-name
+description: Brief description
+version: 1.0.0
+tags: [category, validation, quick-check]
+performance: fast-only
+---
+
+# Skill Title
+**CRITICAL:** Performance constraints
+**Performance Constraints:** Max commands, timing, targeting
+**When to activate:** Keyword patterns
+**Quick checks to run:** Command examples with decision logic
+      </signature>
+      <path>https://agentskills.io</path>
+    </interface>
+
+    <interface>
+      <name>MastraWorkspaceFactory.getWorkspace()</name>
+      <kind>service-method</kind>
+      <signature>async getWorkspace(workspaceId: string, repoName: string, indexId: string): Promise&lt;Workspace&gt;</signature>
+      <path>backend/src/validation/infrastructure/MastraWorkspaceFactory.ts</path>
+    </interface>
+  </interfaces>
+
+  <!-- ========================================
+       CONSTRAINTS
+       ======================================== -->
+  <constraints>
+    <constraint>
+      <category>performance</category>
+      <description>CRITICAL: All skills MUST be FAST - each command max 1-3 seconds, max 3 commands per skill activation</description>
+    </constraint>
+
+    <constraint>
+      <category>performance</category>
+      <description>Targeted checks only - skip if ticket doesn't mention relevant topic (no comprehensive audits)</description>
+    </constraint>
+
+    <constraint>
+      <category>architecture</category>
+      <description>Skills follow agentskills.io spec - frontmatter, performance constraints, activation criteria, quick checks, decision logic</description>
+    </constraint>
+
+    <constraint>
+      <category>testing</category>
+      <description>Test pattern skill MUST NOT run test suites (too slow) - only verify test files exist and structure is valid</description>
+    </constraint>
+
+    <constraint>
+      <category>security</category>
+      <description>Security skill checks for hardcoded secrets but does NOT perform comprehensive security audit</description>
+    </constraint>
+
+    <constraint>
+      <category>architecture</category>
+      <description>Skills stored in backend/workspace/skills/ directory with one subdirectory per skill containing SKILL.md file</description>
+    </constraint>
+
+    <constraint>
+      <category>discovery</category>
+      <description>Skills must be discoverable by Mastra workspace - configure skills path in MastraWorkspaceFactory.ts</description>
+    </constraint>
+  </constraints>
+
+  <!-- ========================================
+       TESTS
+       ======================================== -->
+  <tests>
+    <standards>
+      <standard>Unit tests for skill content validation (ensure follows agentskills.io spec)</standard>
+      <standard>Performance tests to verify commands complete in &lt;3 seconds</standard>
+      <standard>Integration tests to verify skills discoverable by workspace</standard>
+    </standards>
+
+    <locations>
+      <location>backend/src/validation/infrastructure/__tests__/</location>
+      <location>backend/workspace/skills/__tests__/</location>
+    </locations>
+
+    <ideas>
+      <test-idea criterion-id="AC1">
+        <description>Verify all 4 skill directories and SKILL.md files are created</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC2">
+        <description>Parse security-quick-check/SKILL.md and validate frontmatter, performance constraints, 3 command examples</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC3">
+        <description>Parse architecture-quick-check/SKILL.md and validate structure</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC4">
+        <description>Parse dependency-quick-check/SKILL.md and validate structure</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC5">
+        <description>Parse test-pattern-quick-check/SKILL.md and validate structure</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC6">
+        <description>Validate all skills follow agentskills.io spec using schema validator</description>
+      </test-idea>
+
+      <test-idea criterion-id="AC7">
+        <description>Test listAvailableSkills() returns all 4 skills with correct metadata</description>
+      </test-idea>
+    </ideas>
+  </tests>
+
+  <!-- ========================================
+       DEV NOTES
+       ======================================== -->
+  <dev-notes>
+    <note category="performance">
+      <title>Performance is CRITICAL</title>
+      <content>
+All skills MUST be FAST:
+- Each command: 1-3 seconds max
+- Max 3 commands per skill activation
+- Targeted checks only (not comprehensive audits)
+- Skip if ticket doesn't mention relevant topic
+
+Performance Guidance:
+✅ GOOD: npm list helmet, grep -r "pattern" src/, find . -name "*.spec.ts"
+❌ BAD: Reading 20 files, running test suites, complex analysis
+📏 Rule: If command takes &gt;3 seconds, it's too slow for preflight
+      </content>
+    </note>
+
+    <note category="format">
+      <title>agentskills.io Specification</title>
+      <content>
+Each SKILL.md file must follow exact format:
+1. Frontmatter (YAML): name, description, version, tags, performance
+2. Title and CRITICAL note about constraints
+3. Performance Constraints section
+4. When to activate section (keyword patterns)
+5. Quick checks to run (numbered list with bash commands)
+6. Decision logic (✅ skip case, ❌ finding case)
+7. STOP conditions
+
+Reference: https://agentskills.io for full spec
+      </content>
+    </note>
+
+    <note category="implementation">
+      <title>Skills Directory Structure</title>
+      <content>
+backend/workspace/skills/
+├── README.md (overview and guidelines)
+├── security-quick-check/
+│   └── SKILL.md
+├── architecture-quick-check/
+│   └── SKILL.md
+├── dependency-quick-check/
+│   └── SKILL.md
+└── test-pattern-quick-check/
+    └── SKILL.md
+
+Configure in MastraWorkspaceFactory:
+skills: ['./workspace/skills']
+      </content>
+    </note>
+
+    <note category="learnings-from-7.1">
+      <title>Story 7.1 Context</title>
+      <content>
+MastraWorkspaceFactory.ts already implemented:
+- Creates workspace per repository
+- LocalFilesystem with basePath to cloned repo
+- LocalSandbox with workingDirectory set to repo root
+- Tool safety: read-only, no delete
+- Workspace instances cached in memory per repository
+- Repository indexId maps to workspace
+
+Skills path configuration:
+- Already has placeholder: skills: ['/workspace/skills']
+- Just need to create actual skill files in that directory
+- Workspace will auto-discover skills on init
+
+Path: backend/src/validation/infrastructure/MastraWorkspaceFactory.ts
+      </content>
+    </note>
+
+    <note category="testing">
+      <title>Testing Strategy</title>
+      <content>
+1. Content validation tests:
+   - Parse each SKILL.md file
+   - Validate YAML frontmatter structure
+   - Ensure performance constraints documented
+   - Verify 3 command examples per skill
+
+2. Performance tests:
+   - Run each command example in isolated env
+   - Verify completes in &lt;3 seconds
+   - Test on typical repository structure
+
+3. Discovery tests:
+   - Call listAvailableSkills()
+   - Verify returns 4 skills with metadata
+   - Test skills added to workspace context
+
+4. Integration with agents (Story 7.3 dependency):
+   - QuickPreflightValidator can discover skills
+   - Skills activated based on ticket keywords
+   - Skill instructions added to agent context
+      </content>
+    </note>
+  </dev-notes>
+
+</story-context>

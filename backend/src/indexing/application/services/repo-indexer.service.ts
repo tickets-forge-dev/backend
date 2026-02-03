@@ -99,56 +99,75 @@ export class RepoIndexerService {
       index.markIndexing(files.length);
       await this.indexRepository.save(index);
 
-      // Parse each file
+      // Parse files in batches to reduce memory pressure
+      const BATCH_SIZE = 50;
       let processedCount = 0;
-      for (const filePath of files) {
-        try {
-          const relativePath = path.relative(tempDir, filePath);
-          const content = await fs.readFile(filePath, 'utf-8');
-          
-          const fileMetadata = await this.fileParserService.parseFile(
-            relativePath,
-            content,
-          );
-
-          index.addFile(fileMetadata);
-          processedCount++;
-
-          // Collect summary information
-          if (fileMetadata.language) {
-            indexingSummary.languagesDetected.add(fileMetadata.language);
-          }
-          
-          // Detect documentation files
-          if (this.isDocumentationFile(relativePath)) {
-            indexingSummary.hasDocumentation = true;
-            indexingSummary.documentationFiles.push(relativePath);
-          }
-          
-          // Detect test files
-          if (this.isTestFile(relativePath)) {
-            indexingSummary.hasTests = true;
-            indexingSummary.testFiles.push(relativePath);
-          }
-          
-          // Detect config files
-          if (this.isConfigFile(relativePath)) {
-            indexingSummary.configFiles.push(relativePath);
-          }
-
-          // Update progress every 10 files
-          if (processedCount % 10 === 0) {
-            await this.indexRepository.updateProgress(
-              indexId,
-              processedCount,
-              files.length,
+      
+      for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        const batch = files.slice(i, Math.min(i + BATCH_SIZE, files.length));
+        
+        // Process batch
+        for (const filePath of batch) {
+          try {
+            const relativePath = path.relative(tempDir, filePath);
+            
+            // Read file content with size limit
+            const content = await this.readFileSafely(filePath);
+            if (!content) {
+              continue; // Skip if file is too large or unreadable
+            }
+            
+            const fileMetadata = await this.fileParserService.parseFile(
+              relativePath,
+              content,
             );
+
+            index.addFile(fileMetadata);
+            processedCount++;
+
+            // Collect summary information
+            if (fileMetadata.language) {
+              indexingSummary.languagesDetected.add(fileMetadata.language);
+            }
+            
+            // Detect documentation files
+            if (this.isDocumentationFile(relativePath)) {
+              indexingSummary.hasDocumentation = true;
+              indexingSummary.documentationFiles.push(relativePath);
+            }
+            
+            // Detect test files
+            if (this.isTestFile(relativePath)) {
+              indexingSummary.hasTests = true;
+              indexingSummary.testFiles.push(relativePath);
+            }
+            
+            // Detect config files
+            if (this.isConfigFile(relativePath)) {
+              indexingSummary.configFiles.push(relativePath);
+            }
+
+            // Update progress every 10 files
+            if (processedCount % 10 === 0) {
+              await this.indexRepository.updateProgress(
+                indexId,
+                processedCount,
+                files.length,
+              );
+            }
+          } catch (error) {
+            const err = error as Error;
+            this.logger.warn(`Failed to parse file ${filePath}: ${err.message}`);
+            index.incrementParseErrors();
           }
-        } catch (error) {
-          const err = error as Error;
-          this.logger.warn(`Failed to parse file ${filePath}: ${err.message}`);
-          index.incrementParseErrors();
         }
+        
+        // Force garbage collection between batches if available
+        if (global.gc) {
+          global.gc();
+        }
+        
+        this.logger.debug(`Processed batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(files.length / BATCH_SIZE)}`);
       }
 
       indexingSummary.filesIndexed = processedCount;
@@ -262,9 +281,13 @@ export class RepoIndexerService {
 
   /**
    * Walk file tree and return list of file paths
+   * Only includes files we should index (skips large files, binaries, etc.)
    */
   private async walkFileTree(dir: string): Promise<string[]> {
     const files: string[] = [];
+    const MAX_FILE_SIZE_MB = 5; // Skip files larger than 5MB
+    const MAX_FILES = 10000; // Safety limit to prevent excessive memory usage
+    
     const ignorePatterns = [
       'node_modules',
       '.git',
@@ -276,9 +299,25 @@ export class RepoIndexerService {
       '__pycache__',
       'venv',
       'target',
+      '.turbo',
+      'tmp',
+      'temp',
     ];
 
+    const binaryExtensions = new Set([
+      '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg',
+      '.woff', '.woff2', '.ttf', '.eot',
+      '.mp4', '.webm', '.ogg',
+      '.zip', '.tar', '.gz',
+      '.exe', '.dll', '.so', '.dylib',
+    ]);
+
     const walk = async (currentDir: string) => {
+      if (files.length >= MAX_FILES) {
+        this.logger.warn(`Reached maximum file limit (${MAX_FILES}), stopping walk`);
+        return;
+      }
+
       const entries = await fs.readdir(currentDir, { withFileTypes: true });
 
       for (const entry of entries) {
@@ -291,13 +330,65 @@ export class RepoIndexerService {
           }
           await walk(fullPath);
         } else if (entry.isFile()) {
-          files.push(fullPath);
+          // Skip binary files
+          const ext = path.extname(entry.name).toLowerCase();
+          if (binaryExtensions.has(ext)) {
+            continue;
+          }
+
+          // Check file size
+          try {
+            const stats = await fs.stat(fullPath);
+            const sizeMB = stats.size / (1024 * 1024);
+            
+            if (sizeMB > MAX_FILE_SIZE_MB) {
+              this.logger.debug(`Skipping large file (${sizeMB.toFixed(2)}MB): ${fullPath}`);
+              continue;
+            }
+            
+            files.push(fullPath);
+          } catch (error) {
+            this.logger.warn(`Failed to stat file ${fullPath}: ${(error as Error).message}`);
+          }
         }
       }
     };
 
     await walk(dir);
     return files;
+  }
+
+  /**
+   * Read file safely with size limit and UTF-8 check
+   */
+  private async readFileSafely(filePath: string): Promise<string | null> {
+    const MAX_CONTENT_SIZE_MB = 2; // Skip file content if larger than 2MB
+    
+    try {
+      const stats = await fs.stat(filePath);
+      const sizeMB = stats.size / (1024 * 1024);
+      
+      if (sizeMB > MAX_CONTENT_SIZE_MB) {
+        this.logger.debug(`Skipping file content (${sizeMB.toFixed(2)}MB): ${filePath}`);
+        return null;
+      }
+      
+      // Try to read as UTF-8
+      const content = await fs.readFile(filePath, 'utf-8');
+      
+      // Basic check for binary content (null bytes)
+      if (content.includes('\0')) {
+        this.logger.debug(`Skipping binary file: ${filePath}`);
+        return null;
+      }
+      
+      return content;
+    } catch (error) {
+      const err = error as Error;
+      // Probably a binary file or encoding issue
+      this.logger.debug(`Cannot read file as UTF-8: ${filePath} - ${err.message}`);
+      return null;
+    }
   }
 
   /**

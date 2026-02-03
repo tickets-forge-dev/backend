@@ -6,6 +6,7 @@ import { Question } from '../value-objects/Question';
 import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
+import { Finding } from '../../../validation/domain/Finding';
 import {
   InvalidStateTransitionError,
   InsufficientReadinessError,
@@ -30,13 +31,19 @@ export class AEC {
     private _questions: Question[],
     private _estimate: Estimate | null,
     private _validationResults: ValidationResult[],
+    private _preImplementationFindings: Finding[], // NEW: Epic 7.3
     private _externalIssue: ExternalIssue | null,
     private _driftDetectedAt: Date | null,
     private _driftReason: string | null,
     private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
-  ) {}
+  ) {
+    // Validate findings limit
+    if (_preImplementationFindings.length > 10) {
+      throw new Error('Maximum 10 pre-implementation findings allowed');
+    }
+  }
 
   // Factory method for creating new draft
   static createDraft(
@@ -67,6 +74,7 @@ export class AEC {
       [],
       null,
       [],
+      [], // preImplementationFindings - empty initially
       null,
       null,
       null,
@@ -94,6 +102,7 @@ export class AEC {
     questions: Question[],
     estimate: Estimate | null,
     validationResults: ValidationResult[],
+    preImplementationFindings: Finding[], // NEW: Epic 7.3
     externalIssue: ExternalIssue | null,
     driftDetectedAt: Date | null,
     driftReason: string | null,
@@ -118,6 +127,7 @@ export class AEC {
       questions,
       estimate,
       validationResults,
+      preImplementationFindings,
       externalIssue,
       driftDetectedAt,
       driftReason,
@@ -325,6 +335,23 @@ export class AEC {
   get validationResults(): ValidationResult[] {
     return [...this._validationResults];
   }
+
+  get preImplementationFindings(): Finding[] {
+    return [...this._preImplementationFindings];
+  }
+
+  /**
+   * Update preflight validation findings
+   * Called by ValidateAECWithPreflightUseCase
+   */
+  updatePreImplementationFindings(findings: Finding[]): void {
+    if (findings.length > 10) {
+      throw new Error('Maximum 10 pre-implementation findings allowed');
+    }
+    this._preImplementationFindings = findings;
+    this._updatedAt = new Date();
+  }
+
   get externalIssue(): ExternalIssue | null {
     return this._externalIssue;
   }

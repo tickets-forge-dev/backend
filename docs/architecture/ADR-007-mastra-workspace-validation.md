@@ -105,17 +105,24 @@ We will integrate **Mastra v1 Workspace** to run **Quick Preflight Validators** 
 
 ### Key Decisions
 
-**1. Mastra Workspace Configuration**
-- **LocalFilesystem**: Points to cloned repo directory with `readOnly: true`
-- **LocalSandbox**: Enables command execution for analysis (npm, grep, find)
-- **Skills**: Reusable analysis patterns following [agentskills.io](https://agentskills.io) spec
-- **Tool Safety**: Delete operations disabled, read operations unrestricted
+**1. Hybrid Repository Access Strategy**
+- **Primary: GitHub API** (10s) - Fast file/dependency checks without cloning
+  - File existence and content fetching via Octokit
+  - Package.json dependency parsing
+  - GitHub Code Search for pattern matching
+  - Zero disk space, minimal latency
+- **Fallback: Temporary Clone + Mastra Workspace** (20s) - Deep analysis when needed
+  - LocalFilesystem: Points to temp clone with `readOnly: true`
+  - LocalSandbox: Enables command execution (npm list, tsc, grep)
+  - Skills: Reusable analysis patterns following [agentskills.io](https://agentskills.io) spec
+  - Immediate cleanup after validation
 
 **2. Quick Preflight Validators (not full implementers)**
-- Agents validate critical assumptions only (5 checks max)
-- Agents use targeted commands (npm list, grep, find, tsc --noEmit)
+- Agents validate critical assumptions only (3-5 checks max)
+- Primary validation via GitHub API (fast, no clone needed)
+- Secondary validation via temp clone only for critical blockers
 - Agents generate findings with evidence, not scores
-- Execution time: 10-30 seconds, 2k-5k tokens
+- Execution time: 10-30 seconds total, 2k-5k tokens
 - Multiple validators can run in parallel for different focus areas
 
 **3. Finding Structure**
@@ -164,10 +171,12 @@ interface Finding {
 ### Negative
 
 **Performance Impact (MITIGATED):**
-- Analysis requires cloned repository (disk space, clone time) - Already done in Epic 4
-- Quick validation: 10-30 seconds (acceptable for ticket creation flow)
+- Primary validation uses GitHub API only (no cloning needed - 10s)
+- Fallback temp clone only for critical issues (15-20s, cleaned immediately)
+- Epic 4 indexing already handles repository cloning (for vector DB)
+- Quick validation: 10-30 seconds total (acceptable for ticket creation flow)
 - Token usage: 2k-5k per ticket (manageable cost: ~$0.01-0.03 per ticket)
-- Workspace caching eliminates repeat overhead
+- No persistent storage needed (GitHub API + temp clones)
 
 **Complexity:**
 - Mastra workspace adds new dependency and learning curve
@@ -182,15 +191,18 @@ interface Finding {
 ### Mitigations
 
 **Performance:**
-- Workspace cached per repository (reused across tickets)
-- Parallel agent execution (security, architecture run simultaneously)
+- GitHub API validation first (fast, no cloning)
+- Temp clone only when absolutely necessary (critical blockers)
+- Parallel agent execution possible (security, architecture can run simultaneously)
 - Lazy loading: analysis only runs for tickets affecting indexed repos
 
 **Security:**
-- Read-only filesystem prevents code modification
-- Sandbox runs in isolated directory (no access to backend code)
-- Whitelist of safe commands (npm list, grep, find, git)
+- GitHub API uses OAuth tokens (scoped to repository access)
+- Read-only filesystem prevents code modification (temp clones)
+- Sandbox runs in isolated temp directory (no access to backend code)
+- Whitelist of safe commands (npm list, grep, find, tsc)
 - Input sanitization for ticket content used in commands
+- Temp directories cleaned immediately after validation
 
 **Complexity:**
 - Comprehensive documentation (this ADR + integration guide)
@@ -213,23 +225,50 @@ interface Finding {
 
 **Strategy to Meet Constraints:**
 
-1. **Targeted Validation** - Only check critical assumptions from AC
-2. **Smart Routing** - Different validators for different ticket types
-3. **Early Exit** - Stop on first blocker, don't validate everything
-4. **Command Efficiency** - One command per assumption (npm list, grep, find)
-5. **Token Optimization** - Minimal prompts, structured output only
+1. **GitHub API First** - Fast file/dependency checks without cloning (10s)
+2. **Targeted Validation** - Only check TOP 3 critical assumptions from AC
+3. **Smart Fallback** - Temp clone only for critical blockers (15-20s)
+4. **Early Exit** - Stop on first blocker, don't validate everything
+5. **Command Efficiency** - One command per assumption (npm list, grep, tsc)
+6. **Token Optimization** - Minimal prompts, structured output only
 
 **Example Performance Profile:**
 ```
 Ticket: "Add helmet security headers"
 
-Checks:
-1. npm list helmet          → 2s, 0 tokens (pure command)
-2. find src -name main.ts   → 1s, 0 tokens (pure command)
-3. Agent analysis           → 8s, 2.5k tokens (LLM call)
-4. Generate findings        → 2s, included above
+Phase 1: GitHub API Checks (10s)
+1. Check package.json exists          → 1s, 0 tokens (GitHub API)
+2. Parse dependencies                 → 1s, 0 tokens (JSON parse)
+3. Search for helmet usage            → 3s, 0 tokens (GitHub Code Search)
+4. Agent analysis (GitHub results)    → 5s, 2k tokens (LLM call)
 
-Total: 13s, 2.5k tokens, $0.015 ✅
+Finding: helmet not in dependencies → CRITICAL BLOCKER
+
+Phase 2: Temp Clone Verification (15s) - SKIPPED (GitHub API sufficient)
+
+Total: 10s, 2k tokens, $0.012 ✅
+```
+
+**Example with Temp Clone Fallback:**
+```
+Ticket: "Upgrade React Query v4 → v5"
+
+Phase 1: GitHub API Checks (8s)
+1. Check package.json                 → 2s, 0 tokens
+2. Found: "@tanstack/react-query": "^4.29.0" → POTENTIAL BLOCKER
+3. Search for useQuery usage          → 3s, 0 tokens
+4. Agent analysis                     → 3s, 1.5k tokens
+
+Finding: React Query v4 detected, need to verify if v5 compatible
+
+Phase 2: Temp Clone Deep Check (17s) - TRIGGERED (verify compatibility)
+1. Clone repo                         → 8s, 0 tokens
+2. npm list @tanstack/react-query     → 3s, 0 tokens (verify installed)
+3. tsc --noEmit                       → 4s, 0 tokens (type check)
+4. Agent synthesis                    → 2s, 1k tokens
+5. Cleanup temp dir                   → <1s, 0 tokens
+
+Total: 25s, 2.5k tokens, $0.015 ✅
 ```
 
 ---
@@ -278,10 +317,11 @@ Total: 13s, 2.5k tokens, $0.015 ✅
 ## Implementation Plan
 
 ### Phase 1: Foundation (Story 7.1-7.2)
-- Implement `MastraWorkspaceFactory`
-- Configure LocalFilesystem + LocalSandbox for repositories
+- Implement `GitHubValidationService` for API-based validation
+- Implement `MastraWorkspaceFactory` for temp clone fallback
+- Configure LocalFilesystem + LocalSandbox for temp clones
 - Create 4 core skills (security, architecture, deps, tests)
-- Integration tests for workspace creation/cleanup
+- Integration tests for GitHub API + temp clone cleanup
 
 ### Phase 2: Analysis Agents (Story 7.3-7.5)
 - Implement PreImplementationAgent (general simulation)

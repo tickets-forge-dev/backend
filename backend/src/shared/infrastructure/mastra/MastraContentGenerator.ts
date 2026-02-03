@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { generateText } from 'ai';
+import { Agent } from '@mastra/core/agent';
 import { LLMConfigService } from './llm.config';
 import {
   ILLMContentGenerator,
@@ -12,7 +12,7 @@ import {
 /**
  * Mastra-based LLM Content Generator
  *
- * Uses ai-sdk with provider toggle:
+ * Uses Mastra Agent API with provider toggle:
  * - Development: Ollama (local, free, fast iteration)
  * - Production: Anthropic/Claude (API, high quality)
  *
@@ -24,6 +24,35 @@ export class MastraContentGenerator implements ILLMContentGenerator {
     console.log(
       `✅ MastraContentGenerator initialized with provider: ${llmConfig.getProvider()}`,
     );
+  }
+
+  /**
+   * Create Mastra Agent with specified model
+   */
+  private createAgent(modelName: string): Agent {
+    const provider = this.llmConfig.getProvider();
+    
+    const agentConfig: any = {
+      id: 'content-generator',
+      name: 'Content Generator',
+      model: modelName,  // Model string like "anthropic/claude-sonnet-4" or "ollama/qwen2.5-coder"
+      instructions: 'You are a helpful assistant that responds with valid JSON only. Do not add commentary, just return the requested JSON structure.',
+    };
+
+    // Configure based on provider
+    if (provider === 'anthropic') {
+      const apiKey = this.llmConfig.getAnthropicApiKey();
+      if (!apiKey) {
+        throw new Error('ANTHROPIC_API_KEY not set in .env');
+      }
+      agentConfig.apiKeys = {
+        ANTHROPIC_API_KEY: apiKey,
+      };
+    } else if (provider === 'ollama') {
+      agentConfig.baseUrl = this.llmConfig.getOllamaBaseUrl();
+    }
+
+    return new Agent(agentConfig);
   }
 
   /**
@@ -70,7 +99,8 @@ export class MastraContentGenerator implements ILLMContentGenerator {
     description?: string;
   }): Promise<IntentExtraction> {
     console.log('🤖 [MastraContentGenerator] extractIntent called');
-    const model = this.llmConfig.getModel('fast');
+    const modelName = this.llmConfig.getModelName('fast');
+    const agent = this.createAgent(modelName);
 
     const prompt = `Extract the core intent and relevant keywords from this ticket request:
 
@@ -86,10 +116,7 @@ Respond with JSON:
     console.log('🤖 [MastraContentGenerator] Calling LLM...');
     
     try {
-      const result = await generateText({
-        model,
-        prompt,
-      });
+      const result = await agent.generate(prompt);
 
       console.log('🤖 [MastraContentGenerator] LLM response received:', result.text.substring(0, 100));
 
@@ -106,7 +133,8 @@ Respond with JSON:
   }
 
   async detectType(intent: string): Promise<TypeDetection> {
-    const model = this.llmConfig.getModel('fast');
+    const modelName = this.llmConfig.getModelName('fast');
+    const agent = this.createAgent(modelName);
 
     const prompt = `Classify this ticket intent as feature, bug, or task:
 
@@ -124,10 +152,7 @@ Guidelines:
 - "bug" = fix broken behavior
 - "task" = chore, refactor, documentation, cleanup`;
 
-    const result = await generateText({
-      model,
-      prompt,
-    });
+    const result = await agent.generate(prompt);
 
     const parsed = JSON.parse(this.stripMarkdown(result.text));
     return {
@@ -143,7 +168,8 @@ Guidelines:
     repoContext?: string;
     apiContext?: string;
   }): Promise<TicketDraft> {
-    const model = this.llmConfig.getModel('main'); // Use main model for quality
+    const modelName = this.llmConfig.getModelName('main'); // Use main model for quality
+    const agent = this.createAgent(modelName);
 
     const prompt = `Generate a draft executable ticket for this ${input.type}:
 
@@ -165,10 +191,7 @@ Guidelines:
 - Repo paths should be actual files likely to change (based on context)
 - Keep it concise and actionable`;
 
-    const result = await generateText({
-      model,
-      prompt,
-    });
+    const result = await agent.generate(prompt);
 
     const parsed = JSON.parse(this.stripMarkdown(result.text));
 
@@ -215,7 +238,8 @@ Guidelines:
     draft: TicketDraft;
     validationIssues: any[];
   }): Promise<QuestionSet> {
-    const model = this.llmConfig.getModel('fast');
+    const modelName = this.llmConfig.getModelName('fast');
+    const agent = this.createAgent(modelName);
 
     const prompt = `Generate max 3 clarification questions based on these validation issues:
 
@@ -245,10 +269,7 @@ Guidelines:
 - Each question must have 2-4 options
 - Default assumption required for each`;
 
-    const result = await generateText({
-      model,
-      prompt,
-    });
+    const result = await agent.generate(prompt);
 
     const parsed = JSON.parse(this.stripMarkdown(result.text));
     return {

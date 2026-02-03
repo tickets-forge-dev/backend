@@ -2232,9 +2232,53 @@ So that I have concrete guidance when implementing.
 
 ---
 
+### Story 7.8: Replace Vercel AI SDK with Mastra Agents
+
+As a platform architect,
+I want to consolidate on Mastra agents as the single LLM interface,
+So that we have consistent patterns, reduce dependencies, and leverage Mastra capabilities.
+
+**Acceptance Criteria:**
+
+**Given** the current codebase uses both Vercel AI SDK (`ai` package) and Mastra agents
+**When** this story is complete
+**Then** all LLM calls use Mastra Agent API consistently
+
+**And** MastraContentGenerator class:
+- Replaces `generateText()` from `ai` package with Mastra `Agent.generate()`
+- Maintains same interface (ILLMContentGenerator)
+- All 4 methods work identically: `extractIntent`, `detectType`, `generateDraft`, `generateQuestions`
+
+**And** dependencies cleaned up:
+- Remove: `ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai` packages
+- Keep: `@mastra/core` (our single LLM interface)
+
+**And** LLMConfigService refactored:
+- Remove `getModel()` method (returns ai-sdk model)
+- Add `getModelName()` method (returns string like "anthropic/claude-sonnet-4")
+
+**And** no behavioral changes:
+- Ticket generation works identically
+- Same models used
+- Same JSON parsing
+- Same error handling
+
+**Prerequisites:** Story 7.1 (Mastra workspace configuration)
+
+**Technical Notes:**
+- Update `MastraContentGenerator.ts` to use Mastra Agent
+- Update `LLMConfigService.ts` to return model name strings
+- Simplify provider files (anthropic.provider.ts, ollama.provider.ts)
+- Remove ai-sdk dependencies from package.json
+- All existing tests must pass
+
+**Rationale:** Consolidate LLM interface to Mastra agents, consistent with validation agents (Story 7.1, 7.3). Reduces dependencies from 4 packages to 1.
+
+---
+
 ## Epic 7 Summary
 
-**Stories:** 7 total
+**Stories:** 8 total
 **Effort:** Large (similar to Epic 2 or 4)
 **Dependencies:** Epic 4 (repo indexing/cloning)
 

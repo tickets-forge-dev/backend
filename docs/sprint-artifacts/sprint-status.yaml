@@ -76,7 +76,7 @@ development_status:
 
   # Epic 5: Export & Integrations
   epic-5: backlog
-  5-1-jira-integration-oauth-export: backlog
+  5-1-jira-integration-oauth-export: drafted
   5-2-linear-integration-graphql-export: backlog
   5-3-export-appendices-dev-qa-context: backlog
   epic-5-retrospective: optional
@@ -93,15 +93,17 @@ development_status:
   6-8-mastra-workspace-indexing-for-rag: backlog
   epic-6-retrospective: optional
 
-  # Epic 7: Code-Aware Validation & Pre-Implementation Analysis
-  epic-7: backlog
-  7-1-mastra-workspace-configuration-for-repository-analysis: backlog
-  7-2-code-analysis-skills-reusable-analysis-patterns: backlog
-  7-3-pre-implementation-simulation-agent: backlog
-  7-4-security-analysis-agent: backlog
-  7-5-architecture-validation-agent: backlog
+  # Epic 7: Code-Aware Validation & Pre-Implementation Analysis (Quick Preflight)
+  epic-7: in-progress
+  7-1-mastra-workspace-configuration-for-repository-analysis: done  # ✅ MastraWorkspaceFactory + Finding domain
+  7-2-quick-check-skills-fast-targeted-validation-patterns: done  # ✅ All 4 skills created with agentskills.io spec
+  7-3-quick-preflight-validator: in-progress  # 🚧 60% complete - QuickPreflightValidator + AEC domain updated
+  7-4-security-focused-validator-quick-check: backlog  # Updated: quick security checks
+  7-5-architecture-focused-validator-quick-check: backlog  # Updated: quick architecture checks
   7-6-concrete-findings-ui-replace-abstract-scores: backlog
   7-7-developer-appendix-enhancement-with-analysis-findings: backlog
+  7-8-replace-vercel-ai-sdk-with-mastra-agents: done  # ✅ Consolidated to Mastra Agent - removed ai, @ai-sdk packages
+  7-9-mastra-enhancements-human-in-the-loop: backlog  # NEW: Conversational ticket creation with Q&A
   epic-7-retrospective: optional
 
 # Recent Activity (2026-02-02):

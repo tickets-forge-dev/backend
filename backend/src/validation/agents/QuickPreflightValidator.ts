@@ -3,6 +3,7 @@ import { Workspace } from '@mastra/core/workspace';
 import { Injectable, Logger } from '@nestjs/common';
 import { AEC } from '../../tickets/domain/aec/AEC';
 import { Finding, FindingFactory } from '../domain/Finding';
+import { z } from 'zod';
 
 /**
  * Quick Preflight Validator - Epic 7.3
@@ -31,6 +32,35 @@ export class QuickPreflightValidator {
   private readonly MAX_TOKENS = 5000;
   private readonly MAX_TOOL_CALLS = 7;
 
+  // Structured output schema for agent response
+  private readonly findingsSchema = z.object({
+    findings: z.array(
+      z.object({
+        category: z.enum([
+          'gap',
+          'conflict',
+          'missing-dependency',
+          'architectural-mismatch',
+          'security',
+        ]),
+        severity: z.enum(['critical', 'high', 'medium', 'low']),
+        description: z.string(),
+        codeLocation: z.string().optional(),
+        suggestion: z.string(),
+        evidence: z.string().optional(),
+        confidence: z.number().min(0).max(1),
+      }),
+    ),
+  });
+
+  // Performance metrics tracking
+  private performanceMetrics = {
+    executionTime: 0,
+    tokenUsage: 0,
+    toolCalls: 0,
+    cost: 0,
+  };
+
   /**
    * Run quick preflight validation on ticket
    *
@@ -42,31 +72,60 @@ export class QuickPreflightValidator {
     const startTime = Date.now();
     this.logger.log(`🚀 Starting quick preflight for ticket: ${aec.id}`);
 
-    try {
-      // Create efficient preflight agent
-      const agent = this.createPreflightAgent(workspace);
+    // Reset performance metrics
+    this.performanceMetrics = {
+      executionTime: 0,
+      tokenUsage: 0,
+      toolCalls: 0,
+      cost: 0,
+    };
 
-      // Generate validation prompt
+    try {
+      // Discover and select relevant skills
+      const selectedSkills = await this.selectRelevantSkills(aec, workspace);
+      this.logger.log(
+        `📚 Selected ${selectedSkills.length} skills: ${selectedSkills.map((s) => s.name).join(', ')}`,
+      );
+
+      // Create efficient preflight agent with skill instructions
+      const agent = this.createPreflightAgent(workspace, selectedSkills);
+
+      // Generate validation prompt with assumptions
       const prompt = this.buildEfficientPrompt(aec);
 
-      // Run agent with timeout
+      // Run agent with timeout and structured output
       const result = await Promise.race([
         agent.generate(prompt, {
-          maxTokens: this.MAX_TOKENS,
+          structuredOutput: {
+            schema: this.findingsSchema,
+          },
+          maxSteps: this.MAX_TOOL_CALLS,
         }),
         this.timeout(this.MAX_EXECUTION_TIME_MS),
-      ]);
+      ]) as any;
 
-      // Parse findings from agent response
-      const findings = this.parseFindings(result);
+      // Extract findings from structured output
+      const findings = this.extractFindings(result);
 
+      // Track performance metrics
       const duration = Date.now() - startTime;
+      this.performanceMetrics.executionTime = duration;
+      
+      // Log performance metrics
+      this.logPerformanceMetrics(findings.length);
+
+      // Alert if exceeding constraints
+      if (duration > 25000) {
+        this.logger.warn(`⚠️ Validation took ${duration}ms (approaching 30s limit)`);
+      }
+
       this.logger.log(
         `✅ Preflight complete: ${findings.length} findings in ${duration}ms`,
       );
 
       return findings;
-    } catch (error) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
       const duration = Date.now() - startTime;
       this.logger.error(
         `❌ Preflight failed after ${duration}ms: ${error.message}`,
@@ -78,12 +137,99 @@ export class QuickPreflightValidator {
   }
 
   /**
-   * Create efficient preflight agent with strict constraints
+   * Select relevant skills based on AEC keywords
    */
-  private createPreflightAgent(workspace: Workspace): Agent {
+  private async selectRelevantSkills(
+    aec: AEC,
+    workspace: Workspace,
+  ): Promise<any[]> {
+    try {
+      // Get all available skills from workspace
+      const allSkills = workspace.skills || [];
+
+      // Extract keywords from title and AC
+      const keywords = this.extractKeywords(aec);
+      this.logger.debug(`Keywords extracted: ${keywords.join(', ')}`);
+
+      // Match skills to keywords (select max 2 skills)
+      const relevantSkills = allSkills
+        .filter((skill: any) => {
+          // Check if any keyword matches skill activation criteria
+          const skillKeywords = [
+            ...((skill.tags as string[]) || []),
+            skill.name?.toLowerCase() || '',
+            skill.description?.toLowerCase() || '',
+          ];
+
+          return keywords.some((keyword) =>
+            skillKeywords.some((sk) => sk.includes(keyword)),
+          );
+        })
+        .slice(0, 2); // Limit to 2 skills max
+
+      return relevantSkills;
+    } catch (error) {
+      this.logger.warn('Failed to select skills, continuing without skills');
+      return [];
+    }
+  }
+
+  /**
+   * Extract keywords from AEC title and acceptance criteria
+   */
+  private extractKeywords(aec: AEC): string[] {
+    const text = `${aec.title} ${aec.acceptanceCriteria.join(' ')}`.toLowerCase();
+
+    const keywordPatterns = {
+      security: [
+        'security',
+        'auth',
+        'helmet',
+        'cors',
+        'csrf',
+        'xss',
+        'password',
+        'token',
+      ],
+      architecture: [
+        'layer',
+        'module',
+        'architecture',
+        'structure',
+        'boundary',
+        'domain',
+        'clean architecture',
+      ],
+      dependency: ['install', 'package', 'dependency', 'npm', 'pnpm', 'yarn'],
+      test: ['test', 'testing', 'jest', 'spec', 'e2e', 'unit test'],
+    };
+
+    const found = new Set<string>();
+    Object.entries(keywordPatterns).forEach(([category, patterns]) => {
+      if (patterns.some((pattern) => text.includes(pattern))) {
+        found.add(category);
+      }
+    });
+
+    return Array.from(found);
+  }
+
+  /**
+   * Create efficient preflight agent with skill instructions
+   */
+  private createPreflightAgent(
+    workspace: Workspace,
+    selectedSkills: any[],
+  ): Agent {
+    // Build skill instructions section
+    const skillInstructions = selectedSkills.length > 0
+      ? `\n\nAVAILABLE VALIDATION SKILLS:\n${selectedSkills.map((skill) => `- ${skill.name}: ${skill.description}`).join('\n')}\n\nUSE THESE SKILLS to guide your validation checks.`
+      : '';
+
     return new Agent({
       id: 'quick-preflight-validator',
-      model: 'anthropic/claude-sonnet-4.5',
+      name: 'Quick Preflight Validator',
+      model: 'anthropic/claude-sonnet-4-20250514',
       workspace: workspace,
       instructions: `
 You are a FAST ticket preflight validator. Your job is to quickly validate critical assumptions, NOT implement the full ticket.
@@ -93,12 +239,17 @@ RULES (CRITICAL):
 2. Only check TOP 3 critical assumptions
 3. Return findings ONLY for blockers
 4. Skip everything that looks fine
-5. Be FAST - you have 30 seconds max
+5. Be FAST - you have 30 seconds max${skillInstructions}
 
 AVAILABLE TOOLS:
-- read_file: Read source files (use sparingly!)
-- list_files: List directory contents
-- execute_command: Run npm, grep, find, tsc commands
+- execute_command: Run shell commands (cat, grep, find, npm, ls, etc.)
+
+FILE ACCESS:
+- Use 'cat path/to/file' to read files
+- Use 'grep -r "pattern" .' to search content
+- Use 'find . -name "*.ts"' to locate files
+- Use 'ls -la' to list directories
+- Use 'npm list package-name' to check dependencies
 
 STRATEGY:
 1. Parse acceptance criteria to identify assumptions
@@ -130,70 +281,63 @@ EXAMPLE BAD BEHAVIOR (DON'T DO THIS):
 - Exploring entire codebase
 - Deep analysis of patterns
 
-OUTPUT FORMAT:
-Return JSON array of findings:
-{
-  "findings": [
-    {
-      "category": "missing-dependency",
-      "severity": "critical",
-      "description": "helmet package not installed",
-      "codeLocation": "package.json",
-      "suggestion": "Install helmet: pnpm add helmet",
-      "evidence": "$ npm list helmet\\n└── (empty)",
-      "confidence": 0.95
-    }
-  ]
-}
-
 BE FAST. BE TARGETED. FIND BLOCKERS ONLY.
       `,
     });
   }
 
   /**
-   * Build efficient prompt with only essential information
+   * Build efficient prompt with TOP 3 critical assumptions
    */
   private buildEfficientPrompt(aec: AEC): string {
-    // Limit AC to first 5 (most critical usually come first)
-    const topAC = aec.acceptanceCriteria.slice(0, 5);
+    // Extract TOP 3 critical assumptions
+    const topAssumptions = this.extractTopAssumptions(aec);
 
     return `
 Quick preflight check for this ticket:
 
 TITLE: ${aec.title}
 
-ACCEPTANCE CRITERIA (top ${topAC.length}):
-${topAC.map((ac, i) => `${i + 1}. ${ac}`).join('\n')}
+TOP 3 CRITICAL ASSUMPTIONS TO VALIDATE:
+${topAssumptions.map((a, i) => `${i + 1}. ${a}`).join('\n')}
 
 ${aec.repoPaths.length > 0 ? `AFFECTED FILES: ${aec.repoPaths.slice(0, 3).join(', ')}` : ''}
 
 TASK:
-1. Identify TOP 3 critical assumptions from these AC
-2. Run quick targeted checks (max ${this.MAX_TOOL_CALLS} tool calls)
+1. For each assumption, run ONE quick targeted check
+2. Use fast commands only (npm list, grep, find, tsc --noEmit)
 3. Return findings ONLY for blockers
-4. Be FAST (30 seconds max)
+4. Skip if everything looks fine
+5. Be FAST (30 seconds max, max ${this.MAX_TOOL_CALLS} tool calls)
 
 START VALIDATION NOW.
     `.trim();
   }
 
   /**
-   * Parse findings from agent response
+   * Extract TOP 3 critical assumptions from AC
    */
-  private parseFindings(result: any): Finding[] {
-    try {
-      // Agent should return structured JSON
-      const data =
-        typeof result === 'string' ? JSON.parse(result) : result.data || result;
+  private extractTopAssumptions(aec: AEC): string[] {
+    // Take first 3 AC as critical assumptions
+    // In future, could use LLM to identify most critical ones
+    return aec.acceptanceCriteria.slice(0, 3);
+  }
 
-      if (!data.findings || !Array.isArray(data.findings)) {
+  /**
+   * Extract findings from structured agent response
+   */
+  private extractFindings(result: any): Finding[] {
+    try {
+      // Structured output should be in result.object
+      const data = result.object || result;
+
+      if (!data?.findings || !Array.isArray(data.findings)) {
         this.logger.warn('No findings array in agent response');
         return [];
       }
 
       // Convert to Finding domain objects
-      return data.findings.map((f: any) =>
+      const findings = data.findings.map((f: any) =>
         FindingFactory.create({
           category: f.category,
           severity: f.severity,
@@ -204,10 +348,48 @@ START VALIDATION NOW.
           confidence: f.confidence || 0.8,
         }),
       );
-    } catch (error) {
-      this.logger.error(`Failed to parse findings: ${error.message}`);
+
+      // Limit to 10 findings max
+      return findings.slice(0, 10);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(`Failed to extract findings: ${err.message}`);
       return [];
     }
+  }
+
+  /**
+   * Log performance metrics
+   */
+  private logPerformanceMetrics(findingCount: number): void {
+    const { executionTime, tokenUsage, toolCalls, cost } =
+      this.performanceMetrics;
+
+    this.logger.log(`📊 Performance Metrics:
+  - Execution Time: ${executionTime}ms ${executionTime > 25000 ? '⚠️ HIGH' : '✅'}
+  - Token Usage: ${tokenUsage} ${tokenUsage > 4500 ? '⚠️ HIGH' : '✅'}
+  - Tool Calls: ${toolCalls} ${toolCalls > 6 ? '⚠️ HIGH' : '✅'}
+  - Est. Cost: $${cost.toFixed(4)}
+  - Findings: ${findingCount}
+    `);
+
+    // Alert if exceeding constraints
+    if (tokenUsage > 4500) {
+      this.logger.warn('⚠️ Token usage approaching limit (5k)');
+    }
+    if (toolCalls > 6) {
+      this.logger.warn('⚠️ Tool calls approaching limit (7)');
+    }
+    if (cost > 0.045) {
+      this.logger.warn('⚠️ Cost approaching limit ($0.05)');
+    }
+  }
+
+  /**
+   * Get performance metrics (for use case to include in response)
+   */
+  getPerformanceMetrics() {
+    return { ...this.performanceMetrics };
   }
 
   /**
@@ -217,14 +399,5 @@ START VALIDATION NOW.
     return new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Preflight validation timeout')), ms),
     );
-  }
-
-  /**
-   * Extract assumptions from acceptance criteria (helper for future optimization)
-   */
-  private extractAssumptions(acceptanceCriteria: string[]): string[] {
-    // TODO: Smart assumption extraction
-    // For now, just return AC as-is
-    return acceptanceCriteria;
   }
 }
