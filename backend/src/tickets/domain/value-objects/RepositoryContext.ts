@@ -16,6 +16,7 @@ export interface RepositoryContextProps {
   commitSha: string;          // HEAD commit at generation time
   isDefaultBranch: boolean;   // true if this is the repo's default branch
   selectedAt: Date;           // When the branch was selected
+  indexId: string;            // Repository index ID from Epic 4
 }
 
 export class RepositoryContext {
@@ -25,6 +26,7 @@ export class RepositoryContext {
     public readonly commitSha: string,
     public readonly isDefaultBranch: boolean,
     public readonly selectedAt: Date,
+    public readonly indexId: string,
   ) {
     this.validate();
   }
@@ -36,6 +38,7 @@ export class RepositoryContext {
       props.commitSha,
       props.isDefaultBranch,
       props.selectedAt,
+      props.indexId,
     );
   }
 

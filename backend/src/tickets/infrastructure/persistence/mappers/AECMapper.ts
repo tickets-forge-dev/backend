@@ -20,6 +20,7 @@ export interface RepositoryContextDocument {
   commitSha: string;
   isDefaultBranch: boolean;
   selectedAt: Timestamp;
+  indexId: string;
 }
 
 export interface AECDocument {
@@ -58,6 +59,7 @@ export class AECMapper {
           commitSha: doc.repositoryContext.commitSha,
           isDefaultBranch: doc.repositoryContext.isDefaultBranch,
           selectedAt: doc.repositoryContext.selectedAt.toDate(),
+          indexId: doc.repositoryContext.indexId,
         })
       : null;
 
@@ -160,6 +162,7 @@ export class AECMapper {
           commitSha: aec.repositoryContext.commitSha,
           isDefaultBranch: aec.repositoryContext.isDefaultBranch,
           selectedAt: Timestamp.fromDate(aec.repositoryContext.selectedAt),
+          indexId: aec.repositoryContext.indexId,
         }
       : null;
 

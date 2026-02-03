@@ -30,6 +30,22 @@ export class MastraWorkspaceFactory {
   private static workspaces = new Map<string, Workspace>();
 
   /**
+   * Convenience wrapper for workflow usage
+   *
+   * @param workspaceId - User's workspace ID
+   * @param repositoryFullName - Repository name (e.g., "user/repo")
+   * @param indexId - Repository index ID
+   * @returns Configured Mastra workspace
+   */
+  async getOrCreateWorkspace(
+    workspaceId: string,
+    repositoryFullName: string,
+    indexId: string,
+  ): Promise<Workspace> {
+    return this.getWorkspace(workspaceId, repositoryFullName, indexId);
+  }
+
+  /**
    * Get or create workspace for a repository
    *
    * @param workspaceId - User's workspace ID

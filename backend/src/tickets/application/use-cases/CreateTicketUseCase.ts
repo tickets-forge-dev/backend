@@ -115,11 +115,15 @@ export class CreateTicketUseCase {
     const defaultBranch = await this.gitHubApiService.getDefaultBranch(owner, repo, githubAccessToken);
     const isDefaultBranch = branchName === defaultBranch;
 
+    // Generate indexId from repository name
+    const indexId = repositoryFullName.replace('/', '-');
+
     console.log('🎫 [CreateTicketUseCase] Repository context built:', {
       repositoryFullName,
       branchName,
       commitSha: commitSha.substring(0, 7),
       isDefaultBranch,
+      indexId,
     });
 
     return RepositoryContext.create({
@@ -128,6 +132,7 @@ export class CreateTicketUseCase {
       commitSha,
       isDefaultBranch,
       selectedAt: new Date(),
+      indexId,
     });
   }
 }
