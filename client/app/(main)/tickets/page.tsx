@@ -142,10 +142,10 @@ export default function TicketsListPage() {
       )}
 
       {!isLoading && !loadError && filteredTickets.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredTickets.map((ticket) => (
             <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
-              <div className="p-4 rounded-lg bg-[var(--bg)] hover:bg-[var(--bg-subtle)] border border-transparent hover:border-[var(--border)] transition-all cursor-pointer">
+              <div className="p-5 rounded-lg bg-[var(--bg)] hover:bg-[var(--bg-subtle)] border border-[var(--border)]/30 hover:border-[var(--border)] transition-all cursor-pointer">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">

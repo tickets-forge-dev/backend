@@ -102,7 +102,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         variant="ghost"
         size="sm"
         onClick={() => router.push('/tickets')}
-        className="mb-4"
+        className="-ml-2"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Tickets
@@ -129,15 +129,6 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <Badge className={`${readinessBadgeClass} text-white`}>
             Ready {readinessScore}
           </Badge>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDeleteConfirm(true)}
-            className="text-[var(--red)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
         </div>
       </div>
 
@@ -261,8 +252,16 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         </section>
       )}
 
-      {/* Footer with export button (disabled placeholder) */}
-      <div className="flex justify-end pt-4 border-t border-[var(--border)]">
+      {/* Footer with export and delete buttons */}
+      <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
+        <Button
+          variant="ghost"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="text-[var(--red)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete Ticket
+        </Button>
         <Button disabled title="Export functionality coming in Epic 5">
           Export to Jira
         </Button>
