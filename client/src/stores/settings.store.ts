@@ -59,6 +59,8 @@ interface SettingsState {
   loadExistingIndexes: (githubService: GitHubService) => Promise<void>;
   queueRepositoriesForIndexing: (githubService: GitHubService, repositories: GitHubRepositoryItem[]) => Promise<void>;
   processIndexingQueue: (githubService: GitHubService) => Promise<void>;
+  cancelIndexing: (githubService: GitHubService, indexId: string) => Promise<void>;
+  retryIndexing: (githubService: GitHubService, repositoryId: number, repositoryName: string, commitSha?: string) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -419,5 +421,46 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    */
   clearIndexingError: () => {
     set({ indexingError: null });
+  },
+
+  /**
+   * Cancel/remove a stuck or failed indexing job
+   */
+  cancelIndexing: async (githubService: GitHubService, indexId: string) => {
+    try {
+      // Stop polling first
+      get().stopPolling(indexId);
+
+      // Remove from backend
+      await githubService.cancelIndexing(indexId);
+
+      // Remove from local state
+      const jobs = new Map(get().indexingJobs);
+      jobs.delete(indexId);
+      set({ indexingJobs: jobs });
+
+      console.log(`✅ Cancelled indexing job: ${indexId}`);
+    } catch (error: any) {
+      console.error('Failed to cancel indexing:', error);
+      set({ indexingError: error.message || 'Failed to cancel indexing' });
+    }
+  },
+
+  /**
+   * Retry a failed indexing job
+   */
+  retryIndexing: async (githubService: GitHubService, repositoryId: number, repositoryName: string, commitSha?: string) => {
+    try {
+      set({ indexingError: null });
+
+      // Start new indexing job
+      const sha = commitSha || 'HEAD';
+      await get().startIndexing(githubService, repositoryId, repositoryName, sha);
+
+      console.log(`🔄 Retrying indexing for: ${repositoryName}`);
+    } catch (error: any) {
+      console.error('Failed to retry indexing:', error);
+      set({ indexingError: error.message || 'Failed to retry indexing' });
+    }
   },
 }));

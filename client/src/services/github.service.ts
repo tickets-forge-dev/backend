@@ -124,9 +124,11 @@ export class GitHubService {
       try {
         const user = auth.currentUser;
         if (user) {
-          const token = await user.getIdToken();
+          // Force refresh if this is a retry (marked by custom header)
+          const forceRefresh = config.headers['X-Token-Refresh'] === 'true';
+          const token = await user.getIdToken(forceRefresh);
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('🔐 [GitHubService] Added auth token to request:', config.url);
+          console.log(`🔐 [GitHubService] Added auth token to request: ${config.url}${forceRefresh ? ' (refreshed)' : ''}`);
         } else {
           console.warn('⚠️ [GitHubService] No auth user found for request:', config.url);
         }
@@ -135,6 +137,24 @@ export class GitHubService {
       }
       return config;
     });
+
+    // Auto-retry 401 errors with refreshed token
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        // If 401 and haven't retried yet, refresh token and retry
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          originalRequest.headers['X-Token-Refresh'] = 'true';
+          console.log('🔄 [GitHubService] Got 401, refreshing token and retrying...');
+          return this.client(originalRequest);
+        }
+
+        return Promise.reject(error);
+      }
+    );
   }
 
   /**
@@ -264,6 +284,20 @@ export class GitHubService {
       `/indexing/stats/${indexId}`
     );
     return response.data;
+  }
+
+  /**
+   * Cancel/remove a stuck or failed indexing job
+   */
+  async cancelIndexing(indexId: string): Promise<void> {
+    await this.client.delete(`/indexing/${indexId}`);
+  }
+
+  /**
+   * Retry a failed indexing job
+   */
+  async retryIndexing(repositoryId: number, repositoryName: string, commitSha?: string): Promise<IndexJob> {
+    return this.startIndexing(repositoryId, repositoryName, commitSha);
   }
 
   /**

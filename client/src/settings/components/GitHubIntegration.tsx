@@ -48,6 +48,8 @@ export function GitHubIntegration() {
     clearErrors,
     startIndexing,
     clearIndexingError,
+    cancelIndexing,
+    retryIndexing,
   } = useSettingsStore();
 
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
@@ -457,6 +459,24 @@ export function GitHubIntegration() {
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            {/* Cancel button for in-progress or stuck jobs */}
+                            {(isRepoIndexing || status?.status === 'pending') && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  const indexId = Array.from(indexingJobs.entries())
+                                    .find(([_, job]) => job.repositoryId === repo.id)?.[0];
+                                  if (indexId) {
+                                    cancelIndexing(githubService, indexId);
+                                  }
+                                }}
+                                className="text-[var(--red)] hover:bg-[var(--red)]/10"
+                              >
+                                Cancel
+                              </Button>
+                            )}
+
                             {/* Retry button for failed */}
                             {status?.status === 'failed' && (
                               <Button
@@ -468,7 +488,7 @@ export function GitHubIntegration() {
                                 Retry
                               </Button>
                             )}
-                            
+
                             {/* Expand/Collapse button for completed with summary */}
                             {status?.status === 'completed' && status.summary && (
                               <Button
