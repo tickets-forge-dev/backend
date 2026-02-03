@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
@@ -80,6 +80,17 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
   return (
     <div className="space-y-8">
+      {/* Back button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.push('/tickets')}
+        className="mb-4"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Tickets
+      </Button>
+
       {/* Header with title, type, and readiness badge */}
       <div className="flex items-start justify-between">
         <div className="flex-1">

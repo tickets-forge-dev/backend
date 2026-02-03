@@ -61,13 +61,13 @@ export class AECMapper {
       : null;
 
     // Reconstitute validation results
-    const validationResults = doc.validationResults
+    const validationResults = (doc.validationResults || [])
       .filter((vr) => {
         // Skip invalid validation results
-        const hasValidMessage = vr.message && vr.message.trim().length > 0;
         const hasValidScore = typeof vr.score === 'number' && !isNaN(vr.score);
         const hasValidWeight = typeof vr.weight === 'number' && !isNaN(vr.weight);
-        return hasValidMessage && hasValidScore && hasValidWeight;
+        const hasCriterion = vr.criterion && typeof vr.criterion === 'string';
+        return hasCriterion && hasValidScore && hasValidWeight;
       })
       .map((vr) => {
         // Handle legacy data where scores might be stored as percentages (0-100)
@@ -86,6 +86,11 @@ export class AECMapper {
         normalizedScore = Math.max(0, Math.min(1, normalizedScore));
         normalizedWeight = Math.max(0, Math.min(1, normalizedWeight));
         
+        // Ensure message exists (fallback for legacy data)
+        const message = vr.message && vr.message.trim().length > 0 
+          ? vr.message 
+          : `Validation check for ${vr.criterion}`;
+        
         return ValidationResult.create({
           criterion: vr.criterion as ValidatorType,
           passed: vr.passed,
@@ -93,7 +98,7 @@ export class AECMapper {
           weight: normalizedWeight,
           issues: vr.issues || [],
           blockers: vr.blockers || [],
-          message: vr.message,
+          message: message,
         });
       });
 

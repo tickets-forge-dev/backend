@@ -170,10 +170,10 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
               )}
 
               {step.details && !step.error && (
-                <div className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                  <pre className="whitespace-pre-wrap break-words font-sans">
+                <div className="p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
+                  <p className="text-[var(--text-sm)] text-[var(--text-secondary)] whitespace-pre-wrap">
                     {formatDetails(step.details)}
-                  </pre>
+                  </p>
                 </div>
               )}
 
@@ -266,8 +266,30 @@ function StepBadge({ status }: { status: GenerationStep['status'] }) {
 }
 
 function formatDetails(details: string): string {
+  // If it's already human-readable, return as-is
+  if (!details.startsWith('{') && !details.startsWith('[')) {
+    return details;
+  }
+
   try {
     const parsed = JSON.parse(details);
+    
+    // Convert common structures to readable format
+    if (Array.isArray(parsed)) {
+      return parsed.map((item, idx) => `${idx + 1}. ${typeof item === 'object' ? JSON.stringify(item) : item}`).join('\n');
+    }
+    
+    if (typeof parsed === 'object' && parsed !== null) {
+      // Convert objects to key-value list
+      return Object.entries(parsed)
+        .map(([key, value]) => {
+          const label = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+          const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
+          return `${capitalizedLabel}: ${typeof value === 'object' ? JSON.stringify(value, null, 2) : value}`;
+        })
+        .join('\n');
+    }
+    
     return JSON.stringify(parsed, null, 2);
   } catch {
     return details;
