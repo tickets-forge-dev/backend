@@ -61,21 +61,41 @@ export class AECMapper {
       : null;
 
     // Reconstitute validation results
-    const validationResults = doc.validationResults.map((vr) => {
-      // Handle legacy data where scores might be stored as percentages (0-100)
-      const normalizedScore = vr.score > 1 ? vr.score / 100 : vr.score;
-      const normalizedWeight = vr.weight > 1 ? vr.weight / 100 : vr.weight;
-      
-      return ValidationResult.create({
-        criterion: vr.criterion as ValidatorType,
-        passed: vr.passed,
-        score: normalizedScore,
-        weight: normalizedWeight,
-        issues: vr.issues,
-        blockers: vr.blockers,
-        message: vr.message,
+    const validationResults = doc.validationResults
+      .filter((vr) => {
+        // Skip invalid validation results
+        const hasValidMessage = vr.message && vr.message.trim().length > 0;
+        const hasValidScore = typeof vr.score === 'number' && !isNaN(vr.score);
+        const hasValidWeight = typeof vr.weight === 'number' && !isNaN(vr.weight);
+        return hasValidMessage && hasValidScore && hasValidWeight;
+      })
+      .map((vr) => {
+        // Handle legacy data where scores might be stored as percentages (0-100)
+        let normalizedScore = vr.score;
+        let normalizedWeight = vr.weight;
+        
+        // Normalize scores if they're > 1 (likely percentages)
+        if (normalizedScore > 1) {
+          normalizedScore = Math.min(normalizedScore / 100, 1.0);
+        }
+        if (normalizedWeight > 1) {
+          normalizedWeight = Math.min(normalizedWeight / 100, 1.0);
+        }
+        
+        // Clamp to valid range [0, 1]
+        normalizedScore = Math.max(0, Math.min(1, normalizedScore));
+        normalizedWeight = Math.max(0, Math.min(1, normalizedWeight));
+        
+        return ValidationResult.create({
+          criterion: vr.criterion as ValidatorType,
+          passed: vr.passed,
+          score: normalizedScore,
+          weight: normalizedWeight,
+          issues: vr.issues || [],
+          blockers: vr.blockers || [],
+          message: vr.message,
+        });
       });
-    });
 
     return AEC.reconstitute(
       doc.id,

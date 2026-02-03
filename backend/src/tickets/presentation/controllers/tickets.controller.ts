@@ -98,7 +98,7 @@ export class TicketsController {
       apiSnapshot: aec.apiSnapshot,
       questions: aec.questions,
       estimate: aec.estimate,
-      validationResults: aec.validationResults,
+      validationResults: aec.validationResults.map((vr: any) => vr.toPlainObject()),
       externalIssue: aec.externalIssue,
       driftDetectedAt: aec.driftDetectedAt,
       repositoryContext: aec.repositoryContext
