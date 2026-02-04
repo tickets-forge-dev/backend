@@ -44,6 +44,9 @@ export function GenerationProgressNew({
   const [generationState, setGenerationState] = useState<GenerationState | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [isFailed, setIsFailed] = useState(false);
+  const [timeoutReached, setTimeoutReached] = useState(false);
+  const [startTime] = useState(Date.now());
+  const TIMEOUT_MS = 120000; // 2 minutes timeout
 
   useEffect(() => {
     const aecRef = doc(firestore, `workspaces/${workspaceId}/aecs/${aecId}`);
@@ -75,14 +78,68 @@ export function GenerationProgressNew({
       }
     );
 
-    return () => unsubscribe();
-  }, [aecId, workspaceId, onComplete, onQuestionsReady]);
+    // Timeout checker
+    const timeoutChecker = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > TIMEOUT_MS && !isComplete && !isFailed) {
+        setTimeoutReached(true);
+      }
+    }, 5000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(timeoutChecker);
+    };
+  }, [aecId, workspaceId, onComplete, onQuestionsReady, startTime, isComplete, isFailed]);
+
+  const handleCancel = async () => {
+    // TODO: Implement cancel workflow API call
+    console.log('Cancel workflow:', aecId);
+    // For now, just refresh the page or navigate back
+    window.location.reload();
+  };
 
   if (!generationState) {
+    const elapsed = Date.now() - startTime;
+    const elapsedSeconds = Math.floor(elapsed / 1000);
+    
+    if (timeoutReached) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+          <div className="flex items-center gap-2 text-amber-600">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="text-sm font-medium">Workflow initialization timed out</span>
+          </div>
+          <p className="text-xs text-gray-500 text-center max-w-md">
+            The workflow is taking longer than expected. This might be due to backend issues.
+          </p>
+          <button
+            onClick={handleCancel}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+          >
+            Cancel & Retry
+          </button>
+        </div>
+      );
+    }
+    
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-        <span className="ml-2 text-sm text-gray-600">Starting workflow...</span>
+      <div className="flex flex-col items-center justify-center py-8 space-y-3">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+          <span className="text-sm text-gray-600">Initializing workflow...</span>
+        </div>
+        <div className="text-xs text-gray-400">
+          {elapsedSeconds}s elapsed
+        </div>
+        {elapsedSeconds > 30 && (
+          <button
+            onClick={handleCancel}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            Cancel
+          </button>
+        )}
       </div>
     );
   }
