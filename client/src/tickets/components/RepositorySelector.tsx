@@ -47,16 +47,6 @@ export function RepositorySelector() {
     loadData();
   }, []);
 
-  // Get only completed indexed repositories
-  const completedRepos = selectedRepositories.filter((repo) => {
-    for (const [_, job] of indexingJobs.entries()) {
-      if (job.repositoryId === repo.id && job.status?.status === 'completed') {
-        return true;
-      }
-    }
-    return false;
-  });
-
   const handleSelect = async (repoFullName: string) => {
     await setRepository(repoFullName);
   };
@@ -65,7 +55,7 @@ export function RepositorySelector() {
     clearBranchSelection();
   };
 
-  // Show loading state while fetching data
+  // Show loading state while fetching data (BEFORE calculating repos!)
   if (isLoadingConnection || !hasLoaded) {
     return (
       <div className="space-y-2">
@@ -81,6 +71,16 @@ export function RepositorySelector() {
       </div>
     );
   }
+
+  // Get only completed indexed repositories (AFTER loading check)
+  const completedRepos = selectedRepositories.filter((repo) => {
+    for (const [_, job] of indexingJobs.entries()) {
+      if (job.repositoryId === repo.id && job.status?.status === 'completed') {
+        return true;
+      }
+    }
+    return false;
+  });
 
   // If repository is already selected, show it with clear option
   if (selectedRepository) {
