@@ -13,13 +13,13 @@ export interface GenerationStep {
 export interface Finding {
   id: string;
   category: string;
-  severity: 'critical' | 'warning' | 'info';
+  severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
   codeLocation: string | null;
   suggestion: string;
   confidence: number;
   evidence: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface Question {
@@ -33,6 +33,8 @@ export type WorkflowState = 'idle' | 'generating' | 'suspended-findings' | 'susp
 
 interface WorkflowStoreState {
   // Workflow state
+  aecId: string | null;
+  workspaceId: string | null;
   workflowState: WorkflowState;
   currentStep: number;
   totalSteps: number;
@@ -70,6 +72,8 @@ interface WorkflowStoreState {
 }
 
 const initialState = {
+  aecId: null as string | null,
+  workspaceId: null as string | null,
   workflowState: 'idle' as WorkflowState,
   currentStep: 0,
   totalSteps: 12,
@@ -94,6 +98,9 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     if (subscriptionRef) {
       subscriptionRef();
     }
+
+    // Store aecId and workspaceId for use in API calls
+    set({ aecId, workspaceId });
 
     const aecRef = doc(firestore, `workspaces/${workspaceId}/aecs/${aecId}`);
 
@@ -187,6 +194,11 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
 
   // Handle findings review suspension point
   resumeFromFindingsReview: async (action: 'proceed' | 'edit' | 'cancel') => {
+    const { aecId } = get();
+    if (!aecId) {
+      throw new Error('No AEC ID set');
+    }
+
     console.log('⏸️ [WorkflowStore] Resuming from findings review:', action);
 
     try {
@@ -197,7 +209,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ aecId, action }),
       });
 
       if (!response.ok) {
@@ -205,7 +217,13 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
         throw new Error(data.message || 'Failed to resume workflow');
       }
 
-      set({ workflowState: 'generating' });
+      if (action === 'proceed') {
+        set({ workflowState: 'generating' });
+      } else if (action === 'cancel') {
+        set({ workflowState: 'idle' });
+      }
+      // 'edit' action - workflowState stays as is, user edits ticket
+
       console.log('✅ [WorkflowStore] Resumed from findings review');
     } catch (error: any) {
       const errorMsg = error.message || 'Failed to resume workflow';
@@ -217,6 +235,11 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
 
   // Handle questions submission
   submitQuestionAnswers: async (answers: Record<string, string>) => {
+    const { aecId } = get();
+    if (!aecId) {
+      throw new Error('No AEC ID set');
+    }
+
     console.log('📝 [WorkflowStore] Submitting question answers');
 
     try {
@@ -227,7 +250,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ aecId, answers }),
       });
 
       if (!response.ok) {
@@ -247,6 +270,11 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
 
   // Skip questions
   skipQuestions: async () => {
+    const { aecId } = get();
+    if (!aecId) {
+      throw new Error('No AEC ID set');
+    }
+
     console.log('⏭️ [WorkflowStore] Skipping questions');
 
     try {
@@ -257,6 +285,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ aecId }),
       });
 
       if (!response.ok) {

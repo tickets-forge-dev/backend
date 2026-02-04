@@ -9,7 +9,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useWorkflowStore, type Question } from '../../../stores/workflow.store';
+import { useWorkflowStore, type Question } from '@/src/stores/workflow.store';
 import { ChevronLeft, ChevronRight, X, HelpCircle, Loader2 } from 'lucide-react';
 
 interface QuestionsWizardProps {

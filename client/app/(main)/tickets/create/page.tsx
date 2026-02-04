@@ -8,7 +8,10 @@ import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useWorkflowStore } from '@/src/stores/workflow.store';
 import { GenerationProgress } from '@/src/tickets/components/GenerationProgress';
+import { FindingsReviewModal } from '@/components/tickets/generation/FindingsReviewModal';
+import { QuestionsWizard } from '@/components/tickets/generation/QuestionsWizard';
 import { RepositorySelector } from '@/src/tickets/components/RepositorySelector';
 import { BranchSelector } from '@/src/tickets/components/BranchSelector';
 import { useAuthStore } from '@/stores/auth.store';
@@ -40,15 +43,44 @@ export default function CreateTicketPage() {
   } = useSettingsStore();
   
   const { user } = useAuthStore();
+  
+  // Workflow store for HITL interactions
+  const {
+    workflowState,
+    subscribeToAEC,
+    unsubscribeFromAEC,
+    reset: resetWorkflow,
+  } = useWorkflowStore();
 
   const [currentStep, setCurrentStep] = useState<WizardStep>('context');
   const [userInput, setUserInput] = useState('');
   const [createdAecId, setCreatedAecId] = useState<string | null>(null);
+  const [showFindingsModal, setShowFindingsModal] = useState(false);
+  const [showQuestionsWizard, setShowQuestionsWizard] = useState(false);
 
   // Load GitHub status on mount
   useEffect(() => {
     loadGitHubStatus(githubService);
+    // Cleanup workflow store on unmount
+    return () => {
+      unsubscribeFromAEC();
+      resetWorkflow();
+    };
   }, []);
+
+  // Watch workflowState for HITL suspension points
+  useEffect(() => {
+    if (workflowState === 'suspended-findings') {
+      setShowFindingsModal(true);
+    } else if (workflowState === 'suspended-questions') {
+      setShowQuestionsWizard(true);
+    } else if (workflowState === 'complete') {
+      // Auto-navigate to ticket detail on completion
+      if (createdAecId) {
+        router.push(`/tickets/${createdAecId}`);
+      }
+    }
+  }, [workflowState, createdAecId, router]);
 
   const handleNextStep = () => {
     if (currentStep === 'context') {
@@ -89,8 +121,11 @@ export default function CreateTicketPage() {
     // Create ticket with validated input
     const aec = await createTicket(validation.processedInput, undefined);
 
-    if (aec) {
+    if (aec && user) {
       setCreatedAecId(aec.id);
+      // Subscribe to workflow store for HITL updates
+      const workspaceId = `ws_${user.uid.substring(0, 12)}`;
+      subscribeToAEC(aec.id, workspaceId);
     }
   };
 
@@ -99,6 +134,14 @@ export default function CreateTicketPage() {
     if (createdAecId) {
       router.push(`/tickets/${createdAecId}`);
     }
+  };
+
+  const handleFindingsModalClose = () => {
+    setShowFindingsModal(false);
+  };
+
+  const handleQuestionsWizardClose = () => {
+    setShowQuestionsWizard(false);
   };
 
   const handleCancel = () => {
@@ -125,6 +168,18 @@ export default function CreateTicketPage() {
           workspaceId={workspaceId}
           onComplete={handleGenerationComplete}
           showContinueButton={true}
+        />
+
+        {/* HITL Suspension Point 1: Critical Findings Review */}
+        <FindingsReviewModal
+          isOpen={showFindingsModal}
+          onClose={handleFindingsModalClose}
+        />
+
+        {/* HITL Suspension Point 2: Clarifying Questions */}
+        <QuestionsWizard
+          isOpen={showQuestionsWizard}
+          onClose={handleQuestionsWizardClose}
         />
       </div>
     );

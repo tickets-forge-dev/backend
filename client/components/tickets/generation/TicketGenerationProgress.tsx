@@ -9,14 +9,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useWorkflowStore } from '../../../store/workflowStore';
+import { useWorkflowStore } from '@/src/stores/workflow.store';
 import { CheckCircle2, Circle, Loader2, XCircle } from 'lucide-react';
 
 interface TicketGenerationProgressProps {
   aecId: string;
+  workspaceId: string;
 }
 
-export function TicketGenerationProgress({ aecId }: TicketGenerationProgressProps) {
+export function TicketGenerationProgress({ aecId, workspaceId }: TicketGenerationProgressProps) {
   const {
     workflowState,
     steps,
@@ -26,9 +27,9 @@ export function TicketGenerationProgress({ aecId }: TicketGenerationProgressProp
   } = useWorkflowStore();
 
   useEffect(() => {
-    subscribeToAEC(aecId);
+    subscribeToAEC(aecId, workspaceId);
     return () => unsubscribeFromAEC();
-  }, [aecId, subscribeToAEC, unsubscribeFromAEC]);
+  }, [aecId, workspaceId, subscribeToAEC, unsubscribeFromAEC]);
 
   const getStepIcon = (stepStatus: string, stepId: number) => {
     if (stepStatus === 'complete') {

@@ -8,7 +8,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useWorkflowStore, type Finding } from '../../../stores/workflow.store';
+import { useWorkflowStore, type Finding } from '@/src/stores/workflow.store';
 import { AlertTriangle, AlertCircle, Info, CheckCircle2, X, Loader2 } from 'lucide-react';
 
 interface FindingsReviewModalProps {

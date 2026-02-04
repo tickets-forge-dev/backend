@@ -297,7 +297,8 @@ export class GitHubService {
    * Retry a failed indexing job
    */
   async retryIndexing(repositoryId: number, repositoryName: string, commitSha?: string): Promise<IndexJob> {
-    return this.startIndexing(repositoryId, repositoryName, commitSha);
+    // If no commitSha provided, use 'HEAD' as default
+    return this.startIndexing(repositoryId, repositoryName, commitSha || 'HEAD');
   }
 
   /**
