@@ -250,29 +250,44 @@ export class IndexingController {
   ): Promise<IndexStatusResponseDto[]> {
     const workspaceId = req.workspaceId;
 
-    const indexes = repositoryId
-      ? await this.indexRepository.findByWorkspaceAndRepo(
-          workspaceId,
-          repositoryId,
-        )
-      : await this.indexRepository.findByWorkspace(workspaceId);
+    if (!workspaceId) {
+      console.warn('[IndexingController.listIndexes] No workspaceId in request');
+      return [];
+    }
 
-    return indexes.map((index) => ({
-      indexId: index.id,
-      repositoryId: index.repositoryId,
-      repositoryName: index.repositoryName,
-      status: index.status,
-      filesIndexed: index.filesIndexed,
-      totalFiles: index.totalFiles,
-      filesSkipped: index.filesSkipped,
-      parseErrors: index.parseErrors,
-      progress: index.getProgress(),
-      repoSizeMB: index.repoSizeMB,
-      createdAt: index.createdAt,
-      completedAt: index.completedAt || undefined,
-      indexDurationMs: index.indexDurationMs,
-      summary: index.summary || undefined,
-      errorDetails: index.errorDetails || undefined,
-    }));
+    try {
+      console.log(`[IndexingController.listIndexes] Fetching indexes for workspace: ${workspaceId}, repo: ${repositoryId || 'all'}`);
+      
+      const indexes = repositoryId
+        ? await this.indexRepository.findByWorkspaceAndRepo(
+            workspaceId,
+            repositoryId,
+          )
+        : await this.indexRepository.findByWorkspace(workspaceId);
+
+      console.log(`[IndexingController.listIndexes] Found ${indexes.length} indexes`);
+
+      return indexes.map((index) => ({
+        indexId: index.id,
+        repositoryId: index.repositoryId,
+        repositoryName: index.repositoryName,
+        status: index.status,
+        filesIndexed: index.filesIndexed,
+        totalFiles: index.totalFiles,
+        filesSkipped: index.filesSkipped,
+        parseErrors: index.parseErrors,
+        progress: index.getProgress(),
+        repoSizeMB: index.repoSizeMB,
+        createdAt: index.createdAt,
+        completedAt: index.completedAt || undefined,
+        indexDurationMs: index.indexDurationMs,
+        summary: index.summary || undefined,
+        errorDetails: index.errorDetails || undefined,
+      }));
+    } catch (error) {
+      console.error('[IndexingController.listIndexes] Error:', error);
+      // Return empty array instead of crashing - graceful degradation
+      return [];
+    }
   }
 }

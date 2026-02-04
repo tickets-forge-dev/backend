@@ -267,12 +267,21 @@ export class GitHubService {
    * Story 4.2: View index status
    */
   async listIndexes(repositoryId?: number): Promise<IndexStatus[]> {
-    const params = repositoryId ? { repositoryId } : {};
-    const response = await this.client.get<IndexStatus[]>(
-      '/indexing/list',
-      { params }
-    );
-    return response.data;
+    try {
+      const params = repositoryId ? { repositoryId } : {};
+      const response = await this.client.get<IndexStatus[]>(
+        '/indexing/list',
+        { 
+          params,
+          timeout: 10000 // 10 second timeout
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('[GitHubService.listIndexes] Error:', error);
+      // Return empty array for graceful degradation
+      return [];
+    }
   }
 
   /**

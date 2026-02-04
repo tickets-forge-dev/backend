@@ -110,14 +110,28 @@ export class FirestoreIndexRepository implements IndexRepository {
   }
 
   async findByWorkspace(workspaceId: string): Promise<Index[]> {
-    const snapshot = await this.firestore
-      .collection('workspaces')
-      .doc(workspaceId)
-      .collection(this.collection)
-      .orderBy('createdAt', 'desc')
-      .get();
+    try {
+      const timeoutMs = 10000; // 10 second timeout
+      const queryPromise = this.firestore
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection(this.collection)
+        .orderBy('createdAt', 'desc')
+        .get();
 
-    return snapshot.docs.map((doc) => this.mapToIndex(doc.data()));
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Firestore query timeout')), timeoutMs)
+      );
+
+      const snapshot = await Promise.race([queryPromise, timeoutPromise]);
+
+      this.logger.log(`[findByWorkspace] Found ${snapshot.docs.length} indexes for workspace ${workspaceId}`);
+      return snapshot.docs.map((doc) => this.mapToIndex(doc.data()));
+    } catch (error) {
+      this.logger.error(`[findByWorkspace] Error fetching indexes for workspace ${workspaceId}:`, error);
+      // Return empty array instead of throwing - graceful degradation
+      return [];
+    }
   }
 
   async findLatestByRepo(
