@@ -52,12 +52,18 @@ export class GenerationOrchestrator {
   async orchestrate(aec: AEC): Promise<void> {
     console.log('🚀 [GenerationOrchestrator] Starting orchestration for AEC:', aec.id);
     
+    // Generate workflow run ID for locking
+    const workflowRunId = `workflow_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    
+    // Transition to GENERATING state (locks AEC and validates transition)
+    aec.startGenerating(workflowRunId);
+    
     // Initialize generation state with 8 steps
     const generationState = GenerationStateFactory.initial();
     aec.updateGenerationState(generationState);
     await this.aecRepository.update(aec);
 
-    console.log('🚀 [GenerationOrchestrator] Generation state initialized');
+    console.log('🚀 [GenerationOrchestrator] Generation state initialized, status:', aec.status);
 
     try {
       // Step 1: Intent extraction (LLM)
@@ -175,7 +181,18 @@ export class GenerationOrchestrator {
       // Final save with validated status
       await this.aecRepository.update(aec);
     } catch (error) {
-      console.error('Generation orchestration failed:', error);
+      console.error('❌ [GenerationOrchestrator] Generation failed:', error);
+      
+      // Mark AEC as failed and unlock
+      try {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        aec.markAsFailed(errorMessage);
+        await this.aecRepository.update(aec);
+        console.log('❌ [GenerationOrchestrator] AEC marked as failed');
+      } catch (failError) {
+        console.error('❌ [GenerationOrchestrator] Could not mark AEC as failed:', failError);
+      }
+      
       throw error;
     }
   }

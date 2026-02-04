@@ -367,14 +367,15 @@ export class AEC {
 
   markReady(codeSnapshot: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
     this.validateTransition(AECStatus.READY);
+    // Set snapshot before validation (validation checks if it exists)
+    this._codeSnapshot = codeSnapshot;
+    this._apiSnapshot = apiSnapshot ?? null;
     this.validateRequiredFields(AECStatus.READY);
     if (this._readinessScore < 75) {
       throw new InsufficientReadinessError(
         `Score ${this._readinessScore} < 75`,
       );
     }
-    this._codeSnapshot = codeSnapshot;
-    this._apiSnapshot = apiSnapshot ?? null;
     this._status = AECStatus.READY;
     this._updatedAt = new Date();
   }

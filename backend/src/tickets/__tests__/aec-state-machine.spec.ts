@@ -179,7 +179,6 @@ describe('AEC Domain - State Machine and Locking', () => {
 
     it('should validate required fields for status transitions', () => {
       aec.startGenerating(workflowRunId);
-      aec.resumeGenerating();
       
       // Try to validate without required fields (type, acceptanceCriteria)
       expect(() => {
@@ -258,10 +257,15 @@ describe('AEC Domain - State Machine and Locking', () => {
       // Step 2: Add content
       aec.updateContent('feature', ['AC1', 'AC2'], ['assumption'], ['src/file.ts']);
 
-      // Step 3: Validate
-      aec.validate([]);
+      // Step 3: Validate with good results to get score >= 75
+      const validationResults: any[] = [
+        { name: 'completeness', score: 0.9, weight: 1, hasCriticalIssues: () => false },
+        { name: 'testability', score: 0.85, weight: 1, hasCriticalIssues: () => false },
+      ];
+      aec.validate(validationResults);
       expect(aec.status).toBe(AECStatus.VALIDATED);
       expect(aec.isLocked).toBe(false);
+      expect(aec.readinessScore).toBeGreaterThanOrEqual(75);
 
       // Step 4: Mark ready
       const codeSnapshot = {
