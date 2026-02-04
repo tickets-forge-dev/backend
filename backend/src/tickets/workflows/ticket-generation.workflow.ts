@@ -40,9 +40,9 @@ export interface TicketGenerationState {
 }
 
 /**
- * Step 0: Initialize & Lock (NEW - Phase B Fix #6)
+ * Step 0: Initialize & Lock (Phase B Fix #6)
  * Locks the AEC to prevent concurrent edits during workflow execution
- * Validates workspace readiness before proceeding
+ * Validates workspace readiness before proceeding (Phase B Fix #8)
  */
 const initializeAndLockStep = new Step({
   id: 'initializeAndLock',
@@ -64,6 +64,34 @@ const initializeAndLockStep = new Step({
         );
       }
 
+      // Phase B Fix #8: Validate workspace readiness before proceeding
+      if (aec.repositoryContext) {
+        try {
+          const indexQueryService = mastra.getService('IndexQueryService');
+          const indexStatus = await indexQueryService.getIndexStatus(aec.repositoryContext.indexId);
+
+          if (!indexStatus.ready) {
+            throw new Error(
+              `Repository index is not ready: ${indexStatus.message || 'Still indexing'}. ` +
+              `Please wait for indexing to complete and try again.`
+            );
+          }
+
+          console.log(`✅ [initializeAndLock] Repository index is ready`);
+        } catch (readinessError: any) {
+          // If index service unavailable, fail gracefully with helpful message
+          if (readinessError.message.includes('not found')) {
+            throw new Error(
+              `Repository index not found (${aec.repositoryContext.indexId}). ` +
+              `Please ensure the repository has been indexed in Settings.`
+            );
+          }
+          throw readinessError;
+        }
+      } else {
+        console.warn('[initializeAndLock] No repository context - skipping index readiness check');
+      }
+
       // Lock and transition to GENERATING state
       aec.startGenerating(workflowRunId); // Phase B Fix #7 - State transition validation
       await aecRepository.update(aec);
@@ -74,7 +102,7 @@ const initializeAndLockStep = new Step({
       console.log(`🔒 [initializeAndLock] Locked AEC ${inputData.aecId} for workflow ${workflowRunId}`);
       console.log(`📊 [initializeAndLock] AEC status transitioned to GENERATING`);
 
-      return { locked: true, workflowRunId };
+      return { locked: true, workflowRunId, readinessCheck: 'passed' };
     } catch (error) {
       console.error('[initializeAndLock] Error:', error);
       throw error;
@@ -236,6 +264,7 @@ const reviewFindingsStep = new Step({
  * Queries codebase using IndexQueryService for relevant files/patterns
  * Requires: Repository to be indexed
  * Graceful degradation: Returns empty context if service unavailable
+ * Phase B Fix #8: Validates workspace readiness before querying
  */
 const gatherRepoContextStep = new Step({
   id: 'gatherRepoContext',
@@ -253,8 +282,16 @@ const gatherRepoContextStep = new Step({
         return { repoContext: '' };
       }
 
-      // Check if workspace is indexed before querying
-      // TODO: Add workspace.isIndexed() check here
+      // Phase B Fix #8: Validate workspace is still indexed before querying
+      const indexStatus = await indexQueryService.getIndexStatus(aec.repositoryContext.indexId);
+      if (!indexStatus.ready) {
+        console.warn(
+          `[gatherRepoContextStep] Index not ready (${indexStatus.message}). ` +
+          `Skipping code context gathering.`
+        );
+        await setState({ repoContext: '' });
+        return { repoContext: '' };
+      }
 
       const keywords = state.keywords || [];
       const query = keywords.join(' ') || state.intent || aec.title;
