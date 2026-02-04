@@ -2,7 +2,6 @@ import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
-import { Finding } from '../../../validation/domain/Finding';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export interface ValidationResultDocument {

@@ -17,6 +17,7 @@
 
 // @ts-expect-error - Mastra API may differ in v1.1.0, will verify with documentation
 import { Step, Workflow } from '@mastra/core';
+import { executeWithRetry } from './async-retry.utils';
 
 // Workflow input interface
 export interface TicketGenerationInput {
@@ -43,6 +44,7 @@ export interface TicketGenerationState {
  * Step 0: Initialize & Lock (Phase B Fix #6)
  * Locks the AEC to prevent concurrent edits during workflow execution
  * Validates workspace readiness before proceeding (Phase B Fix #8)
+ * Phase B Fix #9: Added retry logic for transient failures
  */
 const initializeAndLockStep = new Step({
   id: 'initializeAndLock',
@@ -52,10 +54,17 @@ const initializeAndLockStep = new Step({
       const aecRepository = mastra.getService('AECRepository');
       const workflowRunId = `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-      const aec = await aecRepository.findById(inputData.aecId);
-      if (!aec) {
-        throw new Error(`AEC not found: ${inputData.aecId}`);
+      // Phase B Fix #9: Retry AEC lookup with exponential backoff
+      const aecLookupResult = await executeWithRetry(
+        () => aecRepository.findById(inputData.aecId),
+        { stepName: 'initializeAndLock:findById', maxAttempts: 3 }
+      );
+
+      if (!aecLookupResult.success || !aecLookupResult.data) {
+        throw new Error(`AEC not found after retries: ${inputData.aecId}`);
       }
+
+      const aec = aecLookupResult.data;
 
       // Check if already locked by another workflow
       if (aec.isLocked) {
@@ -68,11 +77,17 @@ const initializeAndLockStep = new Step({
       if (aec.repositoryContext) {
         try {
           const indexQueryService = mastra.getService('IndexQueryService');
-          const indexStatus = await indexQueryService.getIndexStatus(aec.repositoryContext.indexId);
+          
+          // Phase B Fix #9: Retry index status check with exponential backoff
+          const indexStatusResult = await executeWithRetry(
+            () => indexQueryService.getIndexStatus(aec.repositoryContext.indexId),
+            { stepName: 'initializeAndLock:indexStatus', maxAttempts: 3 }
+          );
 
-          if (!indexStatus.ready) {
+          if (!indexStatusResult.success || !indexStatusResult.data?.ready) {
+            const message = indexStatusResult.data?.message || 'Still indexing';
             throw new Error(
-              `Repository index is not ready: ${indexStatus.message || 'Still indexing'}. ` +
+              `Repository index is not ready: ${message}. ` +
               `Please wait for indexing to complete and try again.`
             );
           }
@@ -94,7 +109,16 @@ const initializeAndLockStep = new Step({
 
       // Lock and transition to GENERATING state
       aec.startGenerating(workflowRunId); // Phase B Fix #7 - State transition validation
-      await aecRepository.update(aec);
+      
+      // Phase B Fix #9: Retry AEC update with exponential backoff
+      const updateResult = await executeWithRetry(
+        () => aecRepository.update(aec),
+        { stepName: 'initializeAndLock:update', maxAttempts: 3 }
+      );
+
+      if (!updateResult.success) {
+        throw updateResult.error || new Error('Failed to lock AEC after retries');
+      }
 
       // Store workflow run ID in state for later reference
       await setState({ workflowRunId });
@@ -113,6 +137,7 @@ const initializeAndLockStep = new Step({
 /**
  * Step 1: Extract Intent
  * Uses LLM to extract user's intent and keywords from title/description
+ * Phase B Fix #9: Added retry logic for LLM call
  */
 const extractIntentStep = new Step({
   id: 'extractIntent',
@@ -127,10 +152,20 @@ const extractIntentStep = new Step({
         throw new Error(`AEC not found: ${inputData.aecId}`);
       }
 
-      const result = await contentGenerator.extractIntent({
-        title: aec.title,
-        description: aec.description || '',
-      });
+      // Phase B Fix #9: Retry LLM call with exponential backoff
+      const intentResult = await executeWithRetry(
+        () => contentGenerator.extractIntent({
+          title: aec.title,
+          description: aec.description || '',
+        }),
+        { stepName: 'extractIntent', maxAttempts: 3 }
+      );
+
+      if (!intentResult.success || !intentResult.data) {
+        throw intentResult.error || new Error('Failed to extract intent after retries');
+      }
+
+      const result = intentResult.data;
 
       await setState({
         intent: result.intent,
@@ -148,6 +183,7 @@ const extractIntentStep = new Step({
 /**
  * Step 2: Detect Type
  * Classifies ticket as FEATURE, BUG, REFACTOR, CHORE, or SPIKE
+ * Phase B Fix #9: Added retry logic for LLM call
  */
 const detectTypeStep = new Step({
   id: 'detectType',
@@ -157,7 +193,17 @@ const detectTypeStep = new Step({
       const state = await getState<TicketGenerationState>();
       const contentGenerator = mastra.getService('MastraContentGenerator');
 
-      const result = await contentGenerator.detectType(state.intent || '');
+      // Phase B Fix #9: Retry LLM call with exponential backoff
+      const typeResult = await executeWithRetry(
+        () => contentGenerator.detectType(state.intent || ''),
+        { stepName: 'detectType', maxAttempts: 3 }
+      );
+
+      if (!typeResult.success || !typeResult.data) {
+        throw typeResult.error || new Error('Failed to detect type after retries');
+      }
+
+      const result = typeResult.data;
 
       await setState({ type: result.type });
 
@@ -222,6 +268,7 @@ const preflightValidationStep = new Step({
  * Step 4: Review Findings (SUSPENSION POINT)
  * If critical findings exist, workflow suspends for user review
  * User can: proceed, edit, or cancel
+ * Phase B Fix #9: Added retry logic for AEC persistence
  */
 const reviewFindingsStep = new Step({
   id: 'reviewFindings',
@@ -238,8 +285,18 @@ const reviewFindingsStep = new Step({
         const aec = await aecRepository.findById(inputData.aecId);
         if (aec) {
           aec.suspendForFindingsReview(findings);
-          await aecRepository.update(aec);
-          console.log(`⏸️ [reviewFindings] AEC transitioned to SUSPENDED_FINDINGS`);
+          
+          // Phase B Fix #9: Retry AEC update with exponential backoff
+          const updateResult = await executeWithRetry(
+            () => aecRepository.update(aec),
+            { stepName: 'reviewFindings:update', maxAttempts: 3 }
+          );
+
+          if (updateResult.success) {
+            console.log(`⏸️ [reviewFindings] AEC transitioned to SUSPENDED_FINDINGS`);
+          } else {
+            console.error('[reviewFindings] Failed to update AEC after retries');
+          }
         }
       } catch (error) {
         console.error('[reviewFindings] Failed to update AEC status:', error);
@@ -265,6 +322,7 @@ const reviewFindingsStep = new Step({
  * Requires: Repository to be indexed
  * Graceful degradation: Returns empty context if service unavailable
  * Phase B Fix #8: Validates workspace readiness before querying
+ * Phase B Fix #9: Added retry logic for index queries
  */
 const gatherRepoContextStep = new Step({
   id: 'gatherRepoContext',
@@ -283,10 +341,16 @@ const gatherRepoContextStep = new Step({
       }
 
       // Phase B Fix #8: Validate workspace is still indexed before querying
-      const indexStatus = await indexQueryService.getIndexStatus(aec.repositoryContext.indexId);
-      if (!indexStatus.ready) {
+      // Phase B Fix #9: Retry index status check with exponential backoff
+      const indexStatusResult = await executeWithRetry(
+        () => indexQueryService.getIndexStatus(aec.repositoryContext.indexId),
+        { stepName: 'gatherRepoContext:indexStatus', maxAttempts: 3 }
+      );
+
+      if (!indexStatusResult.success || !indexStatusResult.data?.ready) {
+        const message = indexStatusResult.data?.message || 'Index not ready';
         console.warn(
-          `[gatherRepoContextStep] Index not ready (${indexStatus.message}). ` +
+          `[gatherRepoContextStep] Index not ready (${message}). ` +
           `Skipping code context gathering.`
         );
         await setState({ repoContext: '' });
@@ -296,12 +360,23 @@ const gatherRepoContextStep = new Step({
       const keywords = state.keywords || [];
       const query = keywords.join(' ') || state.intent || aec.title;
 
-      const results = await indexQueryService.query({
-        indexId: aec.repositoryContext.indexId,
-        query,
-        limit: 10,
-      });
+      // Phase B Fix #9: Retry index query with exponential backoff
+      const queryResult = await executeWithRetry(
+        () => indexQueryService.query({
+          indexId: aec.repositoryContext.indexId,
+          query,
+          limit: 10,
+        }),
+        { stepName: 'gatherRepoContext:query', maxAttempts: 3 }
+      );
 
+      if (!queryResult.success || !queryResult.data) {
+        console.warn('[gatherRepoContextStep] Failed to query index after retries');
+        await setState({ repoContext: '' });
+        return { repoContext: '' };
+      }
+
+      const results = queryResult.data;
       const repoContext = results
         .map((r: any) => `${r.path}:\n${r.snippet}`)
         .join('\n\n');
@@ -338,6 +413,7 @@ const gatherApiContextStep = new Step({
  * Step 7: Generate Draft Content
  * Uses LLM to generate acceptance criteria, assumptions, and repo paths
  * Saves to workflow state for finalization step
+ * Phase B Fix #9: Added retry logic for LLM call
  */
 const draftTicketStep = new Step({
   id: 'draftTicket',
@@ -347,12 +423,22 @@ const draftTicketStep = new Step({
       const state = await getState<TicketGenerationState>();
       const contentGenerator = mastra.getService('MastraContentGenerator');
 
-      const result = await contentGenerator.generateDraft({
-        intent: state.intent || '',
-        type: state.type || 'FEATURE',
-        repoContext: state.repoContext || '',
-        apiContext: state.apiContext || '',
-      });
+      // Phase B Fix #9: Retry LLM call with exponential backoff
+      const draftResult = await executeWithRetry(
+        () => contentGenerator.generateDraft({
+          intent: state.intent || '',
+          type: state.type || 'FEATURE',
+          repoContext: state.repoContext || '',
+          apiContext: state.apiContext || '',
+        }),
+        { stepName: 'draftTicket', maxAttempts: 3 }
+      );
+
+      if (!draftResult.success || !draftResult.data) {
+        throw draftResult.error || new Error('Failed to generate draft after retries');
+      }
+
+      const result = draftResult.data;
 
       // Save to state for finalization step
       await setState({
@@ -377,6 +463,7 @@ const draftTicketStep = new Step({
  * Step 8: Generate Questions
  * Identifies missing information and generates clarifying questions
  * Uses FindingsToQuestionsAgent if critical findings exist
+ * Phase B Fix #9: Added retry logic for agent call
  */
 const generateQuestionsStep = new Step({
   id: 'generateQuestions',
@@ -386,11 +473,23 @@ const generateQuestionsStep = new Step({
       const state = await getState<TicketGenerationState>();
       const findingsAgent = mastra.getService('FindingsToQuestionsAgent');
 
-      const questions = await findingsAgent.generateQuestions({
-        findings: state.findings || [],
-        acceptanceCriteria: state.acceptanceCriteria || [],
-        assumptions: state.assumptions || [],
-      });
+      // Phase B Fix #9: Retry agent call with exponential backoff
+      const questionsResult = await executeWithRetry(
+        () => findingsAgent.generateQuestions({
+          findings: state.findings || [],
+          acceptanceCriteria: state.acceptanceCriteria || [],
+          assumptions: state.assumptions || [],
+        }),
+        { stepName: 'generateQuestions', maxAttempts: 3 }
+      );
+
+      if (!questionsResult.success || !questionsResult.data) {
+        console.warn('[generateQuestionsStep] Failed to generate questions after retries, proceeding without questions');
+        await setState({ questions: [] });
+        return { questions: [], hasQuestions: false };
+      }
+
+      const questions = questionsResult.data;
 
       await setState({ questions });
 
@@ -408,6 +507,7 @@ const generateQuestionsStep = new Step({
  * Step 9: Ask Questions (SUSPENSION POINT)
  * If questions exist, workflow suspends for user answers
  * User provides answers, workflow resumes with refinement
+ * Phase B Fix #9: Added retry logic for AEC persistence
  */
 const askQuestionsStep = new Step({
   id: 'askQuestions',
@@ -423,8 +523,18 @@ const askQuestionsStep = new Step({
         const aec = await aecRepository.findById(inputData.aecId);
         if (aec) {
           aec.suspendForQuestions(questions);
-          await aecRepository.update(aec);
-          console.log(`⏸️ [askQuestions] AEC transitioned to SUSPENDED_QUESTIONS`);
+          
+          // Phase B Fix #9: Retry AEC update with exponential backoff
+          const updateResult = await executeWithRetry(
+            () => aecRepository.update(aec),
+            { stepName: 'askQuestions:update', maxAttempts: 3 }
+          );
+
+          if (updateResult.success) {
+            console.log(`⏸️ [askQuestions] AEC transitioned to SUSPENDED_QUESTIONS`);
+          } else {
+            console.error('[askQuestions] Failed to update AEC after retries');
+          }
         }
       } catch (error) {
         console.error('[askQuestions] Failed to update AEC status:', error);
@@ -471,6 +581,7 @@ const refineDraftStep = new Step({
  * Transitions to VALIDATED state
  * Unlocks the AEC to allow further edits
  * This ensures generated content is saved permanently
+ * Phase B Fix #9: Added retry logic for Firestore persistence
  */
 const finalizeStep = new Step({
   id: 'finalize',
@@ -506,8 +617,15 @@ const finalizeStep = new Step({
       // Unlock the AEC (Phase B Fix #6)
       aec.unlock();
 
-      // Persist to Firestore
-      await aecRepository.update(aec);
+      // Phase B Fix #9: Retry Firestore persistence with exponential backoff
+      const persistResult = await executeWithRetry(
+        () => aecRepository.update(aec),
+        { stepName: 'finalizeStep:persist', maxAttempts: 3 }
+      );
+
+      if (!persistResult.success) {
+        throw persistResult.error || new Error('Failed to persist AEC after retries');
+      }
 
       console.log(`✅ [finalizeStep] Saved workflow outputs to AEC ${inputData.aecId}`);
       console.log(`🔓 [finalizeStep] Unlocked AEC ${inputData.aecId}`);
@@ -535,7 +653,15 @@ const finalizeStep = new Step({
             console.log(`⚠️ [finalizeStep] Force-unlocked AEC after error: ${inputData.aecId}`);
           }
 
-          await aecRepository.update(aec);
+          // Phase B Fix #9: Retry cleanup with exponential backoff
+          const cleanupResult = await executeWithRetry(
+            () => aecRepository.update(aec),
+            { stepName: 'finalizeStep:cleanup', maxAttempts: 3 }
+          );
+
+          if (!cleanupResult.success) {
+            console.error('[finalizeStep] Failed to clean up after error:', cleanupResult.error?.message);
+          }
         }
       } catch (cleanupError) {
         console.error('[finalizeStep] Failed to clean up after error:', cleanupError);
