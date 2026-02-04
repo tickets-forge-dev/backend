@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { SharedModule } from '../shared/shared.module';
 import { MastraWorkspaceFactory } from './infrastructure/MastraWorkspaceFactory';
 import { QuickPreflightValidator } from './agents/QuickPreflightValidator';
+import { FindingsToQuestionsAgent } from './agents/FindingsToQuestionsAgent';
 
 /**
  * Validation Module - Epic 7: Code-Aware Validation
@@ -19,15 +21,18 @@ import { QuickPreflightValidator } from './agents/QuickPreflightValidator';
  * concrete findings based on real code checks.
  */
 @Module({
+  imports: [SharedModule],
   providers: [
     MastraWorkspaceFactory,
     QuickPreflightValidator, // Story 7.3 ✅
+    FindingsToQuestionsAgent, // Story 7.10 - HITL questions
     // TODO Story 7.4: Add SecurityFocusedValidator
     // TODO Story 7.5: Add ArchitectureFocusedValidator
   ],
   exports: [
     MastraWorkspaceFactory,
     QuickPreflightValidator,
+    FindingsToQuestionsAgent,
     // TODO: Export specialized validators when implemented
   ],
 })

@@ -382,6 +382,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           }
         }
       } catch (error: any) {
+        // 404 means index doesn't exist (stale ID) - stop polling silently
+        if (error?.response?.status === 404) {
+          console.warn(`[Indexing] Index ${indexId} not found, stopping poll`);
+          get().stopPolling(indexId);
+          // Remove stale job from state
+          const jobs = new Map(get().indexingJobs);
+          jobs.delete(indexId);
+          set({ indexingJobs: jobs });
+          return;
+        }
         console.error('Failed to poll indexing status:', error);
         get().stopPolling(indexId);
       }

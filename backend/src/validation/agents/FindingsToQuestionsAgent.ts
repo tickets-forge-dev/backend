@@ -19,7 +19,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { LLMConfigService } from '../../shared/infrastructure/llm/llm-config.service';
+import { LLMConfigService } from '../../shared/infrastructure/mastra/llm.config';
 
 export interface Finding {
   category: string;
@@ -58,10 +58,13 @@ export class FindingsToQuestionsAgent {
   ): Promise<Question[]> {
     const llm = this.llmConfig.getDefaultLLM();
 
-    // Early return if no critical findings and AC looks complete
-    if (
-      this.shouldSkipQuestions(input.findings, input.acceptanceCriteria)
-    ) {
+    // Check if we should skip questions
+    const shouldSkip = this.shouldSkipQuestions(input.findings, input.acceptanceCriteria);
+    
+    // If AC is minimal (< 3 items), always generate clarifying questions
+    const needsClarification = input.acceptanceCriteria.length < 3;
+    
+    if (shouldSkip && !needsClarification) {
       console.log('[FindingsToQuestionsAgent] No questions needed - draft looks good');
       return [];
     }
@@ -70,17 +73,35 @@ export class FindingsToQuestionsAgent {
 
     try {
       const response = await llm.generate(prompt);
-      const parsed = JSON.parse(response);
+      // Try to extract JSON from response
+      let parsed;
+      try {
+        // Try to find JSON in response
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          parsed = JSON.parse(response);
+        }
+      } catch {
+        console.warn('[FindingsToQuestionsAgent] Failed to parse LLM response, using fallback');
+        return this.generateDefaultQuestions(input.acceptanceCriteria);
+      }
 
       // Validate and format questions
       const questions = this.validateQuestions(parsed.questions || []);
+
+      if (questions.length === 0) {
+        // LLM returned no valid questions, generate defaults
+        return this.generateDefaultQuestions(input.acceptanceCriteria);
+      }
 
       console.log(`[FindingsToQuestionsAgent] Generated ${questions.length} questions`);
       return questions;
     } catch (error) {
       console.error('[FindingsToQuestionsAgent] Failed to generate questions:', error);
-      // Fallback: Generate basic questions from critical findings
-      return this.generateFallbackQuestions(input.findings);
+      // Fallback: Generate default clarifying questions
+      return this.generateDefaultQuestions(input.acceptanceCriteria);
     }
   }
 
@@ -295,5 +316,39 @@ Respond with JSON:
       return answer ? 'Yes' : 'No';
     }
     return String(answer || '(Not answered)');
+  }
+
+  /**
+   * Generate default clarifying questions when AC is minimal
+   */
+  private generateDefaultQuestions(acceptanceCriteria: string[]): Question[] {
+    const questions: Question[] = [];
+
+    // Question 1: Scope clarification
+    questions.push({
+      id: 'scope-1',
+      text: 'What is the primary user goal for this feature?',
+      type: 'textarea',
+      context: 'Help us understand the main use case to generate better acceptance criteria.',
+    });
+
+    // Question 2: Success criteria
+    questions.push({
+      id: 'success-1',
+      text: 'How will you know this feature is working correctly?',
+      type: 'textarea',
+      context: 'Describe the expected behavior or outcome that indicates success.',
+    });
+
+    // Question 3: Edge cases
+    questions.push({
+      id: 'edge-1',
+      text: 'Are there any edge cases or error scenarios we should handle?',
+      type: 'textarea',
+      context: 'Consider invalid inputs, network failures, or unusual user behavior.',
+    });
+
+    console.log(`[FindingsToQuestionsAgent] Generated ${questions.length} default questions (minimal AC detected)`);
+    return questions;
   }
 }

@@ -29,10 +29,11 @@ import { ESTIMATION_ENGINE } from './application/services/estimation-engine.inte
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 import { IndexingModule } from '../indexing/indexing.module';
 import { GitHubModule } from '../github/github.module';
+import { ValidationModule } from '../validation/validation.module';
 import { MastraService, MASTRA_SERVICES } from '../shared/infrastructure/mastra/mastra.service';
 
 @Module({
-  imports: [IndexingModule, GitHubModule],
+  imports: [IndexingModule, GitHubModule, ValidationModule],
   controllers: [TicketsController, WorkflowController],
   providers: [
     CreateTicketUseCase,
@@ -121,33 +122,44 @@ export class TicketsModule implements OnModuleInit {
   async onModuleInit() {
     // Register additional services that workflow steps need
     try {
-      // Safely try to get optional services
-      const tryGetService = (serviceName: string) => {
+      // Import classes directly for proper NestJS DI lookup
+      const { IndexQueryService } = await import('../indexing/application/services/index-query.service');
+      const { MastraWorkspaceFactory } = await import('../validation/infrastructure/MastraWorkspaceFactory');
+      const { QuickPreflightValidator } = await import('../validation/agents/QuickPreflightValidator');
+      const { FindingsToQuestionsAgent } = await import('../validation/agents/FindingsToQuestionsAgent');
+
+      // Safely try to get services by class
+      const tryGetService = <T>(serviceClass: new (...args: any[]) => T): T | null => {
         try {
-          return this.moduleRef.get(serviceName, { strict: false });
-        } catch {
+          return this.moduleRef.get(serviceClass, { strict: false });
+        } catch (e) {
+          console.warn(`[TicketsModule] Service ${serviceClass.name} not available:`, (e as Error).message);
           return null;
         }
       };
 
-      const indexQueryService = tryGetService('IndexQueryService');
+      const indexQueryService = tryGetService(IndexQueryService);
       if (indexQueryService) {
         this.mastraService.registerService(MASTRA_SERVICES.IndexQueryService, indexQueryService);
+        console.log('✅ [TicketsModule] Registered IndexQueryService');
       }
 
-      const workspaceFactory = tryGetService('MastraWorkspaceFactory');
+      const workspaceFactory = tryGetService(MastraWorkspaceFactory);
       if (workspaceFactory) {
         this.mastraService.registerService(MASTRA_SERVICES.MastraWorkspaceFactory, workspaceFactory);
+        console.log('✅ [TicketsModule] Registered MastraWorkspaceFactory');
       }
 
-      const preflightValidator = tryGetService('QuickPreflightValidator');
+      const preflightValidator = tryGetService(QuickPreflightValidator);
       if (preflightValidator) {
         this.mastraService.registerService(MASTRA_SERVICES.QuickPreflightValidator, preflightValidator);
+        console.log('✅ [TicketsModule] Registered QuickPreflightValidator');
       }
 
-      const findingsAgent = tryGetService('FindingsToQuestionsAgent');
+      const findingsAgent = tryGetService(FindingsToQuestionsAgent);
       if (findingsAgent) {
         this.mastraService.registerService(MASTRA_SERVICES.FindingsToQuestionsAgent, findingsAgent);
+        console.log('✅ [TicketsModule] Registered FindingsToQuestionsAgent');
       }
 
       console.log('✅ [TicketsModule] Mastra workflow enabled');

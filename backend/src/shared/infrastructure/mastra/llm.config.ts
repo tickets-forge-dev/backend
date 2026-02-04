@@ -4,6 +4,10 @@ import { ConfigService } from '@nestjs/config';
 export type LLMProvider = 'ollama' | 'anthropic';
 export type ModelType = 'fast' | 'main';
 
+export interface LLMInstance {
+  generate(prompt: string): Promise<string>;
+}
+
 /**
  * LLM Configuration Service
  *
@@ -58,6 +62,76 @@ export class LLMConfigService {
     } else {
       return `anthropic/${modelId}`;
     }
+  }
+
+  /**
+   * Get a default LLM instance for text generation
+   * Uses main model for quality
+   */
+  getDefaultLLM(): LLMInstance {
+    return {
+      generate: async (prompt: string): Promise<string> => {
+        if (this.provider === 'ollama') {
+          return this.callOllama(prompt);
+        } else {
+          return this.callAnthropic(prompt);
+        }
+      }
+    };
+  }
+
+  /**
+   * Call Ollama API
+   */
+  private async callOllama(prompt: string): Promise<string> {
+    const response = await fetch(`${this.ollamaBaseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: this.mainModel,
+        prompt,
+        stream: false,
+        options: { temperature: 0.3 },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.response;
+  }
+
+  /**
+   * Call Anthropic API
+   */
+  private async callAnthropic(prompt: string): Promise<string> {
+    const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: this.mainModel,
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Anthropic API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.content[0]?.text || '';
   }
 
   /**

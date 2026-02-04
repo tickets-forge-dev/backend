@@ -14,6 +14,18 @@ export class FirebaseAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
 
+    // Test bypass for local development/E2E testing (read at runtime, not module load)
+    if (process.env.TEST_AUTH_BYPASS === 'true') {
+      const testUserId = process.env.TEST_USER_ID || 'test-user-dev';
+      console.log('⚠️ [FirebaseAuthGuard] TEST_AUTH_BYPASS enabled - skipping token verification');
+      request.user = {
+        uid: testUserId,
+        email: 'test@example.com',
+        name: 'Test User',
+      };
+      return true;
+    }
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('No authorization token provided');
     }

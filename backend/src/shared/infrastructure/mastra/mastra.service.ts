@@ -109,22 +109,32 @@ export class MastraService implements OnModuleInit {
   async executeTicketGeneration(
     input: TicketGenerationInput
   ): Promise<WorkflowExecutionResult> {
+    console.log(`🚀 [MastraService] executeTicketGeneration called with:`, input);
+    
     if (!this.mastra) {
+      console.error('❌ [MastraService] Mastra not initialized');
       throw new Error('MastraService not initialized');
     }
 
     try {
+      console.log(`🔍 [MastraService] Getting workflow 'ticket-generation'...`);
       const workflow = this.mastra.getWorkflow('ticket-generation');
       if (!workflow) {
+        console.error('❌ [MastraService] Workflow not found');
         throw new Error('ticket-generation workflow not found');
       }
 
+      console.log(`📋 [MastraService] Creating workflow run...`);
       const run = await workflow.createRun();
+      console.log(`▶️ [MastraService] Starting workflow run: ${run.runId}`);
+      
       const result = await run.start({ inputData: input });
+      console.log(`📊 [MastraService] Workflow result status: ${result.status}`);
 
       if (result.status === 'suspended') {
         // Find the suspended step info
         const suspendedStep = this.findSuspendedStep(result);
+        console.log(`⏸️ [MastraService] Workflow suspended at: ${suspendedStep?.stepId}`);
         return {
           runId: run.runId,
           status: 'suspended',
@@ -134,6 +144,7 @@ export class MastraService implements OnModuleInit {
       }
 
       if (result.status === 'success') {
+        console.log(`✅ [MastraService] Workflow completed successfully`);
         return {
           runId: run.runId,
           status: 'success',
@@ -141,13 +152,15 @@ export class MastraService implements OnModuleInit {
         };
       }
 
+      console.log(`❌ [MastraService] Workflow failed:`, result.error);
       return {
         runId: run.runId,
         status: 'failed',
         error: result.error?.message || 'Unknown error',
       };
     } catch (error: any) {
-      console.error('[MastraService] Workflow execution failed:', error);
+      console.error('❌ [MastraService] Workflow execution failed:', error);
+      console.error('❌ [MastraService] Stack:', error.stack);
       return {
         runId: '',
         status: 'failed',

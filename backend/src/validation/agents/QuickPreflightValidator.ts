@@ -226,10 +226,15 @@ export class QuickPreflightValidator {
       ? `\n\nAVAILABLE VALIDATION SKILLS:\n${selectedSkills.map((skill) => `- ${skill.name}: ${skill.description}`).join('\n')}\n\nUSE THESE SKILLS to guide your validation checks.`
       : '';
 
+    // Use Ollama model from environment, fallback to minimax
+    const model = process.env.OLLAMA_MAIN_MODEL 
+      ? `ollama/${process.env.OLLAMA_MAIN_MODEL}`
+      : 'ollama/minimax-m2:cloud';
+
     return new Agent({
       id: 'quick-preflight-validator',
       name: 'Quick Preflight Validator',
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model,
       workspace: workspace,
       instructions: `
 You are a FAST ticket preflight validator. Your job is to quickly validate critical assumptions, NOT implement the full ticket.

@@ -129,12 +129,12 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
             workflowState,
             currentStep: generationState.currentStep || 0,
             steps,
-            findings: data.preImplementationFindings || [],
-            questions: data.questions || [],
+            findings: data.preImplementationFindings || generationState.findings || [],
+            questions: generationState.questions || data.questions || [],
             error: data.failureReason || null,
           });
 
-          console.log('📡 [WorkflowStore] AEC updated:', { workflowState, currentStep: generationState.currentStep });
+          console.log('📡 [WorkflowStore] AEC updated:', { workflowState, currentStep: generationState.currentStep, questions: generationState.questions?.length || 0 });
         }
       },
       (error) => {
