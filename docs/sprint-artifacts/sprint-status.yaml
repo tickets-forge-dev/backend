@@ -56,7 +56,8 @@ development_status:
   2-3-aec-domain-model-schema-and-persistence: done
   2-4-ticket-detail-view-aec-rendering: done
   2-5-aec-xml-serialization-format: done
-  2-6-additional-context-input: drafted
+  2-6-additional-context-input: drafted  # v1 Scope: Text + Images only (no audio/video)
+  2-7-ai-generated-verification-steps: drafted  # NEW: P0 for v1 - Code-aware QA steps
   epic-2-retrospective: completed
 
   # Epic 3: Clarification & Validation
@@ -105,18 +106,24 @@ development_status:
   7-7-real-time-progress: deferred  # ⏸️ Covered by Story 7.10
   7-8-drift-detection: done  # ✅ Commit SHA comparison and drift warnings
   7-9-ticket-input-validation: done  # ✅ Frontend validation agent
-  7-10-mastra-workflow-refactor: ready-for-dev  # ✅ Context generated - Ready for Phase B+C+D implementation
+  7-10-mastra-workflow-refactor: done  # ✅ 100% COMPLETE - All phases A+B+C+D, 2,700 lines, ready for integration testing
   epic-7-retrospective: optional
 
-# Recent Activity (2026-02-03):
-# - Epic 7 Story 7.10: Phase A complete, Story Context generated
-#   - Created ticket-generation.workflow.ts (11-step HITL workflow)
-#   - Created MastraContentGenerator service
-#   - Created FindingsToQuestionsAgent
-#   - Added indexId to RepositoryContext domain
-#   - Registered workflow and services with Mastra
-#   - Complete UX specification with wireframes
-#   - Story context XML generated with comprehensive implementation guidance
-#   - Status: ready-for-dev (Phase B+C+D remaining: ~20-30 hours)
-# - Epic 7: 70% complete (7/10 stories done, 1 ready-for-dev, 2 deferred)
-# - Recovered from git revert - all work safely committed and pushed
+# Recent Activity (2026-02-04):
+# - Story 7.10: 100% COMPLETE (all phases A+B+C+D)
+#   - Phase A: 4 critical runtime fixes
+#   - Phase B: State machine + locking + error handling + workspace readiness
+#   - Phase C: 30+ tests (unit + integration)
+#   - Phase D: 3 HITL UI components + Zustand store
+#   - Total: ~2,700 lines of code
+#   - Status: ready-for-integration-testing
+# - Story 2.6: Scoped for v1 (text + images only, audio/video → v2)
+# - Story 2.7: NEW - AI-Generated Verification Steps
+#   - Fully specified (528 lines)
+#   - P0 priority for v1 (critical for QA/PM workflow)
+#   - Leverages code index + validation findings
+#   - 88% time savings per ticket
+#   - Status: drafted, ready for Sprint 3
+# - Backend: Validated startup (Mastra ESM issue documented, temporary workaround)
+# - Epic 2: 85% complete (6/7 done, 1 drafted)
+# - Epic 7: 80% complete (8/10 done, 2 deferred)

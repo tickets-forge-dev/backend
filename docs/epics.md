@@ -560,6 +560,93 @@ So that the AI has all relevant information to generate a high-quality executabl
 
 **Priority:** P0 (Critical for v1 - enables rich context input)
 
+**v1 Scope Update (2026-02-04):** Text + Images only. Audio/video deferred to v2.
+
+---
+
+### Story 2.7: AI-Generated Steps to Reproduce & Verification Steps
+
+As a QA Engineer,
+I want AI-generated, code-aware verification steps for every ticket,
+So that I can deterministically verify implementation without ambiguity or back-and-forth with PM/Engineering.
+
+**Acceptance Criteria:**
+
+**Given** a ticket is generated via workflow (Step 8.5)
+**When** ticket type is "BUG"
+**Then** AI generates "Steps to Reproduce" section with:
+- Prerequisites (auth, data setup, environment)
+- Numbered reproduction steps (user actions)
+- Expected vs Actual behavior
+- Technical details (API endpoints, files, payloads)
+- Known edge cases from validation findings
+
+**And when** ticket type is "FEATURE", "REFACTOR", or "SPIKE"
+**Then** AI generates "Verification Steps" section with:
+- Prerequisites
+- Happy path verification steps
+- Edge cases to test
+- API verification commands (curl examples if applicable)
+- Affected files/functions
+- QA acceptance checklist
+
+**And** steps are code-aware (reference real code):
+- ✅ Actual file paths from repository index (e.g., `backend/src/auth/AuthService.ts`)
+- ✅ Actual API endpoint paths from API spec or indexing
+- ✅ Actual function/class names from code index
+- ✅ Request/response examples from API spec
+- ✅ Auth requirements from security analysis
+- ❌ NO generic placeholders or hallucinated endpoints
+
+**And** validation findings are converted to edge cases:
+- Example: "Missing dependency: stripe SDK" → "Verify error handling when Stripe SDK unavailable"
+- Example: "Conflicting function: `processPayment`" → "Test both old and new payment flows"
+
+**And** PM/QA can edit steps:
+- Inline markdown editor with syntax highlighting
+- AI suggestions sidebar ("Add edge case: Invalid auth token")
+- "Regenerate with changes" button (re-runs AI with edits as context)
+- Diff view (original vs edited)
+- Changes persist to AEC entity
+
+**And** steps are included in export:
+- Jira: Uses Jira markdown (panels, code blocks)
+- Linear: Uses Linear markdown (checkbox lists)
+- Steps appear in ticket description or dedicated "QA Steps" field
+
+**And** drift detection shows warning:
+- "⚠️ Code has changed since steps were generated"
+- Shows affected files that changed
+- "Regenerate steps" button updates with latest code context
+
+**Prerequisites:** 
+- Story 2.3 (AEC domain - extend with `verificationSteps` field)
+- Story 4.2 (Repository indexing - need file paths)
+- Story 7.3 (Preflight validation - findings → edge cases)
+- Story 7.10 (Mastra workflow - add step 8.5)
+
+**Technical Notes:**
+- Domain value object: `VerificationSteps` (type, prerequisites, steps[], edgeCases[], affectedFiles[], version)
+- Workflow step 8.5: `generateVerificationStepsStep` (after draft, before questions)
+- LLM prompt: Structured with code context (files, APIs, functions from index)
+- Validation: All file paths/APIs checked against index/spec (prevent hallucinations)
+- Frontend: `VerificationStepsDisplay.tsx`, `VerificationStepsEditor.tsx`, `EdgeCaseChecklist.tsx`
+- API endpoints: `POST /api/tickets/:id/regenerate-steps`, `PATCH /api/tickets/:id/verification-steps`
+
+**Value Proposition:**
+- PM time: 5-10 min → 2 min (60-80% savings)
+- QA clarification: 10-20 min → 0 min (100% savings)
+- Engineer investigation: 15-30 min → 5 min (70-85% savings)
+- **Total savings: ~88% per ticket** × 50 tickets/month = **19-44 hours/month**
+
+**Covers:** FR5 (enhanced validation), New FR (QA verification automation)
+
+**Priority:** P0 (Critical for v1 - QA/PM blocker without it)
+
+**Effort Estimate:** 6-8 hours
+
+**Status:** Drafted (2026-02-04), ready for Sprint 3
+
 ---
 
 ## Epic 3: Clarification & Validation
