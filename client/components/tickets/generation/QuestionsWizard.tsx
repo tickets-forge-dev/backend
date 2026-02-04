@@ -9,8 +9,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useWorkflowStore, type Question } from '../../../store/workflowStore';
-import { ChevronLeft, ChevronRight, X, HelpCircle } from 'lucide-react';
+import { useWorkflowStore, type Question } from '../../../stores/workflow.store';
+import { ChevronLeft, ChevronRight, X, HelpCircle, Loader2 } from 'lucide-react';
 
 interface QuestionsWizardProps {
   isOpen: boolean;
@@ -18,11 +18,12 @@ interface QuestionsWizardProps {
 }
 
 export function QuestionsWizard({ isOpen, onClose }: QuestionsWizardProps) {
-  const { questions, answers, setAnswer, submitAnswers, skipQuestions } =
+  const { questions, answers, setAnswers, submitQuestionAnswers, skipQuestions, error, clearError } =
     useWorkflowStore();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [localAnswers, setLocalAnswers] = useState<Record<string, string>>(answers);
 
   if (!isOpen || questions.length === 0) return null;
 
@@ -44,16 +45,19 @@ export function QuestionsWizard({ isOpen, onClose }: QuestionsWizardProps) {
   };
 
   const handleAnswer = (value: string) => {
-    setAnswer(currentQuestion.id, value);
+    const newAnswers = { ...localAnswers, [currentQuestion.id]: value };
+    setLocalAnswers(newAnswers);
   };
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    clearError();
     try {
-      await submitAnswers(answers);
+      await submitQuestionAnswers(localAnswers);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit answers:', error);
+      // Error state is managed by store
     } finally {
       setIsLoading(false);
     }
@@ -61,17 +65,19 @@ export function QuestionsWizard({ isOpen, onClose }: QuestionsWizardProps) {
 
   const handleSkip = async () => {
     setIsLoading(true);
+    clearError();
     try {
       await skipQuestions();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to skip questions:', error);
+      // Error state is managed by store
     } finally {
       setIsLoading(false);
     }
   };
 
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = Object.keys(localAnswers).length;
   const canSubmit = answeredCount > 0;
 
   return (

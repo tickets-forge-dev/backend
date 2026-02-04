@@ -8,8 +8,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useWorkflowStore, type Finding } from '../../../store/workflowStore';
-import { AlertTriangle, AlertCircle, Info, CheckCircle2, X } from 'lucide-react';
+import { useWorkflowStore, type Finding } from '../../../stores/workflow.store';
+import { AlertTriangle, AlertCircle, Info, CheckCircle2, X, Loader2 } from 'lucide-react';
 
 interface FindingsReviewModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface FindingsReviewModalProps {
 }
 
 export function FindingsReviewModal({ isOpen, onClose }: FindingsReviewModalProps) {
-  const { findings, resumeWorkflow, setWorkflowState } = useWorkflowStore();
+  const { findings, resumeFromFindingsReview, error, clearError } = useWorkflowStore();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAction, setSelectedAction] = useState<'proceed' | 'edit' | 'cancel' | null>(null);
 
@@ -62,28 +62,27 @@ export function FindingsReviewModal({ isOpen, onClose }: FindingsReviewModalProp
   const handleAction = async (action: 'proceed' | 'edit' | 'cancel') => {
     setIsLoading(true);
     setSelectedAction(action);
+    clearError();
 
     try {
-      await resumeWorkflow(action);
+      await resumeFromFindingsReview(action);
 
       if (action === 'proceed') {
-        setWorkflowState('generating');
+        // Workflow continues to next step
         onClose();
       } else if (action === 'edit') {
-        setWorkflowState('idle');
+        // User goes back to edit
         onClose();
-        // User returns to edit form
       } else if (action === 'cancel') {
-        setWorkflowState('idle');
-        onClose();
         // Ticket generation cancelled
+        onClose();
       }
-    } catch (error) {
-      console.error('Failed to resume workflow:', error);
-      // Error state handled in store
-    } finally {
+
       setIsLoading(false);
-      setSelectedAction(null);
+    } catch (err: any) {
+      console.error('Error handling findings review:', err);
+      setIsLoading(false);
+      // Error state is managed by store
     }
   };
 
