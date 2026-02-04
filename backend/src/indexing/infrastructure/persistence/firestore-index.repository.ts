@@ -111,6 +111,8 @@ export class FirestoreIndexRepository implements IndexRepository {
 
   async findByWorkspace(workspaceId: string): Promise<Index[]> {
     try {
+      this.logger.log(`[findByWorkspace] 🔍 Querying indexes for workspace: ${workspaceId}`);
+      
       const timeoutMs = 10000; // 10 second timeout
       const queryPromise = this.firestore
         .collection('workspaces')
@@ -120,15 +122,29 @@ export class FirestoreIndexRepository implements IndexRepository {
         .get();
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Firestore query timeout')), timeoutMs)
+        setTimeout(() => {
+          this.logger.error(`[findByWorkspace] ⏱️  TIMEOUT after ${timeoutMs}ms for workspace: ${workspaceId}`);
+          reject(new Error('Firestore query timeout'));
+        }, timeoutMs)
       );
 
+      this.logger.debug(`[findByWorkspace] Waiting for query...`);
       const snapshot = await Promise.race([queryPromise, timeoutPromise]);
 
-      this.logger.log(`[findByWorkspace] Found ${snapshot.docs.length} indexes for workspace ${workspaceId}`);
-      return snapshot.docs.map((doc) => this.mapToIndex(doc.data()));
+      this.logger.log(`[findByWorkspace] ✅ Found ${snapshot.docs.length} indexes for workspace ${workspaceId}`);
+      
+      if (snapshot.docs.length === 0) {
+        this.logger.warn(`[findByWorkspace] ⚠️  No indexes found. Collection path: /workspaces/${workspaceId}/indexes`);
+      }
+      
+      return snapshot.docs.map((doc) => {
+        this.logger.debug(`[findByWorkspace] Mapping index: ${doc.id}`);
+        return this.mapToIndex(doc.data());
+      });
     } catch (error) {
-      this.logger.error(`[findByWorkspace] Error fetching indexes for workspace ${workspaceId}:`, error);
+      this.logger.error(`[findByWorkspace] ❌ Error fetching indexes for workspace ${workspaceId}:`, error);
+      this.logger.error(`[findByWorkspace] Error type: ${(error as Error).name}`);
+      this.logger.error(`[findByWorkspace] Error message: ${(error as Error).message}`);
       // Return empty array instead of throwing - graceful degradation
       return [];
     }

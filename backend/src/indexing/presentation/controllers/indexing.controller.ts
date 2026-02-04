@@ -250,14 +250,22 @@ export class IndexingController {
   ): Promise<IndexStatusResponseDto[]> {
     const workspaceId = req.workspaceId;
 
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('[IndexingController.listIndexes] DEBUG INFO:');
+    console.log(`  - WorkspaceId: ${workspaceId}`);
+    console.log(`  - RepositoryId filter: ${repositoryId || 'none'}`);
+    console.log(`  - User: ${req.user?.uid || 'NOT SET'}`);
+    console.log('═══════════════════════════════════════════════════════');
+
     if (!workspaceId) {
-      console.warn('[IndexingController.listIndexes] No workspaceId in request');
+      console.warn('[IndexingController.listIndexes] ⚠️  No workspaceId in request');
       return [];
     }
 
     try {
-      console.log(`[IndexingController.listIndexes] Fetching indexes for workspace: ${workspaceId}, repo: ${repositoryId || 'all'}`);
+      console.log(`[IndexingController.listIndexes] 🔍 Fetching indexes for workspace: ${workspaceId}, repo: ${repositoryId || 'all'}`);
       
+      const startTime = Date.now();
       const indexes = repositoryId
         ? await this.indexRepository.findByWorkspaceAndRepo(
             workspaceId,
@@ -265,7 +273,8 @@ export class IndexingController {
           )
         : await this.indexRepository.findByWorkspace(workspaceId);
 
-      console.log(`[IndexingController.listIndexes] Found ${indexes.length} indexes`);
+      const elapsed = Date.now() - startTime;
+      console.log(`[IndexingController.listIndexes] ✅ Found ${indexes.length} indexes in ${elapsed}ms`);
 
       return indexes.map((index) => ({
         indexId: index.id,
@@ -285,7 +294,8 @@ export class IndexingController {
         errorDetails: index.errorDetails || undefined,
       }));
     } catch (error) {
-      console.error('[IndexingController.listIndexes] Error:', error);
+      console.error('[IndexingController.listIndexes] ❌ Error:', error);
+      console.error('[IndexingController.listIndexes] Error stack:', (error as Error).stack);
       // Return empty array instead of crashing - graceful degradation
       return [];
     }
