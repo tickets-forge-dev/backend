@@ -62,8 +62,9 @@ export async function executeWithRetry<T>(
 
       if (!isTransient || isLastAttempt) {
         const errorType = isTransient ? 'transient' : 'permanent';
+        const errorMsg = error?.message || 'Unknown error';
         console.error(
-          `❌ [${stepName}] Failed after ${attempt} attempts (${errorType}): ${error.message}`
+          `❌ [${stepName}] Failed after ${attempt} attempts (${errorType}): ${errorMsg}`
         );
         return {
           success: false,
