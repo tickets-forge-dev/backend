@@ -112,23 +112,6 @@ export function RepositorySelector() {
     );
   }
 
-  // Show loading state while fetching data
-  if (isLoadingConnection || !hasLoaded) {
-    return (
-      <div className="space-y-2">
-        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-          Repository
-        </label>
-        <div className="h-10 px-3 border border-[var(--border)] rounded-md bg-[var(--bg)] flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
-          <span className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Loading repositories...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   // Show empty state if no repos available
   if (completedRepos.length === 0) {
     return (
