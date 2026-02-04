@@ -19,6 +19,7 @@ import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { executeWithRetry } from './async-retry.utils';
 import { getTelemetry } from '../application/services/WorkflowTelemetry';
+import { StepTelemetryTracker } from './step-telemetry.utils';
 
 // =============================================================================
 // STEP PROGRESS HELPER
@@ -257,6 +258,11 @@ const extractIntentStep = createStep({
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
     const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    const tracker = new StepTelemetryTracker('1', 'Extract Intent');
+    
+    // Start step tracking
+    tracker.startStep({ aecId, workflowRunId });
     
     const contentGenerator = (mastra as any).getService('MastraContentGenerator') as any;
     const aecRepository = (mastra as any).getService('AECRepository') as any;
@@ -266,29 +272,60 @@ const extractIntentStep = createStep({
 
     const aec = await aecRepository.findById(aecId);
     if (!aec) {
+      tracker.errorStep(new Error(`AEC not found: ${aecId}`));
       throw new Error(`AEC not found: ${aecId}`);
     }
 
-    const intentResult = await executeWithRetry(
-      () => contentGenerator.extractIntent({
-        title: aec.title,
-        description: aec.description || '',
-      }),
-      { stepName: 'extractIntent', maxAttempts: 3 }
-    );
+    try {
+      // Track LLM call
+      const llmTracker = tracker.startLLMCall('MastraContentGenerator', {
+        model: 'mastra-default-llm',
+        temperature: 0.3,
+      });
 
-    if (!intentResult.success || !intentResult.data) {
-      await updateStepProgress(aecRepository, aecId, 1, 'failed', intentResult.error?.message);
-      throw intentResult.error || new Error('Failed to extract intent after retries');
+      const intentResult = await executeWithRetry(
+        () => contentGenerator.extractIntent({
+          title: aec.title,
+          description: aec.description || '',
+        }),
+        { stepName: 'extractIntent', maxAttempts: 3 }
+      );
+
+      if (!intentResult.success || !intentResult.data) {
+        llmTracker.error(intentResult.error || new Error('Unknown error'));
+        await updateStepProgress(aecRepository, aecId, 1, 'failed', intentResult.error?.message);
+        throw intentResult.error || new Error('Failed to extract intent after retries');
+      }
+
+      const result = intentResult.data as any;
+      
+      // Complete LLM tracking with token estimates
+      llmTracker.complete(
+        Math.ceil((aec.title.length + (aec.description || '').length) / 4),
+        Math.ceil(result.intent.length / 4)
+      );
+
+      await setState({ intent: result.intent, keywords: result.keywords });
+
+      // Complete step tracking
+      tracker.completeStep({
+        outputSize: result.intent.length,
+        status: 'success',
+        keywordsCount: result.keywords.length,
+        summary: `Intent: ${result.intent.slice(0, 50)}...`,
+      });
+
+      // Update progress: Step 1 complete
+      await updateStepProgress(aecRepository, aecId, 1, 'complete', `Intent: ${result.intent.slice(0, 50)}...`);
+
+      return { intent: result.intent, keywords: result.keywords };
+    } catch (error) {
+      tracker.errorStep(error as Error, { 
+        agent: 'MastraContentGenerator',
+        method: 'extractIntent' 
+      });
+      throw error;
     }
-
-    const result = intentResult.data as any;
-    await setState({ intent: result.intent, keywords: result.keywords });
-
-    // Update progress: Step 1 complete
-    await updateStepProgress(aecRepository, aecId, 1, 'complete', `Intent: ${result.intent.slice(0, 50)}...`);
-
-    return { intent: result.intent, keywords: result.keywords };
   },
 });
 
@@ -305,28 +342,63 @@ const detectTypeStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
+    const tracker = new StepTelemetryTracker('2', 'Detect Type');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({ aecId, workflowRunId, intent: (state as any).intent });
+
     const contentGenerator = (mastra as any).getService('MastraContentGenerator') as any;
     const aecRepository = (mastra as any).getService('AECRepository') as any;
 
     // Update progress: Step 2 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 2, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 2, 'in-progress');
 
-    const typeResult = await executeWithRetry(
-      () => contentGenerator.detectType((state as any).intent || ''),
-      { stepName: 'detectType', maxAttempts: 3 }
-    );
+    try {
+      // Track LLM call
+      const llmTracker = tracker.startLLMCall('MastraContentGenerator', {
+        model: 'mastra-default-llm',
+        temperature: 0.1,  // Lower temperature for deterministic classification
+      });
 
-    if (!typeResult.success || !typeResult.data) {
-      await updateStepProgress(aecRepository, (state as any).aecId!, 2, 'failed', typeResult.error?.message);
-      throw typeResult.error || new Error('Failed to detect type after retries');
+      const typeResult = await executeWithRetry(
+        () => contentGenerator.detectType((state as any).intent || ''),
+        { stepName: 'detectType', maxAttempts: 3 }
+      );
+
+      if (!typeResult.success || !typeResult.data) {
+        llmTracker.error(typeResult.error || new Error('Unknown error'));
+        await updateStepProgress(aecRepository, aecId, 2, 'failed', typeResult.error?.message);
+        throw typeResult.error || new Error('Failed to detect type after retries');
+      }
+
+      // Complete LLM tracking
+      llmTracker.complete(
+        Math.ceil(((state as any).intent || '').length / 4),
+        25  // Type detection produces small output
+      );
+
+      await setState({ type: (typeResult.data as any).type });
+
+      // Complete step tracking
+      tracker.completeStep({
+        outputSize: 20,
+        status: 'success',
+        detectedType: (typeResult.data as any).type,
+        summary: `Type: ${(typeResult.data as any).type}`,
+      });
+
+      // Update progress: Step 2 complete
+      await updateStepProgress(aecRepository, aecId, 2, 'complete', `Type: ${(typeResult.data as any).type}`);
+
+      return { type: (typeResult.data as any).type };
+    } catch (error) {
+      tracker.errorStep(error as Error, {
+        agent: 'MastraContentGenerator',
+        method: 'detectType',
+      });
+      throw error;
     }
-
-    await setState({ type: (typeResult.data as any).type });
-
-    // Update progress: Step 2 complete
-    await updateStepProgress(aecRepository, (state as any).aecId!, 2, 'complete', `Type: ${(typeResult.data as any).type}`);
-
-    return { type: (typeResult.data as any).type };
   },
 });
 
@@ -344,48 +416,111 @@ const preflightValidationStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
+    const tracker = new StepTelemetryTracker('3', 'Preflight Validation');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({ 
+      aecId, 
+      workflowRunId, 
+      agent: 'QuickPreflightValidator',
+      type: (state as any).type,
+    });
+
     const workspaceFactory = (mastra as any).getService('MastraWorkspaceFactory') as any;
     const aecRepository = (mastra as any).getService('AECRepository') as any;
     const validator = (mastra as any).getService('QuickPreflightValidator') as any;
 
     // Update progress: Step 3 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 3, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 3, 'in-progress');
 
-    const aec = await aecRepository.findById((state as any).aecId!);
+    const aec = await aecRepository.findById(aecId);
     if (!aec) {
-      throw new Error(`AEC not found: ${(state as any).aecId!}`);
+      tracker.errorStep(new Error(`AEC not found: ${aecId}`));
+      throw new Error(`AEC not found: ${aecId}`);
     }
 
     if (!aec.repositoryContext) {
       console.warn('[preflightValidation] No repository context, skipping validation');
+      tracker.completeStep({
+        outputSize: 0,
+        status: 'skipped',
+        reason: 'No repository context',
+        findingsCount: 0,
+      });
       await setState({ findings: [] });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 3, 'complete', 'No repository context');
+      await updateStepProgress(aecRepository, aecId, 3, 'complete', 'No repository context');
       return { findings: [], hasCritical: false };
     }
 
     // Check if workspace factory and validator are available
     if (!workspaceFactory?.getOrCreateWorkspace || !validator?.validate) {
       console.warn('[preflightValidation] Validator services not available, skipping');
+      tracker.completeStep({
+        outputSize: 0,
+        status: 'skipped',
+        reason: 'Validator not available',
+        findingsCount: 0,
+      });
       await setState({ findings: [] });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 3, 'complete', 'Validation skipped');
+      await updateStepProgress(aecRepository, aecId, 3, 'complete', 'Validation skipped');
       return { findings: [], hasCritical: false };
     }
 
-    const workspace = await workspaceFactory.getOrCreateWorkspace(
-      (state as any).workspaceId!,
-      aec.repositoryContext.repositoryFullName,
-      aec.repositoryContext.indexId
-    );
+    try {
+      // Track agent tool execution
+      tracker.recordAgentCall('QuickPreflightValidator', 'getOrCreateWorkspace', 'pending', 0);
 
-    const findings = await validator.validate(aec, workspace);
-    await setState({ findings });
-    const hasCritical = findings.some((f: any) => f.severity === 'critical');
+      const workspace = await workspaceFactory.getOrCreateWorkspace(
+        (state as any).workspaceId!,
+        aec.repositoryContext.repositoryFullName,
+        aec.repositoryContext.indexId
+      );
 
-    // Update progress: Step 3 complete
-    const findingsSummary = hasCritical ? `${findings.length} findings (CRITICAL)` : `${findings.length} findings`;
-    await updateStepProgress(aecRepository, (state as any).aecId!, 3, 'complete', findingsSummary);
+      // Track agent validation execution
+      const validationStartTime = Date.now();
+      tracker.recordAgentCall('QuickPreflightValidator', 'validate', 'in-progress', 0, {
+        repository: aec.repositoryContext.repositoryFullName,
+      });
 
-    return { findings, hasCritical };
+      const findings = await validator.validate(aec, workspace);
+      const validationDuration = Date.now() - validationStartTime;
+
+      await setState({ findings });
+      const hasCritical = findings.some((f: any) => f.severity === 'critical');
+
+      // Complete agent tool tracking
+      tracker.recordAgentCall('QuickPreflightValidator', 'validate', 'success', validationDuration, {
+        findingsCount: findings.length,
+        criticalCount: findings.filter((f: any) => f.severity === 'critical').length,
+        categories: findings.map((f: any) => f.category).join(', '),
+      });
+
+      // Complete step tracking
+      const findingsSummary = hasCritical ? `${findings.length} findings (CRITICAL)` : `${findings.length} findings`;
+      tracker.completeStep({
+        outputSize: findings.length * 100,  // Estimate
+        status: 'success',
+        findingsCount: findings.length,
+        hasCritical,
+        criticalCount: findings.filter((f: any) => f.severity === 'critical').length,
+        warningCount: findings.filter((f: any) => f.severity === 'warning').length,
+        agent: 'QuickPreflightValidator',
+        duration: validationDuration,
+        summary: findingsSummary,
+      });
+
+      // Update progress: Step 3 complete
+      await updateStepProgress(aecRepository, aecId, 3, 'complete', findingsSummary);
+
+      return { findings, hasCritical };
+    } catch (error) {
+      tracker.errorStep(error as Error, {
+        agent: 'QuickPreflightValidator',
+        method: 'validate',
+      });
+      throw error;
+    }
   },
 });
 
@@ -470,66 +605,144 @@ const gatherRepoContextStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
+    const tracker = new StepTelemetryTracker('5', 'Gather Repository Context');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({
+      aecId,
+      workflowRunId,
+      keywords: ((state as any).keywords || []).join(', '),
+      service: 'IndexQueryService',
+    });
+
     const indexQueryService = (mastra as any).getService('IndexQueryService') as any;
     const aecRepository = (mastra as any).getService('AECRepository') as any;
 
     // Update progress: Step 5 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 5, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 5, 'in-progress');
 
-    const aec = await aecRepository.findById((state as any).aecId!);
+    const aec = await aecRepository.findById(aecId);
     if (!aec || !aec.repositoryContext) {
       console.warn('[gatherRepoContext] No repository context');
+      tracker.completeStep({
+        outputSize: 0,
+        status: 'skipped',
+        reason: 'No repository context',
+        filesFound: 0,
+      });
       await setState({ repoContext: '' });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 5, 'complete', 'No repository context');
+      await updateStepProgress(aecRepository, aecId, 5, 'complete', 'No repository context');
       return { repoContext: '' };
     }
 
     // Check if service is available
     if (!indexQueryService?.getIndexStatus) {
       console.warn('[gatherRepoContext] IndexQueryService not available');
+      tracker.completeStep({
+        outputSize: 0,
+        status: 'skipped',
+        reason: 'Service unavailable',
+        filesFound: 0,
+      });
       await setState({ repoContext: '' });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 5, 'complete', 'Service unavailable');
+      await updateStepProgress(aecRepository, aecId, 5, 'complete', 'Service unavailable');
       return { repoContext: '' };
     }
 
-    const indexStatusResult = await executeWithRetry(
-      () => indexQueryService.getIndexStatus(aec.repositoryContext.indexId),
-      { stepName: 'gatherRepoContext:indexStatus', maxAttempts: 3 }
-    );
+    try {
+      // Track index status check
+      tracker.recordAgentCall('IndexQueryService', 'getIndexStatus', 'in-progress', 0);
 
-    if (!indexStatusResult.success || !(indexStatusResult.data as any)?.ready) {
-      console.warn('[gatherRepoContext] Index not ready, skipping');
-      await setState({ repoContext: '' });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 5, 'complete', 'Index not ready');
-      return { repoContext: '' };
-    }
+      const indexStatusResult = await executeWithRetry(
+        () => indexQueryService.getIndexStatus(aec.repositoryContext.indexId),
+        { stepName: 'gatherRepoContext:indexStatus', maxAttempts: 3 }
+      );
 
-    const keywords = (state as any).keywords || [];
-    const query = keywords.join(' ') || (state as any).intent || aec.title;
+      if (!indexStatusResult.success || !(indexStatusResult.data as any)?.ready) {
+        console.warn('[gatherRepoContext] Index not ready, skipping');
+        tracker.recordAgentCall('IndexQueryService', 'getIndexStatus', 'skipped', 0, {
+          reason: 'Index not ready',
+        });
+        tracker.completeStep({
+          outputSize: 0,
+          status: 'skipped',
+          reason: 'Index not ready',
+          filesFound: 0,
+        });
+        await setState({ repoContext: '' });
+        await updateStepProgress(aecRepository, aecId, 5, 'complete', 'Index not ready');
+        return { repoContext: '' };
+      }
 
-    const queryResult = await executeWithRetry(
-      () => indexQueryService.query({
-        indexId: aec.repositoryContext.indexId,
-        query,
+      tracker.recordAgentCall('IndexQueryService', 'getIndexStatus', 'success', 0);
+
+      const keywords = (state as any).keywords || [];
+      const query = keywords.join(' ') || (state as any).intent || aec.title;
+
+      // Track query execution
+      tracker.recordAgentCall('IndexQueryService', 'query', 'in-progress', 0, {
+        query: query.substring(0, 50),
         limit: 10,
-      }),
-      { stepName: 'gatherRepoContext:query', maxAttempts: 3 }
-    );
+      });
 
-    if (!queryResult.success || !queryResult.data) {
-      console.warn('[gatherRepoContext] Failed to query index');
-      await setState({ repoContext: '' });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 5, 'complete', 'Query failed');
-      return { repoContext: '' };
+      const queryStartTime = Date.now();
+      const queryResult = await executeWithRetry(
+        () => indexQueryService.query({
+          indexId: aec.repositoryContext.indexId,
+          query,
+          limit: 10,
+        }),
+        { stepName: 'gatherRepoContext:query', maxAttempts: 3 }
+      );
+      const queryDuration = Date.now() - queryStartTime;
+
+      if (!queryResult.success || !queryResult.data) {
+        console.warn('[gatherRepoContext] Failed to query index');
+        tracker.recordAgentCall('IndexQueryService', 'query', 'error', queryDuration, {
+          reason: queryResult.error?.message,
+        });
+        tracker.completeStep({
+          outputSize: 0,
+          status: 'failed',
+          reason: 'Query failed',
+          filesFound: 0,
+        });
+        await setState({ repoContext: '' });
+        await updateStepProgress(aecRepository, aecId, 5, 'complete', 'Query failed');
+        return { repoContext: '' };
+      }
+
+      const filesFound = (queryResult.data as any[]).length;
+      const repoContext = (queryResult.data as any[])
+        .map((r: any) => `${r.path}:\n${r.snippet}`)
+        .join('\n\n');
+
+      tracker.recordAgentCall('IndexQueryService', 'query', 'success', queryDuration, {
+        filesFound,
+        contextLength: repoContext.length,
+      });
+
+      // Complete step tracking
+      tracker.completeStep({
+        outputSize: repoContext.length,
+        status: 'success',
+        filesFound,
+        service: 'IndexQueryService',
+        queryDuration,
+        summary: `Found ${filesFound} relevant files`,
+      });
+
+      await setState({ repoContext });
+      await updateStepProgress(aecRepository, aecId, 5, 'complete', `Found ${filesFound} relevant files`);
+      return { repoContext };
+    } catch (error) {
+      tracker.errorStep(error as Error, {
+        service: 'IndexQueryService',
+        method: 'query',
+      });
+      throw error;
     }
-
-    const repoContext = (queryResult.data as any[])
-      .map((r: any) => `${r.path}:\n${r.snippet}`)
-      .join('\n\n');
-
-    await setState({ repoContext });
-    await updateStepProgress(aecRepository, (state as any).aecId!, 5, 'complete', `Found ${(queryResult.data as any[]).length} relevant files`);
-    return { repoContext };
   },
 });
 
@@ -546,15 +759,31 @@ const gatherApiContextStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
+    const tracker = new StepTelemetryTracker('6', 'Gather API Context');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({
+      aecId,
+      workflowRunId,
+      status: 'TODO - Epic 7.4',
+    });
+
     const aecRepository = (mastra as any).getService('AECRepository') as any;
 
     // Update progress: Step 6 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 6, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 6, 'in-progress');
 
     // TODO: Implement API context gathering (Epic 7.4)
-    await setState({ apiContext: '' });
+    tracker.completeStep({
+      outputSize: 0,
+      status: 'skipped',
+      reason: 'Not yet implemented',
+      feature: 'Epic 7.4',
+    });
 
-    await updateStepProgress(aecRepository, (state as any).aecId!, 6, 'complete', 'API context skipped');
+    await setState({ apiContext: '' });
+    await updateStepProgress(aecRepository, aecId, 6, 'complete', 'API context skipped');
     return { apiContext: '' };
   },
 });
@@ -574,41 +803,101 @@ const draftTicketStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
+    const tracker = new StepTelemetryTracker('7', 'Generate Draft Content');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({
+      aecId,
+      workflowRunId,
+      type: (state as any).type,
+      agent: 'MastraContentGenerator',
+      repoContextLength: ((state as any).repoContext || '').length,
+    });
+
     const contentGenerator = (mastra as any).getService('MastraContentGenerator') as any;
     const aecRepository = (mastra as any).getService('AECRepository') as any;
 
     // Update progress: Step 7 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 7, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 7, 'in-progress');
 
-    const draftResult = await executeWithRetry(
-      () => contentGenerator.generateDraft({
-        intent: (state as any).intent || '',
-        type: (state as any).type || 'FEATURE',
-        repoContext: (state as any).repoContext || '',
-        apiContext: (state as any).apiContext || '',
-      }),
-      { stepName: 'draftTicket', maxAttempts: 3 }
-    );
+    try {
+      // Track LLM call
+      const llmTracker = tracker.startLLMCall('MastraContentGenerator', {
+        model: 'mastra-default-llm',
+        temperature: 0.5,  // Balanced: creative but structured
+      });
 
-    if (!draftResult.success || !draftResult.data) {
-      await updateStepProgress(aecRepository, (state as any).aecId!, 7, 'failed', draftResult.error?.message);
-      throw draftResult.error || new Error('Failed to generate draft after retries');
+      const draftStartTime = Date.now();
+      const draftResult = await executeWithRetry(
+        () => contentGenerator.generateDraft({
+          intent: (state as any).intent || '',
+          type: (state as any).type || 'FEATURE',
+          repoContext: (state as any).repoContext || '',
+          apiContext: (state as any).apiContext || '',
+        }),
+        { stepName: 'draftTicket', maxAttempts: 3 }
+      );
+      const draftDuration = Date.now() - draftStartTime;
+
+      if (!draftResult.success || !draftResult.data) {
+        llmTracker.error(draftResult.error || new Error('Unknown error'));
+        await updateStepProgress(aecRepository, aecId, 7, 'failed', draftResult.error?.message);
+        throw draftResult.error || new Error('Failed to generate draft after retries');
+      }
+
+      const result = draftResult.data as any;
+      
+      // Complete LLM tracking
+      const promptSize = (state as any).intent?.length || 0 + 
+                        ((state as any).repoContext || '').length;
+      const responseSize = JSON.stringify(result).length;
+      
+      llmTracker.complete(
+        Math.ceil(promptSize / 4),
+        Math.ceil(responseSize / 4),
+        draftDuration
+      );
+
+      // Record agent call
+      tracker.recordAgentCall('MastraContentGenerator', 'generateDraft', 'success', draftDuration, {
+        acCount: result.acceptanceCriteria.length,
+        assumptionsCount: result.assumptions.length,
+        repoPathsCount: result.repoPaths.length,
+      });
+
+      await setState({
+        acceptanceCriteria: result.acceptanceCriteria,
+        assumptions: result.assumptions,
+        repoPaths: result.repoPaths,
+      });
+
+      // Complete step tracking
+      tracker.completeStep({
+        outputSize: responseSize,
+        status: 'success',
+        agent: 'MastraContentGenerator',
+        acCount: result.acceptanceCriteria.length,
+        assumptionsCount: result.assumptions.length,
+        repoPathsCount: result.repoPaths.length,
+        duration: draftDuration,
+        summary: `${result.acceptanceCriteria.length} AC, ${result.assumptions.length} assumptions`,
+      });
+
+      await updateStepProgress(aecRepository, aecId, 7, 'complete', `${result.acceptanceCriteria.length} AC, ${result.assumptions.length} assumptions`);
+
+      return {
+        acceptanceCriteria: result.acceptanceCriteria,
+        assumptions: result.assumptions,
+        repoPaths: result.repoPaths,
+      };
+    } catch (error) {
+      tracker.errorStep(error as Error, {
+        agent: 'MastraContentGenerator',
+        method: 'generateDraft',
+      });
+      throw error;
     }
-
-    const result = draftResult.data;
-    await setState({
-      acceptanceCriteria: (result as any).acceptanceCriteria,
-      assumptions: (result as any).assumptions,
-      repoPaths: (result as any).repoPaths,
-    });
-
-    await updateStepProgress(aecRepository, (state as any).aecId!, 7, 'complete', `${(result as any).acceptanceCriteria.length} AC, ${(result as any).assumptions.length} assumptions`);
-
-    return {
-      acceptanceCriteria: (result as any).acceptanceCriteria,
-      assumptions: (result as any).assumptions,
-      repoPaths: (result as any).repoPaths,
-    };
   },
 });
 
@@ -626,61 +915,114 @@ const generateQuestionsStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
+    const tracker = new StepTelemetryTracker('8', 'Generate Questions');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({
+      aecId,
+      workflowRunId,
+      agent: 'FindingsToQuestionsAgent',
+      findingsCount: ((state as any).findings || []).length,
+      acCount: ((state as any).acceptanceCriteria || []).length,
+    });
+
     const findingsAgent = (mastra as any).getService('FindingsToQuestionsAgent') as any;
     const aecRepository = (mastra as any).getService('AECRepository') as any;
 
     // Update progress: Step 8 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 8, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 8, 'in-progress');
 
     // Check if agent is available
     if (!findingsAgent?.generateQuestions) {
       console.warn('[generateQuestions] FindingsToQuestionsAgent not available, skipping');
+      tracker.completeStep({
+        outputSize: 0,
+        status: 'skipped',
+        reason: 'Agent not available',
+        questionsCount: 0,
+      });
       await setState({ questions: [] });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 8, 'complete', 'Questions skipped');
+      await updateStepProgress(aecRepository, aecId, 8, 'complete', 'Questions skipped');
       return { questions: [], hasQuestions: false };
     }
 
-    const questionsResult = await executeWithRetry(
-      () => findingsAgent.generateQuestions({
-        findings: (state as any).findings || [],
-        acceptanceCriteria: (state as any).acceptanceCriteria || [],
-        assumptions: (state as any).assumptions || [],
-      }),
-      { stepName: 'generateQuestions', maxAttempts: 3 }
-    );
+    try {
+      // Track agent call
+      tracker.recordAgentCall('FindingsToQuestionsAgent', 'generateQuestions', 'in-progress', 0);
 
-    if (!questionsResult.success || !questionsResult.data) {
-      console.warn('[generateQuestions] Failed to generate questions, proceeding without');
-      await setState({ questions: [] });
-      await updateStepProgress(aecRepository, (state as any).aecId!, 8, 'complete', 'No questions generated');
-      return { questions: [] as any[], hasQuestions: false };
+      const questionsResult = await executeWithRetry(
+        () => findingsAgent.generateQuestions({
+          findings: (state as any).findings || [],
+          acceptanceCriteria: (state as any).acceptanceCriteria || [],
+          assumptions: (state as any).assumptions || [],
+        }),
+        { stepName: 'generateQuestions', maxAttempts: 3 }
+      );
+
+      if (!questionsResult.success || !questionsResult.data) {
+        console.warn('[generateQuestions] Failed to generate questions, proceeding without');
+        tracker.recordAgentCall('FindingsToQuestionsAgent', 'generateQuestions', 'error', 0, {
+          reason: questionsResult.error?.message,
+        });
+        tracker.completeStep({
+          outputSize: 0,
+          status: 'failed',
+          questionsCount: 0,
+          reason: questionsResult.error?.message,
+        });
+        await setState({ questions: [] });
+        await updateStepProgress(aecRepository, aecId, 8, 'complete', 'No questions generated');
+        return { questions: [] as any[], hasQuestions: false };
+      }
+
+      // Map question types to match workflow schema (single_choice -> radio, multiple_choice -> checkbox)
+      // Also rename 'question' to 'text' and remove undefined values that Firestore can't handle
+      const rawQuestions = questionsResult.data as any[];
+      const questions = rawQuestions.map(q => {
+        const mapped: any = {
+          id: q.id,
+          text: q.question || q.text, // Map question -> text
+          type: q.type === 'single_choice' ? 'radio' : 
+                q.type === 'multiple_choice' ? 'checkbox' : 
+                q.type || 'text'
+        };
+        // Only add options if they exist (Firestore doesn't accept undefined)
+        if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+          mapped.options = q.options;
+        }
+        if (q.required !== undefined) {
+          mapped.required = q.required;
+        }
+        return mapped;
+      });
+      
+      // Complete agent tracking
+      tracker.recordAgentCall('FindingsToQuestionsAgent', 'generateQuestions', 'success', 0, {
+        questionsCount: questions.length,
+        types: questions.map(q => q.type).join(', '),
+      });
+
+      // Complete step tracking
+      tracker.completeStep({
+        outputSize: questions.map(q => JSON.stringify(q)).join('').length,
+        status: 'success',
+        agent: 'FindingsToQuestionsAgent',
+        questionsCount: questions.length,
+        types: [...new Set(questions.map(q => q.type))].join(', '),
+        summary: `${questions.length} questions`,
+      });
+
+      await setState({ questions });
+      await updateStepProgress(aecRepository, aecId, 8, 'complete', `${questions.length} questions`);
+      return { questions, hasQuestions: questions.length > 0 };
+    } catch (error) {
+      tracker.errorStep(error as Error, {
+        agent: 'FindingsToQuestionsAgent',
+        method: 'generateQuestions',
+      });
+      throw error;
     }
-
-    // Map question types to match workflow schema (single_choice -> radio, multiple_choice -> checkbox)
-    // Also rename 'question' to 'text' and remove undefined values that Firestore can't handle
-    const rawQuestions = questionsResult.data as any[];
-    const questions = rawQuestions.map(q => {
-      const mapped: any = {
-        id: q.id,
-        text: q.question || q.text, // Map question -> text
-        type: q.type === 'single_choice' ? 'radio' : 
-              q.type === 'multiple_choice' ? 'checkbox' : 
-              q.type || 'text'
-      };
-      // Only add options if they exist (Firestore doesn't accept undefined)
-      if (q.options && Array.isArray(q.options) && q.options.length > 0) {
-        mapped.options = q.options;
-      }
-      if (q.required !== undefined) {
-        mapped.required = q.required;
-      }
-      return mapped;
-    });
-    
-    await setState({ questions });
-
-    await updateStepProgress(aecRepository, (state as any).aecId!, 8, 'complete', `${questions.length} questions`);
-    return { questions, hasQuestions: questions.length > 0 };
   },
 });
 
@@ -762,16 +1104,34 @@ const refineDraftStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ state, mastra, setState }) => {
+    const tracker = new StepTelemetryTracker('10', 'Refine Draft');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({
+      aecId,
+      workflowRunId,
+      hasAnswers: Object.keys((state as any).answers || {}).length > 0,
+      answersCount: Object.keys((state as any).answers || {}).length,
+    });
+
     const aecRepository = (mastra as any).getService('AECRepository') as any;
 
     // Update progress: Step 10 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 10, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 10, 'in-progress');
 
     // If user provided answers, refine the draft
     if ((state as any).answers && Object.keys((state as any).answers).length > 0) {
       const contentGenerator = (mastra as any).getService('MastraContentGenerator') as any;
 
       try {
+        // Track LLM call
+        const llmTracker = tracker.startLLMCall('MastraContentGenerator', {
+          model: 'mastra-default-llm',
+          temperature: 0.5,
+        });
+
+        const refineStartTime = Date.now();
         const refineResult = await executeWithRetry(
           () => contentGenerator.refineDraft({
             acceptanceCriteria: (state as any).acceptanceCriteria || [],
@@ -780,14 +1140,41 @@ const refineDraftStep = createStep({
           }),
           { stepName: 'refineDraft', maxAttempts: 3 }
         );
+        const refineDuration = Date.now() - refineStartTime;
 
         if (refineResult.success && refineResult.data) {
           const refined = refineResult.data as any;
+          
+          // Complete LLM tracking
+          llmTracker.complete(
+            Math.ceil(JSON.stringify((state as any).answers).length / 4),
+            Math.ceil(JSON.stringify(refined).length / 4),
+            refineDuration
+          );
+
+          // Record agent call
+          tracker.recordAgentCall('MastraContentGenerator', 'refineDraft', 'success', refineDuration, {
+            originalACCount: ((state as any).acceptanceCriteria || []).length,
+            refinedACCount: refined.acceptanceCriteria.length,
+          });
+
           await setState({
             acceptanceCriteria: refined.acceptanceCriteria,
             assumptions: refined.assumptions,
           });
-          await updateStepProgress(aecRepository, (state as any).aecId!, 10, 'complete', 'Draft refined with answers');
+
+          // Complete step tracking
+          tracker.completeStep({
+            outputSize: JSON.stringify(refined).length,
+            status: 'success',
+            agent: 'MastraContentGenerator',
+            originalACCount: ((state as any).acceptanceCriteria || []).length,
+            refinedACCount: refined.acceptanceCriteria.length,
+            duration: refineDuration,
+            summary: 'Draft refined with user answers',
+          });
+
+          await updateStepProgress(aecRepository, aecId, 10, 'complete', 'Draft refined with answers');
           return {
             acceptanceCriteria: refined.acceptanceCriteria,
             assumptions: refined.assumptions,
@@ -796,11 +1183,20 @@ const refineDraftStep = createStep({
         }
       } catch (error) {
         console.warn('[refineDraft] Refinement failed, using original draft');
+        tracker.recordAgentCall('MastraContentGenerator', 'refineDraft', 'error', 0, {
+          reason: (error as Error).message,
+        });
       }
+    } else {
+      tracker.completeStep({
+        outputSize: 0,
+        status: 'skipped',
+        reason: 'No user answers provided',
+      });
     }
 
     // Return existing state if no refinement needed
-    await updateStepProgress(aecRepository, (state as any).aecId!, 10, 'complete', 'No refinement needed');
+    await updateStepProgress(aecRepository, aecId, 10, 'complete', 'No refinement needed');
     return {
       acceptanceCriteria: (state as any).acceptanceCriteria || [],
       assumptions: (state as any).assumptions || [],
@@ -823,56 +1219,112 @@ const finalizeStep = createStep({
   }),
   stateSchema: workflowStateSchema,
   execute: async ({ inputData, state, mastra }) => {
+    const tracker = new StepTelemetryTracker('11', 'Finalize Ticket');
+    const aecId = (state as any).aecId!;
+    const workflowRunId = (state as any).workflowRunId!;
+    
+    tracker.startStep({
+      aecId,
+      workflowRunId,
+      type: (state as any).type,
+      acCount: ((state as any).acceptanceCriteria || []).length,
+      assumptionsCount: ((state as any).assumptions || []).length,
+    });
+
     const aecRepository = (mastra as any).getService('AECRepository') as any;
 
     // Update progress: Step 11 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 11, 'in-progress');
+    await updateStepProgress(aecRepository, aecId, 11, 'in-progress');
 
-    const aec = await aecRepository.findById((state as any).aecId!);
+    const aec = await aecRepository.findById(aecId);
     if (!aec) {
-      throw new Error(`AEC not found: ${(state as any).aecId!}`);
+      tracker.errorStep(new Error(`AEC not found: ${aecId}`));
+      throw new Error(`AEC not found: ${aecId}`);
     }
 
-    // Update AEC with workflow outputs
-    aec.updateContent(
-      (state as any).type || null,
-      (state as any).acceptanceCriteria || [],
-      (state as any).assumptions || [],
-      (state as any).repoPaths || [],
-    );
-
-    // Transition to VALIDATED state
     try {
-      aec.validate([]);
-      console.log(`📊 [finalize] AEC transitioned to VALIDATED`);
-    } catch (stateError: any) {
-      console.warn('[finalize] State transition failed:', stateError.message);
+      // Track content update
+      tracker.recordAgentCall('AECRepository', 'updateContent', 'in-progress', 0);
+
+      // Update AEC with workflow outputs
+      aec.updateContent(
+        (state as any).type || null,
+        (state as any).acceptanceCriteria || [],
+        (state as any).assumptions || [],
+        (state as any).repoPaths || [],
+      );
+
+      tracker.recordAgentCall('AECRepository', 'updateContent', 'success', 0);
+
+      // Transition to VALIDATED state
+      try {
+        aec.validate([]);
+        console.log(`📊 [finalize] AEC transitioned to VALIDATED`);
+        tracker.recordAgentCall('AEC', 'validate', 'success', 0);
+      } catch (stateError: any) {
+        console.warn('[finalize] State transition failed:', stateError.message);
+        tracker.recordAgentCall('AEC', 'validate', 'error', 0, {
+          reason: stateError.message,
+        });
+      }
+
+      // Update progress: Step 11 complete, Step 12 in progress
+      await updateStepProgress(aecRepository, aecId, 11, 'complete', 'Content saved');
+      await updateStepProgress(aecRepository, aecId, 12, 'in-progress');
+
+      // Unlock the AEC
+      aec.unlock();
+
+      // Track persistence
+      const persistStartTime = Date.now();
+      const persistResult = await executeWithRetry(
+        () => aecRepository.update(aec),
+        { stepName: 'finalize:persist', maxAttempts: 3 }
+      );
+      const persistDuration = Date.now() - persistStartTime;
+
+      if (!persistResult.success) {
+        tracker.recordAgentCall('AECRepository', 'persist', 'error', persistDuration, {
+          reason: persistResult.error?.message,
+        });
+        await updateStepProgress(aecRepository, aecId, 12, 'failed', 'Failed to save');
+        throw persistResult.error || new Error('Failed to persist AEC after retries');
+      }
+
+      tracker.recordAgentCall('AECRepository', 'persist', 'success', persistDuration);
+
+      // Update progress: Step 12 complete (all done!)
+      await updateStepProgress(aecRepository, aecId, 12, 'complete', 'Unlocked');
+
+      // Complete step tracking
+      tracker.completeStep({
+        outputSize: JSON.stringify(aec).length,
+        status: 'success',
+        acCount: ((state as any).acceptanceCriteria || []).length,
+        assumptionsCount: ((state as any).assumptions || []).length,
+        persistDuration,
+        summary: 'Workflow complete and unlocked',
+      });
+
+      // Record workflow completion
+      getTelemetry().completeWorkflow(workflowRunId, 'success', {
+        aecId,
+        acCount: ((state as any).acceptanceCriteria || []).length,
+        assumptionsCount: ((state as any).assumptions || []).length,
+        type: (state as any).type,
+      });
+
+      console.log(`✅ [finalize] Saved workflow outputs to AEC ${aecId}`);
+      console.log(`🔓 [finalize] Unlocked AEC ${aecId}`);
+
+      return { success: true, unlocked: true };
+    } catch (error) {
+      tracker.errorStep(error as Error, {
+        method: 'finalize',
+      });
+      getTelemetry().failWorkflow(workflowRunId, error as Error, { aecId });
+      throw error;
     }
-
-    // Update progress: Step 11 complete, Step 12 in progress
-    await updateStepProgress(aecRepository, (state as any).aecId!, 11, 'complete', 'Content saved');
-    await updateStepProgress(aecRepository, (state as any).aecId!, 12, 'in-progress');
-
-    // Unlock the AEC
-    aec.unlock();
-
-    const persistResult = await executeWithRetry(
-      () => aecRepository.update(aec),
-      { stepName: 'finalize:persist', maxAttempts: 3 }
-    );
-
-    if (!persistResult.success) {
-      await updateStepProgress(aecRepository, (state as any).aecId!, 12, 'failed', 'Failed to save');
-      throw persistResult.error || new Error('Failed to persist AEC after retries');
-    }
-
-    // Update progress: Step 12 complete (all done!)
-    await updateStepProgress(aecRepository, (state as any).aecId!, 12, 'complete', 'Unlocked');
-
-    console.log(`✅ [finalize] Saved workflow outputs to AEC ${(state as any).aecId!}`);
-    console.log(`🔓 [finalize] Unlocked AEC ${(state as any).aecId!}`);
-
-    return { success: true, unlocked: true };
   },
 });
 

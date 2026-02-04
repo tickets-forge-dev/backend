@@ -494,6 +494,74 @@ So that external systems and agents can parse, validate, and execute tickets pro
 
 ---
 
+### Story 2.6: Additional Context Input for Ticket Creation
+
+As a Product Manager,
+I want to provide additional context (text, images, audio, video) when creating a ticket,
+So that the AI has all relevant information to generate a high-quality executable ticket.
+
+**Acceptance Criteria:**
+
+**Given** a user is creating a new ticket
+**When** they reach the ticket creation flow
+**Then** they see a multi-step wizard with clear progress:
+- Step 1: Basic Info (title, description)
+- Step 2: Repository Selection (critical - emphasized)
+- Step 3: Additional Context (optional)
+
+**And** on Step 2 (Repository Selection):
+- Clear messaging: "Repository context is critical for code-aware generation"
+- Helper text explains why repository matters
+- UI is clean and minimal
+
+**And** on Step 3 (Additional Context):
+- Section title: "Additional Context (Optional)"
+- Helper text: "Paste conversations, upload screenshots, or add voice notes"
+- Text area for additional text (multiline)
+- File upload area with drag-and-drop support
+- Supported file types: Images (PNG, JPG), Audio (MP3, M4A), Video (MP4, MOV)
+- Multiple files can be uploaded
+- File preview shown after upload
+
+**And** when user uploads a file:
+- File uploaded directly to Firebase Storage
+- Upload progress shown (percentage)
+- Thumbnail/icon shown after upload
+- File name and size displayed
+- Remove button available
+
+**And** when user submits the ticket:
+- All context (repository + text + files) passed to generation workflow
+- Files stored in Firebase Storage: `/workspaces/{workspaceId}/context/{aecId}/{fileName}`
+- Context metadata saved in AEC entity
+
+**And** during ticket generation (Step 1: Intent Extraction):
+- LLM receives full context object (repository, title, description, additional text, files)
+- Images analyzed via vision model (GPT-4V or Claude 3 Opus)
+- Audio transcribed via Whisper API
+- Video processed (frames extracted + audio transcribed)
+
+**And** context is preserved in AEC:
+- AEC entity includes `contextInput` field with repository, text, and files
+- Files accessible via Firebase Storage URLs
+- Context viewable in ticket detail page
+
+**Prerequisites:** Story 2.1 (will refactor to wizard), Story 2.3 (AEC domain)
+
+**Technical Notes:**
+- Domain value object: `ContextInput` (repository, additionalText, files[])
+- File upload endpoint: `POST /api/tickets/upload-context`
+- Multimodal LLM: GPT-4 Vision (images), Whisper (audio), FFmpeg (video frames)
+- Frontend: Multi-step wizard with `CreateTicketWizard.tsx`, `AdditionalContextStep.tsx`, `ContextFileUpload.tsx`
+- Storage: Firebase Storage with workspace-scoped paths
+- Security: File type validation, size limits (50MB/file, 200MB total), virus scanning (future)
+
+**Covers:** FR1 (extended), FR2 (enhanced with multimodal context)
+
+**Priority:** P0 (Critical for v1 - enables rich context input)
+
+---
+
 ## Epic 3: Clarification & Validation
 
 **Goal:** Improve ticket quality through intelligent questioning and comprehensive validation.
@@ -2297,5 +2365,282 @@ So that we have consistent patterns, reduce dependencies, and leverage Mastra ca
 
 **Innovation:**
 This epic represents a paradigm shift in ticket validation - from static scoring to dynamic code analysis. By simulating implementation in a real environment, we catch issues that abstract validators miss.
+
+---
+
+## Epic 8: Observability & Distributed Tracing
+
+**Goal:** Implement comprehensive observability across the ticket generation workflow using Mastra's built-in tracing system, enabling production monitoring, debugging, and performance optimization.
+
+**Value:** Provides visibility into LLM operations, agent decisions, and workflow execution. Enables debugging production issues, optimizing performance, and integrating with external monitoring platforms (DataDog, Langfuse, OpenTelemetry).
+
+**Product Impact:** 
+- Reduced mean time to resolution (MTTR) for production issues
+- Ability to measure LLM quality and performance
+- Data for optimizing prompts and models
+- Integration with existing ops/monitoring tooling
+
+**Technical Impact:**
+- Distributed tracing across workflow steps
+- LLM token metrics and cost tracking
+- Agent decision visibility
+- Performance profiling
+
+---
+
+### Story 8.1: Observability Foundation & Mastra Tracing Setup
+
+As a platform engineer,
+I want observability infrastructure configured with Mastra's built-in exporters,
+So that I can persist traces and integrate with external monitoring platforms.
+
+**Acceptance Criteria:**
+
+**Given** a NestJS backend running Mastra workflows
+**When** Story 8.1 is complete
+**Then** the MastraService initializes Observability with:
+- DefaultExporter for local storage
+- SensitiveDataFilter for redacting tokens/passwords
+- PinoLogger for structured logging
+- Environment variables for configuration
+
+**And** the backend can be started with observability enabled:
+```bash
+MASTRA_OBSERVABILITY_ENABLED=true npm run start:dev
+```
+
+**And** traces are persisted to storage and queryable
+
+**And** no sensitive data appears in logs/traces:
+- Bearer tokens redacted
+- API keys redacted
+- Passwords redacted
+- User tokens redacted
+
+**And** structured logging captures:
+- All INFO, WARN, ERROR levels
+- Request/response metadata
+- LLM call metrics
+- Performance data
+
+**Prerequisites:** Story 7.10 (HITL workflow working end-to-end)
+
+**Technical Notes:**
+- Create `backend/src/shared/infrastructure/observability/observability.config.ts`
+- Import `Observability` from `@mastra/observability`
+- Add exporters factory in `exporters.ts`
+- Update MastraService to use observability
+- Add env variables: MASTRA_OBSERVABILITY_ENABLED, MASTRA_OBSERVABILITY_SAMPLING, MASTRA_CLOUD_ACCESS_TOKEN
+
+**Rationale:** Foundation for all tracing features. Must be configured first before step tracing can work.
+
+---
+
+### Story 8.2: Workflow Step Tracing & Metrics
+
+As a developer,
+I want all 12 workflow steps to emit distributed traces,
+So that I can debug workflow execution and measure step performance.
+
+**Acceptance Criteria:**
+
+**Given** the ticket-generation.workflow runs
+**When** each step executes
+**Then** a trace span is created with:
+- Step ID and name
+- Input data (request payload)
+- Output data (step result)
+- Duration in milliseconds
+- Status (completed, failed, skipped)
+- Timestamp
+
+**And** step transitions are logged:
+- "Step 1 → 2 transition"
+- Parallel step execution noted
+- Branch/loop logic visible
+
+**And** error spans capture:
+- Exception message
+- Stack trace
+- Retry attempts
+- Final status
+
+**And** traces are viewable in Mastra Studio:
+- Timeline shows step sequence
+- Hovering shows full span details
+- Colors indicate status (green=ok, red=error)
+
+**Prerequisites:** Story 8.1 (Observability foundation)
+
+**Technical Notes:**
+- Add Mastra `@span()` decorators to workflow step functions
+- Export step metrics: duration, token count, error count
+- Update workflow steps to wrap execution in trace context
+- Test with local Mastra Studio
+- Verify < 5% latency overhead
+
+**Metrics to capture:**
+- Step name, ID, duration
+- Input size (tokens if applicable)
+- Output size
+- Success/failure
+- Error message if failed
+
+---
+
+### Story 8.3: LLM Call Tracing & Token Metrics
+
+As a platform engineer,
+I want to capture token usage and performance for every LLM call,
+So that I can track costs, optimize prompts, and measure model performance.
+
+**Acceptance Criteria:**
+
+**Given** LLM calls in MastraContentGenerator or agents
+**When** each LLM call completes
+**Then** a trace captures:
+- Model name (e.g., "qwen2.5-coder:latest")
+- Prompt tokens
+- Completion tokens
+- Total tokens
+- Duration in milliseconds
+- Temperature and other parameters
+- Success/failure
+
+**And** aggregated metrics are available:
+- Total tokens per workflow
+- Average LLM latency
+- Model distribution (if multiple models used)
+- Error rate
+
+**And** traces link LLM calls to parent workflow steps
+
+**And** prompt/completion pairs are redacted if containing sensitive data
+
+**Prerequisites:** Story 8.2 (Workflow step tracing)
+
+**Technical Notes:**
+- Extract metrics from LLM response object
+- Update MastraContentGenerator.callOllama() to trace metrics
+- Update LLM call wrappers in agents
+- Calculate cost estimates if pricing available
+- Store metrics in trace context
+
+**Cost Calculation (optional):**
+- OpenAI: $0.003 per 1K prompt tokens, $0.009 per 1K completion tokens
+- Claude: $0.003/$0.015 (Sonnet), $0.0008/$0.0024 (Haiku)
+- Local models (Ollama): $0
+
+---
+
+### Story 8.4: Agent Tool Call Tracing
+
+As a developer,
+I want to trace agent tool calls and decisions,
+So that I can debug agent behavior and understand decision paths.
+
+**Acceptance Criteria:**
+
+**Given** agents executing tools (FindingsToQuestionsAgent, QuickPreflightValidator)
+**When** a tool is called
+**Then** a trace span captures:
+- Tool name
+- Input arguments
+- Output/result
+- Duration
+- Success/failure
+
+**And** agent decisions are logged:
+- Reasoning steps
+- Tool selection rationale
+- Branching decisions
+
+**And** traces show tool call chain:
+- Parent agent span
+- Child tool call spans
+- Results flowing back to agent
+
+**And** tool failures are traced with:
+- Exception details
+- Retry attempts
+- Final status
+
+**Prerequisites:** Story 8.3 (LLM tracing)
+
+**Technical Notes:**
+- Add tracing to FindingsToQuestionsAgent execute method
+- Add tracing to QuickPreflightValidator steps
+- Trace RepoIndexingService queries
+- Trace validation rules evaluation
+- Export agent metrics
+
+---
+
+### Story 8.5: External Exporter Integration (Optional)
+
+As an ops engineer,
+I want to export traces to external monitoring platforms,
+So that I can integrate observability with existing ops tools.
+
+**Acceptance Criteria:**
+
+**Given** external exporters are configured
+**When** traces are generated
+**Then** traces are exported to:
+- Langfuse (if LANGFUSE_API_KEY set)
+- DataDog (if DATADOG_API_KEY set)
+- OpenTelemetry collector (if OTEL_EXPORTER_OTLP_ENDPOINT set)
+
+**And** each exporter can be independently enabled/disabled
+
+**And** exporter failures don't break the application
+
+**And** sampling can be adjusted per exporter
+
+**Prerequisites:** Story 8.4 (Core tracing working)
+
+**Technical Notes:**
+- Create exporter factory pattern
+- Support Langfuse via `@langfuse/integration` with Mastra
+- Support DataDog via `dd-trace` package
+- Support OTEL via `@opentelemetry/*` packages
+- Make exporters optional dependencies
+
+**Supported Exporters:**
+```typescript
+new LangfuseExporter({ apiKey: process.env.LANGFUSE_API_KEY })
+new DataDogExporter({ apiKey: process.env.DATADOG_API_KEY })
+new OTelExporter({ endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT })
+```
+
+---
+
+## Epic 8 Summary
+
+**Stories:** 5 total (2 required, 3 optional)
+**Effort:** Medium (3-4 days)
+**Dependencies:** Epic 7 (HITL workflow complete)
+
+**Technology Stack:**
+- `@mastra/observability` - Tracing & exporters
+- `@mastra/loggers` - PinoLogger
+- Optional: `langfuse`, `dd-trace`, `@opentelemetry/*`
+
+**Key Outcomes:**
+- Full visibility into ticket generation workflow
+- LLM token tracking and cost estimation
+- Production debugging capabilities
+- Integration with ops platforms
+- Performance optimization data
+
+**Success Metrics:**
+- All 12 workflow steps traced
+- Traces visible in Mastra Studio < 1s
+- < 5% latency overhead from tracing
+- 100% of LLM calls have token metrics
+- No sensitive data in traces
+
+**Innovation:**
+Most AI applications lack proper observability for LLM operations. This epic brings production-grade monitoring to forge, enabling data-driven optimization and rapid issue resolution.
 
 ---

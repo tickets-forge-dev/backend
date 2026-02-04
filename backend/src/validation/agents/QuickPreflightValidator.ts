@@ -3,6 +3,7 @@ import { Workspace } from '@mastra/core/workspace';
 import { Injectable, Logger } from '@nestjs/common';
 import { AEC } from '../../tickets/domain/aec/AEC';
 import { Finding, FindingFactory } from '../domain/Finding';
+import { getTelemetry } from '../../tickets/application/services/WorkflowTelemetry';
 import { z } from 'zod';
 
 /**
@@ -70,7 +71,16 @@ export class QuickPreflightValidator {
    */
   async validate(aec: AEC, workspace: Workspace): Promise<Finding[]> {
     const startTime = Date.now();
+    const telemetry = getTelemetry();
+    
     this.logger.log(`🚀 Starting quick preflight for ticket: ${aec.id}`);
+    
+    telemetry.info('QuickPreflightValidator: Validation started', {
+      agent: 'QuickPreflightValidator',
+      ticketId: aec.id,
+      title: aec.title,
+      acCount: aec.acceptanceCriteria.length,
+    });
 
     // Reset performance metrics
     this.performanceMetrics = {
@@ -86,6 +96,12 @@ export class QuickPreflightValidator {
       this.logger.log(
         `📚 Selected ${selectedSkills.length} skills: ${selectedSkills.map((s) => s.name).join(', ')}`,
       );
+
+      telemetry.info('QuickPreflightValidator: Skills selected', {
+        agent: 'QuickPreflightValidator',
+        skillCount: selectedSkills.length,
+        skills: selectedSkills.map((s) => s.name),
+      });
 
       // Create efficient preflight agent with skill instructions
       const agent = this.createPreflightAgent(workspace, selectedSkills);
@@ -117,11 +133,23 @@ export class QuickPreflightValidator {
       // Alert if exceeding constraints
       if (duration > 25000) {
         this.logger.warn(`⚠️ Validation took ${duration}ms (approaching 30s limit)`);
+        telemetry.warn('QuickPreflightValidator: Validation approaching timeout', {
+          agent: 'QuickPreflightValidator',
+          duration,
+          limit: this.MAX_EXECUTION_TIME_MS,
+        });
       }
 
       this.logger.log(
         `✅ Preflight complete: ${findings.length} findings in ${duration}ms`,
       );
+
+      telemetry.info('QuickPreflightValidator: Validation completed successfully', {
+        agent: 'QuickPreflightValidator',
+        findingsCount: findings.length,
+        duration,
+        metrics: this.performanceMetrics,
+      });
 
       return findings;
     } catch (err: unknown) {
@@ -131,8 +159,17 @@ export class QuickPreflightValidator {
       // Check if it's a model configuration error - this is expected without Mastra LLM setup
       if (error.message.includes('Could not find config') || error.message.includes('API key')) {
         this.logger.warn(`⚠️ Preflight skipped - LLM not configured: ${error.message}`);
+        telemetry.warn('QuickPreflightValidator: LLM not configured, skipping', {
+          agent: 'QuickPreflightValidator',
+          duration,
+          reason: error.message,
+        });
       } else {
         this.logger.error(`❌ Preflight failed after ${duration}ms: ${error.message}`);
+        telemetry.error('QuickPreflightValidator: Validation failed', error, {
+          agent: 'QuickPreflightValidator',
+          duration,
+        });
       }
 
       // Return empty findings on error (don't block ticket creation)
@@ -148,6 +185,8 @@ export class QuickPreflightValidator {
     workspace: Workspace,
   ): Promise<any[]> {
     try {
+      const telemetry = getTelemetry();
+      
       // Get all available skills from workspace
       const allSkills = workspace.skills || [];
 
@@ -171,9 +210,21 @@ export class QuickPreflightValidator {
         })
         .slice(0, 2); // Limit to 2 skills max
 
+      telemetry.info('QuickPreflightValidator: Skills evaluated', {
+        agent: 'QuickPreflightValidator',
+        totalAvailable: allSkills.length,
+        matchedCount: relevantSkills.length,
+        keywords: keywords.join(', '),
+      });
+
       return relevantSkills;
     } catch (error) {
+      const telemetry = getTelemetry();
       this.logger.warn('Failed to select skills, continuing without skills');
+      telemetry.warn('QuickPreflightValidator: Skill selection failed, continuing', {
+        agent: 'QuickPreflightValidator',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       return [];
     }
   }
@@ -336,12 +387,17 @@ START VALIDATION NOW.
    * Extract findings from structured agent response
    */
   private extractFindings(result: any): Finding[] {
+    const telemetry = getTelemetry();
+    
     try {
       // Structured output should be in result.object
       const data = result.object || result;
 
       if (!data?.findings || !Array.isArray(data.findings)) {
         this.logger.warn('No findings array in agent response');
+        telemetry.warn('QuickPreflightValidator: No findings in response', {
+          agent: 'QuickPreflightValidator',
+        });
         return [];
       }
 
@@ -359,10 +415,22 @@ START VALIDATION NOW.
       );
 
       // Limit to 10 findings max
-      return findings.slice(0, 10);
+      const limitedFindings = findings.slice(0, 10);
+
+      telemetry.info('QuickPreflightValidator: Findings extracted', {
+        agent: 'QuickPreflightValidator',
+        totalFindings: findings.length,
+        limitedTo: limitedFindings.length,
+        categories: limitedFindings.map(f => f.category).join(', '),
+      });
+
+      return limitedFindings;
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to extract findings: ${err.message}`);
+      telemetry.error('QuickPreflightValidator: Finding extraction failed', err, {
+        agent: 'QuickPreflightValidator',
+      });
       return [];
     }
   }

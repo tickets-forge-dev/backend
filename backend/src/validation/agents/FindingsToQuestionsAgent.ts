@@ -20,6 +20,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { LLMConfigService } from '../../shared/infrastructure/mastra/llm.config';
+import { getTelemetry } from '../../tickets/application/services/WorkflowTelemetry';
 
 export interface Finding {
   category: string;
@@ -56,6 +57,16 @@ export class FindingsToQuestionsAgent {
   async generateQuestions(
     input: GenerateQuestionsInput,
   ): Promise<Question[]> {
+    const startTime = Date.now();
+    const telemetry = getTelemetry();
+    
+    telemetry.info('FindingsToQuestionsAgent: Starting question generation', {
+      agent: 'FindingsToQuestionsAgent',
+      findingsCount: input.findings.length,
+      acCount: input.acceptanceCriteria.length,
+      assumptionsCount: input.assumptions.length,
+    });
+
     const llm = this.llmConfig.getDefaultLLM();
 
     // Check if we should skip questions
@@ -66,6 +77,10 @@ export class FindingsToQuestionsAgent {
     
     if (shouldSkip && !needsClarification) {
       console.log('[FindingsToQuestionsAgent] No questions needed - draft looks good');
+      telemetry.info('FindingsToQuestionsAgent: Skipping questions - AC looks good', {
+        agent: 'FindingsToQuestionsAgent',
+        reason: 'No critical findings + good AC quality',
+      });
       return [];
     }
 
@@ -73,6 +88,22 @@ export class FindingsToQuestionsAgent {
 
     try {
       const response = await llm.generate(prompt);
+      const duration = Date.now() - startTime;
+      
+      // Record LLM call
+      telemetry.recordLLMCall(
+        'mastra-default-llm',
+        prompt.substring(0, 150),
+        response.substring(0, 150),
+        {
+          promptTokens: Math.ceil(prompt.length / 4),
+          completionTokens: Math.ceil(response.length / 4),
+          totalTokens: Math.ceil((prompt.length + response.length) / 4),
+          duration,
+          success: true,
+        }
+      );
+
       // Try to extract JSON from response
       let parsed;
       try {
@@ -85,6 +116,10 @@ export class FindingsToQuestionsAgent {
         }
       } catch {
         console.warn('[FindingsToQuestionsAgent] Failed to parse LLM response, using fallback');
+        telemetry.warn('FindingsToQuestionsAgent: LLM response parse failed, using fallback', {
+          agent: 'FindingsToQuestionsAgent',
+          responseLength: response.length,
+        });
         return this.generateDefaultQuestions(input.acceptanceCriteria);
       }
 
@@ -93,13 +128,31 @@ export class FindingsToQuestionsAgent {
 
       if (questions.length === 0) {
         // LLM returned no valid questions, generate defaults
+        telemetry.info('FindingsToQuestionsAgent: LLM returned no valid questions, using defaults', {
+          agent: 'FindingsToQuestionsAgent',
+        });
         return this.generateDefaultQuestions(input.acceptanceCriteria);
       }
 
       console.log(`[FindingsToQuestionsAgent] Generated ${questions.length} questions`);
+      
+      const totalDuration = Date.now() - startTime;
+      telemetry.info('FindingsToQuestionsAgent: Questions generated successfully', {
+        agent: 'FindingsToQuestionsAgent',
+        questionsCount: questions.length,
+        duration: totalDuration,
+      });
+      
       return questions;
     } catch (error) {
+      const duration = Date.now() - startTime;
       console.error('[FindingsToQuestionsAgent] Failed to generate questions:', error);
+      
+      telemetry.error('FindingsToQuestionsAgent: Question generation failed', error as Error, {
+        agent: 'FindingsToQuestionsAgent',
+        duration,
+      });
+      
       // Fallback: Generate default clarifying questions
       return this.generateDefaultQuestions(input.acceptanceCriteria);
     }
@@ -263,6 +316,15 @@ Question types:
     questions: Question[],
     answers: Record<string, any>,
   ): Promise<string[]> {
+    const startTime = Date.now();
+    const telemetry = getTelemetry();
+    
+    telemetry.info('FindingsToQuestionsAgent: Starting AC refinement', {
+      agent: 'FindingsToQuestionsAgent',
+      answeredQuestionsCount: Object.keys(answers).length,
+      currentACCount: acceptanceCriteria.length,
+    });
+
     const llm = this.llmConfig.getDefaultLLM();
 
     const qaText = questions
@@ -293,13 +355,44 @@ Respond with JSON:
 
     try {
       const response = await llm.generate(prompt);
+      const duration = Date.now() - startTime;
+      
+      // Record LLM call
+      telemetry.recordLLMCall(
+        'mastra-default-llm',
+        'Refine AC based on answers',
+        response.substring(0, 150),
+        {
+          promptTokens: Math.ceil(prompt.length / 4),
+          completionTokens: Math.ceil(response.length / 4),
+          totalTokens: Math.ceil((prompt.length + response.length) / 4),
+          duration,
+          success: true,
+        }
+      );
+
       const parsed = JSON.parse(response);
 
-      return Array.isArray(parsed.acceptanceCriteria)
+      const refined = Array.isArray(parsed.acceptanceCriteria)
         ? parsed.acceptanceCriteria
         : acceptanceCriteria;
+
+      telemetry.info('FindingsToQuestionsAgent: AC refinement completed', {
+        agent: 'FindingsToQuestionsAgent',
+        refinedACCount: refined.length,
+        duration,
+      });
+
+      return refined;
     } catch (error) {
+      const duration = Date.now() - startTime;
       console.error('[FindingsToQuestionsAgent] Failed to refine AC:', error);
+      
+      telemetry.error('FindingsToQuestionsAgent: AC refinement failed', error as Error, {
+        agent: 'FindingsToQuestionsAgent',
+        duration,
+      });
+
       // Fallback: Return original AC
       return acceptanceCriteria;
     }
