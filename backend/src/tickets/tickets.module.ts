@@ -1,11 +1,14 @@
 import { Module, OnModuleInit, Inject } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { TicketsController } from './presentation/controllers/tickets.controller';
+import { WorkflowController } from './presentation/controllers/workflow.controller';
 import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from './application/use-cases/DeleteAECUseCase';
 import { EstimateEffortUseCase } from './application/use-cases/EstimateEffortUseCase';
 import { ValidateInputUseCase } from './application/use-cases/ValidateInputUseCase';
+import { ExecuteWorkflowUseCase } from './application/use-cases/ExecuteWorkflowUseCase';
+import { ResumeWorkflowUseCase } from './application/use-cases/ResumeWorkflowUseCase';
 import { TicketInputValidatorAgent } from '../validation/agents/TicketInputValidatorAgent';
 import { GenerationOrchestrator } from './application/services/GenerationOrchestrator';
 import { ValidationEngine } from './application/services/validation/ValidationEngine';
@@ -32,13 +35,15 @@ import { GitHubModule } from '../github/github.module';
 
 @Module({
   imports: [IndexingModule, GitHubModule],
-  controllers: [TicketsController],
+  controllers: [TicketsController, WorkflowController],
   providers: [
     CreateTicketUseCase,
     UpdateAECUseCase,
     DeleteAECUseCase,
     EstimateEffortUseCase,
     ValidateInputUseCase,
+    ExecuteWorkflowUseCase,
+    ResumeWorkflowUseCase,
     TicketInputValidatorAgent,
     GenerationOrchestrator,
     ValidationEngine,

@@ -427,6 +427,19 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Store user's answers to questions
+   * Called when user submits answers at questions suspension point
+   */
+  setQuestionAnswers(answers: Record<string, string>): void {
+    // Update questions with user answers
+    this._questions = this._questions.map((q) => ({
+      ...q,
+      answer: answers[q.id] || q.defaultAnswer,
+    }));
+    this._updatedAt = new Date();
+  }
+
   setEstimate(estimate: Estimate): void {
     this._estimate = estimate;
     this._updatedAt = new Date();
