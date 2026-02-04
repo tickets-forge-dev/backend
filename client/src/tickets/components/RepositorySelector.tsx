@@ -56,7 +56,11 @@ export function RepositorySelector() {
   };
 
   // Show loading state while fetching data (BEFORE calculating repos!)
-  if (isLoadingConnection || !hasLoaded) {
+  // Wait for both: hasLoaded AND (not loading OR we have some repos/jobs data)
+  const hasAnyData = selectedRepositories.length > 0 || indexingJobs.size > 0 || githubConnected;
+  const shouldShowLoader = !hasLoaded || (isLoadingConnection && !hasAnyData);
+  
+  if (shouldShowLoader) {
     return (
       <div className="space-y-2">
         <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
