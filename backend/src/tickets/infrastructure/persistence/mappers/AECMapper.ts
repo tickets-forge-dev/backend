@@ -176,6 +176,17 @@ export class AECMapper {
         }
       : null;
 
+    // Sanitize questions - remove undefined fields that Firestore can't handle
+    const sanitizedQuestions = (aec.questions || []).map((q: any) => {
+      const sanitized: any = {};
+      if (q.id !== undefined) sanitized.id = q.id;
+      if (q.text !== undefined) sanitized.text = q.text;
+      if (q.type !== undefined) sanitized.type = q.type;
+      if (q.options && Array.isArray(q.options) && q.options.length > 0) sanitized.options = q.options;
+      if (q.required !== undefined) sanitized.required = q.required;
+      return sanitized;
+    });
+
     return {
       id: aec.id,
       workspaceId: aec.workspaceId,
@@ -190,7 +201,7 @@ export class AECMapper {
       repoPaths: aec.repoPaths,
       codeSnapshot: aec.codeSnapshot,
       apiSnapshot: aec.apiSnapshot,
-      questions: aec.questions,
+      questions: sanitizedQuestions,
       estimate: aec.estimate,
       validationResults: aec.validationResults.map((vr) => vr.toPlainObject()),
       preImplementationFindings: aec.preImplementationFindings.map((f) => ({

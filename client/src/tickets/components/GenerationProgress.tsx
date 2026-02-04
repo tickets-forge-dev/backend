@@ -88,11 +88,10 @@ export function GenerationProgress({
           const steps = data.generationState?.steps || [];
           const stepCount = steps.length;
           
-          // Detect suspended state
+          // Detect suspended state (don't auto-expand)
           const suspendedStep = steps.find((s: GenerationStep) => s.status === 'suspended');
           if (suspendedStep) {
             setIsSuspended(true);
-            setExpandedStep(`step-${suspendedStep.id}`);
             
             // Notify parent of suspension
             if (suspendedStep.suspensionReason === 'critical_findings' && onSuspendedFindings) {
@@ -108,11 +107,11 @@ export function GenerationProgress({
           // Check if all steps complete
           const allStepsComplete = steps.length > 0 && steps.every((s: GenerationStep) => s.status === 'complete');
 
-          // Auto-expand the step that's currently in progress
-          const inProgressStep = steps.find((s: GenerationStep) => s.status === 'in-progress');
-          if (inProgressStep) {
-            setExpandedStep(`step-${inProgressStep.id}`);
-          }
+          // Don't auto-expand - let user click if they want
+          // const inProgressStep = steps.find((s: GenerationStep) => s.status === 'in-progress');
+          // if (inProgressStep) {
+          //   setExpandedStep(`step-${inProgressStep.id}`);
+          // }
 
           if (allStepsComplete) {
             console.log(`✅ [GenerationProgress] All ${stepCount} steps complete!`);

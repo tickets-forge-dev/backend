@@ -127,9 +127,13 @@ export class QuickPreflightValidator {
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       const duration = Date.now() - startTime;
-      this.logger.error(
-        `❌ Preflight failed after ${duration}ms: ${error.message}`,
-      );
+      
+      // Check if it's a model configuration error - this is expected without Mastra LLM setup
+      if (error.message.includes('Could not find config') || error.message.includes('API key')) {
+        this.logger.warn(`⚠️ Preflight skipped - LLM not configured: ${error.message}`);
+      } else {
+        this.logger.error(`❌ Preflight failed after ${duration}ms: ${error.message}`);
+      }
 
       // Return empty findings on error (don't block ticket creation)
       return [];

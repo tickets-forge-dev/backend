@@ -9,7 +9,7 @@ import { Card } from '@/core/components/ui/card';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useWorkflowStore } from '@/src/stores/workflow.store';
-import { GenerationProgress } from '@/src/tickets/components/GenerationProgress';
+import { GenerationProgressNew } from '@/src/tickets/components/GenerationProgressNew';
 import { FindingsReviewModal } from '@/components/tickets/generation/FindingsReviewModal';
 import { QuestionsWizard } from '@/components/tickets/generation/QuestionsWizard';
 import { RepositorySelector } from '@/src/tickets/components/RepositorySelector';
@@ -163,11 +163,16 @@ export default function CreateTicketPage() {
           </p>
         </div>
 
-        <GenerationProgress
+        <GenerationProgressNew
           aecId={createdAecId}
           workspaceId={workspaceId}
           onComplete={handleGenerationComplete}
-          showContinueButton={true}
+          onQuestionsReady={(questions) => {
+            // Show questions modal at the end
+            if (questions.length > 0) {
+              setShowQuestionsWizard(true);
+            }
+          }}
         />
 
         {/* HITL Suspension Point 1: Critical Findings Review */}

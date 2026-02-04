@@ -118,7 +118,7 @@ export function RepositorySelector() {
       </label>
       
       {/* Show loader while loading */}
-      {isLoadingConnection ? (
+      {isLoadingConnection || !hasLoaded ? (
         <div className="h-10 px-3 border border-[var(--border)] rounded-md bg-[var(--bg)] flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
           <span className="text-[var(--text-sm)] text-[var(--text-tertiary)]">

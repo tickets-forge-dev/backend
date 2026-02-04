@@ -319,36 +319,94 @@ Respond with JSON:
   }
 
   /**
+   * Generate code-aware clarifying questions based on acceptance criteria
+   */
+  private generateCodeAwareQuestions(acceptanceCriteria: string[]): Question[] {
+    const questions: Question[] = [];
+
+    // Question 1: Architecture/Integration
+    if (acceptanceCriteria.some(ac => 
+      ac.toLowerCase().includes('database') || 
+      ac.toLowerCase().includes('api') ||
+      ac.toLowerCase().includes('service')
+    )) {
+      questions.push({
+        id: 'arch-1',
+        text: 'Which existing service/module should this integrate with?',
+        type: 'radio',
+        options: ['Authentication', 'Database', 'API Gateway', 'Cache', 'Message Queue', 'Other'],
+      });
+    }
+
+    // Question 2: Technology choice
+    if (acceptanceCriteria.some(ac => 
+      ac.toLowerCase().includes('framework') || 
+      ac.toLowerCase().includes('library') ||
+      ac.toLowerCase().includes('tool')
+    )) {
+      questions.push({
+        id: 'tech-1',
+        text: 'Should this use existing dependencies or add new ones?',
+        type: 'radio',
+        options: ['Use existing', 'Add new dependency', 'Build from scratch', 'No preference'],
+      });
+    }
+
+    // Question 3: Performance/Data volume
+    if (acceptanceCriteria.some(ac => 
+      ac.toLowerCase().includes('performance') || 
+      ac.toLowerCase().includes('scale') ||
+      ac.toLowerCase().includes('large') ||
+      ac.toLowerCase().includes('many')
+    )) {
+      questions.push({
+        id: 'perf-1',
+        text: 'What data volume should this handle?',
+        type: 'radio',
+        options: ['< 100 records', '100K - 1M', '1M - 100M', '> 100M', 'Unknown'],
+      });
+    }
+
+    // Question 4: Security/Auth
+    if (acceptanceCriteria.some(ac => 
+      ac.toLowerCase().includes('auth') || 
+      ac.toLowerCase().includes('permission') ||
+      ac.toLowerCase().includes('security') ||
+      ac.toLowerCase().includes('user')
+    )) {
+      questions.push({
+        id: 'sec-1',
+        text: 'What authorization level is required?',
+        type: 'radio',
+        options: ['Public', 'Authenticated users', 'Specific roles', 'Admin only'],
+      });
+    }
+
+    // Question 5: Testing requirement (always ask)
+    questions.push({
+      id: 'test-1',
+      text: 'What testing level do you need?',
+      type: 'radio',
+      options: ['Unit tests only', 'Unit + Integration', 'Full E2E', 'Minimal testing'],
+    });
+
+    if (questions.length === 0) {
+      // Fallback if no specific questions matched
+      questions.push({
+        id: 'custom-1',
+        text: 'Any specific technical considerations?',
+        type: 'textarea',
+      });
+    }
+
+    return questions;
+  }
+
+  /**
    * Generate default clarifying questions when AC is minimal
    */
   private generateDefaultQuestions(acceptanceCriteria: string[]): Question[] {
-    const questions: Question[] = [];
-
-    // Question 1: Scope clarification
-    questions.push({
-      id: 'scope-1',
-      text: 'What is the primary user goal for this feature?',
-      type: 'textarea',
-      context: 'Help us understand the main use case to generate better acceptance criteria.',
-    });
-
-    // Question 2: Success criteria
-    questions.push({
-      id: 'success-1',
-      text: 'How will you know this feature is working correctly?',
-      type: 'textarea',
-      context: 'Describe the expected behavior or outcome that indicates success.',
-    });
-
-    // Question 3: Edge cases
-    questions.push({
-      id: 'edge-1',
-      text: 'Are there any edge cases or error scenarios we should handle?',
-      type: 'textarea',
-      context: 'Consider invalid inputs, network failures, or unusual user behavior.',
-    });
-
-    console.log(`[FindingsToQuestionsAgent] Generated ${questions.length} default questions (minimal AC detected)`);
-    return questions;
+    // Use code-aware questions based on AC content
+    return this.generateCodeAwareQuestions(acceptanceCriteria);
   }
 }

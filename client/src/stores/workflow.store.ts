@@ -25,8 +25,10 @@ export interface Finding {
 export interface Question {
   id: string;
   text: string;
-  context: string;
-  defaultAnswer: string;
+  type?: 'text' | 'textarea' | 'radio' | 'checkbox';
+  options?: string[];
+  context?: string;
+  defaultAnswer?: string;
 }
 
 export type WorkflowState = 'idle' | 'generating' | 'suspended-findings' | 'suspended-questions' | 'complete' | 'failed';

@@ -657,13 +657,25 @@ const generateQuestionsStep = createStep({
     }
 
     // Map question types to match workflow schema (single_choice -> radio, multiple_choice -> checkbox)
+    // Also rename 'question' to 'text' and remove undefined values that Firestore can't handle
     const rawQuestions = questionsResult.data as any[];
-    const questions = rawQuestions.map(q => ({
-      ...q,
-      type: q.type === 'single_choice' ? 'radio' : 
-            q.type === 'multiple_choice' ? 'checkbox' : 
-            q.type || 'text'
-    }));
+    const questions = rawQuestions.map(q => {
+      const mapped: any = {
+        id: q.id,
+        text: q.question || q.text, // Map question -> text
+        type: q.type === 'single_choice' ? 'radio' : 
+              q.type === 'multiple_choice' ? 'checkbox' : 
+              q.type || 'text'
+      };
+      // Only add options if they exist (Firestore doesn't accept undefined)
+      if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+        mapped.options = q.options;
+      }
+      if (q.required !== undefined) {
+        mapped.required = q.required;
+      }
+      return mapped;
+    });
     
     await setState({ questions });
 
@@ -718,34 +730,18 @@ const askQuestionsStep = createStep({
       return { action: 'proceed' as const, questions };
     }
 
+    // Store questions in state for later review (don't suspend - let workflow complete)
     if (questions.length > 0) {
-      // Update AEC state to suspended
-      const aec = await aecRepository.findById((state as any).aecId!);
-      if (aec) {
-        aec.suspendForQuestions(questions);
-        await executeWithRetry(
-          () => aecRepository.update(aec),
-          { stepName: 'askQuestions:update', maxAttempts: 3 }
-        );
-        console.log(`⏸️ [askQuestions] AEC transitioned to SUSPENDED_QUESTIONS`);
-      }
-
-      // Update progress: Step 9 suspended
-      await updateStepProgress(aecRepository, (state as any).aecId!, 9, 'suspended', 'Questions require your input', 'questions', { questions });
-
-      // Suspend workflow for user answers
-      return await suspend({
-        reason: 'questions' as const,
-        questions,
-        draft: {
-          acceptanceCriteria: (state as any).acceptanceCriteria || [],
-          assumptions: (state as any).assumptions || [],
-          repoPaths: (state as any).repoPaths || [],
-        },
-      });
+      await setState({ questions });
+      console.log(`📝 [askQuestions] Stored ${questions.length} questions for final review`);
+      await updateStepProgress(aecRepository, (state as any).aecId!, 9, 'complete', `Generated ${questions.length} clarifying questions`);
+    } else {
+      console.log(`✅ [askQuestions] No questions generated, continuing`);
+      await updateStepProgress(aecRepository, (state as any).aecId!, 9, 'complete', 'No additional questions needed');
     }
 
-    // No questions, proceed
+    // Always proceed (no suspension)
+    return { action: 'proceed' as const, questions };
     await updateStepProgress(aecRepository, (state as any).aecId!, 9, 'complete', 'No questions');
     return { action: 'proceed' as const, questions: [] };
   },
