@@ -65,17 +65,18 @@ export function RepositorySelector() {
     clearBranchSelection();
   };
 
-  // If not connected and never loaded, show empty state
-  if (!hasLoaded && !githubConnected && completedRepos.length === 0) {
+  // Show loading state while fetching data
+  if (isLoadingConnection || !hasLoaded) {
     return (
       <div className="space-y-2">
         <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
           Repository
         </label>
-        <div className="p-3 rounded-md bg-[var(--bg-subtle)]">
-          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Connect GitHub and index repositories in Settings to enable code-aware ticket generation
-          </p>
+        <div className="h-10 px-3 border border-[var(--border)] rounded-md bg-[var(--bg)] flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
+          <span className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+            Loading repositories...
+          </span>
         </div>
       </div>
     );
@@ -111,22 +112,30 @@ export function RepositorySelector() {
     );
   }
 
-  return (
-    <div className="space-y-2">
-      <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-        Repository
-      </label>
-      
-      {/* Show loader while loading */}
-      {isLoadingConnection || !hasLoaded ? (
+  // Show loading state while fetching data
+  if (isLoadingConnection || !hasLoaded) {
+    return (
+      <div className="space-y-2">
+        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          Repository
+        </label>
         <div className="h-10 px-3 border border-[var(--border)] rounded-md bg-[var(--bg)] flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
           <span className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
             Loading repositories...
           </span>
         </div>
-      ) : completedRepos.length === 0 ? (
-        // No repos available after loading
+      </div>
+    );
+  }
+
+  // Show empty state if no repos available
+  if (completedRepos.length === 0) {
+    return (
+      <div className="space-y-2">
+        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          Repository
+        </label>
         <div className="p-3 rounded-md bg-[var(--bg-subtle)]">
           <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
             {!githubConnected
@@ -134,43 +143,48 @@ export function RepositorySelector() {
               : 'No indexed repositories available. Index a repository in Settings first.'}
           </p>
         </div>
-      ) : (
-        // Show repository selector
-        <>
-          <Select onValueChange={handleSelect}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select an indexed repository..." />
-            </SelectTrigger>
-            <SelectContent>
-              {completedRepos.map((repo) => {
-                // Get index stats for this repo
-                let filesIndexed = 0;
-                for (const [_, job] of indexingJobs.entries()) {
-                  if (job.repositoryId === repo.id && job.status?.status === 'completed') {
-                    filesIndexed = job.status.filesIndexed;
-                    break;
-                  }
-                }
+      </div>
+    );
+  }
 
-                return (
-                  <SelectItem key={repo.id} value={repo.fullName}>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      <span>{repo.fullName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({filesIndexed} files)
-                      </span>
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            Only indexed repositories are shown. The code context helps generate accurate tickets.
-          </p>
-        </>
-      )}
+  // Show repository selector with data
+  return (
+    <div className="space-y-2">
+      <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+        Repository
+      </label>
+      <Select onValueChange={handleSelect}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select an indexed repository..." />
+        </SelectTrigger>
+        <SelectContent>
+          {completedRepos.map((repo) => {
+            // Get index stats for this repo
+            let filesIndexed = 0;
+            for (const [_, job] of indexingJobs.entries()) {
+              if (job.repositoryId === repo.id && job.status?.status === 'completed') {
+                filesIndexed = job.status.filesIndexed;
+                break;
+              }
+            }
+
+            return (
+              <SelectItem key={repo.id} value={repo.fullName}>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <span>{repo.fullName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({filesIndexed} files)
+                  </span>
+                </div>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+      <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+        Only indexed repositories are shown. The code context helps generate accurate tickets.
+      </p>
     </div>
   );
 }
