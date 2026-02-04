@@ -2,10 +2,14 @@ import { Injectable, Inject, BadRequestException, ForbiddenException } from '@ne
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { GenerationOrchestrator } from '../services/GenerationOrchestrator';
+import { MastraService } from '../../../shared/infrastructure/mastra/mastra.service';
 import { GitHubApiService } from '../../../shared/infrastructure/github/github-api.service';
 import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
+
+// Feature flag to switch between GenerationOrchestrator (legacy) and MastraService (HITL workflow)
+const USE_MASTRA_WORKFLOW = process.env.USE_MASTRA_WORKFLOW === 'true';
 
 export interface CreateTicketCommand {
   workspaceId: string;
@@ -21,6 +25,7 @@ export class CreateTicketUseCase {
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
     private readonly generationOrchestrator: GenerationOrchestrator,
+    private readonly mastraService: MastraService,
     private readonly gitHubApiService: GitHubApiService,
     @Inject(GITHUB_INTEGRATION_REPOSITORY)
     private readonly githubIntegrationRepository: GitHubIntegrationRepository,
@@ -67,13 +72,34 @@ export class CreateTicketUseCase {
 
     console.log('🎫 [CreateTicketUseCase] AEC saved, starting generation...');
 
-    // Trigger 8-step generation process (async - fire and forget)
-    // Frontend will subscribe to Firestore for real-time progress
-    this.generationOrchestrator.orchestrate(aec).catch((error) => {
-      console.error('❌ [CreateTicketUseCase] Generation failed for AEC:', aec.id, error);
-      console.error('❌ [CreateTicketUseCase] Error stack:', error.stack);
-      // Error is already saved to generationState by orchestrator
-    });
+    // Choose between Mastra workflow (HITL) and legacy orchestrator
+    if (USE_MASTRA_WORKFLOW) {
+      console.log('🎫 [CreateTicketUseCase] Using Mastra HITL workflow (12-step with suspension points)');
+      
+      // Execute Mastra workflow (async - fire and forget)
+      // Workflow will suspend at critical findings or questions
+      this.mastraService.executeTicketGeneration({
+        aecId: aec.id,
+        workspaceId: command.workspaceId,
+      }).then((result) => {
+        console.log(`✅ [CreateTicketUseCase] Workflow ${result.status}:`, result);
+        if (result.status === 'suspended') {
+          console.log(`⏸️ [CreateTicketUseCase] Suspended at: ${result.suspendedAt}`);
+        }
+      }).catch((error) => {
+        console.error('❌ [CreateTicketUseCase] Mastra workflow failed for AEC:', aec.id, error);
+      });
+    } else {
+      console.log('🎫 [CreateTicketUseCase] Using legacy GenerationOrchestrator (8-step sync)');
+      
+      // Trigger 8-step generation process (async - fire and forget)
+      // Frontend will subscribe to Firestore for real-time progress
+      this.generationOrchestrator.orchestrate(aec).catch((error) => {
+        console.error('❌ [CreateTicketUseCase] Generation failed for AEC:', aec.id, error);
+        console.error('❌ [CreateTicketUseCase] Error stack:', error.stack);
+        // Error is already saved to generationState by orchestrator
+      });
+    }
 
     console.log('🎫 [CreateTicketUseCase] Orchestration started (async), returning AEC');
 

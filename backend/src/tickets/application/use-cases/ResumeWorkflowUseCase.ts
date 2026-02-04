@@ -1,5 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
+import { MastraService } from '../../../shared/infrastructure/mastra/mastra.service';
+
+// Feature flag to switch between GenerationOrchestrator (legacy) and MastraService (HITL workflow)
+const USE_MASTRA_WORKFLOW = process.env.USE_MASTRA_WORKFLOW === 'true';
 
 /**
  * ResumeWorkflowUseCase
@@ -8,6 +12,8 @@ import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
  * - Findings review (proceed, edit, cancel)
  * - Questions submission
  * - Questions skip
+ * 
+ * When USE_MASTRA_WORKFLOW=true, also resumes the actual Mastra workflow execution.
  */
 
 export interface ResumeFindingsInput {
@@ -37,6 +43,7 @@ export class ResumeWorkflowUseCase {
   constructor(
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
+    private readonly mastraService: MastraService,
   ) {}
 
   /**
@@ -97,6 +104,21 @@ export class ResumeWorkflowUseCase {
 
     await this.aecRepository.update(aec);
 
+    // If using Mastra workflow and action is proceed, trigger actual workflow resume
+    if (USE_MASTRA_WORKFLOW && input.action === 'proceed' && aec.lockedBy) {
+      console.log(`🔄 [ResumeWorkflowUseCase] Resuming Mastra workflow from reviewFindings`);
+      
+      this.mastraService.resumeWorkflow(
+        aec.lockedBy, // runId is stored as lockedBy
+        'reviewFindings',
+        { action: 'proceed' }
+      ).then((result) => {
+        console.log(`✅ [ResumeWorkflowUseCase] Mastra workflow resume result:`, result);
+      }).catch((error) => {
+        console.error(`❌ [ResumeWorkflowUseCase] Mastra workflow resume failed:`, error);
+      });
+    }
+
     console.log(`✅ [ResumeWorkflowUseCase] Resumed from findings: ${input.action}`);
 
     return {
@@ -148,6 +170,21 @@ export class ResumeWorkflowUseCase {
 
     await this.aecRepository.update(aec);
 
+    // If using Mastra workflow, trigger actual workflow resume with answers
+    if (USE_MASTRA_WORKFLOW && aec.lockedBy) {
+      console.log(`🔄 [ResumeWorkflowUseCase] Resuming Mastra workflow from askQuestions with answers`);
+      
+      this.mastraService.resumeWorkflow(
+        aec.lockedBy, // runId is stored as lockedBy
+        'askQuestions',
+        { action: 'submit', answers: input.answers }
+      ).then((result) => {
+        console.log(`✅ [ResumeWorkflowUseCase] Mastra workflow resume result:`, result);
+      }).catch((error) => {
+        console.error(`❌ [ResumeWorkflowUseCase] Mastra workflow resume failed:`, error);
+      });
+    }
+
     console.log(`✅ [ResumeWorkflowUseCase] Answers submitted`);
 
     return {
@@ -197,6 +234,21 @@ export class ResumeWorkflowUseCase {
     });
 
     await this.aecRepository.update(aec);
+
+    // If using Mastra workflow, trigger actual workflow resume with skip action
+    if (USE_MASTRA_WORKFLOW && aec.lockedBy) {
+      console.log(`🔄 [ResumeWorkflowUseCase] Resuming Mastra workflow from askQuestions (skip)`);
+      
+      this.mastraService.resumeWorkflow(
+        aec.lockedBy, // runId is stored as lockedBy
+        'askQuestions',
+        { action: 'skip' }
+      ).then((result) => {
+        console.log(`✅ [ResumeWorkflowUseCase] Mastra workflow resume result:`, result);
+      }).catch((error) => {
+        console.error(`❌ [ResumeWorkflowUseCase] Mastra workflow resume failed:`, error);
+      });
+    }
 
     console.log(`✅ [ResumeWorkflowUseCase] Questions skipped`);
 

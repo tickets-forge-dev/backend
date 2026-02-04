@@ -1,4 +1,4 @@
-import { Module, OnModuleInit, Inject } from '@nestjs/common';
+import { Module, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { TicketsController } from './presentation/controllers/tickets.controller';
 import { WorkflowController } from './presentation/controllers/workflow.controller';
@@ -29,9 +29,7 @@ import { ESTIMATION_ENGINE } from './application/services/estimation-engine.inte
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 import { IndexingModule } from '../indexing/indexing.module';
 import { GitHubModule } from '../github/github.module';
-// Temporarily disabled due to Mastra ESM/CJS compatibility issue
-// import { ticketGenerationWorkflow } from './workflows/ticket-generation.workflow';
-// import { registerWorkflow, registerService } from '@mastra/core';
+import { MastraService, MASTRA_SERVICES } from '../shared/infrastructure/mastra/mastra.service';
 
 @Module({
   imports: [IndexingModule, GitHubModule],
@@ -98,8 +96,18 @@ import { GitHubModule } from '../github/github.module';
       provide: ESTIMATION_ENGINE,
       useClass: EstimationEngineService,
     },
+    // MastraService with dynamic service injection
+    {
+      provide: 'AECRepository',
+      useExisting: AEC_REPOSITORY,
+    },
+    {
+      provide: 'MastraContentGenerator',
+      useExisting: MastraContentGenerator,
+    },
+    MastraService,
   ],
-  exports: [CreateTicketUseCase, UpdateAECUseCase, EstimateEffortUseCase, AEC_REPOSITORY, DRIFT_DETECTOR, ESTIMATION_ENGINE],
+  exports: [CreateTicketUseCase, UpdateAECUseCase, EstimateEffortUseCase, AEC_REPOSITORY, DRIFT_DETECTOR, ESTIMATION_ENGINE, MastraService],
 })
 export class TicketsModule implements OnModuleInit {
   constructor(
@@ -107,16 +115,39 @@ export class TicketsModule implements OnModuleInit {
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: any,
     private readonly validationEngine: ValidationEngine,
+    private readonly mastraService: MastraService,
   ) {}
 
   async onModuleInit() {
-    // TEMP: Mastra workflow registration disabled due to ESM/CJS compatibility issue
-    console.log('⚠️  [TicketsModule] Mastra workflow registration temporarily disabled');
-    console.log('⚠️  [TicketsModule] Reason: @mastra/core v1.1.0 has ESM dependency incompatibility');
-    console.log('⚠️  [TicketsModule] Status: Backend will start, but workflow execution unavailable');
-    console.log('⚠️  [TicketsModule] Fix needed: Mastra v2.0 or ESM configuration');
+    // Register additional services that workflow steps need
+    try {
+      // Register services that are available via moduleRef
+      const indexQueryService = this.moduleRef.get('IndexQueryService', { strict: false });
+      if (indexQueryService) {
+        this.mastraService.registerService(MASTRA_SERVICES.IndexQueryService, indexQueryService);
+      }
+
+      const workspaceFactory = this.moduleRef.get('MastraWorkspaceFactory', { strict: false });
+      if (workspaceFactory) {
+        this.mastraService.registerService(MASTRA_SERVICES.MastraWorkspaceFactory, workspaceFactory);
+      }
+
+      const preflightValidator = this.moduleRef.get('QuickPreflightValidator', { strict: false });
+      if (preflightValidator) {
+        this.mastraService.registerService(MASTRA_SERVICES.QuickPreflightValidator, preflightValidator);
+      }
+
+      const findingsAgent = this.moduleRef.get('FindingsToQuestionsAgent', { strict: false });
+      if (findingsAgent) {
+        this.mastraService.registerService(MASTRA_SERVICES.FindingsToQuestionsAgent, findingsAgent);
+      }
+
+      console.log('✅ [TicketsModule] Mastra workflow enabled with Mastra v1.0.0');
+      console.log('✅ [TicketsModule] Workflow: ticket-generation (12 steps, 2 HITL suspension points)');
+    } catch (error) {
+      console.warn('⚠️  [TicketsModule] Some optional services not available:', error);
+    }
     
-    // Rest of module initializes normally
     console.log('✅ [TicketsModule] Module providers registered (AEC, Validation, etc.)');
   }
 }
