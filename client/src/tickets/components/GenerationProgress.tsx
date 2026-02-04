@@ -7,32 +7,65 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
-import { CheckCircle2, Circle, Loader2, XCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, XCircle, RefreshCw, PauseCircle, AlertTriangle } from 'lucide-react';
 
 interface GenerationStep {
   id: number;
   title: string;
-  status: 'pending' | 'in-progress' | 'complete' | 'failed';
+  status: 'pending' | 'in-progress' | 'complete' | 'failed' | 'suspended';
   details?: string;
   error?: string;
+  suspensionReason?: 'critical_findings' | 'questions';
+}
+
+interface Finding {
+  id?: string;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  suggestion?: string;
+}
+
+interface Question {
+  id: string;
+  text: string;
+  type?: 'text' | 'textarea' | 'radio' | 'checkbox';
+  options?: string[];
+  required?: boolean;
 }
 
 interface GenerationState {
   currentStep: number;
   steps: GenerationStep[];
+  suspendedAt?: string;
+  findings?: Finding[];
+  questions?: Question[];
 }
 
 interface GenerationProgressProps {
   aecId: string;
   workspaceId: string;
   onComplete?: () => void;
+  onSuspendedFindings?: (findings: Finding[]) => void;
+  onSuspendedQuestions?: (questions: Question[]) => void;
   showContinueButton?: boolean;
 }
 
-export function GenerationProgress({ aecId, workspaceId, onComplete, showContinueButton = false }: GenerationProgressProps) {
+// Step count based on workflow mode
+const LEGACY_STEP_COUNT = 8;
+const HITL_STEP_COUNT = 12;
+
+export function GenerationProgress({ 
+  aecId, 
+  workspaceId, 
+  onComplete, 
+  onSuspendedFindings,
+  onSuspendedQuestions,
+  showContinueButton = false 
+}: GenerationProgressProps) {
   const [generationState, setGenerationState] = useState<GenerationState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [isSuspended, setIsSuspended] = useState(false);
   const [expandedStep, setExpandedStep] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -52,9 +85,28 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
 
           setGenerationState(data.generationState);
 
-          // Check if all steps complete (must have 8 steps AND all complete)
           const steps = data.generationState?.steps || [];
-          const allStepsComplete = steps.length === 8 && steps.every((s: GenerationStep) => s.status === 'complete');
+          const stepCount = steps.length;
+          
+          // Detect suspended state
+          const suspendedStep = steps.find((s: GenerationStep) => s.status === 'suspended');
+          if (suspendedStep) {
+            setIsSuspended(true);
+            setExpandedStep(`step-${suspendedStep.id}`);
+            
+            // Notify parent of suspension
+            if (suspendedStep.suspensionReason === 'critical_findings' && onSuspendedFindings) {
+              onSuspendedFindings(data.generationState?.findings || []);
+            } else if (suspendedStep.suspensionReason === 'questions' && onSuspendedQuestions) {
+              onSuspendedQuestions(data.generationState?.questions || []);
+            }
+            return;
+          }
+          
+          setIsSuspended(false);
+
+          // Check if all steps complete
+          const allStepsComplete = steps.length > 0 && steps.every((s: GenerationStep) => s.status === 'complete');
 
           // Auto-expand the step that's currently in progress
           const inProgressStep = steps.find((s: GenerationStep) => s.status === 'in-progress');
@@ -63,7 +115,7 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
           }
 
           if (allStepsComplete) {
-            console.log('✅ [GenerationProgress] All 8 steps complete!');
+            console.log(`✅ [GenerationProgress] All ${stepCount} steps complete!`);
             setIsComplete(true);
 
             // Only auto-navigate if showContinueButton is false
@@ -83,12 +135,12 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
       console.log('🔴 [GenerationProgress] Unsubscribing from AEC updates');
       unsubscribe();
     };
-  }, [aecId, workspaceId, onComplete]);
+  }, [aecId, workspaceId, onComplete, onSuspendedFindings, onSuspendedQuestions, showContinueButton]);
 
   const handleRetry = async (stepId: number) => {
     console.log('🔄 [GenerationProgress] Retry step:', stepId);
-    // TODO: Call retry endpoint (Task 4)
-    alert('Retry functionality coming in next task');
+    // TODO: Call retry endpoint
+    alert('Retry functionality coming soon');
   };
 
   if (error) {
@@ -115,6 +167,9 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
     );
   }
 
+  const stepCount = generationState.steps.length;
+  const isHITL = stepCount === HITL_STEP_COUNT;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-6">
@@ -125,9 +180,13 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
           <Badge className="bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20">
             ✓ Complete
           </Badge>
+        ) : isSuspended ? (
+          <Badge className="bg-[var(--yellow)]/10 text-[var(--yellow)] border-[var(--yellow)]/20">
+            ⏸ Action Required
+          </Badge>
         ) : (
           <Badge variant="outline">
-            Step {generationState.currentStep} of 8
+            Step {generationState.currentStep} of {stepCount}
           </Badge>
         )}
       </div>
@@ -156,9 +215,15 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
                     <span className="text-[var(--text-base)] text-[var(--text)]">
                       {step.title}
                     </span>
+                    {/* Show suspension indicator for HITL steps */}
+                    {isHITL && (step.id === 4 || step.id === 9) && step.status !== 'complete' && (
+                      <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                        (may require input)
+                      </span>
+                    )}
                   </div>
                 </div>
-                <StepBadge status={step.status} />
+                <StepBadge status={step.status} suspensionReason={step.suspensionReason} />
               </div>
             </AccordionTrigger>
 
@@ -182,7 +247,25 @@ export function GenerationProgress({ aecId, workspaceId, onComplete, showContinu
                 </div>
               )}
 
-              {step.details && !step.error && (
+              {step.status === 'suspended' && (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded border border-[var(--yellow)]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-[var(--yellow)]" />
+                    <span className="text-[var(--text-sm)] font-medium text-[var(--yellow)]">
+                      {step.suspensionReason === 'critical_findings' 
+                        ? 'Critical findings require your review'
+                        : 'Clarifying questions need your input'}
+                    </span>
+                  </div>
+                  <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                    {step.suspensionReason === 'critical_findings'
+                      ? 'Review the findings and choose to proceed, edit, or cancel.'
+                      : 'Answer the questions to improve ticket quality, or skip to continue.'}
+                  </p>
+                </div>
+              )}
+
+              {step.details && !step.error && step.status !== 'suspended' && (
                 <div className="p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
                   <p className="text-[var(--text-sm)] text-[var(--text-secondary)] whitespace-pre-wrap">
                     {formatDetails(step.details)}
@@ -242,13 +325,15 @@ function StepIcon({ status }: { status: GenerationStep['status'] }) {
       return <Loader2 className="h-5 w-5 text-[var(--blue)] animate-spin" />;
     case 'failed':
       return <XCircle className="h-5 w-5 text-[var(--red)]" />;
+    case 'suspended':
+      return <PauseCircle className="h-5 w-5 text-[var(--yellow)]" />;
     case 'pending':
     default:
       return <Circle className="h-5 w-5 text-[var(--text-tertiary)]" />;
   }
 }
 
-function StepBadge({ status }: { status: GenerationStep['status'] }) {
+function StepBadge({ status, suspensionReason }: { status: GenerationStep['status']; suspensionReason?: string }) {
   switch (status) {
     case 'complete':
       return (
@@ -266,6 +351,12 @@ function StepBadge({ status }: { status: GenerationStep['status'] }) {
       return (
         <Badge className="bg-[var(--red)]/10 text-[var(--red)] border-[var(--red)]/20">
           Failed
+        </Badge>
+      );
+    case 'suspended':
+      return (
+        <Badge className="bg-[var(--yellow)]/10 text-[var(--yellow)] border-[var(--yellow)]/20">
+          {suspensionReason === 'critical_findings' ? 'Review Required' : 'Input Required'}
         </Badge>
       );
     case 'pending':

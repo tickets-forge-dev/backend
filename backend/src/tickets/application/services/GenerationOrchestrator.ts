@@ -32,7 +32,7 @@ import { IndexRepository, INDEX_REPOSITORY } from '../../../indexing/domain/Inde
  */
 @Injectable()
 export class GenerationOrchestrator {
-  private readonly STEP_TIMEOUT_MS = 30000; // 30 seconds per step
+  private readonly STEP_TIMEOUT_MS = 90000; // 90 seconds per step (LLM calls can be slow)
 
   constructor(
     @Inject(AEC_REPOSITORY)

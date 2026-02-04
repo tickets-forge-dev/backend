@@ -8,8 +8,9 @@ import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../.
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
 
-// Feature flag to switch between GenerationOrchestrator (legacy) and MastraService (HITL workflow)
-const USE_MASTRA_WORKFLOW = process.env.USE_MASTRA_WORKFLOW === 'true';
+// Feature flag getter - must be called at runtime, not module load time
+// ConfigModule loads .env after module imports, so we need to defer reading
+const isUsingMastraWorkflow = () => process.env.USE_MASTRA_WORKFLOW === 'true';
 
 export interface CreateTicketCommand {
   workspaceId: string;
@@ -73,7 +74,7 @@ export class CreateTicketUseCase {
     console.log('🎫 [CreateTicketUseCase] AEC saved, starting generation...');
 
     // Choose between Mastra workflow (HITL) and legacy orchestrator
-    if (USE_MASTRA_WORKFLOW) {
+    if (isUsingMastraWorkflow()) {
       console.log('🎫 [CreateTicketUseCase] Using Mastra HITL workflow (12-step with suspension points)');
       
       // Execute Mastra workflow (async - fire and forget)

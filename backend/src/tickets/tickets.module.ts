@@ -121,31 +121,40 @@ export class TicketsModule implements OnModuleInit {
   async onModuleInit() {
     // Register additional services that workflow steps need
     try {
-      // Register services that are available via moduleRef
-      const indexQueryService = this.moduleRef.get('IndexQueryService', { strict: false });
+      // Safely try to get optional services
+      const tryGetService = (serviceName: string) => {
+        try {
+          return this.moduleRef.get(serviceName, { strict: false });
+        } catch {
+          return null;
+        }
+      };
+
+      const indexQueryService = tryGetService('IndexQueryService');
       if (indexQueryService) {
         this.mastraService.registerService(MASTRA_SERVICES.IndexQueryService, indexQueryService);
       }
 
-      const workspaceFactory = this.moduleRef.get('MastraWorkspaceFactory', { strict: false });
+      const workspaceFactory = tryGetService('MastraWorkspaceFactory');
       if (workspaceFactory) {
         this.mastraService.registerService(MASTRA_SERVICES.MastraWorkspaceFactory, workspaceFactory);
       }
 
-      const preflightValidator = this.moduleRef.get('QuickPreflightValidator', { strict: false });
+      const preflightValidator = tryGetService('QuickPreflightValidator');
       if (preflightValidator) {
         this.mastraService.registerService(MASTRA_SERVICES.QuickPreflightValidator, preflightValidator);
       }
 
-      const findingsAgent = this.moduleRef.get('FindingsToQuestionsAgent', { strict: false });
+      const findingsAgent = tryGetService('FindingsToQuestionsAgent');
       if (findingsAgent) {
         this.mastraService.registerService(MASTRA_SERVICES.FindingsToQuestionsAgent, findingsAgent);
       }
 
-      console.log('✅ [TicketsModule] Mastra workflow enabled with Mastra v1.0.0');
+      console.log('✅ [TicketsModule] Mastra workflow enabled');
       console.log('✅ [TicketsModule] Workflow: ticket-generation (12 steps, 2 HITL suspension points)');
     } catch (error) {
-      console.warn('⚠️  [TicketsModule] Some optional services not available:', error);
+      console.error('[TicketsModule] Initialization failed:', error);
+      throw error;
     }
     
     console.log('✅ [TicketsModule] Module providers registered (AEC, Validation, etc.)');
