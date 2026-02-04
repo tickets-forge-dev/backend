@@ -26,6 +26,7 @@ export interface TicketGenerationInput {
 
 // Workflow state interface (shared across steps)
 export interface TicketGenerationState {
+  workflowRunId?: string; // Phase B Fix #6 - Workflow lock identifier
   intent?: string;
   keywords?: string[];
   type?: string;
@@ -37,6 +38,48 @@ export interface TicketGenerationState {
   repoPaths?: string[];
   questions?: any[];
 }
+
+/**
+ * Step 0: Initialize & Lock (NEW - Phase B Fix #6)
+ * Locks the AEC to prevent concurrent edits during workflow execution
+ * Validates workspace readiness before proceeding
+ */
+const initializeAndLockStep = new Step({
+  id: 'initializeAndLock',
+  description: 'Lock AEC for workflow execution and validate readiness',
+  execute: async ({ inputData, mastra, setState }) => {
+    try {
+      const aecRepository = mastra.getService('AECRepository');
+      const workflowRunId = `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+      const aec = await aecRepository.findById(inputData.aecId);
+      if (!aec) {
+        throw new Error(`AEC not found: ${inputData.aecId}`);
+      }
+
+      // Check if already locked by another workflow
+      if (aec.isLocked) {
+        throw new Error(
+          `AEC is already locked by workflow: ${aec.lockedBy}. Cannot start concurrent workflow.`
+        );
+      }
+
+      // Lock the AEC
+      aec.lock(workflowRunId);
+      await aecRepository.update(aec);
+
+      // Store workflow run ID in state for later unlocking
+      await setState({ workflowRunId });
+
+      console.log(`🔒 [initializeAndLock] Locked AEC ${inputData.aecId} for workflow ${workflowRunId}`);
+
+      return { locked: true, workflowRunId };
+    } catch (error) {
+      console.error('[initializeAndLock] Error:', error);
+      throw error;
+    }
+  },
+});
 
 /**
  * Step 1: Extract Intent
@@ -359,11 +402,12 @@ const refineDraftStep = new Step({
 /**
  * Step 11: Finalize (NEW - Phase B Fix)
  * Persists all workflow outputs to AEC entity in Firestore
+ * Unlocks the AEC to allow further edits
  * This ensures generated content is saved permanently
  */
 const finalizeStep = new Step({
   id: 'finalize',
-  description: 'Save workflow outputs to AEC entity',
+  description: 'Save workflow outputs to AEC entity and unlock',
   execute: async ({ inputData, getState, mastra }) => {
     try {
       const state = await getState<TicketGenerationState>();
@@ -383,14 +427,32 @@ const finalizeStep = new Step({
         preImplementationFindings: state.findings || [],
       });
 
+      // Unlock the AEC (Phase B Fix #6)
+      aec.unlock();
+
       // Persist to Firestore
-      await aecRepository.save(aec);
+      await aecRepository.update(aec);
 
       console.log(`✅ [finalizeStep] Saved workflow outputs to AEC ${inputData.aecId}`);
+      console.log(`🔓 [finalizeStep] Unlocked AEC ${inputData.aecId}`);
 
-      return { success: true };
+      return { success: true, unlocked: true };
     } catch (error) {
       console.error('[finalizeStep] Error:', error);
+      
+      // Attempt to unlock on error (Phase B Fix #6 - Error Safety)
+      try {
+        const aecRepository = mastra.getService('AECRepository');
+        const aec = await aecRepository.findById(inputData.aecId);
+        if (aec && aec.isLocked) {
+          aec.forceUnlock();
+          await aecRepository.update(aec);
+          console.log(`⚠️ [finalizeStep] Force-unlocked AEC after error: ${inputData.aecId}`);
+        }
+      } catch (unlockError) {
+        console.error('[finalizeStep] Failed to unlock on error:', unlockError);
+      }
+
       throw error;
     }
   },
@@ -400,16 +462,18 @@ const finalizeStep = new Step({
  * Ticket Generation Workflow Definition
  *
  * Flow:
+ * 0. Initialize & Lock (lock AEC for exclusive access)
  * 1. Extract Intent → 2. Detect Type → 3. Preflight Validation
  * 4. Review Findings (suspend if critical) → 5. Gather Repo Context
  * 6. Gather API Context → 7. Draft Ticket → 8. Generate Questions
  * 9. Ask Questions (suspend if questions) → 10. Refine Draft
- * 11. Finalize (save to AEC)
+ * 11. Finalize (save to AEC, unlock)
  */
 export const ticketGenerationWorkflow = new Workflow({
   name: 'ticket-generation',
   triggerSchema: {} as TicketGenerationInput,
 })
+  .step(initializeAndLockStep)
   .step(extractIntentStep)
   .step(detectTypeStep)
   .step(preflightValidationStep)
