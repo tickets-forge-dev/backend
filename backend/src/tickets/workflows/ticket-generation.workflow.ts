@@ -64,14 +64,15 @@ const initializeAndLockStep = new Step({
         );
       }
 
-      // Lock the AEC
-      aec.lock(workflowRunId);
+      // Lock and transition to GENERATING state
+      aec.startGenerating(workflowRunId); // Phase B Fix #7 - State transition validation
       await aecRepository.update(aec);
 
-      // Store workflow run ID in state for later unlocking
+      // Store workflow run ID in state for later reference
       await setState({ workflowRunId });
 
       console.log(`🔒 [initializeAndLock] Locked AEC ${inputData.aecId} for workflow ${workflowRunId}`);
+      console.log(`📊 [initializeAndLock] AEC status transitioned to GENERATING`);
 
       return { locked: true, workflowRunId };
     } catch (error) {
@@ -197,12 +198,26 @@ const preflightValidationStep = new Step({
 const reviewFindingsStep = new Step({
   id: 'reviewFindings',
   description: 'Review critical findings (suspends if critical issues found)',
-  execute: async ({ getState }) => {
+  execute: async ({ inputData, getState, mastra }) => {
     const state = await getState<TicketGenerationState>();
     const findings = state.findings || [];
     const hasCritical = findings.some((f: any) => f.severity === 'critical');
 
     if (hasCritical) {
+      // Phase B Fix #7: Transition to SUSPENDED_FINDINGS state
+      try {
+        const aecRepository = mastra.getService('AECRepository');
+        const aec = await aecRepository.findById(inputData.aecId);
+        if (aec) {
+          aec.suspendForFindingsReview(findings);
+          await aecRepository.update(aec);
+          console.log(`⏸️ [reviewFindings] AEC transitioned to SUSPENDED_FINDINGS`);
+        }
+      } catch (error) {
+        console.error('[reviewFindings] Failed to update AEC status:', error);
+        // Continue anyway - state transition is advisory
+      }
+
       // Workflow will suspend here - user must take action
       // Frontend shows findings and action buttons
       return {
@@ -360,11 +375,25 @@ const generateQuestionsStep = new Step({
 const askQuestionsStep = new Step({
   id: 'askQuestions',
   description: 'Ask clarifying questions (suspends if questions exist)',
-  execute: async ({ getState }) => {
+  execute: async ({ inputData, getState, mastra }) => {
     const state = await getState<TicketGenerationState>();
     const questions = state.questions || [];
 
     if (questions.length > 0) {
+      // Phase B Fix #7: Transition to SUSPENDED_QUESTIONS state
+      try {
+        const aecRepository = mastra.getService('AECRepository');
+        const aec = await aecRepository.findById(inputData.aecId);
+        if (aec) {
+          aec.suspendForQuestions(questions);
+          await aecRepository.update(aec);
+          console.log(`⏸️ [askQuestions] AEC transitioned to SUSPENDED_QUESTIONS`);
+        }
+      } catch (error) {
+        console.error('[askQuestions] Failed to update AEC status:', error);
+        // Continue anyway - state transition is advisory
+      }
+
       // Workflow suspends here - user must answer questions
       return {
         action: 'suspend',
@@ -402,12 +431,13 @@ const refineDraftStep = new Step({
 /**
  * Step 11: Finalize (NEW - Phase B Fix)
  * Persists all workflow outputs to AEC entity in Firestore
+ * Transitions to VALIDATED state
  * Unlocks the AEC to allow further edits
  * This ensures generated content is saved permanently
  */
 const finalizeStep = new Step({
   id: 'finalize',
-  description: 'Save workflow outputs to AEC entity and unlock',
+  description: 'Save workflow outputs to AEC entity, transition to VALIDATED, and unlock',
   execute: async ({ inputData, getState, mastra }) => {
     try {
       const state = await getState<TicketGenerationState>();
@@ -427,6 +457,15 @@ const finalizeStep = new Step({
         preImplementationFindings: state.findings || [],
       });
 
+      // Phase B Fix #7: Validate and transition to VALIDATED state
+      try {
+        aec.validate([]); // Pass empty validation results (preflight already done)
+        console.log(`📊 [finalizeStep] AEC transitioned to VALIDATED`);
+      } catch (stateError) {
+        console.warn('[finalizeStep] State transition validation failed:', stateError.message);
+        // If state transition fails (e.g., already in terminal state), continue anyway
+      }
+
       // Unlock the AEC (Phase B Fix #6)
       aec.unlock();
 
@@ -440,17 +479,29 @@ const finalizeStep = new Step({
     } catch (error) {
       console.error('[finalizeStep] Error:', error);
       
-      // Attempt to unlock on error (Phase B Fix #6 - Error Safety)
+      // Attempt to mark as failed and unlock (Phase B Fix #7 + #6)
       try {
         const aecRepository = mastra.getService('AECRepository');
         const aec = await aecRepository.findById(inputData.aecId);
-        if (aec && aec.isLocked) {
-          aec.forceUnlock();
+        if (aec) {
+          // Transition to FAILED state
+          try {
+            aec.markAsFailed(error.message || 'Unknown error in finalize step');
+            console.log(`❌ [finalizeStep] AEC marked as FAILED`);
+          } catch (stateError) {
+            console.warn('[finalizeStep] Failed to mark as FAILED:', stateError.message);
+          }
+
+          // Force unlock
+          if (aec.isLocked) {
+            aec.forceUnlock();
+            console.log(`⚠️ [finalizeStep] Force-unlocked AEC after error: ${inputData.aecId}`);
+          }
+
           await aecRepository.update(aec);
-          console.log(`⚠️ [finalizeStep] Force-unlocked AEC after error: ${inputData.aecId}`);
         }
-      } catch (unlockError) {
-        console.error('[finalizeStep] Failed to unlock on error:', unlockError);
+      } catch (cleanupError) {
+        console.error('[finalizeStep] Failed to clean up after error:', cleanupError);
       }
 
       throw error;
