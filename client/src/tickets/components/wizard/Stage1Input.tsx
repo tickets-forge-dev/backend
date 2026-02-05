@@ -1,29 +1,27 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
+import { useServices } from '@/hooks/useServices';
+import { useSettingsStore } from '@/stores/settings.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/core/components/ui/select';
+import { RepositorySelector } from '../RepositorySelector';
 
 /**
  * Stage 1: Input Component
  *
  * Captures initial user input:
  * - Ticket title (required, min 3 chars, max 100 chars)
- * - Repository selection (required)
+ * - Repository selection (required, fetched from GitHub integration)
  * - Triggers analysis on valid input
  *
  * Validation feedback only on blur (UX principle: no validation on keystroke)
  * Next button disabled until form is valid
  */
 export function Stage1Input() {
+  const { gitHubService } = useServices();
+  const { loadGitHubStatus } = useSettingsStore();
   const {
     input,
     loading,
@@ -32,11 +30,13 @@ export function Stage1Input() {
     analyzeRepository,
   } = useWizardStore();
 
-  // Local state for repository search
-  const [repoSearch, setRepoSearch] = useState('');
-
   // Validation state
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+
+  // Load GitHub status on mount to get real repositories
+  React.useEffect(() => {
+    loadGitHubStatus(gitHubService);
+  }, []);
 
   // Form validation
   const isTitleValid = input.title.length >= 3 && input.title.length <= 100;
@@ -54,40 +54,12 @@ export function Stage1Input() {
           : ''
     : '';
 
-  const repoError = touchedFields.has('repo')
-    ? !input.repoOwner || !input.repoName
-      ? 'Repository selection is required'
-      : ''
-    : '';
-
-  // Mock repository list (in real app, would fetch from GitHub/backend)
-  const repositories = useMemo(
-    () => [
-      { owner: 'anthropic', repo: 'anthropic-sdk-python' },
-      { owner: 'anthropic', repo: 'anthropic-sdk-js' },
-      { owner: 'vercel', repo: 'next.js' },
-      { owner: 'facebook', repo: 'react' },
-      { owner: 'microsoft', repo: 'typescript' },
-    ],
-    []
-  );
-
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
   };
 
   const handleTitleBlur = () => {
     setTouchedFields((prev) => new Set([...prev, 'title']));
-  };
-
-  const handleRepoSelect = (value: string) => {
-    const [owner, repo] = value.split('/');
-    setRepository(owner, repo);
-    setTouchedFields((prev) => new Set([...prev, 'repo']));
-  };
-
-  const handleRepoBlur = () => {
-    setTouchedFields((prev) => new Set([...prev, 'repo']));
   };
 
   return (
@@ -153,53 +125,8 @@ export function Stage1Input() {
           </div>
         </div>
 
-        {/* Repository Select */}
-        <div className="space-y-2">
-          <label
-            htmlFor="repo-select"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Repository
-            <span className="text-gray-500 dark:text-gray-500 font-normal">
-              {' '}
-              (required)
-            </span>
-          </label>
-          <Select
-            value={
-              input.repoOwner && input.repoName
-                ? `${input.repoOwner}/${input.repoName}`
-                : ''
-            }
-            onValueChange={handleRepoSelect}
-          >
-            <SelectTrigger
-              id="repo-select"
-              onBlur={handleRepoBlur}
-              aria-invalid={repoError ? 'true' : 'false'}
-              aria-describedby={repoError ? 'repo-error' : undefined}
-              className="w-full"
-            >
-              <SelectValue placeholder="Select a repository..." />
-            </SelectTrigger>
-            <SelectContent>
-              {repositories.map((repo) => (
-                <SelectItem key={`${repo.owner}/${repo.repo}`} value={`${repo.owner}/${repo.repo}`}>
-                  {repo.owner}/{repo.repo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {repoError && (
-            <span
-              id="repo-error"
-              role="alert"
-              className="text-xs text-red-600 dark:text-red-400"
-            >
-              {repoError}
-            </span>
-          )}
-        </div>
+        {/* Repository Selection - Uses Real GitHub Integration */}
+        <RepositorySelector />
 
         {/* Submit Button */}
         <div className="pt-4 flex gap-3">
