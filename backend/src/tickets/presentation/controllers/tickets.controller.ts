@@ -13,8 +13,14 @@ import {
 import { CreateTicketUseCase } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
+import { StartQuestionRoundUseCase } from '../../application/use-cases/StartQuestionRoundUseCase';
+import { SubmitAnswersUseCase } from '../../application/use-cases/SubmitAnswersUseCase';
+import { SkipToFinalizeUseCase } from '../../application/use-cases/SkipToFinalizeUseCase';
+import { FinalizeSpecUseCase } from '../../application/use-cases/FinalizeSpecUseCase';
 import { CreateTicketDto } from '../dto/CreateTicketDto';
 import { UpdateAECDto } from '../dto/UpdateAECDto';
+import { StartRoundDto } from '../dto/StartRoundDto';
+import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import { Inject } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
@@ -28,6 +34,10 @@ export class TicketsController {
     private readonly createTicketUseCase: CreateTicketUseCase,
     private readonly updateAECUseCase: UpdateAECUseCase,
     private readonly deleteAECUseCase: DeleteAECUseCase,
+    private readonly startQuestionRoundUseCase: StartQuestionRoundUseCase,
+    private readonly submitAnswersUseCase: SubmitAnswersUseCase,
+    private readonly skipToFinalizeUseCase: SkipToFinalizeUseCase,
+    private readonly finalizeSpecUseCase: FinalizeSpecUseCase,
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
   ) {}
@@ -93,6 +103,78 @@ export class TicketsController {
     await this.deleteAECUseCase.execute(id, workspaceId);
   }
 
+  /**
+   * Start a question round - triggers initial or iterative question generation
+   */
+  @Post(':id/start-round')
+  async startQuestionRound(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: StartRoundDto,
+  ) {
+    const aec = await this.startQuestionRoundUseCase.execute({
+      aecId: id,
+      workspaceId,
+      roundNumber: dto.roundNumber,
+    });
+
+    return this.mapToResponse(aec);
+  }
+
+  /**
+   * Submit answers to current round - records answers and decides next action
+   */
+  @Post(':id/submit-answers')
+  async submitAnswers(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: SubmitAnswersDto,
+  ) {
+    const result = await this.submitAnswersUseCase.execute({
+      aecId: id,
+      workspaceId,
+      roundNumber: dto.roundNumber,
+      answers: dto.answers || {},
+    });
+
+    return {
+      aec: this.mapToResponse(result.aec),
+      nextAction: result.nextAction,
+    };
+  }
+
+  /**
+   * Skip remaining rounds - user manual override to finalize immediately
+   */
+  @Post(':id/skip-to-finalize')
+  async skipToFinalize(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.skipToFinalizeUseCase.execute({
+      aecId: id,
+      workspaceId,
+    });
+
+    return this.mapToResponse(aec);
+  }
+
+  /**
+   * Finalize spec - generate final technical specification with all answers
+   */
+  @Post(':id/finalize')
+  async finalizeSpec(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.finalizeSpecUseCase.execute({
+      aecId: id,
+      workspaceId,
+    });
+
+    return this.mapToResponse(aec);
+  }
+
   private mapToResponse(aec: any) {
     return {
       id: aec.id,
@@ -122,6 +204,10 @@ export class TicketsController {
             selectedAt: aec.repositoryContext.selectedAt,
           }
         : null,
+      // Iterative refinement workflow fields
+      questionRounds: aec.questionRounds,
+      currentRound: aec.currentRound,
+      techSpec: aec.techSpec,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };
