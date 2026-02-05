@@ -1,25 +1,15 @@
 /**
  * useServices Hook
- * 
- * Provides access to application services with dependency injection pattern.
- * Services are instantiated once and reused across the application.
- * 
- * Part of: Story 4.1 - Task 9
+ *
+ * Wrapper around the lazy-initialized service instances from @/services/index.
+ * Ensures the same singleton instances are used throughout the application,
+ * both in React components and Zustand stores.
+ *
+ * This prevents service duplication and state inconsistency.
  */
 
-import { useMemo } from 'react';
-import { GitHubService } from '@/services/github.service';
-import { TicketService } from '@/services/ticket.service';
-import { AuthService } from '@/services/auth.service';
+import { useServices as getServices } from '@/services/index';
 
 export function useServices() {
-  const githubService = useMemo(() => new GitHubService(), []);
-  const ticketService = useMemo(() => new TicketService(), []);
-  const authService = useMemo(() => new AuthService(), []);
-
-  return {
-    githubService,
-    ticketService,
-    authService,
-  };
+  return getServices();
 }
