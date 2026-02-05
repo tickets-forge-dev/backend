@@ -20,8 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
 import { GitHubRepositoryItem } from '@/services/github.service';
-import { Github, Check, AlertCircle, Loader2, Search, Database, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
-import { IndexingSummaryCard } from './IndexingSummary';
+import { Github, Check, AlertCircle, Loader2, Search } from 'lucide-react';
 
 export function GitHubIntegration() {
   const { githubService } = useServices();
@@ -30,10 +29,6 @@ export function GitHubIntegration() {
     githubConnectionStatus,
     githubRepositories,
     selectedRepositories,
-    indexingJobs,
-    indexingQueue,
-    isIndexing,
-    indexingError,
     isLoadingConnection,
     isLoadingRepositories,
     isConnecting,
@@ -46,8 +41,6 @@ export function GitHubIntegration() {
     selectRepositories,
     disconnectGitHub,
     clearErrors,
-    startIndexing,
-    clearIndexingError,
   } = useSettingsStore();
 
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
@@ -80,7 +73,7 @@ export function GitHubIntegration() {
       clearErrors();
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+  }, [loadGitHubStatus, clearErrors]);
 
   const handleConnect = async () => {
     await initiateGitHubConnection(githubService);
@@ -119,71 +112,6 @@ export function GitHubIntegration() {
     }
   };
 
-  const [indexingRepoId, setIndexingRepoId] = useState<number | null>(null);
-
-  // Clear indexing repo ID once the job appears in the store
-  useEffect(() => {
-    if (indexingRepoId !== null) {
-      // Check if a job for this repo exists
-      for (const [_, job] of indexingJobs.entries()) {
-        if (job.repositoryId === indexingRepoId) {
-          setIndexingRepoId(null);
-          break;
-        }
-      }
-    }
-  }, [indexingJobs, indexingRepoId]);
-
-  const handleStartIndexing = async (repo: GitHubRepositoryItem) => {
-    // Immediately set loading state for this specific repo
-    setIndexingRepoId(repo.id);
-    
-    try {
-      // Get the latest commit SHA for the default branch
-      const branches = await githubService.getBranches(repo.owner, repo.name);
-      const defaultBranch = branches.branches.find(b => b.name === repo.defaultBranch);
-      
-      if (!defaultBranch) {
-        console.error('Default branch not found');
-        setIndexingRepoId(null);
-        return;
-      }
-
-      await startIndexing(
-        githubService,
-        repo.id,
-        repo.fullName,
-        defaultBranch.commitSha
-      );
-      
-      // Clear immediately after starting (store will handle the rest)
-      setIndexingRepoId(null);
-    } catch (error) {
-      console.error('Failed to start indexing:', error);
-      setIndexingRepoId(null);
-    }
-  };
-
-  const getIndexingStatus = (repoId: number) => {
-    for (const [indexId, job] of indexingJobs.entries()) {
-      if (job.repositoryId === repoId) {
-        return job.status;
-      }
-    }
-    return null;
-  };
-
-  const [expandedRepos, setExpandedRepos] = useState<Set<number>>(new Set());
-
-  const toggleRepoExpansion = (repoId: number) => {
-    const newExpanded = new Set(expandedRepos);
-    if (newExpanded.has(repoId)) {
-      newExpanded.delete(repoId);
-    } else {
-      newExpanded.add(repoId);
-    }
-    setExpandedRepos(newExpanded);
-  };
 
   const filteredRepositories = githubRepositories.filter((repo) =>
     repo.fullName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -350,167 +278,6 @@ export function GitHubIntegration() {
               )}
             </div>
 
-            {/* Indexing Section (Story 4.2) */}
-            {selectedRepositories.length > 0 && (
-              <div className="space-y-3 pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4" />
-                    <h4 className="text-sm font-medium">Code Indexing</h4>
-                  </div>
-                </div>
-
-                {/* Queue Status */}
-                {indexingQueue.length > 0 && (
-                  <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-3 flex items-start gap-2">
-                    <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 animate-pulse" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                        {indexingQueue.length} {indexingQueue.length === 1 ? 'repository' : 'repositories'} queued for indexing
-                      </p>
-                      <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
-                        Processing up to 3 repositories at a time
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Indexing Error */}
-                {indexingError && (
-                  <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
-                    <p className="text-sm text-red-600 dark:text-red-400">{indexingError}</p>
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground">
-                  Selected repositories are automatically indexed. This process clones the repo, analyzes the code structure, and extracts key information for AI-powered ticket generation.
-                </p>
-
-                {/* Selected Repositories with Indexing Status */}
-                <div className="space-y-2">
-                  {selectedRepositories.map((repo) => {
-                    const status = getIndexingStatus(repo.id);
-                    const isRepoIndexing = status?.status === 'indexing' || status?.status === 'pending' || indexingRepoId === repo.id;
-                    const queuePosition = indexingQueue.indexOf(repo.id);
-                    const isQueued = queuePosition !== -1;
-
-                    return (
-                      <div
-                        key={repo.id}
-                        className="p-3 rounded-md border"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div 
-                            className="flex items-center gap-2 flex-1 cursor-pointer"
-                            onClick={() => status?.status === 'completed' && status.summary && toggleRepoExpansion(repo.id)}
-                          >
-                            <p className="text-sm font-medium truncate">{repo.fullName}</p>
-                            
-                            {/* Status Badge */}
-                            <div className="flex items-center gap-1.5">
-                              {status?.status === 'completed' && (
-                                <>
-                                  <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                  <span className="text-xs text-muted-foreground">
-                                    {status.filesIndexed} files
-                                  </span>
-                                </>
-                              )}
-                              {status?.status === 'failed' && (
-                                <>
-                                  <XCircle className="h-3 w-3 text-red-600" />
-                                  <span className="text-xs text-red-600">Failed</span>
-                                </>
-                              )}
-                              {isRepoIndexing && status && (
-                                <>
-                                  <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
-                                  <span className="text-xs text-blue-600">
-                                    {status.progress}%
-                                  </span>
-                                </>
-                              )}
-                              {status?.status === 'pending' && (
-                                <>
-                                  <Clock className="h-3 w-3 text-yellow-600 animate-pulse" />
-                                  <span className="text-xs text-yellow-600">Cloning...</span>
-                                </>
-                              )}
-                              {isQueued && !status && (
-                                <>
-                                  <Database className="h-3 w-3 text-gray-600" />
-                                  <span className="text-xs text-gray-600">
-                                    Queued ({queuePosition + 1})
-                                  </span>
-                                </>
-                              )}
-                              {!status && !isQueued && (
-                                <>
-                                  <Clock className="h-3 w-3 text-blue-500 animate-pulse" />
-                                  <span className="text-xs text-blue-600">
-                                    Initializing...
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            {/* Retry button for failed */}
-                            {status?.status === 'failed' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleStartIndexing(repo)}
-                                disabled={isIndexing}
-                              >
-                                Retry
-                              </Button>
-                            )}
-                            
-                            {/* Expand/Collapse button for completed with summary */}
-                            {status?.status === 'completed' && status.summary && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => toggleRepoExpansion(repo.id)}
-                                className="h-6 w-6 p-0"
-                              >
-                                {expandedRepos.has(repo.id) ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Expandable details */}
-                        {expandedRepos.has(repo.id) && status?.status === 'completed' && status.summary && (
-                          <div className="mt-3 pt-3 border-t">
-                            <IndexingSummaryCard
-                              summary={status.summary}
-                              filesIndexed={status.filesIndexed}
-                              repoSizeMB={status.repoSizeMB || 0}
-                              durationMs={status.indexDurationMs}
-                            />
-                          </div>
-                        )}
-
-                        {/* Show error details if failed */}
-                        {status?.status === 'failed' && status.errorDetails && (
-                          <div className="mt-2 text-xs text-red-600">
-                            {status.errorDetails.message}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </CardContent>
