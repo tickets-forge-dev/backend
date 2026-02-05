@@ -2678,34 +2678,194 @@ So that I can review and refine the spec at each step.
 
 ---
 
-### Story 9.6: Cleanup - Remove Indexing Infrastructure
+### Story 9.6: Cleanup - Complete Legacy System Removal
 
 As a maintainer,
-I want to remove unused indexing code,
-So that the codebase is clean and cost-efficient.
+I want to remove ALL legacy ticket generation code,
+So that the codebase has no dead code and reduced maintenance burden.
 
 **Acceptance Criteria:**
 
-**Given** BMAD integration is complete and verified
+**Given** BMAD integration is complete and verified in production
 **When** cleanup is performed
-**Then** the following are removed:
-- Firebase Storage indexing code
-- IndexQueryService and related repositories
-- Old MastraContentGenerator methods (extractIntent, detectType, generateDraft)
-- FindingsToQuestionsAgent (questions come from tech spec)
-- Unused workflow steps (6 of 12 consolidated)
+**Then** the following are DELETED:
+
+---
+
+#### **1. Entire Indexing Module (~2,865 lines)**
+
+Delete the entire `/backend/src/indexing/` directory:
+
+**Application Layer:**
+- `application/services/index-query.service.ts` - Vector search queries
+- `application/services/repo-indexer.service.ts` - Repository indexing orchestration
+- `application/services/file-parser.service.ts` - Code file parsing
+- `application/services/api-spec-indexer.interface.ts` - API spec interface
+- `application/jobs/indexing.processor.ts` - Queue-based indexing jobs
+
+**Domain Layer:**
+- `domain/ApiSpecRepository.ts`
+- `domain/IndexRepository.ts`
+- `domain/FileMetadata.ts`
+- `domain/Index.ts`
+- `domain/entities/ApiSpec.ts`
+- `domain/entities/ApiEndpoint.ts`
+
+**Infrastructure Layer:**
+- `infrastructure/persistence/firestore-index.repository.ts`
+- `infrastructure/persistence/firestore-api-spec.repository.ts`
+- `infrastructure/services/api-spec-indexer.service.ts`
+
+**Presentation Layer:**
+- `presentation/controllers/indexing.controller.ts`
+- `presentation/dto/indexing.dto.ts`
+
+**Module:**
+- `indexing.module.ts` - Entire NestJS module
+
+---
+
+#### **2. Old Generation Logic (~295 lines)**
+
+Delete from `/backend/src/tickets/application/services/MastraContentGenerator.ts`:
+- `extractIntent()` - LLM intent extraction (replaced by BMAD)
+- `detectType()` - Type classification (replaced by BMAD)
+- `generateDraft()` - Generic AC generation (replaced by TechSpecGenerator)
+- `callOllama()` - Direct Ollama API calls
+- `extractJson()` - JSON parsing helper
+- `extractKeywordsFromText()` - Keyword extraction
+- `detectTypeFromKeywords()` - Fallback type detection
+
+**Decision:** Delete entire file OR gut to minimal utilities.
+
+---
+
+#### **3. FindingsToQuestionsAgent (~449 lines)**
+
+Delete `/backend/src/validation/agents/FindingsToQuestionsAgent.ts`:
+- `generateQuestions()` - Convert findings to questions
+- `refineAcceptanceCriteria()` - Refine AC from answers
+- `shouldSkipQuestions()` - Decision logic
+- `buildPrompt()` - Question generation prompts
+- `validateQuestions()` - Question validation
+- `generateFallbackQuestions()` - Fallback generation
+- `generateCodeAwareQuestions()` - Code-specific questions
+- `generateDefaultQuestions()` - Default question set
+- `formatAnswer()` - Answer formatting
+
+Update `/backend/src/validation/validation.module.ts` to remove registration.
+
+---
+
+#### **4. Legacy Workflow Steps (~1,200+ lines)**
+
+In `/backend/src/tickets/workflows/ticket-generation.workflow.ts`, delete steps:
+- Step 1: `extractIntentStep` - Intent extraction (lines ~273-353)
+- Step 2: `detectTypeStep` - Type detection (lines ~359-426)
+- Step 4: `reviewFindingsStep` - Findings review (lines ~554-642)
+- Step 5: `gatherRepoContextStep` - Index queries (lines ~648-796)
+- Step 6: `gatherApiContextStep` - API context (lines ~802-838)
+- Step 7: `draftTicketStep` - Generic drafting (lines ~844-958)
+- Step 8: `generateQuestionsStep` - Question generation (lines ~964-1090)
+- Step 9: `askQuestionsStep` - User questions (lines ~1096-1167)
+- Step 10: `refineDraftStep` - Draft refinement (lines ~1173-1283)
+
+**Keep (modified):**
+- Step 0: `initializeAndLockStep` - Still needed
+- Step 3: `preflightValidationStep` - Move to post-generation
+- Step 11: `finalizeStep` - Still needed
+
+---
+
+#### **5. Legacy Workflow File (~24,702 lines)**
+
+Delete entirely:
+- `/backend/src/tickets/workflows/ticket-generation.workflow.legacy.ts`
+
+---
+
+#### **6. GenerationOrchestrator (~436 lines)**
+
+Delete `/backend/src/tickets/application/services/GenerationOrchestrator.ts`:
+- `orchestrate()` - 8-step orchestration
+- `executeStep()` - Step execution wrapper
+- `queryRepoIndex()` - Uses deleted IndexQueryService
+- `stubApiSnapshot()` - API context stub
+- `stubEstimation()` - Estimation stub
+
+---
+
+#### **7. Frontend Components (~1,000+ lines)**
+
+Delete from `/client/src/tickets/components/`:
+- `GenerationProgress.tsx` - Old 12-step progress (~400 lines)
+- `GenerationProgress.test.tsx` - Tests for deleted component
+- `GenerationProgressNew.tsx` - Alternative implementation
+- `FindingsSection.tsx` - Old findings display (~100 lines)
+
+Delete from `/client/components/tickets/generation/`:
+- `FindingsReviewModal.tsx` - HITL suspension point 1 (~100 lines)
+- `QuestionsWizard.tsx` - HITL suspension point 2 (~200 lines)
+- `TicketGenerationProgress.tsx` - Old progress tracking
+
+---
+
+#### **8. Shared Interfaces (Partial)**
+
+Update `/backend/src/shared/application/ports/ILLMContentGenerator.ts`:
+- Delete `extractIntent()` method signature
+- Delete `detectType()` method signature
+- Delete `generateQuestions()` method signature
+- Keep/modify `generateDraft()` for BMAD
+
+---
+
+#### **9. Telemetry Refactor**
+
+Refactor `/backend/src/tickets/workflows/step-telemetry.utils.ts`:
+- Update step names for 7-step BMAD workflow
+- Remove references to deleted steps
+- (~200 lines affected)
+
+---
 
 **And** the following are updated:
-- Feature flag `USE_TECH_SPEC_WORKFLOW` removed (new flow is default)
-- Documentation reflects new architecture
+- `AppModule` imports - Remove IndexingModule
+- `TicketsModule` providers - Remove deleted services
+- `ValidationModule` providers - Remove FindingsToQuestionsAgent
+- Feature flag `USE_TECH_SPEC_WORKFLOW` - Remove (BMAD is default)
+- All imports referencing deleted files - Clean up
+
+**And** verification passes:
+- TypeScript compiles with no errors
 - No orphaned imports or dead code paths
+- Full test suite passes
+- Production smoke test passes
+
+---
+
+**Deletion Summary:**
+
+| Category | Files | Lines |
+|----------|-------|-------|
+| Indexing Module | 17 files | ~2,865 |
+| MastraContentGenerator | 1 file | ~295 |
+| FindingsToQuestionsAgent | 1 file | ~449 |
+| Workflow Steps | partial | ~1,200 |
+| Legacy Workflow | 1 file | ~24,702 |
+| GenerationOrchestrator | 1 file | ~436 |
+| Frontend Components | 7 files | ~1,000 |
+| Shared Interfaces | partial | ~68 |
+| **TOTAL** | **~50 files** | **~31,000+ lines** |
 
 **Technical Notes:**
-- Execute only after 1 week of stable production use
-- Create backup branch before cleanup
-- Run full test suite after each removal
+- Execute only after 2 weeks of stable production use
+- Create backup branch before each deletion phase
+- Delete in phases: Indexing → Backend Services → Workflow → Frontend
+- Run full test suite after each phase
+- Monitor error rates during rollout
 
-**Prerequisites:** Story 9.5 complete, production validation passed
+**Prerequisites:** Story 9.5 complete, production validation passed, 2 weeks stable
 
 ---
 
