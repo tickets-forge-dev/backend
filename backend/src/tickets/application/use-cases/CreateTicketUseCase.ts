@@ -47,16 +47,10 @@ export class CreateTicketUseCase {
           accessToken,
         );
       } else {
-        // No OAuth integration - create minimal context
+        // No OAuth integration - skip creating context
         // Code will be read on-demand via GitHubFileService (uses GITHUB_TOKEN from env)
-        console.log('🎫 [CreateTicketUseCase] No GitHub OAuth integration - using on-demand code scanning');
-        repositoryContext = RepositoryContext.create({
-          repositoryFullName: command.repositoryFullName,
-          branchName: command.branchName,
-          commitSha: 'unknown', // Will be determined on-demand
-          isDefaultBranch: true,
-          selectedAt: new Date(),
-        });
+        // Repository context will be determined at question round generation time
+        console.log('🎫 [CreateTicketUseCase] No GitHub OAuth integration - code will be scanned on-demand');
       }
     }
 
