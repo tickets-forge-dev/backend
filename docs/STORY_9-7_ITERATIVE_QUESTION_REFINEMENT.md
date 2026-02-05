@@ -4,7 +4,7 @@
 **Story:** Iterative Question Refinement Workflow - 3-Round Clarification Loop
 **Started:** 2026-02-05
 **Target Completion:** 2026-02-12
-**Status:** 🟠 In Progress (Phases 1-3 Complete, Phases 4-6 Pending)
+**Status:** 🟠 In Progress (Phases 1-4 Complete, Phases 5-6 Pending)
 **Branch:** `epic-9-bmad-integration`
 
 ---
@@ -122,19 +122,38 @@ Transform ticket generation from single-shot questions to an **iterative 3-round
 - Decision: Evaluate answer sufficiency for definitive spec
 - Final: Answer-informed problem statement and acceptance criteria
 
-### Phase 4: API Endpoints ⏳ PENDING
+### Phase 4: API Endpoints ✅ COMPLETE
 
-**Endpoints to Create in TicketsController:**
-- [ ] POST /tickets/:id/start-round
-- [ ] POST /tickets/:id/submit-answers
-- [ ] POST /tickets/:id/skip-to-finalize
-- [ ] POST /tickets/:id/finalize
+**Endpoints Created in TicketsController:**
+- ✅ POST /tickets/:id/start-round
+  - Input: { roundNumber: 1|2|3 }
+  - Calls: StartQuestionRoundUseCase
+  - Response: Updated AEC with question round
 
-**DTOs to Create:**
-- [ ] StartRoundDto
-- [ ] SubmitAnswersDto
-- [ ] SkipToFinalizeDto
-- [ ] FinalizeDto
+- ✅ POST /tickets/:id/submit-answers
+  - Input: { roundNumber: number, answers: Record<string, any> }
+  - Calls: SubmitAnswersUseCase
+  - Response: { aec, nextAction: 'continue'|'finalize' }
+
+- ✅ POST /tickets/:id/skip-to-finalize
+  - Input: (empty body)
+  - Calls: SkipToFinalizeUseCase
+  - Response: Updated AEC (QUESTIONS_COMPLETE status)
+
+- ✅ POST /tickets/:id/finalize
+  - Input: (empty body)
+  - Calls: FinalizeSpecUseCase
+  - Response: Updated AEC with final TechSpec
+
+**DTOs Created:**
+- ✅ StartRoundDto with @IsEnum(1,2,3) validation
+- ✅ SubmitAnswersDto with roundNumber and answers
+
+**Controller Updates:**
+- ✅ Injected all 4 new use cases
+- ✅ Updated mapToResponse to include questionRounds, currentRound, techSpec
+- ✅ All endpoints enforce workspace isolation
+- ✅ Proper error handling and HTTP status codes
 
 ### Phase 5: Frontend Store Extension ⏳ PENDING
 

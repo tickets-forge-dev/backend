@@ -147,8 +147,15 @@ development_status:
 #   * Created TechSpecGeneratorPort with injection token
 #   * Updated use cases to import from port
 #
-# - Phase 4-6: IN PROGRESS 🔄
-#   * Phase 4: API endpoints (4 new REST endpoints)
+# - Phase 4 (API Endpoints): COMPLETE ✅
+#   * POST /tickets/:id/start-round - Start question round
+#   * POST /tickets/:id/submit-answers - Submit answers + decide action
+#   * POST /tickets/:id/skip-to-finalize - User manual skip
+#   * POST /tickets/:id/finalize - Generate final spec
+#   * Created DTOs: StartRoundDto, SubmitAnswersDto
+#   * Updated controller response mapping with new fields
+#
+# - Phase 5-6: IN PROGRESS 🔄
 #   * Phase 5: Frontend store extensions (question rounds, auto-save, resume)
 #   * Phase 6: Frontend UI updates (question panels, draft badge)
 #
