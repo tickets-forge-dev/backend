@@ -42,8 +42,8 @@ export interface QuestionRound {
   roundNumber: 1 | 2 | 3;
   questions: ClarificationQuestion[];
   answers: RoundAnswers;
-  startedAt: Date;
-  answeredAt: Date | null;
+  generatedAt: Date; // When questions were generated
+  answeredAt: Date | null; // When user answered (null if not answered yet)
   skippedByUser: boolean;
   codebaseContext?: string; // JSON string of context used for this round
 }
@@ -90,13 +90,11 @@ export interface SubmitAnswersRequest {
 
 /**
  * API response from submitting answers
+ * Returns full AEC object (which includes updated questionRounds) + next action
  */
 export interface SubmitAnswersResponse {
+  aec: any; // Full AEC object with updated questionRounds, currentRound, techSpec
   nextAction: 'continue' | 'finalize';
-  nextRound?: {
-    roundNumber: 1 | 2 | 3;
-    questions: ClarificationQuestion[];
-  };
 }
 
 /**

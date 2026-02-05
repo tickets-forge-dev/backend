@@ -48,6 +48,9 @@ export function QuestionRoundsSection({
   const maxRound = Math.max(...questionRounds.map((r) => r.roundNumber), 0);
   const isFinalRound = currentRound >= 3;
 
+  // Validate currentRound is within bounds
+  const isValidRound = currentRound >= 1 && currentRound <= 3 && currentRoundData;
+
   const handleAnswerChange = (questionId: string, answer: string | string[]) => {
     setLocalAnswers((prev) => ({
       ...prev,
@@ -56,7 +59,7 @@ export function QuestionRoundsSection({
   };
 
   const handleSubmit = async () => {
-    if (!currentRoundData) return;
+    if (!currentRoundData || !isValidRound) return;
 
     try {
       // Merge with existing answers

@@ -102,13 +102,8 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     try {
       const result = await questionRoundService.submitAnswers(ticketId, roundNumber as 1 | 2 | 3, answers);
 
-      if (result.nextAction === 'continue' && result.nextRound) {
-        // Next round is available, refresh ticket to show it
-        await fetchTicket(ticketId);
-      } else if (result.nextAction === 'finalize') {
-        // Time to finalize, refresh and show finalize button
-        await fetchTicket(ticketId);
-      }
+      // Refresh ticket to see updated state (next round or finalize button)
+      await fetchTicket(ticketId);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit answers';
       setAnswerSubmitError(errorMessage);
@@ -210,7 +205,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       )}
 
       {/* Question Rounds - Show if in progress */}
-      {currentTicket.currentRound && currentTicket.currentRound > 0 && currentTicket.questionRounds && (
+      {currentTicket.currentRound &&
+       currentTicket.currentRound > 0 &&
+       currentTicket.currentRound <= 3 &&
+       currentTicket.questionRounds &&
+       currentTicket.questionRounds.length > 0 && (
         <QuestionRoundsSection
           questionRounds={currentTicket.questionRounds}
           currentRound={currentTicket.currentRound}
