@@ -32,6 +32,7 @@ import { TestAuthGuard } from '../../../shared/presentation/guards/TestAuthGuard
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { GitHubFileService } from '@github/domain/github-file.service';
+import { GITHUB_FILE_SERVICE } from '../../application/ports/GitHubFileServicePort';
 
 @Controller('tickets')
 @UseGuards(TestAuthGuard, WorkspaceGuard) // Using TestAuthGuard for E2E testing
@@ -46,6 +47,7 @@ export class TicketsController {
     private readonly finalizeSpecUseCase: FinalizeSpecUseCase,
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
+    @Inject(GITHUB_FILE_SERVICE)
     private readonly gitHubFileService: GitHubFileService,
     @Inject(CODEBASE_ANALYZER)
     private readonly codebaseAnalyzer: CodebaseAnalyzer,

@@ -110,7 +110,8 @@ import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
     },
     {
       provide: GITHUB_FILE_SERVICE,
-      useExisting: GitHubFileServiceImpl,
+      useFactory: (impl: GitHubFileServiceImpl) => impl,
+      inject: [GitHubFileServiceImpl],
     },
   ],
   exports: [CreateTicketUseCase, UpdateAECUseCase, EstimateEffortUseCase, AEC_REPOSITORY, DRIFT_DETECTOR, ESTIMATION_ENGINE],
