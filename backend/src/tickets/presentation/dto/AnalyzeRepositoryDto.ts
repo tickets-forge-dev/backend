@@ -1,4 +1,4 @@
-import { IsString, Matches } from 'class-validator';
+import { IsString, Matches, IsOptional } from 'class-validator';
 
 /**
  * DTO for repository analysis request
@@ -18,4 +18,8 @@ export class AnalyzeRepositoryDto {
     message: 'repo must be alphanumeric, underscore, dot, or hyphen',
   })
   repo!: string;
+
+  @IsString()
+  @IsOptional()
+  branch?: string;
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound } from '@/types/question-refinement';
+import { useTicketsStore } from '@/stores/tickets.store';
 
 /**
  * File entry discovered during repository analysis
@@ -140,15 +141,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   analyzeRepository: async () => {
     const state = get();
+    const ticketsState = useTicketsStore.getState();
     set({ loading: true, error: null });
 
     try {
+      // Use selected branch or default branch, fallback to 'main'
+      const branch = ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
+
       const response = await fetch('/api/tickets/analyze-repo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           owner: state.input.repoOwner,
           repo: state.input.repoName,
+          branch,
         }),
       });
 

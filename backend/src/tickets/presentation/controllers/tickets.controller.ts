@@ -62,15 +62,18 @@ export class TicketsController {
    */
   @Post('analyze-repo')
   async analyzeRepository(@Body() dto: AnalyzeRepositoryDto) {
-    console.log(`🔍 [TicketsController] Analyzing repository: ${dto.owner}/${dto.repo}`);
+    console.log(`🔍 [TicketsController] Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'default'})`);
 
     try {
+      // Use provided branch or default to 'main'
+      const branch = dto.branch || 'main';
+
       // Fetch repository file tree
-      console.log(`🔍 [TicketsController] Fetching repository tree...`);
+      console.log(`🔍 [TicketsController] Fetching repository tree from branch: ${branch}...`);
       const fileTree = await this.gitHubFileService.getTree(
         dto.owner,
         dto.repo,
-        'main', // Default branch
+        branch,
       );
 
       // Read key files for analysis
@@ -90,7 +93,7 @@ export class TicketsController {
             dto.owner,
             dto.repo,
             filePath,
-            'main',
+            branch,
           );
           files.set(filePath, content);
         } catch {
