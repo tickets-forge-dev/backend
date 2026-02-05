@@ -21,11 +21,17 @@ import { CreateTicketDto } from '../dto/CreateTicketDto';
 import { UpdateAECDto } from '../dto/UpdateAECDto';
 import { StartRoundDto } from '../dto/StartRoundDto';
 import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
+import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
-import { Inject } from '@nestjs/common';
+import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
+import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
+import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
+import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectStackDetector';
+import { Inject, BadRequestException } from '@nestjs/common';
 import { TestAuthGuard } from '../../../shared/presentation/guards/TestAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
+import { GitHubFileService } from '@github/domain/github-file.service';
 
 @Controller('tickets')
 @UseGuards(TestAuthGuard, WorkspaceGuard) // Using TestAuthGuard for E2E testing
@@ -40,7 +46,107 @@ export class TicketsController {
     private readonly finalizeSpecUseCase: FinalizeSpecUseCase,
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
+    private readonly gitHubFileService: GitHubFileService,
+    @Inject(CODEBASE_ANALYZER)
+    private readonly codebaseAnalyzer: CodebaseAnalyzer,
+    @Inject(PROJECT_STACK_DETECTOR)
+    private readonly projectStackDetector: ProjectStackDetector,
   ) {}
+
+  /**
+   * Analyze repository without creating a ticket
+   * Called in Stage 2 of the wizard to show user the detected stack and patterns
+   * before they decide to proceed with ticket creation
+   */
+  @Post('analyze-repo')
+  async analyzeRepository(@Body() dto: AnalyzeRepositoryDto) {
+    console.log(`🔍 [TicketsController] Analyzing repository: ${dto.owner}/${dto.repo}`);
+
+    try {
+      // Fetch repository file tree
+      console.log(`🔍 [TicketsController] Fetching repository tree...`);
+      const fileTree = await this.gitHubFileService.getTree(
+        dto.owner,
+        dto.repo,
+        'main', // Default branch
+      );
+
+      // Read key files for analysis
+      console.log(`🔍 [TicketsController] Reading key repository files...`);
+      const filesToRead = [
+        'package.json',
+        'tsconfig.json',
+        '.eslintrc.json',
+        '.prettierrc',
+        'README.md',
+      ];
+
+      const files = new Map<string, string>();
+      for (const filePath of filesToRead) {
+        try {
+          const content = await this.gitHubFileService.readFile(
+            dto.owner,
+            dto.repo,
+            filePath,
+            'main',
+          );
+          files.set(filePath, content);
+        } catch {
+          // File not found, skip it
+        }
+      }
+
+      // Detect technology stack
+      console.log(`🔍 [TicketsController] Detecting technology stack...`);
+      const stack = await this.projectStackDetector.detectStack(files);
+
+      // Analyze codebase patterns
+      console.log(`🔍 [TicketsController] Analyzing codebase patterns...`);
+      const analysis = await this.codebaseAnalyzer.analyzeStructure(files, fileTree);
+
+      // Extract important files (up to 20)
+      const filesList = fileTree.tree
+        .filter(
+          (f: any) =>
+            f.type === 'blob' &&
+            (f.path.endsWith('.ts') ||
+              f.path.endsWith('.tsx') ||
+              f.path.endsWith('.js') ||
+              f.path.endsWith('.json') ||
+              f.path.endsWith('.md')),
+        )
+        .slice(0, 20)
+        .map((f: any) => ({
+          path: f.path,
+          name: f.path.split('/').pop(),
+          isDirectory: false,
+        }));
+
+      const context = {
+        stack,
+        analysis,
+        files: filesList,
+      };
+
+      console.log(`✅ [TicketsController] Repository analysis complete`);
+      return { context };
+    } catch (error: any) {
+      console.error(
+        `❌ [TicketsController] Repository analysis failed:`,
+        error.message,
+      );
+
+      if (error.status === 404 || error.message.includes('not found')) {
+        throw new BadRequestException(
+          `Repository ${dto.owner}/${dto.repo} not found or not accessible`,
+        );
+      }
+
+      throw new BadRequestException(
+        `Failed to analyze repository: ${error.message}`,
+      );
+    }
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
