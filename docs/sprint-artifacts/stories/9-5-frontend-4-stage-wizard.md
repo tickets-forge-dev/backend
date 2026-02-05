@@ -1,5 +1,8 @@
 # Story 9-5: Frontend 4-Stage Wizard (Interactive Ticket Generation)
 
+**Status:** ready-for-dev
+**Context Reference:** [9-5-frontend-4-stage-wizard.context.xml](9-5-frontend-4-stage-wizard.context.xml)
+
 ## User Story
 
 **As a** user

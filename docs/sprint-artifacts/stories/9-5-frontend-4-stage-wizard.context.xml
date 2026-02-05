@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>9-5</storyId>
+    <title>Frontend 4-Stage Wizard (Interactive Ticket Generation)</title>
+    <status>drafted</status>
+    <generatedAt>2026-02-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/9-5-frontend-4-stage-wizard.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>a multi-stage wizard for ticket creation that shows system analysis at each step</iWant>
+    <soThat>I can confirm the system understood my request and provide feedback before finalizing the ticket</soThat>
+    <tasks>
+      <task id="store-creation">Create Zustand store for wizard state (generation-wizard.store.ts) with currentStage, input, context, spec, answers, loading, error</task>
+      <task id="container-component">Create GenerationWizard container component to manage wizard flow, conditional rendering, and state updates</task>
+      <task id="stage1-input">Build Stage 1 Input component with title input, repository selector, and validation</task>
+      <task id="stage2-context">Build Stage 2 Context component displaying detected stack, patterns, and files with [Edit] buttons</task>
+      <task id="stage3-draft">Build Stage 3 Draft component with Problem Statement, Solution, Scope, Acceptance Criteria, Questions, File Changes</task>
+      <task id="stage3-questions">Build Stage 3 Questions component rendering clarification questions as form fields (radio, checkbox, text, multiline, select)</task>
+      <task id="stage4-review">Build Stage 4 Review component showing final ticket summary with quality score and Create Ticket button</task>
+      <task id="edit-modals">Build 7 edit modals for each section (Stack, Analysis, Files, Problem, Solution, Scope, AC)</task>
+      <task id="progress-indicator">Build StageIndicator component showing current stage progress (1/4, 2/4, etc.)</task>
+      <task id="file-preview">Build FilePreview component with collapsible file preview, syntax highlighting, GitHub link</task>
+      <task id="loading-overlay">Build WizardOverlay component for loading state with spinner and operation message</task>
+      <task id="component-tests">Create comprehensive component tests for all stages with 100% coverage</task>
+      <task id="styling">Implement styling using Tailwind CSS with mobile-first responsive design</task>
+      <task id="accessibility">Add ARIA labels, keyboard navigation, semantic HTML for WCAG AA compliance</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1">Stage 1 (Input): User enters title, selects GitHub repository, clicks "Analyze Repository" button</criterion>
+    <criterion id="AC-2">Stage 1 Validation: Title is required (min 3 chars), repository selection is required</criterion>
+    <criterion id="AC-3">Stage 2 (Context): Displays detected stack, codebase patterns, and relevant files with [Edit] buttons</criterion>
+    <criterion id="AC-4">Stage 2 Content: Shows framework/version, language, testing strategy, architecture pattern</criterion>
+    <criterion id="AC-5">Stage 2 Files: Lists important discovered files (package.json, tsconfig.json, entry points)</criterion>
+    <criterion id="AC-6">Stage 2 Navigation: User can click "Context Looks Good, Continue" or "[Edit] Stack/Patterns/Files"</criterion>
+    <criterion id="AC-7">Stage 3 (Draft): Shows Problem Statement, Solution, Scope, and Acceptance Criteria with [Edit] buttons</criterion>
+    <criterion id="AC-8">Stage 3 Questions: Displays clarification questions as form fields (radio buttons, checkboxes, text inputs)</criterion>
+    <criterion id="AC-9">Stage 3 Actions: Shows files to create/modify/delete with paths and suggested changes</criterion>
+    <criterion id="AC-10">Stage 3 Navigation: User can answer questions, edit any section, or continue to review</criterion>
+    <criterion id="AC-11">Stage 4 (Review): Shows complete final ticket summary with all sections</criterion>
+    <criterion id="AC-12">Stage 4 Actions: Shows "Create Ticket" button, quality score indicator (0-100), and issue list if score < 80</criterion>
+    <criterion id="AC-13">Progress Indicator: Shows current stage (Stage 1/4, 2/4, etc.) with visual indicator</criterion>
+    <criterion id="AC-14">Edit Functionality: Clicking [Edit] opens modal to modify content, saves on close</criterion>
+    <criterion id="AC-15">State Persistence: All form inputs maintained during wizard flow (using Zustand store)</criterion>
+    <criterion id="AC-16">Loading States: Shows spinners during API calls, loading messages</criterion>
+    <criterion id="AC-17">Error Handling: Shows error messages with retry options if steps fail</criterion>
+    <criterion id="AC-18">Mobile Responsive: All components work on mobile (collapsible sections, responsive grid)</criterion>
+    <criterion id="AC-19">Comprehensive component tests (100% coverage for UI logic)</criterion>
+    <criterion id="AC-20">Accessibility: Proper ARIA labels, keyboard navigation, semantic HTML</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/ux.md</path>
+        <title>Executable Tickets UX Design Specification</title>
+        <section>Design System (9.1-9.3), Colors, Typography, Spacing, Buttons, Forms, Components, Accessibility (WCAG AA)</section>
+        <snippet>Linear + GitHub minimalism aesthetic: "Calm, boring is good. Whitespace over decoration. Function over form." Use shadcn/ui + Tailwind. Design tokens: neutrals (gray-50 to gray-900), semantic colors (green, amber, red, blue, purple), extreme minimalism (flat surfaces, no cards inside cards, hover states whisper-subtle).</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux.md</path>
+        <title>Executable Tickets UX Design Specification</title>
+        <section>4.2 Create Ticket – Minimal Entry, 4.3 Generation Progress View, 4.4 Draft Ticket, 4.5 Clarification Chat</section>
+        <snippet>Create Ticket minimal entry with single-line title input and optional description. Generation Progress shows 8-step vertical stepper with real-time updates and step states (pending, active, completed, skipped, failed). Draft Ticket displays sections in non-negotiable order: Title, Summary, Problem→Goal, Scope (In/Out), Acceptance Criteria, Risks, Estimate, Readiness Score. Clarification Chat uses right-side panel with max 3 questions, one at a time, chips UI.</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux.md</path>
+        <title>Executable Tickets UX Design Specification</title>
+        <section>Accessibility Requirements (11.2-11.9), Keyboard Navigation, Color Contrast, Screen Reader Support, Form Accessibility</section>
+        <snippet>WCAG 2.1 Level AA compliance required: Tab order (skip to main, top nav, content, modals with focus trap), visible focus indicators (2px solid blue), keyboard shortcuts with help modal, semantic HTML (&lt;button&gt;, &lt;form&gt;, &lt;fieldset&gt;), ARIA labels, live regions (aria-live="polite"), error messages with aria-describedby, focus management on modal open/close, color contrast ≥4.5:1 normal text.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic 9: BMAD Tech-Spec Integration</title>
+        <section>Epic 9 Overview, Story 9.1-9.4 descriptions, 4-stage wizard architecture</section>
+        <snippet>Epic 9 transforms ticket generation from "generic ChatGPT-level" to "senior engineer spec" via 4-stage wizard: Stage 1 Input (title, repo), Stage 2 Context Review (stack, patterns, files), Stage 3 Draft Review (problem/solution/scope with form-field questions), Stage 4 Final Review (complete ticket with readiness score). Each stage is a review point. Questions are forms, not conversations. Depends on Stories 9-1 through 9-4 for backend services.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/sprint-status.yaml</path>
+        <title>Sprint Status Tracking</title>
+        <section>Epic 9 and Story 9-5 tracking, dependencies</section>
+        <snippet>Epic 9 status: contexted. Stories 9-1, 9-2, 9-3, 9-4 currently in review. Story 9-5 is drafted (current story). Story 9-6 is review. All backend services (9-1 through 9-4) provide dependencies: GitHub file access, stack detection, pattern analysis, tech spec generation.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>client/src/tickets/stores</path>
+        <kind>directory</kind>
+        <reason>Zustand store location for generation wizard state management. Existing ticket-generation store patterns available for reference.</reason>
+      </artifact>
+      <artifact>
+        <path>client/src/tickets/components</path>
+        <kind>directory</kind>
+        <reason>Root directory for wizard components. Existing components like DetailView, ListRow, ModalsSection provide pattern references for modal management and form handling.</reason>
+      </artifact>
+      <artifact>
+        <path>client/src/core/components/ui</path>
+        <kind>directory</kind>
+        <reason>shadcn/ui component library location. Available components: Button, Input, Select, Textarea, Checkbox, RadioGroup, Card, Dialog, Form. Use these as building blocks for wizard UI.</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts</path>
+        <kind>interface</kind>
+        <symbol>TechSpecGenerator, TechSpec, TechSpecInput, ProblemStatement, SolutionSection, AcceptanceCriterion, ClarificationQuestion, FileChange</symbol>
+        <reason>Backend service interface (Story 9-4) that Stage 3 and 4 components will consume. Defines tech spec structure with problem statement, solution steps, acceptance criteria (BDD format), clarification questions (with types: radio, checkbox, text, select, multiline), file changes, quality score.</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/stack-detection/ProjectStackDetector.ts</path>
+        <kind>interface</kind>
+        <symbol>ProjectStack, detect()</symbol>
+        <reason>Backend service interface (Story 9-2) that Stage 2 Context component will display. Returns framework info, languages, versions, package manager, build tools, testing frameworks.</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/pattern-analysis/CodebaseAnalyzer.ts</path>
+        <kind>interface</kind>
+        <symbol>CodebaseAnalysis, ArchitecturePattern, NamingConventions, TestingStrategy, StateManagement, APIRouting, DirectoryEntry</symbol>
+        <reason>Backend service interface (Story 9-3) that Stage 2 Context component will display. Returns architecture pattern, naming conventions, testing strategy, state management, API routing, directory structure.</reason>
+      </artifact>
+      <artifact>
+        <path>backend/src/tickets/domain/github-file.service/GitHubFileService.ts</path>
+        <kind>interface</kind>
+        <symbol>FileTree, getFileTree(), getFileContent()</symbol>
+        <reason>Backend service interface (Story 9-1) that will fetch repository structure and files. Stage 2 displays discovered files from this service.</reason>
+      </artifact>
+      <artifact>
+        <path>client/src</path>
+        <kind>directory</kind>
+        <symbol>useServices()</symbol>
+        <reason>Services dependency injection hook. Use to inject API clients for calling backend analysis and ticket creation endpoints in Zustand store actions.</reason>
+      </artifact>
+      <artifact>
+        <path>packages/shared-types/index.ts</path>
+        <kind>types</kind>
+        <reason>Shared TypeScript types between frontend and backend. Check for existing types (Ticket, ProjectStack, CodebaseAnalysis, TechSpec) to avoid duplication.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <ecosystem name="npm">
+        <package name="zustand" version="^4.4.0" reason="State management for wizard flow and all stage data"/>
+        <package name="react" version="^18.0" reason="React framework for components"/>
+        <package name="react-hook-form" version="^7.0" reason="Form validation and state management for input fields"/>
+        <package name="shadcn/ui" version="latest" reason="Pre-built accessible UI components (Button, Input, Select, Checkbox, RadioGroup, Dialog, etc.)"/>
+        <package name="tailwindcss" version="^3.0" reason="Utility-first CSS for responsive design and styling"/>
+        <package name="axios" version="^1.0" reason="HTTP client for API calls to backend services"/>
+        <package name="lucide-react" version="latest" reason="Icon library for UI elements (chevron, check, alert, etc.)"/>
+      </ecosystem>
+      <ecosystem name="dev">
+        <package name="@testing-library/react" version="^14.0" reason="Component testing utilities"/>
+        <package name="@testing-library/jest-dom" version="^6.0" reason="Jest matchers for DOM assertions"/>
+        <package name="jest" version="^29.0" reason="Test runner for component tests"/>
+        <package name="vitest" version="^1.0" reason="Alternative test runner (if project uses Vitest)"/>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <title>Clean Architecture Layers</title>
+      <description>UI components (presentation) must delegate business logic to Zustand store (application). Store actions call backend services via useServices() hook (infrastructure). No direct API calls from components.</description>
+      <implication>All form handling, state management, and API orchestration must happen in the Zustand store, not in component render logic.</implication>
+    </constraint>
+    <constraint type="design-system">
+      <title>Linear + GitHub Minimalism</title>
+      <description>Follow UX spec design tokens: neutral grays (no dark backgrounds), semantic colors (green/amber/red only for status), no cards inside cards, hover states subtle, lots of whitespace. Use shadcn/ui components as-is (minimal customization).</description>
+      <implication>All custom styling must align with design tokens. Avoid adding decorative elements, shadows, or complex visual hierarchies. Keep component tree flat and semantic.</implication>
+    </constraint>
+    <constraint type="accessibility">
+      <title>WCAG 2.1 Level AA Compliance</title>
+      <description>All form inputs require visible labels. Focus indicators must be visible (2px blue outline). Keyboard navigation (Tab, Escape) must work throughout. Modal focus trap required. Screen reader support via semantic HTML and ARIA labels.</description>
+      <implication>Every interactive element needs aria-label or associatedlabel. Every modal needs focus management. Test with keyboard-only and screen reader (VoiceOver/NVDA simulation).</implication>
+    </constraint>
+    <constraint type="responsive-design">
+      <title>Mobile-First Responsive Design</title>
+      <description>Breakpoints: mobile (375px), tablet (768px), desktop (1024px+). Sections collapsible on mobile. Tables convert to cards on mobile. All form fields full-width on mobile, reasonable width on desktop.</description>
+      <implication>Use Tailwind responsive prefixes (sm:, md:, lg:). Test on actual mobile device (or Chrome DevTools mobile emulation). No horizontal scroll on mobile.</implication>
+    </constraint>
+    <constraint type="state-management">
+      <title>Zustand Store Single Source of Truth</title>
+      <description>All wizard state (currentStage, input, context, spec, answers, loading, error) lives in one Zustand store. Components are thin presentational shells. No useState() for shared state.</description>
+      <implication>Pass store values and actions via React props or useWizardStore() hook. Avoid prop drilling by using selectors for relevant store slices.</implication>
+    </constraint>
+    <constraint type="form-validation">
+      <title>Stage 1 Input Validation</title>
+      <description>Title required, min 3 chars, max 100 chars. Repository selection required. "Analyze Repository" button disabled until form valid. No form submission errors (Linear style—disable CTA until valid).</description>
+      <implication>Use react-hook-form or manual validation. Display validation feedback only on blur (not on every keystroke). Disable button visually when form invalid.</implication>
+    </constraint>
+    <constraint type="backend-dependencies">
+      <title>Backend API Contract</title>
+      <description>Stage 1 triggers POST /api/tickets/analyze-repo with owner/repo. Returns { context: { stack: ProjectStack, analysis: CodebaseAnalysis, files: FileEntry[] } }. Stage 4 triggers POST /api/tickets/create-ticket with full spec. Errors must be caught and displayed as toast notifications.</description>
+      <implication>Define TypeScript interfaces matching backend response shapes. Use try-catch in Zustand actions. Show loading overlay during API calls. Implement retry logic for failed calls.</implication>
+    </constraint>
+    <constraint type="testing">
+      <title>100% Component Test Coverage</title>
+      <description>Each stage component must have unit tests covering: rendering, user interactions, Zustand integration, error states, loading states, accessibility (ARIA labels, keyboard nav). Use @testing-library/react for DOM testing.</description>
+      <implication>Write tests before/alongside implementation. Mock Zustand store and backend API. Test responsive behavior at different viewport sizes. Achieve ≥90% code coverage.</implication>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>WizardState</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+{
+  currentStage: number; // 1-4
+  input: { title: string; repoOwner: string; repoName: string };
+  context: { stack: ProjectStack; analysis: CodebaseAnalysis; files: FileEntry[] } | null;
+  spec: TechSpec | null;
+  answers: Record&lt;string, string | string[]&gt;; // Clarification question answers
+  loading: boolean;
+  error: string | null;
+}
+      </signature>
+      <path>client/src/tickets/stores/generation-wizard.store.ts</path>
+    </interface>
+    <interface>
+      <name>WizardActions</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+{
+  setTitle(title: string): void;
+  setRepository(owner: string, name: string): void;
+  analyzeRepository(): Promise&lt;void&gt;;
+  editStack(updates: Partial&lt;ProjectStack&gt;): void;
+  editAnalysis(updates: Partial&lt;CodebaseAnalysis&gt;): void;
+  confirmContextContinue(): void;
+  goBackToInput(): void;
+  answerQuestion(questionId: string, answer: string | string[]): void;
+  editSpec(section: string, updates: any): void;
+  confirmSpecContinue(): void;
+  goBackToContext(): void;
+  createTicket(): Promise&lt;void&gt;;
+  goBackToSpec(): void;
+  setError(error: string | null): void;
+  reset(): void;
+}
+      </signature>
+      <path>client/src/tickets/stores/generation-wizard.store.ts</path>
+    </interface>
+    <interface>
+      <name>POST /api/tickets/analyze-repo</name>
+      <kind>REST API endpoint</kind>
+      <signature>
+Request:
+{
+  owner: string; // GitHub repo owner
+  repo: string;  // GitHub repo name
+  branch?: string; // Optional, default: main
+}
+
+Response:
+{
+  context: {
+    stack: ProjectStack;
+    analysis: CodebaseAnalysis;
+    files: FileEntry[]; // Important discovered files
+  }
+}
+
+Error (400/500):
+{
+  message: string;
+  code: string;
+}
+      </signature>
+      <path>backend API</path>
+    </interface>
+    <interface>
+      <name>POST /api/tickets/generate-spec</name>
+      <kind>REST API endpoint</kind>
+      <signature>
+Request:
+{
+  title: string;
+  description?: string;
+  owner: string; // repo owner
+  repo: string; // repo name
+  context: { stack: ProjectStack; analysis: CodebaseAnalysis; files: FileEntry[] };
+}
+
+Response:
+{
+  spec: TechSpec; // Full tech specification
+}
+      </signature>
+      <path>backend API</path>
+    </interface>
+    <interface>
+      <name>POST /api/tickets/create-ticket</name>
+      <kind>REST API endpoint</kind>
+      <signature>
+Request:
+{
+  spec: TechSpec;
+  answers?: Record&lt;string, string | string[]&gt;; // Clarification question answers
+}
+
+Response:
+{
+  ticketId: string;
+  title: string;
+  message: string;
+}
+      </signature>
+      <path>backend API</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses Jest + React Testing Library. Components tested with userEvent (user interactions), render (component mounting), screen queries (DOM assertions). Zustand store tested with create() for isolated state tests. API calls mocked with jest.mock(). Accessibility verified with getByRole(), getByLabelText(). Responsive behavior tested at 375px, 768px, 1024px viewports. All tests should achieve ≥90% coverage (statements, branches, functions, lines). Focus on behavior-driven testing ("Given user input, When user clicks, Then result occurs") rather than implementation details.
+    </standards>
+    <locations>
+      <location>client/src/tickets/__tests__/ — Per-component test files (Stage1Input.test.tsx, Stage2Context.test.tsx, etc.)</location>
+      <location>client/src/tickets/__tests__/GenerationWizard.integration.test.tsx — End-to-end wizard flow integration tests</location>
+      <location>client/src/tickets/stores/__tests__/ — Zustand store action tests</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-1,AC-2">Test Stage 1 renders title input with required validation, repository selector, Analyze button disabled until form valid. Test user types title and selects repo, button enables. Test minimum 3 chars validation.</idea>
+      <idea acId="AC-3,AC-4,AC-5">Test Stage 2 renders detected stack (framework, language, version), codebase patterns (architecture, naming, testing), important files list. Test Edit buttons open modals.</idea>
+      <idea acId="AC-6">Test "Context Looks Good, Continue" advances to stage 3. Test Back button returns to stage 1. Test edit modals save and update stage 2 display.</idea>
+      <idea acId="AC-7">Test Stage 3 renders all sections: Problem Statement, Solution, Scope, Acceptance Criteria with Edit buttons for each. Test section content displays correctly.</idea>
+      <idea acId="AC-8,AC-9">Test clarification questions render with correct input types (radio, checkbox, text, multiline, select). Test question context/explanation displays. Test File Changes section shows create/modify/delete with paths.</idea>
+      <idea acId="AC-10">Test answering questions updates Zustand store. Test editing sections via modals saves changes. Test Continue button advances to stage 4.</idea>
+      <idea acId="AC-11,AC-12">Test Stage 4 displays complete final spec summary (read-only). Test quality score displays with visual indicator (0-100 range). Test score &lt; 80 shows issues list (expandable).</idea>
+      <idea acId="AC-13">Test StageIndicator component shows correct current stage (1/4, 2/4, etc.). Test visual indicator highlights current stage. Test stage navigation buttons work correctly.</idea>
+      <idea acId="AC-14">Test Edit button click opens modal with current content. Test modal Save button updates store and closes. Test modal Cancel button closes without saving.</idea>
+      <idea acId="AC-15">Test navigating between stages preserves all previous inputs in Zustand store. Test going back then forward restores entered data.</idea>
+      <idea acId="AC-16">Test loading spinner displays during API calls. Test loading message shows operation name ("Analyzing repository..."). Test spinner disappears when API completes.</idea>
+      <idea acId="AC-17">Test error message displays when API fails. Test Retry button calls API again. Test Back button cancels and returns to previous stage.</idea>
+      <idea acId="AC-18">Test all components render on mobile (375px viewport). Test sections collapse/expand on mobile. Test form fields stack vertically. Test responsive Tailwind classes applied correctly.</idea>
+      <idea acId="AC-19">Test component renders with props, user interactions trigger handlers, Zustand store updates correctly, error states display feedback, loading states show overlay. Calculate and assert ≥90% coverage.</idea>
+      <idea acId="AC-20">Test all form inputs have associated labels (getByLabelText). Test Tab order is logical (stage sections, form fields, buttons). Test Escape closes modals. Test focus management on modal open/close. Test ARIA labels present on icon buttons. Test semantic HTML (&lt;section&gt;, &lt;fieldset&gt;, &lt;legend&gt;).</idea>
+      <idea>Integration test: Complete wizard flow end-to-end. User enters title, selects repo, analyzes (mock API). Reviews context, continues. Reviews draft, answers questions, continues. Reviews final spec, creates ticket (mock API). Verify final API call includes all data.</idea>
+      <idea>Accessibility audit: Run axe or Lighthouse on each stage. Verify color contrast ≥4.5:1. Verify focus indicators visible. Verify all form errors have aria-describedby.</idea>
+      <idea>Mobile test: Open wizard on iPhone 12 (375px). Navigate all stages. Complete wizard end-to-end. Verify no horizontal scroll, all buttons clickable with thumb, sections clearly readable.</idea>
+      <idea>Performance test: Wizard stage render &lt;100ms. Answer question input debounce ≤500ms. Edit modal open/close animation ≤300ms (or reduced-motion). No unnecessary re-renders.</idea>
+      <idea>Error recovery test: API fails (network error, 500, timeout). User sees error message and Retry button. Retry succeeds. Verify wizard continues normally.</idea>
+    </ideas>
+  </tests>
+</story-context>
