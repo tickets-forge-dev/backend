@@ -257,12 +257,10 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <div className="flex flex-col items-center justify-center gap-4">
             <div className="text-center">
               <h3 className="text-[var(--text-md)] font-medium text-[var(--text)] mb-2">
-                Ready to analyze
+                Answer Clarification Questions
               </h3>
               <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                {currentTicket.repositoryContext
-                  ? `Scan GitHub code from ${currentTicket.repositoryContext.repositoryFullName} and generate contextualized questions`
-                  : 'Generate clarification questions for your ticket'}
+                Answer clarification questions to improve your ticket specification (up to 3 rounds)
               </p>
             </div>
             <Button
@@ -270,7 +268,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               size="lg"
               className="mt-2"
             >
-              {currentTicket.repositoryContext ? '🔍 Scan & Analyze' : '📋 Generate Questions'}
+              📋 Start Question Round 1
             </Button>
           </div>
         </Card>
@@ -282,9 +280,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <div className="flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-              {currentTicket.repositoryContext
-                ? '🔍 Scanning GitHub code and generating context-aware questions...'
-                : '📋 Generating questions...'}
+              📋 Generating questions...
             </p>
           </div>
         </Card>

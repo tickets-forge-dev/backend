@@ -5,7 +5,8 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import type { QuestionRound } from '@/tickets/stores/generation-wizard.store';
+import { QuestionRoundsSection } from '../QuestionRoundsSection';
+import type { RoundAnswers } from '@/types/question-refinement';
 
 /**
  * Stage 3: Draft Review with Question Refinement
@@ -27,12 +28,18 @@ export function Stage3Draft() {
     roundStatus,
     error,
     questionRounds,
+    currentRound,
     goBackToContext,
     confirmSpecContinue,
     startQuestionRound,
+    submitRoundAnswers,
+    skipToFinalize,
+    finalizeSpec,
+    setError,
   } = useWizardStore();
 
   const [isInitialized, setIsInitialized] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // On first mount, start the first question round if needed
   useEffect(() => {
@@ -40,15 +47,65 @@ export function Stage3Draft() {
       if (!isInitialized && draftAecId && questionRounds.length === 0) {
         try {
           await startQuestionRound(draftAecId, 1);
+          setIsInitialized(true);
         } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Failed to initialize questions';
+          setLocalError(errorMsg);
           console.error('Failed to initialize first question round:', err);
+          setIsInitialized(true);
         }
       }
     };
 
     initializeQuestions();
-    setIsInitialized(true);
   }, [draftAecId, questionRounds.length, isInitialized, startQuestionRound]);
+
+  // Handle submitting answers for a round
+  const handleSubmitAnswers = async (roundNumber: number, answers: RoundAnswers) => {
+    try {
+      setLocalError(null);
+      const nextAction = await submitRoundAnswers(roundNumber);
+
+      if (nextAction === 'finalize') {
+        // Auto-finalize the spec
+        await finalizeSpec();
+      }
+      // If 'continue', the store will have updated with the next round automatically
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to submit answers';
+      setLocalError(errorMsg);
+      setError(errorMsg);
+    }
+  };
+
+  // Handle skipping to finalize
+  const handleSkipToFinalize = async () => {
+    try {
+      setLocalError(null);
+      await skipToFinalize();
+      // Auto-finalize the spec
+      await finalizeSpec();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to skip to finalize';
+      setLocalError(errorMsg);
+      setError(errorMsg);
+    }
+  };
+
+  // Handle finalizing spec
+  const handleFinalizeSpec = async () => {
+    try {
+      setLocalError(null);
+      await finalizeSpec();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to finalize spec';
+      setLocalError(errorMsg);
+      setError(errorMsg);
+    }
+  };
+
+  // Determine if we're still submitting
+  const isSubmitting = roundStatus === 'submitting' || roundStatus === 'finalizing';
 
   if (!draftAecId || !spec) {
     return (
@@ -76,13 +133,13 @@ export function Stage3Draft() {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {(error || localError) && (
         <Card className="p-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm font-medium text-red-900 dark:text-red-200">
-                Error: {error}
+                Error: {error || localError}
               </p>
             </div>
           </div>
@@ -145,90 +202,35 @@ export function Stage3Draft() {
       )}
 
       {/* Questions Section */}
-      <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-        <h3 className="font-medium text-gray-900 dark:text-gray-50 mb-2">
-          Clarification Questions
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Answer clarification questions to improve specification quality (up to 3 rounds)
-        </p>
+      {roundStatus === 'generating' ? (
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 text-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto mb-3" />
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Generating clarification questions...
+          </p>
+        </div>
+      ) : questionRounds.length > 0 && currentRound > 0 ? (
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+          <QuestionRoundsSection
+            questionRounds={questionRounds}
+            currentRound={currentRound}
+            onSubmitAnswers={handleSubmitAnswers}
+            onSkipToFinalize={handleSkipToFinalize}
+            onFinalizeSpec={handleFinalizeSpec}
+            isSubmitting={isSubmitting}
+            error={localError}
+            onDismissError={() => setLocalError(null)}
+          />
+        </div>
+      ) : (
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 text-center py-12">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Initializing questions...
+          </p>
+        </div>
+      )}
 
-        {/* Questions Loading State */}
-        {roundStatus === 'generating' && (
-          <div className="py-8 text-center">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto mb-3" />
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Generating clarification questions...
-            </p>
-          </div>
-        )}
-
-        {/* No Questions */}
-        {!roundStatus.includes('generating') && (!questionRounds || questionRounds.length === 0) && (
-          <div className="py-8 text-center bg-gray-50 dark:bg-gray-900 rounded">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Questions will load automatically
-            </p>
-          </div>
-        )}
-
-        {/* Question Rounds - Placeholder for QuestionRoundsSection integration */}
-        {questionRounds.length > 0 && (
-          <div className="space-y-4">
-            {questionRounds.map((round) => (
-              <div
-                key={round.roundNumber}
-                className={`p-4 border rounded-lg ${
-                  round.roundNumber === questionRounds[questionRounds.length - 1].roundNumber
-                    ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <p className="font-medium text-gray-900 dark:text-gray-50">
-                    Round {round.roundNumber} of 3
-                  </p>
-                  {round.answeredAt && (
-                    <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                      Answered
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  {round.questions.length} question{round.questions.length !== 1 ? 's' : ''}
-                </p>
-                {/* Questions will render here via QuestionRoundsSection component */}
-                <div className="space-y-3">
-                  {round.questions.map((question) => (
-                    <div key={question.id} className="text-sm">
-                      <p className="text-gray-700 dark:text-gray-300 mb-2">
-                        {question.question}
-                      </p>
-                      {question.context && (
-                        <p className="text-xs text-gray-500 dark:text-gray-500 italic mb-2">
-                          {question.context}
-                        </p>
-                      )}
-                      {question.type === 'radio' && question.options && (
-                        <div className="space-y-1">
-                          {question.options.map((opt) => (
-                            <label key={opt} className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                              <input type="radio" name={question.id} value={opt} disabled />
-                              <span>{opt}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
+      {/* Navigation - Show back button always, continue button after questions done */}
       <div className="flex gap-3 justify-between pt-6 border-t border-gray-200 dark:border-gray-800">
         <Button
           variant="outline"
@@ -237,24 +239,23 @@ export function Stage3Draft() {
         >
           Back
         </Button>
-        <Button
-          onClick={confirmSpecContinue}
-          disabled={roundStatus === 'generating' || roundStatus === 'submitting' || roundStatus === 'finalizing'}
-        >
-          {roundStatus === 'finalizing' ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Finalizing...
-            </>
-          ) : roundStatus === 'submitting' ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            'Continue to Review'
-          )}
-        </Button>
+
+        {/* Show continue button only if questions are done (no current round or finalization complete) */}
+        {(!questionRounds.length || currentRound === 0) && (
+          <Button
+            onClick={confirmSpecContinue}
+            disabled={roundStatus === 'generating' || roundStatus === 'submitting' || roundStatus === 'finalizing'}
+          >
+            {roundStatus === 'finalizing' ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Finalizing...
+              </>
+            ) : (
+              'Continue to Review'
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );
