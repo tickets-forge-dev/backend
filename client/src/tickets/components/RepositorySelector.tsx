@@ -21,7 +21,7 @@ import {
  * With on-demand codebase scanning, repositories don't need to be pre-indexed.
  */
 export function RepositorySelector() {
-  const { githubService } = useServices();
+  const { gitHubService } = useServices();
   const {
     selectedRepository,
     setRepository,
@@ -37,9 +37,9 @@ export function RepositorySelector() {
   // Load GitHub status on mount if not already loaded
   useEffect(() => {
     if (!githubConnected) {
-      loadGitHubStatus(githubService);
+      loadGitHubStatus(gitHubService);
     }
-  }, []);
+  }, [githubConnected, loadGitHubStatus, gitHubService]);
 
   const handleSelect = async (repoFullName: string) => {
     await setRepository(repoFullName);

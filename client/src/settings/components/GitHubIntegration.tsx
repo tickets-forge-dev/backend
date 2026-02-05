@@ -23,7 +23,7 @@ import { GitHubRepositoryItem } from '@/services/github.service';
 import { Github, Check, AlertCircle, Loader2, Search } from 'lucide-react';
 
 export function GitHubIntegration() {
-  const { githubService } = useServices();
+  const { gitHubService } = useServices();
   const {
     githubConnected,
     githubConnectionStatus,
@@ -50,7 +50,7 @@ export function GitHubIntegration() {
 
   // Load connection status on mount
   useEffect(() => {
-    loadGitHubStatus(githubService);
+    loadGitHubStatus(gitHubService);
   }, []);
 
   // Sync selected repos from store
@@ -65,7 +65,7 @@ export function GitHubIntegration() {
     const error = params.get('error');
 
     if (connected === 'true') {
-      loadGitHubStatus(githubService);
+      loadGitHubStatus(gitHubService);
       window.history.replaceState({}, '', window.location.pathname);
     }
 
@@ -76,12 +76,12 @@ export function GitHubIntegration() {
   }, [loadGitHubStatus, clearErrors]);
 
   const handleConnect = async () => {
-    await initiateGitHubConnection(githubService);
+    await initiateGitHubConnection(gitHubService);
   };
 
   const handleDisconnect = async () => {
     try {
-      await disconnectGitHub(githubService);
+      await disconnectGitHub(gitHubService);
       setShowDisconnectDialog(false);
     } catch (error) {
       // Error handled by store
@@ -104,7 +104,7 @@ export function GitHubIntegration() {
       const selected = githubRepositories.filter((repo) =>
         localSelectedRepos.has(repo.id)
       );
-      await selectRepositories(githubService, selected);
+      await selectRepositories(gitHubService, selected);
     } catch (error) {
       // Error handled by store
     } finally {
