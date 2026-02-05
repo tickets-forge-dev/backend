@@ -68,21 +68,26 @@ export class TicketService {
 
   async create(data: CreateTicketRequest): Promise<AECResponse> {
     console.log('🎫 [TicketService] Creating ticket:', data);
-    
+
     try {
       const user = auth.currentUser;
       console.log('🎫 [TicketService] Current user:', user?.email || 'none');
-      
+      console.log('🎫 [TicketService] API URL:', this.client.defaults.baseURL);
+
       const response = await this.client.post<AECResponse>('/tickets', data);
       console.log('🎫 [TicketService] Ticket created:', response.data.id);
       return response.data;
     } catch (error: any) {
-      console.error('❌ [TicketService] Create failed:', error.response?.data || error.message);
-      
+      console.error('❌ [TicketService] Create failed');
+      console.error('Status:', error.response?.status);
+      console.error('Data:', error.response?.data);
+      console.error('Message:', error.message);
+      console.error('Full error:', error);
+
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
       }
-      throw new Error('Failed to create ticket. Please try again.');
+      throw new Error(`Failed to create ticket: ${error.message}`);
     }
   }
 
