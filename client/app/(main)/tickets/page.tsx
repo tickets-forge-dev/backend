@@ -37,6 +37,21 @@ export default function TicketsListPage() {
     if (ticket.status === 'ready') {
       return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Ready</Badge>;
     }
+    // Check if ticket is in a question round (iterative refinement)
+    if (ticket.status?.includes('question-round') || (ticket.currentRound && ticket.currentRound > 0)) {
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="border-blue-500/20 text-blue-600">
+            Draft
+          </Badge>
+          {ticket.currentRound && (
+            <Badge variant="outline" className="border-blue-500/20 text-blue-600 text-xs">
+              Round {ticket.currentRound}/3
+            </Badge>
+          )}
+        </div>
+      );
+    }
     if (ticket.questions && ticket.questions.length > 0) {
       return <Badge variant="outline" className="border-amber-500/20 text-amber-600">Needs Input</Badge>;
     }
@@ -143,9 +158,13 @@ export default function TicketsListPage() {
 
       {!isLoading && !loadError && filteredTickets.length > 0 && (
         <div className="space-y-3">
-          {filteredTickets.map((ticket) => (
-            <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
-              <div className="p-5 rounded-lg bg-[var(--bg)] hover:bg-[var(--bg-subtle)] border border-[var(--border)]/30 hover:border-[var(--border)] transition-all cursor-pointer">
+          {filteredTickets.map((ticket) => {
+            const isDraft = ticket.status?.includes('question-round') || (ticket.currentRound && ticket.currentRound > 0);
+            const href = isDraft ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
+
+            return (
+              <Link key={ticket.id} href={href}>
+                <div className="p-5 rounded-lg bg-[var(--bg)] hover:bg-[var(--bg-subtle)] border border-[var(--border)]/30 hover:border-[var(--border)] transition-all cursor-pointer">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
@@ -181,7 +200,8 @@ export default function TicketsListPage() {
                 </div>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

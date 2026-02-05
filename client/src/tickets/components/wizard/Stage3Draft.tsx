@@ -7,6 +7,7 @@ import { Checkbox } from '@/core/components/ui/checkbox';
 import { Input } from '@/core/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/core/components/ui/radio-group';
 import { Textarea } from '@/core/components/ui/textarea';
+import { Badge } from '@/core/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/core/components/ui/select';
+import { QuestionRoundPanel } from './QuestionRoundPanel';
 
 /**
  * Stage 3: Draft Review Component
@@ -40,11 +42,19 @@ export function Stage3Draft() {
     answerQuestion,
     goBackToContext,
     confirmSpecContinue,
+    questionRounds,
+    currentRound,
+    roundStatus,
+    answerQuestionInRound,
+    submitRoundAnswers,
+    skipToFinalize,
+    finalizeSpec,
   } = useWizardStore();
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['problem', 'solution', 'acceptance', 'questions'])
   );
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -54,6 +64,22 @@ export function Stage3Draft() {
       newExpanded.add(section);
     }
     setExpandedSections(newExpanded);
+  };
+
+  const areCurrentRoundQuestionsAnswered = (): boolean => {
+    if (!questionRounds || questionRounds.length === 0) return true;
+
+    const currentRoundData = questionRounds.find(r => r.roundNumber === currentRound);
+    if (!currentRoundData) return true;
+
+    // All questions must have answers
+    return currentRoundData.questions.every(q => {
+      const answer = currentRoundData.answers[q.id];
+      if (Array.isArray(answer)) {
+        return answer.length > 0;
+      }
+      return !!answer;
+    });
   };
 
   if (!spec) {
@@ -187,8 +213,85 @@ export function Stage3Draft() {
         </div>
       </Section>
 
-      {/* Clarification Questions Section */}
-      {spec.clarificationQuestions.length > 0 && (
+      {/* Question Rounds Section (New Iterative Refinement) */}
+      {questionRounds && questionRounds.length > 0 && (
+        <Section
+          title={`Clarification Questions (Round ${currentRound}/3)`}
+          expanded={expandedSections.has('questions')}
+          onToggle={() => toggleSection('questions')}
+        >
+          <div className="space-y-6">
+            {questionRounds.map((round) => (
+              <QuestionRoundPanel
+                key={round.roundNumber}
+                round={round}
+                isActive={round.roundNumber === currentRound}
+                onAnswer={(questionId, answer) => answerQuestionInRound(round.roundNumber, questionId, answer)}
+                disabled={roundStatus !== 'answering' || round.roundNumber !== currentRound}
+              />
+            ))}
+          </div>
+
+          {/* Round Navigation */}
+          <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSkipConfirm(true)}
+              disabled={roundStatus !== 'idle'}
+            >
+              Skip to Finalize
+            </Button>
+            <Button
+              type="button"
+              onClick={async () => {
+                const result = await submitRoundAnswers(currentRound);
+                if (result === 'finalize') {
+                  await finalizeSpec();
+                }
+              }}
+              disabled={roundStatus === 'submitting' || !areCurrentRoundQuestionsAnswered()}
+              className="flex-1"
+            >
+              {roundStatus === 'submitting' ? 'Submitting...' : (currentRound < 3 ? 'Submit & Continue' : 'Submit & Finalize')}
+            </Button>
+          </div>
+
+          {/* Skip Confirmation Dialog */}
+          {showSkipConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-sm mx-4 space-y-4">
+                <h3 className="font-medium text-gray-900 dark:text-gray-50">Skip Remaining Rounds?</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  The agent may generate better specs with more context. Are you sure?
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSkipConfirm(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      setShowSkipConfirm(false);
+                      await skipToFinalize();
+                      await finalizeSpec();
+                    }}
+                    className="flex-1"
+                  >
+                    Skip
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* Original Clarification Questions Section (Backward Compatibility) */}
+      {(!questionRounds || questionRounds.length === 0) && spec.clarificationQuestions.length > 0 && (
         <Section
           title={`Clarification Questions (${spec.clarificationQuestions.length})`}
           expanded={expandedSections.has('questions')}
@@ -240,26 +343,28 @@ export function Stage3Draft() {
         </Section>
       )}
 
-      {/* Navigation */}
-      <div className="flex gap-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={goBackToContext}
-          disabled={loading}
-          className="flex-1"
-        >
-          Back to Context
-        </Button>
-        <Button
-          type="button"
-          onClick={confirmSpecContinue}
-          disabled={loading}
-          className="flex-1"
-        >
-          Continue to Review
-        </Button>
-      </div>
+      {/* Navigation (Only show if no question rounds) */}
+      {(!questionRounds || questionRounds.length === 0) && (
+        <div className="flex gap-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={goBackToContext}
+            disabled={loading}
+            className="flex-1"
+          >
+            Back to Context
+          </Button>
+          <Button
+            type="button"
+            onClick={confirmSpecContinue}
+            disabled={loading}
+            className="flex-1"
+          >
+            Continue to Review
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
