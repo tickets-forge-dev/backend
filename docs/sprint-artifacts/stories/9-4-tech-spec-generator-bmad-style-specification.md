@@ -1,5 +1,7 @@
 # Story 9-4: Tech-Spec Generator (BMAD-Style Specification)
 
+**Status:** ready-for-dev
+
 ## User Story
 
 **As a** backend developer
@@ -374,3 +376,17 @@ const spec = await generator.generate({
 - [ ] Performance acceptable (baseline: <15 seconds for full spec)
 - [ ] Works with various project types (tested with 3+ examples)
 - [ ] Error handling comprehensive (LLM failures, timeouts, etc.)
+
+---
+
+## Dev Agent Record
+
+### Context Reference
+- Story Context: `docs/sprint-artifacts/stories/9-4-tech-spec-generator-bmad-style-specification.context.xml`
+
+### Context Generation Complete ✓
+
+**Date:** 2026-02-05
+**Status:** ready-for-dev
+**Dependencies:** Story 9-1 (GitHubFileService) ✓ Available, Story 9-2 (ProjectStackDetector) ✓ Available, Story 9-3 (CodebaseAnalyzer) ✓ Available
+**Blocked By:** None - ready to begin development immediately
