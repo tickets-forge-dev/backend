@@ -210,36 +210,43 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
   /**
    * User confirms context review is complete
-   * Generates tech spec from context and advances to stage 3
+   * Creates draft AEC and starts first question round
    */
   confirmContextContinue: async () => {
     const state = get();
-    if (!state.context) return;
+    if (!state.input.title || !state.input.repoOwner || !state.input.repoName) return;
 
     set({ loading: true, error: null });
 
     try {
-      const response = await fetch('/api/tickets/generate-spec', {
+      // Create draft AEC
+      const createResponse = await fetch('/api/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: state.input.title,
-          owner: state.input.repoOwner,
-          repo: state.input.repoName,
-          context: state.context,
+          description: state.input.description,
+          repositoryContext: {
+            owner: state.input.repoOwner,
+            name: state.input.repoName,
+            branch: state.input.branch || 'main',
+          },
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Spec generation failed: ${response.statusText}`);
+      if (!createResponse.ok) {
+        throw new Error(`Failed to create ticket: ${createResponse.statusText}`);
       }
 
-      const { spec } = await response.json();
+      const aec = await createResponse.json();
       set({
-        spec,
+        draftAecId: aec.id,
         currentStage: 3,
         loading: false,
       });
+
+      // Start first question round (will be initiated by Stage 3 component)
+      await get().startQuestionRound(aec.id, 1);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
@@ -263,20 +270,6 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         ...state.answers,
         [questionId]: answer,
       },
-    })),
-
-  /**
-   * User edits a section of the generated spec
-   * Stays on stage 3 for continued review/editing
-   */
-  editSpec: (section: string, updates: any) =>
-    set((state) => ({
-      spec: state.spec
-        ? {
-            ...state.spec,
-            [section]: updates,
-          }
-        : null,
     })),
 
   /**
