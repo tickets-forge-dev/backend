@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Textarea } from '@/core/components/ui/textarea';
 import { Button } from '@/core/components/ui/button';
@@ -37,6 +37,13 @@ export default function CreateTicketPage() {
     // Error state handled by store - displayed below
   };
 
+  // Navigate to ticket detail after creation
+  useEffect(() => {
+    if (createdAecId) {
+      router.push(`/tickets/${createdAecId}`);
+    }
+  }, [createdAecId, router]);
+
   const handleCancel = () => {
     router.push('/tickets');
   };
@@ -48,12 +55,6 @@ export default function CreateTicketPage() {
       handleSubmit(e as any);
     }
   };
-
-  // After ticket created, navigate to ticket detail
-  if (createdAecId) {
-    router.push(`/tickets/${createdAecId}`);
-    return null;
-  }
 
   return (
     <div className="mx-auto max-w-[var(--content-narrow)]">
