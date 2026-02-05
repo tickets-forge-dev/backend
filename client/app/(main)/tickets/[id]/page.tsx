@@ -31,6 +31,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSubmittingAnswers, setIsSubmittingAnswers] = useState(false);
   const [answerSubmitError, setAnswerSubmitError] = useState<string | null>(null);
+  const [isStartingRound, setIsStartingRound] = useState(false);
   const { currentTicket, isLoading, fetchError, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
   const { questionRoundService } = useServices();
 
@@ -45,6 +46,31 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       fetchTicket(ticketId);
     }
   }, [ticketId, fetchTicket]);
+
+  // Auto-start Round 1 when ticket is loaded and questions haven't started yet
+  useEffect(() => {
+    if (currentTicket && !currentTicket.currentRound && !isLoading && ticketId) {
+      // Ticket is in DRAFT and questions haven't started - auto-start Round 1
+      startQuestionRound1();
+    }
+  }, [currentTicket?.id, isLoading, ticketId]);
+
+  const startQuestionRound1 = async () => {
+    if (!ticketId) return;
+    setIsStartingRound(true);
+    setAnswerSubmitError(null);
+    try {
+      console.log('🎯 Auto-starting Round 1 for new ticket');
+      await questionRoundService.startRound(ticketId, 1);
+      // Refresh to show questions
+      await fetchTicket(ticketId);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start question round';
+      setAnswerSubmitError(errorMessage);
+    } finally {
+      setIsStartingRound(false);
+    }
+  };
 
   if (isLoading || !ticketId) {
     return (
@@ -196,6 +222,31 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         </div>
       </div>
 
+      {/* Error message */}
+      {answerSubmitError && (
+        <Card className="p-4 border-[var(--red)] bg-red-50 dark:bg-red-950/20">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-[var(--red)] flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-[var(--text-sm)] font-medium text-[var(--red)]">
+                Failed to generate questions
+              </p>
+              <p className="text-[var(--text-xs)] text-[var(--red)] mt-1">
+                {answerSubmitError}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAnswerSubmitError(null)}
+              className="text-[var(--red)]"
+            >
+              Dismiss
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Validation Results */}
       {currentTicket.validationResults && currentTicket.validationResults.length > 0 && (
         <ValidationResults
@@ -204,8 +255,20 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         />
       )}
 
+      {/* Loading state while generating questions */}
+      {isStartingRound && (
+        <Card className="p-8">
+          <div className="flex flex-col items-center justify-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
+            <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+              Generating contextualized questions...
+            </p>
+          </div>
+        </Card>
+      )}
+
       {/* Question Rounds - Show if in progress */}
-      {currentTicket.currentRound &&
+      {!isStartingRound && currentTicket.currentRound &&
        currentTicket.currentRound > 0 &&
        currentTicket.currentRound <= 3 &&
        currentTicket.questionRounds &&
