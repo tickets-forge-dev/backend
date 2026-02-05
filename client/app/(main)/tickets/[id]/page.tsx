@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
@@ -47,15 +47,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     }
   }, [ticketId, fetchTicket]);
 
-  // Auto-start Round 1 when ticket is loaded and questions haven't started yet
-  useEffect(() => {
-    if (currentTicket && !currentTicket.currentRound && !isLoading && ticketId) {
-      // Ticket is in DRAFT and questions haven't started - auto-start Round 1
-      startQuestionRound1();
-    }
-  }, [currentTicket?.id, isLoading, ticketId]);
-
-  const startQuestionRound1 = async () => {
+  const startQuestionRound1 = useCallback(async () => {
     if (!ticketId) return;
     setIsStartingRound(true);
     setAnswerSubmitError(null);
@@ -66,11 +58,20 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       await fetchTicket(ticketId);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to start question round';
+      console.error('❌ Failed to start Round 1:', errorMessage);
       setAnswerSubmitError(errorMessage);
     } finally {
       setIsStartingRound(false);
     }
-  };
+  }, [ticketId, questionRoundService, fetchTicket]);
+
+  // Auto-start Round 1 when ticket is loaded and questions haven't started yet
+  useEffect(() => {
+    if (currentTicket && !currentTicket.currentRound && !isLoading && ticketId) {
+      console.log('🎯 Conditions met for auto-start: currentRound=', currentTicket.currentRound, 'isLoading=', isLoading);
+      startQuestionRound1();
+    }
+  }, [currentTicket?.id, currentTicket?.currentRound, isLoading, ticketId, startQuestionRound1]);
 
   if (isLoading || !ticketId) {
     return (
