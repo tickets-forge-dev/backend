@@ -95,12 +95,17 @@ export default function CreateTicketPage() {
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label
-              htmlFor="description"
-              className="block text-[var(--text-sm)] font-medium text-[var(--text)] mb-2"
-            >
-              Describe your ticket, what are we doing?
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label
+                htmlFor="description"
+                className="block text-[var(--text-sm)] font-medium text-[var(--text)]"
+              >
+                Describe your ticket, what are we doing?
+              </label>
+              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                Alt + Enter
+              </span>
+            </div>
             <Textarea
               id="description"
               placeholder="Add user authentication to the login flow..."
