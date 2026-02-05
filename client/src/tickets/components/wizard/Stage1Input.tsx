@@ -21,7 +21,7 @@ import {
  * - Triggers analysis on valid input
  *
  * Validation feedback only on blur (UX principle: no validation on keystroke)
- * Analyze button disabled until form is valid
+ * Next button disabled until form is valid
  */
 export function Stage1Input() {
   const {
@@ -208,7 +208,7 @@ export function Stage1Input() {
             disabled={!isFormValid || loading}
             className="flex-1"
           >
-            {loading ? 'Analyzing Repository...' : 'Analyze Repository'}
+            {loading ? 'Loading...' : 'Next'}
           </Button>
         </div>
       </form>
