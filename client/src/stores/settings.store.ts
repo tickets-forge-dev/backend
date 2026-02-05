@@ -95,10 +95,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         isLoadingConnection: false,
       });
 
-      // If connected, auto-load repositories and existing indexes
+      // If connected, auto-load repositories (no indexing - we use on-demand scanning)
       if (status.connected) {
         get().loadRepositories(githubService);
-        get().loadExistingIndexes(githubService);
       }
     } catch (error: any) {
       console.error('Failed to load GitHub status:', error);
@@ -114,12 +113,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   /**
    * Load existing indexes for selected repositories
    * Shows summaries for completed indexes
+   * Note: Gracefully skips if indexing endpoint not available
    */
   loadExistingIndexes: async (githubService: GitHubService) => {
     try {
       const indexes = await githubService.listIndexes();
       const jobs = new Map(get().indexingJobs);
-      
+
       // Update or create jobs with existing indexes
       for (const index of indexes) {
         jobs.set(index.repositoryName, {
@@ -135,7 +135,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({ indexingJobs: jobs });
       console.log(`✅ Loaded ${indexes.length} existing indexes with summaries`);
     } catch (error: any) {
-      console.error('Failed to load existing indexes:', error);
+      // Graceful degradation: 404 means indexing endpoint not available (use on-demand scanning instead)
+      if (error?.response?.status === 404) {
+        console.log('ℹ️ Indexing endpoint not available - using on-demand code scanning');
+      } else {
+        console.error('Failed to load existing indexes:', error?.message);
+      }
       // Don't throw - this is graceful degradation
     }
   },
