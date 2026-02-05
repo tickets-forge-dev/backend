@@ -4,7 +4,7 @@ import React from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Stage1Input } from './wizard/Stage1Input';
 import { Stage2Context } from './wizard/Stage2Context';
-import { Stage3Draft } from './wizard/Stage3Draft';
+// import { Stage3Draft } from './wizard/Stage3Draft'; // Legacy - using ticket detail page for questions
 import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
 import { WizardOverlay } from './wizard/WizardOverlay';
@@ -52,7 +52,8 @@ export function GenerationWizard() {
         {currentStage === 2 && <Stage2Context />}
 
         {/* Stage 3: Draft Review & Questions */}
-        {currentStage === 3 && <Stage3Draft />}
+        {/* DISABLED: Questions are now handled in ticket detail page */}
+        {currentStage === 3 && <div className="text-center py-8"><p>Redirecting to ticket detail...</p></div>}
 
         {/* Stage 4: Final Review & Create */}
         {currentStage === 4 && <Stage4Review />}

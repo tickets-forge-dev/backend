@@ -97,7 +97,7 @@ export function Stage2Context() {
                     Languages
                   </p>
                   <div className="space-y-1">
-                    {stack.languages.map((lang) => (
+                    {stack.languages.map((lang: any) => (
                       <p key={lang.name} className="text-sm text-gray-600 dark:text-gray-400">
                         {lang.name}
                         {lang.version && ` (${lang.version})`}
@@ -114,7 +114,7 @@ export function Stage2Context() {
                     Frameworks
                   </p>
                   <div className="space-y-1">
-                    {stack.frameworks.map((fw) => (
+                    {stack.frameworks.map((fw: any) => (
                       <p key={fw.name} className="text-sm text-gray-600 dark:text-gray-400">
                         {fw.name}
                         {fw.version && ` (${fw.version})`}

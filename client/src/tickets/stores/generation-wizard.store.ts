@@ -175,7 +175,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Updates detected stack information
    * Stays on stage 2 for user review
    */
-  editStack: (updates: Partial<ProjectStack>) =>
+  editStack: (updates: any) =>
     set((state) => ({
       context: state.context
         ? {
@@ -189,7 +189,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Updates codebase analysis information
    * Stays on stage 2 for user review
    */
-  editAnalysis: (updates: Partial<CodebaseAnalysis>) =>
+  editAnalysis: (updates: any) =>
     set((state) => ({
       context: state.context
         ? {
@@ -198,6 +198,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           }
         : null,
     })),
+
+  /**
+   * Updates spec information (legacy - not used in new flow)
+   */
+  editSpec: () => {
+    // Legacy action - no longer used
+  },
 
   /**
    * User confirms context review is complete
