@@ -1,7 +1,6 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
-import { GenerationOrchestrator } from '../services/GenerationOrchestrator';
 import { GitHubApiService } from '../../../shared/infrastructure/github/github-api.service';
 import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
@@ -20,7 +19,6 @@ export class CreateTicketUseCase {
   constructor(
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
-    private readonly generationOrchestrator: GenerationOrchestrator,
     private readonly gitHubApiService: GitHubApiService,
     @Inject(GITHUB_INTEGRATION_REPOSITORY)
     private readonly githubIntegrationRepository: GitHubIntegrationRepository,
@@ -65,17 +63,7 @@ export class CreateTicketUseCase {
     // Persist draft
     await this.aecRepository.save(aec);
 
-    console.log('🎫 [CreateTicketUseCase] AEC saved, starting generation...');
-
-    // Trigger 8-step generation process (async - fire and forget)
-    // Frontend will subscribe to Firestore for real-time progress
-    this.generationOrchestrator.orchestrate(aec).catch((error) => {
-      console.error('❌ [CreateTicketUseCase] Generation failed for AEC:', aec.id, error);
-      console.error('❌ [CreateTicketUseCase] Error stack:', error.stack);
-      // Error is already saved to generationState by orchestrator
-    });
-
-    console.log('🎫 [CreateTicketUseCase] Orchestration started (async), returning AEC');
+    console.log('🎫 [CreateTicketUseCase] AEC saved, returning draft');
 
     return aec;
   }

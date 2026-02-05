@@ -15,16 +15,11 @@ import { FeasibilityValidator } from '../../tickets/infrastructure/services/vali
 import { ConsistencyValidator } from '../../tickets/infrastructure/services/validators/ConsistencyValidator';
 import { ContextAlignmentValidator } from '../../tickets/infrastructure/services/validators/ContextAlignmentValidator';
 import { ScopeValidator } from '../../tickets/infrastructure/services/validators/ScopeValidator';
-import { LLM_CONTENT_GENERATOR } from '../../shared/application/ports/ILLMContentGenerator';
 
 describe('Validation System Integration', () => {
   let validationEngine: ValidationEngine;
-  let mockLLMGenerator: any;
 
   beforeEach(async () => {
-    // Mock LLM generator for validators that need it
-    mockLLMGenerator = {};
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ValidationEngine,
@@ -55,10 +50,6 @@ describe('Validation System Integration', () => {
             ContextAlignmentValidator,
             ScopeValidator,
           ],
-        },
-        {
-          provide: LLM_CONTENT_GENERATOR,
-          useValue: mockLLMGenerator,
         },
       ],
     }).compile();

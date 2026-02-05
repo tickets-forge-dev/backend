@@ -5,35 +5,25 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { DriftDetectorService } from '../../../tickets/infrastructure/services/drift-detector.service';
-import { API_SPEC_INDEXER } from '../../../indexing/application/services/api-spec-indexer.interface';
 import { AEC } from '../../../tickets/domain/aec/AEC';
 import { AECStatus } from '../../../tickets/domain/value-objects/AECStatus';
 
 describe('Drift Detection Integration', () => {
   let service: DriftDetectorService;
-  let mockApiSpecIndexer: any;
   let mockFirestore: any;
 
   beforeEach(async () => {
-    mockApiSpecIndexer = {
-      getSpecByRepo: jest.fn(),
-    };
-
     // Mock Firestore
     mockFirestore = createFirestoreMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DriftDetectorService,
-        {
-          provide: API_SPEC_INDEXER,
-          useValue: mockApiSpecIndexer,
-        },
       ],
     }).compile();
 
     service = module.get<DriftDetectorService>(DriftDetectorService);
-    
+
     // Inject mocked Firestore
     (service as any).firestore = mockFirestore;
   });

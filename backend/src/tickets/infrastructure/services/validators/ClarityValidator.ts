@@ -9,11 +9,10 @@
  * Pass Threshold: 0.7
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BaseValidator } from '../../../application/services/validation/BaseValidator';
 import { ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { AEC } from '../../../domain/aec/AEC';
-import { ILLMContentGenerator, LLM_CONTENT_GENERATOR } from '../../../../shared/application/ports/ILLMContentGenerator';
 
 interface ClarityAnalysis {
   score: number;
@@ -24,10 +23,7 @@ interface ClarityAnalysis {
 
 @Injectable()
 export class ClarityValidator extends BaseValidator {
-  constructor(
-    @Inject(LLM_CONTENT_GENERATOR)
-    private readonly llmGenerator: ILLMContentGenerator,
-  ) {
+  constructor() {
     super(ValidatorType.CLARITY, 0.8, 0.7);
   }
 
@@ -84,10 +80,7 @@ export class ClarityValidator extends BaseValidator {
   }
 
   private async analyzeClarityWithLLM(text: string): Promise<ClarityAnalysis> {
-    // TODO: Add proper LLM method to ILLMContentGenerator interface
-    // For now, return a reasonable score based on text length and structure
-    
-    // Heuristic-based clarity scoring (will be replaced with LLM)
+    // Heuristic-based clarity scoring (LLM integration planned in future stories)
     const words = text.split(/\s+/).length;
     const hasNumbers = /\d/.test(text);
     const hasSpecifics = /\b(must|should|will|when|then|given)\b/i.test(text);

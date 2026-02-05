@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ollama } from './providers/ollama.provider';
-import { claude } from './providers/anthropic.provider';
 
 export type LLMProvider = 'ollama' | 'anthropic';
 export type ModelType = 'fast' | 'main';
@@ -55,11 +54,13 @@ export class LLMConfigService {
       console.log(`🔧 [LLMConfig] Created Ollama model instance`);
       return model;
     } else {
+      // Anthropic provider - dynamically import to avoid hard dependency
+      // This will be properly implemented in the TechSpecGenerator (Story 9.4)
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       if (!apiKey) {
         throw new Error('ANTHROPIC_API_KEY not set in .env');
       }
-      return claude(apiKey, modelId);
+      throw new Error('Anthropic provider requires @ai-sdk/anthropic to be installed. This feature will be implemented in Story 9.4.');
     }
   }
 

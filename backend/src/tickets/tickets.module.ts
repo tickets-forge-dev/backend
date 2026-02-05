@@ -4,7 +4,6 @@ import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from './application/use-cases/DeleteAECUseCase';
 import { EstimateEffortUseCase } from './application/use-cases/EstimateEffortUseCase';
-import { GenerationOrchestrator } from './application/services/GenerationOrchestrator';
 import { ValidationEngine } from './application/services/validation/ValidationEngine';
 import { FirestoreAECRepository } from './infrastructure/persistence/FirestoreAECRepository';
 import { DriftDetectorService } from './infrastructure/services/drift-detector.service';
@@ -20,18 +19,16 @@ import { AEC_REPOSITORY } from './application/ports/AECRepository';
 import { DRIFT_DETECTOR } from './application/services/drift-detector.interface';
 import { ESTIMATION_ENGINE } from './application/services/estimation-engine.interface';
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
-import { IndexingModule } from '../indexing/indexing.module';
 import { GitHubModule } from '../github/github.module';
 
 @Module({
-  imports: [IndexingModule, GitHubModule],
+  imports: [GitHubModule],
   controllers: [TicketsController],
   providers: [
     CreateTicketUseCase,
     UpdateAECUseCase,
     DeleteAECUseCase,
     EstimateEffortUseCase,
-    GenerationOrchestrator,
     ValidationEngine,
     // Validators
     CompletenessValidator,

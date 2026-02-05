@@ -6,23 +6,19 @@
  * Layer: Infrastructure
  */
 
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
 import { IDriftDetector, DriftDetectionResult } from '../../application/services/drift-detector.interface';
 import { AEC } from '../../domain/aec/AEC';
 import { AECStatus } from '../../domain/value-objects/AECStatus';
 import { AECMapper } from '../persistence/mappers/AECMapper';
-import { IApiSpecIndexer, API_SPEC_INDEXER } from '../../../indexing/application/services/api-spec-indexer.interface';
 
 @Injectable()
 export class DriftDetectorService implements IDriftDetector {
   private readonly logger = new Logger(DriftDetectorService.name);
   private readonly firestore: Firestore;
 
-  constructor(
-    @Inject(API_SPEC_INDEXER)
-    private readonly apiSpecIndexer: IApiSpecIndexer,
-  ) {
+  constructor() {
     this.firestore = new Firestore();
   }
 

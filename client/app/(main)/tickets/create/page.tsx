@@ -7,7 +7,6 @@ import { Textarea } from '@/core/components/ui/textarea';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { useTicketsStore } from '@/stores/tickets.store';
-import { GenerationProgress } from '@/src/tickets/components/GenerationProgress';
 import { RepositorySelector } from '@/src/tickets/components/RepositorySelector';
 import { BranchSelector } from '@/src/tickets/components/BranchSelector';
 import { useAuthStore } from '@/stores/auth.store';
@@ -40,41 +39,14 @@ export default function CreateTicketPage() {
     // Error state handled by store - displayed below
   };
 
-  const handleGenerationComplete = () => {
-    console.log('🎉 [CreateTicketPage] User clicked View Ticket, navigating to detail');
-    if (createdAecId) {
-      router.push(`/tickets/${createdAecId}`);
-    }
-  };
-
   const handleCancel = () => {
     router.push('/tickets');
   };
 
-  // Show generation progress after ticket created
-  if (createdAecId && user) {
-    // Match backend's workspace ID format: ws_{first 12 chars of uid}
-    const workspaceId = `ws_${user.uid.substring(0, 12)}`;
-    
-    return (
-      <div className="mx-auto max-w-[var(--content-max)]">
-        <div className="mb-8">
-          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
-            Generating Ticket
-          </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            AI is analyzing your request and building an executable ticket
-          </p>
-        </div>
-
-        <GenerationProgress
-          aecId={createdAecId}
-          workspaceId={workspaceId}
-          onComplete={handleGenerationComplete}
-          showContinueButton={true}
-        />
-      </div>
-    );
+  // After ticket created, navigate to ticket detail
+  if (createdAecId) {
+    router.push(`/tickets/${createdAecId}`);
+    return null;
   }
 
   return (

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="9-1-github-file-service-github-api-file-access" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>1</storyId>
+    <title>GitHub File Service</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2026-02-05</generatedAt>
+    <sourceStoryPath>docs/sprint-artifacts/stories/9-1-github-file-service-github-api-file-access.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>backend developer</asA>
+    <iWant>a service that reads GitHub repository files via API</iWant>
+    <soThat>the codebase analysis can access actual code without vector search</soThat>
+    <tasks>
+      <task id="1" status="pending">Create `GitHubFileService` interface in domain layer</task>
+      <task id="2" status="pending">Implement `GitHubFileServiceImpl` in infrastructure layer</task>
+      <task id="3" status="pending">Add caching layer with TTL support</task>
+      <task id="4" status="pending">Error handling with custom error types</task>
+      <task id="5" status="pending">Write comprehensive unit tests</task>
+      <task id="6" status="pending">Add JSDoc documentation with examples</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1">Service has method `getTree(owner, repo, branch)` returning complete repository structure (files, directories, paths)</criterion>
+    <criterion id="AC-2">Service has method `readFile(owner, repo, path, branch)` returning file contents as string</criterion>
+    <criterion id="AC-3">Service implements smart file selection prioritizing package.json, tsconfig.json, config files, entry points</criterion>
+    <criterion id="AC-4">Service has method `findByPattern(tree, pattern)` to locate files by glob patterns (e.g., `src/**/*.ts`)</criterion>
+    <criterion id="AC-5">Service handles GitHub API errors gracefully (rate limiting, authentication failures, network errors, file not found)</criterion>
+    <criterion id="AC-6">Service implements response caching with configurable TTL to minimize API calls</criterion>
+    <criterion id="AC-7">Comprehensive unit tests with mocked GitHub API (100% method coverage)</criterion>
+    <criterion id="AC-8">JSDoc documentation for all public methods with usage examples</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture/ADR-007-mastra-workspace-validation.md" title="Mastra Workspace Integration ADR" section="Architecture Components" snippet="Mastra v1 Workspace integration for running analysis agents on cloned repositories. Shows architecture pattern for infrastructure layer integration and how external services can be incorporated following clean architecture principles."/>
+      <doc path="CLAUDE.md" title="Development Behavior Rules" section="Architecture Rules - Backend (NestJS)" snippet="Clean Architecture: presentation → application → domain ← infrastructure. Domain must not depend on NestJS, Firebase, HTTP, or external SDKs. Use Cases are the only entry points for business operations."/>
+      <doc path="CLAUDE.md" title="Development Behavior Rules" section="Design Patterns (Required)" snippet="Ports &amp; Adapters for external dependencies, Repository pattern for persistence, Mappers for boundary translation, Error handling must be typed (no stringly-typed errors)."/>
+      <doc path="backend/package.json" title="Backend Dependencies" section="Dependencies" snippet="@octokit/rest: ^20.1.2 (GitHub API client), @nestjs/common, @nestjs/core for NestJS framework, minimatch (implied for glob pattern matching)."/>
+    </docs>
+
+    <code>
+      <file path="backend/src/github/domain/GitHubRepository.ts" kind="value-object" symbol="GitHubRepository" reason="Existing GitHub domain model showing clean architecture pattern for value objects. Demonstrates immutability, factory pattern, and strong typing. Reference for similar FileTree/TreeEntry value objects."/>
+      <file path="backend/src/github/domain/GitHubIntegration.ts" kind="entity" symbol="GitHubIntegration" reason="Existing GitHub domain entity showing entity pattern, validation rules, and domain business logic. Reference for service interface design and error handling in domain layer."/>
+      <file path="backend/src/github/application/services/__tests__/github-token.service.spec.ts" kind="test" symbol="GitHubTokenService" reason="Existing test showing NestJS testing patterns with Test.createTestingModule(), mocked ConfigService, and Jest assertions. Reference for testing service with dependencies."/>
+      <file path="backend/src/github/domain/__tests__/GitHubIntegration.spec.ts" kind="test" symbol="GitHubIntegration" reason="Existing domain entity tests showing comprehensive unit test patterns, validation testing, state transitions, and edge cases. Reference for domain model testing approach."/>
+      <file path="backend/src/shared/domain/exceptions/DomainExceptions.ts" kind="error-types" symbol="DomainExceptions" reason="Existing custom error class patterns in codebase. Shows how to create typed, domain-specific exceptions with metadata (not stringly-typed errors)."/>
+      <file path="backend/src/tickets/infrastructure/services/__tests__/estimation-engine.service.spec.ts" kind="test" symbol="EstimationEngineService" reason="Existing infrastructure service test showing NestJS testing module setup, async service testing, and parameter validation testing patterns."/>
+    </code>
+
+    <dependencies>
+      <backend>
+        <package name="@octokit/rest" version="^20.1.2" note="GitHub REST API v3 client library - core dependency for file reading"/>
+        <package name="@nestjs/common" version="^10.3.0" note="NestJS core framework"/>
+        <package name="@nestjs/core" version="^10.3.0" note="NestJS core module"/>
+        <package name="@nestjs/config" version="^3.1.1" note="Configuration management for GitHub token storage"/>
+        <package name="@types/node" version="^20.11.5" note="Node.js type definitions"/>
+        <package name="typescript" version="^5.3.3" note="TypeScript compiler"/>
+        <package name="jest" version="^29.7.0" note="Testing framework"/>
+        <package name="@nestjs/testing" version="^10.3.0" note="NestJS testing utilities"/>
+        <package name="supertest" version="^6.3.4" note="HTTP assertion library for integration tests"/>
+        <note>minimatch library not yet installed - will be needed for AC-4 glob pattern matching</note>
+      </backend>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="CLAUDE.md" layer="domain">Domain layer must not depend on NestJS, Firebase, HTTP, or external SDKs like @octokit. GitHub API client is an infrastructure detail.</constraint>
+    <constraint source="CLAUDE.md" layer="architecture">Clean Architecture: presentation → application → domain ← infrastructure. GitHubFileService interface must be defined in domain, implementation in infrastructure.</constraint>
+    <constraint source="CLAUDE.md" layer="design-patterns">Implement Ports &amp; Adapters pattern: domain defines GitHubFileService port, infrastructure provides @octokit/rest adapter.</constraint>
+    <constraint source="CLAUDE.md" layer="error-handling">Error handling must be typed - create custom error classes (not stringly-typed). See backend/src/shared/domain/exceptions pattern.</constraint>
+    <constraint source="CLAUDE.md" layer="testing">Use cases/services must have unit tests. Mocked infrastructure adapters allow testable service code without real API calls.</constraint>
+    <constraint source="project-structure">Service implementation goes in backend/src/github/infrastructure/ directory following established GitHub module structure.</constraint>
+    <constraint source="dependencies">@octokit/rest is already in package.json. minimatch library will need to be added for glob pattern matching (AC-4).</constraint>
+    <constraint source="clean-code">Prefer small functions. Service methods should be focused: getTree(), readFile(), findByPattern(), getFileByType() as specified in AC-1 through AC-4.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GitHubFileService" kind="TypeScript interface" signature="getTree(owner: string, repo: string, branch?: string): Promise&lt;FileTree&gt;; readFile(owner: string, repo: string, path: string, branch?: string): Promise&lt;string&gt;; findByPattern(tree: FileTree, pattern: string): Promise&lt;string[]&gt;; getFileByType(tree: FileTree, type: 'package.json' | 'tsconfig' | 'config'): Promise&lt;string | null&gt;" path="backend/src/github/domain/github-file.service.ts">
+      Main service interface for reading GitHub repository files. Must be defined in domain layer (pure TS interface, no external dependencies). Implementation uses @octokit/rest in infrastructure layer.
+    </interface>
+    <interface name="FileTree" kind="TypeScript interface" signature="{ sha: string; url: string; tree: TreeEntry[]; truncated: boolean; }" path="backend/src/github/domain/github-file.service.ts">
+      Value object representing complete repository file tree from GitHub API. Maps directly to GitHub REST API response structure for tree endpoint.
+    </interface>
+    <interface name="TreeEntry" kind="TypeScript interface" signature="{ path: string; mode: string; type: 'blob' | 'tree'; sha: string; size?: number; url: string; }" path="backend/src/github/domain/github-file.service.ts">
+      Value object representing a single entry (file or directory) in repository tree. Maps to GitHub API tree entry structure.
+    </interface>
+    <interface name="GitHubError" kind="TypeScript class" signature="class GitHubError extends Error { constructor(message: string, public readonly code: string); }" path="backend/src/github/domain/github-errors.ts">
+      Base error class for all GitHub-related errors. Code property enables typed error handling (not stringly-typed). Subclass: GitHubRateLimitError, GitHubAuthError, FileNotFoundError, NetworkError.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Backend uses Jest with @nestjs/testing Test.createTestingModule() for dependency injection and mock management. Tests follow pattern: *.spec.ts files in same directory or dedicated __tests__/ subdirectory. Mocked infrastructure adapters allow testing service logic without external API calls. Test structure: describe() for test suites, beforeEach() for setup, it() for individual tests.</standards>
+    <locations>backend/src/github/**/__tests__/*.spec.ts, backend/src/github/**/*.spec.ts</locations>
+    <ideas>
+      <idea ac="AC-1">Test getTree() returns FileTree structure with correct sha, url, tree array, and truncated flag. Test with various repository sizes.</idea>
+      <idea ac="AC-2">Test readFile() returns file contents as string. Test different file types: JavaScript, JSON, YAML, plain text. Test base64 decoding for GitHub API binary responses.</idea>
+      <idea ac="AC-3">Test getFileByType() finds files in priority order: package.json first, then tsconfig.json, then other config files. Test when files don't exist in tree.</idea>
+      <idea ac="AC-4">Test findByPattern() uses minimatch to locate files matching glob patterns. Test patterns: src/**/*.ts, *.json, **/config/**, edge cases with nested paths.</idea>
+      <idea ac="AC-5">Test all error scenarios: GitHub API rate limit (429), authentication failure (401), 404 not found, network timeout. Verify error codes and messages are typed with custom error classes.</idea>
+      <idea ac="AC-6">Test cache: verify cache hit returns data without API call, cache miss calls API, TTL expiration refreshes data. Test separate TTLs for tree (1h) vs file contents (24h).</idea>
+      <idea ac="AC-7">Unit tests with 100% coverage: mock @octokit/rest client, test all public methods (getTree, readFile, findByPattern, getFileByType), test caching layer, test error handling. Verify no real API calls occur.</idea>
+      <idea ac="AC-8">JSDoc tests: verify all public methods have complete documentation with @param, @returns, @throws, and usage @example sections. Use tsc --noEmit and TSDoc validation.</idea>
+    </ideas>
+  </tests>
+
+  <devNotes>
+    <layer>Infrastructure - GitHub API adapter implementing domain port</layer>
+    <patterns>Adapter pattern for @octokit/rest integration, Decorator pattern for response caching, Error mapping from HTTP to domain errors</patterns>
+    <edgeCases>
+      <case>Deeply nested repositories - GitHub tree endpoint returns max 100,000 entries; handle pagination or truncated flag</case>
+      <case>Binary files - detect and return error or metadata only, avoid reading binary data as text</case>
+      <case>Very large files - implement size limit or streaming (spec mentions this for future consideration)</case>
+      <case>Private repositories - require authentication via GitHub token in constructor injection</case>
+      <case>Branch names with special characters - URL encode before passing to GitHub API</case>
+      <case>Rate limiting - implement exponential backoff and queue management</case>
+    </edgeCases>
+    <performance>
+      <consideration>Cache responses aggressively to minimize API quota consumption</consideration>
+      <consideration>Tree endpoint can return thousands of entries; handle pagination for truncated results</consideration>
+      <consideration>Implement bounded concurrency for parallel file reads</consideration>
+      <consideration>Consider lazy loading for very large trees</consideration>
+    </performance>
+  </devNotes>
+
+  <contextReference>
+    <generated-by>story-context workflow v6</generated-by>
+    <generated-at>2026-02-05T00:00:00Z</generated-at>
+    <discovery-protocol>discover_inputs - loaded architecture docs, backend dependencies, existing GitHub integration patterns, test patterns</discovery-protocol>
+  </contextReference>
+</story-context>

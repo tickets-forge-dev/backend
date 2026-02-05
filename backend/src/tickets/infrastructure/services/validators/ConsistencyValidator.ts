@@ -8,18 +8,14 @@
  * Pass Threshold: 0.7
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BaseValidator } from '../../../application/services/validation/BaseValidator';
 import { ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { AEC } from '../../../domain/aec/AEC';
-import { ILLMContentGenerator, LLM_CONTENT_GENERATOR } from '../../../../shared/application/ports/ILLMContentGenerator';
 
 @Injectable()
 export class ConsistencyValidator extends BaseValidator {
-  constructor(
-    @Inject(LLM_CONTENT_GENERATOR)
-    private readonly llmGenerator: ILLMContentGenerator,
-  ) {
+  constructor() {
     super(ValidatorType.CONSISTENCY, 0.8, 0.7);
   }
 

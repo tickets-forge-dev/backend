@@ -116,7 +116,7 @@ development_status:
   # Epic 9: BMAD Tech-Spec Integration
   epic-9: contexted
   9-1-github-file-service-github-api-file-access: review
-  9-2-project-stack-detector-technology-stack-detection: drafted
+  9-2-project-stack-detector-technology-stack-detection: review
   9-3-codebase-analyzer-pattern-analysis: drafted
   9-4-tech-spec-generator-bmad-style-specification: drafted
   9-5-frontend-4-stage-wizard: drafted

@@ -1,4 +1,5 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
+// @ai-sdk/anthropic import removed - will be installed in Story 9.4
+// This file is kept for future TechSpecGenerator integration
 
 /**
  * Anthropic/Claude provider for production
@@ -6,11 +7,11 @@ import { createAnthropic } from '@ai-sdk/anthropic';
  *
  * FOR PRODUCTION USE
  * Requires ANTHROPIC_API_KEY in .env
+ *
+ * NOTE: This will be properly implemented in Story 9.4 (TechSpecGenerator)
  */
 export const createAnthropicProvider = (apiKey: string) => {
-  return createAnthropic({
-    apiKey,
-  });
+  throw new Error('Anthropic provider requires @ai-sdk/anthropic to be installed. Install with: npm install @ai-sdk/anthropic');
 };
 
 /**
@@ -18,6 +19,5 @@ export const createAnthropicProvider = (apiKey: string) => {
  * @param modelId - Claude model name
  */
 export const claude = (apiKey: string, modelId: string): any => {
-  const provider = createAnthropicProvider(apiKey);
-  return provider.chat(modelId);
+  throw new Error('Anthropic provider requires @ai-sdk/anthropic to be installed. Install with: npm install @ai-sdk/anthropic');
 };

@@ -1,0 +1,110 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>2</storyId>
+    <title>Project Stack Detector (Technology Stack Detection)</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2026-02-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/9-2-project-stack-detector-technology-stack-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>backend developer</asA>
+    <iWant>a service that detects project technology stack and versions</iWant>
+    <soThat>generated specs can reference exact frameworks and versions used in the target codebase</soThat>
+    <tasks>
+      Phase 1: Create ProjectStackDetector interface with 5 methods in domain layer
+      Phase 2: Implement ProjectStackDetectorImpl in application layer with detection logic for frameworks, languages, package managers
+      Phase 3: Create comprehensive dependency extraction and version parsing
+      Phase 4: Write unit tests covering all scenarios (100% coverage)
+      Phase 5: Add JSDoc documentation with examples
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    AC-1: Detects framework (Next.js, React, Vue, Svelte, etc.) from package.json dependencies with exact version
+    AC-2: Detects primary language (TypeScript, JavaScript, Python, Go, Rust, etc.) from files and config
+    AC-3: Detects major dependencies with versions (Tailwind, ESLint, Jest, Vitest, etc.)
+    AC-4: Detects dev tools and their versions (Webpack, Vite, esbuild, Babel, etc.)
+    AC-5: Detects npm/yarn/pnpm package manager from lock file presence
+    AC-6: Returns structured object with normalized dependency data and framework metadata
+    AC-7: Handles missing/malformed package.json gracefully with fallback detection
+    AC-8: Comprehensive unit tests covering all scenarios (100% coverage)
+    AC-9: JSDoc documentation with examples
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture" section="BMAD Tech-Spec Integration Architecture (Epic 9)" snippet="New services for stack detection: ProjectStackDetector for framework/version identification, integrated with GitHubFileService for file access." />
+      <doc path="docs/architecture.md" title="Architecture" section="Epic to Architecture Mapping" snippet="Epic 9 requires ProjectStackDetector in infrastructure layer for code-aware generation and version awareness in ticket specs." />
+      <doc path="docs/epics.md" title="Epics" section="Story 9-2: Project Stack Detector" snippet="Detects framework versions (Next.js 14.0, React 18.x, etc.), languages, package managers, and dev tool versions for code-aware spec generation." />
+    </docs>
+
+    <code>
+      <file path="backend/src/github/domain/github-file.service.ts" kind="interface" symbol="GitHubFileService" lines="1-142" reason="DEPENDENCY: Story 9-1 provides file reading; ProjectStackDetector uses this to read package.json, tsconfig.json, lock files" />
+      <file path="backend/src/github/infrastructure/github-file.service.ts" kind="service" symbol="GitHubFileServiceImpl" lines="1-405" reason="DEPENDENCY: Implementation provides actual file access that Stack Detector will call" />
+      <file path="backend/package.json" kind="config" symbol="dependencies" lines="19-42" reason="Reference for ecosystem detection: shows @octokit/rest, semver, NestJS, Firebase versions used in this project" />
+    </code>
+
+    <dependencies>
+      <backend>
+        <package name="semver" note="Version parsing and comparison for semantic versioning. Install with: npm install semver @types/semver" />
+        <package name="@octokit/rest" note="Already installed (v20.1.2); provides GitHub API for file access via GitHubFileService" />
+        <package name="@nestjs/common" note="Already installed (v10.3.0); provides NestJS decorators and types" />
+        <package name="zod" note="Already installed (v3.22.4); for schema validation of detected stack output" />
+      </backend>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="CLAUDE.md">Clean Architecture: presentation → application → domain ← infrastructure. Domain must not depend on NestJS, Firebase, HTTP, or external SDKs.</constraint>
+    <constraint source="CLAUDE.md">Use Cases are the only entry points for business operations. ProjectStackDetector should be called from use cases, not controllers directly.</constraint>
+    <constraint source="architecture.md">Feature-based modules with internal layers. Stack detector belongs in infrastructure/analysis/ under tickets module for code analysis functionality.</constraint>
+    <constraint source="story">DEPENDENCY: Story 9-2 depends on Story 9-1 (GitHubFileService) to read files from repository. Cannot be completed until 9-1 is in place.</constraint>
+    <constraint source="story">Stack detection must handle edge cases: malformed JSON, missing files, legacy formats, private packages, workspace configurations (monorepos with lerna/yarn/npm v7+ workspaces).</constraint>
+    <constraint source="story">Framework detection must support: Next.js, React, Vue (2/3), Svelte, Angular, Nuxt, Remix, Qwik, and extensible for future frameworks.</constraint>
+    <constraint source="story">Version parsing must handle: semantic versions (1.2.3), ranges (^1.0.0, ~1.0.0, >=1.0.0), pre-release (1.0.0-alpha), and monorepo frameworks (turborepo, nx, lerna).</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ProjectStackDetector" kind="TypeScript interface" signature="detectStack(files: Map<string, string>): Promise<ProjectStack>" path="backend/src/tickets/application/use-cases/">
+      Main interface with 5 methods: detectStack(), detectFramework(), detectLanguage(), detectPackageManager(), extractDependencies(). Returns ProjectStack value object with framework, language, packageManager, dependencies[], devDependencies[], tooling metadata.
+    </interface>
+    <interface name="ProjectStack" kind="Value Object" signature="{ framework: Framework | null, language: Language, packageManager: PackageManager, dependencies: Dependency[], devDependencies: Dependency[], nodeVersion?: string, tooling: { linter?, formatter?, testing?, bundler? }, hasWorkspaces: boolean, isMonorepo: boolean }" path="backend/src/tickets/application/use-cases/">
+      Return type from detectStack(). Contains all detected technology stack information with normalized, structured data.
+    </interface>
+    <interface name="Dependency" kind="Value Object" signature="{ name: string, version: string, type: 'runtime' | 'dev' | 'peer' | 'optional', scope?: string }" path="backend/src/tickets/application/use-cases/">
+      Represents a single dependency with normalized name, version, category, and optional scope for scoped packages (@org/package).
+    </interface>
+    <interface name="Framework" kind="Value Object" signature="{ name: string, version: string, majorVersion: number, prerelease?: boolean }" path="backend/src/tickets/application/use-cases/">
+      Detected framework with parsed version information. Name can be well-known ('next.js', 'react', 'vue') or arbitrary string for extensibility.
+    </interface>
+    <interface name="GitHubFileService" kind="Injected Dependency" signature="getTree(), readFile(), findByPattern(), getFileByType()" path="backend/src/github/infrastructure/github-file.service.ts">
+      Injected service from Story 9-1. ProjectStackDetectorImpl will call this to read package.json, tsconfig.json, lock files, etc.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Backend uses Jest with NestJS testing utilities. Tests follow pattern: *.spec.ts co-located in same directory as implementation. Unit tests mock external dependencies (GitHubFileService). Test structure: describe blocks by method, arrange-act-assert pattern. 100% method coverage required per AC-8.</standards>
+    <locations>
+      backend/src/tickets/application/__tests__/project-stack-detector.spec.ts
+      backend/src/__tests__/integration/tickets/stack-detection.integration.spec.ts
+    </locations>
+    <ideas>
+      <idea ac="AC-1">Test Next.js detection: Create fixture with next@14.0.0, react@18.2.0, react-dom@18.2.0, @next/* packages. Verify framework.name='next.js', framework.version='14.0.0', framework.majorVersion=14.</idea>
+      <idea ac="AC-1">Test React-only detection (no Next.js): Create fixture with react@18.2.0, react-dom@18.2.0 but no next package. Verify framework.name='react', framework.version='18.2.0'.</idea>
+      <idea ac="AC-2">Test TypeScript detection from tsconfig: Create fixture with tsconfig.json present and typescript in devDependencies@5.3.3. Verify language.name='typescript', language.detected=true, language.confidence=100.</idea>
+      <idea ac="AC-2">Test Python detection from files: Create fixture with .py files in tree. Verify language.name='python', language.detected=true. Also test detection from pyproject.toml and setup.py.</idea>
+      <idea ac="AC-3">Test dependency extraction: Create package.json with dependencies (react, axios), devDependencies (jest, webpack), peerDependencies (react-plugin), optional (debug). Verify all are extracted with correct types.</idea>
+      <idea ac="AC-4">Test dev tool detection: Create package.json with eslint@8.x, prettier@3.x, webpack@5.x, vite@4.x, babel@7.x. Verify tooling.linter, tooling.formatter, tooling.bundler, etc. are populated.</idea>
+      <idea ac="AC-5">Test package manager detection: Create 3 fixtures with package-lock.json (npm), yarn.lock (yarn), pnpm-lock.yaml (pnpm). Verify packageManager.type detected correctly. Test default (npm) when no lock file.</idea>
+      <idea ac="AC-6">Test return structure: Verify ProjectStack object has all required fields: framework, language, packageManager, dependencies[], devDependencies[], nodeVersion, tooling, hasWorkspaces, isMonorepo.</idea>
+      <idea ac="AC-7">Test malformed JSON: Pass invalid JSON in package.json field. Verify service handles gracefully (throws GitHubError or returns fallback with detected.false). No crashes.</idea>
+      <idea ac="AC-7">Test missing package.json: Pass file map without package.json. Verify fallback: language detection from file extensions, packageManager defaults to npm, framework=null, dependencies=[].</idea>
+      <idea ac="AC-8">Test monorepo detection: Create fixture with workspaces field in package.json (Yarn v1) or lerna.json present. Verify isMonorepo=true, hasWorkspaces=true.</idea>
+      <idea ac="AC-8">Test pre-release versions: Create package.json with @angular/core@17.0.0-rc.1 (pre-release). Verify framework.prerelease=true if it's the main framework, or dependency.version preserves exact string.</idea>
+      <idea ac="AC-8">Test version ranges: Create package.json with dependencies: { "lodash": "^4.17.0", "axios": "~1.6.0", "react": ">=18.0.0" }. Verify extractDependencies preserves exact version strings (ranges as-is).</idea>
+    </ideas>
+  </tests>
+</story-context>
