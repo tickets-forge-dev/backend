@@ -53,7 +53,7 @@ export class QuestionRoundService {
   async startRound(
     ticketId: string,
     roundNumber: 1 | 2 | 3,
-    priorAnswers?: RoundAnswers[]
+    priorAnswers?: RoundAnswers
   ): Promise<StartQuestionRoundResponse> {
     console.log(`📋 [QuestionRoundService] Starting round ${roundNumber} for ticket ${ticketId}`);
 
@@ -62,7 +62,7 @@ export class QuestionRoundService {
         `/tickets/${ticketId}/start-round`,
         {
           roundNumber,
-          priorAnswers: priorAnswers || [],
+          priorAnswers,
         } as StartQuestionRoundRequest
       );
       console.log(`📋 [QuestionRoundService] Round ${roundNumber} started`, {

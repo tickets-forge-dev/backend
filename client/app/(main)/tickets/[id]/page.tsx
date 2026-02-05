@@ -15,8 +15,11 @@ import {
 } from '@/core/components/ui/dialog';
 import { Loader2, ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useServices } from '@/services/index';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
+import { QuestionRoundsSection } from '@/src/tickets/components/QuestionRoundsSection';
+import type { RoundAnswers } from '@/types/question-refinement';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -26,7 +29,10 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const router = useRouter();
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isSubmittingAnswers, setIsSubmittingAnswers] = useState(false);
+  const [answerSubmitError, setAnswerSubmitError] = useState<string | null>(null);
   const { currentTicket, isLoading, fetchError, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
+  const { questionRoundService } = useServices();
 
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
@@ -87,6 +93,69 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     await updateTicket(ticketId, { assumptions: items });
   };
 
+  // Handle submitting answers for a question round
+  const handleSubmitRoundAnswers = async (roundNumber: number, answers: RoundAnswers) => {
+    if (!ticketId) return;
+    setIsSubmittingAnswers(true);
+    setAnswerSubmitError(null);
+
+    try {
+      const result = await questionRoundService.submitAnswers(ticketId, roundNumber as 1 | 2 | 3, answers);
+
+      if (result.nextAction === 'continue' && result.nextRound) {
+        // Next round is available, refresh ticket to show it
+        await fetchTicket(ticketId);
+      } else if (result.nextAction === 'finalize') {
+        // Time to finalize, refresh and show finalize button
+        await fetchTicket(ticketId);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit answers';
+      setAnswerSubmitError(errorMessage);
+    } finally {
+      setIsSubmittingAnswers(false);
+    }
+  };
+
+  // Handle skipping to finalize
+  const handleSkipToFinalize = async () => {
+    if (!ticketId) return;
+    setIsSubmittingAnswers(true);
+    setAnswerSubmitError(null);
+
+    try {
+      await questionRoundService.skipToFinalize(ticketId);
+      // Refresh to show finalize button or final spec
+      await fetchTicket(ticketId);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to skip to finalize';
+      setAnswerSubmitError(errorMessage);
+    } finally {
+      setIsSubmittingAnswers(false);
+    }
+  };
+
+  // Handle finalizing the spec
+  const handleFinalizeSpec = async () => {
+    if (!ticketId || !currentTicket?.questionRounds) return;
+    setIsSubmittingAnswers(true);
+    setAnswerSubmitError(null);
+
+    try {
+      // Collect all answers from all rounds
+      const allAnswers = currentTicket.questionRounds.map(round => round.answers || {});
+
+      await questionRoundService.finalizeSpec(ticketId, allAnswers);
+      // Refresh to show final spec with quality score
+      await fetchTicket(ticketId);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to finalize spec';
+      setAnswerSubmitError(errorMessage);
+    } finally {
+      setIsSubmittingAnswers(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!ticketId) return;
     const success = await deleteTicket(ticketId);
@@ -137,6 +206,20 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         <ValidationResults
           validationResults={currentTicket.validationResults}
           overallScore={currentTicket.readinessScore}
+        />
+      )}
+
+      {/* Question Rounds - Show if in progress */}
+      {currentTicket.currentRound && currentTicket.currentRound > 0 && currentTicket.questionRounds && (
+        <QuestionRoundsSection
+          questionRounds={currentTicket.questionRounds}
+          currentRound={currentTicket.currentRound}
+          onSubmitAnswers={handleSubmitRoundAnswers}
+          onSkipToFinalize={handleSkipToFinalize}
+          onFinalizeSpec={handleFinalizeSpec}
+          isSubmitting={isSubmittingAnswers}
+          error={answerSubmitError}
+          onDismissError={() => setAnswerSubmitError(null)}
         />
       )}
 
