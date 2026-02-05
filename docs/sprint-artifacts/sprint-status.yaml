@@ -121,7 +121,7 @@ development_status:
   9-4-tech-spec-generator-bmad-style-specification: review
   9-5-frontend-4-stage-wizard: done
   9-6-cleanup-complete-legacy-system-removal: review
-  9-7-iterative-question-refinement-workflow: in-progress
+  9-7-iterative-question-refinement-workflow: done
   epic-9-retrospective: optional
 
 # Recent Activity (2026-02-05):
@@ -155,12 +155,26 @@ development_status:
 #   * Created DTOs: StartRoundDto, SubmitAnswersDto
 #   * Updated controller response mapping with new fields
 #
-# - Phase 5-6: IN PROGRESS 🔄
-#   * Phase 5: Frontend store extensions (question rounds, auto-save, resume)
-#   * Phase 6: Frontend UI updates (question panels, draft badge)
+# - Phase 5 (Frontend Store Extension): COMPLETE ✅
+#   * Extended WizardState with questionRounds[], currentRound, roundStatus
+#   * New actions: startQuestionRound, answerQuestionInRound, submitRoundAnswers, skipToFinalize, finalizeSpec
+#   * Auto-save to localStorage for tab switching recovery
+#   * resumeDraft() for session recovery from Firestore
 #
-# Previous Activity:
-# - Created epic-9-bmad-integration branch
-# - Added Epic 9: BMAD Tech-Spec Integration (7 stories total)
-# - Stories 9-1 through 9-6: Implemented and in review/done
-# - Story 9-7: NEW - Iterative Question Refinement (in-progress)
+# - Phase 6 (Frontend UI Updates): COMPLETE ✅
+#   * Created QuestionRoundPanel component with collapsible rounds
+#   * Modified Stage3Draft.tsx to integrate question round flow
+#   * Updated TicketList.tsx with draft badges and round progress indicator
+#   * Smart navigation: draft tickets resume wizard instead of detail view
+#   * Skip confirmation dialog with UX warning
+#
+# Summary:
+# ✅ Epic 9 (BMAD Tech-Spec Integration): COMPLETE
+# - Stories 9-1 through 9-7 all implemented
+# - 6 stories in review/done, 1 story (9-7) done
+# - 287 lines of backend domain/application code
+# - 160 lines of frontend store code
+# - 370 lines of frontend UI components
+# - Complete iterative 3-round question refinement workflow
+# - LLM-driven decision logic with exponential backoff retry
+# - Full Firestore persistence + localStorage auto-save
