@@ -23,12 +23,12 @@ import { StartRoundDto } from '../dto/StartRoundDto';
 import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import { Inject } from '@nestjs/common';
-import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
+import { TestAuthGuard } from '../../../shared/presentation/guards/TestAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 
 @Controller('tickets')
-@UseGuards(FirebaseAuthGuard, WorkspaceGuard)
+@UseGuards(TestAuthGuard, WorkspaceGuard) // Using TestAuthGuard for E2E testing
 export class TicketsController {
   constructor(
     private readonly createTicketUseCase: CreateTicketUseCase,
