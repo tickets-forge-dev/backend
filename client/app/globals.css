@@ -24,14 +24,14 @@
   --amber: #f59e0b;     /* Needs input 50-74 */
   --red: #ef4444;       /* Blocked <50 */
   --blue: #3b82f6;      /* Info/links */
-  --purple: #8b5cf6;    /* Accent (Linear's purple) */
+  --purple: #7c3aed;    /* Accent - comfortable in light mode */
 
   /* Backgrounds */
   --bg: #ffffff;
   --bg-subtle: #fafafa;
   --bg-hover: #f4f4f5;
   --bg-active: #e4e4e7;
-  
+
   /* Popover/Dropdown backgrounds */
   --popover: #ffffff;
   --popover-foreground: #18181b;
@@ -45,6 +45,9 @@
   --text-secondary: #52525b;
   --text-tertiary: #a1a1aa;
   --text-placeholder: #a1a1aa;
+
+  /* Button text - soft white that's easy on eyes */
+  --text-button: #ffffff;
 
   /* Typography - System fonts like GitHub */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
@@ -122,22 +125,25 @@
     --bg-active: #3f3f46;
     --border: #27272a;
     --border-hover: #3f3f46;
-    
+
     /* Popover/Dropdown backgrounds */
     --popover: #18181b;
     --popover-foreground: #fafafa;
 
-    --text: #fafafa;
+    --text: #e8e8e8;              /* Softer white, not harsh */
     --text-secondary: #a1a1aa;
     --text-tertiary: #71717a;
     --text-placeholder: #71717a;
 
-    /* Semantic colors brightened for dark background */
+    /* Button text - soft white that's easy on eyes in dark mode */
+    --text-button: #ebebeb;
+
+    /* Semantic colors - comfortable, not too bright */
     --green: #10b981;
     --amber: #fbbf24;
     --red: #f87171;
     --blue: #60a5fa;
-    --purple: #a78bfa;
+    --purple: #8b5cf6;    /* Slightly softer purple for dark mode */
 
     /* Shadows darker and more prominent */
     --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
@@ -153,21 +159,24 @@
   --bg-active: #3f3f46;
   --border: #27272a;
   --border-hover: #3f3f46;
-  
+
   /* Popover/Dropdown backgrounds */
   --popover: #18181b;
   --popover-foreground: #fafafa;
 
-  --text: #fafafa;
+  --text: #e8e8e8;              /* Softer white, not harsh */
   --text-secondary: #a1a1aa;
   --text-tertiary: #71717a;
   --text-placeholder: #71717a;
+
+  /* Button text - soft white that's easy on eyes in dark mode */
+  --text-button: #ebebeb;
 
   --green: #10b981;
   --amber: #fbbf24;
   --red: #f87171;
   --blue: #60a5fa;
-  --purple: #a78bfa;
+  --purple: #8b5cf6;    /* Slightly softer purple for dark mode */
 
   --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.6);
@@ -181,7 +190,7 @@
   --bg-active: #e4e4e7;
   --border: #e4e4e7;
   --border-hover: #d4d4d8;
-  
+
   /* Popover/Dropdown backgrounds */
   --popover: #ffffff;
   --popover-foreground: #18181b;
@@ -195,7 +204,7 @@
   --amber: #f59e0b;
   --red: #ef4444;
   --blue: #3b82f6;
-  --purple: #8b5cf6;
+  --purple: #7c3aed;    /* Comfortable purple for light mode */
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -219,6 +228,53 @@ body {
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================ */
+/* MODERN SCROLLBARS (Linear-inspired) */
+/* ============================================ */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Dark mode scrollbars */
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--gray-700);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-600);
+}
+
+.dark * {
+  scrollbar-color: var(--gray-700) transparent;
 }
 
 /* Smooth transitions between themes */
