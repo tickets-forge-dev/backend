@@ -134,7 +134,7 @@ export default function CreateTicketPage() {
             <BranchSelector />
           </div>
 
-          <div className="flex gap-3 justify-end items-center">
+          <div className="flex gap-3 justify-end">
             <Button
               type="button"
               variant="ghost"
@@ -143,14 +143,16 @@ export default function CreateTicketPage() {
             >
               Cancel
             </Button>
-            <div className="flex flex-col items-end gap-1">
-              <Button type="submit" disabled={!isValid || isCreating}>
-                {isCreating ? 'Creating...' : 'Generate Ticket'}
-              </Button>
-              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                Alt + Enter
-              </span>
-            </div>
+            <Button type="submit" disabled={!isValid || isCreating}>
+              {isCreating ? 'Creating...' : (
+                <span className="flex items-center gap-2">
+                  Generate Ticket
+                  <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-normal">
+                    Alt + Enter
+                  </span>
+                </span>
+              )}
+            </Button>
           </div>
         </form>
       </Card>
