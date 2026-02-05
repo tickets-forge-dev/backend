@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
@@ -22,6 +23,7 @@ import { RepositorySelector } from '../RepositorySelector';
 export function Stage1Input() {
   const { gitHubService } = useServices();
   const { loadGitHubStatus } = useSettingsStore();
+  const { selectedRepository } = useTicketsStore();
   const {
     input,
     loading,
@@ -37,6 +39,16 @@ export function Stage1Input() {
   React.useEffect(() => {
     loadGitHubStatus(gitHubService);
   }, []);
+
+  // Sync tickets store repository selection to wizard store
+  React.useEffect(() => {
+    if (selectedRepository) {
+      const [owner, name] = selectedRepository.split('/');
+      if (owner && name) {
+        setRepository(owner, name);
+      }
+    }
+  }, [selectedRepository, setRepository]);
 
   // Form validation
   const isTitleValid = input.title.length >= 3 && input.title.length <= 100;
