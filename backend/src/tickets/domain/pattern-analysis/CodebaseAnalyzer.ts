@@ -274,7 +274,10 @@ export interface CodebaseAnalyzer {
    * // Returns: { type: 'zustand', packages: ['zustand'], confidence: 88 }
    * ```
    */
-  detectStateManagement(files: Map<string, string>, stack: ProjectStack): StateManagement;
+  detectStateManagement(
+    files: Map<string, string>,
+    stack: ProjectStack,
+  ): StateManagement;
 
   /**
    * Detects API routing convention (Next.js, Express, tRPC, etc.)
@@ -297,7 +300,10 @@ export interface CodebaseAnalyzer {
    * // Returns: { type: 'next-app-router', baseDirectory: 'app/api', confidence: 95 }
    * ```
    */
-  detectAPIRouting(stack: ProjectStack, files: Map<string, string>): APIRouting;
+  detectAPIRouting(
+    stack: ProjectStack,
+    files: Map<string, string>,
+  ): APIRouting;
 
   /**
    * Identifies and maps project directory structure
@@ -320,5 +326,7 @@ export interface CodebaseAnalyzer {
    * // ]
    * ```
    */
-  identifyDirectoryStructure(tree: FileTree): DirectoryEntry[];
+  identifyDirectoryStructure(
+    tree: FileTree,
+  ): DirectoryEntry[];
 }
