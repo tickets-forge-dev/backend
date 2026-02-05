@@ -82,7 +82,7 @@ export function EditStackModal({ onClose }: { onClose: () => void }) {
                   />
                   <button
                     onClick={() => {
-                      setFrameworks(frameworks.filter((_, idx) => idx !== i));
+                      setFrameworks(frameworks.filter((_: any, idx: number) => idx !== i));
                     }}
                     className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                     aria-label="Remove framework"
