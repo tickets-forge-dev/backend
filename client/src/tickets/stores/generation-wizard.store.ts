@@ -148,7 +148,11 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       // Use selected branch or default branch, fallback to 'main'
       const branch = ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
 
-      const response = await fetch('/api/tickets/analyze-repo', {
+      // Use proper API URL that respects NEXT_PUBLIC_API_URL environment variable
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const url = `${apiUrl}/tickets/analyze-repo`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -224,7 +228,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
     try {
       // Create draft AEC
-      const createResponse = await fetch('/api/tickets', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const createResponse = await fetch(`${apiUrl}/tickets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -549,7 +554,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ loading: true, error: null });
 
     try {
-      const response = await fetch('/api/tickets/create-ticket', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const response = await fetch(`${apiUrl}/tickets/create-ticket`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
