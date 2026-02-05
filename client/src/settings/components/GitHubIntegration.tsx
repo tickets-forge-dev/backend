@@ -47,6 +47,7 @@ export function GitHubIntegration() {
   const [localSelectedRepos, setLocalSelectedRepos] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Load connection status on mount
   useEffect(() => {
@@ -100,11 +101,15 @@ export function GitHubIntegration() {
 
   const handleSaveSelection = async () => {
     setIsSaving(true);
+    setSaveSuccess(false);
     try {
       const selected = githubRepositories.filter((repo) =>
         localSelectedRepos.has(repo.id)
       );
       await selectRepositories(gitHubService, selected);
+      setSaveSuccess(true);
+      // Auto-dismiss success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       // Error handled by store
     } finally {
@@ -203,6 +208,35 @@ export function GitHubIntegration() {
                 ({githubConnectionStatus.accountType})
               </span>
             </div>
+
+            {/* Success Message */}
+            {saveSuccess && (
+              <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-3 flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  ✅ Saved {localSelectedRepos.size} repositor{localSelectedRepos.size === 1 ? 'y' : 'ies'} successfully!
+                </p>
+              </div>
+            )}
+
+            {/* Currently Saved Repositories */}
+            {selectedRepositories.length > 0 && (
+              <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                    {selectedRepositories.length} repositor{selectedRepositories.length === 1 ? 'y' : 'ies'} enabled for ticket generation
+                  </p>
+                </div>
+                <div className="space-y-1 pl-6">
+                  {selectedRepositories.map((repo) => (
+                    <p key={repo.id} className="text-xs text-blue-600 dark:text-blue-300">
+                      → {repo.fullName}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Repository Selection */}
             <div className="space-y-3">
