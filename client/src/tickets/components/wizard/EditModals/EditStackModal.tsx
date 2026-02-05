@@ -26,7 +26,7 @@ export function EditStackModal({ onClose }: { onClose: () => void }) {
 
   const handleSave = () => {
     editStack({
-      frameworks: frameworks.map((f) => ({
+      frameworks: frameworks.map((f: any) => ({
         name: f.name,
         version: f.version,
       })),
