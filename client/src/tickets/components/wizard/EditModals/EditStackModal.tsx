@@ -58,7 +58,7 @@ export function EditStackModal({ onClose }: { onClose: () => void }) {
               Frameworks
             </label>
             <div className="space-y-3">
-              {frameworks.map((fw, i) => (
+              {frameworks.map((fw: any, i: number) => (
                 <div key={i} className="flex gap-2">
                   <Input
                     placeholder="Framework name"
