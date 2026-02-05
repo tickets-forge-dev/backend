@@ -1,7 +1,9 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
+import { QuestionRound } from '../../../domain/value-objects/QuestionRound';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
+import { TechSpec } from '../../../domain/tech-spec/TechSpecGenerator';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export interface ValidationResultDocument {
@@ -20,6 +22,16 @@ export interface RepositoryContextDocument {
   commitSha: string;
   isDefaultBranch: boolean;
   selectedAt: Timestamp;
+}
+
+export interface QuestionRoundDocument {
+  roundNumber: 1 | 2 | 3;
+  questions: any[];
+  answers: Record<string, string | string[]>;
+  generatedAt: Timestamp;
+  answeredAt: Timestamp | null;
+  codebaseContext: string;
+  skippedByUser: boolean;
 }
 
 export interface AECDocument {
@@ -45,6 +57,10 @@ export interface AECDocument {
   repositoryContext: RepositoryContextDocument | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  // New fields for iterative refinement workflow
+  questionRounds?: QuestionRoundDocument[];
+  currentRound?: number;
+  techSpec?: TechSpec | null;
 }
 
 export class AECMapper {
@@ -112,6 +128,18 @@ export class AECMapper {
       })
       .filter((vr): vr is ValidationResult => vr !== null);
 
+    // Reconstitute question rounds if present
+    const questionRounds: QuestionRound[] = (doc.questionRounds || [])
+      .map((round) => ({
+        roundNumber: round.roundNumber,
+        questions: round.questions || [],
+        answers: round.answers || {},
+        generatedAt: round.generatedAt?.toDate() ?? new Date(),
+        answeredAt: round.answeredAt?.toDate() ?? null,
+        codebaseContext: round.codebaseContext || '{}',
+        skippedByUser: round.skippedByUser ?? false,
+      }));
+
     return AEC.reconstitute(
       doc.id,
       doc.workspaceId,
@@ -135,6 +163,9 @@ export class AECMapper {
       repositoryContext,
       doc.createdAt.toDate(),
       doc.updatedAt.toDate(),
+      questionRounds,
+      doc.currentRound ?? 0,
+      doc.techSpec ?? null,
     );
   }
 
@@ -149,6 +180,19 @@ export class AECMapper {
           selectedAt: Timestamp.fromDate(aec.repositoryContext.selectedAt),
         }
       : null;
+
+    // Map question rounds to Firestore format
+    const questionRounds: QuestionRoundDocument[] = aec.questionRounds.map(
+      (round) => ({
+        roundNumber: round.roundNumber,
+        questions: round.questions,
+        answers: round.answers,
+        generatedAt: Timestamp.fromDate(round.generatedAt),
+        answeredAt: round.answeredAt ? Timestamp.fromDate(round.answeredAt) : null,
+        codebaseContext: round.codebaseContext,
+        skippedByUser: round.skippedByUser,
+      }),
+    );
 
     return {
       id: aec.id,
@@ -171,9 +215,13 @@ export class AECMapper {
       driftDetectedAt: aec.driftDetectedAt
         ? Timestamp.fromDate(aec.driftDetectedAt)
         : null,
+      driftReason: aec.driftReason,
       repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),
       updatedAt: Timestamp.fromDate(aec.updatedAt),
+      questionRounds,
+      currentRound: aec.currentRound,
+      techSpec: aec.techSpec,
     };
   }
 }

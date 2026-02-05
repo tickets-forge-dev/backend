@@ -172,6 +172,16 @@ export interface CodebaseContext {
 }
 
 /**
+ * User answer to a clarification question
+ *
+ * Used in iterative refinement workflow to track answers across rounds
+ */
+export interface AnswerContext {
+  questionId: string;
+  answer: string | string[];
+}
+
+/**
  * Technical Specification Generator Interface
  *
  * Generates BMAD-style technical specifications with zero ambiguity.
@@ -294,4 +304,66 @@ export interface TechSpecGenerator {
    * @returns Quality score 0-100
    */
   calculateQualityScore(spec: TechSpec): number;
+
+  /**
+   * Generates clarification questions with context from prior rounds
+   *
+   * Used in iterative refinement workflow (Rounds 2+) to generate targeted
+   * follow-up questions based on answers from previous rounds.
+   *
+   * Round 1 generates initial questions identifying ambiguities.
+   * Rounds 2+ can generate refinement questions or return empty array if
+   * sufficient information has been gathered.
+   *
+   * @param input - Generation input including title, context, and prior answers
+   * @returns Array of clarification questions (can be empty if no more questions needed)
+   */
+  generateQuestionsWithContext(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext;
+    priorAnswers: AnswerContext[];
+    roundNumber: 1 | 2 | 3;
+  }): Promise<ClarificationQuestion[]>;
+
+  /**
+   * Determines if more clarification questions are needed
+   *
+   * Evaluates accumulated answers to decide if sufficient context exists
+   * to generate a definitive technical specification, or if more
+   * clarification questions would improve the spec quality.
+   *
+   * Returns true if agent should ask more questions, false if ready to finalize.
+   * Hard stop at round 3 - will always return false when currentRound >= 3.
+   *
+   * @param input - Decision input with accumulated answers and context
+   * @returns Boolean indicating if more questions are needed
+   */
+  shouldAskMoreQuestions(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext;
+    answeredQuestions: AnswerContext[];
+    currentRound: number;
+  }): Promise<boolean>;
+
+  /**
+   * Generates final technical specification with accumulated answers
+   *
+   * Used after question refinement rounds are complete. Generates a complete
+   * TechSpec incorporating all answers from all rounds for maximum spec quality
+   * and specificity.
+   *
+   * Produces more definitive spec than generate() method alone because it has
+   * answers to clarification questions.
+   *
+   * @param input - Generation input with all accumulated answers
+   * @returns Complete TechSpec with all sections informed by answers
+   */
+  generateWithAnswers(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext;
+    answers: AnswerContext[];
+  }): Promise<TechSpec>;
 }

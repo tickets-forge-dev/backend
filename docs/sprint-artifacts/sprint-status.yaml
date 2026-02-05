@@ -121,13 +121,33 @@ development_status:
   9-4-tech-spec-generator-bmad-style-specification: review
   9-5-frontend-4-stage-wizard: done
   9-6-cleanup-complete-legacy-system-removal: review
+  9-7-iterative-question-refinement-workflow: in-progress
   epic-9-retrospective: optional
 
-# Recent Activity (2026-02-04):
+# Recent Activity (2026-02-05):
+# =================================
+# Story 9-7: Iterative Question Refinement Workflow
+# - Phase 1 (Domain Foundation): COMPLETE ✅
+#   * Created QuestionRound value object
+#   * Extended AECStatus enum (4 new statuses)
+#   * Enhanced AEC entity (3 new fields + 4 new methods)
+#   * Updated AEC Mapper (backward compatible)
+#   * Extended TechSpecGenerator interface (3 new port methods)
+#
+# - Phase 2 (Backend Use Cases): COMPLETE ✅
+#   * StartQuestionRoundUseCase (with LLM retry logic)
+#   * SubmitAnswersUseCase (with decision logic)
+#   * SkipToFinalizeUseCase (user manual override)
+#   * FinalizeSpecUseCase (final spec generation)
+#
+# - Phase 3-6: PENDING ⏳
+#   * TechSpecGenerator implementation (generateQuestionsWithContext, shouldAskMoreQuestions, generateWithAnswers)
+#   * API endpoints (4 new endpoints)
+#   * Frontend store extensions
+#   * Frontend UI updates
+#
+# Previous Activity:
 # - Created epic-9-bmad-integration branch
-# - Added Epic 9: BMAD Tech-Spec Integration (6 stories)
-# - Added Epic 8: Observability & Distributed Tracing to tracking
-# - Epic 1-4: Complete
-# - Epic 5-7: In backlog
-# - Epic 8: In backlog (observability)
-# - Epic 9: In backlog (BMAD integration - CURRENT FOCUS)
+# - Added Epic 9: BMAD Tech-Spec Integration (7 stories total)
+# - Stories 9-1 through 9-6: Implemented and in review/done
+# - Story 9-7: NEW - Iterative Question Refinement (in-progress)

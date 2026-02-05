@@ -3,9 +3,11 @@ import { GenerationState } from '../value-objects/GenerationState';
 import { Estimate } from '../value-objects/Estimate';
 import { CodeSnapshot, ApiSnapshot } from '../value-objects/Snapshot';
 import { Question } from '../value-objects/Question';
+import { QuestionRound } from '../value-objects/QuestionRound';
 import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
+import { TechSpec, ClarificationQuestion } from '../tech-spec/TechSpecGenerator';
 import {
   InvalidStateTransitionError,
   InsufficientReadinessError,
@@ -36,6 +38,10 @@ export class AEC {
     private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
+    // New fields for iterative refinement workflow
+    private _questionRounds: QuestionRound[] = [],
+    private _currentRound: number = 0,
+    private _techSpec: TechSpec | null = null,
   ) {}
 
   // Factory method for creating new draft
@@ -73,6 +79,9 @@ export class AEC {
       repositoryContext ?? null,
       new Date(),
       new Date(),
+      [], // _questionRounds
+      0, // _currentRound
+      null, // _techSpec
     );
   }
 
@@ -100,6 +109,9 @@ export class AEC {
     repositoryContext: RepositoryContext | null,
     createdAt: Date,
     updatedAt: Date,
+    questionRounds?: QuestionRound[],
+    currentRound?: number,
+    techSpec?: TechSpec | null,
   ): AEC {
     return new AEC(
       id,
@@ -124,6 +136,9 @@ export class AEC {
       repositoryContext,
       createdAt,
       updatedAt,
+      questionRounds ?? [],
+      currentRound ?? 0,
+      techSpec ?? null,
     );
   }
 
@@ -229,13 +244,113 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Deprecated: Use startQuestionRound() for iterative refinement workflow
+   * Kept for backward compatibility but no longer enforces 3-question limit
+   */
   addQuestions(questions: Question[]): void {
-    if (questions.length > 3) {
-      throw new Error('Maximum 3 questions allowed');
-    }
     this._questions = questions;
     this._updatedAt = new Date();
   }
+
+  /**
+   * Start a new question round in the iterative refinement workflow
+   *
+   * Guards:
+   * - Must complete previous round before starting next
+   * - Maximum 3 rounds total
+   * - Can only be called from DRAFT or IN_QUESTION_ROUND_N status
+   */
+  startQuestionRound(
+    roundNumber: 1 | 2 | 3,
+    questions: ClarificationQuestion[],
+    codebaseContext: string,
+  ): void {
+    // Guard: Sequential rounds only
+    if (roundNumber > 1 && !this.isRoundComplete(roundNumber - 1)) {
+      throw new InvalidStateTransitionError(
+        `Cannot start round ${roundNumber}. Previous round not completed.`,
+      );
+    }
+
+    // Guard: Max 3 rounds
+    if (roundNumber > 3) {
+      throw new Error('Maximum 3 rounds allowed');
+    }
+
+    const round: QuestionRound = {
+      roundNumber,
+      questions,
+      answers: {},
+      generatedAt: new Date(),
+      answeredAt: null,
+      codebaseContext,
+      skippedByUser: false,
+    };
+
+    this._questionRounds.push(round);
+    this._currentRound = roundNumber;
+
+    // Update status to reflect current round
+    this._status = `in-question-round-${roundNumber}` as AECStatus;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Complete a question round with user answers
+   *
+   * Records answers and marks round as completed
+   */
+  completeQuestionRound(
+    roundNumber: number,
+    answers: Record<string, string | string[]>,
+  ): void {
+    const round = this._questionRounds.find((r) => r.roundNumber === roundNumber);
+    if (!round) {
+      throw new Error(`Round ${roundNumber} not found`);
+    }
+
+    round.answers = answers;
+    round.answeredAt = new Date();
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Check if a question round is complete
+   */
+  private isRoundComplete(roundNumber: number): boolean {
+    const round = this._questionRounds.find((r) => r.roundNumber === roundNumber);
+    return round ? round.answeredAt !== null : false;
+  }
+
+  /**
+   * User manually skips remaining rounds
+   *
+   * Marks current round as skipped and transitions to questions complete state
+   */
+  skipToFinalize(): void {
+    if (this._currentRound > 0) {
+      const currentRound = this._questionRounds[this._currentRound - 1];
+      if (currentRound) {
+        currentRound.skippedByUser = true;
+      }
+    }
+    this._status = AECStatus.QUESTIONS_COMPLETE;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Set the final technical specification
+   *
+   * Called after question refinement is complete and spec is finalized
+   */
+  setTechSpec(spec: TechSpec): void {
+    this._techSpec = spec;
+    this._updatedAt = new Date();
+  }
+
+  // Import ClarificationQuestion for type safety
+  // Note: This is typed in QuestionRound import
 
   setEstimate(estimate: Estimate): void {
     this._estimate = estimate;
@@ -339,5 +454,16 @@ export class AEC {
   }
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  // New getters for iterative refinement workflow
+  get questionRounds(): QuestionRound[] {
+    return [...this._questionRounds];
+  }
+  get currentRound(): number {
+    return this._currentRound;
+  }
+  get techSpec(): TechSpec | null {
+    return this._techSpec;
   }
 }
