@@ -104,12 +104,30 @@ development_status:
   7-7-developer-appendix-enhancement-with-analysis-findings: backlog
   epic-7-retrospective: optional
 
-# Recent Activity (2026-02-02):
-# - Updated sprint status tracking
-# - Epic 1: 2/2 stories complete, retrospective done
-# - Epic 1.5: 2/2 stories complete (OAuth authentication)
-# - Epic 2: 5/5 stories complete, retrospective done
-# - Epic 3: 3/3 stories complete ✅ (Validation engine fully implemented)
-# - Epic 4: 5/5 stories complete
-# - Epic 5-6: In backlog
-# - Epic 7: NEW - Code-Aware Validation using Mastra workspace (7 stories, P0 priority)
+  # Epic 8: Observability & Distributed Tracing
+  epic-8: backlog
+  8-1-observability-foundation-mastra-tracing-setup: backlog
+  8-2-workflow-step-tracing: backlog
+  8-3-llm-call-metrics-token-tracking: backlog
+  8-4-external-platform-integration: backlog
+  8-5-performance-dashboard: backlog
+  epic-8-retrospective: optional
+
+  # Epic 9: BMAD Tech-Spec Integration
+  epic-9: contexted
+  9-1-github-file-service-github-api-file-access: review
+  9-2-project-stack-detector-technology-stack-detection: drafted
+  9-3-codebase-analyzer-pattern-analysis: drafted
+  9-4-tech-spec-generator-bmad-style-specification: drafted
+  9-5-frontend-4-stage-wizard: drafted
+  9-6-cleanup-complete-legacy-system-removal: review
+  epic-9-retrospective: optional
+
+# Recent Activity (2026-02-04):
+# - Created epic-9-bmad-integration branch
+# - Added Epic 9: BMAD Tech-Spec Integration (6 stories)
+# - Added Epic 8: Observability & Distributed Tracing to tracking
+# - Epic 1-4: Complete
+# - Epic 5-7: In backlog
+# - Epic 8: In backlog (observability)
+# - Epic 9: In backlog (BMAD integration - CURRENT FOCUS)
