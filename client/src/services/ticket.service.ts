@@ -32,6 +32,10 @@ export interface AECResponse {
   questions: any[];
   estimate: any | null;
   validationResults: any[];
+  // Iterative question refinement workflow fields
+  questionRounds?: any[]; // QuestionRound[] from backend
+  currentRound?: number; // Current round number (1-3 or 0 if not started)
+  techSpec?: any; // TechSpec | null
   createdAt: string;
   updatedAt: string;
 }
