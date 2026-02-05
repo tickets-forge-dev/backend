@@ -34,20 +34,30 @@ export class CreateTicketUseCase {
 
     if (command.repositoryFullName && command.branchName) {
       console.log('🎫 [CreateTicketUseCase] Repository context provided:', command.repositoryFullName, '@', command.branchName);
-      
-      // Fetch GitHub access token from integration
+
+      // Try to fetch GitHub access token from OAuth integration
+      // If not available, we'll use on-demand code scanning with env token instead
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(command.workspaceId);
-      if (!integration) {
-        throw new ForbiddenException('GitHub not connected. Please connect GitHub in Settings.');
+
+      if (integration) {
+        const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+        repositoryContext = await this.buildRepositoryContext(
+          command.repositoryFullName,
+          command.branchName,
+          accessToken,
+        );
+      } else {
+        // No OAuth integration - create minimal context
+        // Code will be read on-demand via GitHubFileService (uses GITHUB_TOKEN from env)
+        console.log('🎫 [CreateTicketUseCase] No GitHub OAuth integration - using on-demand code scanning');
+        repositoryContext = RepositoryContext.create({
+          repositoryFullName: command.repositoryFullName,
+          branchName: command.branchName,
+          commitSha: 'unknown', // Will be determined on-demand
+          isDefaultBranch: true,
+          selectedAt: new Date(),
+        });
       }
-
-      const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
-
-      repositoryContext = await this.buildRepositoryContext(
-        command.repositoryFullName,
-        command.branchName,
-        accessToken,
-      );
     }
 
     // Create domain entity
