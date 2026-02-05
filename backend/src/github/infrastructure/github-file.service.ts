@@ -59,13 +59,16 @@ export class GitHubFileServiceImpl implements GitHubFileService {
    * Initialize service with GitHub token
    *
    * @param githubToken - GitHub authentication token (from environment or injection)
-   * @throws {GitHubAuthError} If token is not provided
+   * Note: Service can be initialized without token, but will fail on actual API calls
    */
   constructor(@Inject('GITHUB_TOKEN') private githubToken: string) {
-    if (!githubToken) {
-      throw new GitHubAuthError();
+    // Initialize octokit if token is available, otherwise will error on first API call
+    if (githubToken) {
+      this.octokit = new Octokit({ auth: githubToken });
+    } else {
+      // Create a dummy octokit that will fail on actual API calls
+      this.octokit = null as any;
     }
-    this.octokit = new Octokit({ auth: githubToken });
   }
 
   /**
@@ -100,6 +103,11 @@ export class GitHubFileServiceImpl implements GitHubFileService {
     repo: string,
     branch: string = 'main'
   ): Promise<FileTree> {
+    // Check if GitHub token is configured
+    if (!this.githubToken) {
+      throw new GitHubAuthError();
+    }
+
     const cacheKey = `tree:${owner}:${repo}:${branch}`;
 
     // Check cache
@@ -165,6 +173,11 @@ export class GitHubFileServiceImpl implements GitHubFileService {
     path: string,
     branch: string = 'main'
   ): Promise<string> {
+    // Check if GitHub token is configured
+    if (!this.githubToken) {
+      throw new GitHubAuthError();
+    }
+
     const cacheKey = `file:${owner}:${repo}:${path}:${branch}`;
 
     // Check cache
