@@ -55,6 +55,8 @@ export interface GitHubRepositoryItem {
 export interface RepositoriesResponse {
   repositories: GitHubRepositoryItem[];
   totalCount: number;
+  page?: number;
+  hasMore?: boolean;
 }
 
 // Story 4.2: Code Indexing types

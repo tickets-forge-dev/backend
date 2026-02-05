@@ -175,15 +175,22 @@ export class GitHubOAuthController {
   /**
    * AC#4: List user's accessible repositories
    * GET /api/github/repositories
+   *
+   * Shows only repositories owned by the authenticated user.
+   * Sorts by recently updated. Paginates to avoid excessive data.
    */
   @Get('repositories')
   @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
   @ApiOperation({ summary: 'List user repositories' })
+  @ApiQuery({ name: 'page', required: false, type: 'number' })
   @ApiResponse({
     status: 200,
     description: 'Repository list retrieved successfully',
   })
-  async listRepositories(@WorkspaceId() workspaceId: string) {
+  async listRepositories(
+    @WorkspaceId() workspaceId: string,
+    @Query('page') page?: string,
+  ) {
     try {
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
@@ -194,11 +201,17 @@ export class GitHubOAuthController {
       // Decrypt token
       const accessToken = await this.tokenService.decryptToken(integration.encryptedAccessToken);
 
-      // Fetch repositories
+      // Fetch repositories - only owned repos, sorted by updated date
       const octokit = new Octokit({ auth: accessToken });
+      const pageNum = page ? parseInt(page, 10) : 1;
+
+      // List only repos owned by the authenticated user (not contributed/org repos)
       const { data } = await octokit.rest.repos.listForAuthenticatedUser({
-        per_page: 100,
+        affiliation: 'owner', // Only show repos owned by the user
+        per_page: 50,         // More reasonable page size
+        page: pageNum,
         sort: 'updated',
+        direction: 'desc',
       });
 
       const repositories = data.map((repo) => ({
@@ -212,9 +225,13 @@ export class GitHubOAuthController {
         updatedAt: repo.updated_at,
       }));
 
+      this.logger.log(`📦 Fetched ${repositories.length} repositories for user ${integration.accountLogin} (page ${pageNum})`);
+
       return {
         repositories,
         totalCount: repositories.length,
+        page: pageNum,
+        hasMore: repositories.length === 50, // Indicates if there are more pages
       };
     } catch (error: any) {
       this.logger.error('Failed to list repositories:', error.message);

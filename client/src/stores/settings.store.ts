@@ -25,20 +25,21 @@ interface SettingsState {
   githubConnectionStatus: ConnectionStatus | null;
   githubRepositories: GitHubRepositoryItem[];
   selectedRepositories: GitHubRepositoryItem[];
-  
+  repositoriesFetchedAt: number | null; // Timestamp for cache validation
+
   // Indexing State (Story 4.2)
   indexingJobs: Map<string, IndexingJobState>;
   indexingQueue: number[]; // Repository IDs waiting to be indexed
   maxConcurrentIndexing: number; // Limit concurrent indexing
   isIndexing: boolean;
   indexingError: string | null;
-  
+
   // Loading States
   isLoadingConnection: boolean;
   isLoadingRepositories: boolean;
   isConnecting: boolean;
   isDisconnecting: boolean;
-  
+
   // Error States
   connectionError: string | null;
   repositoriesError: string | null;
@@ -67,6 +68,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   githubConnectionStatus: null,
   githubRepositories: [],
   selectedRepositories: [],
+  repositoriesFetchedAt: null,
   indexingJobs: new Map(),
   indexingQueue: [],
   maxConcurrentIndexing: 3, // Max 3 concurrent indexing jobs
@@ -148,14 +150,29 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   /**
    * Load user's accessible repositories
    * AC#4: Display repository list
+   *
+   * Uses cache to avoid excessive API calls.
+   * Refreshes if data is older than 5 minutes.
    */
   loadRepositories: async (githubService: GitHubService) => {
+    const now = Date.now();
+    const { repositoriesFetchedAt, githubRepositories } = get();
+
+    // Cache is valid if fetched within 5 minutes
+    const CACHE_DURATION = 5 * 60 * 1000;
+    if (repositoriesFetchedAt && now - repositoriesFetchedAt < CACHE_DURATION && githubRepositories.length > 0) {
+      console.log('📦 Using cached repositories (age:', Math.round((now - repositoriesFetchedAt) / 1000), 's)');
+      return;
+    }
+
     set({ isLoadingRepositories: true, repositoriesError: null });
-    
+
     try {
       const repositories = await githubService.listRepositories();
+      console.log('📥 Fetched', repositories.length, 'repositories from GitHub');
       set({
         githubRepositories: repositories,
+        repositoriesFetchedAt: now,
         isLoadingRepositories: false,
       });
     } catch (error: any) {
