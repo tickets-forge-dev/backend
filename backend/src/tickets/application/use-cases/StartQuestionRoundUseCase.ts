@@ -3,6 +3,9 @@ import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { TechSpecGenerator, CodebaseContext, ClarificationQuestion } from '../../domain/tech-spec/TechSpecGenerator';
 import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
+import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
+import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
+import { GitHubFileService } from '@github/domain/github-file.service';
 
 /**
  * Input command for starting a question round
@@ -41,6 +44,9 @@ export class StartQuestionRoundUseCase {
     private readonly aecRepository: AECRepository,
     @Inject(TECH_SPEC_GENERATOR)
     private readonly techSpecGenerator: TechSpecGenerator,
+    private readonly codebaseAnalyzer: CodebaseAnalyzer,
+    private readonly stackDetector: ProjectStackDetector,
+    private readonly githubFileService: GitHubFileService,
   ) {}
 
   /**
@@ -60,8 +66,8 @@ export class StartQuestionRoundUseCase {
       throw new BadRequestException('Workspace mismatch');
     }
 
-    // Build codebase context
-    const codebaseContext = this.buildCodebaseContext(aec);
+    // Build codebase context (fetches from GitHub and analyzes)
+    const codebaseContext = await this.buildCodebaseContext(aec);
 
     // Aggregate previous round answers for context (if Round 2+)
     const priorAnswers = this.aggregatePriorAnswers(aec, command.roundNumber);
@@ -94,28 +100,113 @@ export class StartQuestionRoundUseCase {
   /**
    * Build codebase context from AEC repository context
    *
-   * This is a simplified context builder. In a real implementation,
-   * you would fetch full stack, analysis, and file tree from services.
+   * Fetches real repository data and performs analysis:
+   * 1. Fetch repository tree structure from GitHub
+   * 2. Detect technology stack (languages, frameworks)
+   * 3. Analyze codebase patterns (architecture, testing, naming)
+   * 4. Read key configuration files
+   *
+   * If any step fails, returns partial context with available data
    */
-  private buildCodebaseContext(aec: AEC): CodebaseContext {
-    // TODO: Fetch real stack, analysis, and files
-    // For now, return minimal context
-    return {
-      stack: {
-        languages: [],
-        frameworks: [],
-        packageManager: null,
-        otherTechnologies: [],
-      } as any,
-      analysis: {
-        architecture: { type: 'unknown' },
-        testing: {},
-        naming: { files: '', variables: '', classes: '' },
-        directories: [],
-      } as any,
-      fileTree: {} as any,
-      files: new Map(),
-    };
+  private async buildCodebaseContext(aec: AEC): Promise<CodebaseContext> {
+    const repoContext = aec.repositoryContext;
+
+    // Fallback to minimal context if no repository context
+    if (!repoContext) {
+      console.warn('🎯 [StartQuestionRoundUseCase] No repository context available, using minimal context');
+      return {
+        stack: {
+          framework: null,
+          language: { name: 'unknown', detected: false, confidence: 0 },
+          packageManager: { type: 'npm' },
+          dependencies: [],
+          devDependencies: [],
+          tooling: {},
+          hasWorkspaces: false,
+          isMonorepo: false,
+        },
+        analysis: {
+          architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
+          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
+          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
+          apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
+          directories: [],
+          overallConfidence: 0,
+          recommendations: [],
+        },
+        fileTree: { sha: '', url: '', tree: [], truncated: false },
+        files: new Map(),
+      };
+    }
+
+    try {
+      const [owner, repo] = repoContext.repositoryFullName.split('/');
+      console.log(`🎯 [StartQuestionRoundUseCase] Analyzing repository: ${repoContext.repositoryFullName}`);
+
+      // Step 1: Fetch repository file tree from GitHub
+      console.log('🎯 [StartQuestionRoundUseCase] Fetching repository tree...');
+      const fileTree = await this.githubFileService.getTree(owner, repo, repoContext.branchName);
+
+      // Step 2: Read key files for stack detection
+      const filesMap = new Map<string, string>();
+      const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
+
+      for (const fileName of keyFiles) {
+        try {
+          const content = await this.githubFileService.readFile(owner, repo, fileName, repoContext.branchName);
+          filesMap.set(fileName, content);
+          console.log(`🎯 [StartQuestionRoundUseCase] Read ${fileName}`);
+        } catch (error) {
+          // File may not exist, continue
+          console.log(`🎯 [StartQuestionRoundUseCase] ${fileName} not found (expected)`);
+        }
+      }
+
+      // Step 3: Detect technology stack
+      console.log('🎯 [StartQuestionRoundUseCase] Detecting technology stack...');
+      const stack = await this.stackDetector.detectStack(filesMap);
+
+      // Step 4: Analyze codebase patterns
+      console.log('🎯 [StartQuestionRoundUseCase] Analyzing codebase patterns...');
+      const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
+
+      console.log(`🎯 [StartQuestionRoundUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`);
+
+      return {
+        stack,
+        analysis,
+        fileTree,
+        files: filesMap,
+      };
+    } catch (error) {
+      console.error('🎯 [StartQuestionRoundUseCase] Error building codebase context:', error instanceof Error ? error.message : String(error));
+      // Return partial context with minimal valid structure
+      return {
+        stack: {
+          framework: null,
+          language: { name: 'unknown', detected: false, confidence: 0 },
+          packageManager: { type: 'npm' },
+          dependencies: [],
+          devDependencies: [],
+          tooling: {},
+          hasWorkspaces: false,
+          isMonorepo: false,
+        },
+        analysis: {
+          architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
+          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
+          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
+          apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
+          directories: [],
+          overallConfidence: 0,
+          recommendations: [],
+        },
+        fileTree: { sha: '', url: '', tree: [], truncated: false },
+        files: new Map(),
+      };
+    }
   }
 
   /**

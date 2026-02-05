@@ -1,8 +1,11 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
-import { TechSpecGenerator } from '../../domain/tech-spec/TechSpecGenerator';
+import { TechSpecGenerator, CodebaseContext } from '../../domain/tech-spec/TechSpecGenerator';
 import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
+import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
+import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
+import { GitHubFileService } from '@github/domain/github-file.service';
 
 /**
  * Input command for finalizing the technical specification
@@ -47,6 +50,9 @@ export class FinalizeSpecUseCase {
     private readonly aecRepository: AECRepository,
     @Inject(TECH_SPEC_GENERATOR)
     private readonly techSpecGenerator: TechSpecGenerator,
+    private readonly codebaseAnalyzer: CodebaseAnalyzer,
+    private readonly stackDetector: ProjectStackDetector,
+    private readonly githubFileService: GitHubFileService,
   ) {}
 
   /**
@@ -70,8 +76,8 @@ export class FinalizeSpecUseCase {
     const allAnswers = this.aggregateAllAnswers(aec);
     console.log(`✨ [FinalizeSpecUseCase] Aggregated ${allAnswers.length} answers from ${aec.questionRounds.length} rounds`);
 
-    // Build codebase context
-    const codebaseContext = this.buildCodebaseContext(aec);
+    // Build codebase context (fetches from GitHub and analyzes)
+    const codebaseContext = await this.buildCodebaseContext(aec);
 
     // Generate final spec with retry logic
     const techSpec = await this.generateSpecWithRetry(
@@ -114,16 +120,89 @@ export class FinalizeSpecUseCase {
   /**
    * Build codebase context from AEC repository context
    *
-   * In production, fetch real stack, analysis, and files from services.
+   * Fetches real repository data and performs analysis for final spec generation
    */
-  private buildCodebaseContext(aec: AEC): any {
-    // TODO: Fetch real stack, analysis, and files
-    return {
-      stack: {},
-      analysis: {},
-      fileTree: {},
-      files: new Map(),
-    };
+  private async buildCodebaseContext(aec: AEC): Promise<CodebaseContext> {
+    const repoContext = aec.repositoryContext;
+
+    if (!repoContext) {
+      console.warn('✨ [FinalizeSpecUseCase] No repository context available, using minimal context');
+      return {
+        stack: {
+          framework: null,
+          language: { name: 'unknown', detected: false, confidence: 0 },
+          packageManager: { type: 'npm' },
+          dependencies: [],
+          devDependencies: [],
+          tooling: {},
+          hasWorkspaces: false,
+          isMonorepo: false,
+        },
+        analysis: {
+          architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
+          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
+          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
+          apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
+          directories: [],
+          overallConfidence: 0,
+          recommendations: [],
+        },
+        fileTree: { sha: '', url: '', tree: [], truncated: false },
+        files: new Map(),
+      };
+    }
+
+    try {
+      const [owner, repo] = repoContext.repositoryFullName.split('/');
+      console.log(`✨ [FinalizeSpecUseCase] Analyzing repository for final spec: ${repoContext.repositoryFullName}`);
+
+      const fileTree = await this.githubFileService.getTree(owner, repo, repoContext.branchName);
+
+      const filesMap = new Map<string, string>();
+      const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
+
+      for (const fileName of keyFiles) {
+        try {
+          const content = await this.githubFileService.readFile(owner, repo, fileName, repoContext.branchName);
+          filesMap.set(fileName, content);
+        } catch (error) {
+          // File may not exist
+        }
+      }
+
+      const stack = await this.stackDetector.detectStack(filesMap);
+      const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
+
+      console.log(`✨ [FinalizeSpecUseCase] Repository context built with framework: ${stack.framework?.name || 'unknown'}`);
+      return { stack, analysis, fileTree, files: filesMap };
+    } catch (error) {
+      console.error('✨ [FinalizeSpecUseCase] Error building context:', error instanceof Error ? error.message : String(error));
+      return {
+        stack: {
+          framework: null,
+          language: { name: 'unknown', detected: false, confidence: 0 },
+          packageManager: { type: 'npm' },
+          dependencies: [],
+          devDependencies: [],
+          tooling: {},
+          hasWorkspaces: false,
+          isMonorepo: false,
+        },
+        analysis: {
+          architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
+          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
+          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
+          apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
+          directories: [],
+          overallConfidence: 0,
+          recommendations: [],
+        },
+        fileTree: { sha: '', url: '', tree: [], truncated: false },
+        files: new Map(),
+      };
+    }
   }
 
   /**

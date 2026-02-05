@@ -26,6 +26,9 @@ import { FirebaseService } from '../shared/infrastructure/firebase/firebase.conf
 import { GitHubModule } from '../github/github.module';
 import { TechSpecGeneratorImpl } from './application/services/TechSpecGeneratorImpl';
 import { TECH_SPEC_GENERATOR } from './application/ports/TechSpecGeneratorPort';
+import { CodebaseAnalyzerImpl } from './application/services/CodebaseAnalyzerImpl';
+import { ProjectStackDetectorImpl } from './application/services/ProjectStackDetectorImpl';
+import { GitHubFileServiceImpl } from '../github/infrastructure/github-file.service';
 
 @Module({
   imports: [GitHubModule],
@@ -94,6 +97,10 @@ import { TECH_SPEC_GENERATOR } from './application/ports/TechSpecGeneratorPort';
       provide: TECH_SPEC_GENERATOR,
       useClass: TechSpecGeneratorImpl,
     },
+    // Codebase analysis and GitHub integration services
+    CodebaseAnalyzerImpl,
+    ProjectStackDetectorImpl,
+    GitHubFileServiceImpl,
   ],
   exports: [CreateTicketUseCase, UpdateAECUseCase, EstimateEffortUseCase, AEC_REPOSITORY, DRIFT_DETECTOR, ESTIMATION_ENGINE],
 })
