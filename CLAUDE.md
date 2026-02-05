@@ -62,6 +62,36 @@ Any AI assistant or contributor must follow these rules.
 UI must remain minimalistic and calm (Linear-inspired).
 Avoid extra visual containers.
 
+### 4a) Design System Governance (CRITICAL)
+
+**The design system is the source of truth for app cohesion. Protecting it prevents regressions.**
+
+- `client/app/globals.css` defines all design tokens (colors, spacing, typography, scrollbars)
+- **NEVER remove or downgrade design tokens** without explicit justification in PR description
+- **If reverting a commit**, verify it doesn't remove modern scrollbars, soft text colors, or design refinements
+- **Theme colors must stay comfortable**: dark mode text is soft white (#e8e8e8), not harsh (#fafafa)
+- **Scrollbars are 8px thin rounded**, not default browser ugly scrollbars
+- **Sidebar is structural**: if navigation changes, sidebar state MUST be persisted in `useUIStore`
+
+**Design System Components (Protected):**
+- `client/src/core/components/sidebar/Sidebar.tsx` - Main navigation
+- `client/src/core/components/sidebar/SidebarHeader.tsx` - User profile dropdown
+- `client/src/core/components/sidebar/SidebarNav.tsx` - Navigation links with active states
+- `client/src/core/components/sidebar/SidebarFooter.tsx` - Theme toggle + collapse button
+- `client/src/stores/ui.store.ts` - Sidebar state (collapsed/expanded, persisted to localStorage)
+
+**Violation Indicators (Red Flags):**
+- ❌ Visible borders on every card (`border border-[var(--border)]/30`)
+- ❌ Harsh text colors in dark mode (`#fafafa` instead of `#e8e8e8`)
+- ❌ Sidebar missing or replaced with minimal header-only layout
+- ❌ Default browser scrollbars instead of custom styled ones
+- ❌ "Remove Card component" commits without replacing with consistent styling
+
+**If Sidebar Gets Removed:**
+- Always check git diff against Feb 3 modernization commit (3ce28b6)
+- Sidebar should collapse to icon-only (64px) on desktop, slide out on mobile
+- User preferences persist across sessions via Zustand + localStorage
+
 ---
 
 ## 5) Testing Expectations
