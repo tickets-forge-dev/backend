@@ -65,13 +65,8 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     }
   }, [ticketId, questionRoundService, fetchTicket]);
 
-  // Auto-start Round 1 when ticket is loaded and questions haven't started yet
-  useEffect(() => {
-    if (currentTicket && !currentTicket.currentRound && !isLoading && ticketId) {
-      console.log('🎯 Conditions met for auto-start: currentRound=', currentTicket.currentRound, 'isLoading=', isLoading);
-      startQuestionRound1();
-    }
-  }, [currentTicket?.id, currentTicket?.currentRound, isLoading, ticketId, startQuestionRound1]);
+  // Don't auto-start - let user explicitly start analysis to see code scanning
+  // This way they understand that GitHub code is being analyzed
 
   if (isLoading || !ticketId) {
     return (
@@ -256,13 +251,40 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         />
       )}
 
-      {/* Loading state while generating questions */}
+      {/* Not started yet - show start button */}
+      {!isStartingRound && !currentTicket.currentRound && (
+        <Card className="p-8">
+          <div className="flex flex-col items-center justify-center gap-4">
+            <div className="text-center">
+              <h3 className="text-[var(--text-md)] font-medium text-[var(--text)] mb-2">
+                Ready to analyze
+              </h3>
+              <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                {currentTicket.repositoryContext
+                  ? `Scan GitHub code from ${currentTicket.repositoryContext.repositoryFullName} and generate contextualized questions`
+                  : 'Generate clarification questions for your ticket'}
+              </p>
+            </div>
+            <Button
+              onClick={startQuestionRound1}
+              size="lg"
+              className="mt-2"
+            >
+              {currentTicket.repositoryContext ? '🔍 Scan & Analyze' : '📋 Generate Questions'}
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Loading state while scanning GitHub code and generating questions */}
       {isStartingRound && (
         <Card className="p-8">
           <div className="flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-              Generating contextualized questions...
+              {currentTicket.repositoryContext
+                ? '🔍 Scanning GitHub code and generating context-aware questions...'
+                : '📋 Generating questions...'}
             </p>
           </div>
         </Card>
