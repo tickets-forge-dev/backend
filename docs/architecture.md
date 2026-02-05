@@ -1820,3 +1820,195 @@ workflowState: {
 **Party mode rejected:** Too slow, chat interface not desired, overkill for concise docs
 
 ---
+
+## BMAD Tech-Spec Integration Architecture (Epic 9)
+
+### Overview
+
+Epic 9 replaces generic ticket generation with BMAD (Brownfield Method for AI Development) tech-spec methodology. The core change: **read actual source files via GitHub API** instead of relying on vector search snippets.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FRONTEND (Next.js)                            │
+├─────────────────────────────────────────────────────────────────┤
+│  GenerationWizard (4-Stage Container)                            │
+│  ├─ Stage 1: InputStage (existing)                              │
+│  ├─ Stage 2: ContextReviewStage (new)                           │
+│  ├─ Stage 3: DraftReviewStage (new)                             │
+│  └─ Stage 4: FinalReviewStage (new)                             │
+│                                                                  │
+│  State: ticketsStore (Zustand) - multi-stage state machine      │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │ REST API
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    BACKEND (NestJS)                              │
+├─────────────────────────────────────────────────────────────────┤
+│  tickets/                                                        │
+│  ├─ presentation/                                                │
+│  │   └─ TicketsController (endpoints for each stage)            │
+│  │                                                               │
+│  ├─ application/                                                 │
+│  │   └─ TechSpecWorkflow (Mastra 7-step workflow)               │
+│  │                                                               │
+│  └─ infrastructure/                                              │
+│      ├─ github/                                                  │
+│      │   └─ GitHubFileService (API file access)                 │
+│      ├─ analysis/                                                │
+│      │   ├─ ProjectStackDetector                                │
+│      │   └─ CodebaseAnalyzer                                    │
+│      └─ generation/                                              │
+│          ├─ TechSpecGenerator (BMAD methodology)                │
+│          └─ StoryGenerator (break into AC/tasks)                │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                    ┌─────┴─────┐
+                    ▼           ▼
+              ┌────────┐  ┌────────┐
+              │ GitHub │  │ Claude │
+              │  API   │  │  API   │
+              └────────┘  └────────┘
+```
+
+### New Services
+
+| Service | Location | Purpose |
+|---------|----------|---------|
+| `GitHubFileService` | `infrastructure/github/` | Read files via GitHub API |
+| `ProjectStackDetector` | `infrastructure/analysis/` | Detect framework, versions |
+| `CodebaseAnalyzer` | `infrastructure/analysis/` | Analyze patterns, conventions |
+| `TechSpecGenerator` | `infrastructure/generation/` | Core BMAD LLM generation |
+| `StoryGenerator` | `infrastructure/generation/` | Break spec into AC/tasks |
+
+### Workflow Steps (Mastra)
+
+```typescript
+const techSpecWorkflow = createWorkflow({
+  name: 'tech-spec-generation',
+  steps: [
+    initializeStep,           // Lock AEC, validate workspace
+    detectStackStep,          // ProjectStackDetector
+    analyzeCodebaseStep,      // CodebaseAnalyzer
+    generateTechSpecStep,     // TechSpecGenerator (core BMAD)
+    presentQuestionsStep,     // SUSPENSION if questions exist
+    refineSpecStep,           // Incorporate answers
+    finalizeStep,             // Map to AEC, unlock
+  ],
+});
+```
+
+### State Machine
+
+```
+DRAFT → DISCOVERING → DRAFTING → REFINING → REVIEWING → VALIDATED
+  │         │            │           │           │           │
+  │    Stack/Pattern   TechSpec   Questions   User        Final
+  │    Detection       Generation  Loop      Approval     Save
+  │                                  │
+  │                                  └── SUSPENSION (HITL)
+  └── User can cancel at any stage
+```
+
+### API Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/tickets/:id/generate` | Start generation (existing) |
+| `GET` | `/tickets/:id/context` | Get detected stack/patterns |
+| `PUT` | `/tickets/:id/context` | User edits context |
+| `POST` | `/tickets/:id/answers` | Submit question answers |
+| `POST` | `/tickets/:id/finalize` | Approve final spec |
+
+### GitHub API Integration
+
+**Smart Selective Fetching:**
+```typescript
+// Step 1: Get file tree (1 API call)
+const tree = await github.getTree(repo, branch);
+
+// Step 2: LLM selects relevant files
+const relevantPaths = await llm.selectRelevantFiles(tree, request);
+
+// Step 3: Fetch only needed files (N calls)
+const files = await Promise.all(
+  relevantPaths.map(path => github.getFileContent(repo, path))
+);
+```
+
+**Rate Limiting:**
+- Primary rate limit: 5000/hour for authenticated
+- Secondary rate limit: Exponential backoff on 403
+- Caching: Session-scoped to avoid redundant fetches
+
+### BMAD Core Principles (Enforced)
+
+1. **NO AMBIGUITY** - Every decision is DEFINITIVE
+2. **NO "or" statements** - Choose the best approach
+3. **Exact versions** - From detected stack, not assumptions
+4. **File paths** - Match existing naming conventions
+5. **Pattern adherence** - Follow existing architecture
+
+### Field Mapping: TechSpec → AEC
+
+| TechSpec Field | AEC Field | Transformation |
+|----------------|-----------|----------------|
+| `changeType` | `type` | Direct mapping |
+| `requirements[].description` | `acceptanceCriteria[]` | Extract descriptions |
+| `assumptions[]` | `assumptions[]` | Direct |
+| `affectedFiles[].path` | `repoPaths[]` | Extract paths |
+| `openQuestions[]` | `questions[]` | Map to Question format |
+| `complexity.estimate` | `estimate` | Map to Estimate value object |
+| `risks[]` | `preImplementationFindings[]` | Map to Finding format |
+
+### What Gets Removed (Story 9.6)
+
+| Component | Reason |
+|-----------|--------|
+| Firebase Storage indexing | Replaced by GitHub API |
+| `IndexQueryService` | No longer needed |
+| `MastraContentGenerator.extractIntent` | Replaced by TechSpecGenerator |
+| `MastraContentGenerator.detectType` | Replaced by TechSpecGenerator |
+| `MastraContentGenerator.generateDraft` | Replaced by TechSpecGenerator |
+| `FindingsToQuestionsAgent` | Questions from tech spec |
+| 6 of 12 workflow steps | Consolidated into BMAD flow |
+
+### Decision Record: GitHub API vs Local Clone
+
+**Context:** Need to read repository files for code-aware generation
+
+**Decision:** Use **GitHub API** for file access, not local clone
+
+**Rationale:**
+- No storage required (no cloning to disk)
+- No Firebase Storage costs (no indexing)
+- Always up-to-date (fetch on demand)
+- Smart selective fetching (only relevant files)
+- Works with private repos via GitHub App token
+
+**Trade-offs:**
+- Rate limited (5000/hour) - mitigated by caching
+- Latency per file (~100ms) - mitigated by parallel fetches
+- No full-text search - mitigated by LLM file selection
+
+### Decision Record: 4-Stage Wizard vs Chat
+
+**Context:** BMAD methodology is conversational, but our platform is NOT a chat
+
+**Decision:** Use **4-stage wizard with form fields**, not chat interface
+
+**Rationale:**
+- Clearer UX - user knows exactly what's needed
+- Batch questions - all visible at once
+- Structured input - radio buttons, checkboxes
+- Review checkpoints - verify before proceeding
+- Faster completion - no back-and-forth
+
+**Stage breakdown:**
+1. **Input** - Title, description, repo (existing)
+2. **Context** - Show detected stack, confirm accuracy
+3. **Draft** - Show spec, answer questions as forms
+4. **Final** - Approve complete ticket
+
+---

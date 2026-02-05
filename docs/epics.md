@@ -43,6 +43,8 @@ This document provides the complete epic and story breakdown for forge, decompos
 | Epic 5: Export & Integrations | FR7 |
 | Epic 6: Quick Document Generation | Enhanced FR1, FR4 |
 | Epic 7: Code-Aware Validation | Enhanced FR5 (concrete validation) |
+| Epic 8: Observability & Tracing | Infrastructure (debugging/monitoring) |
+| Epic 9: BMAD Tech-Spec Integration | Enhanced FR1, FR2, FR4 (code-aware generation) |
 
 ---
 
@@ -2170,5 +2172,568 @@ So that I have concrete guidance when implementing.
 
 **Innovation:**
 This epic represents a paradigm shift in ticket validation - from static scoring to dynamic code analysis. By simulating implementation in a real environment, we catch issues that abstract validators miss.
+
+---
+
+## Epic 8: Observability & Distributed Tracing
+
+**Goal:** Implement comprehensive observability across the ticket generation workflow using Mastra's built-in tracing system, enabling production monitoring, debugging, and performance optimization.
+
+**Value:** Provides visibility into LLM operations, agent decisions, and workflow execution. Enables debugging production issues, optimizing performance, and integrating with external monitoring platforms (DataDog, Langfuse, OpenTelemetry).
+
+**Product Impact:** 
+- Reduced mean time to resolution (MTTR) for production issues
+- Ability to measure LLM quality and performance
+- Data for optimizing prompts and models
+- Integration with existing ops/monitoring tooling
+
+**Technical Impact:**
+- Distributed tracing across workflow steps
+- LLM token metrics and cost tracking
+- Agent decision visibility
+- Performance profiling
+
+---
+
+### Story 8.1: Observability Foundation & Mastra Tracing Setup
+
+As a platform engineer,
+I want observability infrastructure configured with Mastra's built-in exporters,
+So that I can persist traces and integrate with external monitoring platforms.
+
+**Acceptance Criteria:**
+
+**Given** a NestJS backend running Mastra workflows
+**When** Story 8.1 is complete
+**Then** the MastraService initializes Observability with:
+- DefaultExporter for local storage
+- SensitiveDataFilter for redacting tokens/passwords
+- PinoLogger for structured logging
+- Environment variables for configuration
+
+**And** the backend can be started with observability enabled:
+```bash
+MASTRA_OBSERVABILITY_ENABLED=true npm run start:dev
+```
+
+**And** traces are persisted to storage and queryable
+
+**And** no sensitive data appears in logs/traces:
+- Bearer tokens redacted
+- API keys redacted
+- Passwords redacted
+- User tokens redacted
+
+**And** structured logging captures:
+- All INFO, WARN, ERROR levels
+- Request/response metadata
+- LLM call metrics
+- Performance data
+
+**Prerequisites:** Story 7.10 (HITL workflow working end-to-end)
+
+**Technical Notes:**
+- Create `backend/src/shared/infrastructure/observability/observability.config.ts`
+- Import `Observability` from `@mastra/observability`
+- Add exporters factory in `exporters.ts`
+- Update MastraService to use observability
+- Add env variables: MASTRA_OBSERVABILITY_ENABLED, MASTRA_OBSERVABILITY_SAMPLING, MASTRA_CLOUD_ACCESS_TOKEN
+
+**Rationale:** Foundation for all tracing features. Must be configured first before step tracing can work.
+
+---
+
+### Story 8.2: Workflow Step Tracing & Metrics
+
+As a developer,
+I want all 12 workflow steps to emit distributed traces,
+So that I can debug workflow execution and measure step performance.
+
+**Acceptance Criteria:**
+
+**Given** the ticket-generation.workflow runs
+**When** each step executes
+**Then** a trace span is created with:
+- Step ID and name
+- Input data (request payload)
+- Output data (step result)
+- Duration in milliseconds
+- Status (completed, failed, skipped)
+- Timestamp
+
+**And** step transitions are logged:
+- "Step 1 → 2 transition"
+- Parallel step execution noted
+- Branch/loop logic visible
+
+**And** error spans capture:
+- Exception message
+- Stack trace
+- Retry attempts
+- Final status
+
+**And** traces are viewable in Mastra Studio:
+- Timeline shows step sequence
+- Hovering shows full span details
+- Colors indicate status (green=ok, red=error)
+
+**Prerequisites:** Story 8.1 (Observability foundation)
+
+**Technical Notes:**
+- Add Mastra `@span()` decorators to workflow step functions
+- Export step metrics: duration, token count, error count
+- Update workflow steps to wrap execution in trace context
+- Test with local Mastra Studio
+- Verify < 5% latency overhead
+
+**Metrics to capture:**
+- Step name, ID, duration
+- Input size (tokens if applicable)
+- Output size
+- Success/failure
+- Error message if failed
+
+---
+
+### Story 8.3: LLM Call Tracing & Token Metrics
+
+As a platform engineer,
+I want to capture token usage and performance for every LLM call,
+So that I can track costs, optimize prompts, and measure model performance.
+
+**Acceptance Criteria:**
+
+**Given** LLM calls in MastraContentGenerator or agents
+**When** each LLM call completes
+**Then** a trace captures:
+- Model name (e.g., "qwen2.5-coder:latest")
+- Prompt tokens
+- Completion tokens
+- Total tokens
+- Duration in milliseconds
+- Temperature and other parameters
+- Success/failure
+
+**And** aggregated metrics are available:
+- Total tokens per workflow
+- Average LLM latency
+- Model distribution (if multiple models used)
+- Error rate
+
+**And** traces link LLM calls to parent workflow steps
+
+**And** prompt/completion pairs are redacted if containing sensitive data
+
+**Prerequisites:** Story 8.2 (Workflow step tracing)
+
+**Technical Notes:**
+- Extract metrics from LLM response object
+- Update MastraContentGenerator.callOllama() to trace metrics
+- Update LLM call wrappers in agents
+- Calculate cost estimates if pricing available
+- Store metrics in trace context
+
+**Cost Calculation (optional):**
+- OpenAI: $0.003 per 1K prompt tokens, $0.009 per 1K completion tokens
+- Claude: $0.003/$0.015 (Sonnet), $0.0008/$0.0024 (Haiku)
+- Local models (Ollama): $0
+
+---
+
+### Story 8.4: Agent Tool Call Tracing
+
+As a developer,
+I want to trace agent tool calls and decisions,
+So that I can debug agent behavior and understand decision paths.
+
+**Acceptance Criteria:**
+
+**Given** agents executing tools (FindingsToQuestionsAgent, QuickPreflightValidator)
+**When** a tool is called
+**Then** a trace span captures:
+- Tool name
+- Input arguments
+- Output/result
+- Duration
+- Success/failure
+
+**And** agent decisions are logged:
+- Reasoning steps
+- Tool selection rationale
+- Branching decisions
+
+**And** traces show tool call chain:
+- Parent agent span
+- Child tool call spans
+- Results flowing back to agent
+
+**And** tool failures are traced with:
+- Exception details
+- Retry attempts
+- Final status
+
+**Prerequisites:** Story 8.3 (LLM tracing)
+
+**Technical Notes:**
+- Add tracing to FindingsToQuestionsAgent execute method
+- Add tracing to QuickPreflightValidator steps
+- Trace RepoIndexingService queries
+- Trace validation rules evaluation
+- Export agent metrics
+
+---
+
+### Story 8.5: External Exporter Integration (Optional)
+
+As an ops engineer,
+I want to export traces to external monitoring platforms,
+So that I can integrate observability with existing ops tools.
+
+**Acceptance Criteria:**
+
+**Given** external exporters are configured
+**When** traces are generated
+**Then** traces are exported to:
+- Langfuse (if LANGFUSE_API_KEY set)
+- DataDog (if DATADOG_API_KEY set)
+- OpenTelemetry collector (if OTEL_EXPORTER_OTLP_ENDPOINT set)
+
+**And** each exporter can be independently enabled/disabled
+
+**And** exporter failures don't break the application
+
+**And** sampling can be adjusted per exporter
+
+**Prerequisites:** Story 8.4 (Core tracing working)
+
+**Technical Notes:**
+- Create exporter factory pattern
+- Support Langfuse via `@langfuse/integration` with Mastra
+- Support DataDog via `dd-trace` package
+- Support OTEL via `@opentelemetry/*` packages
+- Make exporters optional dependencies
+
+**Supported Exporters:**
+```typescript
+new LangfuseExporter({ apiKey: process.env.LANGFUSE_API_KEY })
+new DataDogExporter({ apiKey: process.env.DATADOG_API_KEY })
+new OTelExporter({ endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT })
+```
+
+---
+
+## Epic 8 Summary
+
+**Stories:** 5 total (2 required, 3 optional)
+**Effort:** Medium (3-4 days)
+**Dependencies:** Epic 7 (HITL workflow complete)
+
+**Technology Stack:**
+- `@mastra/observability` - Tracing & exporters
+- `@mastra/loggers` - PinoLogger
+- Optional: `langfuse`, `dd-trace`, `@opentelemetry/*`
+
+**Key Outcomes:**
+- Full visibility into ticket generation workflow
+- LLM token tracking and cost estimation
+- Production debugging capabilities
+- Integration with ops platforms
+- Performance optimization data
+
+**Success Metrics:**
+- All 12 workflow steps traced
+- Traces visible in Mastra Studio < 1s
+- < 5% latency overhead from tracing
+- 100% of LLM calls have token metrics
+- No sensitive data in traces
+
+**Innovation:**
+Most AI applications lack proper observability for LLM operations. This epic brings production-grade monitoring to forge, enabling data-driven optimization and rapid issue resolution.
+
+---
+
+## Epic 9: BMAD Tech-Spec Integration
+
+**Goal:** Replace generic ticket generation with code-aware BMAD tech-spec methodology that reads actual source files via GitHub API and produces specific, executable tickets.
+
+**Value:** Transforms output from "generic ChatGPT-level" to "senior engineer spec" by grounding all decisions in actual codebase context.
+
+**Core Insight:** We're not building a chat. We're building a 4-stage wizard where each stage is a review point. Questions are forms, not conversations.
+
+---
+
+### The Problem Being Solved
+
+**Current State:** System produces generic, useless output that's no better than ChatGPT.
+
+**Root Cause:** We don't read actual code. We use vector search snippets that lack context.
+
+**Solution:** Implement BMAD tech-spec methodology with direct GitHub file reading.
+
+---
+
+### Story 9.1: GitHubFileService - GitHub API File Access
+
+As a backend service,
+I want to read repository files directly via GitHub API,
+So that I can access actual source code without expensive local cloning or indexing.
+
+**Acceptance Criteria:**
+
+**Given** a connected GitHub repository
+**When** the service requests file contents
+**Then** it fetches files via GitHub API using:
+- `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1` for file tree
+- `GET /repos/{owner}/{repo}/contents/{path}` for individual files
+
+**And** implements smart selective fetching:
+- Get tree (1 API call)
+- LLM selects relevant files based on request
+- Fetch only needed files (N calls)
+- Cache responses for session duration
+
+**And** handles rate limiting and authentication:
+- Uses installation token from GitHub App
+- Respects rate limits with exponential backoff
+- Provides meaningful errors for access issues
+
+**Technical Notes:**
+- Location: `backend/src/tickets/infrastructure/github/`
+- No local file system access required
+- Replaces Firebase Storage indexing for code context
+
+**Prerequisites:** Epic 7 complete, GitHub App configured
+
+---
+
+### Story 9.2: ProjectStackDetector - Technology Stack Detection
+
+As a backend service,
+I want to detect the project's technology stack from key files,
+So that generated specs reference exact versions and frameworks.
+
+**Acceptance Criteria:**
+
+**Given** access to repository files via GitHubFileService
+**When** analyzing a repository
+**Then** the service detects:
+- Primary language(s) from file extensions
+- Framework versions from package.json, Cargo.toml, go.mod, etc.
+- Build tools from config files
+- Testing frameworks from dev dependencies
+
+**And** returns a structured StackInfo object:
+```typescript
+interface StackInfo {
+  languages: { name: string; version?: string }[];
+  frameworks: { name: string; version: string }[];
+  buildTools: string[];
+  testingFrameworks: string[];
+  linters: string[];
+  packageManager: string;
+}
+```
+
+**And** caches results per repository/branch combination
+
+**Technical Notes:**
+- Location: `backend/src/tickets/infrastructure/analysis/`
+- LLM-powered for flexibility (works with any stack)
+- Key files: package.json, tsconfig.json, Cargo.toml, go.mod, requirements.txt
+
+**Prerequisites:** Story 9.1 complete
+
+---
+
+### Story 9.3: CodebaseAnalyzer - Pattern Analysis
+
+As a backend service,
+I want to analyze codebase patterns and conventions,
+So that generated specs follow existing architectural decisions.
+
+**Acceptance Criteria:**
+
+**Given** access to repository files and stack info
+**When** analyzing patterns
+**Then** the service identifies:
+- File naming conventions (PascalCase, kebab-case, etc.)
+- Folder structure patterns (feature-based, layer-based)
+- Import patterns (absolute vs relative, barrel files)
+- Error handling patterns (exceptions, Result types)
+- State management patterns (if frontend)
+
+**And** returns structured analysis:
+```typescript
+interface CodebaseAnalysis {
+  namingConventions: {
+    components: string;
+    services: string;
+    utilities: string;
+  };
+  folderStructure: 'feature-based' | 'layer-based' | 'hybrid';
+  importStyle: 'absolute' | 'relative' | 'mixed';
+  errorHandling: string;
+  patterns: PatternExample[];
+}
+```
+
+**And** provides specific examples from actual code
+
+**Technical Notes:**
+- Location: `backend/src/tickets/infrastructure/analysis/`
+- Uses LLM to analyze patterns (not regex matching)
+- Samples 5-10 representative files for efficiency
+
+**Prerequisites:** Story 9.2 complete
+
+---
+
+### Story 9.4: TechSpecGenerator - BMAD-Style Specification
+
+As a backend service,
+I want to generate BMAD-style technical specifications,
+So that tickets contain specific, actionable implementation guidance.
+
+**Acceptance Criteria:**
+
+**Given** stack info, codebase analysis, and user request
+**When** generating a tech spec
+**Then** the output includes:
+- Problem statement with context
+- Solution approach grounded in existing patterns
+- Scope boundaries (IN/OUT clearly defined)
+- Affected files with specific actions (create/modify/delete)
+- Implementation steps with file references
+- Code-informed questions (not generic)
+
+**And** follows BMAD principles:
+- NO ambiguity - every decision is DEFINITIVE
+- NO "or" statements - choose the best approach
+- Exact versions from detected stack
+- File paths match existing patterns
+
+**And** validates definitiveness:
+```typescript
+const ambiguities = findAmbiguities(techSpec);
+if (ambiguities.length > 0) {
+  techSpec = await makeDefinitive(techSpec, ambiguities);
+}
+```
+
+**Technical Notes:**
+- Location: `backend/src/tickets/infrastructure/generation/`
+- Core BMAD instructions ported from `.bmad/bmm/workflows/tech-spec/instructions.md`
+- Replaces MastraContentGenerator.extractIntent, detectType, generateDraft
+
+**Prerequisites:** Story 9.3 complete
+
+---
+
+### Story 9.5: Frontend 4-Stage Wizard
+
+As a user,
+I want a multi-stage wizard for ticket generation,
+So that I can review and refine the spec at each step.
+
+**Acceptance Criteria:**
+
+**Stage 1: Input** (Existing)
+- Title and description entry
+- Repository selection
+- Submit triggers generation
+
+**Stage 2: Context Review** (New)
+- Shows detected stack (languages, frameworks, versions)
+- Shows identified patterns and conventions
+- Shows relevant files to be analyzed
+- User confirms or provides corrections
+- "Looks Good" / "Edit Context" actions
+
+**Stage 3: Draft Review** (New)
+- Shows Problem/Solution/Scope cards
+- Lists acceptance criteria derived from code
+- Displays questions as FORM FIELDS:
+  - Radio buttons for single choice
+  - Checkboxes for multi-select
+  - Text input for "Other"
+- All questions visible at once (not chat)
+- "Submit Answers" / "Skip (use defaults)" actions
+
+**Stage 4: Final Review** (New)
+- Shows complete ticket preview
+- Readiness score (0-100%)
+- "Approve & Create" / "Request Changes" actions
+
+**And** each stage has:
+- Progress indicator showing current step
+- Back navigation to previous stages
+- Loading states with meaningful messages
+
+**Technical Notes:**
+- Location: `client/src/tickets/components/generation/`
+- Components: ContextReviewStage, DraftReviewStage, FinalReviewStage
+- Store: Update ticketsStore for multi-stage state machine
+
+**Prerequisites:** Stories 9.1-9.4 complete (backend)
+
+---
+
+### Story 9.6: Cleanup - Remove Indexing Infrastructure
+
+As a maintainer,
+I want to remove unused indexing code,
+So that the codebase is clean and cost-efficient.
+
+**Acceptance Criteria:**
+
+**Given** BMAD integration is complete and verified
+**When** cleanup is performed
+**Then** the following are removed:
+- Firebase Storage indexing code
+- IndexQueryService and related repositories
+- Old MastraContentGenerator methods (extractIntent, detectType, generateDraft)
+- FindingsToQuestionsAgent (questions come from tech spec)
+- Unused workflow steps (6 of 12 consolidated)
+
+**And** the following are updated:
+- Feature flag `USE_TECH_SPEC_WORKFLOW` removed (new flow is default)
+- Documentation reflects new architecture
+- No orphaned imports or dead code paths
+
+**Technical Notes:**
+- Execute only after 1 week of stable production use
+- Create backup branch before cleanup
+- Run full test suite after each removal
+
+**Prerequisites:** Story 9.5 complete, production validation passed
+
+---
+
+## Epic 9 Summary
+
+**Stories:** 6 total
+**Effort:** High (2-3 weeks)
+**Dependencies:** Epic 7 (HITL workflow), Epic 8 (observability for debugging)
+
+**Technology Stack:**
+- GitHub API (REST) for file access
+- Mastra workflows for LLM orchestration
+- React multi-stage forms for wizard UI
+
+**Key Outcomes:**
+- Tickets reference actual files from the codebase
+- Specs use exact versions from package.json
+- Implementation follows existing patterns
+- Zero ambiguity (no "or" statements)
+- Code-aware questions based on analysis
+
+**Success Criteria:**
+- All generated tickets reference specific file paths
+- Stack detection accuracy > 95%
+- Pattern analysis matches manual review
+- User feedback: "This looks like a senior wrote it"
+
+**Innovation:**
+BMAD methodology transforms AI ticket generation from "generic suggestions" to "code-aware specifications" by treating the codebase as the source of truth, not just the user's description.
 
 ---
