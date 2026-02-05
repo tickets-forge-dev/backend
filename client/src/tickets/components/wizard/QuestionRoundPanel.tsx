@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Check } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/core/components/ui/badge';
-import { QuestionRound } from '@/tickets/stores/generation-wizard.store';
-import { ClarificationQuestion } from '@/tickets/domain/tech-spec/TechSpecGenerator';
+import type { QuestionRound, ClarificationQuestion } from '@/types/question-refinement';
 
 interface QuestionRoundPanelProps {
   round: QuestionRound;
@@ -82,7 +81,7 @@ export function QuestionRoundPanel({
             <QuestionInput
               key={question.id}
               question={question}
-              value={round.answers[question.id]}
+              value={round.answers[question.id] || (question.type === 'checkbox' ? [] : '')}
               onChange={(answer) => onAnswer(question.id, answer)}
               disabled={disabled || !isActive}
               questionNumber={idx + 1}

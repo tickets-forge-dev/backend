@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import { ProjectStack } from '@/tickets/domain/stack-detection/ProjectStackDetector';
-import { CodebaseAnalysis } from '@/tickets/domain/pattern-analysis/CodebaseAnalyzer';
-import { TechSpec, ClarificationQuestion } from '@/tickets/domain/tech-spec/TechSpecGenerator';
+import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound } from '@/types/question-refinement';
 
 /**
  * File entry discovered during repository analysis
@@ -13,17 +11,8 @@ export interface FileEntry {
   isDirectory: boolean;
 }
 
-/**
- * Question round data
- */
-export interface QuestionRound {
-  roundNumber: 1 | 2 | 3;
-  questions: ClarificationQuestion[];
-  answers: Record<string, string | string[]>;
-  generatedAt: Date;
-  answeredAt: Date | null;
-  skippedByUser: boolean;
-}
+// Re-export frontend question round type
+export type QuestionRound = FrontendQuestionRound;
 
 /**
  * Wizard state shape
@@ -34,10 +23,12 @@ export interface WizardState {
     title: string;
     repoOwner: string;
     repoName: string;
+    description?: string;
+    branch?: string;
   };
   context: {
-    stack: ProjectStack;
-    analysis: CodebaseAnalysis;
+    stack: any; // Legacy backend type (ProjectStack)
+    analysis: any; // Legacy backend type (CodebaseAnalysis)
     files: FileEntry[];
   } | null;
   spec: TechSpec | null;
@@ -61,8 +52,8 @@ export interface WizardActions {
 
   // Context stage
   analyzeRepository: () => Promise<void>;
-  editStack: (updates: Partial<ProjectStack>) => void;
-  editAnalysis: (updates: Partial<CodebaseAnalysis>) => void;
+  editStack: (updates: any) => void; // Legacy: ProjectStack type
+  editAnalysis: (updates: any) => void; // Legacy: CodebaseAnalysis type
   confirmContextContinue: () => void;
 
   // Draft stage (legacy single spec)
