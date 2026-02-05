@@ -6,6 +6,9 @@ import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
 import { GitHubFileService } from '@github/domain/github-file.service';
+import { CODEBASE_ANALYZER } from '../ports/CodebaseAnalyzerPort';
+import { PROJECT_STACK_DETECTOR } from '../ports/ProjectStackDetectorPort';
+import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
 
 /**
  * Input command for starting a question round
@@ -44,8 +47,11 @@ export class StartQuestionRoundUseCase {
     private readonly aecRepository: AECRepository,
     @Inject(TECH_SPEC_GENERATOR)
     private readonly techSpecGenerator: TechSpecGenerator,
+    @Inject(CODEBASE_ANALYZER)
     private readonly codebaseAnalyzer: CodebaseAnalyzer,
+    @Inject(PROJECT_STACK_DETECTOR)
     private readonly stackDetector: ProjectStackDetector,
+    @Inject(GITHUB_FILE_SERVICE)
     private readonly githubFileService: GitHubFileService,
   ) {}
 

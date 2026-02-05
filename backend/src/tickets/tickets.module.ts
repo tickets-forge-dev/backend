@@ -29,6 +29,9 @@ import { TECH_SPEC_GENERATOR } from './application/ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzerImpl } from './application/services/CodebaseAnalyzerImpl';
 import { ProjectStackDetectorImpl } from './application/services/ProjectStackDetectorImpl';
 import { GitHubFileServiceImpl } from '../github/infrastructure/github-file.service';
+import { CODEBASE_ANALYZER } from './application/ports/CodebaseAnalyzerPort';
+import { PROJECT_STACK_DETECTOR } from './application/ports/ProjectStackDetectorPort';
+import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
 
 @Module({
   imports: [GitHubModule],
@@ -97,10 +100,18 @@ import { GitHubFileServiceImpl } from '../github/infrastructure/github-file.serv
       provide: TECH_SPEC_GENERATOR,
       useClass: TechSpecGeneratorImpl,
     },
-    // Codebase analysis and GitHub integration services
-    CodebaseAnalyzerImpl,
-    ProjectStackDetectorImpl,
-    GitHubFileServiceImpl,
+    {
+      provide: CODEBASE_ANALYZER,
+      useClass: CodebaseAnalyzerImpl,
+    },
+    {
+      provide: PROJECT_STACK_DETECTOR,
+      useClass: ProjectStackDetectorImpl,
+    },
+    {
+      provide: GITHUB_FILE_SERVICE,
+      useExisting: GitHubFileServiceImpl,
+    },
   ],
   exports: [CreateTicketUseCase, UpdateAECUseCase, EstimateEffortUseCase, AEC_REPOSITORY, DRIFT_DETECTOR, ESTIMATION_ENGINE],
 })
