@@ -14,6 +14,18 @@ export interface FileEntry {
 }
 
 /**
+ * Question round data
+ */
+export interface QuestionRound {
+  roundNumber: 1 | 2 | 3;
+  questions: ClarificationQuestion[];
+  answers: Record<string, string | string[]>;
+  generatedAt: Date;
+  answeredAt: Date | null;
+  skippedByUser: boolean;
+}
+
+/**
  * Wizard state shape
  */
 export interface WizardState {
@@ -29,7 +41,12 @@ export interface WizardState {
     files: FileEntry[];
   } | null;
   spec: TechSpec | null;
-  answers: Record<string, string | string[]>; // Clarification question answers
+  answers: Record<string, string | string[]>; // Legacy: Clarification question answers
+  // Iterative refinement workflow
+  draftAecId: string | null;
+  questionRounds: QuestionRound[];
+  currentRound: number;
+  roundStatus: 'idle' | 'generating' | 'answering' | 'submitting' | 'finalizing';
   loading: boolean;
   error: string | null;
 }
@@ -48,10 +65,18 @@ export interface WizardActions {
   editAnalysis: (updates: Partial<CodebaseAnalysis>) => void;
   confirmContextContinue: () => void;
 
-  // Draft stage
+  // Draft stage (legacy single spec)
   answerQuestion: (questionId: string, answer: string | string[]) => void;
   editSpec: (section: string, updates: any) => void;
   confirmSpecContinue: () => void;
+
+  // Iterative refinement workflow (NEW)
+  startQuestionRound: (aecId: string, roundNumber: 1 | 2 | 3) => Promise<void>;
+  answerQuestionInRound: (round: number, questionId: string, answer: string | string[]) => void;
+  submitRoundAnswers: (roundNumber: number) => Promise<'continue' | 'finalize'>;
+  skipToFinalize: () => Promise<void>;
+  finalizeSpec: () => Promise<void>;
+  resumeDraft: (aecId: string) => Promise<void>;
 
   // Navigation
   goBackToInput: () => void;
@@ -92,6 +117,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   context: null,
   spec: null,
   answers: {},
+  draftAecId: null,
+  questionRounds: [],
+  currentRound: 0,
+  roundStatus: 'idle',
   loading: false,
   error: null,
 
@@ -260,6 +289,255 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     }),
 
   // ============================================================================
+  // ITERATIVE REFINEMENT WORKFLOW (Stage 3 Alternative)
+  // ============================================================================
+
+  /**
+   * Start a new question round
+   * Calls backend to generate context-aware questions
+   */
+  startQuestionRound: async (aecId: string, roundNumber: 1 | 2 | 3) => {
+    const state = get();
+    set({ roundStatus: 'generating', error: null });
+
+    try {
+      const response = await fetch(`/api/tickets/${aecId}/start-round`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roundNumber }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to start round: ${response.statusText}`);
+      }
+
+      const { questionRounds, currentRound } = await response.json();
+      set({
+        draftAecId: aecId,
+        questionRounds,
+        currentRound,
+        roundStatus: 'idle',
+        currentStage: 3, // Ensure we're on stage 3
+      });
+
+      // Auto-save to localStorage
+      localStorage.setItem('wizard-draft-aec-id', aecId);
+      localStorage.setItem('wizard-question-rounds', JSON.stringify(questionRounds));
+      localStorage.setItem('wizard-current-round', String(currentRound));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      set({
+        error: errorMessage,
+        roundStatus: 'idle',
+      });
+    }
+  },
+
+  /**
+   * User answers a question in current round
+   * Auto-saves to localStorage
+   */
+  answerQuestionInRound: (round: number, questionId: string, answer: string | string[]) => {
+    set((state) => {
+      const updatedRounds = [...state.questionRounds];
+      const roundIdx = updatedRounds.findIndex((r) => r.roundNumber === round);
+
+      if (roundIdx >= 0) {
+        updatedRounds[roundIdx] = {
+          ...updatedRounds[roundIdx],
+          answers: {
+            ...updatedRounds[roundIdx].answers,
+            [questionId]: answer,
+          },
+        };
+      }
+
+      // Auto-save to localStorage (debounced in practice)
+      localStorage.setItem('wizard-question-rounds', JSON.stringify(updatedRounds));
+
+      return { questionRounds: updatedRounds };
+    });
+  },
+
+  /**
+   * Submit answers for current round
+   * Backend decides: continue to next round or finalize
+   */
+  submitRoundAnswers: async (roundNumber: number) => {
+    const state = get();
+    if (!state.draftAecId) {
+      set({ error: 'No draft AEC found' });
+      return 'finalize';
+    }
+
+    set({ roundStatus: 'submitting', error: null });
+
+    try {
+      const round = state.questionRounds.find((r) => r.roundNumber === roundNumber);
+      if (!round) {
+        throw new Error(`Round ${roundNumber} not found`);
+      }
+
+      const response = await fetch(`/api/tickets/${state.draftAecId}/submit-answers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roundNumber,
+          answers: round.answers,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit answers: ${response.statusText}`);
+      }
+
+      const { aec, nextAction } = await response.json();
+
+      if (nextAction === 'continue') {
+        // Backend will have started next round, fetch updated AEC
+        set({
+          questionRounds: aec.questionRounds || state.questionRounds,
+          currentRound: aec.currentRound || state.currentRound,
+          roundStatus: 'idle',
+        });
+
+        // Auto-save
+        localStorage.setItem('wizard-question-rounds', JSON.stringify(aec.questionRounds));
+        localStorage.setItem('wizard-current-round', String(aec.currentRound));
+      } else {
+        // Will finalize next
+        set({ roundStatus: 'idle' });
+      }
+
+      return nextAction;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      set({
+        error: errorMessage,
+        roundStatus: 'idle',
+      });
+      return 'finalize';
+    }
+  },
+
+  /**
+   * User manually skips remaining rounds
+   */
+  skipToFinalize: async () => {
+    const state = get();
+    if (!state.draftAecId) {
+      set({ error: 'No draft AEC found' });
+      return;
+    }
+
+    set({ roundStatus: 'submitting', error: null });
+
+    try {
+      const response = await fetch(`/api/tickets/${state.draftAecId}/skip-to-finalize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to skip: ${response.statusText}`);
+      }
+
+      set({ roundStatus: 'idle' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      set({
+        error: errorMessage,
+        roundStatus: 'idle',
+      });
+    }
+  },
+
+  /**
+   * Generate final tech spec with all accumulated answers
+   */
+  finalizeSpec: async () => {
+    const state = get();
+    if (!state.draftAecId) {
+      set({ error: 'No draft AEC found' });
+      return;
+    }
+
+    set({ roundStatus: 'finalizing', error: null });
+
+    try {
+      const response = await fetch(`/api/tickets/${state.draftAecId}/finalize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to finalize: ${response.statusText}`);
+      }
+
+      const aec = await response.json();
+
+      set({
+        spec: aec.techSpec,
+        roundStatus: 'idle',
+        currentStage: 4, // Advance to review stage
+      });
+
+      // Clear localStorage draft
+      localStorage.removeItem('wizard-draft-aec-id');
+      localStorage.removeItem('wizard-question-rounds');
+      localStorage.removeItem('wizard-current-round');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      set({
+        error: errorMessage,
+        roundStatus: 'idle',
+      });
+    }
+  },
+
+  /**
+   * Resume a draft from localStorage or backend
+   * Restores all question rounds and answers
+   */
+  resumeDraft: async (aecId: string) => {
+    set({ loading: true, error: null });
+
+    try {
+      // Fetch full AEC with all question rounds
+      const response = await fetch(`/api/tickets/${aecId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load draft: ${response.statusText}`);
+      }
+
+      const aec = await response.json();
+
+      set({
+        draftAecId: aecId,
+        questionRounds: aec.questionRounds || [],
+        currentRound: aec.currentRound || 0,
+        currentStage: 3, // Go to question stage
+        input: {
+          title: aec.title,
+          repoOwner: '', // Not needed for resume
+          repoName: '',
+        },
+        loading: false,
+      });
+
+      // Restore localStorage
+      localStorage.setItem('wizard-draft-aec-id', aecId);
+      localStorage.setItem('wizard-question-rounds', JSON.stringify(aec.questionRounds));
+      localStorage.setItem('wizard-current-round', String(aec.currentRound));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      set({
+        error: errorMessage,
+        loading: false,
+      });
+    }
+  },
+
+  // ============================================================================
   // STAGE 4: REVIEW ACTIONS
   // ============================================================================
 
@@ -336,7 +614,12 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Resets wizard to initial state
    * Called when user wants to start over
    */
-  reset: () =>
+  reset: () => {
+    // Clear localStorage
+    localStorage.removeItem('wizard-draft-aec-id');
+    localStorage.removeItem('wizard-question-rounds');
+    localStorage.removeItem('wizard-current-round');
+
     set({
       currentStage: 1,
       input: {
@@ -347,7 +630,12 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       context: null,
       spec: null,
       answers: {},
+      draftAecId: null,
+      questionRounds: [],
+      currentRound: 0,
+      roundStatus: 'idle',
       loading: false,
       error: null,
-    }),
+    });
+  },
 }));
