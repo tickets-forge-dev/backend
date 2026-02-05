@@ -56,10 +56,10 @@ RULES:
 
 PROJECT CONTEXT:
 - Framework: ${context.stack.framework?.name || 'Unknown'}
-- Language: ${context.stack.languages?.[0]?.name || 'Unknown'}
+- Language: ${context.stack.language?.name || 'Unknown'}
 - Architecture: ${context.analysis.architecture.type}
 - Testing: ${context.analysis.testing.runner || 'Not detected'}
-- Package Manager: ${context.stack.packageManager?.name || 'npm'}
+- Package Manager: ${context.stack.packageManager?.type || 'npm'}
 - Naming Conventions: Files=${context.analysis.naming.files}, Variables=${context.analysis.naming.variables}, Classes=${context.analysis.naming.classes}`;
   }
 

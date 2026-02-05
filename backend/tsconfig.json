@@ -20,6 +20,7 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@tickets/*": ["src/tickets/*"],
+      "@github/*": ["src/github/*"],
       "@indexing/*": ["src/indexing/*"],
       "@integrations/*": ["src/integrations/*"],
       "@shared/*": ["src/shared/*"]

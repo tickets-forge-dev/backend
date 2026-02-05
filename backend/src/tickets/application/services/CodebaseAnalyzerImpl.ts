@@ -14,7 +14,7 @@ import {
   DirectoryEntry,
   DirectoryEntryType,
 } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
-import { FileTree } from '@github/domain/github-file.service';
+import { FileTree, TreeEntry } from '@github/domain/github-file.service';
 import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
 
 /**
@@ -87,8 +87,10 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
    * Detects architecture pattern from directory structure
    */
   detectArchitecture(tree: FileTree): ArchitecturePattern {
-    const paths = tree.tree.map((entry) => entry.path).filter((p) => p);
-    const pathSet = new Set(paths);
+    const paths = tree.tree
+      .map((entry: TreeEntry) => entry.path)
+      .filter((p: string) => p);
+    const pathSet = new Set<string>(paths);
 
     // Check for feature-based architecture
     if (
@@ -194,8 +196,8 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
   ): NamingConventions {
     // Sample file names (strip extensions for analysis)
     const fileNames = tree.tree
-      .filter((e) => e.type === 'blob' && e.path.match(/\.(ts|tsx|js|jsx)$/))
-      .map((e) => {
+      .filter((e: TreeEntry) => e.type === 'blob' && e.path.match(/\.(ts|tsx|js|jsx)$/))
+      .map((e: TreeEntry) => {
         const parts = e.path.split('/');
         const filename = parts[parts.length - 1];
         // Remove extension for naming analysis
@@ -232,8 +234,8 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
     let componentStyle: NamingStyle = 'PascalCase';
     if (
       tree.tree
-        .filter((e) => e.type === 'blob' && e.path.includes('components/'))
-        .some((e) => /index\.(tsx|jsx)$/.test(e.path))
+        .filter((e: TreeEntry) => e.type === 'blob' && e.path.includes('components/'))
+        .some((e: TreeEntry) => /index\.(tsx|jsx)$/.test(e.path))
     ) {
       componentStyle = 'PascalCase';
     }
@@ -252,22 +254,22 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
    * Detects testing strategy from framework and test files
    */
   detectTestingStrategy(tree: FileTree): TestingStrategy {
-    const paths = tree.tree.map((e) => e.path);
-    const pathSet = new Set(paths);
+    const paths = tree.tree.map((e: TreeEntry) => e.path);
+    const pathSet = new Set<string>(paths);
 
     // Detect test runner from package.json patterns (using partial matching)
     let runner: TestingRunner = null;
     let confidence = 0;
 
     // Check for jest config files (jest.config.js, jest.config.ts, etc.)
-    if (Array.from(pathSet).some((p) => p.includes('jest.config'))) {
+    if (Array.from(pathSet).some((p: string) => p.includes('jest.config'))) {
       runner = 'jest';
       confidence = 95;
-    } else if (Array.from(pathSet).some((p) => p.includes('vitest.config'))) {
+    } else if (Array.from(pathSet).some((p: string) => p.includes('vitest.config'))) {
       runner = 'vitest';
       confidence = 95;
     } else if (
-      Array.from(pathSet).some((p) => p.includes('mocha.opts') || p.includes('.mocharc'))
+      Array.from(pathSet).some((p: string) => p.includes('mocha.opts') || p.includes('.mocharc'))
     ) {
       runner = 'mocha';
       confidence = 90;
@@ -275,23 +277,23 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
 
     // Detect test file location pattern
     const testFiles = paths.filter(
-      (p) =>
+      (p: string) =>
         p.includes('__tests__') ||
         p.includes('.test.') ||
         p.includes('.spec.') ||
         p.includes('test/'),
     );
 
-    const hasCentralized = testFiles.some((p) => p.startsWith('test/'));
+    const hasCentralized = testFiles.some((p: string) => p.startsWith('test/'));
     const hasColocated = testFiles.some(
-      (p) => p.includes('__tests__') || p.match(/\/[^/]+\.(test|spec)\./),
+      (p: string) => p.includes('__tests__') || p.match(/\/[^/]+\.(test|spec)\./) !== null,
     );
 
     const location = hasCentralized ? 'centralized' : hasColocated ? 'colocated' : 'mixed';
 
     // Detect naming pattern
     let namingPattern = '*.spec.ts';
-    if (testFiles.some((p) => p.includes('.test.'))) {
+    if (testFiles.some((p: string) => p.includes('.test.'))) {
       namingPattern = '*.test.ts';
     }
 

@@ -194,21 +194,15 @@ export interface CodebaseAnalyzer {
    * Detects architecture pattern (feature-based, layered, monorepo, etc.)
    *
    * Strategy: Look for directory patterns indicating specific architectures
-   * - Feature-based: src/features/*, src/modules/*/
-   * - Layered: src/presentation/, src/application/, src/domain/, src/infrastructure/
-   * - Clean Architecture: src/domain/, src/application/, src/ports/, src/adapters/
-   * - Monorepo: packages/*, apps/*, lerna.json, nx.json, pnpm-workspace.yaml
-   * - MVC: routes/, controllers/, models/
-   * - Standard: generic src/ with components/, pages/, api/, lib/
+   * - Feature-based: src with features or modules directories
+   * - Layered: src with presentation, application, domain, infrastructure directories
+   * - Clean Architecture: src with domain, application, ports, adapters directories
+   * - Monorepo: packages, apps directories with lerna, nx, or pnpm workspace configs
+   * - MVC: routes, controllers, models directories
+   * - Standard: generic src with components, pages, api, lib directories
    *
-   * @param tree - Repository file tree structure
-   * @returns ArchitecturePattern - Detected pattern with confidence and evidence
-   *
-   * @example
-   * ```typescript
-   * const arch = analyzer.detectArchitecture(tree);
-   * // Returns: { type: 'feature-based', confidence: 92, signals: [...], directories: [...] }
-   * ```
+   * @param tree Repository file tree structure
+   * @returns ArchitecturePattern object with detected pattern and confidence
    */
   detectArchitecture(tree: FileTree): ArchitecturePattern;
 
@@ -216,27 +210,16 @@ export interface CodebaseAnalyzer {
    * Detects naming conventions across the codebase
    *
    * Strategy: Sample files from each directory, analyze naming patterns
-   * - Files: Check *.ts, *.tsx, *.js, *.jsx filenames
-   * - Variables/Functions: Parse code in sampled files, extract names
-   * - Classes: Look for PascalCase class definitions
-   * - Components: Check React/Vue component naming (PascalCase vs index pattern)
    *
-   * @param tree - Repository file tree structure
-   * @param files - Map of file paths to file contents for parsing
-   * @returns NamingConventions - Detected naming patterns for each element type
-   *
-   * @example
-   * ```typescript
-   * const naming = analyzer.detectNamingConventions(tree, files);
-   * // Returns: { files: 'PascalCase', variables: 'camelCase', confidence: 85 }
-   * ```
+   * @param tree Repository file tree structure
+   * @param files Map of file paths to file contents for parsing
+   * @returns NamingConventions object with detected naming patterns
    */
   detectNamingConventions(tree: FileTree, files: Map<string, string>): NamingConventions;
 
   /**
-   * Detects testing strategy (framework, location, patterns)
+   * Detects testing strategy including framework, location, and patterns
    *
-   * Strategy: Look for test framework packages and test files
    * - Runner: Identify from package.json (jest, vitest, mocha, etc.)
    * - Location: Check for __tests__/, .test.ts, .spec.ts patterns
    * - Libraries: Identify testing utilities (testing-library, enzyme, etc.)
@@ -256,23 +239,9 @@ export interface CodebaseAnalyzer {
   /**
    * Detects state management approach (Zustand, Redux, Context, etc.)
    *
-   * Strategy: Look for state management library imports and patterns
-   * - Zustand: import from 'zustand', create() function
-   * - Redux: redux package, store/ directory, slice pattern
-   * - Context API: React.createContext usage (no external package)
-   * - Vue state: Vuex package or pinia for Vue 3
-   * - MobX: mobx, mobx-react packages
-   * - GraphQL: Apollo Client, Relay imports
-   *
-   * @param files - Map of file paths to file contents for import analysis
-   * @param stack - Project stack information from ProjectStackDetector
-   * @returns StateManagement - Detected state management with packages and patterns
-   *
-   * @example
-   * ```typescript
-   * const state = analyzer.detectStateManagement(files, stack);
-   * // Returns: { type: 'zustand', packages: ['zustand'], confidence: 88 }
-   * ```
+   * @param files Map of file paths to file contents for import analysis
+   * @param stack Project stack information from ProjectStackDetector
+   * @returns StateManagement object with detected approach and packages
    */
   detectStateManagement(
     files: Map<string, string>,
