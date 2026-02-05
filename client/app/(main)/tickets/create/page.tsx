@@ -95,17 +95,12 @@ export default function CreateTicketPage() {
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label
-                htmlFor="description"
-                className="block text-[var(--text-sm)] font-medium text-[var(--text)]"
-              >
-                Describe your ticket, what are we doing?
-              </label>
-              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                Alt + Enter
-              </span>
-            </div>
+            <label
+              htmlFor="description"
+              className="block text-[var(--text-sm)] font-medium text-[var(--text)] mb-2"
+            >
+              Describe your ticket, what are we doing?
+            </label>
             <Textarea
               id="description"
               placeholder="Add user authentication to the login flow..."
@@ -139,7 +134,7 @@ export default function CreateTicketPage() {
             <BranchSelector />
           </div>
 
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-3 justify-end items-center">
             <Button
               type="button"
               variant="ghost"
@@ -148,9 +143,14 @@ export default function CreateTicketPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!isValid || isCreating}>
-              {isCreating ? 'Creating...' : 'Generate Ticket'}
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button type="submit" disabled={!isValid || isCreating}>
+                {isCreating ? 'Creating...' : 'Generate Ticket'}
+              </Button>
+              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                Alt + Enter
+              </span>
+            </div>
           </div>
         </form>
       </Card>
