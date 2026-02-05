@@ -41,6 +41,14 @@ export default function CreateTicketPage() {
     router.push('/tickets');
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Alt + Enter to submit
+    if (e.altKey && e.key === 'Enter' && isValid && !isCreating) {
+      e.preventDefault();
+      handleSubmit(e as any);
+    }
+  };
+
   // After ticket created, navigate to ticket detail
   if (createdAecId) {
     router.push(`/tickets/${createdAecId}`);
@@ -99,6 +107,7 @@ export default function CreateTicketPage() {
               rows={8}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onKeyDown={handleKeyDown}
               disabled={isCreating}
               autoFocus
               required
