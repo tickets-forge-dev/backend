@@ -2,26 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Input } from '@/core/components/ui/input';
 import { Textarea } from '@/core/components/ui/textarea';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { RepositorySelector } from '@/src/tickets/components/RepositorySelector';
 import { BranchSelector } from '@/src/tickets/components/BranchSelector';
-import { useAuthStore } from '@/stores/auth.store';
 
 export default function CreateTicketPage() {
   const router = useRouter();
   const { createTicket, isCreating, createError, clearCreateError } = useTicketsStore();
-  const { user } = useAuthStore();
 
-  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [createdAecId, setCreatedAecId] = useState<string | null>(null);
 
-  // Form validation - title must be at least 3 characters
-  const isValid = title.trim().length >= 3;
+  // Form validation - description must be at least 3 characters
+  const isValid = description.trim().length >= 3;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +26,9 @@ export default function CreateTicketPage() {
 
     clearCreateError();
 
-    const aec = await createTicket(title.trim(), description.trim() || undefined);
+    // Use description as both title and description for the ticket
+    const descriptionTrimmed = description.trim();
+    const aec = await createTicket(descriptionTrimmed, descriptionTrimmed);
 
     if (aec) {
       // Success - show generation progress
@@ -90,42 +88,26 @@ export default function CreateTicketPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label
-              htmlFor="title"
+              htmlFor="description"
               className="block text-[var(--text-sm)] font-medium text-[var(--text)] mb-2"
             >
-              Title
+              Describe your ticket, what are we doing?
             </label>
-            <Input
-              id="title"
-              placeholder="Add user authentication..."
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+            <Textarea
+              id="description"
+              placeholder="Add user authentication to the login flow..."
+              rows={8}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               disabled={isCreating}
               autoFocus
+              required
             />
-            {title.length > 0 && title.length < 3 && (
+            {description.length > 0 && description.length < 3 && (
               <p className="mt-1 text-[var(--text-xs)] text-[var(--text-tertiary)]">
                 Minimum 3 characters required
               </p>
             )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-[var(--text-sm)] font-medium text-[var(--text)] mb-2"
-            >
-              Description <span className="text-[var(--text-tertiary)]">(optional)</span>
-            </label>
-            <Textarea
-              id="description"
-              placeholder="Add context to help generate a better ticket..."
-              rows={6}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={isCreating}
-            />
           </div>
 
           {/* Repository & Branch Section (AC#5, Task 8) */}
