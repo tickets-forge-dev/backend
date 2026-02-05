@@ -205,16 +205,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({
         selectedRepositories: repositories,
       });
-      
-      // Auto-start indexing ONLY for newly selected repositories
-      const newRepos = repositories.filter(repo => !previousIds.has(repo.id));
-      
-      if (newRepos.length > 0) {
-        console.log(`🔄 Auto-queuing ${newRepos.length} newly selected repositories for indexing`);
-        get().queueRepositoriesForIndexing(githubService, newRepos);
-      } else {
-        console.log('ℹ️ No new repositories to index');
-      }
+
+      // NOTE: Auto-indexing disabled - using on-demand code scanning instead
+      // When user creates a ticket with a repo, code is scanned on-demand via GitHubFileService
+      // No need for pre-computed indexes
+      console.log(`✅ Selected ${repositories.length} repositories for code-aware ticket generation`);
     } catch (error: any) {
       console.error('Failed to select repositories:', error);
       set({
