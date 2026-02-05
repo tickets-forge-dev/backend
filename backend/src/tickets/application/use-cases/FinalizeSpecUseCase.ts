@@ -2,7 +2,7 @@ import { Injectable, Inject, BadRequestException, NotFoundException } from '@nes
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { TechSpecGenerator } from '../../domain/tech-spec/TechSpecGenerator';
-import { TECH_SPEC_GENERATOR } from '../services/TechSpecGeneratorImpl';
+import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
 
 /**
  * Input command for finalizing the technical specification

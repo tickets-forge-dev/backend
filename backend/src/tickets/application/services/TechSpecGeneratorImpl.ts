@@ -953,4 +953,378 @@ Rewritten text (definitive, unambiguous):`;
       .slice(0, 20)
       .join('\n');
   }
+
+  /**
+   * Generates clarification questions with context from prior rounds
+   *
+   * Used in iterative refinement workflow for Rounds 1, 2, and 3.
+   * Returns dynamic number of questions based on round and prior answers.
+   */
+  async generateQuestionsWithContext(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext;
+    priorAnswers: Array<{ questionId: string; answer: string | string[] }>;
+    roundNumber: 1 | 2 | 3;
+  }): Promise<ClarificationQuestion[]> {
+    try {
+      const systemPrompt = PromptTemplates.systemPrompt(input.context);
+      const userPrompt = this.buildQuestionsWithContextPrompt(
+        input.title,
+        input.description,
+        input.roundNumber,
+        input.priorAnswers,
+      );
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<ClarificationQuestion[]>(response);
+
+      // Validate: must be array
+      if (!Array.isArray(parsed)) {
+        throw new Error('Response is not an array');
+      }
+
+      // Validate each question and limit to 5 per round
+      return parsed
+        .filter(
+          (q) =>
+            q.id &&
+            q.question &&
+            q.type &&
+            ['radio', 'checkbox', 'text', 'select', 'multiline'].includes(q.type),
+        )
+        .slice(0, 5); // Max 5 questions per round
+    } catch (error) {
+      throw new Error(`Failed to generate questions with context: ${String(error)}`);
+    }
+  }
+
+  /**
+   * Determines if more clarification questions are needed
+   *
+   * Evaluates accumulated answers to decide if sufficient context exists
+   * to generate a definitive technical specification.
+   * Hard stop at round 3 - always returns false when currentRound >= 3.
+   */
+  async shouldAskMoreQuestions(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext;
+    answeredQuestions: Array<{ questionId: string; answer: string | string[] }>;
+    currentRound: number;
+  }): Promise<boolean> {
+    try {
+      // Hard stop at round 3
+      if (input.currentRound >= 3) {
+        return false;
+      }
+
+      const systemPrompt = PromptTemplates.systemPrompt(input.context);
+      const userPrompt = this.buildShouldAskMorePrompt(
+        input.title,
+        input.description,
+        input.answeredQuestions,
+        input.currentRound,
+      );
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<{ shouldAskMore: boolean; confidence: number; reasoning: string }>(
+        response,
+      );
+
+      // Validate structure
+      if (typeof parsed.shouldAskMore !== 'boolean') {
+        throw new Error('Response missing shouldAskMore boolean');
+      }
+
+      return parsed.shouldAskMore;
+    } catch (error) {
+      console.error('Failed to determine if more questions needed, defaulting to false:', error);
+      // On failure, default to false (finalize) - safer than asking again
+      return false;
+    }
+  }
+
+  /**
+   * Generates final technical specification with accumulated answers
+   *
+   * More definitive than initial generate() because it incorporates
+   * answers to clarification questions from all rounds.
+   */
+  async generateWithAnswers(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext;
+    answers: Array<{ questionId: string; answer: string | string[] }>;
+  }): Promise<TechSpec> {
+    try {
+      const context: CodebaseContext = input.context;
+
+      // Generate each section with answer context
+      const problemStatement = await this.generateProblemStatementWithAnswers(
+        input.title,
+        input.description || '',
+        context,
+        input.answers,
+      );
+
+      const solution = await this.generateSolution(problemStatement, context);
+
+      const [acceptanceCriteria, fileChanges, inScope, outOfScope] = await Promise.all([
+        this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
+        this.generateFileChanges(solution, context),
+        this.generateScope(input.title, input.description || '', true),
+        this.generateScope(input.title, input.description || '', false),
+      ]);
+
+      // Assemble final tech spec
+      const techSpec: TechSpec = {
+        id: uuidv4(),
+        title: input.title,
+        createdAt: new Date(),
+        problemStatement,
+        solution,
+        inScope,
+        outOfScope,
+        acceptanceCriteria,
+        clarificationQuestions: [], // No more clarification needed
+        fileChanges,
+        qualityScore: 0,
+        ambiguityFlags: [],
+      };
+
+      // Detect and remove remaining ambiguities
+      techSpec.ambiguityFlags = this.detectAmbiguities(techSpec);
+      if (techSpec.ambiguityFlags.length > 0) {
+        await this.removeAmbiguities(techSpec);
+      }
+
+      // Calculate quality score
+      techSpec.qualityScore = this.calculateQualityScore(techSpec);
+
+      return techSpec;
+    } catch (error) {
+      throw new Error(`Failed to generate spec with answers: ${String(error)}`);
+    }
+  }
+
+  /**
+   * Builds prompt for generating questions with context from prior rounds
+   */
+  private buildQuestionsWithContextPrompt(
+    title: string,
+    description: string | undefined,
+    roundNumber: 1 | 2 | 3,
+    priorAnswers: Array<{ questionId: string; answer: string | string[] }>,
+  ): string {
+    const priorAnswersText =
+      priorAnswers.length > 0
+        ? `Previous Answers:\n${priorAnswers.map((a) => `- Q${a.questionId}: ${JSON.stringify(a.answer)}`).join('\n')}\n\n`
+        : '';
+
+    if (roundNumber === 1) {
+      return `Analyze this request to identify key ambiguities that need clarification.
+
+Title: ${title}
+Description: ${description || '(No description)'}
+
+Generate 2-5 clarification questions. Each question must:
+- Have a unique id (q1, q2, q3, etc.)
+- Explain WHY you're asking (context field)
+- Explain HOW the answer affects the spec (impact field)
+- Use appropriate type (radio, checkbox, text, select, multiline)
+- Be focused on reducing critical ambiguities
+
+Focus on questions that directly impact:
+1. Implementation approach
+2. Scope boundaries
+3. Acceptance criteria specificity
+4. File structure decisions
+
+Generate valid JSON array:
+[
+  {
+    "id": "q1",
+    "question": "Specific question text",
+    "type": "radio|checkbox|text|select|multiline",
+    "options": ["option 1", "option 2"],
+    "context": "Why this is ambiguous",
+    "impact": "How answer affects the spec"
+  }
+]`;
+    }
+
+    // Rounds 2 and 3: Generate targeted follow-ups OR empty array
+    return `Re-analyze with answers from previous round.
+
+Title: ${title}
+Description: ${description || '(No description)'}
+
+${priorAnswersText}
+Current Round: ${roundNumber}
+
+Based on previous answers, generate 1-3 targeted follow-up questions OR return empty array [] if sufficient info gathered.
+
+Return valid JSON array (can be empty):
+[
+  {
+    "id": "q4",
+    "question": "Follow-up question addressing gaps",
+    "type": "radio|checkbox|text|select|multiline",
+    "options": ["option 1"],
+    "context": "Why we need clarification on this point",
+    "impact": "How this refines the specification"
+  }
+]
+
+Return [] if:
+- All critical ambiguities already resolved
+- Acceptance criteria can be specific without more info
+- File changes are deterministic with current answers`;
+  }
+
+  /**
+   * Builds prompt for deciding if more questions are needed
+   */
+  private buildShouldAskMorePrompt(
+    title: string,
+    description: string | undefined,
+    answeredQuestions: Array<{ questionId: string; answer: string | string[] }>,
+    currentRound: number,
+  ): string {
+    const answersText = answeredQuestions
+      .map((a) => `- Q${a.questionId}: ${JSON.stringify(a.answer)}`)
+      .join('\n');
+
+    return `Evaluate if we have sufficient information to generate a definitive technical specification.
+
+Title: ${title}
+Description: ${description || '(No description)'}
+
+Answered Questions:
+${answersText}
+
+Current Round: ${currentRound}/3
+
+Assess:
+1. Are all critical ambiguities resolved?
+2. Can acceptance criteria be specific and testable?
+3. Are file changes deterministic and unambiguous?
+4. Is implementation approach clear?
+
+Return valid JSON:
+{
+  "shouldAskMore": boolean,
+  "confidence": 0-100,
+  "reasoning": "Brief explanation of decision"
+}
+
+Guidelines:
+- shouldAskMore=true if more context would significantly improve spec quality
+- shouldAskMore=false if we can write a good spec with current info
+- Always return false for round 3+ (hard limit)
+- Consider that answers may contradict or need clarification`;
+  }
+
+  /**
+   * Generates problem statement with answer context
+   */
+  private async generateProblemStatementWithAnswers(
+    title: string,
+    description: string,
+    context: CodebaseContext,
+    answers: Array<{ questionId: string; answer: string | string[] }>,
+  ): Promise<ProblemStatement> {
+    try {
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+      const answersText = answers
+        .map((a) => `- Q${a.questionId}: ${JSON.stringify(a.answer)}`)
+        .join('\n');
+
+      const userPrompt = `Based on user clarifications, generate an enhanced problem statement.
+
+Title: ${title}
+Description: ${description}
+
+User Clarifications:
+${answersText}
+
+Use these answers to make the problem statement more specific and grounded.
+
+Generate valid JSON object:
+{
+  "narrative": "Clear, specific explanation informed by user answers",
+  "whyItMatters": "Impact and business value",
+  "context": "Relevant background with answer context",
+  "assumptions": ["assumption 1", "assumption 2"],
+  "constraints": ["constraint 1", "constraint 2"]
+}`;
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<ProblemStatement>(response);
+
+      if (
+        !parsed.narrative ||
+        !parsed.whyItMatters ||
+        !parsed.context ||
+        !Array.isArray(parsed.assumptions) ||
+        !Array.isArray(parsed.constraints)
+      ) {
+        throw new Error('Invalid problem statement structure');
+      }
+
+      parsed.assumptions = parsed.assumptions.slice(0, 5);
+      parsed.constraints = parsed.constraints.slice(0, 5);
+
+      return parsed;
+    } catch (error) {
+      throw new Error(`Failed to generate problem statement with answers: ${String(error)}`);
+    }
+  }
+
+  /**
+   * Generates acceptance criteria with answer context
+   */
+  private async generateAcceptanceCriteriaWithAnswers(
+    context: CodebaseContext,
+    answers: Array<{ questionId: string; answer: string | string[] }>,
+  ): Promise<AcceptanceCriterion[]> {
+    try {
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+      const answersText = answers
+        .map((a) => `- Q${a.questionId}: ${JSON.stringify(a.answer)}`)
+        .join('\n');
+
+      const userPrompt = `Generate 5+ acceptance criteria informed by user clarifications.
+
+User Answers:
+${answersText}
+
+Create specific, testable criteria in Given/When/Then format.
+Use answer details to make criteria concrete and deterministic.
+
+Generate valid JSON array:
+[
+  {
+    "given": "Initial condition from user clarifications",
+    "when": "Action or trigger",
+    "then": "Expected result (specific per answers)",
+    "implementationNotes": "How to test/implement this criterion"
+  }
+]`;
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<AcceptanceCriterion[]>(response);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Response is not an array');
+      }
+
+      return parsed
+        .filter((ac) => ac.given && ac.when && ac.then)
+        .slice(0, 15);
+    } catch (error) {
+      throw new Error(`Failed to generate acceptance criteria with answers: ${String(error)}`);
+    }
+  }
 }
