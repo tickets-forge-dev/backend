@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useWizardStore } from '@tickets/stores/generation-wizard.store';
+import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 
@@ -21,7 +21,7 @@ export function EditStackModal({ onClose }: { onClose: () => void }) {
   const { context, editStack } = useWizardStore();
 
   const [frameworks, setFrameworks] = useState(
-    context?.stack.frameworks?.map((f) => ({ name: f.name, version: f.version })) || []
+    context?.stack.frameworks?.map((f: any) => ({ name: f.name, version: f.version })) || []
   );
 
   const handleSave = () => {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useWizardStore } from '@tickets/stores/generation-wizard.store';
+import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { EditStackModal } from './EditModals/EditStackModal';
 import { EditAnalysisModal } from './EditModals/EditAnalysisModal';

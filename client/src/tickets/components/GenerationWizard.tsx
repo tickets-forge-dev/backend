@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useWizardStore } from '@tickets/stores/generation-wizard.store';
+import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Stage1Input } from './wizard/Stage1Input';
 import { Stage2Context } from './wizard/Stage2Context';
 import { Stage3Draft } from './wizard/Stage3Draft';

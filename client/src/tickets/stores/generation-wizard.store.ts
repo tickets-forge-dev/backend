@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
-import { CodebaseAnalysis } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
-import { TechSpec, ClarificationQuestion } from '@tickets/domain/tech-spec/TechSpecGenerator';
+import { ProjectStack } from '@/tickets/domain/stack-detection/ProjectStackDetector';
+import { CodebaseAnalysis } from '@/tickets/domain/pattern-analysis/CodebaseAnalyzer';
+import { TechSpec, ClarificationQuestion } from '@/tickets/domain/tech-spec/TechSpecGenerator';
 
 /**
  * File entry discovered during repository analysis

@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { GenerationWizard } from '@tickets/components/GenerationWizard';
-import { useWizardStore } from '@tickets/stores/generation-wizard.store';
+import { GenerationWizard } from '@/tickets/components/GenerationWizard';
+import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 
 /**
  * GenerationWizard Integration Tests
