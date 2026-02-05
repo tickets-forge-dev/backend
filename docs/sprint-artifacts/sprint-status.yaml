@@ -140,11 +140,17 @@ development_status:
 #   * SkipToFinalizeUseCase (user manual override)
 #   * FinalizeSpecUseCase (final spec generation)
 #
-# - Phase 3-6: PENDING ⏳
-#   * TechSpecGenerator implementation (generateQuestionsWithContext, shouldAskMoreQuestions, generateWithAnswers)
-#   * API endpoints (4 new endpoints)
-#   * Frontend store extensions
-#   * Frontend UI updates
+# - Phase 3 (TechSpecGenerator Implementation): COMPLETE ✅
+#   * Implemented generateQuestionsWithContext() - Round-aware question generation
+#   * Implemented shouldAskMoreQuestions() - LLM decision logic with hard stop at R3
+#   * Implemented generateWithAnswers() - Final spec with answer context
+#   * Created TechSpecGeneratorPort with injection token
+#   * Updated use cases to import from port
+#
+# - Phase 4-6: IN PROGRESS 🔄
+#   * Phase 4: API endpoints (4 new REST endpoints)
+#   * Phase 5: Frontend store extensions (question rounds, auto-save, resume)
+#   * Phase 6: Frontend UI updates (question panels, draft badge)
 #
 # Previous Activity:
 # - Created epic-9-bmad-integration branch

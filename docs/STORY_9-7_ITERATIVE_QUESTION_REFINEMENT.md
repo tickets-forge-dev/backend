@@ -4,7 +4,7 @@
 **Story:** Iterative Question Refinement Workflow - 3-Round Clarification Loop
 **Started:** 2026-02-05
 **Target Completion:** 2026-02-12
-**Status:** 🟠 In Progress (Phases 1-2 Complete, Phases 3-6 Pending)
+**Status:** 🟠 In Progress (Phases 1-3 Complete, Phases 4-6 Pending)
 **Branch:** `epic-9-bmad-integration`
 
 ---
@@ -88,30 +88,39 @@ Transform ticket generation from single-shot questions to an **iterative 3-round
 - ✅ Updates AEC with final TechSpec
 - ✅ Persists final state
 
-### Phase 3: TechSpecGenerator Implementation ⏳ PENDING
+### Phase 3: TechSpecGenerator Implementation ✅ COMPLETE
 
-**Port Methods to Implement in TechSpecGeneratorImpl:**
-- [ ] generateQuestionsWithContext() - Context-aware question generation
-  - Round 1: Identify 2-5 ambiguities
-  - Round 2+: Generate 1-3 targeted follow-ups OR empty array if sufficient
-  - Incorporates prior round answers for context
+**Methods Implemented in TechSpecGeneratorImpl:**
+- ✅ generateQuestionsWithContext()
+  - Context-aware question generation with proper Round 1/2/3 differentiation
+  - Round 1: Identifies 2-5 key ambiguities
+  - Round 2+: Generates 1-3 targeted follow-ups OR returns empty array if sufficient
+  - Incorporates prior round answers for contextual follow-ups
+  - Max 5 questions per round
 
-- [ ] shouldAskMoreQuestions() - LLM decision logic
-  - Evaluates accumulated answers
+- ✅ shouldAskMoreQuestions()
+  - LLM decision logic with comprehensive answer evaluation
   - Returns boolean: true = continue, false = finalize
-  - Hard limit: Always returns false when roundNumber >= 3
+  - Hard limit: Always returns false when currentRound >= 3
+  - Graceful degradation - defaults to false on LLM failure
 
-- [ ] generateWithAnswers() - Final spec generation
-  - More specific than initial generate()
-  - Incorporates all user answers
-  - Produces definitive spec
+- ✅ generateWithAnswers()
+  - Final spec generation with full answer context
+  - More specific than initial generate() method
+  - Incorporates all user answers across all rounds
+  - Produces highly definitive, answer-informed spec
 
-**Prompt Templates Needed:**
-```
-Round 1: Initial ambiguity detection
-Round 2+: Targeted follow-ups based on prior answers
-Decision: Evaluate if sufficient context to finalize
-```
+**Supporting Infrastructure:**
+- ✅ Created TechSpecGeneratorPort.ts with TECH_SPEC_GENERATOR injection token
+- ✅ Updated all use cases to import from port (dependency inversion)
+- ✅ Added helper methods for answer-aware prompt building
+- ✅ Proper error handling and graceful fallbacks
+
+**Prompt Implementation:**
+- Round 1: Initial ambiguity detection (2-5 questions)
+- Round 2+: Targeted follow-ups based on prior answers (1-3 or empty)
+- Decision: Evaluate answer sufficiency for definitive spec
+- Final: Answer-informed problem statement and acceptance criteria
 
 ### Phase 4: API Endpoints ⏳ PENDING
 
