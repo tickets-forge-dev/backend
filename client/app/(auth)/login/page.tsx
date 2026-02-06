@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
-import { auth } from '@/lib/firebase';
 import Image from 'next/image';
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -40,37 +39,10 @@ function GitHubIcon({ className }: { className?: string }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signInWithGoogle, signInWithGitHub, handleRedirectResult, isLoading, error, clearError } = useAuthStore();
+  const { user, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
 
   useEffect(() => {
-    console.log('🔵 [LoginPage] Component mounted');
-    console.log('🔵 [LoginPage] Firebase auth object:', !!auth);
-  }, []);
-
-  useEffect(() => {
-    let handled = false;
-
-    const checkRedirect = async () => {
-      if (handled) return;
-      handled = true;
-
-      console.log('🔵 [LoginPage] Checking redirect result on mount...');
-      const success = await handleRedirectResult();
-      console.log('🔵 [LoginPage] Redirect result success:', success);
-
-      if (success) {
-        console.log('🔵 [LoginPage] Navigating to /tickets');
-        router.push('/tickets');
-      }
-    };
-
-    checkRedirect();
-  }, []);
-
-  useEffect(() => {
-    console.log('🔵 [LoginPage] Current user:', user?.email || 'none');
     if (user) {
-      console.log('🔵 [LoginPage] User already authenticated, redirecting to /tickets');
       router.push('/tickets');
     }
   }, [user, router]);

@@ -12,7 +12,6 @@ interface AuthState {
   // Actions
   signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
-  handleRedirectResult: () => Promise<boolean>;
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
   clearError: () => void;
@@ -48,21 +47,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error: any) {
       console.error('❌ [AuthStore] signInWithGitHub error:', error);
       set({ isLoading: false, error: error.message });
-    }
-  },
-
-  handleRedirectResult: async () => {
-    console.log('📦 [AuthStore] handleRedirectResult called');
-    try {
-      const { authService } = useServices();
-      const signInUseCase = new SignInUseCase(authService);
-      const result = await signInUseCase.handleRedirectResult();
-      console.log('📦 [AuthStore] handleRedirectResult result:', result);
-      return result;
-    } catch (error: any) {
-      console.error('❌ [AuthStore] handleRedirectResult error:', error);
-      set({ error: error.message });
-      return false;
     }
   },
 
