@@ -13,7 +13,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Octokit } from '@octokit/rest';
-import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scrypt, createHmac } from 'crypto';
 import { promisify } from 'util';
 
 const scryptAsync = promisify(scrypt);
@@ -172,6 +172,46 @@ export class GitHubTokenService {
    */
   generateState(): string {
     return randomBytes(32).toString('hex');
+  }
+
+  /**
+   * Generate a signed state parameter that embeds the workspaceId.
+   * Format: nonce.workspaceId.hmac
+   * This allows the callback to extract workspaceId without relying on sessions.
+   */
+  generateSignedState(workspaceId: string): string {
+    const nonce = randomBytes(16).toString('hex');
+    const payload = `${nonce}.${workspaceId}`;
+    const hmac = this.computeHmac(payload);
+    return `${payload}.${hmac}`;
+  }
+
+  /**
+   * Parse and verify a signed state parameter.
+   * Returns the workspaceId if valid, null if tampered or malformed.
+   */
+  parseSignedState(state: string): { workspaceId: string; nonce: string } | null {
+    const parts = state.split('.');
+    if (parts.length !== 3) {
+      this.logger.error('Signed state has wrong number of parts');
+      return null;
+    }
+
+    const [nonce, workspaceId, hmac] = parts;
+    const payload = `${nonce}.${workspaceId}`;
+    const expectedHmac = this.computeHmac(payload);
+
+    if (hmac !== expectedHmac) {
+      this.logger.error('Signed state HMAC verification failed');
+      return null;
+    }
+
+    return { workspaceId, nonce };
+  }
+
+  private computeHmac(data: string): string {
+    const secret = this.encryptionKey || 'default-insecure-key-change-me';
+    return createHmac('sha256', secret).update(data).digest('hex');
   }
 
   private async getDerivedKey(): Promise<Buffer> {

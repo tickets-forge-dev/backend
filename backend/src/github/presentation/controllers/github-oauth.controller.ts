@@ -24,7 +24,6 @@ import {
   BadRequestException,
   InternalServerErrorException,
   NotFoundException,
-  Session,
   Redirect,
   Inject,
 } from '@nestjs/common';
@@ -38,11 +37,6 @@ import { GitHubTokenService } from '../../application/services/github-token.serv
 import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../domain/GitHubIntegrationRepository';
 import { GitHubIntegration } from '../../domain/GitHubIntegration';
 import { GitHubRepository } from '../../domain/GitHubRepository';
-
-interface OAuthSession {
-  state?: string;
-  workspaceId?: string;
-}
 
 @ApiTags('github-oauth')
 @Controller('github/oauth')
@@ -59,6 +53,9 @@ export class GitHubOAuthController {
   /**
    * AC#2: Generate OAuth authorization URL
    * GET /api/github/oauth/authorize
+   *
+   * Uses HMAC-signed state parameter to embed workspaceId,
+   * eliminating cross-domain session dependency for the callback.
    */
   @Get('authorize')
   @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -75,7 +72,6 @@ export class GitHubOAuthController {
   })
   async authorize(
     @WorkspaceId() workspaceId: string,
-    @Session() session: OAuthSession,
   ): Promise<{ oauthUrl: string; state: string }> {
     const clientId = this.configService.get<string>('GITHUB_CLIENT_ID');
     const redirectUri = this.configService.get<string>('GITHUB_OAUTH_REDIRECT_URI');
@@ -87,12 +83,10 @@ export class GitHubOAuthController {
       throw new InternalServerErrorException('GitHub OAuth not configured');
     }
 
-    // Generate and store state parameter for CSRF protection
-    const state = this.tokenService.generateState();
-    session.state = state;
-    session.workspaceId = workspaceId;
+    // Generate HMAC-signed state that embeds workspaceId (no session needed)
+    const state = this.tokenService.generateSignedState(workspaceId);
 
-    this.logger.log(`📝 Session created - State: ${state.substring(0, 8)}..., Workspace: ${workspaceId}, Session ID: ${(session as any).id || 'unknown'}`);
+    this.logger.log(`📝 Generated signed state for workspace ${workspaceId}, state prefix: ${state.substring(0, 8)}...`);
 
     const oauthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,repo&state=${state}`;
 
@@ -104,6 +98,10 @@ export class GitHubOAuthController {
   /**
    * AC#2, #3: Handle OAuth callback
    * GET /api/github/oauth/callback
+   *
+   * Uses HMAC-signed state to extract workspaceId — no session required.
+   * This fixes cross-domain deployments where session cookies are lost
+   * between the API call (authorize) and browser redirect (callback).
    */
   @Get('callback')
   @ApiOperation({ summary: 'Handle GitHub OAuth callback' })
@@ -113,26 +111,23 @@ export class GitHubOAuthController {
   async callback(
     @Query('code') code: string,
     @Query('state') state: string,
-    @Session() session: OAuthSession,
   ): Promise<{ url: string }> {
     try {
-      this.logger.log(`🔍 Callback received - State from GitHub: ${state.substring(0, 8)}..., State in session: ${session.state?.substring(0, 8) || 'NONE'}, Session ID: ${(session as any).id || 'unknown'}`);
+      this.logger.log(`🔍 Callback received - State from GitHub: ${state.substring(0, 8)}...`);
 
-      // Validate state parameter (CSRF protection)
-      if (!session.state || !this.tokenService.validateState(state, session.state)) {
-        this.logger.error(`❌ OAuth state validation failed - Session state: ${session.state ? 'exists' : 'missing'}, GitHub state: ${state ? 'exists' : 'missing'}`);
+      // Verify HMAC signature and extract workspaceId from state
+      const parsed = this.tokenService.parseSignedState(state);
+      if (!parsed) {
+        this.logger.error(`❌ OAuth state validation failed - HMAC verification failed`);
         return { url: `${this.configService.get('FRONTEND_URL')}/settings?error=invalid_state` };
       }
 
-      const workspaceId = session.workspaceId;
-      if (!workspaceId) {
-        this.logger.error('No workspace ID in session');
-        return { url: `${this.configService.get('FRONTEND_URL')}/settings?error=no_workspace` };
-      }
+      const { workspaceId } = parsed;
+      this.logger.log(`✅ State verified for workspace ${workspaceId}`);
 
       // Exchange code for token
       const tokenResponse = await this.tokenService.exchangeCodeForToken(code);
-      
+
       // Get user info
       const userInfo = await this.tokenService.getUserInfo(tokenResponse.accessToken);
 
@@ -159,12 +154,8 @@ export class GitHubOAuthController {
         await this.integrationRepository.save(integration);
       }
 
-      // Clear session state
-      delete session.state;
-      delete session.workspaceId;
-
       this.logger.log(`GitHub connected successfully for workspace ${workspaceId}`);
-      
+
       return { url: `${this.configService.get('FRONTEND_URL')}/settings?connected=true` };
     } catch (error: any) {
       this.logger.error('OAuth callback failed:', error.message);
