@@ -139,6 +139,22 @@ Developer runs repo analysis once, generates a read-only **project profile URL**
 
 ## Future Features
 
+### Export Integrations (Linear, Jira, GitHub Issues)
+
+**Problem:** Forge generates great tickets — but they live inside Forge. PMs and teams already have a project management tool (Linear, Jira, GitHub Issues). If tickets can't get there in one click, Forge becomes a dead-end instead of a workflow accelerator.
+
+**Solution:** One-click export from Forge to the team's actual task tracker.
+
+- **Linear**: OAuth connect in Settings → "Export to Linear" button on completed tickets → creates Linear issue with title, description (from tech spec), acceptance criteria, labels
+- **Jira**: OAuth 2.0 connect → exports as Jira issue with proper fields → maps acceptance criteria to subtasks → handles custom fields (story points, sprint)
+- **GitHub Issues**: Already connected via GitHub OAuth → export as issue to the same repo → labels + assignees from ticket metadata
+- **Sync, not duplicate**: Re-exporting updates the existing issue rather than creating a new one. `ExternalIssue` domain type already exists in codebase
+- **Shared export port**: Abstract `ExportPort` interface — Linear, Jira, and GitHub are adapters. Adding a new integration = one new adapter
+
+**Monetization tie-in:** Free = manual copy-paste. Pro = export to 1 integration. Team = all integrations + sync. This is the feature that makes teams adopt Forge — if the output flows into their existing workflow, adoption is frictionless.
+
+---
+
 ### Multi-Repo Cross-Reference
 
 **Problem:** Real products aren't one repo. A feature touches the client, the backend, shared packages, infra — but today Forge only analyzes a single repo.
@@ -203,6 +219,7 @@ Developer runs repo analysis once, generates a read-only **project profile URL**
 
 | Feature | Free | Pro | Team | Enterprise |
 |---------|------|-----|------|------------|
+| Export integrations | Copy-paste | 1 integration | All + sync | All + sync + custom webhooks |
 | Multi-repo select | - | Single repo | Cross-reference | Cross-reference + org-wide |
 | Codebase Explorer | - | - | Repos + docs | Repos + docs + Confluence/Jira/Notion |
 | Team roles | - | - | 4 roles + invite | 4 roles + SSO + SCIM provisioning |

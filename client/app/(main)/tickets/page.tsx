@@ -139,14 +139,6 @@ export default function TicketsListPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text-secondary)]">
-            Tickets
-          </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Manage executable tickets
-          </p>
-        </div>
         <Link href="/tickets/create">
           <Button>New Ticket</Button>
         </Link>
@@ -276,8 +268,8 @@ export default function TicketsListPage() {
               readinessScore >= 75
                 ? 'bg-green-500'
                 : readinessScore >= 50
-                ? 'bg-amber-500'
-                : 'bg-[var(--text-tertiary)]/40';
+                  ? 'bg-amber-500'
+                  : 'bg-[var(--text-tertiary)]/40';
 
             return (
               <Link key={ticket.id} href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`}>
@@ -332,5 +324,5 @@ export default function TicketsListPage() {
         </div>
       )}
     </div>
-  );
+  }
 }

@@ -1,18 +1,16 @@
-# Sprint Status — Executable Tickets Project
+# Sprint Status — Forge
 # Last Updated: 2026-02-06
-# Current Phase: Documentation Cleanup Complete, Ready for Epic Execution
+# Current Phase: MVP Complete, Monetization Track Next
 
 generated: 2026-02-06
-project: Executable Tickets (BMAD Tech-Spec Integration)
-project_key: ET-9
-tracking_system: GitHub (epic-9-bmad-integration branch)
-story_location: "docs/epics.md"
+project: Forge (AI-Powered Ticket Generation)
+tracking_system: GitHub
+story_location: "docs/epics"
 
 # EPIC COMPLETION TRACKING
 # =======================
 # Status Definitions:
 #   - backlog: Epic not started
-#   - contexted: Epic tech context created, stories ready for dev
 #   - in-progress: 1+ stories actively being developed
 #   - done: All stories complete
 
@@ -28,7 +26,6 @@ development_status:
     deliverables:
       - 1-1-project-setup: done
       - 1-2-design-system: done
-    retrospective: completed
 
   epic-1-5:
     status: done
@@ -39,119 +36,66 @@ development_status:
     deliverables:
       - 1-5-1-oauth-login-ui: done
       - 1-5-2-backend-auth-guards: done
-    retrospective: completed
 
-  # 🟡 IN PROGRESS EPICS
   epic-2:
-    status: in-progress
-    completion: 80%
-    stories: 5/5 (4 done, 1 in-progress)
+    status: done
+    completion: 100%
+    stories: 5/5
     summary: "Ticket Creation & AEC Engine"
     last_updated: 2026-02-06
-    blockers: "Story 2.5 edge cases (answer validation)"
     deliverables:
       - 2-1-ticket-creation-ui: done
       - 2-2-generation-progress: done
       - 2-3-aec-domain-model: done
       - 2-4-question-generation: done
-      - 2-5-question-round-management: in-progress
-    next_action: "Finish Story 2.5 answer validation & submission workflow"
-    dependencies: "Unblocks: 3, 4, 5, 6, 7, 8"
-    retrospective: optional
+      - 2-5-question-round-management: done
 
   epic-9:
-    status: in-progress
-    completion: 70%
-    stories: 6/6 (4 done, 2 in-progress)
+    status: done
+    completion: 100%
+    stories: 6/6
     summary: "BMAD Tech-Spec Integration (Deep LLM Analysis)"
     last_updated: 2026-02-06
-    blockers: "Story 9.5 & 9.6 integration testing"
     deliverables:
       - 9-1-github-file-service: done
-      - 9-2-project-stack-detector: done (replaced with LLM)
-      - 9-3-codebase-analyzer: done (replaced with LLM)
+      - 9-2-project-stack-detector: done
+      - 9-3-codebase-analyzer: done
       - 9-4-tech-spec-generator: done
-      - 9-5-frontend-4-stage-wizard: in-progress (80%)
-      - 9-6-deep-analysis-pipeline: in-progress (70%)
-    recent_work: "Commit adb1a5b: Deep LLM-powered analysis with real-time SSE"
-    next_action: "Integration testing, end-to-end wizard flow"
-    dependencies: "Depends on: Epics 1, 1.5, 2 (needs 2.5 complete), 6"
-    retrospective: optional
+      - 9-5-frontend-4-stage-wizard: done
+      - 9-6-deep-analysis-pipeline: done
 
-  # ⚪ PLANNED/BACKLOG EPICS
-  epic-3:
-    status: backlog
-    completion: 40%
-    stories: 3/3 (1 done, 2 in-design)
-    summary: "Clarification & Validation"
-    planned_start: "After Epic 2 complete"
-    dependencies: "Blocked by: Epic 2"
-    retrospective: optional
-
-  epic-4:
-    status: backlog
-    completion: 30%
-    stories: 5/5 (1 done, 0 in-progress)
-    summary: "Code Intelligence & Estimation"
-    planned_start: "After Epic 2 complete"
-    dependencies: "Blocked by: Epic 2"
-    retrospective: optional
-
+  # ⚪ BACKLOG — MONETIZATION TRACK
   epic-5:
     status: backlog
     completion: 0%
-    stories: 3/3
-    summary: "Export & Integrations"
-    planned_start: "Q2 (after core features)"
-    dependencies: "Blocked by: Epics 2, 3"
-    retrospective: optional
+    stories: 5/5
+    summary: "Export & Integrations (Linear, Jira, GitHub Issues)"
+    priority: "P1"
+    planned_start: "Phase 2"
+    dependencies: "None (MVP complete)"
+    deliverables:
+      - 5-1-linear-integration: backlog              # OAuth connect + export tickets as Linear issues
+      - 5-2-jira-integration: backlog                # OAuth 2.0 connect + export tickets as Jira issues
+      - 5-3-github-issues-export: backlog            # Export tickets as GitHub Issues (repo already connected)
+      - 5-4-abstract-export-port: backlog            # Shared export interface (ExternalIssue port pattern)
+      - 5-5-export-sync-updates: backlog             # Re-export updates existing issue (no duplicates)
+    notes: "ExternalIssue domain type already exists in codebase."
 
-  epic-6:
-    status: backlog
-    completion: 20%
-    stories: 8/8 (1 started)
-    summary: "Quick Document Generation (Auto-generate PRD/Architecture)"
-    planned_start: "After Epic 2 complete"
-    dependencies: "Blocked by: Epic 2"
-    retrospective: optional
-
-  epic-7:
-    status: backlog
-    completion: 0%
-    stories: 7/7
-    summary: "Code-Aware Validation & Pre-Implementation Analysis (Mastra)"
-    priority: "P0 (Critical for production)"
-    planned_start: "After Epic 4"
-    dependencies: "Blocked by: Epics 2, 4"
-    retrospective: optional
-
-  epic-8:
-    status: backlog
-    completion: 0%
-    stories: "TBD"
-    summary: "Observability & Distributed Tracing"
-    priority: "Infrastructure"
-    planned_start: "After Epic 2"
-    dependencies: "Blocked by: Epic 2"
-    retrospective: optional
-
-  # 💰 MONETIZATION TRACK (from MONETIZATION-PLAN.md)
   epic-10:
     status: backlog
     completion: 0%
     stories: 6/6
     summary: "Revenue Infrastructure (Stripe + Subscription Tiers)"
     priority: "P0 (Revenue unlock)"
-    planned_start: "After MVP launch (Epics 2 + 9 complete)"
-    dependencies: "Blocked by: Epics 2, 9"
+    planned_start: "Phase 1"
+    dependencies: "None (MVP complete)"
     deliverables:
-      - 10-1-subscription-domain-model: backlog     # Subscription entity in Firestore (tier, status, limits)
+      - 10-1-subscription-domain-model: backlog      # Subscription entity in Firestore (tier, status, limits)
       - 10-2-stripe-checkout-integration: backlog    # Stripe Checkout + Billing for sign-up flow
       - 10-3-subscription-guard: backlog             # NestJS guard — check tier before ticket generation
       - 10-4-usage-metering: backlog                 # Count tickets per workspace per month, enforce limits
       - 10-5-stripe-customer-portal: backlog         # Self-serve billing (upgrade/downgrade/cancel)
       - 10-6-pricing-page-ui: backlog                # Pricing table component + upgrade CTAs
-    retrospective: optional
 
   epic-11:
     status: backlog
@@ -159,15 +103,14 @@ development_status:
     stories: 5/5
     summary: "Launch Readiness (Landing Page, Legal, Monitoring, Analytics)"
     priority: "P0 (Required before charging)"
-    planned_start: "Parallel with Epic 10"
+    planned_start: "Phase 1 (parallel with Epic 10)"
     dependencies: "None (can start independently)"
     deliverables:
       - 11-1-landing-page: backlog                   # Value prop, demo video, pricing section (Next.js page)
       - 11-2-terms-and-privacy: backlog              # ToS + Privacy Policy pages
-      - 11-3-error-monitoring-sentry: backlog         # Sentry integration (frontend + backend)
+      - 11-3-error-monitoring-sentry: backlog        # Sentry integration (frontend + backend)
       - 11-4-analytics-posthog: backlog              # PostHog/Mixpanel free tier — key events tracking
       - 11-5-transactional-emails: backlog           # Welcome, receipt, approaching-limit notifications
-    retrospective: optional
 
   epic-12:
     status: backlog
@@ -175,13 +118,12 @@ development_status:
     stories: 3/3
     summary: "GitHub-Free Generation Mode (PM Gap Bridge)"
     priority: "P1 (Broadens TAM — unlocks non-technical users)"
-    planned_start: "After Epic 10"
-    dependencies: "Blocked by: Epic 9 (generation pipeline must work)"
+    planned_start: "Phase 2"
+    dependencies: "None (generation pipeline already works)"
     deliverables:
       - 12-1-manual-context-wizard-path: backlog     # New wizard path: skip repo, describe your project
       - 12-2-tech-stack-presets: backlog             # Preset templates (React+Node, Django+PG, etc.)
       - 12-3-generation-without-repo: backlog        # Make repo analysis optional in generation pipeline
-    retrospective: optional
 
   epic-13:
     status: backlog
@@ -189,15 +131,14 @@ development_status:
     stories: 5/5
     summary: "Team Workspace with Role-Based Access"
     priority: "P1 (Seat expansion driver — Team tier core feature)"
-    planned_start: "After Epic 12"
-    dependencies: "Blocked by: Epics 10, 12"
+    planned_start: "Phase 3"
+    dependencies: "Blocked by: Epic 10 (subscription model needed)"
     deliverables:
       - 13-1-workspace-role-domain-model: backlog    # WorkspaceRole enum, WorkspaceMember entity
       - 13-2-invite-system: backlog                  # Generate invite token → email/link → accept → join
       - 13-3-role-guard: backlog                     # NestJS RoleGuard (permission enforcement per endpoint)
       - 13-4-role-aware-ui: backlog                  # Adaptive sidebar + conditional rendering per role
       - 13-5-onboarding-role-picker: backlog         # "I'm a PM / Tech Lead / Developer" at sign-up
-    retrospective: optional
 
   epic-14:
     status: backlog
@@ -205,13 +146,12 @@ development_status:
     stories: 3/3
     summary: "Multi-Repo Cross-Reference"
     priority: "P2 (Team tier killer feature)"
-    planned_start: "After Epic 13"
-    dependencies: "Blocked by: Epics 9, 4"
+    planned_start: "Phase 4"
+    dependencies: "Blocked by: Epic 9 (repo analysis)"
     deliverables:
       - 14-1-multi-repo-selection-ui: backlog        # Select multiple repos in wizard
       - 14-2-merged-analysis-pipeline: backlog       # Combine analysis from N repos into unified context
       - 14-3-cross-repo-ticket-generation: backlog   # Tickets with steps spanning repos
-    retrospective: optional
 
   epic-15:
     status: backlog
@@ -219,99 +159,42 @@ development_status:
     stories: 4/4
     summary: "Codebase Explorer for PMs (RAG-Powered Q&A)"
     priority: "P2 (Standalone value prop — Codebase Intelligence)"
-    planned_start: "After Epic 14"
-    dependencies: "Blocked by: Epics 9, 4 (needs code indexing)"
+    planned_start: "Phase 4"
+    dependencies: "Blocked by: Epic 9 (needs code indexing)"
     deliverables:
       - 15-1-document-ingestion-pipeline: backlog    # Ingest repos, docs, Confluence, Notion
       - 15-2-rag-embedding-retrieval: backlog        # Chunk + embed + vector search
       - 15-3-conversational-qa-ui: backlog           # Chat interface for PM questions
       - 15-4-source-citation-system: backlog         # Answers cite file:line and doc sources
-    retrospective: optional
 
 # METRICS & SUMMARY
 # =================
 metrics:
-  total_epics: 15
-  completed_epics: 2
-  in_progress_epics: 2
-  backlog_epics: 11
+  total_epics: 10
+  completed_epics: 4
+  in_progress_epics: 0
+  backlog_epics: 6
 
-  total_stories: 69
-  completed_stories: 9
-  in_progress_stories: 5
-  backlog_stories: 55
+  total_stories: 46
+  completed_stories: 15
+  backlog_stories: 31
 
-  overall_completion: "20%"
-  critical_path: "Epic 2 → Epic 9 → Epic 10 → Epic 12 → Epic 13"
-  monetization_path: "Epic 10 → Epic 11 → Epic 12 → Epic 13 → Epic 14 → Epic 15"
+  overall_completion: "33%"
+  critical_path: "Epic 10 + 11 → Epic 5 + 12 → Epic 13 → Epic 14 + 15"
 
 # EXECUTION ROADMAP
 # =================
-execution_path: "PATH A: Production Quality First (RECOMMENDED)"
+# Epics 3, 4, 6, 7, 8 removed — no longer relevant to product direction.
+# Focus shifted from "production quality features" to "monetization + PM persona."
+
+execution_path: "PATH B: Monetization First"
 
 phases:
   phase-1:
-    name: "Complete Epic 2"
-    duration: "1-2 weeks"
-    stories: ["2.5 (final polish)"]
-    deliverables:
-      - "Question round submission complete"
-      - "Answer validation working"
-      - "UI edge cases handled"
-      - "Integration tests passing"
-    success_criteria: "All stories 2.1-2.5 marked done"
-    outcome: "Unblocks 6 downstream epics"
-
-  phase-2:
-    name: "Complete Epic 9"
-    duration: "2-3 weeks"
-    stories: ["9.5 (wizard UI)", "9.6 (deep-analysis)"]
-    deliverables:
-      - "4-stage wizard end-to-end working"
-      - "Deep-analysis pipeline production-ready"
-      - "Real-time progress streaming stable"
-      - "Error handling & edge cases complete"
-    success_criteria: "All stories 9.1-9.6 marked done"
-    outcome: "Can launch MVP (Epics 1, 1.5, 2, 9 complete)"
-
-  phase-3:
-    name: "Complete Epic 3"
-    duration: "1 week"
-    stories: ["3.1", "3.2", "3.3"]
-    deliverables:
-      - "Multi-criteria validation scoring"
-      - "Question-based clarification"
-      - "Human-in-loop workflow"
-    outcome: "Enhanced validation with concrete feedback"
-
-  phase-4:
-    name: "Complete Epic 4"
-    duration: "2-3 weeks"
-    stories: ["4.2-4.5"]
-    deliverables:
-      - "Repository indexing pipeline"
-      - "Code pattern analysis"
-      - "Drift detection"
-      - "Effort estimation"
-    outcome: "Code-aware estimation working"
-
-  phase-5:
-    name: "Complete Epic 7"
-    duration: "2-3 weeks"
-    stories: ["7.1-7.7"]
-    deliverables:
-      - "Mastra workspace configuration"
-      - "Analysis agents setup"
-      - "Concrete findings (not abstract scores)"
-      - "Simulation testing"
-    outcome: "Production-ready validation system"
-
-  # 💰 MONETIZATION PHASES (post-MVP)
-  phase-6:
-    name: "Revenue Infrastructure (Epic 10 + 11)"
+    name: "Revenue + Launch Readiness (Epics 10 + 11)"
     duration: "3-4 weeks"
+    parallel: true
     stories: ["10.1-10.6", "11.1-11.5"]
-    parallel: true  # Epics 10 and 11 can run in parallel
     deliverables:
       - "Stripe Checkout + Billing working"
       - "Subscription guard enforcing free tier limits"
@@ -322,18 +205,21 @@ phases:
     success_criteria: "Can accept payments, enforce limits, track usage"
     outcome: "Revenue-ready — can start charging"
 
-  phase-7:
-    name: "GitHub-Free Mode (Epic 12)"
-    duration: "1-2 weeks"
-    stories: ["12.1-12.3"]
+  phase-2:
+    name: "Export Integrations + GitHub-Free Mode (Epics 5 + 12)"
+    duration: "3-4 weeks"
+    parallel: true
+    stories: ["5.1-5.5", "12.1-12.3"]
     deliverables:
+      - "Linear export working (OAuth + one-click)"
+      - "Jira export working (OAuth 2.0 + field mapping)"
+      - "GitHub Issues export"
       - "Manual context wizard path (no repo needed)"
-      - "Tech stack presets"
-      - "Generation pipeline works without repo analysis"
-    success_criteria: "PM can create tickets without GitHub account"
-    outcome: "Unlocks non-technical PM persona"
+      - "Tech stack presets for PM users"
+    success_criteria: "Tickets flow to Linear/Jira; PMs can use Forge without GitHub"
+    outcome: "Full workflow loop + PM persona unlocked"
 
-  phase-8:
+  phase-3:
     name: "Team Workspace + Roles (Epic 13)"
     duration: "3-4 weeks"
     stories: ["13.1-13.5"]
@@ -346,9 +232,10 @@ phases:
     success_criteria: "Dev invites PM, PM generates tickets on connected repo"
     outcome: "Team tier sellable — seat expansion activated"
 
-  phase-9:
+  phase-4:
     name: "Advanced Features (Epics 14 + 15)"
     duration: "4-6 weeks"
+    parallel: true
     stories: ["14.1-14.3", "15.1-15.4"]
     deliverables:
       - "Multi-repo selection + merged analysis"
@@ -359,61 +246,48 @@ phases:
     outcome: "Enterprise-grade product differentiation"
 
 timeline:
-  total_duration: "18-22 weeks (full roadmap)"
-  critical_path_blocker: "Epic 2 → unlocks everything"
-  launch_readiness: "After Phase 2 (Epic 2 + Epic 9)"
-  revenue_readiness: "After Phase 6 (Epics 10 + 11)"
-  pm_persona_unlocked: "After Phase 7 (Epic 12)"
-  team_tier_sellable: "After Phase 8 (Epic 13)"
+  total_duration: "13-18 weeks"
+  revenue_readiness: "After Phase 1 (3-4 weeks)"
+  pm_persona_unlocked: "After Phase 2 (6-8 weeks)"
+  team_tier_sellable: "After Phase 3 (9-12 weeks)"
+  enterprise_features: "After Phase 4 (13-18 weeks)"
 
-# CURRENT BLOCKERS & RISKS
-# ========================
-blockers:
-  epic-2:
-    blocker: "Story 2.5: Edge cases in answer validation"
-    impact: "HIGH - unblocks 6 epics"
-    resolution: "Add comprehensive test coverage, handle null/empty cases"
-    priority: "P0"
-
-  epic-9:
-    blocker: "Story 9.5-9.6: Integration testing between wizard & analysis"
-    impact: "MEDIUM - needed for MVP launch"
-    resolution: "End-to-end testing, error scenario coverage"
-    priority: "P0"
-
+# RISKS
+# =====
 risks:
-  - risk: "Deep-analysis LLM accuracy (Phase 2)"
-    mitigation: "Test with diverse repos, fallback to regex analyzer"
+  - risk: "Stripe integration complexity (webhook reliability, edge cases)"
+    mitigation: "Use Stripe Checkout hosted page, minimize custom code"
+    probability: "Low"
+
+  - risk: "Linear/Jira OAuth approval process for marketplace listing"
+    mitigation: "Start with API key auth, upgrade to OAuth later"
     probability: "Medium"
 
-  - risk: "Mastra workspace complexity (Phase 5)"
-    mitigation: "Early POC with sandbox setup"
+  - risk: "RAG accuracy for codebase Q&A (Epic 15)"
+    mitigation: "Start with repo README + docs only, expand sources incrementally"
     probability: "Medium"
 
 # DECISION POINTS
 # ===============
 decisions:
-  next_path: "PATH A: Production Quality → Monetization"
-  next_epic: "Epic 2.5 final polish"
-  rollout_strategy: "MVP launch (Phase 2) → Revenue (Phase 6) → PM unlock (Phase 7) → Teams (Phase 8)"
+  next_epic: "Epic 10 (Stripe + Subscriptions) — the revenue unlock"
+  parallel_track: "Epic 11 (Landing page, Sentry, analytics) — can start immediately"
+  rollout_strategy: "Revenue (Phase 1) → Integrations + PM Mode (Phase 2) → Teams (Phase 3) → Enterprise (Phase 4)"
 
-# NOTES FOR NEXT STANDUP
-# ======================
+# NOTES
+# =====
 standup_notes: |
-  ✅ Documentation cleanup complete (ef3c6af, 4758b35)
-  ✅ Epic 9 deep-analysis implemented (adb1a5b)
+  ✅ MVP complete — Epics 1, 1.5, 2, 9 all done
+  ✅ Deployed to Vercel (frontend) + Render (backend)
+  ✅ OAuth HMAC fix for cross-domain (b0b2a08)
   ✅ Monetization epics 10-15 planned from MONETIZATION-PLAN.md
-  ✅ OAuth HMAC fix deployed (b0b2a08)
-  🟡 Epic 2 at 80% (needs 2.5 final touches)
-  🟡 Epic 9 at 70% (needs integration testing)
+  ❌ Epics 3, 4, 6, 7, 8 removed (no longer relevant)
 
-  🎯 Execution Order:
-  Phase 1-2: MVP (Epic 2 + 9) — 3-5 weeks
-  Phase 3-5: Core features (Epics 3, 4, 7) — 5-7 weeks
-  Phase 6:   Revenue unlock (Epics 10 + 11) — 3-4 weeks  ← START CHARGING
-  Phase 7:   PM persona (Epic 12) — 1-2 weeks
-  Phase 8:   Team tier (Epic 13) — 3-4 weeks              ← SEAT EXPANSION
-  Phase 9:   Advanced (Epics 14 + 15) — 4-6 weeks
+  🎯 Next:
+  Phase 1: Revenue unlock (Epics 10 + 11) — 3-4 weeks     ← START CHARGING
+  Phase 2: Integrations + PM mode (Epics 5 + 12) — 3-4 weeks
+  Phase 3: Team tier (Epic 13) — 3-4 weeks                 ← SEAT EXPANSION
+  Phase 4: Advanced (Epics 14 + 15) — 4-6 weeks
 
-  💰 Revenue milestone: ~10-12 weeks from now (Phase 6)
-  🚀 Full roadmap: ~18-22 weeks
+  💰 Revenue milestone: ~3-4 weeks
+  🚀 Full roadmap: ~13-18 weeks
