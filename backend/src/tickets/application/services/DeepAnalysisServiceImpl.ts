@@ -18,6 +18,7 @@ import {
   DeepAnalysisService,
   DeepAnalysisInput,
   FileTree,
+  AnalysisProgressEvent,
 } from '@tickets/domain/deep-analysis/deep-analysis.service';
 import { DeepAnalysisResult } from '@tickets/domain/deep-analysis/deep-analysis.types';
 
@@ -108,6 +109,8 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
    */
   async analyze(input: DeepAnalysisInput): Promise<DeepAnalysisResult> {
     const startTime = Date.now();
+    const emit = (event: AnalysisProgressEvent) => input.onProgress?.(event);
+
     this.logger.log(
       `Starting deep analysis for ${input.owner}/${input.repo} — "${input.title}"`,
     );
@@ -123,6 +126,8 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     let fileContents = new Map<string, string>();
 
     try {
+      emit({ phase: 'selecting_files', message: 'AI is selecting relevant files to analyze...', percent: 35 });
+
       selectedFiles = await this.selectFilesToRead(
         input.title,
         input.description,
@@ -132,6 +137,8 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       );
 
       this.logger.log(`Phase 2: LLM selected ${selectedFiles.length} files to read`);
+
+      emit({ phase: 'reading_files', message: `Reading ${selectedFiles.length} source files from GitHub...`, percent: 50 });
 
       // Read selected files from GitHub
       fileContents = await this.readFilesFromGitHub(
@@ -149,6 +156,8 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
 
     // Phase 3: LLM deep analysis
     try {
+      emit({ phase: 'analyzing', message: 'Deep analyzing codebase patterns and architecture...', percent: 65 });
+
       const result = await this.analyzeWithLLM(
         input.title,
         input.description,

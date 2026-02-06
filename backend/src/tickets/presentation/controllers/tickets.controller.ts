@@ -10,7 +10,9 @@ import {
   HttpStatus,
   UseGuards,
   Logger,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CreateTicketUseCase } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
@@ -69,19 +71,35 @@ export class TicketsController {
   ) {}
 
   /**
-   * Analyze repository without creating a ticket
-   * Called in Stage 2 of the wizard to show user the detected stack and patterns
-   * before they decide to proceed with ticket creation
+   * Analyze repository without creating a ticket.
+   * Streams SSE progress events so the frontend can show real-time progress.
+   *
+   * Guards (FirebaseAuthGuard, WorkspaceGuard) and ValidationPipe still run
+   * before this handler executes. Using @Res() bypasses NestJS interceptors
+   * for the response only — that's fine because we're writing SSE directly.
    */
   @Post('analyze-repo')
   async analyzeRepository(
     @WorkspaceId() workspaceId: string,
     @Body() dto: AnalyzeRepositoryDto,
+    @Res() res: Response,
   ) {
     this.logger.log(`Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`);
 
+    // Set SSE headers and start streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const send = (data: Record<string, any>) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
     try {
       // 1. Auth: fetch integration, decrypt token, create Octokit
+      send({ phase: 'connecting', message: 'Connecting to GitHub...', percent: 5 });
+
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
       if (!integration) {
         throw new BadRequestException('GitHub not connected. Please connect GitHub in Settings first.');
@@ -92,6 +110,8 @@ export class TicketsController {
       const branch = dto.branch || 'main';
 
       // 2. Tree: fetch recursive tree
+      send({ phase: 'fetching_tree', message: 'Fetching repository structure...', percent: 15 });
+
       const refResponse = await octokit.rest.git.getRef({
         owner: dto.owner,
         repo: dto.repo,
@@ -122,6 +142,8 @@ export class TicketsController {
       };
 
       // 3. Config read: read key config files
+      send({ phase: 'reading_configs', message: 'Reading configuration files...', percent: 25 });
+
       const configFilePaths = [
         'package.json',
         'tsconfig.json',
@@ -149,7 +171,7 @@ export class TicketsController {
         }
       }
 
-      // 4. Deep LLM analysis (replaces regex ProjectStackDetector + CodebaseAnalyzer)
+      // 4. Deep LLM analysis — service emits progress at 35%, 50%, 65%
       this.logger.log(`Starting deep LLM analysis...`);
       const result = await this.deepAnalysisService.analyze({
         title: dto.title,
@@ -160,22 +182,23 @@ export class TicketsController {
         fileTree,
         configFiles,
         octokit,
+        onProgress: (event) => send(event),
       });
 
       this.logger.log(`Repository analysis complete`);
-      return { context: result };
+
+      // Final complete event with result payload
+      send({ phase: 'complete', message: 'Analysis complete', percent: 100, result: { context: result } });
+      res.end();
     } catch (error: any) {
       this.logger.error(`Repository analysis failed: ${error.message}`);
 
-      if (error.status === 404 && !error.message.includes('LLM')) {
-        throw new BadRequestException(
-          `Repository ${dto.owner}/${dto.repo} not found or not accessible`,
-        );
-      }
+      const errorMessage = error.status === 404 && !error.message?.includes('LLM')
+        ? `Repository ${dto.owner}/${dto.repo} not found or not accessible`
+        : `Failed to analyze repository: ${error.message}`;
 
-      throw new BadRequestException(
-        `Failed to analyze repository: ${error.message}`,
-      );
+      send({ phase: 'error', message: errorMessage, percent: 0 });
+      res.end();
     }
   }
 

@@ -105,6 +105,7 @@ export interface WizardState {
   roundStatus: 'idle' | 'generating' | 'answering' | 'submitting' | 'finalizing';
   loading: boolean;
   loadingMessage: string | null;
+  progressPercent: number;
   error: string | null;
 }
 
@@ -181,6 +182,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   roundStatus: 'idle',
   loading: false,
   loadingMessage: null,
+  progressPercent: 0,
   error: null,
 
   // ============================================================================
@@ -214,15 +216,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   analyzeRepository: async () => {
     const state = get();
     const ticketsState = useTicketsStore.getState();
-    set({ loading: true, loadingMessage: 'Scanning repository...', error: null });
+    set({ loading: true, loadingMessage: 'Connecting to GitHub...', progressPercent: 0, error: null });
 
     try {
       const branch = ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
-
-      // Show analyzing message after a brief delay (GitHub scan is fast, LLM is slow)
-      const analysisTimer = setTimeout(() => {
-        set({ loadingMessage: 'Analyzing codebase with AI...' });
-      }, 3000);
 
       const response = await authFetch('/tickets/analyze-repo', {
         method: 'POST',
@@ -235,25 +232,89 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         }),
       });
 
-      clearTimeout(analysisTimer);
-
-      if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.statusText}`);
+      // Non-SSE error responses (e.g. 400 validation errors) come as JSON
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('text/event-stream')) {
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message || `Analysis failed: ${response.statusText}`);
+        }
+        // Unexpected non-stream success — handle gracefully
+        const { context } = await response.json();
+        set({ context, currentStage: 2, loading: false, loadingMessage: null, progressPercent: 100 });
+        return;
       }
 
-      const { context } = await response.json();
-      set({
-        context,
-        currentStage: 2,
-        loading: false,
-        loadingMessage: null,
-      });
+      // Parse SSE stream
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response stream available');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE events are separated by double newlines
+        const parts = buffer.split('\n\n');
+        // Keep the last incomplete chunk in the buffer
+        buffer = parts.pop() || '';
+
+        for (const part of parts) {
+          const dataLine = part.split('\n').find(line => line.startsWith('data: '));
+          if (!dataLine) continue;
+
+          const json = dataLine.slice(6); // strip "data: "
+          let event: any;
+          try {
+            event = JSON.parse(json);
+          } catch {
+            continue;
+          }
+
+          if (event.phase === 'complete') {
+            set({
+              context: event.result?.context || null,
+              currentStage: 2,
+              loading: false,
+              loadingMessage: null,
+              progressPercent: 100,
+            });
+            return;
+          }
+
+          if (event.phase === 'error') {
+            set({
+              error: event.message || 'Analysis failed',
+              loading: false,
+              loadingMessage: null,
+              progressPercent: 0,
+            });
+            return;
+          }
+
+          // Progress update
+          set({
+            loadingMessage: event.message || 'Analyzing...',
+            progressPercent: event.percent || 0,
+          });
+        }
+      }
+
+      // Stream ended without complete/error event
+      if (get().loading) {
+        set({ error: 'Analysis stream ended unexpectedly', loading: false, loadingMessage: null, progressPercent: 0 });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
         error: errorMessage,
         loading: false,
         loadingMessage: null,
+        progressPercent: 0,
       });
     }
   },
@@ -710,6 +771,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       roundStatus: 'idle',
       loading: false,
       loadingMessage: null,
+      progressPercent: 0,
       error: null,
     });
   },

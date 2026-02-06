@@ -1,6 +1,28 @@
 import { DeepAnalysisResult } from './deep-analysis.types';
 
 /**
+ * Progress phases for repository analysis streaming
+ */
+export type AnalysisPhase =
+  | 'connecting'
+  | 'fetching_tree'
+  | 'reading_configs'
+  | 'selecting_files'
+  | 'reading_files'
+  | 'analyzing'
+  | 'complete'
+  | 'error';
+
+/**
+ * Progress event emitted during analysis
+ */
+export interface AnalysisProgressEvent {
+  phase: AnalysisPhase;
+  message: string;
+  percent: number;
+}
+
+/**
  * File tree entry from GitHub API
  */
 export interface FileTreeEntry {
@@ -34,6 +56,7 @@ export interface DeepAnalysisInput {
   fileTree: FileTree;
   configFiles: Map<string, string>;
   octokit: any;
+  onProgress?: (event: AnalysisProgressEvent) => void;
 }
 
 /**

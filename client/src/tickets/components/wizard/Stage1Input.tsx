@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -29,6 +29,7 @@ export function Stage1Input() {
     input,
     loading,
     loadingMessage,
+    progressPercent,
     setTitle,
     setDescription,
     setRepository,
@@ -37,6 +38,25 @@ export function Stage1Input() {
 
   // Validation state
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+
+  // Elapsed time counter
+  const [elapsed, setElapsed] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (loading) {
+      setElapsed(0);
+      intervalRef.current = setInterval(() => {
+        setElapsed((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [loading]);
 
   // Load GitHub status on mount to get real repositories
   React.useEffect(() => {
@@ -170,14 +190,33 @@ export function Stage1Input() {
         <RepositorySelector />
 
         {/* Submit Button */}
-        <div className="pt-4 flex gap-3">
+        <div className="pt-4 space-y-3">
           <Button
             type="submit"
             disabled={!isFormValid || loading}
-            className="flex-1"
+            className="w-full"
           >
-            {loading ? (loadingMessage || 'Loading...') : 'Next'}
+            {loading ? 'Analyzing...' : 'Next'}
           </Button>
+
+          {/* Progress bar + phase message + elapsed timer */}
+          {loading && (
+            <div className="space-y-2">
+              {/* Progress bar track */}
+              <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-blue-500 dark:bg-blue-400 transition-all duration-700 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              {/* Phase message + elapsed time */}
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>{loadingMessage || 'Starting...'}</span>
+                <span>{elapsed}s</span>
+              </div>
+            </div>
+          )}
         </div>
       </form>
 
