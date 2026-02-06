@@ -6,13 +6,48 @@ import { Button } from '@/core/components/ui/button';
 import { useUIStore } from '@/stores/ui.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
-import { Github, SearchCode, FileCheck2, ArrowRight, Rocket } from 'lucide-react';
+import { Github, SearchCode, FileCheck2, ArrowRight, Rocket, Shield, ChevronDown } from 'lucide-react';
 
 const STEPS = [
   { id: 0, label: 'Welcome' },
   { id: 1, label: 'Why Connect' },
   { id: 2, label: 'Connect' },
 ] as const;
+
+function PrivacyNote() {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="mt-5 max-w-[480px] mx-auto">
+      <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+        <Shield className="h-3.5 w-3.5 text-[var(--primary)] flex-shrink-0" />
+        <p className="text-[12px] leading-relaxed">
+          We never clone your repository. Your code stays on GitHub.
+        </p>
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-0.5 flex-shrink-0"
+        >
+          {expanded ? 'Less' : 'More'}
+          <ChevronDown className={`h-3 w-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+      {expanded && (
+        <div className="mt-3 rounded-lg bg-[var(--bg-subtle)] p-4 text-[12px] text-[var(--text-tertiary)] leading-relaxed space-y-2">
+          <p>
+            Forge uses the GitHub API to read your repository's file tree and selected source files — the same way you browse code on github.com. We request <strong className="text-[var(--text-secondary)]">read-only</strong> access and never write, push, or clone anything.
+          </p>
+          <p>
+            During analysis, the AI reads config files and a small set of source files (10-25) to understand your stack, patterns, and architecture. File contents are processed in-memory and never stored on disk.
+          </p>
+          <p>
+            You can disconnect at any time from Settings and we'll revoke all access immediately.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function OnboardingDialog() {
   const { onboardingCompleted, completeOnboarding } = useUIStore();
@@ -95,7 +130,7 @@ export function OnboardingDialog() {
         </div>
 
         {/* Step content */}
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden max-h-[75vh] overflow-y-auto">
           <div
             className="flex transition-transform duration-300 ease-in-out"
             style={{ transform: `translateX(-${step * 100}%)` }}
@@ -219,6 +254,7 @@ export function OnboardingDialog() {
                 Grant read-only access so the AI can analyze your codebase. You can also do this later in Settings.
               </p>
               <GitHubIntegration onBeforeConnect={handleBeforeConnect} />
+              <PrivacyNote />
             </div>
           </div>
         </div>

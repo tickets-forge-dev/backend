@@ -7,6 +7,7 @@ export interface UpdateAECCommand {
   aecId: string;
   acceptanceCriteria?: string[];
   assumptions?: string[];
+  status?: 'draft' | 'complete';
 }
 
 @Injectable()
@@ -30,6 +31,12 @@ export class UpdateAECUseCase {
 
     if (command.assumptions !== undefined) {
       aec.updateAssumptions(command.assumptions);
+    }
+
+    if (command.status === 'complete') {
+      aec.markComplete();
+    } else if (command.status === 'draft') {
+      aec.revertToDraft();
     }
 
     // Persist changes

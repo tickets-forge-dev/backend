@@ -30,7 +30,7 @@ interface TicketsState {
   fetchTicket: (id: string) => Promise<void>;
   updateTicket: (
     id: string,
-    data: { acceptanceCriteria?: string[]; assumptions?: string[] }
+    data: { acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete' }
   ) => Promise<boolean>;
   deleteTicket: (id: string) => Promise<boolean>;
   clearCreateError: () => void;
@@ -124,7 +124,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
 
   updateTicket: async (
     id: string,
-    data: { acceptanceCriteria?: string[]; assumptions?: string[] }
+    data: { acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete' }
   ) => {
     set({ isUpdating: true, updateError: null });
 

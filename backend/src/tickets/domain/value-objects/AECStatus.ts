@@ -8,6 +8,7 @@ export enum AECStatus {
   READY = 'ready',
   CREATED = 'created',
   DRIFTED = 'drifted',
+  COMPLETE = 'complete',
 }
 
 export type TicketType = 'feature' | 'bug' | 'task';

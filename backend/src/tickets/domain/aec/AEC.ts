@@ -219,6 +219,26 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  markComplete(): void {
+    if (this._status !== AECStatus.DRAFT) {
+      throw new InvalidStateTransitionError(
+        `Cannot mark complete from ${this._status}. Only draft tickets can be marked complete.`,
+      );
+    }
+    this._status = AECStatus.COMPLETE;
+    this._updatedAt = new Date();
+  }
+
+  revertToDraft(): void {
+    if (this._status !== AECStatus.COMPLETE) {
+      throw new InvalidStateTransitionError(
+        `Cannot revert to draft from ${this._status}. Only complete tickets can be reverted.`,
+      );
+    }
+    this._status = AECStatus.DRAFT;
+    this._updatedAt = new Date();
+  }
+
   detectDrift(reason: string): void {
     if (
       ![AECStatus.READY, AECStatus.CREATED].includes(this._status)

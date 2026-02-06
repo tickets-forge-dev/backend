@@ -13,6 +13,7 @@ import {
 } from '@/core/components/ui/dropdown-menu';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
+import { useState } from 'react';
 
 // Get user initials for avatar
 const getInitials = (name: string | null) => {
@@ -28,6 +29,7 @@ export function SidebarHeader() {
   const router = useRouter();
   const { user, signOut } = useAuthStore();
   const { sidebarCollapsed, resetOnboarding } = useUIStore();
+  const [imgError, setImgError] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -45,14 +47,15 @@ export function SidebarHeader() {
             className="w-full justify-start gap-3 px-2 py-2 h-auto"
           >
             {/* Avatar - always visible */}
-            {user.photoURL ? (
+            {user.photoURL && !imgError ? (
               <img
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
                 className="h-8 w-8 rounded-full flex-shrink-0"
+                onError={() => setImgError(true)}
               />
             ) : (
-              <div className="h-8 w-8 rounded-full bg-[var(--purple)] text-white flex items-center justify-center text-[var(--text-xs)] font-medium flex-shrink-0">
+              <div className="h-8 w-8 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center text-[var(--text-xs)] font-medium flex-shrink-0">
                 {getInitials(user.displayName)}
               </div>
             )}
@@ -72,8 +75,9 @@ export function SidebarHeader() {
         <DropdownMenuContent
           align="start"
           side="right"
-          sideOffset={8}
-          className="w-56"
+          alignOffset={-4}
+          sideOffset={12}
+          className="w-56 z-[var(--z-modal)]"
         >
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">

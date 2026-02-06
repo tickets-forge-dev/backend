@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsOptional } from 'class-validator';
+import { IsArray, IsString, IsOptional, IsIn } from 'class-validator';
 
 export class UpdateAECDto {
   @IsArray()
@@ -10,4 +10,8 @@ export class UpdateAECDto {
   @IsString({ each: true })
   @IsOptional()
   assumptions?: string[];
+
+  @IsIn(['draft', 'complete'])
+  @IsOptional()
+  status?: 'draft' | 'complete';
 }

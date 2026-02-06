@@ -37,7 +37,7 @@ export function Stage2Context() {
 
   // Collapsible sections
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['userInput', 'stack', 'analysis', 'files', 'taskAnalysis'])
+    new Set()
   );
 
   const toggleSection = (section: string) => {

@@ -26,6 +26,7 @@ import { StartRoundDto } from '../dto/StartRoundDto';
 import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
 import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
+import { InvalidStateTransitionError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -246,13 +247,21 @@ export class TicketsController {
 
   @Patch(':id')
   async updateTicket(@Param('id') id: string, @Body() dto: UpdateAECDto) {
-    const aec = await this.updateAECUseCase.execute({
-      aecId: id,
-      acceptanceCriteria: dto.acceptanceCriteria,
-      assumptions: dto.assumptions,
-    });
+    try {
+      const aec = await this.updateAECUseCase.execute({
+        aecId: id,
+        acceptanceCriteria: dto.acceptanceCriteria,
+        assumptions: dto.assumptions,
+        status: dto.status,
+      });
 
-    return this.mapToResponse(aec);
+      return this.mapToResponse(aec);
+    } catch (error) {
+      if (error instanceof InvalidStateTransitionError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   @Delete(':id')

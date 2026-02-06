@@ -27,7 +27,8 @@ export default function TicketsListPage() {
 
       const matchesStatus =
         statusFilter === 'all' ||
-        (statusFilter === 'draft' && ticket.status !== 'ready');
+        (statusFilter === 'draft' && ticket.status === 'draft') ||
+        (statusFilter === 'complete' && ticket.status === 'complete');
 
       return matchesSearch && matchesStatus;
     })
@@ -37,6 +38,14 @@ export default function TicketsListPage() {
     });
 
   const getStatusBadge = (ticket: any) => {
+    if (ticket.status === 'complete') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          Complete
+        </span>
+      );
+    }
     if (ticket.status === 'ready') {
       return (
         <span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
@@ -120,6 +129,7 @@ export default function TicketsListPage() {
                 {[
                   { value: 'all', label: 'All' },
                   { value: 'draft', label: 'Draft' },
+                  { value: 'complete', label: 'Complete' },
                 ].map((opt) => (
                   <button
                     key={opt.value}

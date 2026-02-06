@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, FileCode, FilePlus, FileX } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, FileCode, FilePlus, FileX, Upload } from 'lucide-react';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useServices } from '@/services/index';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
@@ -30,11 +30,12 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const router = useRouter();
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
   const [isSubmittingAnswers, setIsSubmittingAnswers] = useState(false);
   const [answerSubmitError, setAnswerSubmitError] = useState<string | null>(null);
   const [isStartingRound, setIsStartingRound] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('');
-  const { currentTicket, isLoading, fetchError, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
   const { questionRoundService } = useServices();
 
   // Unwrap params (Next.js 15 async params)
@@ -243,6 +244,18 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     }
   };
 
+  const handleToggleStatus = async () => {
+    if (!ticketId) return;
+    const newStatus = currentTicket.status === 'complete' ? 'draft' : 'complete';
+    const success = await updateTicket(ticketId, { status: newStatus });
+    if (success) {
+      setShowStatusConfirm(false);
+    }
+  };
+
+  const isComplete = currentTicket.status === 'complete';
+  const canToggleStatus = currentTicket.status === 'draft' || currentTicket.status === 'complete';
+
   const handleDelete = async () => {
     if (!ticketId) return;
     const success = await deleteTicket(ticketId);
@@ -253,16 +266,27 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
   return (
     <div className="space-y-8">
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => router.push('/tickets')}
-        className="-ml-2"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Tickets
-      </Button>
+      {/* Top bar */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push('/tickets')}
+          className="-ml-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Tickets
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled
+          title="Export functionality coming soon"
+        >
+          <Upload className="h-3.5 w-3.5 mr-1.5" />
+          Export
+        </Button>
+      </div>
 
       {/* Progress Stepper */}
       <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 -mx-4 sm:-mx-6 px-4 sm:px-6 py-6">
@@ -332,13 +356,27 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-[var(--text-secondary)]">
-            {currentTicket.techSpec
-              ? 'Complete'
-              : currentTicket.currentRound === 0
+          {canToggleStatus ? (
+            <button
+              onClick={() => setShowStatusConfirm(true)}
+              className={`
+                inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer
+                ${isComplete
+                  ? 'bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20'
+                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                }
+              `}
+            >
+              {isComplete && <CheckCircle className="h-3.5 w-3.5" />}
+              {isComplete ? 'Complete' : 'Draft'}
+            </button>
+          ) : (
+            <Badge variant="outline" className="text-[var(--text-secondary)]">
+              {currentTicket.currentRound === 0
                 ? 'Draft'
                 : `Round ${currentTicket.currentRound}/${currentTicket.maxRounds}`}
-          </Badge>
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -775,11 +813,56 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Ticket
         </Button>
-        <Button disabled title="Export functionality coming in Epic 5">
-          Export to Jira
-        </Button>
       </div>
       </div> {/* End relative wrapper for section nav */}
+
+      {/* Status Toggle Confirmation Dialog */}
+      <Dialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {isComplete ? 'Revert to Draft?' : 'Mark as Complete?'}
+            </DialogTitle>
+            <DialogDescription className="text-[var(--text-base)]">
+              {isComplete
+                ? 'This will move the ticket back to draft status for further editing.'
+                : 'This will mark the ticket as complete. You can revert it to draft later if needed.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+              <strong className="text-[var(--text)]">Ticket:</strong> {currentTicket.title}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowStatusConfirm(false)}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleToggleStatus}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : isComplete ? (
+                'Revert to Draft'
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Mark Complete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
