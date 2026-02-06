@@ -1,6 +1,28 @@
 import { create } from 'zustand';
 import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound } from '@/types/question-refinement';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { auth } from '@/lib/firebase';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+/**
+ * Authenticated fetch wrapper that adds Firebase Bearer token and uses correct API base URL.
+ * Matches the auth pattern used by GitHubService's Axios interceptor.
+ */
+async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+  const user = auth.currentUser;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init?.headers as Record<string, string>),
+  };
+
+  if (user) {
+    const token = await user.getIdToken();
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return fetch(`${API_URL}${path}`, { ...init, headers });
+}
 
 /**
  * File entry discovered during repository analysis
@@ -16,6 +38,47 @@ export interface FileEntry {
 export type QuestionRound = FrontendQuestionRound;
 
 /**
+ * Task-specific deep analysis returned by LLM
+ */
+export interface TaskAnalysis {
+  filesToModify: Array<{
+    path: string;
+    reason: string;
+    currentPurpose: string;
+    suggestedChanges: string;
+  }>;
+  filesToCreate: Array<{
+    path: string;
+    reason: string;
+    patternToFollow: string;
+  }>;
+  relevantPatterns: Array<{
+    name: string;
+    exampleFile: string;
+    description: string;
+  }>;
+  risks: Array<{
+    area: string;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+    mitigation: string;
+  }>;
+  integrationConcerns: Array<{
+    system: string;
+    concern: string;
+    recommendation: string;
+  }>;
+  implementationHints: {
+    existingPatterns: string[];
+    conventionsToFollow: string[];
+    testingApproach: string;
+    estimatedComplexity: 'low' | 'medium' | 'high';
+  };
+  llmFilesRead: string[];
+  analysisTimestamp: string;
+}
+
+/**
  * Wizard state shape
  */
 export interface WizardState {
@@ -28,9 +91,10 @@ export interface WizardState {
     branch?: string;
   };
   context: {
-    stack: any; // Legacy backend type (ProjectStack)
-    analysis: any; // Legacy backend type (CodebaseAnalysis)
+    stack: any;
+    analysis: any;
     files: FileEntry[];
+    taskAnalysis: TaskAnalysis | null;
   } | null;
   spec: TechSpec | null;
   answers: Record<string, string | string[]>; // Legacy: Clarification question answers
@@ -40,6 +104,7 @@ export interface WizardState {
   currentRound: number;
   roundStatus: 'idle' | 'generating' | 'answering' | 'submitting' | 'finalizing';
   loading: boolean;
+  loadingMessage: string | null;
   error: string | null;
 }
 
@@ -49,6 +114,7 @@ export interface WizardState {
 export interface WizardActions {
   // Input stage
   setTitle: (title: string) => void;
+  setDescription: (description: string) => void;
   setRepository: (owner: string, name: string) => void;
 
   // Context stage
@@ -114,6 +180,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   currentRound: 0,
   roundStatus: 'idle',
   loading: false,
+  loadingMessage: null,
   error: null,
 
   // ============================================================================
@@ -123,6 +190,11 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   setTitle: (title: string) =>
     set((state) => ({
       input: { ...state.input, title },
+    })),
+
+  setDescription: (description: string) =>
+    set((state) => ({
+      input: { ...state.input, description },
     })),
 
   setRepository: (owner: string, name: string) =>
@@ -142,25 +214,28 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   analyzeRepository: async () => {
     const state = get();
     const ticketsState = useTicketsStore.getState();
-    set({ loading: true, error: null });
+    set({ loading: true, loadingMessage: 'Scanning repository...', error: null });
 
     try {
-      // Use selected branch or default branch, fallback to 'main'
       const branch = ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
 
-      // Use proper API URL that respects NEXT_PUBLIC_API_URL environment variable
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      const url = `${apiUrl}/tickets/analyze-repo`;
+      // Show analyzing message after a brief delay (GitHub scan is fast, LLM is slow)
+      const analysisTimer = setTimeout(() => {
+        set({ loadingMessage: 'Analyzing codebase with AI...' });
+      }, 3000);
 
-      const response = await fetch(url, {
+      const response = await authFetch('/tickets/analyze-repo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           owner: state.input.repoOwner,
           repo: state.input.repoName,
           branch,
+          title: state.input.title,
+          description: state.input.description,
         }),
       });
+
+      clearTimeout(analysisTimer);
 
       if (!response.ok) {
         throw new Error(`Analysis failed: ${response.statusText}`);
@@ -171,12 +246,14 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         context,
         currentStage: 2,
         loading: false,
+        loadingMessage: null,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
         error: errorMessage,
         loading: false,
+        loadingMessage: null,
       });
     }
   },
@@ -222,24 +299,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   confirmContextContinue: async () => {
     const state = get();
+    const ticketsState = useTicketsStore.getState();
     if (!state.input.title || !state.input.repoOwner || !state.input.repoName) return;
 
     set({ loading: true, error: null });
 
     try {
       // Create draft AEC
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      const createResponse = await fetch(`${apiUrl}/tickets`, {
+      const createResponse = await authFetch('/tickets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: state.input.title,
           description: state.input.description,
-          repositoryContext: {
-            owner: state.input.repoOwner,
-            name: state.input.repoName,
-            branch: state.input.branch || 'main',
-          },
+          repositoryFullName: `${state.input.repoOwner}/${state.input.repoName}`,
+          branchName: state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main',
         }),
       });
 
@@ -253,9 +326,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         currentStage: 3,
         loading: false,
       });
-
-      // Start first question round (will be initiated by Stage 3 component)
-      await get().startQuestionRound(aec.id, 1);
+      // Stage3Draft component will auto-start the first question round via useEffect
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
@@ -300,12 +371,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   startQuestionRound: async (aecId: string, roundNumber: 1 | 2 | 3) => {
     const state = get();
+    // Prevent duplicate calls while already generating
+    if (state.roundStatus === 'generating') return;
     set({ roundStatus: 'generating', error: null });
 
     try {
-      const response = await fetch(`/api/tickets/${aecId}/start-round`, {
+      const response = await authFetch(`/tickets/${aecId}/start-round`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roundNumber }),
       });
 
@@ -380,9 +452,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         throw new Error(`Round ${roundNumber} not found`);
       }
 
-      const response = await fetch(`/api/tickets/${state.draftAecId}/submit-answers`, {
+      const response = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roundNumber,
           answers: round.answers,
@@ -435,9 +506,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ roundStatus: 'submitting', error: null });
 
     try {
-      const response = await fetch(`/api/tickets/${state.draftAecId}/skip-to-finalize`, {
+      const response = await authFetch(`/tickets/${state.draftAecId}/skip-to-finalize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
@@ -467,9 +537,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ roundStatus: 'finalizing', error: null });
 
     try {
-      const response = await fetch(`/api/tickets/${state.draftAecId}/finalize`, {
+      const response = await authFetch(`/tickets/${state.draftAecId}/finalize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
@@ -506,7 +575,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
     try {
       // Fetch full AEC with all question rounds
-      const response = await fetch(`/api/tickets/${aecId}`);
+      const response = await authFetch(`/tickets/${aecId}`);
       if (!response.ok) {
         throw new Error(`Failed to load draft: ${response.statusText}`);
       }
@@ -554,13 +623,15 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ loading: true, error: null });
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      const response = await fetch(`${apiUrl}/tickets/create-ticket`, {
+      const response = await authFetch('/tickets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          spec: state.spec,
-          answers: state.answers,
+          title: state.input.title,
+          description: state.input.description,
+          repositoryFullName: state.input.repoOwner && state.input.repoName
+            ? `${state.input.repoOwner}/${state.input.repoName}`
+            : undefined,
+          branchName: state.input.branch,
         }),
       });
 
@@ -638,6 +709,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       currentRound: 0,
       roundStatus: 'idle',
       loading: false,
+      loadingMessage: null,
       error: null,
     });
   },

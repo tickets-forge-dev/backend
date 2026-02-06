@@ -29,7 +29,7 @@ import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDete
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectStackDetector';
 import { Inject, BadRequestException } from '@nestjs/common';
-import { TestAuthGuard } from '../../../shared/presentation/guards/TestAuthGuard';
+import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { GitHubFileService } from '@github/domain/github-file.service';
@@ -37,9 +37,11 @@ import { GITHUB_FILE_SERVICE } from '../../application/ports/GitHubFileServicePo
 import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { Octokit } from '@octokit/rest';
+import { DEEP_ANALYSIS_SERVICE } from '../../application/ports/DeepAnalysisServicePort';
+import { DeepAnalysisService } from '@tickets/domain/deep-analysis/deep-analysis.service';
 
 @Controller('tickets')
-@UseGuards(TestAuthGuard, WorkspaceGuard) // Using TestAuthGuard for E2E testing
+@UseGuards(FirebaseAuthGuard, WorkspaceGuard)
 export class TicketsController {
   private readonly logger = new Logger(TicketsController.name);
 
@@ -62,6 +64,8 @@ export class TicketsController {
     @Inject(GITHUB_INTEGRATION_REPOSITORY)
     private readonly githubIntegrationRepository: GitHubIntegrationRepository,
     private readonly githubTokenService: GitHubTokenService,
+    @Inject(DEEP_ANALYSIS_SERVICE)
+    private readonly deepAnalysisService: DeepAnalysisService,
   ) {}
 
   /**
@@ -74,29 +78,20 @@ export class TicketsController {
     @WorkspaceId() workspaceId: string,
     @Body() dto: AnalyzeRepositoryDto,
   ) {
-    this.logger.log(`🔍 Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'})`);
+    this.logger.log(`Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`);
 
     try {
-      // Fetch user's GitHub token from integration
-      this.logger.log(`📦 Fetching GitHub integration for workspace: ${workspaceId}`);
+      // 1. Auth: fetch integration, decrypt token, create Octokit
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
-
       if (!integration) {
         throw new BadRequestException('GitHub not connected. Please connect GitHub in Settings first.');
       }
 
-      // Decrypt token
       const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
-
-      // Create authenticated Octokit client with user's token
       const octokit = new Octokit({ auth: accessToken });
-
       const branch = dto.branch || 'main';
 
-      // Fetch repository file tree using authenticated client
-      this.logger.log(`🌳 Fetching repository tree from branch: ${branch}...`);
-
-      // First, get the tree SHA for the branch
+      // 2. Tree: fetch recursive tree
       const refResponse = await octokit.rest.git.getRef({
         owner: dto.owner,
         repo: dto.repo,
@@ -105,7 +100,6 @@ export class TicketsController {
 
       const treeSha = refResponse.data.object.sha;
 
-      // Then get the tree
       const treeResponse = await octokit.rest.git.getTree({
         owner: dto.owner,
         repo: dto.repo,
@@ -127,9 +121,8 @@ export class TicketsController {
         truncated: treeResponse.data.truncated || false,
       };
 
-      // Read key files for analysis
-      this.logger.log(`📄 Reading key repository files...`);
-      const filesToRead = [
+      // 3. Config read: read key config files
+      const configFilePaths = [
         'package.json',
         'tsconfig.json',
         '.eslintrc.json',
@@ -137,8 +130,8 @@ export class TicketsController {
         'README.md',
       ];
 
-      const files = new Map<string, string>();
-      for (const filePath of filesToRead) {
+      const configFiles = new Map<string, string>();
+      for (const filePath of configFilePaths) {
         try {
           const response = await octokit.rest.repos.getContent({
             owner: dto.owner,
@@ -147,56 +140,34 @@ export class TicketsController {
             ref: branch,
           });
 
-          // response.data.content is base64 encoded
           if ('content' in response.data && typeof response.data.content === 'string') {
             const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-            files.set(filePath, content);
+            configFiles.set(filePath, content);
           }
         } catch {
-          // File not found, skip it
+          // File not found, skip
         }
       }
 
-      // Detect technology stack
-      this.logger.log(`🔍 Detecting technology stack...`);
-      const stack = await this.projectStackDetector.detectStack(files);
+      // 4. Deep LLM analysis (replaces regex ProjectStackDetector + CodebaseAnalyzer)
+      this.logger.log(`Starting deep LLM analysis...`);
+      const result = await this.deepAnalysisService.analyze({
+        title: dto.title,
+        description: dto.description,
+        owner: dto.owner,
+        repo: dto.repo,
+        branch,
+        fileTree,
+        configFiles,
+        octokit,
+      });
 
-      // Analyze codebase patterns
-      this.logger.log(`🔧 Analyzing codebase patterns...`);
-      const analysis = await this.codebaseAnalyzer.analyzeStructure(files, fileTree);
-
-      // Extract important files (up to 20)
-      const filesList = fileTree.tree
-        .filter(
-          (f: any) =>
-            f.type === 'blob' &&
-            (f.path.endsWith('.ts') ||
-              f.path.endsWith('.tsx') ||
-              f.path.endsWith('.js') ||
-              f.path.endsWith('.json') ||
-              f.path.endsWith('.md')),
-        )
-        .slice(0, 20)
-        .map((f: any) => ({
-          path: f.path,
-          name: f.path.split('/').pop(),
-          isDirectory: false,
-        }));
-
-      const context = {
-        stack,
-        analysis,
-        files: filesList,
-      };
-
-      this.logger.log(`✅ Repository analysis complete`);
-      return { context };
+      this.logger.log(`Repository analysis complete`);
+      return { context: result };
     } catch (error: any) {
-      this.logger.error(
-        `❌ Repository analysis failed: ${error.message}`,
-      );
+      this.logger.error(`Repository analysis failed: ${error.message}`);
 
-      if (error.status === 404 || error.message.includes('not found')) {
+      if (error.status === 404 && !error.message.includes('LLM')) {
         throw new BadRequestException(
           `Repository ${dto.owner}/${dto.repo} not found or not accessible`,
         );

@@ -22,4 +22,11 @@ export class AnalyzeRepositoryDto {
   @IsString()
   @IsOptional()
   branch?: string;
+
+  @IsString()
+  title!: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }

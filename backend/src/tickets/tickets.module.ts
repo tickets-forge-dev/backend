@@ -32,6 +32,8 @@ import { GitHubFileServiceImpl } from '../github/infrastructure/github-file.serv
 import { CODEBASE_ANALYZER } from './application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from './application/ports/ProjectStackDetectorPort';
 import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
+import { DeepAnalysisServiceImpl } from './application/services/DeepAnalysisServiceImpl';
+import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 
 @Module({
   imports: [GitHubModule],
@@ -96,9 +98,10 @@ import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
       provide: ESTIMATION_ENGINE,
       useClass: EstimationEngineService,
     },
+    TechSpecGeneratorImpl,
     {
       provide: TECH_SPEC_GENERATOR,
-      useClass: TechSpecGeneratorImpl,
+      useExisting: TechSpecGeneratorImpl,
     },
     {
       provide: CODEBASE_ANALYZER,
@@ -112,6 +115,11 @@ import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
       provide: GITHUB_FILE_SERVICE,
       useFactory: (impl: GitHubFileServiceImpl) => impl,
       inject: [GitHubFileServiceImpl],
+    },
+    DeepAnalysisServiceImpl,
+    {
+      provide: DEEP_ANALYSIS_SERVICE,
+      useExisting: DeepAnalysisServiceImpl,
     },
   ],
   exports: [CreateTicketUseCase, UpdateAECUseCase, EstimateEffortUseCase, AEC_REPOSITORY, DRIFT_DETECTOR, ESTIMATION_ENGINE],

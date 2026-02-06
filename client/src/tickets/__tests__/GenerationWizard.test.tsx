@@ -93,6 +93,7 @@ describe('GenerationWizard Integration', () => {
           { path: 'package.json', name: 'package.json', isDirectory: false },
           { path: 'tsconfig.json', name: 'tsconfig.json', isDirectory: false },
         ],
+        taskAnalysis: null,
       };
 
       render(<GenerationWizard />);
@@ -124,6 +125,7 @@ describe('GenerationWizard Integration', () => {
           recommendations: [],
         },
         files: [],
+        taskAnalysis: null,
       };
 
       render(<GenerationWizard />);
@@ -210,6 +212,7 @@ describe('GenerationWizard Integration', () => {
           recommendations: [],
         },
         files: [],
+        taskAnalysis: null,
       };
 
       rerender(<GenerationWizard />);

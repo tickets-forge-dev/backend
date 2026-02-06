@@ -36,10 +36,16 @@ function ollamaCompatibleFetch(
  * Requires Ollama running locally: ollama serve
  */
 export const createOllamaProvider = (baseURL?: string) => {
+  // Ensure baseURL always ends with /v1 for OpenAI-compatible API
+  let resolvedURL = baseURL || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  if (!resolvedURL.endsWith('/v1')) {
+    resolvedURL = resolvedURL.replace(/\/+$/, '') + '/v1';
+  }
+
   return createOpenAI({
     name: 'ollama',
     apiKey: 'ollama', // Ollama doesn't require API key
-    baseURL: baseURL || process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
+    baseURL: resolvedURL,
     fetch: ollamaCompatibleFetch as any, // Type assertion for custom fetch
   });
 };

@@ -1,0 +1,1 @@
+export const DEEP_ANALYSIS_SERVICE = Symbol('DEEP_ANALYSIS_SERVICE');

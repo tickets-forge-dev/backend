@@ -14,6 +14,11 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { generateText, LanguageModel } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOllamaProvider } from '@shared/infrastructure/mastra/providers/ollama.provider';
 import {
   TechSpecGenerator,
   TechSpecInput,
@@ -248,7 +253,12 @@ IMPORTANT:
  * Generates technical specifications with LLM integration and context injection.
  * Validates output for ambiguity and quality.
  */
+@Injectable()
 export class TechSpecGeneratorImpl implements TechSpecGenerator {
+  private readonly logger = new Logger(TechSpecGeneratorImpl.name);
+  private readonly llmModel: LanguageModel | null;
+  private readonly providerName: string;
+
   private static readonly AMBIGUITY_MARKERS = [
     'or',
     'might',
@@ -261,12 +271,30 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
 
   private static readonly DEFINITIVE_MARKERS = ['will', 'must', 'shall', 'is', 'are'];
 
-  /**
-   * Creates a new TechSpecGeneratorImpl
-   *
-   * @param llmClient - LLM client for API calls (Anthropic Claude, etc.)
-   */
-  constructor(private llmClient: any) {}
+  constructor(private configService: ConfigService) {
+    const provider = this.configService.get<string>('LLM_PROVIDER') || 'ollama';
+
+    if (provider === 'anthropic') {
+      const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
+      const modelId = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-haiku-4-5-20251001';
+      if (apiKey) {
+        const anthropic = createAnthropic({ apiKey });
+        this.llmModel = anthropic(modelId);
+        this.providerName = `Anthropic (${modelId})`;
+      } else {
+        this.llmModel = null;
+        this.providerName = 'mock (ANTHROPIC_API_KEY not set)';
+      }
+    } else {
+      // Ollama (default) — local, free
+      const modelId = this.configService.get<string>('OLLAMA_MODEL') || 'qwen2.5-coder:latest';
+      const ollamaProvider = createOllamaProvider();
+      this.llmModel = ollamaProvider.chat(modelId);
+      this.providerName = `Ollama (${modelId})`;
+    }
+
+    this.logger.log(`LLM ready: ${this.providerName}`);
+  }
 
   /**
    * Generates complete technical specification
@@ -807,15 +835,28 @@ Rewritten text (definitive, unambiguous):`;
   /**
    * Calls LLM with system and user prompts
    *
-   * Includes retry logic and timeout handling
+   * Uses configured provider (Ollama or Anthropic) via Vercel AI SDK.
+   * Falls back to mock responses when no model is configured.
    */
   private async callLLM(systemPrompt: string, userPrompt: string): Promise<any> {
-    try {
-      // Mock LLM call for testing - in real implementation, use llmClient
-      // This returns an object directly (not JSON string)
+    if (!this.llmModel) {
       return this.generateMockResponse(userPrompt);
-    } catch (error) {
-      throw new Error(`LLM call failed: ${String(error)}`);
+    }
+
+    try {
+      const { text } = await generateText({
+        model: this.llmModel,
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxOutputTokens: 4096,
+        temperature: 0.2,
+      });
+
+      this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
+      return this.parseJSON(text);
+    } catch (error: any) {
+      this.logger.error(`LLM call failed (${this.providerName}): ${error.message}`);
+      throw new Error(`LLM call failed: ${error.message}`);
     }
   }
 

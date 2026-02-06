@@ -35,7 +35,7 @@ export function Stage2Context() {
 
   // Collapsible sections
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['stack', 'analysis', 'files'])
+    new Set(['stack', 'analysis', 'files', 'taskAnalysis'])
   );
 
   const toggleSection = (section: string) => {
@@ -56,7 +56,7 @@ export function Stage2Context() {
     );
   }
 
-  const { stack, analysis, files } = context;
+  const { stack, analysis, files, taskAnalysis } = context;
 
   return (
     <div className="space-y-8">
@@ -80,7 +80,7 @@ export function Stage2Context() {
           <div className="text-left">
             <h3 className="font-medium text-gray-900 dark:text-gray-50">Detected Technology Stack</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {stack.languages?.length || 0} languages • {stack.frameworks?.length || 0} frameworks
+              {stack.language?.name || 'Unknown'}{stack.framework ? ` • ${stack.framework.name}` : ''}
             </p>
           </div>
           <div className="text-2xl text-gray-600 dark:text-gray-400">
@@ -90,37 +90,28 @@ export function Stage2Context() {
         {expandedSections.has('stack') && (
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Languages */}
-              {stack.languages && stack.languages.length > 0 && (
+              {/* Language */}
+              {stack.language && (
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Languages
+                    Language
                   </p>
-                  <div className="space-y-1">
-                    {stack.languages.map((lang: any) => (
-                      <p key={lang.name} className="text-sm text-gray-600 dark:text-gray-400">
-                        {lang.name}
-                        {lang.version && ` (${lang.version})`}
-                      </p>
-                    ))}
-                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {stack.language.name}
+                  </p>
                 </div>
               )}
 
-              {/* Frameworks */}
-              {stack.frameworks && stack.frameworks.length > 0 && (
+              {/* Framework */}
+              {stack.framework && (
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Frameworks
+                    Framework
                   </p>
-                  <div className="space-y-1">
-                    {stack.frameworks.map((fw: any) => (
-                      <p key={fw.name} className="text-sm text-gray-600 dark:text-gray-400">
-                        {fw.name}
-                        {fw.version && ` (${fw.version})`}
-                      </p>
-                    ))}
-                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {stack.framework.name}
+                    {stack.framework.version && ` (${stack.framework.version})`}
+                  </p>
                 </div>
               )}
             </div>
@@ -142,7 +133,12 @@ export function Stage2Context() {
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Package Manager
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{stack.packageManager}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {typeof stack.packageManager === 'string'
+                    ? stack.packageManager
+                    : stack.packageManager.type}
+                  {stack.packageManager.version && ` (${stack.packageManager.version})`}
+                </p>
               </div>
             )}
 
@@ -279,6 +275,218 @@ export function Stage2Context() {
           </div>
         )}
       </div>
+
+      {/* Task Analysis Section */}
+      {taskAnalysis ? (
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+          <button
+            onClick={() => toggleSection('taskAnalysis')}
+            className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-between"
+            aria-expanded={expandedSections.has('taskAnalysis')}
+          >
+            <div className="text-left">
+              <h3 className="font-medium text-gray-900 dark:text-gray-50">Task Analysis</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {taskAnalysis.filesToModify.length} files to modify
+                {taskAnalysis.filesToCreate.length > 0 && ` • ${taskAnalysis.filesToCreate.length} to create`}
+                {taskAnalysis.risks.length > 0 && ` • ${taskAnalysis.risks.length} risks`}
+              </p>
+            </div>
+            <div className="text-2xl text-gray-600 dark:text-gray-400">
+              {expandedSections.has('taskAnalysis') ? '−' : '+'}
+            </div>
+          </button>
+          {expandedSections.has('taskAnalysis') && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 space-y-6">
+              {/* Files to Modify */}
+              {taskAnalysis.filesToModify.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Files to Modify
+                  </h4>
+                  <div className="space-y-2">
+                    {taskAnalysis.filesToModify.map((file) => (
+                      <div
+                        key={file.path}
+                        className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/50"
+                      >
+                        <p className="text-sm font-mono text-gray-800 dark:text-gray-200">
+                          {file.path}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {file.reason}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                          Suggested: {file.suggestedChanges}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Files to Create */}
+              {taskAnalysis.filesToCreate.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Files to Create
+                  </h4>
+                  <div className="space-y-2">
+                    {taskAnalysis.filesToCreate.map((file) => (
+                      <div
+                        key={file.path}
+                        className="p-3 rounded-md bg-green-50 dark:bg-green-900/20"
+                      >
+                        <p className="text-sm font-mono text-gray-800 dark:text-gray-200">
+                          {file.path}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {file.reason}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                          Pattern: {file.patternToFollow}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Risks */}
+              {taskAnalysis.risks.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Risks
+                  </h4>
+                  <div className="space-y-2">
+                    {taskAnalysis.risks.map((risk, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/50"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                              risk.severity === 'high'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                : risk.severity === 'medium'
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                  : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                            }`}
+                          >
+                            {risk.severity}
+                          </span>
+                          <span className="text-sm text-gray-800 dark:text-gray-200">
+                            {risk.area}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {risk.description}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          Mitigation: {risk.mitigation}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Integration Concerns */}
+              {taskAnalysis.integrationConcerns.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Integration Concerns
+                  </h4>
+                  <div className="space-y-2">
+                    {taskAnalysis.integrationConcerns.map((concern, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/50"
+                      >
+                        <p className="text-sm text-gray-800 dark:text-gray-200">
+                          {concern.system}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {concern.concern}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                          Recommendation: {concern.recommendation}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Implementation Hints */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Implementation Hints
+                </h4>
+                <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        taskAnalysis.implementationHints.estimatedComplexity === 'high'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                          : taskAnalysis.implementationHints.estimatedComplexity === 'medium'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                      }`}
+                    >
+                      {taskAnalysis.implementationHints.estimatedComplexity} complexity
+                    </span>
+                  </div>
+                  {taskAnalysis.implementationHints.existingPatterns.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        Patterns to follow:
+                      </p>
+                      <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside">
+                        {taskAnalysis.implementationHints.existingPatterns.map((p, i) => (
+                          <li key={i}>{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {taskAnalysis.implementationHints.conventionsToFollow.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        Conventions:
+                      </p>
+                      <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside">
+                        {taskAnalysis.implementationHints.conventionsToFollow.map((c, i) => (
+                          <li key={i}>{c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Testing approach:
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {taskAnalysis.implementationHints.testingApproach}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* LLM files read badge */}
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                Analyzed {taskAnalysis.llmFilesRead.length} source files via LLM
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg bg-gray-50 dark:bg-gray-800/30 p-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Task-specific analysis not available. The LLM analysis may have timed out or degraded gracefully.
+          </p>
+        </div>
+      )}
 
       {/* Navigation */}
       <div className="flex gap-3 pt-4">
