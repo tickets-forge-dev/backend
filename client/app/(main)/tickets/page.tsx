@@ -136,9 +136,6 @@ export default function TicketsListPage() {
     if (diffDays < 7) return `${diffDays}d ago`;
 
     return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
