@@ -5,60 +5,13 @@ on:
     branches: [main]
 
 jobs:
-  deploy-backend:
+  deploy-firebase-rules:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: actions/checkout@v4
+      - name: Deploy Firestore & Storage rules
+        uses: w9jds/firebase-action@master
         with:
-          version: 8
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Build backend
-        run: cd backend && pnpm run build
-
-      # Google Cloud Run deployment
-      # Uncomment and configure when ready:
-      # - name: Deploy to Cloud Run
-      #   uses: google-github-actions/deploy-cloudrun@v2
-      #   with:
-      #     service: executable-tickets-api
-      #     region: us-central1
-      #     source: ./backend
-
-      - name: Deployment placeholder
-        run: echo "Backend deployment configured - activate when Cloud Run project is ready"
-
-  deploy-frontend:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Vercel
-        run: echo "Frontend deployment to Vercel - configure with Vercel CLI or GitHub integration"
-
-      # Vercel deployment
-      # Configure via: https://vercel.com/docs/concepts/git/vercel-for-github
-      # Or use Vercel CLI:
-      # - name: Deploy to Vercel
-      #   uses: amondnet/vercel-action@v25
-      #   with:
-      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          args: deploy --only firestore:rules,storage
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

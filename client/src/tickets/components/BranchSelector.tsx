@@ -9,7 +9,8 @@ import {
   SelectValue,
 } from '@/core/components/ui/select';
 import { Badge } from '@/core/components/ui/badge';
-import { Loader2, Star, GitBranch, AlertCircle } from 'lucide-react';
+import { Button } from '@/core/components/ui/button';
+import { Loader2, Star, GitBranch, AlertCircle, RefreshCw } from 'lucide-react';
 
 /**
  * Branch Selector Component (AC#2, Task 6)
@@ -30,6 +31,7 @@ export function BranchSelector() {
     isBranchesLoading,
     branchesError,
     setBranch,
+    refreshBranches,
   } = useTicketsStore();
 
   // Don't render if no repository selected
@@ -90,9 +92,21 @@ export function BranchSelector() {
 
   return (
     <div className="space-y-2">
-      <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-        Branch
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          Branch
+        </label>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={refreshBranches}
+          disabled={isBranchesLoading}
+          className="h-6 px-2 text-[var(--text-tertiary)] hover:text-[var(--text)]"
+        >
+          <RefreshCw className={`h-3 w-3 mr-1 ${isBranchesLoading ? 'animate-spin' : ''}`} />
+          <span className="text-xs">Refresh</span>
+        </Button>
+      </div>
       <Select value={selectedBranch || ''} onValueChange={setBranch}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select a branch">

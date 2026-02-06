@@ -5,6 +5,54 @@ import { auth } from '@/lib/firebase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
+const WIZARD_STORAGE_KEY = 'wizard-snapshot';
+const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface WizardSnapshot {
+  currentStage: number;
+  input: WizardState['input'];
+  type: string;
+  priority: string;
+  draftAecId: string | null;
+  maxRounds: number;
+  context: WizardState['context'];
+  timestamp: number;
+}
+
+function saveSnapshot(state: WizardState): void {
+  try {
+    const snapshot: WizardSnapshot = {
+      currentStage: state.currentStage,
+      input: state.input,
+      type: state.type,
+      priority: state.priority,
+      draftAecId: state.draftAecId,
+      maxRounds: state.maxRounds,
+      context: state.context,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // localStorage may be full or unavailable
+  }
+}
+
+function loadSnapshot(): WizardSnapshot | null {
+  try {
+    const raw = localStorage.getItem(WIZARD_STORAGE_KEY);
+    if (!raw) return null;
+    const snapshot: WizardSnapshot = JSON.parse(raw);
+    // Discard snapshots older than 24h
+    if (Date.now() - snapshot.timestamp > SNAPSHOT_TTL_MS) {
+      localStorage.removeItem(WIZARD_STORAGE_KEY);
+      return null;
+    }
+    return snapshot;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Authenticated fetch wrapper that adds Firebase Bearer token and uses correct API base URL.
  * Matches the auth pattern used by GitHubService's Axios interceptor.
@@ -114,6 +162,15 @@ export interface WizardState {
 }
 
 /**
+ * Recovery info returned by tryRecover
+ */
+export interface RecoveryInfo {
+  canRecover: boolean;
+  stage: number;
+  title: string;
+}
+
+/**
  * Wizard actions
  */
 export interface WizardActions {
@@ -134,6 +191,10 @@ export interface WizardActions {
   answerQuestion: (questionId: string, answer: string | string[]) => void;
   editSpec: (section: string, updates: any) => void;
   confirmSpecContinue: () => void;
+
+  // Recovery
+  tryRecover: () => RecoveryInfo;
+  applyRecovery: () => Promise<void>;
 
   // Iterative refinement workflow (NEW)
   startQuestionRound: (aecId: string, roundNumber: number) => Promise<void>;
@@ -218,6 +279,93 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   setPriority: (priority: string) => set({ priority }),
 
   // ============================================================================
+  // RECOVERY
+  // ============================================================================
+
+  /**
+   * Check if wizard state can be recovered from localStorage snapshot.
+   * Does NOT mutate store state — only returns info so the UI can show a banner.
+   * Actual state restoration happens when the user clicks Resume (via applyRecovery).
+   */
+  tryRecover: () => {
+    const noRecovery: RecoveryInfo = { canRecover: false, stage: 0, title: '' };
+
+    // Don't recover if wizard already has progress
+    const state = get();
+    if (state.currentStage > 1 || state.input.title) return noRecovery;
+
+    const snapshot = loadSnapshot();
+    if (!snapshot) return noRecovery;
+
+    // Stage 3+ with draftAecId
+    if (snapshot.draftAecId) {
+      return {
+        canRecover: true,
+        stage: snapshot.currentStage,
+        title: snapshot.input.title,
+      };
+    }
+
+    // Stage 2 with context
+    if (snapshot.currentStage === 2 && snapshot.context) {
+      return {
+        canRecover: true,
+        stage: 2,
+        title: snapshot.input.title,
+      };
+    }
+
+    // Stage 1 with form data
+    if (snapshot.input.title) {
+      return {
+        canRecover: true,
+        stage: 1,
+        title: snapshot.input.title,
+      };
+    }
+
+    return noRecovery;
+  },
+
+  /**
+   * Apply recovery from localStorage snapshot.
+   * Called when user clicks "Resume" on the recovery banner.
+   * For Stage 3+ (draftAecId), delegates to resumeDraft for backend-first recovery.
+   */
+  applyRecovery: async () => {
+    const snapshot = loadSnapshot();
+    if (!snapshot) return;
+
+    // Stage 3+ with draftAecId — delegate to backend-first recovery
+    if (snapshot.draftAecId) {
+      await get().resumeDraft(snapshot.draftAecId);
+      return;
+    }
+
+    // Stage 2: restore context + form
+    if (snapshot.currentStage === 2 && snapshot.context) {
+      set({
+        currentStage: 2,
+        input: snapshot.input,
+        type: snapshot.type,
+        priority: snapshot.priority,
+        maxRounds: snapshot.maxRounds,
+        context: snapshot.context,
+      });
+      return;
+    }
+
+    // Stage 1: restore form inputs only
+    if (snapshot.input.title) {
+      set({
+        input: snapshot.input,
+        type: snapshot.type,
+        priority: snapshot.priority,
+      });
+    }
+  },
+
+  // ============================================================================
   // STAGE 2: CONTEXT ACTIONS
   // ============================================================================
 
@@ -255,6 +403,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         // Unexpected non-stream success — handle gracefully
         const { context } = await response.json();
         set({ context, currentStage: 2, loading: false, loadingMessage: null, progressPercent: 100 });
+        saveSnapshot(get());
         return;
       }
 
@@ -304,6 +453,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
               loadingMessage: null,
               progressPercent: 100,
             });
+            saveSnapshot(get());
             return;
           }
 
@@ -414,6 +564,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           loading: true,
           loadingMessage: 'Trivial task — generating spec directly...',
         });
+        saveSnapshot(get());
 
         try {
           const finalizeResponse = await authFetch(`/tickets/${aec.id}/finalize`, {
@@ -451,6 +602,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         currentStage: 3,
         loading: false,
       });
+      saveSnapshot(get());
       // Stage3Draft component will auto-start the first question round via useEffect
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -691,6 +843,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       localStorage.removeItem('wizard-draft-aec-id');
       localStorage.removeItem('wizard-question-rounds');
       localStorage.removeItem('wizard-current-round');
+      localStorage.removeItem(WIZARD_STORAGE_KEY);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
@@ -716,15 +869,24 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       const aec = await response.json();
 
+      // Parse repo owner/name from repositoryFullName (e.g. "owner/repo")
+      const repoParts = (aec.repositoryFullName || '').split('/');
+      const repoOwner = repoParts[0] || '';
+      const repoName = repoParts[1] || '';
+
       set({
         draftAecId: aecId,
         questionRounds: aec.questionRounds || [],
         currentRound: aec.currentRound || 0,
+        maxRounds: aec.maxRounds ?? get().maxRounds,
+        type: aec.type || get().type,
+        priority: aec.priority || get().priority,
         currentStage: 3, // Go to question stage
         input: {
           title: aec.title,
-          repoOwner: '', // Not needed for resume
-          repoName: '',
+          repoOwner,
+          repoName,
+          description: aec.description || '',
         },
         loading: false,
       });
@@ -827,6 +989,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     localStorage.removeItem('wizard-draft-aec-id');
     localStorage.removeItem('wizard-question-rounds');
     localStorage.removeItem('wizard-current-round');
+    localStorage.removeItem(WIZARD_STORAGE_KEY);
 
     set({
       currentStage: 1,

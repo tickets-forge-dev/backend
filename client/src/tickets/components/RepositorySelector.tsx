@@ -25,6 +25,7 @@ export function RepositorySelector() {
   const {
     selectedRepository,
     setRepository,
+    refreshBranches,
     clearBranchSelection,
   } = useTicketsStore();
 
@@ -41,12 +42,16 @@ export function RepositorySelector() {
     }
   }, [githubConnected, loadGitHubStatus, gitHubService]);
 
-  // Auto-select first repository if none selected
+  // Auto-select first repository if none selected, or refresh branches if already selected
   useEffect(() => {
-    if (githubConnected && selectedRepositories.length > 0 && !selectedRepository) {
-      handleSelect(selectedRepositories[0].fullName);
+    if (githubConnected && selectedRepositories.length > 0) {
+      if (!selectedRepository) {
+        handleSelect(selectedRepositories[0].fullName);
+      } else {
+        refreshBranches();
+      }
     }
-  }, [githubConnected, selectedRepositories, selectedRepository]);
+  }, [githubConnected, selectedRepositories]);
 
   const handleSelect = async (repoFullName: string) => {
     await setRepository(repoFullName);
@@ -135,12 +140,7 @@ export function RepositorySelector() {
         <SelectContent>
           {selectedRepositories.map((repo) => (
             <SelectItem key={repo.id} value={repo.fullName}>
-              <div className="flex items-center gap-2">
-                <span>{repo.fullName}</span>
-                <span className="text-xs text-muted-foreground">
-                  {repo.private ? '🔒 Private' : '👁️ Public'}
-                </span>
-              </div>
+              {repo.fullName}
             </SelectItem>
           ))}
         </SelectContent>

@@ -38,6 +38,7 @@ interface TicketsState {
   // Branch selection actions (AC#5, Task 9)
   setRepository: (repositoryFullName: string | null) => Promise<void>;
   setBranch: (branchName: string | null) => void;
+  refreshBranches: () => Promise<void>;
   clearBranchSelection: () => void;
 }
 
@@ -226,6 +227,32 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
 
   setBranch: (branchName: string | null) => {
     set({ selectedBranch: branchName });
+  },
+
+  refreshBranches: async () => {
+    const { selectedRepository, selectedBranch } = get();
+    if (!selectedRepository) return;
+
+    const parts = selectedRepository.split('/');
+    if (parts.length !== 2) return;
+
+    set({ isBranchesLoading: true, branchesError: null });
+
+    try {
+      const { gitHubService } = useServices();
+      const [owner, repo] = parts;
+      const branchesResponse = await gitHubService.getBranches(owner, repo);
+
+      set({
+        availableBranches: branchesResponse.branches,
+        defaultBranch: branchesResponse.defaultBranch,
+        selectedBranch: selectedBranch || branchesResponse.defaultBranch,
+        isBranchesLoading: false,
+      });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load branches';
+      set({ isBranchesLoading: false, branchesError: errorMessage });
+    }
   },
 
   clearBranchSelection: () => {

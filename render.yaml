@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: forge-api
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    region: oregon
+    plan: free
+    branch: main
+    healthCheckPath: /api/docs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: FRONTEND_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_OAUTH_REDIRECT_URI
+        sync: false
+      - key: GITHUB_ENCRYPTION_KEY
+        sync: false
+      - key: SESSION_SECRET
+        sync: false

@@ -33,7 +33,8 @@ export class AuthService {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/init', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const response = await fetch(`${apiUrl}/auth/init`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

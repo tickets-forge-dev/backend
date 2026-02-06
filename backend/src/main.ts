@@ -22,10 +22,10 @@ async function bootstrap() {
       saveUninitialized: true, // Changed to true to ensure session is created
       cookie: {
         httpOnly: true,
-        secure: false, // Must be false for localhost
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 1000 * 60 * 15, // 15 minutes
-        sameSite: 'lax',
-        domain: undefined, // Don't set domain for localhost
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
+        domain: undefined,
       },
       name: 'forge.sid', // Custom session name
     }),

@@ -11,6 +11,7 @@ import { Textarea } from '@/core/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
 import { Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import { RepositorySelector } from '../RepositorySelector';
+import { BranchSelector } from '../BranchSelector';
 
 /**
  * Stage 1: Input Component
@@ -266,6 +267,7 @@ export function Stage1Input() {
 
         {/* Repository Selection - Uses Real GitHub Integration */}
         <RepositorySelector />
+        <BranchSelector />
 
         {/* Submit Button */}
         <div className="pt-4 space-y-3 flex flex-col items-end">

@@ -65,7 +65,10 @@ export function Stage3Draft() {
   const handleSubmitAnswers = async (roundNumber: number, answers: RoundAnswers) => {
     try {
       setLocalError(null);
-      const nextAction = await submitRoundAnswers(roundNumber, answers);
+      const filtered = Object.fromEntries(
+        Object.entries(answers).filter(([, v]) => v != null)
+      ) as Record<string, string | string[]>;
+      const nextAction = await submitRoundAnswers(roundNumber, filtered);
 
       if (nextAction === 'finalize') {
         // Auto-finalize the spec
