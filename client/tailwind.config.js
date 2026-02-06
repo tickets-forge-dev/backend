@@ -10,6 +10,15 @@ module.exports = {
   theme: {
   	extend: {
   		colors: {
+  			border: 'var(--border)',
+  			input: 'var(--border)',
+  			ring: 'var(--blue)',
+  			background: 'var(--bg)',
+  			foreground: 'var(--text)',
+  			primary: {
+  				DEFAULT: 'var(--blue)',
+  				foreground: '#ffffff'
+  			},
   			popover: {
   				DEFAULT: 'var(--popover)',
   				foreground: 'var(--popover-foreground)'
