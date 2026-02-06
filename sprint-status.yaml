@@ -68,18 +68,21 @@ development_status:
   epic-5:
     status: backlog
     completion: 0%
-    stories: 5/5
-    summary: "Export & Integrations (Linear, Jira, GitHub Issues)"
+    stories: 8/8
+    summary: "Export & Integrations (Linear, Jira, GitHub Issues + Artifact Bundle)"
     priority: "P1"
     planned_start: "Phase 2"
-    dependencies: "None (MVP complete)"
+    dependencies: "Enhanced by: Epic 18 (docs artifact), Epic 16 (image artifacts)"
+    source: "EPIC-FUTURE-FEATURES.md Epic 5 + EPIC-ONBOARDING-GAPS.md Stories 4-5"
     deliverables:
-      - 5-1-linear-integration: backlog              # OAuth connect + export tickets as Linear issues
-      - 5-2-jira-integration: backlog                # OAuth 2.0 connect + export tickets as Jira issues
-      - 5-3-github-issues-export: backlog            # Export tickets as GitHub Issues (repo already connected)
-      - 5-4-abstract-export-port: backlog            # Shared export interface (ExternalIssue port pattern)
-      - 5-5-export-sync-updates: backlog             # Re-export updates existing issue (no duplicates)
-    notes: "ExternalIssue domain type already exists in codebase."
+      - 5-1-linear-oauth: backlog                    # Linear OAuth module, token service, settings UI
+      - 5-2-jira-oauth: backlog                      # Jira OAuth 2.0, Atlassian cloud ID, settings UI
+      - 5-3-linear-api-client: backlog               # GraphQL API wrapper + TechSpec → Linear field mapper
+      - 5-4-jira-api-client: backlog                 # REST API v3 wrapper + standard field mapper
+      - 5-5-aec-xml-serializer: backlog              # Serialize AEC domain → .xml contract for export
+      - 5-6-artifact-bundle-assembler: backlog        # Collect AEC XML + docs + images for platform upload
+      - 5-7-platform-attachment-upload: backlog       # Jira multipart + Linear attachmentCreate mutation
+      - 5-8-export-use-case-ui: backlog              # ExportTicketUseCase, POST /tickets/:id/export, dropdown UI
 
   epic-10:
     status: backlog
@@ -167,19 +170,111 @@ development_status:
       - 15-3-conversational-qa-ui: backlog           # Chat interface for PM questions
       - 15-4-source-citation-system: backlog         # Answers cite file:line and doc sources
 
+  # ⚪ BACKLOG — PRODUCT QUALITY TRACK (from EPIC-FUTURE-FEATURES.md + EPIC-ONBOARDING-GAPS.md)
+  epic-16:
+    status: backlog
+    completion: 0%
+    stories: 5/5
+    summary: "Enhanced Ticket Context (Images + Text)"
+    priority: "P2 (Richer wizard input → better specs)"
+    planned_start: "Phase 5"
+    dependencies: "None (standalone)"
+    source: "EPIC-FUTURE-FEATURES.md Epic 1"
+    deliverables:
+      - 16-1-additional-context-ui: backlog           # Textarea + drag-and-drop image zone in Stage1Input
+      - 16-2-storage-service: backlog                # Firebase Storage SDK wrapper — uploadImage() → URL
+      - 16-3-upload-wizard-flow: backlog             # Wire uploads into wizard, store URLs via PATCH
+      - 16-4-aec-context-images: backlog             # Extend AEC domain with contextImageUrls field + DTO
+      - 16-5-multimodal-llm-context: backlog         # Pass images to DeepAnalysis + TechSpecGenerator
+
+  epic-17:
+    status: backlog
+    completion: 0%
+    stories: 5/5
+    summary: "Code Guardrails Detection"
+    priority: "P2 (Specs respect project rules — CLAUDE.md, ESLint, tsconfig)"
+    planned_start: "Phase 5"
+    dependencies: "None (standalone)"
+    source: "EPIC-FUTURE-FEATURES.md Epic 2"
+    deliverables:
+      - 17-1-guardrails-value-object: backlog        # Guardrails domain type with rules, source, severity
+      - 17-2-guardrails-detection: backlog           # Detect during deep analysis (config files + LLM extraction)
+      - 17-3-guardrails-injection: backlog           # Inject into TechSpec generation prompts
+      - 17-4-guardrails-stage2-ui: backlog           # Collapsible section in Stage2Context with edit modal
+      - 17-5-guardrails-ticket-detail: backlog       # Show guardrails on ticket detail page
+
+  epic-18:
+    status: backlog
+    completion: 0%
+    stories: 5/5
+    summary: "Tech Spec Document + Artifacts Section"
+    priority: "P2 (Formatted .md export + artifact storage)"
+    planned_start: "Phase 5"
+    dependencies: "Enhanced by: Epic 16 (images), Epic 19 (markdown preview)"
+    source: "EPIC-FUTURE-FEATURES.md Epic 3"
+    deliverables:
+      - 18-1-techspec-markdown-generator: backlog    # Pure function: TechSpec JSON → formatted Markdown
+      - 18-2-artifact-storage-service: backlog       # Firebase Storage — save/list/get artifacts per ticket
+      - 18-3-finalize-spec-artifacts: backlog        # Wire into FinalizeSpecUseCase — generate .md, upload, save refs
+      - 18-4-artifacts-section-ui: backlog           # Ticket detail "Artifacts" section — docs + images + download
+      - 18-5-artifacts-api: backlog                  # Extend GET /tickets/:id with artifact references
+
+  epic-19:
+    status: backlog
+    completion: 0%
+    stories: 5/5
+    summary: "Markdown Preview"
+    priority: "P3 (Reusable foundation — smallest scope)"
+    planned_start: "Phase 5"
+    dependencies: "None (standalone, consumed by Epic 18)"
+    source: "EPIC-FUTURE-FEATURES.md Epic 4"
+    deliverables:
+      - 19-1-markdown-deps: backlog                  # Install react-markdown + remark-gfm + rehype-highlight
+      - 19-2-markdown-renderer: backlog              # Reusable MarkdownRenderer atom component
+      - 19-3-preview-route: backlog                  # /preview route — accepts ?url= param, renders .md
+      - 19-4-markdown-preview-drawer: backlog        # MarkdownPreviewDrawer using shadcn Sheet
+      - 19-5-syntax-highlight-theme: backlog         # Match Forge design system (github-dark/light)
+
+  epic-20:
+    status: backlog
+    completion: 0%
+    stories: 3/3
+    summary: "Spec Quality (API Detection, BE/FE Split, Test Plan)"
+    priority: "P2 (Immediate ticket quality improvement)"
+    planned_start: "Phase 5"
+    dependencies: "None (standalone)"
+    source: "EPIC-ONBOARDING-GAPS.md Stories 1-3"
+    deliverables:
+      - 20-1-api-endpoint-detection: backlog         # Detect API routes/controllers/DTOs, add "API Changes" section
+      - 20-2-backend-client-split: backlog           # Group changes into "Backend Changes" / "Client Changes" sections
+      - 20-3-test-plan-generation: backlog           # Generate "Test Plan" section (unit, integration, edge cases)
+
+  epic-21:
+    status: backlog
+    completion: 0%
+    stories: 2/2
+    summary: "Notifications (In-App + Email)"
+    priority: "P3 (Polish — spec_ready, drift_detected, export_completed)"
+    planned_start: "Phase 6"
+    dependencies: "Blocked by: Epic 5 (export events)"
+    source: "EPIC-ONBOARDING-GAPS.md Stories 7-8"
+    deliverables:
+      - 21-1-in-app-notifications: backlog           # Bell icon + dropdown, event types, Firestore persistence
+      - 21-2-email-notifications: backlog            # SendGrid/Resend, settings toggle, unsubscribe, rate limit
+
 # METRICS & SUMMARY
 # =================
 metrics:
-  total_epics: 10
+  total_epics: 16
   completed_epics: 4
   in_progress_epics: 0
-  backlog_epics: 6
+  backlog_epics: 12
 
-  total_stories: 46
+  total_stories: 71
   completed_stories: 15
-  backlog_stories: 31
+  backlog_stories: 56
 
-  overall_completion: "33%"
+  overall_completion: "21%"
   critical_path: "Epic 10 + 11 → Epic 5 + 12 → Epic 13 → Epic 14 + 15"
 
 # EXECUTION ROADMAP
@@ -245,12 +340,39 @@ phases:
     success_criteria: "Full-stack ticket generation + PM self-service Q&A"
     outcome: "Enterprise-grade product differentiation"
 
+  # 🔧 PRODUCT QUALITY TRACK (from epic files)
+  phase-5:
+    name: "Product Quality (Epics 16-20)"
+    duration: "4-6 weeks"
+    parallel: true  # Most are standalone
+    stories: ["16.1-16.5", "17.1-17.5", "18.1-18.5", "19.1-19.5", "20.1-20.3"]
+    deliverables:
+      - "Image/text context in wizard (richer specs)"
+      - "Code guardrails auto-detection (CLAUDE.md, ESLint, tsconfig)"
+      - "Formatted .md export + artifact storage per ticket"
+      - "Markdown preview component + route"
+      - "API detection + BE/FE split + test plans in specs"
+    success_criteria: "Tickets include images, guardrails, artifacts, test plans, API changes"
+    outcome: "Enterprise-grade spec quality"
+
+  phase-6:
+    name: "Polish (Epic 21)"
+    duration: "1-2 weeks"
+    stories: ["21.1-21.2"]
+    deliverables:
+      - "In-app notification bell with event feed"
+      - "Email notifications (SendGrid/Resend)"
+    success_criteria: "Users notified on spec_ready, drift_detected, export_completed"
+    outcome: "Complete product loop"
+
 timeline:
-  total_duration: "13-18 weeks"
+  total_duration: "20-30 weeks (full roadmap)"
   revenue_readiness: "After Phase 1 (3-4 weeks)"
   pm_persona_unlocked: "After Phase 2 (6-8 weeks)"
   team_tier_sellable: "After Phase 3 (9-12 weeks)"
   enterprise_features: "After Phase 4 (13-18 weeks)"
+  product_quality: "After Phase 5 (17-24 weeks)"
+  full_polish: "After Phase 6 (20-30 weeks)"
 
 # RISKS
 # =====
@@ -281,13 +403,19 @@ standup_notes: |
   ✅ Deployed to Vercel (frontend) + Render (backend)
   ✅ OAuth HMAC fix for cross-domain (b0b2a08)
   ✅ Monetization epics 10-15 planned from MONETIZATION-PLAN.md
-  ❌ Epics 3, 4, 6, 7, 8 removed (no longer relevant)
+  ✅ Product quality epics 16-21 merged from EPIC-FUTURE-FEATURES + ONBOARDING-GAPS
+  ✅ Epic 5 upgraded to 8 stories (artifact bundle + XML serializer)
+  ❌ Old epics 3, 4, 6, 7, 8 removed (superseded)
 
-  🎯 Next:
+  📊 Totals: 16 epics | 71 stories | 4 done | 12 backlog
+
+  🎯 Execution:
   Phase 1: Revenue unlock (Epics 10 + 11) — 3-4 weeks     ← START CHARGING
   Phase 2: Integrations + PM mode (Epics 5 + 12) — 3-4 weeks
   Phase 3: Team tier (Epic 13) — 3-4 weeks                 ← SEAT EXPANSION
   Phase 4: Advanced (Epics 14 + 15) — 4-6 weeks
+  Phase 5: Product quality (Epics 16-20) — 4-6 weeks       ← ENTERPRISE SPECS
+  Phase 6: Polish (Epic 21) — 1-2 weeks
 
   💰 Revenue milestone: ~3-4 weeks
-  🚀 Full roadmap: ~13-18 weeks
+  🚀 Full roadmap: ~20-30 weeks
