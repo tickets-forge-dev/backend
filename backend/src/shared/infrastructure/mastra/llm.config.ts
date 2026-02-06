@@ -18,7 +18,9 @@ export class LLMConfigService {
   private mainModel: string;
 
   constructor(private configService: ConfigService) {
-    this.provider = this.configService.get<LLMProvider>('LLM_PROVIDER') || 'ollama';
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    const defaultProvider: LLMProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
+    this.provider = this.configService.get<LLMProvider>('LLM_PROVIDER') || defaultProvider;
 
     // Model configuration based on provider
     if (this.provider === 'ollama') {

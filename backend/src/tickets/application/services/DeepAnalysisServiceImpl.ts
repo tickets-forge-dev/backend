@@ -79,7 +79,9 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   private readonly providerName: string;
 
   constructor(private configService: ConfigService) {
-    const provider = this.configService.get<string>('LLM_PROVIDER') || 'ollama';
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    const defaultProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
+    const provider = this.configService.get<string>('LLM_PROVIDER') || defaultProvider;
 
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');

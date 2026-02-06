@@ -272,7 +272,9 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   private static readonly DEFINITIVE_MARKERS = ['will', 'must', 'shall', 'is', 'are'];
 
   constructor(private configService: ConfigService) {
-    const provider = this.configService.get<string>('LLM_PROVIDER') || 'ollama';
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    const defaultProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
+    const provider = this.configService.get<string>('LLM_PROVIDER') || defaultProvider;
 
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
@@ -955,12 +957,37 @@ Rewritten text (definitive, unambiguous):`;
 
       // If string, parse it
       if (typeof response === 'string') {
+        // Strip markdown fences
+        let cleaned = response.trim();
+        if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+        else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+        if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+        cleaned = cleaned.trim();
+
         // Extract JSON from response if wrapped in text
-        const jsonMatch = response.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]);
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : cleaned;
+
+        // Try parsing directly first
+        try {
+          return JSON.parse(jsonStr);
+        } catch {
+          // Sanitize: replace backtick-wrapped values with double-quoted strings
+          // LLMs sometimes use `...` instead of "..." for string values
+          const sanitized = jsonStr.replace(
+            /:\s*`([^`]*)`/g,
+            (_, content) => `: ${JSON.stringify(content)}`,
+          );
+          try {
+            return JSON.parse(sanitized);
+          } catch {
+            // Last resort: try to fix common LLM JSON issues
+            // Remove trailing commas before } or ]
+            const fixedTrailing = sanitized
+              .replace(/,\s*([}\]])/g, '$1');
+            return JSON.parse(fixedTrailing);
+          }
         }
-        return JSON.parse(response);
       }
 
       throw new Error('Response is not a string or object');
