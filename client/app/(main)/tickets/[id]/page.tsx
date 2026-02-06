@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
@@ -12,7 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, FileCode, FilePlus, FileX, Upload } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, FileCode, FilePlus, FileX, Upload, Save, FileText, Lightbulb, Bug, ClipboardList, Expand, Eye, Pencil } from 'lucide-react';
+import { MarkdownHooks as Markdown } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useServices } from '@/services/index';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
@@ -21,7 +23,7 @@ import { QuestionRoundsSection } from '@/src/tickets/components/QuestionRoundsSe
 import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
-import { useUndoDelete } from '@/src/tickets/hooks/use-undo-delete';
+import { toast } from 'sonner';
 import type { RoundAnswers } from '@/types/question-refinement';
 
 interface TicketDetailPageProps {
@@ -40,6 +42,13 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [editContext, setEditContext] = useState<{ section: string; index: number } | null>(null);
+  const [descriptionDraft, setDescriptionDraft] = useState<string>('');
+  const [isDescriptionDirty, setIsDescriptionDirty] = useState(false);
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionMode, setDescriptionMode] = useState<'edit' | 'preview'>('edit');
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
   const { questionRoundService } = useServices();
 
@@ -91,6 +100,22 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTicket?.id]);
+
+  // Sync description draft when ticket loads
+  useEffect(() => {
+    if (currentTicket) {
+      setDescriptionDraft(currentTicket.description || '');
+      setIsDescriptionDirty(false);
+    }
+  }, [currentTicket?.id, currentTicket?.description]);
+
+  const handleSaveDescription = async () => {
+    if (!ticketId) return;
+    setIsSavingDescription(true);
+    await updateTicket(ticketId, { description: descriptionDraft });
+    setIsDescriptionDirty(false);
+    setIsSavingDescription(false);
+  };
 
   // Track active section for left nav scroll spy
   useEffect(() => {
@@ -163,6 +188,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const techSpec = currentTicket.techSpec;
   const navSections = [
     techSpec?.qualityScore !== undefined && { id: 'quality-score', label: 'Quality' },
+    techSpec && { id: 'description', label: 'Description' },
     techSpec?.problemStatement && { id: 'problem-statement', label: 'Problem' },
     techSpec?.solution && { id: 'solution', label: 'Solution' },
     techSpec?.acceptanceCriteria?.length > 0 && { id: 'spec-acceptance', label: 'Acceptance Criteria' },
@@ -306,50 +332,81 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     setEditContext(null);
   };
 
-  // Delete an item from a techSpec array
+  // Delete an item from a techSpec array (with undo toast)
   const deleteTechSpecItem = async (section: string, index: number) => {
     if (!currentTicket?.techSpec) return;
     const ts = currentTicket.techSpec;
-    const patch: Record<string, any> = {};
+    const deletePatch: Record<string, any> = {};
+    const restorePatch: Record<string, any> = {};
+    let itemLabel = '';
 
     if (section === 'assumptions') {
-      const arr = [...(ts.problemStatement?.assumptions || [])];
-      arr.splice(index, 1);
-      patch.problemStatement = { ...ts.problemStatement, assumptions: arr };
+      const original = [...(ts.problemStatement?.assumptions || [])];
+      itemLabel = original[index] || 'Assumption';
+      const updated = original.filter((_, i) => i !== index);
+      deletePatch.problemStatement = { ...ts.problemStatement, assumptions: updated };
+      restorePatch.problemStatement = { ...ts.problemStatement, assumptions: original };
     } else if (section === 'constraints') {
-      const arr = [...(ts.problemStatement?.constraints || [])];
-      arr.splice(index, 1);
-      patch.problemStatement = { ...ts.problemStatement, constraints: arr };
+      const original = [...(ts.problemStatement?.constraints || [])];
+      itemLabel = original[index] || 'Constraint';
+      const updated = original.filter((_, i) => i !== index);
+      deletePatch.problemStatement = { ...ts.problemStatement, constraints: updated };
+      restorePatch.problemStatement = { ...ts.problemStatement, constraints: original };
     } else if (section === 'steps') {
       if (Array.isArray(ts.solution)) {
-        const arr = [...ts.solution];
-        arr.splice(index, 1);
-        patch.solution = arr;
+        const original = [...ts.solution];
+        const step = original[index];
+        itemLabel = typeof step === 'string' ? step : step?.description || 'Step';
+        const updated = original.filter((_, i) => i !== index);
+        deletePatch.solution = updated;
+        restorePatch.solution = original;
       } else if (ts.solution?.steps) {
-        const arr = [...ts.solution.steps];
-        arr.splice(index, 1);
-        patch.solution = { ...ts.solution, steps: arr };
+        const original = [...ts.solution.steps];
+        const step = original[index];
+        itemLabel = typeof step === 'string' ? step : step?.description || 'Step';
+        const updated = original.filter((_: any, i: number) => i !== index);
+        deletePatch.solution = { ...ts.solution, steps: updated };
+        restorePatch.solution = { ...ts.solution, steps: original };
       }
     } else if (section === 'acceptanceCriteria') {
-      const arr = [...(ts.acceptanceCriteria || [])];
-      arr.splice(index, 1);
-      patch.acceptanceCriteria = arr;
+      const original = [...(ts.acceptanceCriteria || [])];
+      const ac = original[index];
+      itemLabel = typeof ac === 'string' ? ac : ac?.then || 'Criterion';
+      const updated = original.filter((_, i) => i !== index);
+      deletePatch.acceptanceCriteria = updated;
+      restorePatch.acceptanceCriteria = original;
     } else if (section === 'fileChanges') {
-      const arr = [...(ts.fileChanges || [])];
-      arr.splice(index, 1);
-      patch.fileChanges = arr;
+      const original = [...(ts.fileChanges || [])];
+      itemLabel = original[index]?.path || 'File change';
+      const updated = original.filter((_, i) => i !== index);
+      deletePatch.fileChanges = updated;
+      restorePatch.fileChanges = original;
     } else if (section === 'inScope') {
-      const arr = [...(ts.inScope || [])];
-      arr.splice(index, 1);
-      patch.inScope = arr;
+      const original = [...(ts.inScope || [])];
+      itemLabel = original[index] || 'In-scope item';
+      const updated = original.filter((_, i) => i !== index);
+      deletePatch.inScope = updated;
+      restorePatch.inScope = original;
     } else if (section === 'outOfScope') {
-      const arr = [...(ts.outOfScope || [])];
-      arr.splice(index, 1);
-      patch.outOfScope = arr;
+      const original = [...(ts.outOfScope || [])];
+      itemLabel = original[index] || 'Out-of-scope item';
+      const updated = original.filter((_, i) => i !== index);
+      deletePatch.outOfScope = updated;
+      restorePatch.outOfScope = original;
     }
 
-    if (Object.keys(patch).length > 0) {
-      await saveTechSpecPatch(patch);
+    if (Object.keys(deletePatch).length > 0) {
+      await saveTechSpecPatch(deletePatch);
+
+      const truncated = itemLabel.length > 60 ? itemLabel.slice(0, 57) + '...' : itemLabel;
+      toast('Item deleted', {
+        description: truncated,
+        action: {
+          label: 'Undo',
+          onClick: () => { saveTechSpecPatch(restorePatch); },
+        },
+        duration: 3000,
+      });
     }
   };
 
@@ -511,25 +568,31 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           </nav>
         )}
 
-      {/* Header with title, type, and readiness badge */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
-              {currentTicket.title}
-            </h1>
-            {currentTicket.type && (
-              <Badge variant="outline" className="capitalize">
-                {currentTicket.type}
-              </Badge>
-            )}
-          </div>
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Ticket #{currentTicket.id}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {canToggleStatus ? (
+      {/* Type, Priority & Status row */}
+      <div className="flex items-center gap-2 mb-4">
+        {/* Type badge with icon */}
+        {currentTicket.type && (
+          <Badge variant="outline" className="capitalize gap-1.5">
+            {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
+              : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
+              : <Lightbulb className="h-3 w-3 text-amber-500" />}
+            {currentTicket.type}
+          </Badge>
+        )}
+        {/* Priority badge */}
+        {currentTicket.priority && (
+          <Badge variant="outline" className="capitalize gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${
+              currentTicket.priority === 'urgent' ? 'bg-red-500'
+                : currentTicket.priority === 'high' ? 'bg-orange-500'
+                : currentTicket.priority === 'medium' ? 'bg-yellow-500'
+                : 'bg-green-500'
+            }`} />
+            {currentTicket.priority}
+          </Badge>
+        )}
+        <div className="flex-1" />
+        {canToggleStatus ? (
             <button
               onClick={() => setShowStatusConfirm(true)}
               className={`
@@ -550,7 +613,6 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 : `Round ${currentTicket.currentRound}/${currentTicket.maxRounds}`}
             </Badge>
           )}
-        </div>
       </div>
 
       {/* Error message */}
@@ -616,14 +678,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       )}
 
       {/* Question Rounds - Show if in progress */}
-      {!isStartingRound && currentTicket.currentRound &&
-       currentTicket.currentRound > 0 &&
-       currentTicket.currentRound <= (currentTicket.maxRounds ?? 3) &&
+      {!isStartingRound &&
+       (currentTicket.currentRound ?? 0) > 0 &&
+       (currentTicket.currentRound ?? 0) <= (currentTicket.maxRounds ?? 3) &&
        currentTicket.questionRounds &&
        currentTicket.questionRounds.length > 0 && (
         <QuestionRoundsSection
           questionRounds={currentTicket.questionRounds}
-          currentRound={currentTicket.currentRound}
+          currentRound={currentTicket.currentRound!}
           maxRounds={currentTicket.maxRounds ?? 3}
           onSubmitAnswers={handleSubmitRoundAnswers}
           onSkipToFinalize={handleSkipToFinalize}
@@ -637,10 +699,6 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       {/* Tech Spec - Main content for Stage 4 (Review) */}
       {currentTicket.techSpec && (
         <section className="space-y-6">
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Technical Specification
-          </h2>
-
           {/* Quality Score */}
           {currentTicket.techSpec.qualityScore !== undefined && (
             <div id="quality-score" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4">
@@ -668,6 +726,63 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               </div>
             </div>
           )}
+
+          {/* Description — PM custom markdown notes */}
+          <div id="description" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] flex items-center gap-2">
+                <FileText className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                Description
+              </h3>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!isDescriptionDirty || isSavingDescription}
+                  onClick={handleSaveDescription}
+                  className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+                >
+                  {isSavingDescription ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : (
+                    <Save className="h-3 w-3 mr-1" />
+                  )}
+                  Save
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setDescriptionExpanded(true); setDescriptionMode('edit'); }}
+                  className="h-7 w-7 p-0 text-[var(--text-tertiary)] hover:text-[var(--text)]"
+                  title="Expand editor"
+                >
+                  <Expand className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <textarea
+              ref={descriptionRef}
+              value={descriptionDraft}
+              onChange={(e) => {
+                setDescriptionDraft(e.target.value);
+                setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  if (isDescriptionDirty) handleSaveDescription();
+                }
+              }}
+              placeholder="Add a description... (supports Markdown)"
+              rows={5}
+              className="w-full bg-transparent text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed font-mono resize-y rounded-md border border-[var(--border)]/30 px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 transition-colors"
+            />
+            {isDescriptionDirty && (
+              <p className="text-[10px] text-[var(--text-tertiary)]">
+                Unsaved changes. Press <kbd className="px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)] font-mono text-[9px]">Cmd+S</kbd> or click Save.
+              </p>
+            )}
+          </div>
 
           {/* Problem Statement */}
           {currentTicket.techSpec.problemStatement && (
@@ -1075,6 +1190,101 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         onSave={handleEditSave}
         isSaving={isUpdating}
       />
+
+      {/* Expanded Description Dialog */}
+      <Dialog open={descriptionExpanded} onOpenChange={setDescriptionExpanded}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col gap-0 p-0">
+          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-[var(--border)]">
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4 text-[var(--text-tertiary)]" />
+                Description
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                {/* Edit / Preview toggle */}
+                <div className="flex items-center rounded-md border border-[var(--border)]/50 p-0.5">
+                  <button
+                    onClick={() => setDescriptionMode('edit')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      descriptionMode === 'edit'
+                        ? 'bg-[var(--bg-hover)] text-[var(--text)]'
+                        : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setDescriptionMode('preview')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      descriptionMode === 'preview'
+                        ? 'bg-[var(--bg-hover)] text-[var(--text)]'
+                        : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <Eye className="h-3 w-3" />
+                    Preview
+                  </button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!isDescriptionDirty || isSavingDescription}
+                  onClick={handleSaveDescription}
+                  className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+                >
+                  {isSavingDescription ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : (
+                    <Save className="h-3 w-3 mr-1" />
+                  )}
+                  Save
+                </Button>
+              </div>
+            </div>
+            <DialogDescription className="sr-only">Edit or preview the ticket description</DialogDescription>
+          </DialogHeader>
+
+          {/* Body */}
+          <div className="flex-1 overflow-auto px-6 py-4">
+            {descriptionMode === 'edit' ? (
+              <textarea
+                ref={expandedDescriptionRef}
+                value={descriptionDraft}
+                onChange={(e) => {
+                  setDescriptionDraft(e.target.value);
+                  setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    if (isDescriptionDirty) handleSaveDescription();
+                  }
+                }}
+                placeholder="Add a description... (supports Markdown)"
+                className="w-full h-full bg-transparent text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed font-mono resize-none rounded-md border border-[var(--border)]/30 px-4 py-3 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 transition-colors"
+              />
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-[var(--text)] prose-p:text-[var(--text-secondary)] prose-strong:text-[var(--text)] prose-code:text-[var(--primary)] prose-code:bg-[var(--bg-hover)] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[var(--bg-hover)] prose-pre:border prose-pre:border-[var(--border)]/30 prose-a:text-[var(--primary)] prose-blockquote:border-[var(--border)] prose-blockquote:text-[var(--text-secondary)] prose-table:w-full prose-th:bg-[var(--bg-hover)] prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-[var(--text)] prose-th:font-medium prose-td:px-3 prose-td:py-2 prose-td:text-[var(--text-secondary)] prose-tr:border-b prose-tr:border-[var(--border)]/40">
+                {descriptionDraft ? (
+                  <Markdown remarkPlugins={[remarkGfm]}>{descriptionDraft}</Markdown>
+                ) : (
+                  <p className="text-[var(--text-tertiary)] italic">No description yet. Switch to Edit mode to add one.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          {isDescriptionDirty && (
+            <div className="flex-shrink-0 px-6 py-3 border-t border-[var(--border)]">
+              <p className="text-[10px] text-[var(--text-tertiary)]">
+                Unsaved changes. Press <kbd className="px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)] font-mono text-[9px]">Cmd+S</kbd> or click Save.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
