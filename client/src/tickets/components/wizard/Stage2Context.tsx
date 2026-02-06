@@ -22,6 +22,7 @@ import { EditFilesModal } from './EditModals/EditFilesModal';
  */
 export function Stage2Context() {
   const {
+    input,
     context,
     loading,
     maxRounds,
@@ -36,7 +37,7 @@ export function Stage2Context() {
 
   // Collapsible sections
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['stack', 'analysis', 'files', 'taskAnalysis'])
+    new Set(['userInput', 'stack', 'analysis', 'files', 'taskAnalysis'])
   );
 
   const toggleSection = (section: string) => {
@@ -69,6 +70,48 @@ export function Stage2Context() {
         <p className="text-sm text-gray-600 dark:text-gray-400">
           We've analyzed your repository. Review the detected context below and edit if needed.
         </p>
+      </div>
+
+      {/* User Input Section */}
+      <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+        <button
+          onClick={() => toggleSection('userInput')}
+          className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-between"
+          aria-expanded={expandedSections.has('userInput')}
+        >
+          <div className="text-left">
+            <h3 className="font-medium text-gray-900 dark:text-gray-50">User Input</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {input.title}
+            </p>
+          </div>
+          <div className="text-2xl text-gray-600 dark:text-gray-400">
+            {expandedSections.has('userInput') ? '−' : '+'}
+          </div>
+        </button>
+        {expandedSections.has('userInput') && (
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Title
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {input.title}
+              </p>
+            </div>
+
+            {input.description && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Description
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                  {input.description}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stack Section */}
