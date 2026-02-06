@@ -1,4 +1,4 @@
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider, githubProvider } from '@/lib/firebase';
 import { AuthService } from '@/services/auth.service';
 
@@ -7,38 +7,16 @@ export class SignInUseCase {
 
   async signInWithGoogle(): Promise<void> {
     console.log('🔐 [SignInUseCase] Starting Google sign-in...');
-    
-    // Use popup for localhost, redirect for production
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.log('🔐 [SignInUseCase] Using popup flow for localhost');
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log('🔐 [SignInUseCase] Popup sign-in successful');
-      
-      // Initialize workspace immediately after popup
-      await this.authService.initializeWorkspace();
-      return;
-    }
-    
-    await signInWithRedirect(auth, googleProvider);
-    console.log('🔐 [SignInUseCase] Redirect initiated');
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('🔐 [SignInUseCase] Popup sign-in successful');
+    await this.authService.initializeWorkspace();
   }
 
   async signInWithGitHub(): Promise<void> {
     console.log('🔐 [SignInUseCase] Starting GitHub sign-in...');
-    
-    // Use popup for localhost, redirect for production
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.log('🔐 [SignInUseCase] Using popup flow for localhost');
-      const result = await signInWithPopup(auth, githubProvider);
-      console.log('🔐 [SignInUseCase] Popup sign-in successful');
-      
-      // Initialize workspace immediately after popup
-      await this.authService.initializeWorkspace();
-      return;
-    }
-    
-    await signInWithRedirect(auth, githubProvider);
-    console.log('🔐 [SignInUseCase] Redirect initiated');
+    const result = await signInWithPopup(auth, githubProvider);
+    console.log('🔐 [SignInUseCase] Popup sign-in successful');
+    await this.authService.initializeWorkspace();
   }
 
   async handleRedirectResult(): Promise<boolean> {
