@@ -2,8 +2,8 @@ services:
   - type: web
     name: forge-api
     runtime: node
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @repo/shared-types run build 2>/dev/null; pnpm --filter @repo/backend run build
-    startCommand: node backend/dist/main
+    buildCommand: NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter @repo/shared-types run build 2>/dev/null; pnpm --filter @repo/backend run build
+    startCommand: NODE_ENV=production node backend/dist/main
     region: oregon
     plan: free
     branch: main
