@@ -23,13 +23,6 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
         setAuthenticated(!!user);
         setLoading(false);
 
-        // Only redirect on subsequent checks, not initial load
-        // This prevents redirect loops when auth state updates
-        if (isInitial) {
-          isInitial = false;
-          return;
-        }
-
         // Redirect to login if not authenticated (unless already on login page)
         if (!user && pathname !== '/login') {
           router.push('/login');
