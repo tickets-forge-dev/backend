@@ -75,7 +75,19 @@ export default function TicketsListPage() {
     );
   };
 
+  /** Detect tickets that are mid-wizard (draft with no finalized techSpec) */
+  const isInProgress = (ticket: any) =>
+    ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined;
+
   const getStatusBadge = (ticket: any) => {
+    if (isInProgress(ticket)) {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-blue-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+          In Progress
+        </span>
+      );
+    }
     if (ticket.status === 'complete') {
       return (
         <span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
@@ -271,7 +283,7 @@ export default function TicketsListPage() {
                 : 'bg-[var(--text-tertiary)]/40';
 
             return (
-              <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
+              <Link key={ticket.id} href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`}>
                 <div className="group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer">
                   <div className="flex items-center justify-between gap-4">
                     {/* Left: Title row */}

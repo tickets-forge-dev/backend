@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, FileCode, FilePlus, FileX, Upload, Save, FileText, Lightbulb, Bug, ClipboardList, Expand, Eye, Pencil } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, FileCode, FilePlus, FileX, Upload, Save, FileText, Lightbulb, Bug, ClipboardList, Expand, Eye, Pencil, ChevronDown } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -47,6 +47,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionMode, setDescriptionMode] = useState<'edit' | 'preview'>('edit');
+  const [questionsExpanded, setQuestionsExpanded] = useState(false);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
@@ -198,6 +199,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     currentTicket.assumptions?.length > 0 && { id: 'assumptions', label: 'Assumptions' },
     currentTicket.repoPaths?.length > 0 && { id: 'affected-code', label: 'Affected Code' },
     currentTicket.estimate && { id: 'estimate', label: 'Estimate' },
+    (currentTicket.currentRound ?? 0) > 0 && (currentTicket.questionRounds?.length ?? 0) > 0 && { id: 'question-refinement', label: 'Questions' },
   ].filter(Boolean) as { id: string; label: string }[];
 
   // Handle inline editing save
@@ -526,7 +528,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       </div>
 
       {/* Content with section nav */}
-      <div className="relative">
+      <div className="relative space-y-6">
         {/* Section Navigator — sticky left sidebar on wide screens */}
         {navSections.length > 0 && (
           <nav className="hidden 2xl:block absolute right-full mr-6 top-0 bottom-0 w-40">
@@ -675,25 +677,6 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             </p>
           </div>
         </div>
-      )}
-
-      {/* Question Rounds - Show if in progress */}
-      {!isStartingRound &&
-       (currentTicket.currentRound ?? 0) > 0 &&
-       (currentTicket.currentRound ?? 0) <= (currentTicket.maxRounds ?? 3) &&
-       currentTicket.questionRounds &&
-       currentTicket.questionRounds.length > 0 && (
-        <QuestionRoundsSection
-          questionRounds={currentTicket.questionRounds}
-          currentRound={currentTicket.currentRound!}
-          maxRounds={currentTicket.maxRounds ?? 3}
-          onSubmitAnswers={handleSubmitRoundAnswers}
-          onSkipToFinalize={handleSkipToFinalize}
-          onFinalizeSpec={handleFinalizeSpec}
-          isSubmitting={isSubmittingAnswers}
-          error={answerSubmitError}
-          onDismissError={() => setAnswerSubmitError(null)}
-        />
       )}
 
       {/* Tech Spec - Main content for Stage 4 (Review) */}
@@ -1081,6 +1064,41 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 </ul>
               )}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Question Refinement — collapsible, at bottom */}
+      {!isStartingRound &&
+       (currentTicket.currentRound ?? 0) > 0 &&
+       currentTicket.questionRounds &&
+       currentTicket.questionRounds.length > 0 && (
+        <section id="question-refinement" data-nav-section>
+          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
+            <button
+              onClick={() => setQuestionsExpanded(v => !v)}
+              className="flex items-center justify-between w-full"
+            >
+              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+                Question Refinement
+              </h3>
+              <ChevronDown className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform ${questionsExpanded ? 'rotate-180' : ''}`} />
+            </button>
+            {questionsExpanded && (
+              <div className="pt-4 mt-4 border-t border-[var(--border)]">
+                <QuestionRoundsSection
+                  questionRounds={currentTicket.questionRounds}
+                  currentRound={currentTicket.currentRound!}
+                  maxRounds={currentTicket.maxRounds ?? 3}
+                  onSubmitAnswers={handleSubmitRoundAnswers}
+                  onSkipToFinalize={handleSkipToFinalize}
+                  onFinalizeSpec={handleFinalizeSpec}
+                  isSubmitting={isSubmittingAnswers}
+                  error={answerSubmitError}
+                  onDismissError={() => setAnswerSubmitError(null)}
+                />
+              </div>
+            )}
           </div>
         </section>
       )}
