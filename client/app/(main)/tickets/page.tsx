@@ -1,18 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card } from '@/core/components/ui/card';
 import { Input } from '@/core/components/ui/input';
-import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
-import { Loader2 } from 'lucide-react';
+import { Loader2, SlidersHorizontal } from 'lucide-react';
 
 export default function TicketsListPage() {
   const { tickets, isLoading, loadError, loadTickets } = useTicketsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showFilter, setShowFilter] = useState(false);
 
   useEffect(() => {
     loadTickets();
@@ -28,8 +27,7 @@ export default function TicketsListPage() {
 
       const matchesStatus =
         statusFilter === 'all' ||
-        (statusFilter === 'ready' && ticket.status === 'ready') ||
-        (statusFilter === 'needs-input' && ticket.questions && ticket.questions.length > 0);
+        (statusFilter === 'draft' && ticket.status !== 'ready');
 
       return matchesSearch && matchesStatus;
     })
@@ -41,33 +39,25 @@ export default function TicketsListPage() {
   const getStatusBadge = (ticket: any) => {
     if (ticket.status === 'ready') {
       return (
-        <Badge className="bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20 text-[10px] font-normal">
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
           Ready
-        </Badge>
+        </span>
       );
     }
     if (ticket.questions && ticket.questions.length > 0) {
       return (
-        <Badge className="bg-[var(--amber)]/10 text-[var(--amber)] border-[var(--amber)]/20 text-[10px] font-normal">
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--amber)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--amber)]" />
           Needs Input
-        </Badge>
+        </span>
       );
     }
     return (
-      <Badge variant="outline" className="text-[10px] font-normal border-[var(--border)]/30">
+      <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-tertiary)]/50" />
         Draft
-      </Badge>
-    );
-  };
-
-  const getTypeBadge = (type: string | null) => {
-    if (!type) return null;
-
-    // Subtle gray for all types - Linear-inspired minimalism
-    return (
-      <Badge variant="outline" className="bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)]/20 text-[10px] font-normal">
-        {type}
-      </Badge>
+      </span>
     );
   };
 
@@ -94,7 +84,7 @@ export default function TicketsListPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
+          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text-secondary)]">
             Tickets
           </h1>
           <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
@@ -102,41 +92,53 @@ export default function TicketsListPage() {
           </p>
         </div>
         <Link href="/tickets/create">
-          <Button className="bg-[var(--purple)] text-[var(--text-button)] hover:bg-[var(--purple)]/90 rounded-lg px-4 py-2 font-medium transition-colors">
-            New Ticket
-          </Button>
+          <Button>New Ticket</Button>
         </Link>
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center gap-2">
         <Input
           placeholder="Search tickets..."
           className="max-w-md"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Badge
-          variant={statusFilter === 'all' ? 'secondary' : 'outline'}
-          className="cursor-pointer"
-          onClick={() => setStatusFilter('all')}
-        >
-          All
-        </Badge>
-        <Badge
-          variant={statusFilter === 'ready' ? 'secondary' : 'outline'}
-          className="cursor-pointer"
-          onClick={() => setStatusFilter('ready')}
-        >
-          Ready
-        </Badge>
-        <Badge
-          variant={statusFilter === 'needs-input' ? 'secondary' : 'outline'}
-          className="cursor-pointer"
-          onClick={() => setStatusFilter('needs-input')}
-        >
-          Needs Input
-        </Badge>
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowFilter((v) => !v)}
+            className={statusFilter !== 'all' ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
+          {showFilter && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[120px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1 shadow-lg">
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'draft', label: 'Draft' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setStatusFilter(opt.value); setShowFilter(false); }}
+                    className={`
+                      w-full text-left px-3 py-1.5 rounded-md text-[var(--text-sm)] transition-colors
+                      ${statusFilter === opt.value
+                        ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                      }
+                    `}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Loading state */}
@@ -158,7 +160,7 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isLoading && !loadError && filteredTickets.length === 0 && (
-        <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)]">
+        <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)]/40 bg-[var(--bg-subtle)]">
           <div className="text-center">
             <p className="text-[var(--text-base)] text-[var(--text-secondary)]">
               {searchQuery || statusFilter !== 'all' ? 'No tickets found' : 'No tickets yet'}
@@ -173,39 +175,63 @@ export default function TicketsListPage() {
       )}
 
       {!isLoading && !loadError && filteredTickets.length > 0 && (
-        <div className="border-t border-[var(--border)]">
-          {filteredTickets.map((ticket, index) => {
-            const readinessScore = ticket.readinessScore || 0;
-            const readinessBadgeClass =
+        <div className="space-y-1.5">
+          {filteredTickets.map((ticket) => {
+            const readinessScore = ticket.techSpec?.qualityScore ?? ticket.readinessScore ?? 0;
+            const progressColor =
               readinessScore >= 75
-                ? 'bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20 text-[11px] font-medium'
+                ? 'bg-green-500'
                 : readinessScore >= 50
-                ? 'bg-[var(--amber)]/10 text-[var(--amber)] border-[var(--amber)]/20 text-[11px] font-medium'
-                : 'bg-[var(--red)]/10 text-[var(--red)] border-[var(--red)]/20 text-[11px] font-medium';
+                ? 'bg-amber-500'
+                : 'bg-[var(--text-tertiary)]/40';
 
             return (
               <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
-                <div className="group px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer">
-                  <div className="flex items-center justify-between gap-6">
-                    {/* Left: Title + Badges */}
-                    <div className="flex-1 min-w-0 flex items-center gap-3">
-                      <h3 className="text-[var(--text-sm)] font-normal text-[var(--text)] truncate group-hover:text-[var(--text)] transition-colors">
-                        {ticket.title}
-                      </h3>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {getTypeBadge(ticket.type)}
+                <div className="group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Left: Title row */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5">
+                        <h3 className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] truncate group-hover:text-[var(--text)] transition-colors">
+                          {ticket.title}
+                        </h3>
                         {getStatusBadge(ticket)}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        {ticket.type && (
+                          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] capitalize">
+                            {ticket.type}
+                          </span>
+                        )}
+                        <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                          {getRelativeTime(ticket.updatedAt)}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Right: Readiness + Time */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
-                      <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                        {getRelativeTime(ticket.updatedAt)}
+                    {/* Right: Progress ring */}
+                    <div className="flex-shrink-0 relative h-8 w-8">
+                      <svg className="h-8 w-8 -rotate-90" viewBox="0 0 32 32">
+                        <circle
+                          cx="16" cy="16" r="13"
+                          fill="none"
+                          stroke="var(--border)"
+                          strokeWidth="2.5"
+                          opacity="0.3"
+                        />
+                        <circle
+                          cx="16" cy="16" r="13"
+                          fill="none"
+                          className={readinessScore >= 75 ? 'stroke-green-500' : readinessScore >= 50 ? 'stroke-amber-500' : 'stroke-[var(--text-tertiary)]'}
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(readinessScore / 100) * 81.68} 81.68`}
+                          opacity={readinessScore > 0 ? 1 : 0.2}
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-[var(--text-tertiary)]">
+                        {readinessScore}
                       </span>
-                      <Badge variant="outline" className={readinessBadgeClass}>
-                        {readinessScore}%
-                      </Badge>
                     </div>
                   </div>
                 </div>

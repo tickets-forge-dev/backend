@@ -332,17 +332,13 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {currentTicket.techSpec ? (
-            <Badge className={`${readinessBadgeClass} text-white`}>
-              Ready {readinessScore}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[var(--text-secondary)]">
-              {currentTicket.currentRound === 0
+          <Badge variant="outline" className="text-[var(--text-secondary)]">
+            {currentTicket.techSpec
+              ? 'Complete'
+              : currentTicket.currentRound === 0
                 ? 'Draft'
                 : `Round ${currentTicket.currentRound}/${currentTicket.maxRounds}`}
-            </Badge>
-          )}
+          </Badge>
         </div>
       </div>
 

@@ -74,9 +74,10 @@ export function Stage1Input() {
   }, [selectedRepository, setRepository]);
 
   // Form validation
-  const isTitleValid = input.title.length >= 3 && input.title.length <= 100;
+  const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
+  const isTitleValid = wordCount >= 2 && input.title.length <= 100;
   const isRepoValid = input.repoOwner.length > 0 && input.repoName.length > 0;
-  const isFormValid = isTitleValid && isRepoValid;
+  const isFormValid = isTitleValid;
 
   // Validation messages
   const titleError = touchedFields.has('title')
@@ -194,7 +195,7 @@ export function Stage1Input() {
           <Button
             type="submit"
             disabled={!isFormValid || loading}
-            className="px-8 bg-[var(--blue)] hover:bg-[var(--blue)]/90 text-white disabled:opacity-40"
+            className="px-8"
           >
             {loading ? 'Analyzing...' : 'Next'}
           </Button>

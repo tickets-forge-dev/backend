@@ -1,13 +1,11 @@
 'use client';
 
 import { Card } from '@/core/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/core/components/ui/radio-group';
-import { Label } from '@/core/components/ui/label';
 import { Button } from '@/core/components/ui/button';
 import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
-import { useTheme } from '@/src/hooks/useTheme';
+import { useTheme, type Theme } from '@/src/hooks/useTheme';
 import Link from 'next/link';
-import { X } from 'lucide-react';
+import { X, Monitor, Sun, Moon } from 'lucide-react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -31,7 +29,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Integrations Section */}
-      <section className="space-y-4">
+      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
         <div>
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Integrations
@@ -45,7 +43,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Appearance Section */}
-      <section className="space-y-4">
+      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
         <div>
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Appearance
@@ -55,36 +53,37 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Card className="p-4">
-          <div className="space-y-3">
-            <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-              Theme
-            </h3>
-            <RadioGroup value={theme} onValueChange={setTheme} className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="system" id="system" />
-                <Label htmlFor="system" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
-                  System
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="light" id="light" />
-                <Label htmlFor="light" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
-                  Light
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="dark" id="dark" />
-                <Label htmlFor="dark" className="font-normal cursor-pointer text-[var(--text-sm)] text-[var(--text)]">
-                  Dark
-                </Label>
-              </div>
-            </RadioGroup>
+        <div className="space-y-3">
+          <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+            Theme
+          </h3>
+          <div className="inline-flex rounded-lg bg-[var(--bg-hover)] p-1">
+            {[
+              { value: 'system', label: 'System', icon: Monitor },
+              { value: 'light', label: 'Light', icon: Sun },
+              { value: 'dark', label: 'Dark', icon: Moon },
+            ].map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value as Theme)}
+                className={`
+                  flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[var(--text-sm)] font-medium transition-all
+                  ${theme === value
+                    ? 'bg-[var(--bg)] text-[var(--text)] shadow-[var(--shadow-xs)]'
+                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }
+                `}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
-        </Card>
+        </div>
       </section>
 
-      <section className="space-y-4">
+      {/* Account Section */}
+      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
         <div>
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Account
@@ -94,11 +93,9 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Card className="p-6">
-          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Account settings coming soon...
-          </p>
-        </Card>
+        <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          Account settings coming soon...
+        </p>
       </section>
     </div>
   );

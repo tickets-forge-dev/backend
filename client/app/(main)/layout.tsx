@@ -2,6 +2,7 @@
 
 import { AuthCheck } from '@/lib/auth-check';
 import { Sidebar } from '@/core/components/sidebar/Sidebar';
+import { OnboardingDialog } from '@/core/components/onboarding/OnboardingDialog';
 import { useUIStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
@@ -25,6 +26,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Sidebar />
+      <OnboardingDialog />
 
       {/* Hamburger menu for mobile */}
       <Button

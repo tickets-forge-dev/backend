@@ -1,0 +1,206 @@
+# Epic: Close the Onboarding Promise Gap
+
+## Context
+
+The onboarding dialog promises users a 4-step workflow: Connect → Analyze → Developer-Ready Output → Deploy & Track. This epic identifies every gap between what we promise and what actually works today, then closes them.
+
+## Current State vs. Promise
+
+| Promised Feature | Status | Gap |
+|-----------------|--------|-----|
+| Tech spec (Markdown) | **Built** | None |
+| Acceptance criteria | **Built** | None |
+| Files & APIs to change | **Partial** | File detection works; API endpoint analysis is minimal |
+| Backend / client split | **Partial** | Inferred from paths, not explicit in output |
+| Test plan | **Missing** | Only hints in acceptance criteria notes |
+| Attach designs & assets | **Missing** | No upload or linking capability |
+| Push to Linear | **Type-only** | `ExternalIssue` type exists, no API client |
+| Push to Jira | **Type-only** | Same — type exists, no implementation |
+| Auto-update on commit | **Built** | GitHub webhooks + drift detection work |
+| Notifications | **Missing** | No email, in-app, or webhook notifications |
+
+---
+
+## Stories
+
+### Story 1: Explicit API Endpoint Detection
+**Priority:** High
+**Layer:** Backend (domain + application)
+
+The deep analysis and tech spec currently list files to change but don't explicitly call out API endpoints (routes, controllers, DTOs) that will be affected. For backend-heavy tasks this is critical context.
+
+**Acceptance Criteria:**
+- Given a task that involves API changes, the generated spec includes a dedicated "API Changes" section
+- Each API change lists: HTTP method, route, request/response shape changes
+- Frontend consumers of changed APIs are flagged
+
+**Files likely involved:**
+- `backend/src/tickets/application/services/DeepAnalysisServiceImpl.ts` — extend LLM prompt
+- `backend/src/tickets/application/services/TechSpecGeneratorImpl.ts` — add apiChanges section
+- `backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts` — extend TechSpec type
+
+---
+
+### Story 2: Explicit Backend / Client Split in Output
+**Priority:** High
+**Layer:** Backend (domain + application), Client (presentation)
+
+Generated specs should group changes into clear "Backend" and "Client" sections so developers immediately see the scope per layer.
+
+**Acceptance Criteria:**
+- Tech spec output has separate "Backend Changes" and "Client Changes" subsections
+- Each subsection lists files, reason for change, and dependencies
+- If the task only touches one layer, the other section shows "No changes"
+
+**Files likely involved:**
+- `backend/src/tickets/application/services/TechSpecGeneratorImpl.ts`
+- `backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts`
+- `client/src/tickets/components/ticket-detail/` — display grouped changes
+
+---
+
+### Story 3: Test Plan Generation
+**Priority:** High
+**Layer:** Backend (domain + application)
+
+Add a dedicated test plan section to generated specs. Currently only implementation hints mention testing approach.
+
+**Acceptance Criteria:**
+- Every generated spec includes a "Test Plan" section
+- Test plan includes: unit tests, integration tests, and edge cases to cover
+- Each test case has a description and expected behavior
+- Test plan references the detected test runner (Jest, Mocha, etc.)
+
+**Files likely involved:**
+- `backend/src/tickets/application/services/TechSpecGeneratorImpl.ts` — extend generation prompt
+- `backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts` — add `testPlan` to TechSpec type
+- New section in ticket detail UI
+
+---
+
+### Story 4: Linear Integration
+**Priority:** High
+**Layer:** Backend (infrastructure + application), Client (presentation)
+
+Export generated tickets to Linear as issues. The domain already has `ExternalIssue` with `platform: 'linear'` — needs actual API implementation.
+
+**Acceptance Criteria:**
+- User can connect their Linear workspace (OAuth or API key) in Settings
+- "Export to Linear" button on a completed ticket creates a Linear issue
+- Issue includes: title, description (from tech spec), acceptance criteria, labels
+- `ExternalIssue` reference is saved on the AEC with the Linear issue URL
+- Subsequent exports update the existing issue rather than creating duplicates
+
+**Files likely involved:**
+- New: `backend/src/integrations/linear/` — Linear API client
+- New: `client/src/settings/components/LinearIntegration.tsx`
+- `backend/src/tickets/domain/value-objects/ExternalIssue.ts` — already exists
+- `backend/src/tickets/presentation/controllers/tickets.controller.ts` — export endpoint
+
+---
+
+### Story 5: Jira Integration
+**Priority:** Medium
+**Layer:** Backend (infrastructure + application), Client (presentation)
+
+Same as Linear but for Jira Cloud. Many enterprise teams use Jira.
+
+**Acceptance Criteria:**
+- User can connect Jira workspace (OAuth 2.0) in Settings
+- "Export to Jira" button creates a Jira issue with proper fields
+- Maps acceptance criteria to Jira checklist or subtasks
+- Saves `ExternalIssue` reference with Jira issue URL
+- Handles Jira custom fields (story points, sprint, etc.)
+
+**Files likely involved:**
+- New: `backend/src/integrations/jira/` — Jira API client
+- New: `client/src/settings/components/JiraIntegration.tsx`
+- Shared export logic with Linear (abstract export port)
+
+---
+
+### Story 6: Design & Asset Attachments
+**Priority:** Medium
+**Layer:** Backend (infrastructure), Client (presentation)
+
+Allow users to attach design mockups, screenshots, or asset files to tickets. These get included in the exported Linear/Jira issue.
+
+**Acceptance Criteria:**
+- Upload zone in the ticket creation wizard (Stage 1 or Stage 2)
+- Supports images (PNG, JPG, SVG), PDFs, and Figma links
+- Uploaded assets are stored (Firebase Storage or S3)
+- Assets appear in the ticket detail view
+- When exporting to Linear/Jira, assets are attached to the issue
+
+**Files likely involved:**
+- New: `backend/src/tickets/infrastructure/storage/` — file storage service
+- `client/src/tickets/components/wizard/` — upload component in wizard
+- `client/src/tickets/components/ticket-detail/` — asset gallery
+
+---
+
+### Story 7: In-App Notifications
+**Priority:** Medium
+**Layer:** Backend (infrastructure + application), Client (presentation + stores)
+
+Notify users when important events happen: spec ready, drift detected, export completed.
+
+**Acceptance Criteria:**
+- Notification bell icon in sidebar header with unread count badge
+- Notifications list (dropdown or page) showing recent events
+- Event types: spec_ready, drift_detected, export_completed, round_complete
+- Notifications marked as read on click
+- Persisted in Firestore per workspace
+
+**Files likely involved:**
+- New: `backend/src/notifications/` — notification domain + infrastructure
+- New: `client/src/notifications/` — notification store + components
+- `client/src/core/components/sidebar/SidebarHeader.tsx` — notification bell
+
+---
+
+### Story 8: Email Notifications
+**Priority:** Low
+**Layer:** Backend (infrastructure)
+
+Optional email notifications for key events. Depends on Story 7 (shares event types).
+
+**Acceptance Criteria:**
+- User can enable/disable email notifications in Settings
+- Emails sent for: spec ready, drift detected
+- Uses transactional email provider (SendGrid, Resend, or SES)
+- Unsubscribe link in every email
+- Rate-limited to prevent spam
+
+**Files likely involved:**
+- New: `backend/src/notifications/infrastructure/email/` — email service
+- Settings page: email notification preferences toggle
+
+---
+
+## Dependency Graph
+
+```
+Story 1 (API Detection) ──┐
+Story 2 (BE/FE Split)  ───┤── can be done in parallel
+Story 3 (Test Plan)    ───┘
+
+Story 4 (Linear)  ─────┐── can be done in parallel
+Story 5 (Jira)    ─────┘
+                        │
+Story 6 (Assets) ──────── depends on storage infra, enhances exports
+
+Story 7 (In-App Notif) ──── standalone
+Story 8 (Email Notif)  ──── depends on Story 7
+```
+
+## Suggested Execution Order
+
+1. **Sprint 1:** Stories 1 + 2 + 3 (spec quality — immediate user value)
+2. **Sprint 2:** Stories 4 + 5 (export integrations — the "deploy" promise)
+3. **Sprint 3:** Stories 6 + 7 (attachments + notifications — polish)
+4. **Sprint 4:** Story 8 (email — nice-to-have)
+
+## Success Metric
+
+Every feature mentioned in the onboarding Step 2 ("How It Works") is functional and demo-able. A user who completes onboarding can experience the full Connect → Analyze → Output → Deploy → Track loop end-to-end.

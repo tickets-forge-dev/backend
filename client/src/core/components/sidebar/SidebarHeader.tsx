@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, BookOpen } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import {
   DropdownMenu,
@@ -27,7 +27,7 @@ const getInitials = (name: string | null) => {
 export function SidebarHeader() {
   const router = useRouter();
   const { user, signOut } = useAuthStore();
-  const { sidebarCollapsed } = useUIStore();
+  const { sidebarCollapsed, resetOnboarding } = useUIStore();
 
   const handleSignOut = async () => {
     await signOut();
@@ -70,8 +70,9 @@ export function SidebarHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          align={sidebarCollapsed ? 'end' : 'start'}
+          align="start"
           side="right"
+          sideOffset={8}
           className="w-56"
         >
           <DropdownMenuLabel>
@@ -92,6 +93,14 @@ export function SidebarHeader() {
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={resetOnboarding}
+            className="cursor-pointer"
+          >
+            <BookOpen className="mr-2 h-4 w-4" />
+            Show Onboarding
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
             Sign out
