@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { CreateTicketUseCase } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
@@ -33,10 +34,15 @@ import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGua
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { GitHubFileService } from '@github/domain/github-file.service';
 import { GITHUB_FILE_SERVICE } from '../../application/ports/GitHubFileServicePort';
+import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
+import { GitHubTokenService } from '../../../github/application/services/github-token.service';
+import { Octokit } from '@octokit/rest';
 
 @Controller('tickets')
 @UseGuards(TestAuthGuard, WorkspaceGuard) // Using TestAuthGuard for E2E testing
 export class TicketsController {
+  private readonly logger = new Logger(TicketsController.name);
+
   constructor(
     private readonly createTicketUseCase: CreateTicketUseCase,
     private readonly updateAECUseCase: UpdateAECUseCase,
@@ -53,6 +59,9 @@ export class TicketsController {
     private readonly codebaseAnalyzer: CodebaseAnalyzer,
     @Inject(PROJECT_STACK_DETECTOR)
     private readonly projectStackDetector: ProjectStackDetector,
+    @Inject(GITHUB_INTEGRATION_REPOSITORY)
+    private readonly githubIntegrationRepository: GitHubIntegrationRepository,
+    private readonly githubTokenService: GitHubTokenService,
   ) {}
 
   /**
@@ -61,23 +70,65 @@ export class TicketsController {
    * before they decide to proceed with ticket creation
    */
   @Post('analyze-repo')
-  async analyzeRepository(@Body() dto: AnalyzeRepositoryDto) {
-    console.log(`🔍 [TicketsController] Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'default'})`);
+  async analyzeRepository(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: AnalyzeRepositoryDto,
+  ) {
+    this.logger.log(`🔍 Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'})`);
 
     try {
-      // Use provided branch or default to 'main'
+      // Fetch user's GitHub token from integration
+      this.logger.log(`📦 Fetching GitHub integration for workspace: ${workspaceId}`);
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
+
+      if (!integration) {
+        throw new BadRequestException('GitHub not connected. Please connect GitHub in Settings first.');
+      }
+
+      // Decrypt token
+      const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+
+      // Create authenticated Octokit client with user's token
+      const octokit = new Octokit({ auth: accessToken });
+
       const branch = dto.branch || 'main';
 
-      // Fetch repository file tree
-      console.log(`🔍 [TicketsController] Fetching repository tree from branch: ${branch}...`);
-      const fileTree = await this.gitHubFileService.getTree(
-        dto.owner,
-        dto.repo,
-        branch,
-      );
+      // Fetch repository file tree using authenticated client
+      this.logger.log(`🌳 Fetching repository tree from branch: ${branch}...`);
+
+      // First, get the tree SHA for the branch
+      const refResponse = await octokit.rest.git.getRef({
+        owner: dto.owner,
+        repo: dto.repo,
+        ref: `heads/${branch}`,
+      });
+
+      const treeSha = refResponse.data.object.sha;
+
+      // Then get the tree
+      const treeResponse = await octokit.rest.git.getTree({
+        owner: dto.owner,
+        repo: dto.repo,
+        tree_sha: treeSha,
+        recursive: '1' as any,
+      });
+
+      const fileTree = {
+        sha: treeResponse.data.sha,
+        url: treeResponse.data.url,
+        tree: (treeResponse.data.tree || []).map((entry: any) => ({
+          path: entry.path!,
+          mode: entry.mode!,
+          type: entry.type as 'blob' | 'tree',
+          sha: entry.sha!,
+          size: entry.size,
+          url: entry.url!,
+        })),
+        truncated: treeResponse.data.truncated || false,
+      };
 
       // Read key files for analysis
-      console.log(`🔍 [TicketsController] Reading key repository files...`);
+      this.logger.log(`📄 Reading key repository files...`);
       const filesToRead = [
         'package.json',
         'tsconfig.json',
@@ -89,24 +140,29 @@ export class TicketsController {
       const files = new Map<string, string>();
       for (const filePath of filesToRead) {
         try {
-          const content = await this.gitHubFileService.readFile(
-            dto.owner,
-            dto.repo,
-            filePath,
-            branch,
-          );
-          files.set(filePath, content);
+          const response = await octokit.rest.repos.getContent({
+            owner: dto.owner,
+            repo: dto.repo,
+            path: filePath,
+            ref: branch,
+          });
+
+          // response.data.content is base64 encoded
+          if ('content' in response.data && typeof response.data.content === 'string') {
+            const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+            files.set(filePath, content);
+          }
         } catch {
           // File not found, skip it
         }
       }
 
       // Detect technology stack
-      console.log(`🔍 [TicketsController] Detecting technology stack...`);
+      this.logger.log(`🔍 Detecting technology stack...`);
       const stack = await this.projectStackDetector.detectStack(files);
 
       // Analyze codebase patterns
-      console.log(`🔍 [TicketsController] Analyzing codebase patterns...`);
+      this.logger.log(`🔧 Analyzing codebase patterns...`);
       const analysis = await this.codebaseAnalyzer.analyzeStructure(files, fileTree);
 
       // Extract important files (up to 20)
@@ -133,12 +189,11 @@ export class TicketsController {
         files: filesList,
       };
 
-      console.log(`✅ [TicketsController] Repository analysis complete`);
+      this.logger.log(`✅ Repository analysis complete`);
       return { context };
     } catch (error: any) {
-      console.error(
-        `❌ [TicketsController] Repository analysis failed:`,
-        error.message,
+      this.logger.error(
+        `❌ Repository analysis failed: ${error.message}`,
       );
 
       if (error.status === 404 || error.message.includes('not found')) {
