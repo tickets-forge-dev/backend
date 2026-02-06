@@ -42,6 +42,7 @@ export class AEC {
     private _questionRounds: QuestionRound[] = [],
     private _currentRound: number = 0,
     private _techSpec: TechSpec | null = null,
+    private _maxRounds: number = 3,
   ) {}
 
   // Factory method for creating new draft
@@ -50,6 +51,7 @@ export class AEC {
     title: string,
     description?: string,
     repositoryContext?: RepositoryContext,
+    maxRounds: number = 3,
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -82,6 +84,7 @@ export class AEC {
       [], // _questionRounds
       0, // _currentRound
       null, // _techSpec
+      maxRounds, // _maxRounds
     );
   }
 
@@ -112,6 +115,7 @@ export class AEC {
     questionRounds?: QuestionRound[],
     currentRound?: number,
     techSpec?: TechSpec | null,
+    maxRounds?: number,
   ): AEC {
     return new AEC(
       id,
@@ -139,6 +143,7 @@ export class AEC {
       questionRounds ?? [],
       currentRound ?? 0,
       techSpec ?? null,
+      maxRounds ?? 3,
     );
   }
 
@@ -262,7 +267,7 @@ export class AEC {
    * - Can only be called from DRAFT or IN_QUESTION_ROUND_N status
    */
   startQuestionRound(
-    roundNumber: 1 | 2 | 3,
+    roundNumber: number,
     questions: ClarificationQuestion[],
     codebaseContext: string,
   ): void {
@@ -273,9 +278,9 @@ export class AEC {
       );
     }
 
-    // Guard: Max 3 rounds
-    if (roundNumber > 3) {
-      throw new Error('Maximum 3 rounds allowed');
+    // Guard: Max rounds (adaptive)
+    if (roundNumber > this._maxRounds) {
+      throw new Error(`Maximum ${this._maxRounds} rounds allowed`);
     }
 
     const round: QuestionRound = {
@@ -465,5 +470,8 @@ export class AEC {
   }
   get techSpec(): TechSpec | null {
     return this._techSpec;
+  }
+  get maxRounds(): number {
+    return this._maxRounds;
   }
 }

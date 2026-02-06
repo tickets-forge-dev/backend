@@ -10,6 +10,7 @@ import type { QuestionRound, RoundAnswers } from '@/types/question-refinement';
 interface QuestionRoundsSectionProps {
   questionRounds: QuestionRound[];
   currentRound: number;
+  maxRounds: number;
   onSubmitAnswers: (roundNumber: number, answers: RoundAnswers) => Promise<void>;
   onSkipToFinalize: () => Promise<void>;
   onFinalizeSpec?: () => Promise<void>;
@@ -30,6 +31,7 @@ interface QuestionRoundsSectionProps {
 export function QuestionRoundsSection({
   questionRounds,
   currentRound,
+  maxRounds,
   onSubmitAnswers,
   onSkipToFinalize,
   onFinalizeSpec,
@@ -46,10 +48,10 @@ export function QuestionRoundsSection({
 
   const currentRoundData = questionRounds.find((r) => r.roundNumber === currentRound);
   const maxRound = Math.max(...questionRounds.map((r) => r.roundNumber), 0);
-  const isFinalRound = currentRound >= 3;
+  const isFinalRound = currentRound >= maxRounds;
 
   // Validate currentRound is within bounds
-  const isValidRound = currentRound >= 1 && currentRound <= 3 && currentRoundData;
+  const isValidRound = currentRound >= 1 && currentRound <= maxRounds && currentRoundData;
 
   const handleAnswerChange = (questionId: string, answer: string | string[]) => {
     setLocalAnswers((prev) => ({
@@ -86,12 +88,23 @@ export function QuestionRoundsSection({
   };
 
   const handleFinalize = async () => {
-    if (onFinalizeSpec) {
-      try {
-        await onFinalizeSpec();
-      } catch (err) {
-        // Error handled by parent
+    try {
+      // Submit current round's answers first so the backend has them
+      if (currentRoundData && isValidRound) {
+        const allAnswers = {
+          ...currentRoundData.answers,
+          ...localAnswers,
+        };
+        await onSubmitAnswers(currentRound, allAnswers);
+        setLocalAnswers({});
       }
+
+      // Then finalize
+      if (onFinalizeSpec) {
+        await onFinalizeSpec();
+      }
+    } catch (err) {
+      // Error handled by parent
     }
   };
 
@@ -107,23 +120,25 @@ export function QuestionRoundsSection({
         </p>
       </div>
 
-      {/* Progress Indicator */}
-      <div className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-        <div className="flex items-center justify-between mb-2">
-          <span>
-            Progress: Round {currentRound} of 3
-          </span>
-          <span className="text-[var(--text-xs)]">
-            {Math.round((currentRound / 3) * 100)}%
-          </span>
+      {/* Progress Indicator - only for multi-round flows */}
+      {maxRounds >= 2 && (
+        <div className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+          <div className="flex items-center justify-between mb-2">
+            <span>
+              Progress: Round {currentRound} of {maxRounds}
+            </span>
+            <span className="text-[var(--text-xs)]">
+              {Math.round((currentRound / maxRounds) * 100)}%
+            </span>
+          </div>
+          <div className="w-full h-2 bg-[var(--bg-hover)] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${(currentRound / maxRounds) * 100}%` }}
+            />
+          </div>
         </div>
-        <div className="w-full h-2 bg-[var(--bg-hover)] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-blue-500 transition-all duration-300"
-            style={{ width: `${(currentRound / 3) * 100}%` }}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -170,6 +185,7 @@ export function QuestionRoundsSection({
                 : () => {} // No-op for inactive rounds
             }
             disabled={round.roundNumber !== currentRound}
+            hideHeader={maxRounds < 2}
           />
         ))}
       </div>
@@ -233,7 +249,7 @@ export function QuestionRoundsSection({
           <div className="bg-white dark:bg-gray-950 rounded-lg p-8 flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-              {currentRound >= 3 ? 'Finalizing spec...' : 'Processing your answers...'}
+              {currentRound >= maxRounds ? 'Finalizing spec...' : 'Processing your answers...'}
             </p>
           </div>
         </div>

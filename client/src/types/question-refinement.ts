@@ -39,7 +39,7 @@ export interface RoundAnswers {
  * Single question round (1-3)
  */
 export interface QuestionRound {
-  roundNumber: 1 | 2 | 3;
+  roundNumber: number;
   questions: ClarificationQuestion[];
   answers: RoundAnswers;
   generatedAt: Date; // When questions were generated
@@ -52,7 +52,13 @@ export interface QuestionRound {
  * Technical specification generated from questions
  */
 export interface TechSpec {
-  problemStatement: string;
+  problemStatement: string | {
+    narrative: string;
+    whyItMatters: string;
+    context: string;
+    assumptions: string[];
+    constraints: string[];
+  };
   solution: string[]; // Step-by-step solution
   acceptanceCriteria: string[];
   fileChanges: Array<{
@@ -67,7 +73,7 @@ export interface TechSpec {
  * API request to start a question round
  */
 export interface StartQuestionRoundRequest {
-  roundNumber: 1 | 2 | 3;
+  roundNumber: number;
   priorAnswers?: RoundAnswers; // Answers from previous rounds
 }
 
@@ -75,7 +81,7 @@ export interface StartQuestionRoundRequest {
  * API response from starting a round
  */
 export interface StartQuestionRoundResponse {
-  roundNumber: 1 | 2 | 3;
+  roundNumber: number;
   questions: ClarificationQuestion[];
   codebaseContext: string;
 }
@@ -84,7 +90,7 @@ export interface StartQuestionRoundResponse {
  * API request to submit answers
  */
 export interface SubmitAnswersRequest {
-  roundNumber: 1 | 2 | 3;
+  roundNumber: number;
   answers: RoundAnswers;
 }
 

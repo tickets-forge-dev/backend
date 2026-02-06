@@ -120,9 +120,9 @@ export class SubmitAnswersUseCase {
     aec: AEC,
     roundNumber: number,
   ): Promise<'continue' | 'finalize'> {
-    // Hard stop at Round 3
-    if (roundNumber >= 3) {
-      console.log(`📋 [SubmitAnswersUseCase] Reached maximum 3 rounds, forcing finalize`);
+    // Hard stop at max rounds
+    if (roundNumber >= aec.maxRounds) {
+      console.log(`📋 [SubmitAnswersUseCase] Reached maximum ${aec.maxRounds} rounds, forcing finalize`);
       return 'finalize';
     }
 

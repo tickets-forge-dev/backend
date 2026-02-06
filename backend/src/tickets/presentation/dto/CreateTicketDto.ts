@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, MinLength, MaxLength, Matches } from 'class-validator';
 
 export class CreateTicketDto {
   @IsString()
@@ -23,4 +23,10 @@ export class CreateTicketDto {
     message: 'branchName must contain only alphanumeric, /, -, _',
   })
   branchName?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(3)
+  maxRounds?: number;
 }

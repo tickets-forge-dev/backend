@@ -8,6 +8,7 @@ interface QuestionRoundPanelProps {
   isActive: boolean;
   onAnswer: (questionId: string, answer: string | string[]) => void;
   disabled?: boolean;
+  hideHeader?: boolean;
 }
 
 /**
@@ -25,58 +26,62 @@ export function QuestionRoundPanel({
   isActive,
   onAnswer,
   disabled = false,
+  hideHeader = false,
 }: QuestionRoundPanelProps) {
   const [isExpanded, setIsExpanded] = useState(isActive);
 
   const isAnswered = round.answeredAt !== null;
   const isSkipped = round.skippedByUser;
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | string) => {
+    const d = date instanceof Date ? date : new Date(date);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diff = now.getTime() - d.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
 
     if (minutes < 1) return 'just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
+    return d.toLocaleDateString();
   };
 
   return (
-    <div className="border rounded-lg mb-4 overflow-hidden">
-      {/* Header - Always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        disabled={disabled}
-        className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 disabled:bg-gray-50 disabled:opacity-50 flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3 flex-1 text-left">
-          {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+    <div className={hideHeader ? 'space-y-6' : 'border border-gray-200 dark:border-gray-800 rounded-lg mb-4 overflow-hidden'}>
+      {/* Header - Hidden for single-round flows */}
+      {!hideHeader && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          disabled={disabled}
+          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:opacity-50 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3 flex-1 text-left text-gray-900 dark:text-gray-100">
+            {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
 
-          <span className="font-semibold">
-            {isActive ? '◀' : isAnswered ? '✅' : '⏭️'} Round {round.roundNumber}: {getRoundTitle(round.roundNumber)}
-          </span>
-
-          {isAnswered && (
-            <span className="text-xs text-gray-500">
-              Answered {formatTime(round.answeredAt!)}
+            <span className="font-semibold">
+              {isActive ? '◀' : isAnswered ? '✅' : '⏭️'} Round {round.roundNumber}: {getRoundTitle(round.roundNumber)}
             </span>
-          )}
 
-          {isActive && !isAnswered && (
-            <Badge variant="default">Answering now...</Badge>
-          )}
+            {isAnswered && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Answered {formatTime(round.answeredAt!)}
+              </span>
+            )}
 
-          {isSkipped && (
-            <Badge variant="secondary">Skipped</Badge>
-          )}
-        </div>
-      </button>
+            {isActive && !isAnswered && (
+              <Badge variant="default">Answering now...</Badge>
+            )}
 
-      {/* Content - Visible when expanded */}
-      {isExpanded && (
-        <div className="px-4 py-4 border-t bg-white space-y-6">
+            {isSkipped && (
+              <Badge variant="secondary">Skipped</Badge>
+            )}
+          </div>
+        </button>
+      )}
+
+      {/* Content - Always visible when hideHeader, otherwise toggle */}
+      {(hideHeader || isExpanded) && (
+        <div className={hideHeader ? 'space-y-6' : 'px-4 py-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 space-y-6'}>
           {round.questions.map((question, idx) => (
             <QuestionInput
               key={question.id}
@@ -116,13 +121,13 @@ function QuestionInput({
     <div className="space-y-2">
       {/* Question Text with Context */}
       <div className="flex gap-2">
-        <label className="font-medium text-sm flex-1">
+        <label className="font-medium text-sm flex-1 text-gray-800 dark:text-gray-200">
           Q{questionNumber}: {question.question}
         </label>
         {question.context && (
           <button
             title={question.context}
-            className="text-gray-400 hover:text-gray-600 text-lg"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg"
           >
             ℹ️
           </button>
@@ -131,7 +136,7 @@ function QuestionInput({
 
       {/* Impact Badge */}
       {question.impact && (
-        <p className="text-xs text-gray-600 ml-0.5">
+        <p className="text-xs text-gray-600 dark:text-gray-400 ml-0.5">
           💡 <span className="italic">{question.impact}</span>
         </p>
       )}
@@ -210,9 +215,9 @@ function RadioInput({
             checked={value === option}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            className="w-4 h-4"
+            className="w-4 h-4 accent-blue-500"
           />
-          <span className="text-sm">{option}</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">{option}</span>
         </label>
       ))}
     </div>
@@ -253,9 +258,9 @@ function CheckboxInput({
             checked={selectedValues.includes(option)}
             onChange={(e) => handleChange(option, e.target.checked)}
             disabled={disabled}
-            className="w-4 h-4"
+            className="w-4 h-4 accent-blue-500"
           />
-          <span className="text-sm">{option}</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">{option}</span>
         </label>
       ))}
     </div>
@@ -283,7 +288,7 @@ function TextInput({
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       placeholder={placeholder}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100"
+      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500"
     />
   );
 }
@@ -310,7 +315,7 @@ function TextAreaInput({
       placeholder={placeholder}
       maxLength={500}
       rows={4}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100"
+      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500"
     />
   );
 }
@@ -334,7 +339,7 @@ function SelectInput({
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100"
+      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500"
     >
       <option value="">Select an option...</option>
       {options.map((option) => (
@@ -349,7 +354,7 @@ function SelectInput({
 /**
  * Get human-readable title for round number
  */
-function getRoundTitle(roundNumber: 1 | 2 | 3): string {
+function getRoundTitle(roundNumber: number): string {
   switch (roundNumber) {
     case 1:
       return 'Initial Clarification';

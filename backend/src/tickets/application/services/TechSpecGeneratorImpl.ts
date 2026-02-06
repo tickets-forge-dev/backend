@@ -1006,7 +1006,7 @@ Rewritten text (definitive, unambiguous):`;
     description?: string;
     context: CodebaseContext;
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>;
-    roundNumber: 1 | 2 | 3;
+    roundNumber: number;
   }): Promise<ClarificationQuestion[]> {
     try {
       const systemPrompt = PromptTemplates.systemPrompt(input.context);
@@ -1155,7 +1155,7 @@ Rewritten text (definitive, unambiguous):`;
   private buildQuestionsWithContextPrompt(
     title: string,
     description: string | undefined,
-    roundNumber: 1 | 2 | 3,
+    roundNumber: number,
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>,
   ): string {
     const priorAnswersText =

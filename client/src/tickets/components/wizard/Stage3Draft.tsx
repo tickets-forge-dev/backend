@@ -29,6 +29,7 @@ export function Stage3Draft() {
     error,
     questionRounds,
     currentRound,
+    maxRounds,
     goBackToContext,
     confirmSpecContinue,
     startQuestionRound,
@@ -107,7 +108,7 @@ export function Stage3Draft() {
   // Determine if we're still submitting
   const isSubmitting = roundStatus === 'submitting' || roundStatus === 'finalizing';
 
-  if (!draftAecId || !spec) {
+  if (!draftAecId) {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
@@ -160,7 +161,9 @@ export function Stage3Draft() {
                 Problem
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {spec.problemStatement}
+                {typeof spec.problemStatement === 'string'
+                  ? spec.problemStatement
+                  : (spec.problemStatement as any).narrative || JSON.stringify(spec.problemStatement)}
               </p>
             </div>
           )}
@@ -214,6 +217,7 @@ export function Stage3Draft() {
           <QuestionRoundsSection
             questionRounds={questionRounds}
             currentRound={currentRound}
+            maxRounds={maxRounds}
             onSubmitAnswers={handleSubmitAnswers}
             onSkipToFinalize={handleSkipToFinalize}
             onFinalizeSpec={handleFinalizeSpec}

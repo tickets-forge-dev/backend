@@ -73,6 +73,7 @@ export interface TaskAnalysis {
     conventionsToFollow: string[];
     testingApproach: string;
     estimatedComplexity: 'low' | 'medium' | 'high';
+    recommendedRounds: number;
   };
   llmFilesRead: string[];
   analysisTimestamp: string;
@@ -102,6 +103,7 @@ export interface WizardState {
   draftAecId: string | null;
   questionRounds: QuestionRound[];
   currentRound: number;
+  maxRounds: number;
   roundStatus: 'idle' | 'generating' | 'answering' | 'submitting' | 'finalizing';
   loading: boolean;
   loadingMessage: string | null;
@@ -130,7 +132,7 @@ export interface WizardActions {
   confirmSpecContinue: () => void;
 
   // Iterative refinement workflow (NEW)
-  startQuestionRound: (aecId: string, roundNumber: 1 | 2 | 3) => Promise<void>;
+  startQuestionRound: (aecId: string, roundNumber: number) => Promise<void>;
   answerQuestionInRound: (round: number, questionId: string, answer: string | string[]) => void;
   submitRoundAnswers: (roundNumber: number) => Promise<'continue' | 'finalize'>;
   skipToFinalize: () => Promise<void>;
@@ -179,6 +181,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   draftAecId: null,
   questionRounds: [],
   currentRound: 0,
+  maxRounds: 3,
   roundStatus: 'idle',
   loading: false,
   loadingMessage: null,
@@ -276,8 +279,16 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           }
 
           if (event.phase === 'complete') {
+            const analysisContext = event.result?.context || null;
+            // Extract recommendedRounds from deep analysis
+            const recommended = analysisContext?.taskAnalysis?.implementationHints?.recommendedRounds;
+            const rounds = typeof recommended === 'number'
+              ? Math.max(0, Math.min(3, Math.round(recommended)))
+              : 3;
+
             set({
-              context: event.result?.context || null,
+              context: analysisContext,
+              maxRounds: rounds,
               currentStage: 2,
               loading: false,
               loadingMessage: null,
@@ -366,7 +377,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ loading: true, error: null });
 
     try {
-      // Create draft AEC
+      // Create draft AEC with adaptive maxRounds
       const createResponse = await authFetch('/tickets', {
         method: 'POST',
         body: JSON.stringify({
@@ -374,6 +385,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           description: state.input.description,
           repositoryFullName: `${state.input.repoOwner}/${state.input.repoName}`,
           branchName: state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main',
+          maxRounds: state.maxRounds,
         }),
       });
 
@@ -382,6 +394,46 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       }
 
       const aec = await createResponse.json();
+
+      // If maxRounds is 0 (trivial task), auto-finalize: skip questions entirely
+      if (state.maxRounds === 0) {
+        set({
+          draftAecId: aec.id,
+          loading: true,
+          loadingMessage: 'Trivial task — generating spec directly...',
+        });
+
+        try {
+          const finalizeResponse = await authFetch(`/tickets/${aec.id}/finalize`, {
+            method: 'POST',
+          });
+
+          if (!finalizeResponse.ok) {
+            throw new Error(`Failed to finalize: ${finalizeResponse.statusText}`);
+          }
+
+          const finalizedAec = await finalizeResponse.json();
+          set({
+            draftAecId: aec.id,
+            spec: finalizedAec.techSpec,
+            currentStage: 4,
+            loading: false,
+            loadingMessage: null,
+          });
+        } catch (finalizeError) {
+          // Fallback: if auto-finalize fails, go to stage 3 with maxRounds=1
+          console.warn('Auto-finalize failed, falling back to 1 round:', finalizeError);
+          set({
+            draftAecId: aec.id,
+            maxRounds: 1,
+            currentStage: 3,
+            loading: false,
+            loadingMessage: null,
+          });
+        }
+        return;
+      }
+
       set({
         draftAecId: aec.id,
         currentStage: 3,
@@ -430,7 +482,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Start a new question round
    * Calls backend to generate context-aware questions
    */
-  startQuestionRound: async (aecId: string, roundNumber: 1 | 2 | 3) => {
+  startQuestionRound: async (aecId: string, roundNumber: number) => {
     const state = get();
     // Prevent duplicate calls while already generating
     if (state.roundStatus === 'generating') return;
@@ -528,16 +580,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       const { aec, nextAction } = await response.json();
 
       if (nextAction === 'continue') {
-        // Backend will have started next round, fetch updated AEC
-        set({
-          questionRounds: aec.questionRounds || state.questionRounds,
-          currentRound: aec.currentRound || state.currentRound,
-          roundStatus: 'idle',
-        });
-
-        // Auto-save
-        localStorage.setItem('wizard-question-rounds', JSON.stringify(aec.questionRounds));
-        localStorage.setItem('wizard-current-round', String(aec.currentRound));
+        // Start the next question round
+        const nextRound = roundNumber + 1;
+        if (nextRound <= get().maxRounds && state.draftAecId) {
+          await get().startQuestionRound(state.draftAecId, nextRound);
+        } else {
+          set({ roundStatus: 'idle' });
+        }
       } else {
         // Will finalize next
         set({ roundStatus: 'idle' });
@@ -768,6 +817,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       draftAecId: null,
       questionRounds: [],
       currentRound: 0,
+      maxRounds: 3,
       roundStatus: 'idle',
       loading: false,
       loadingMessage: null,

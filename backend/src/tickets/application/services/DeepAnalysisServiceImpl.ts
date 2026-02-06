@@ -393,7 +393,8 @@ Based on the ACTUAL CODE above, return this JSON:
       "existingPatterns": ["e.g. Follow the GitHubTokenService pattern for token encryption"],
       "conventionsToFollow": ["e.g. All guards extend CanActivate and are registered in module providers"],
       "testingApproach": "Based on existing test patterns: e.g. unit test the guard with mock FirebaseAuth",
-      "estimatedComplexity": "low|medium|high"
+      "estimatedComplexity": "low|medium|high",
+      "recommendedRounds": "0-3 integer. 0=trivial task (e.g. rename, change text), no questions needed, go straight to spec. 1=clear task with minor ambiguity (e.g. add a simple button). 2=moderate task with design decisions (e.g. add a form with validation). 3=complex task with significant ambiguity (e.g. implement OAuth2 from scratch). Base this on how much clarification the developer would realistically need."
     },
     "llmFilesRead": ${JSON.stringify(llmFilesRead)},
     "analysisTimestamp": "${new Date().toISOString()}"
@@ -426,6 +427,14 @@ QUALITY RULES:
     if (parsed.taskAnalysis) {
       parsed.taskAnalysis.llmFilesRead = llmFilesRead;
       parsed.taskAnalysis.analysisTimestamp = new Date().toISOString();
+
+      // Clamp recommendedRounds to valid range 0-3
+      if (parsed.taskAnalysis.implementationHints) {
+        const raw = parsed.taskAnalysis.implementationHints.recommendedRounds;
+        const num = typeof raw === 'number' ? raw : parseInt(String(raw), 10);
+        parsed.taskAnalysis.implementationHints.recommendedRounds =
+          isNaN(num) ? 3 : Math.max(0, Math.min(3, Math.round(num)));
+      }
     }
 
     return parsed;

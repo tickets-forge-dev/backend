@@ -62,6 +62,7 @@ export interface DeepAnalysisResult {
       conventionsToFollow: string[];
       testingApproach: string;
       estimatedComplexity: 'low' | 'medium' | 'high';
+      recommendedRounds: number;
     };
     llmFilesRead: string[];
     analysisTimestamp: string;

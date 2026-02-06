@@ -323,7 +323,7 @@ export interface TechSpecGenerator {
     description?: string;
     context: CodebaseContext;
     priorAnswers: AnswerContext[];
-    roundNumber: 1 | 2 | 3;
+    roundNumber: number;
   }): Promise<ClarificationQuestion[]>;
 
   /**

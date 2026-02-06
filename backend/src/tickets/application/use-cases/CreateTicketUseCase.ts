@@ -12,6 +12,7 @@ export interface CreateTicketCommand {
   description?: string;
   repositoryFullName?: string;
   branchName?: string;
+  maxRounds?: number;
 }
 
 @Injectable()
@@ -60,6 +61,7 @@ export class CreateTicketUseCase {
       command.title,
       command.description,
       repositoryContext,
+      command.maxRounds,
     );
 
     console.log('🎫 [CreateTicketUseCase] AEC created:', aec.id);

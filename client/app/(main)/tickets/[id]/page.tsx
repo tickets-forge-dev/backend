@@ -289,12 +289,13 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       {/* Question Rounds - Show if in progress */}
       {!isStartingRound && currentTicket.currentRound &&
        currentTicket.currentRound > 0 &&
-       currentTicket.currentRound <= 3 &&
+       currentTicket.currentRound <= (currentTicket.maxRounds ?? 3) &&
        currentTicket.questionRounds &&
        currentTicket.questionRounds.length > 0 && (
         <QuestionRoundsSection
           questionRounds={currentTicket.questionRounds}
           currentRound={currentTicket.currentRound}
+          maxRounds={currentTicket.maxRounds ?? 3}
           onSubmitAnswers={handleSubmitRoundAnswers}
           onSkipToFinalize={handleSkipToFinalize}
           onFinalizeSpec={handleFinalizeSpec}

@@ -32,7 +32,7 @@ export class QuestionRoundService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 30000,
+      timeout: 120000,
     });
 
     // Add Firebase ID token to all requests

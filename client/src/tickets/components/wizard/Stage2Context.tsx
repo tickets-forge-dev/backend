@@ -24,6 +24,7 @@ export function Stage2Context() {
   const {
     context,
     loading,
+    maxRounds,
     goBackToInput,
     confirmContextContinue,
   } = useWizardStore();
@@ -436,6 +437,13 @@ export function Stage2Context() {
                       }`}
                     >
                       {taskAnalysis.implementationHints.estimatedComplexity} complexity
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {maxRounds === 0
+                        ? '(no clarification needed)'
+                        : maxRounds === 1
+                          ? '(1 clarification round)'
+                          : `(${maxRounds} clarification rounds)`}
                     </span>
                   </div>
                   {taskAnalysis.implementationHints.existingPatterns.length > 0 && (

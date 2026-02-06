@@ -34,7 +34,8 @@ export interface AECResponse {
   validationResults: any[];
   // Iterative question refinement workflow fields
   questionRounds?: any[]; // QuestionRound[] from backend
-  currentRound?: number; // Current round number (1-3 or 0 if not started)
+  currentRound?: number; // Current round number (1-N or 0 if not started)
+  maxRounds?: number; // Adaptive max rounds (0-3, default 3)
   techSpec?: any; // TechSpec | null
   createdAt: string;
   updatedAt: string;

@@ -25,7 +25,7 @@ export interface RepositoryContextDocument {
 }
 
 export interface QuestionRoundDocument {
-  roundNumber: 1 | 2 | 3;
+  roundNumber: number;
   questions: any[];
   answers: Record<string, string | string[]>;
   generatedAt: Timestamp;
@@ -61,6 +61,7 @@ export interface AECDocument {
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
   techSpec?: TechSpec | null;
+  maxRounds?: number;
 }
 
 export class AECMapper {
@@ -166,6 +167,7 @@ export class AECMapper {
       questionRounds,
       doc.currentRound ?? 0,
       doc.techSpec ?? null,
+      doc.maxRounds ?? 3,
     );
   }
 
@@ -222,6 +224,7 @@ export class AECMapper {
       questionRounds,
       currentRound: aec.currentRound,
       techSpec: aec.techSpec,
+      maxRounds: aec.maxRounds,
     };
   }
 }

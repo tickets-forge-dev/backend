@@ -214,6 +214,7 @@ export class TicketsController {
       description: dto.description,
       repositoryFullName: dto.repositoryFullName,
       branchName: dto.branchName,
+      maxRounds: dto.maxRounds,
     });
 
     return this.mapToResponse(aec);
@@ -368,6 +369,7 @@ export class TicketsController {
       questionRounds: aec.questionRounds,
       currentRound: aec.currentRound,
       techSpec: aec.techSpec,
+      maxRounds: aec.maxRounds,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };

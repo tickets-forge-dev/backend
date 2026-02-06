@@ -16,7 +16,7 @@ import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
 export interface StartQuestionRoundCommand {
   aecId: string;
   workspaceId: string;
-  roundNumber: 1 | 2 | 3;
+  roundNumber: number;
 }
 
 /**
@@ -218,7 +218,7 @@ export class StartQuestionRoundUseCase {
   /**
    * Aggregate answers from previous rounds to provide context
    */
-  private aggregatePriorAnswers(aec: AEC, roundNumber: 1 | 2 | 3): Array<{ questionId: string; answer: string | string[] }> {
+  private aggregatePriorAnswers(aec: AEC, roundNumber: number): Array<{ questionId: string; answer: string | string[] }> {
     if (roundNumber === 1) {
       return []; // No prior answers for round 1
     }
@@ -247,7 +247,7 @@ export class StartQuestionRoundUseCase {
     description: string | null,
     context: CodebaseContext,
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>,
-    roundNumber: 1 | 2 | 3,
+    roundNumber: number,
   ): Promise<ClarificationQuestion[]> {
     let lastError: Error | null = null;
 

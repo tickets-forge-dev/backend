@@ -1,6 +1,8 @@
-import { IsEnum } from 'class-validator';
+import { IsInt, Min, Max } from 'class-validator';
 
 export class StartRoundDto {
-  @IsEnum([1, 2, 3])
-  roundNumber!: 1 | 2 | 3;
+  @IsInt()
+  @Min(1)
+  @Max(3)
+  roundNumber!: number;
 }

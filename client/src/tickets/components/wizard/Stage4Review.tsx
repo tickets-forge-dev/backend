@@ -77,7 +77,9 @@ export function Stage4Review() {
                   Problem
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {spec.problemStatement}
+                  {typeof spec.problemStatement === 'string'
+                    ? spec.problemStatement
+                    : (spec.problemStatement as any).narrative || JSON.stringify(spec.problemStatement)}
                 </p>
               </div>
             )}

@@ -1,8 +1,10 @@
-import { IsEnum, IsObject, IsOptional } from 'class-validator';
+import { IsInt, Min, Max, IsObject, IsOptional } from 'class-validator';
 
 export class SubmitAnswersDto {
-  @IsEnum([1, 2, 3], { message: 'Round number must be 1, 2, or 3' })
-  roundNumber!: 1 | 2 | 3;
+  @IsInt()
+  @Min(1)
+  @Max(3)
+  roundNumber!: number;
 
   @IsObject()
   @IsOptional()
