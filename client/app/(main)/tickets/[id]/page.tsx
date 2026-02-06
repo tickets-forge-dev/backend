@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
-import { Card } from '@/core/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +19,9 @@ import { InlineEditableList } from '@/src/tickets/components/InlineEditableList'
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
 import { QuestionRoundsSection } from '@/src/tickets/components/QuestionRoundsSection';
 import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
+import { EditableItem } from '@/src/tickets/components/EditableItem';
+import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
+import { useUndoDelete } from '@/src/tickets/hooks/use-undo-delete';
 import type { RoundAnswers } from '@/types/question-refinement';
 
 interface TicketDetailPageProps {
@@ -35,6 +37,9 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [answerSubmitError, setAnswerSubmitError] = useState<string | null>(null);
   const [isStartingRound, setIsStartingRound] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('');
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [editContext, setEditContext] = useState<{ section: string; index: number } | null>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
   const { questionRoundService } = useServices();
 
@@ -114,7 +119,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
   if (fetchError || !currentTicket) {
     return (
-      <Card className="p-6">
+      <div className="rounded-lg bg-[var(--bg-subtle)] p-6">
         <div className="text-center">
           <p className="text-[var(--text-base)] text-[var(--red)]">
             {fetchError || 'Ticket not found'}
@@ -127,7 +132,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             Back to Tickets
           </Button>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -178,6 +183,174 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const handleSaveAssumptions = async (items: string[]) => {
     if (!ticketId) return;
     await updateTicket(ticketId, { assumptions: items });
+  };
+
+  // Build a techSpec patch and send to backend
+  const saveTechSpecPatch = async (patch: Record<string, any>) => {
+    if (!ticketId) return false;
+    return updateTicket(ticketId, { techSpec: patch });
+  };
+
+  // Open edit dialog for a specific item
+  const openEdit = (section: string, index: number) => {
+    const ts = currentTicket?.techSpec;
+    if (!ts) return;
+
+    let state: EditState | null = null;
+
+    if (section === 'assumptions') {
+      const item = ts.problemStatement?.assumptions?.[index];
+      if (item) state = { mode: 'string', value: item, label: 'Assumption' };
+    } else if (section === 'constraints') {
+      const item = ts.problemStatement?.constraints?.[index];
+      if (item) state = { mode: 'string', value: item, label: 'Constraint' };
+    } else if (section === 'steps') {
+      const steps = ts.solution?.steps ?? (Array.isArray(ts.solution) ? ts.solution : null);
+      const step = steps?.[index];
+      if (step) {
+        const desc = typeof step === 'string' ? step : step.description || JSON.stringify(step);
+        state = { mode: 'string', value: desc, label: 'Step' };
+      }
+    } else if (section === 'acceptanceCriteria') {
+      const ac = ts.acceptanceCriteria?.[index];
+      if (ac) {
+        if (typeof ac === 'string') {
+          state = { mode: 'string', value: ac, label: 'Acceptance Criterion' };
+        } else {
+          state = {
+            mode: 'bdd',
+            given: ac.given || '',
+            when: ac.when || '',
+            then: ac.then || '',
+            implementationNotes: ac.implementationNotes || '',
+          };
+        }
+      }
+    } else if (section === 'fileChanges') {
+      const fc = ts.fileChanges?.[index];
+      if (fc) state = { mode: 'fileChange', path: fc.path, action: fc.action || fc.type || 'modify' };
+    } else if (section === 'inScope') {
+      const item = ts.inScope?.[index];
+      if (item) state = { mode: 'string', value: item, label: 'In-Scope Item' };
+    } else if (section === 'outOfScope') {
+      const item = ts.outOfScope?.[index];
+      if (item) state = { mode: 'string', value: item, label: 'Out-of-Scope Item' };
+    }
+
+    if (state) {
+      setEditState(state);
+      setEditContext({ section, index });
+      setEditDialogOpen(true);
+    }
+  };
+
+  // Save edited item back to techSpec
+  const handleEditSave = async (updated: EditState) => {
+    if (!editContext || !currentTicket?.techSpec) return;
+    const { section, index } = editContext;
+    const ts = currentTicket.techSpec;
+
+    const patch: Record<string, any> = {};
+
+    if (section === 'assumptions' && updated.mode === 'string') {
+      const arr = [...(ts.problemStatement?.assumptions || [])];
+      arr[index] = updated.value;
+      patch.problemStatement = { ...ts.problemStatement, assumptions: arr };
+    } else if (section === 'constraints' && updated.mode === 'string') {
+      const arr = [...(ts.problemStatement?.constraints || [])];
+      arr[index] = updated.value;
+      patch.problemStatement = { ...ts.problemStatement, constraints: arr };
+    } else if (section === 'steps' && updated.mode === 'string') {
+      if (Array.isArray(ts.solution)) {
+        const arr = [...ts.solution];
+        arr[index] = updated.value;
+        patch.solution = arr;
+      } else if (ts.solution?.steps) {
+        const arr = [...ts.solution.steps];
+        arr[index] = typeof arr[index] === 'string' ? updated.value : { ...arr[index], description: updated.value };
+        patch.solution = { ...ts.solution, steps: arr };
+      }
+    } else if (section === 'acceptanceCriteria') {
+      const arr = [...(ts.acceptanceCriteria || [])];
+      if (updated.mode === 'string') {
+        arr[index] = updated.value;
+      } else if (updated.mode === 'bdd') {
+        arr[index] = {
+          given: updated.given,
+          when: updated.when,
+          then: updated.then,
+          implementationNotes: updated.implementationNotes || undefined,
+        };
+      }
+      patch.acceptanceCriteria = arr;
+    } else if (section === 'fileChanges' && updated.mode === 'fileChange') {
+      const arr = [...(ts.fileChanges || [])];
+      arr[index] = { ...arr[index], path: updated.path, action: updated.action };
+      patch.fileChanges = arr;
+    } else if (section === 'inScope' && updated.mode === 'string') {
+      const arr = [...(ts.inScope || [])];
+      arr[index] = updated.value;
+      patch.inScope = arr;
+    } else if (section === 'outOfScope' && updated.mode === 'string') {
+      const arr = [...(ts.outOfScope || [])];
+      arr[index] = updated.value;
+      patch.outOfScope = arr;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      await saveTechSpecPatch(patch);
+    }
+
+    setEditDialogOpen(false);
+    setEditState(null);
+    setEditContext(null);
+  };
+
+  // Delete an item from a techSpec array
+  const deleteTechSpecItem = async (section: string, index: number) => {
+    if (!currentTicket?.techSpec) return;
+    const ts = currentTicket.techSpec;
+    const patch: Record<string, any> = {};
+
+    if (section === 'assumptions') {
+      const arr = [...(ts.problemStatement?.assumptions || [])];
+      arr.splice(index, 1);
+      patch.problemStatement = { ...ts.problemStatement, assumptions: arr };
+    } else if (section === 'constraints') {
+      const arr = [...(ts.problemStatement?.constraints || [])];
+      arr.splice(index, 1);
+      patch.problemStatement = { ...ts.problemStatement, constraints: arr };
+    } else if (section === 'steps') {
+      if (Array.isArray(ts.solution)) {
+        const arr = [...ts.solution];
+        arr.splice(index, 1);
+        patch.solution = arr;
+      } else if (ts.solution?.steps) {
+        const arr = [...ts.solution.steps];
+        arr.splice(index, 1);
+        patch.solution = { ...ts.solution, steps: arr };
+      }
+    } else if (section === 'acceptanceCriteria') {
+      const arr = [...(ts.acceptanceCriteria || [])];
+      arr.splice(index, 1);
+      patch.acceptanceCriteria = arr;
+    } else if (section === 'fileChanges') {
+      const arr = [...(ts.fileChanges || [])];
+      arr.splice(index, 1);
+      patch.fileChanges = arr;
+    } else if (section === 'inScope') {
+      const arr = [...(ts.inScope || [])];
+      arr.splice(index, 1);
+      patch.inScope = arr;
+    } else if (section === 'outOfScope') {
+      const arr = [...(ts.outOfScope || [])];
+      arr.splice(index, 1);
+      patch.outOfScope = arr;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      await saveTechSpecPatch(patch);
+    }
   };
 
   // Handle submitting answers for a question round
@@ -382,7 +555,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
       {/* Error message */}
       {answerSubmitError && (
-        <Card className="p-4 border-[var(--red)] bg-red-50 dark:bg-red-950/20">
+        <div className="rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-[var(--red)] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -402,7 +575,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               Dismiss
             </Button>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Validation Results */}
@@ -415,7 +588,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
       {/* Special case: maxRounds=0 (no questions needed) */}
       {!isStartingRound && currentTicket.maxRounds === 0 && !currentTicket.techSpec && (
-        <Card className="p-6">
+        <div className="rounded-lg bg-[var(--bg-subtle)] p-6">
           <div className="flex flex-col items-center justify-center gap-3">
             <CheckCircle className="h-12 w-12 text-green-500" />
             <div className="text-center">
@@ -427,19 +600,19 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               </p>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Loading state while scanning GitHub code and generating questions */}
       {isStartingRound && (
-        <Card className="p-8">
+        <div className="rounded-lg bg-[var(--bg-subtle)] p-8">
           <div className="flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
               📋 Generating questions...
             </p>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Question Rounds - Show if in progress */}
@@ -470,7 +643,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
           {/* Quality Score */}
           {currentTicket.techSpec.qualityScore !== undefined && (
-            <Card id="quality-score" data-nav-section className="p-4">
+            <div id="quality-score" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[var(--text-sm)] font-medium text-[var(--text)]">
@@ -493,12 +666,12 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   />
                 </div>
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Problem Statement */}
           {currentTicket.techSpec.problemStatement && (
-            <Card id="problem-statement" data-nav-section className="p-4 space-y-3">
+            <div id="problem-statement" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
               <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
                 Problem Statement
               </h3>
@@ -526,7 +699,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                       </p>
                       <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
                         {currentTicket.techSpec.problemStatement.assumptions.map((a: string, i: number) => (
-                          <li key={i}>&#8226; {a}</li>
+                          <li key={i}>
+                            <EditableItem onEdit={() => openEdit('assumptions', i)} onDelete={() => deleteTechSpecItem('assumptions', i)}>
+                              &#8226; {a}
+                            </EditableItem>
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -538,19 +715,23 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                       </p>
                       <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
                         {currentTicket.techSpec.problemStatement.constraints.map((c: string, i: number) => (
-                          <li key={i}>&#8226; {c}</li>
+                          <li key={i}>
+                            <EditableItem onEdit={() => openEdit('constraints', i)} onDelete={() => deleteTechSpecItem('constraints', i)}>
+                              &#8226; {c}
+                            </EditableItem>
+                          </li>
                         ))}
                       </ul>
                     </div>
                   )}
                 </>
               )}
-            </Card>
+            </div>
           )}
 
           {/* Solution Steps */}
           {currentTicket.techSpec.solution && (
-            <Card id="solution" data-nav-section className="p-4 space-y-3">
+            <div id="solution" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
               <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
                 Solution
               </h3>
@@ -561,13 +742,17 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               ) : Array.isArray(currentTicket.techSpec.solution) ? (
                 <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
                   {currentTicket.techSpec.solution.map((step: string | any, idx: number) => (
-                    <li key={idx} className="flex gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
-                        {idx + 1}
-                      </span>
-                      <span className="pt-0.5">
-                        {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
-                      </span>
+                    <li key={idx}>
+                      <EditableItem onEdit={() => openEdit('steps', idx)} onDelete={() => deleteTechSpecItem('steps', idx)}>
+                        <div className="flex gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
+                            {idx + 1}
+                          </span>
+                          <span className="pt-0.5">
+                            {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
+                          </span>
+                        </div>
+                      </EditableItem>
                     </li>
                   ))}
                 </ol>
@@ -579,59 +764,65 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   {currentTicket.techSpec.solution.steps?.length > 0 && (
                     <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
                       {currentTicket.techSpec.solution.steps.map((step: any, idx: number) => (
-                        <li key={idx} className="flex gap-3">
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
-                            {step.order || idx + 1}
-                          </span>
-                          <div className="pt-0.5">
-                            <p>{step.description}</p>
-                            {step.file && (
-                              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono mt-1">
-                                {step.file}{step.lineNumbers ? `:${step.lineNumbers[0]}-${step.lineNumbers[1]}` : ''}
-                              </p>
-                            )}
-                          </div>
+                        <li key={idx}>
+                          <EditableItem onEdit={() => openEdit('steps', idx)} onDelete={() => deleteTechSpecItem('steps', idx)}>
+                            <div className="flex gap-3">
+                              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
+                                {step.order || idx + 1}
+                              </span>
+                              <div className="pt-0.5">
+                                <p>{step.description}</p>
+                                {step.file && (
+                                  <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono mt-1">
+                                    {step.file}{step.lineNumbers ? `:${step.lineNumbers[0]}-${step.lineNumbers[1]}` : ''}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </EditableItem>
                         </li>
                       ))}
                     </ol>
                   )}
                 </div>
               ) : null}
-            </Card>
+            </div>
           )}
 
           {/* Acceptance Criteria from spec (BDD format or string list) */}
           {currentTicket.techSpec.acceptanceCriteria?.length > 0 && (
-            <Card id="spec-acceptance" data-nav-section className="p-4 space-y-3">
+            <div id="spec-acceptance" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
               <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
                 Acceptance Criteria
               </h3>
               <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
                 {currentTicket.techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
                   <li key={idx}>
-                    {typeof ac === 'string' ? (
-                      <span>&#8226; {ac}</span>
-                    ) : (
-                      <div className="space-y-1 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-                        <p><span className="font-medium text-[var(--text-tertiary)]">Given</span> {ac.given}</p>
-                        <p><span className="font-medium text-[var(--text-tertiary)]">When</span> {ac.when}</p>
-                        <p><span className="font-medium text-[var(--text-tertiary)]">Then</span> {ac.then}</p>
-                        {ac.implementationNotes && (
-                          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic mt-1">
-                            {ac.implementationNotes}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    <EditableItem onEdit={() => openEdit('acceptanceCriteria', idx)} onDelete={() => deleteTechSpecItem('acceptanceCriteria', idx)}>
+                      {typeof ac === 'string' ? (
+                        <span>&#8226; {ac}</span>
+                      ) : (
+                        <div className="space-y-1 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                          <p><span className="font-medium text-[var(--text-tertiary)]">Given</span> {ac.given}</p>
+                          <p><span className="font-medium text-[var(--text-tertiary)]">When</span> {ac.when}</p>
+                          <p><span className="font-medium text-[var(--text-tertiary)]">Then</span> {ac.then}</p>
+                          {ac.implementationNotes && (
+                            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic mt-1">
+                              {ac.implementationNotes}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </EditableItem>
                   </li>
                 ))}
               </ul>
-            </Card>
+            </div>
           )}
 
           {/* File Changes */}
           {currentTicket.techSpec.fileChanges?.length > 0 && (
-            <Card id="file-changes" data-nav-section className="p-4 space-y-3">
+            <div id="file-changes" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
               <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
                 File Changes
               </h3>
@@ -646,45 +837,57 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                     : 'text-amber-500';
 
                   return (
-                    <li key={idx} className="flex items-center gap-2 text-[var(--text-sm)]">
-                      <Icon className={`h-4 w-4 flex-shrink-0 ${colorClass}`} />
-                      <span className="font-mono text-[var(--text-secondary)]">{fc.path}</span>
-                      <Badge variant="outline" className="text-[var(--text-xs)] capitalize">
-                        {action}
-                      </Badge>
+                    <li key={idx}>
+                      <EditableItem onEdit={() => openEdit('fileChanges', idx)} onDelete={() => deleteTechSpecItem('fileChanges', idx)}>
+                        <div className="flex items-center gap-2 text-[var(--text-sm)]">
+                          <Icon className={`h-4 w-4 flex-shrink-0 ${colorClass}`} />
+                          <span className="font-mono text-[var(--text-secondary)]">{fc.path}</span>
+                          <Badge variant="outline" className="text-[var(--text-xs)] capitalize">
+                            {action}
+                          </Badge>
+                        </div>
+                      </EditableItem>
                     </li>
                   );
                 })}
               </ul>
-            </Card>
+            </div>
           )}
 
           {/* Scope */}
           {(currentTicket.techSpec.inScope?.length > 0 || currentTicket.techSpec.outOfScope?.length > 0) && (
             <div id="scope" data-nav-section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {currentTicket.techSpec.inScope?.length > 0 && (
-                <Card className="p-4 space-y-2">
+                <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-2">
                   <h3 className="text-[var(--text-sm)] font-medium text-green-600 dark:text-green-400">
                     In Scope
                   </h3>
                   <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
                     {currentTicket.techSpec.inScope.map((item: string, idx: number) => (
-                      <li key={idx}>&#8226; {item}</li>
+                      <li key={idx}>
+                        <EditableItem onEdit={() => openEdit('inScope', idx)} onDelete={() => deleteTechSpecItem('inScope', idx)}>
+                          &#8226; {item}
+                        </EditableItem>
+                      </li>
                     ))}
                   </ul>
-                </Card>
+                </div>
               )}
               {currentTicket.techSpec.outOfScope?.length > 0 && (
-                <Card className="p-4 space-y-2">
+                <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-2">
                   <h3 className="text-[var(--text-sm)] font-medium text-[var(--text-tertiary)]">
                     Out of Scope
                   </h3>
                   <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
                     {currentTicket.techSpec.outOfScope.map((item: string, idx: number) => (
-                      <li key={idx}>&#8226; {item}</li>
+                      <li key={idx}>
+                        <EditableItem onEdit={() => openEdit('outOfScope', idx)} onDelete={() => deleteTechSpecItem('outOfScope', idx)}>
+                          &#8226; {item}
+                        </EditableItem>
+                      </li>
                     ))}
                   </ul>
-                </Card>
+                </div>
               )}
             </div>
           )}
@@ -697,14 +900,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Acceptance Criteria
           </h2>
-          <Card className="p-4">
+          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
             <InlineEditableList
               items={currentTicket.acceptanceCriteria}
               type="numbered"
               onSave={handleSaveAcceptanceCriteria}
               emptyMessage="No acceptance criteria yet"
             />
-          </Card>
+          </div>
         </section>
       )}
 
@@ -714,14 +917,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Assumptions
           </h2>
-          <Card className="p-4">
+          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
             <InlineEditableList
               items={currentTicket.assumptions}
               type="bulleted"
               onSave={handleSaveAssumptions}
               emptyMessage="No assumptions yet"
             />
-          </Card>
+          </div>
         </section>
       )}
 
@@ -731,13 +934,13 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Affected Code
           </h2>
-          <Card className="p-4">
+          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
             <ul className="space-y-1 text-[var(--text-sm)] font-mono text-[var(--text-secondary)]">
               {currentTicket.repoPaths.map((path, index) => (
                 <li key={index}>{path}</li>
               ))}
             </ul>
-          </Card>
+          </div>
         </section>
       )}
 
@@ -747,7 +950,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Estimate
           </h2>
-          <Card className="p-4">
+          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
             <div className="space-y-2">
               <p className="text-[var(--text-base)] text-[var(--text)]">
                 {currentTicket.estimate.min}-{currentTicket.estimate.max} hours{' '}
@@ -763,7 +966,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 </ul>
               )}
             </div>
-          </Card>
+          </div>
         </section>
       )}
 
@@ -773,7 +976,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
             Clarification Needed
           </h2>
-          <Card className="p-4">
+          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
             <div className="space-y-4">
               {currentTicket.questions.slice(0, 3).map((question, index) => (
                 <div key={question.id || index} className="space-y-2">
@@ -799,7 +1002,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
         </section>
       )}
 
@@ -863,6 +1066,15 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Item Dialog */}
+      <EditItemDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        editState={editState}
+        onSave={handleEditSave}
+        isSaving={isUpdating}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

@@ -7,6 +7,7 @@ import { useUIStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
+import { Toaster } from 'sonner';
 
 export default function MainLayout({
   children,
@@ -27,6 +28,16 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[var(--bg)]">
       <Sidebar />
       <OnboardingDialog />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: 'var(--bg-surface)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+          },
+        }}
+      />
 
       {/* Hamburger menu for mobile */}
       <Button

@@ -8,6 +8,7 @@ export interface UpdateAECCommand {
   acceptanceCriteria?: string[];
   assumptions?: string[];
   status?: 'draft' | 'complete';
+  techSpec?: Record<string, any>;
 }
 
 @Injectable()
@@ -31,6 +32,10 @@ export class UpdateAECUseCase {
 
     if (command.assumptions !== undefined) {
       aec.updateAssumptions(command.assumptions);
+    }
+
+    if (command.techSpec !== undefined) {
+      aec.updateTechSpec(command.techSpec);
     }
 
     if (command.status === 'complete') {

@@ -5,7 +5,6 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { EditStackModal } from './EditModals/EditStackModal';
 import { EditAnalysisModal } from './EditModals/EditAnalysisModal';
-import { EditFilesModal } from './EditModals/EditFilesModal';
 
 /**
  * Stage 2: Context Review Component
@@ -33,7 +32,6 @@ export function Stage2Context() {
   // Modal state
   const [stackModalOpen, setStackModalOpen] = useState(false);
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
-  const [filesModalOpen, setFilesModalOpen] = useState(false);
 
   // Collapsible sections
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -310,12 +308,6 @@ export function Stage2Context() {
               ))}
             </div>
 
-            <button
-              onClick={() => setFilesModalOpen(true)}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-            >
-              [Edit Files]
-            </button>
           </div>
         )}
       </div>
@@ -563,7 +555,6 @@ export function Stage2Context() {
       {/* Edit Modals */}
       {stackModalOpen && <EditStackModal onClose={() => setStackModalOpen(false)} />}
       {analysisModalOpen && <EditAnalysisModal onClose={() => setAnalysisModalOpen(false)} />}
-      {filesModalOpen && <EditFilesModal onClose={() => setFilesModalOpen(false)} />}
     </div>
   );
 }

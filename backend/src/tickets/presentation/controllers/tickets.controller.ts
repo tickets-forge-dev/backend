@@ -253,6 +253,7 @@ export class TicketsController {
         acceptanceCriteria: dto.acceptanceCriteria,
         assumptions: dto.assumptions,
         status: dto.status,
+        techSpec: dto.techSpec,
       });
 
       return this.mapToResponse(aec);

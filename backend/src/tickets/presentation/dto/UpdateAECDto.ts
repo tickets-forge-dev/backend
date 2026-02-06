@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsOptional, IsIn } from 'class-validator';
+import { IsArray, IsString, IsOptional, IsIn, IsObject } from 'class-validator';
 
 export class UpdateAECDto {
   @IsArray()
@@ -14,4 +14,8 @@ export class UpdateAECDto {
   @IsIn(['draft', 'complete'])
   @IsOptional()
   status?: 'draft' | 'complete';
+
+  @IsObject()
+  @IsOptional()
+  techSpec?: Record<string, any>;
 }

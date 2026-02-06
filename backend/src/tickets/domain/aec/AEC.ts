@@ -392,6 +392,16 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  updateTechSpec(partial: Record<string, any>): void {
+    if (!this._techSpec) return;
+    for (const key of Object.keys(partial)) {
+      if (partial[key] !== undefined) {
+        (this._techSpec as any)[key] = partial[key];
+      }
+    }
+    this._updatedAt = new Date();
+  }
+
   setRepositoryContext(repositoryContext: RepositoryContext): void {
     this._repositoryContext = repositoryContext;
     this._updatedAt = new Date();
