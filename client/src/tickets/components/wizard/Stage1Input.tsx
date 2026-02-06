@@ -160,8 +160,8 @@ export function Stage1Input() {
           </div>
         </div>
 
-        {/* Description Input (optional) */}
-        <div className="space-y-2">
+        {/* Description Input (optional — hidden from UI but logic preserved) */}
+        <div className="hidden space-y-2">
           <label
             htmlFor="description"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -190,11 +190,11 @@ export function Stage1Input() {
         <RepositorySelector />
 
         {/* Submit Button */}
-        <div className="pt-4 space-y-3">
+        <div className="pt-4 space-y-3 flex flex-col items-end">
           <Button
             type="submit"
             disabled={!isFormValid || loading}
-            className="w-full"
+            className="px-8 bg-[var(--blue)] hover:bg-[var(--blue)]/90 text-white disabled:opacity-40"
           >
             {loading ? 'Analyzing...' : 'Next'}
           </Button>

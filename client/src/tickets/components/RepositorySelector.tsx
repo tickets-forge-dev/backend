@@ -41,6 +41,13 @@ export function RepositorySelector() {
     }
   }, [githubConnected, loadGitHubStatus, gitHubService]);
 
+  // Auto-select first repository if none selected
+  useEffect(() => {
+    if (githubConnected && selectedRepositories.length > 0 && !selectedRepository) {
+      handleSelect(selectedRepositories[0].fullName);
+    }
+  }, [githubConnected, selectedRepositories, selectedRepository]);
+
   const handleSelect = async (repoFullName: string) => {
     await setRepository(repoFullName);
   };
@@ -58,7 +65,11 @@ export function RepositorySelector() {
         </label>
         <div className="p-3 border border-[var(--border)] rounded-md bg-[var(--bg-subtle)]">
           <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Connect GitHub in Settings to enable code-aware ticket generation
+            Connect GitHub in{' '}
+            <a href="/settings" className="text-[var(--blue)] hover:underline font-medium">
+              Settings
+            </a>{' '}
+            to enable code-aware ticket generation.
           </p>
         </div>
       </div>
@@ -74,7 +85,11 @@ export function RepositorySelector() {
         </label>
         <div className="p-3 border border-[var(--border)] rounded-md bg-[var(--bg-subtle)]">
           <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Select repositories in Settings to use them for ticket generation
+            Select repositories in{' '}
+            <a href="/settings" className="text-[var(--blue)] hover:underline font-medium">
+              Settings
+            </a>{' '}
+            to use them for ticket generation.
           </p>
         </div>
       </div>

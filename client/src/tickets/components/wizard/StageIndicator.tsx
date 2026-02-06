@@ -19,83 +19,69 @@ export function StageIndicator({ currentStage }: { currentStage: number }) {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Progress Summary */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-50">
+        <h3 className="text-sm font-medium text-[var(--text)]">
           Stage {currentStage} of 4
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-[var(--text-secondary)]">
           {Math.round((currentStage / 4) * 100)}% complete
         </p>
       </div>
 
-      {/* Visual Stage Indicator */}
-      <div className="flex items-center gap-2">
-        {stages.map((stage) => {
-          const isCompleted = stage.number < currentStage;
-          const isCurrent = stage.number === currentStage;
+      {/* Steps with aligned labels */}
+      <div className="relative">
+        {/* Connector line behind circles */}
+        <div className="absolute top-4 left-[calc(12.5%+16px)] right-[calc(12.5%+16px)] h-0.5 bg-[var(--border)]" />
+        {/* Completed portion of connector */}
+        {currentStage > 1 && (
+          <div
+            className="absolute top-4 left-[calc(12.5%+16px)] h-0.5 bg-green-600 dark:bg-green-500"
+            style={{ width: `${((Math.min(currentStage, 4) - 1) / 3) * (100 - 25)}%` }}
+          />
+        )}
 
-          return (
-            <React.Fragment key={stage.number}>
-              {/* Stage Circle */}
-              <div
-                className={`
-                  flex items-center justify-center w-10 h-10 rounded-full font-medium text-sm
-                  transition-all duration-200
-                  ${
-                    isCurrent
-                      ? 'bg-gray-900 dark:bg-gray-50 text-white dark:text-gray-900 ring-2 ring-gray-900 dark:ring-gray-50'
-                      : isCompleted
-                        ? 'bg-green-600 dark:bg-green-500 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                  }
-                `}
-              >
-                {isCompleted ? (
-                  <span className="text-lg">✓</span>
-                ) : (
-                  stage.number
-                )}
-              </div>
+        {/* Step columns */}
+        <div className="relative flex justify-between">
+          {stages.map((stage) => {
+            const isCompleted = stage.number < currentStage;
+            const isCurrent = stage.number === currentStage;
 
-              {/* Connector Line */}
-              {stage.number < 4 && (
+            return (
+              <div key={stage.number} className="flex flex-col items-center w-1/4">
+                {/* Circle */}
                 <div
                   className={`
-                    flex-1 h-1 mx-1 rounded
+                    flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium
+                    transition-all duration-200 z-10
                     ${
-                      isCompleted
-                        ? 'bg-green-600 dark:bg-green-500'
-                        : 'bg-gray-200 dark:bg-gray-700'
+                      isCurrent
+                        ? 'bg-[var(--blue)] text-white ring-2 ring-[var(--blue)]/30'
+                        : isCompleted
+                          ? 'bg-green-600 dark:bg-green-500 text-white'
+                          : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border)]'
                     }
                   `}
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </div>
+                >
+                  {isCompleted ? '✓' : stage.number}
+                </div>
 
-      {/* Stage Labels */}
-      <div className="hidden sm:flex gap-2 text-xs">
-        {stages.map((stage) => (
-          <div
-            key={stage.number}
-            className="flex-1 text-center"
-          >
-            <p className={
-              stage.number === currentStage
-                ? 'font-medium text-gray-900 dark:text-gray-50'
-                : 'text-gray-600 dark:text-gray-400'
-            }>
-              {stage.label}
-            </p>
-            <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-              {stage.description}
-            </p>
-          </div>
-        ))}
+                {/* Label + description */}
+                <p className={`mt-2 text-xs text-center ${
+                  isCurrent
+                    ? 'font-medium text-[var(--text)]'
+                    : 'text-[var(--text-secondary)]'
+                }`}>
+                  {stage.label}
+                </p>
+                <p className="hidden sm:block text-[10px] text-center text-[var(--text-tertiary)] mt-0.5">
+                  {stage.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

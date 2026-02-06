@@ -134,7 +134,7 @@ export interface WizardActions {
   // Iterative refinement workflow (NEW)
   startQuestionRound: (aecId: string, roundNumber: number) => Promise<void>;
   answerQuestionInRound: (round: number, questionId: string, answer: string | string[]) => void;
-  submitRoundAnswers: (roundNumber: number) => Promise<'continue' | 'finalize'>;
+  submitRoundAnswers: (roundNumber: number, answers?: Record<string, string | string[]>) => Promise<'continue' | 'finalize'>;
   skipToFinalize: () => Promise<void>;
   finalizeSpec: () => Promise<void>;
   resumeDraft: (aecId: string) => Promise<void>;
@@ -550,7 +550,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Submit answers for current round
    * Backend decides: continue to next round or finalize
    */
-  submitRoundAnswers: async (roundNumber: number) => {
+  submitRoundAnswers: async (roundNumber: number, answers?: Record<string, string | string[]>) => {
     const state = get();
     if (!state.draftAecId) {
       set({ error: 'No draft AEC found' });
@@ -565,11 +565,23 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         throw new Error(`Round ${roundNumber} not found`);
       }
 
+      // Use provided answers (from UI component) or fall back to store's round answers
+      const finalAnswers = answers || round.answers;
+
+      // Sync answers back to store so they're persisted
+      if (answers) {
+        const updatedRounds = state.questionRounds.map((r) =>
+          r.roundNumber === roundNumber ? { ...r, answers: finalAnswers } : r,
+        );
+        set({ questionRounds: updatedRounds });
+        localStorage.setItem('wizard-question-rounds', JSON.stringify(updatedRounds));
+      }
+
       const response = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
         method: 'POST',
         body: JSON.stringify({
           roundNumber,
-          answers: round.answers,
+          answers: finalAnswers,
         }),
       });
 
