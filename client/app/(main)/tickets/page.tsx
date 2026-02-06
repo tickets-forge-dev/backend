@@ -132,21 +132,16 @@ export default function TicketsListPage() {
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    <div className="space-y-6">
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return `${diffDays}d ago`;
+  
+      return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+  
+    return (
+      <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[var(--text-xl)] font-medium text-[var(--text-secondary)]">
-            Tickets
-          </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Manage executable tickets
-          </p>
-        </div>
+      <div className="flex items-start justify-end">
         <Link href="/tickets/create">
           <Button>New Ticket</Button>
         </Link>
