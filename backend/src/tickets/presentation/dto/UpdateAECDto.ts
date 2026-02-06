@@ -1,6 +1,10 @@
 import { IsArray, IsString, IsOptional, IsIn, IsObject } from 'class-validator';
 
 export class UpdateAECDto {
+  @IsString()
+  @IsOptional()
+  description?: string;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

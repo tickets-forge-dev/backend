@@ -1,4 +1,4 @@
-import { AECStatus, TicketType } from '../value-objects/AECStatus';
+import { AECStatus, TicketType, TicketPriority } from '../value-objects/AECStatus';
 import { GenerationState } from '../value-objects/GenerationState';
 import { Estimate } from '../value-objects/Estimate';
 import { CodeSnapshot, ApiSnapshot } from '../value-objects/Snapshot';
@@ -22,6 +22,7 @@ export class AEC {
     private _title: string,
     private _description: string | null,
     private _type: TicketType | null,
+    private _priority: TicketPriority | null,
     private _readinessScore: number,
     private _generationState: GenerationState,
     private _acceptanceCriteria: string[],
@@ -52,6 +53,8 @@ export class AEC {
     description?: string,
     repositoryContext?: RepositoryContext,
     maxRounds: number = 3,
+    type?: TicketType,
+    priority?: TicketPriority,
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -64,7 +67,8 @@ export class AEC {
       AECStatus.DRAFT,
       title,
       description ?? null,
-      null,
+      type ?? null,
+      priority ?? null,
       0,
       { currentStep: 0, steps: [] }, // Will be initialized by use case
       [],
@@ -96,6 +100,7 @@ export class AEC {
     title: string,
     description: string | null,
     type: TicketType | null,
+    priority: TicketPriority | null,
     readinessScore: number,
     generationState: GenerationState,
     acceptanceCriteria: string[],
@@ -124,6 +129,7 @@ export class AEC {
       title,
       description,
       type,
+      priority,
       readinessScore,
       generationState,
       acceptanceCriteria,
@@ -382,6 +388,11 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  updateDescription(description: string): void {
+    this._description = description;
+    this._updatedAt = new Date();
+  }
+
   updateAcceptanceCriteria(acceptanceCriteria: string[]): void {
     this._acceptanceCriteria = acceptanceCriteria;
     this._updatedAt = new Date();
@@ -444,6 +455,9 @@ export class AEC {
   }
   get type(): TicketType | null {
     return this._type;
+  }
+  get priority(): TicketPriority | null {
+    return this._priority;
   }
   get readinessScore(): number {
     return this._readinessScore;

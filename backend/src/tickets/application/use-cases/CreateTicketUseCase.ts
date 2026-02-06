@@ -13,6 +13,8 @@ export interface CreateTicketCommand {
   repositoryFullName?: string;
   branchName?: string;
   maxRounds?: number;
+  type?: 'feature' | 'bug' | 'task';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
 }
 
 @Injectable()
@@ -62,6 +64,8 @@ export class CreateTicketUseCase {
       command.description,
       repositoryContext,
       command.maxRounds,
+      command.type,
+      command.priority,
     );
 
     console.log('🎫 [CreateTicketUseCase] AEC created:', aec.id);

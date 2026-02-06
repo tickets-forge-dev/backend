@@ -216,6 +216,8 @@ export class TicketsController {
       repositoryFullName: dto.repositoryFullName,
       branchName: dto.branchName,
       maxRounds: dto.maxRounds,
+      type: dto.type,
+      priority: dto.priority,
     });
 
     return this.mapToResponse(aec);
@@ -250,6 +252,7 @@ export class TicketsController {
     try {
       const aec = await this.updateAECUseCase.execute({
         aecId: id,
+        description: dto.description,
         acceptanceCriteria: dto.acceptanceCriteria,
         assumptions: dto.assumptions,
         status: dto.status,
@@ -354,6 +357,7 @@ export class TicketsController {
       title: aec.title,
       description: aec.description,
       type: aec.type,
+      priority: aec.priority,
       readinessScore: aec.readinessScore,
       generationState: aec.generationState,
       acceptanceCriteria: aec.acceptanceCriteria,

@@ -5,12 +5,14 @@ import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
-import { Loader2, SlidersHorizontal } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList } from 'lucide-react';
 
 export default function TicketsListPage() {
   const { tickets, isLoading, loadError, loadTickets } = useTicketsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showFilter, setShowFilter] = useState(false);
 
   useEffect(() => {
@@ -30,12 +32,48 @@ export default function TicketsListPage() {
         (statusFilter === 'draft' && ticket.status === 'draft') ||
         (statusFilter === 'complete' && ticket.status === 'complete');
 
-      return matchesSearch && matchesStatus;
+      const matchesPriority =
+        priorityFilter === 'all' || ticket.priority === priorityFilter;
+
+      const matchesType =
+        typeFilter === 'all' || ticket.type === typeFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority && matchesType;
     })
     .sort((a, b) => {
       // Sort by updatedAt (most recent first)
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
+
+  const getTypeIcon = (type: string | null) => {
+    switch (type) {
+      case 'bug':
+        return <Bug className="h-3.5 w-3.5 text-red-500" />;
+      case 'task':
+        return <ClipboardList className="h-3.5 w-3.5 text-blue-500" />;
+      case 'feature':
+      default:
+        return <Lightbulb className="h-3.5 w-3.5 text-amber-500" />;
+    }
+  };
+
+  const getPriorityIndicator = (priority: string | null) => {
+    if (!priority) return null;
+    const config: Record<string, { color: string; label: string }> = {
+      low: { color: 'bg-green-500', label: 'Low' },
+      medium: { color: 'bg-yellow-500', label: 'Medium' },
+      high: { color: 'bg-orange-500', label: 'High' },
+      urgent: { color: 'bg-red-500', label: 'Urgent' },
+    };
+    const c = config[priority];
+    if (!c) return null;
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
+        <span className={`h-1.5 w-1.5 rounded-full ${c.color}`} />
+        {c.label}
+      </span>
+    );
+  };
 
   const getStatusBadge = (ticket: any) => {
     if (ticket.status === 'complete') {
@@ -118,33 +156,70 @@ export default function TicketsListPage() {
             variant="ghost"
             size="icon"
             onClick={() => setShowFilter((v) => !v)}
-            className={statusFilter !== 'all' ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}
+            className={statusFilter !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
           {showFilter && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[120px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1 shadow-lg">
-                {[
-                  { value: 'all', label: 'All' },
-                  { value: 'draft', label: 'Draft' },
-                  { value: 'complete', label: 'Complete' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setStatusFilter(opt.value); setShowFilter(false); }}
-                    className={`
-                      w-full text-left px-3 py-1.5 rounded-md text-[var(--text-sm)] transition-colors
-                      ${statusFilter === opt.value
-                        ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                      }
-                    `}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
+                {/* Status */}
+                <div>
+                  <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Status</p>
+                  {[
+                    { value: 'all', label: 'All' },
+                    { value: 'draft', label: 'Draft' },
+                    { value: 'complete', label: 'Complete' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setStatusFilter(opt.value); }}
+                      className={`w-full text-left px-3 py-1.5 rounded-md text-[var(--text-sm)] transition-colors ${statusFilter === opt.value ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Priority */}
+                <div className="border-t border-[var(--border)]/30 pt-2">
+                  <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Priority</p>
+                  {[
+                    { value: 'all', label: 'All' },
+                    { value: 'urgent', label: 'Urgent', dot: 'bg-red-500' },
+                    { value: 'high', label: 'High', dot: 'bg-orange-500' },
+                    { value: 'medium', label: 'Medium', dot: 'bg-yellow-500' },
+                    { value: 'low', label: 'Low', dot: 'bg-green-500' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setPriorityFilter(opt.value); }}
+                      className={`w-full text-left px-3 py-1.5 rounded-md text-[var(--text-sm)] transition-colors flex items-center gap-2 ${priorityFilter === opt.value ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
+                    >
+                      {opt.dot && <span className={`h-1.5 w-1.5 rounded-full ${opt.dot}`} />}
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Type */}
+                <div className="border-t border-[var(--border)]/30 pt-2">
+                  <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Type</p>
+                  {[
+                    { value: 'all', label: 'All' },
+                    { value: 'feature', label: 'Feature' },
+                    { value: 'bug', label: 'Bug' },
+                    { value: 'task', label: 'Task' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setTypeFilter(opt.value); }}
+                      className={`w-full text-left px-3 py-1.5 rounded-md text-[var(--text-sm)] transition-colors flex items-center gap-2 ${typeFilter === opt.value ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
+                    >
+                      {opt.value !== 'all' && getTypeIcon(opt.value)}
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </>
           )}
@@ -173,10 +248,10 @@ export default function TicketsListPage() {
         <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)]/40 bg-[var(--bg-subtle)]">
           <div className="text-center">
             <p className="text-[var(--text-base)] text-[var(--text-secondary)]">
-              {searchQuery || statusFilter !== 'all' ? 'No tickets found' : 'No tickets yet'}
+              {searchQuery || statusFilter !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' ? 'No tickets found' : 'No tickets yet'}
             </p>
             <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-              {searchQuery || statusFilter !== 'all'
+              {searchQuery || statusFilter !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all'
                 ? 'Try adjusting your filters'
                 : 'Create your first executable ticket to get started'}
             </p>
@@ -202,17 +277,14 @@ export default function TicketsListPage() {
                     {/* Left: Title row */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5">
+                        {getTypeIcon(ticket.type)}
                         <h3 className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] truncate group-hover:text-[var(--text)] transition-colors">
                           {ticket.title}
                         </h3>
+                        {getPriorityIndicator(ticket.priority)}
                         {getStatusBadge(ticket)}
                       </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        {ticket.type && (
-                          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] capitalize">
-                            {ticket.type}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-3 mt-1 ml-6">
                         <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
                           {getRelativeTime(ticket.updatedAt)}
                         </span>

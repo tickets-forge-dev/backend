@@ -1,5 +1,5 @@
 import { AEC } from '../../../domain/aec/AEC';
-import { AECStatus, TicketType } from '../../../domain/value-objects/AECStatus';
+import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { QuestionRound } from '../../../domain/value-objects/QuestionRound';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
@@ -41,6 +41,7 @@ export interface AECDocument {
   title: string;
   description: string | null;
   type: string | null;
+  priority: string | null;
   readinessScore: number;
   generationState: any;
   acceptanceCriteria: string[];
@@ -148,6 +149,7 @@ export class AECMapper {
       doc.title,
       doc.description,
       doc.type as TicketType | null,
+      (doc.priority as TicketPriority) ?? null,
       doc.readinessScore,
       doc.generationState,
       doc.acceptanceCriteria,
@@ -203,6 +205,7 @@ export class AECMapper {
       title: aec.title,
       description: aec.description,
       type: aec.type,
+      priority: aec.priority,
       readinessScore: aec.readinessScore,
       generationState: aec.generationState,
       acceptanceCriteria: aec.acceptanceCriteria,

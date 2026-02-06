@@ -91,6 +91,8 @@ export interface WizardState {
     description?: string;
     branch?: string;
   };
+  type: string;
+  priority: string;
   context: {
     stack: any;
     analysis: any;
@@ -119,6 +121,8 @@ export interface WizardActions {
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
   setRepository: (owner: string, name: string) => void;
+  setType: (type: string) => void;
+  setPriority: (priority: string) => void;
 
   // Context stage
   analyzeRepository: () => Promise<void>;
@@ -175,6 +179,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     repoOwner: '',
     repoName: '',
   },
+  type: 'feature',
+  priority: 'low',
   context: null,
   spec: null,
   answers: {},
@@ -206,6 +212,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set((state) => ({
       input: { ...state.input, repoOwner: owner, repoName: name },
     })),
+
+  setType: (type: string) => set({ type }),
+
+  setPriority: (priority: string) => set({ priority }),
 
   // ============================================================================
   // STAGE 2: CONTEXT ACTIONS
@@ -386,6 +396,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           repositoryFullName: `${state.input.repoOwner}/${state.input.repoName}`,
           branchName: state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main',
           maxRounds: state.maxRounds,
+          type: state.type,
+          priority: state.priority,
         }),
       });
 
@@ -823,6 +835,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         repoOwner: '',
         repoName: '',
       },
+      type: 'feature',
+      priority: 'low',
       context: null,
       spec: null,
       answers: {},

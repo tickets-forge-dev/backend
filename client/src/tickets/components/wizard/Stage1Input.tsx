@@ -8,6 +8,8 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Textarea } from '@/core/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
+import { Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import { RepositorySelector } from '../RepositorySelector';
 
 /**
@@ -27,12 +29,16 @@ export function Stage1Input() {
   const { selectedRepository } = useTicketsStore();
   const {
     input,
+    type,
+    priority,
     loading,
     loadingMessage,
     progressPercent,
     setTitle,
     setDescription,
     setRepository,
+    setType,
+    setPriority,
     analyzeRepository,
   } = useWizardStore();
 
@@ -158,6 +164,77 @@ export function Stage1Input() {
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
               {input.title.length}/100
             </span>
+          </div>
+        </div>
+
+        {/* Type & Priority Selectors */}
+        <div className="flex gap-4">
+          <div className="flex-1 space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Type
+            </label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="feature">
+                  <span className="inline-flex items-center gap-2">
+                    <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                    Feature
+                  </span>
+                </SelectItem>
+                <SelectItem value="bug">
+                  <span className="inline-flex items-center gap-2">
+                    <Bug className="h-3.5 w-3.5 text-red-500" />
+                    Bug
+                  </span>
+                </SelectItem>
+                <SelectItem value="task">
+                  <span className="inline-flex items-center gap-2">
+                    <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
+                    Task
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1 space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Priority
+            </label>
+            <Select value={priority} onValueChange={setPriority}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    Low
+                  </span>
+                </SelectItem>
+                <SelectItem value="medium">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                    Medium
+                  </span>
+                </SelectItem>
+                <SelectItem value="high">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-orange-500" />
+                    High
+                  </span>
+                </SelectItem>
+                <SelectItem value="urgent">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    Urgent
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

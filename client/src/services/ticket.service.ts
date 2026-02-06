@@ -6,6 +6,8 @@ export interface CreateTicketRequest {
   description?: string;
   repositoryFullName?: string;
   branchName?: string;
+  type?: string;
+  priority?: string;
 }
 
 export interface AECResponse {
@@ -15,6 +17,7 @@ export interface AECResponse {
   title: string;
   description: string | null;
   type: string | null;
+  priority: string | null;
   readinessScore: number;
   generationState: {
     currentStep: number;
@@ -104,7 +107,7 @@ export class TicketService {
 
   async update(
     id: string,
-    data: { acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> },
+    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> },
   ): Promise<AECResponse> {
     const response = await this.client.patch<AECResponse>(
       `/tickets/${id}`,

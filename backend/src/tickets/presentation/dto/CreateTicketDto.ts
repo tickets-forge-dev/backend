@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, Min, Max, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsIn, Min, Max, MinLength, MaxLength, Matches } from 'class-validator';
 
 export class CreateTicketDto {
   @IsString()
@@ -29,4 +29,12 @@ export class CreateTicketDto {
   @Min(0)
   @Max(3)
   maxRounds?: number;
+
+  @IsIn(['feature', 'bug', 'task'])
+  @IsOptional()
+  type?: 'feature' | 'bug' | 'task';
+
+  @IsIn(['low', 'medium', 'high', 'urgent'])
+  @IsOptional()
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
 }

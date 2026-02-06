@@ -12,3 +12,4 @@ export enum AECStatus {
 }
 
 export type TicketType = 'feature' | 'bug' | 'task';
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
