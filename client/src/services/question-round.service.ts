@@ -14,12 +14,13 @@ import type {
 } from '@/types/question-refinement';
 
 /**
- * Service for iterative question refinement workflow
- * Handles:
- * - Starting new question rounds
- * - Submitting answers
- * - Finalizing specs
- * - Skipping to finalize
+ * Service for question refinement workflow
+ * Simplified single-set flow:
+ * - Generate up to 5 clarification questions
+ * - Submit answers and finalize spec
+ *
+ * Legacy support:
+ * - Old round-based endpoints (kept for backward compatibility)
  */
 export class QuestionRoundService {
   private client: AxiosInstance;
@@ -47,7 +48,64 @@ export class QuestionRoundService {
   }
 
   /**
-   * Start a new question round
+   * Generate clarification questions (simplified single-call flow)
+   * Up to 5 questions based on codebase context
+   */
+  async generateQuestions(ticketId: string): Promise<ClarificationQuestion[]> {
+    console.log(`❓ [QuestionRoundService] Generating questions for ticket ${ticketId}`);
+
+    try {
+      const response = await this.client.post<{ questions: ClarificationQuestion[] }>(
+        `/tickets/${ticketId}/generate-questions`
+      );
+      console.log(`❓ [QuestionRoundService] Questions generated`, {
+        questionCount: response.data.questions.length,
+      });
+      return response.data.questions;
+    } catch (error: any) {
+      console.error(
+        `❌ [QuestionRoundService] Failed to generate questions:`,
+        error.response?.data || error.message
+      );
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to generate questions');
+    }
+  }
+
+  /**
+   * Submit question answers and finalize spec
+   */
+  async submitQuestionAnswers(
+    ticketId: string,
+    answers: Record<string, string | string[]>
+  ): Promise<TechSpec> {
+    console.log(`✅ [QuestionRoundService] Submitting question answers for ticket ${ticketId}`);
+
+    try {
+      const response = await this.client.post<{ techSpec: TechSpec }>(
+        `/tickets/${ticketId}/submit-answers`,
+        { answers }
+      );
+      console.log(`✅ [QuestionRoundService] Answers submitted and spec finalized`, {
+        qualityScore: response.data.techSpec.qualityScore,
+      });
+      return response.data.techSpec;
+    } catch (error: any) {
+      console.error(
+        `❌ [QuestionRoundService] Failed to submit answers:`,
+        error.response?.data || error.message
+      );
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to submit answers');
+    }
+  }
+
+  /**
+   * LEGACY: Start a new question round (deprecated, use generateQuestions)
    * Generates context-aware questions based on codebase and prior answers
    */
   async startRound(
@@ -82,7 +140,7 @@ export class QuestionRoundService {
   }
 
   /**
-   * Submit answers for current round
+   * LEGACY: Submit answers for current round (deprecated)
    * Backend decides: continue to next round or finalize
    */
   async submitAnswers(
@@ -90,7 +148,7 @@ export class QuestionRoundService {
     roundNumber: 1 | 2 | 3,
     answers: RoundAnswers
   ): Promise<SubmitAnswersResponse> {
-    console.log(`📤 [QuestionRoundService] Submitting answers for round ${roundNumber}`);
+    console.log(`📤 [QuestionRoundService] LEGACY: Submitting answers for round ${roundNumber}`);
 
     try {
       const response = await this.client.post<SubmitAnswersResponse>(
@@ -117,10 +175,10 @@ export class QuestionRoundService {
   }
 
   /**
-   * Skip remaining rounds and finalize immediately
+   * LEGACY: Skip remaining rounds and finalize immediately (deprecated)
    */
   async skipToFinalize(ticketId: string): Promise<void> {
-    console.log(`⏭️ [QuestionRoundService] Skipping to finalize for ticket ${ticketId}`);
+    console.log(`⏭️ [QuestionRoundService] LEGACY: Skipping to finalize for ticket ${ticketId}`);
 
     try {
       await this.client.post(`/tickets/${ticketId}/skip-to-finalize`);

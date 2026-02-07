@@ -149,8 +149,13 @@ export interface WizardState {
   } | null;
   spec: TechSpec | null;
   answers: Record<string, string | string[]>; // Legacy: Clarification question answers
-  // Iterative refinement workflow
+
+  // Simplified question refinement (NEW - single set, no rounds)
   draftAecId: string | null;
+  clarificationQuestions: ClarificationQuestion[];
+  questionAnswers: Record<string, string | string[]>;
+
+  // Legacy iterative refinement workflow (deprecated)
   questionRounds: QuestionRound[];
   currentRound: number;
   maxRounds: number;
@@ -196,7 +201,11 @@ export interface WizardActions {
   tryRecover: () => RecoveryInfo;
   applyRecovery: () => Promise<void>;
 
-  // Iterative refinement workflow (NEW)
+  // Simplified question refinement workflow (NEW - replaces multi-round)
+  generateQuestions: () => Promise<void>;
+  submitQuestionAnswers: () => Promise<void>;
+
+  // Legacy iterative refinement workflow (deprecated, kept for compatibility)
   startQuestionRound: (aecId: string, roundNumber: number) => Promise<void>;
   answerQuestionInRound: (round: number, questionId: string, answer: string | string[]) => void;
   submitRoundAnswers: (roundNumber: number, answers?: Record<string, string | string[]>) => Promise<'continue' | 'finalize'>;
@@ -246,6 +255,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   spec: null,
   answers: {},
   draftAecId: null,
+  clarificationQuestions: [],
+  questionAnswers: {},
   questionRounds: [],
   currentRound: 0,
   maxRounds: 3,
@@ -622,12 +633,26 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Auto-saves to store for later use
    */
   answerQuestion: (questionId: string, answer: string | string[]) =>
-    set((state) => ({
-      answers: {
-        ...state.answers,
-        [questionId]: answer,
-      },
-    })),
+    set((state) => {
+      const updates: any = {
+        answers: {
+          ...state.answers,
+          [questionId]: answer,
+        },
+      };
+
+      // Also update questionAnswers for simplified flow
+      if (state.clarificationQuestions.length > 0) {
+        updates.questionAnswers = {
+          ...state.questionAnswers,
+          [questionId]: answer,
+        };
+        // Auto-save to localStorage
+        localStorage.setItem('wizard-question-answers', JSON.stringify(updates.questionAnswers));
+      }
+
+      return updates;
+    }),
 
   /**
    * User confirms draft review is complete
@@ -639,11 +664,100 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     }),
 
   // ============================================================================
-  // ITERATIVE REFINEMENT WORKFLOW (Stage 3 Alternative)
+  // SIMPLIFIED QUESTION REFINEMENT WORKFLOW (NEW - Single Set, No Rounds)
   // ============================================================================
 
   /**
-   * Start a new question round
+   * Generate clarification questions (up to 5, single call)
+   * Calls backend to generate context-aware questions based on codebase
+   */
+  generateQuestions: async () => {
+    const state = get();
+    if (!state.draftAecId) {
+      set({ error: 'No draft AEC found' });
+      return;
+    }
+
+    if (state.roundStatus === 'generating') return; // Prevent duplicate calls
+    set({ roundStatus: 'generating', error: null });
+
+    try {
+      const response = await authFetch(`/tickets/${state.draftAecId}/generate-questions`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate questions: ${response.statusText}`);
+      }
+
+      const { questions } = await response.json();
+      set({
+        clarificationQuestions: questions,
+        roundStatus: 'idle',
+        currentStage: 3,
+      });
+
+      // Auto-save to localStorage
+      localStorage.setItem('wizard-clarification-questions', JSON.stringify(questions));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      set({
+        error: errorMessage,
+        roundStatus: 'idle',
+      });
+    }
+  },
+
+  /**
+   * Submit all question answers and finalize spec
+   * Combines answer submission + spec generation in one call
+   */
+  submitQuestionAnswers: async () => {
+    const state = get();
+    if (!state.draftAecId) {
+      set({ error: 'No draft AEC found' });
+      return;
+    }
+
+    set({ roundStatus: 'submitting', error: null });
+
+    try {
+      const response = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
+        method: 'POST',
+        body: JSON.stringify({ answers: state.questionAnswers }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit answers: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Update state with finalized spec
+      set({
+        spec: data.techSpec,
+        roundStatus: 'idle',
+        currentStage: 4, // Advance to review stage
+      });
+
+      // Clear localStorage
+      localStorage.removeItem('wizard-clarification-questions');
+      localStorage.removeItem('wizard-question-answers');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      set({
+        error: errorMessage,
+        roundStatus: 'idle',
+      });
+    }
+  },
+
+  // ============================================================================
+  // LEGACY ITERATIVE REFINEMENT WORKFLOW (Deprecated - kept for compatibility)
+  // ============================================================================
+
+  /**
+   * LEGACY: Start a new question round
    * Calls backend to generate context-aware questions
    */
   startQuestionRound: async (aecId: string, roundNumber: number) => {
@@ -876,6 +990,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       set({
         draftAecId: aecId,
+        // New simplified question fields
+        clarificationQuestions: aec.questions || [],
+        questionAnswers: aec.questionAnswers || {},
+        // Legacy round-based fields
         questionRounds: aec.questionRounds || [],
         currentRound: aec.currentRound || 0,
         maxRounds: aec.maxRounds ?? get().maxRounds,
@@ -893,8 +1011,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       // Restore localStorage
       localStorage.setItem('wizard-draft-aec-id', aecId);
-      localStorage.setItem('wizard-question-rounds', JSON.stringify(aec.questionRounds));
-      localStorage.setItem('wizard-current-round', String(aec.currentRound));
+      localStorage.setItem('wizard-clarification-questions', JSON.stringify(aec.questions || []));
+      localStorage.setItem('wizard-question-answers', JSON.stringify(aec.questionAnswers || {}));
+      localStorage.setItem('wizard-question-rounds', JSON.stringify(aec.questionRounds || []));
+      localStorage.setItem('wizard-current-round', String(aec.currentRound || 0));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
