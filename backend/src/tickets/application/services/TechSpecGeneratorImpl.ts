@@ -30,6 +30,11 @@ import {
   TechSpec,
   CodebaseContext,
   QuestionType,
+  ApiChanges,
+  ApiEndpoint,
+  LayeredFileChanges,
+  TestPlan,
+  TestCase,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
 import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
 import { CodebaseAnalysis } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -208,6 +213,120 @@ IMPORTANT:
 - Valid JSON array only`;
   }
 
+  static testPlanPrompt(
+    solutionOverview: string,
+    acceptanceCriteria: AcceptanceCriterion[],
+    fileChanges: FileChange[],
+  ): string {
+    const acText = acceptanceCriteria
+      .map((ac, i) => `${i + 1}. Given ${ac.given}, When ${ac.when}, Then ${ac.then}`)
+      .join('\n');
+
+    const filesText = fileChanges
+      .map((fc) => `- ${fc.path} (${fc.action})`)
+      .join('\n');
+
+    return `Generate a comprehensive test plan for this implementation:
+
+Solution: ${solutionOverview}
+
+Acceptance Criteria:
+${acText || '(None provided)'}
+
+Files to change:
+${filesText || '(None specified)'}
+
+Generate valid JSON object with EXACTLY this structure:
+{
+  "summary": "High-level testing approach (2-3 sentences)",
+  "unitTests": [
+    {
+      "type": "unit",
+      "description": "What this test verifies",
+      "testFile": "path/to/test.spec.ts",
+      "testName": "describe > it should ...",
+      "setup": "Arrange: mock setup, test data",
+      "action": "Act: method/function call",
+      "assertion": "Assert: expected outcome",
+      "dependencies": ["mock-name"]
+    }
+  ],
+  "integrationTests": [
+    {
+      "type": "integration",
+      "description": "What this integration test verifies",
+      "testFile": "path/to/test.spec.ts",
+      "testName": "describe > it should ...",
+      "setup": "Arrange: setup",
+      "action": "Act: action",
+      "assertion": "Assert: outcome",
+      "dependencies": []
+    }
+  ],
+  "edgeCases": [
+    {
+      "type": "edge-case",
+      "description": "Edge case scenario",
+      "testFile": "path/to/test.spec.ts",
+      "testName": "describe > it should handle ...",
+      "setup": "Arrange",
+      "action": "Act",
+      "assertion": "Assert",
+      "dependencies": []
+    }
+  ],
+  "testingNotes": "Additional notes about testing strategy",
+  "coverageGoal": 80
+}
+
+IMPORTANT:
+- Generate 5+ unit tests covering core business logic
+- Generate 2+ integration tests covering cross-module interactions
+- Generate 2+ edge case tests covering error paths, boundary conditions
+- Test file paths must match project conventions
+- Each test must have setup, action, and assertion (Arrange-Act-Assert pattern)
+- Include mock/fixture dependencies where needed
+- Reference specific functions, classes, or modules from the file changes`;
+  }
+
+  static layerCategorizationPrompt(
+    fileChanges: FileChange[],
+    projectStructure: string,
+  ): string {
+    const filesText = fileChanges
+      .map((fc) => `- ${fc.path} (${fc.action})`)
+      .join('\n');
+
+    return `Categorize these file changes by architectural layer:
+
+Files:
+${filesText}
+
+Project structure context:
+${projectStructure}
+
+Generate valid JSON object with EXACTLY this structure:
+{
+  "backend": [files that are server-side: controllers, services, use-cases, domain, guards, middleware],
+  "frontend": [files that are client-side: components, pages, stores, hooks, styles],
+  "shared": [files shared between layers: types, interfaces, DTOs, shared packages],
+  "infrastructure": [CI/CD, Docker, Terraform, GitHub Actions, build configs],
+  "documentation": [markdown files, docs, READMEs]
+}
+
+Each array entry must have the same structure as the input file changes:
+{ "path": "...", "action": "create|modify|delete" }
+
+RULES:
+- Every input file MUST appear in exactly one output category
+- Use path patterns: backend/, server/, api/ → backend; client/, frontend/, .tsx/.jsx → frontend
+- NestJS modules (.module.ts, .controller.ts, .service.ts) → backend
+- Next.js pages, React components → frontend
+- packages/, shared/, types/ → shared
+- .github/, docker, terraform → infrastructure
+- *.md, docs/ → documentation`;
+  }
+
   static fileChangesPrompt(
     solutionOverview: string,
     directoryStructure: string,
@@ -320,14 +439,21 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
 
     const solution = await this.generateSolution(problemStatement, context);
 
-    const [acceptanceCriteria, clarificationQuestions, fileChanges, inScope, outOfScope] =
+    const [acceptanceCriteria, clarificationQuestions, fileChanges, inScope, outOfScope, apiChanges] =
       await Promise.all([
         this.generateAcceptanceCriteria(context),
         this.generateClarificationQuestions(context),
         this.generateFileChanges(solution, context),
         this.generateScope(input.title, input.description || '', true),
         this.generateScope(input.title, input.description || '', false),
+        this.extractApiChanges(input.analysis),
       ]);
+
+    // Generate sections that depend on fileChanges (parallel)
+    const [testPlan, layeredFileChanges] = await Promise.all([
+      this.generateTestPlan(solution, acceptanceCriteria, fileChanges, context),
+      this.categorizeFilesByLayer(fileChanges, context),
+    ]);
 
     // Assemble tech spec
     const { v4: uuidv4 } = await import('uuid');
@@ -344,6 +470,9 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       fileChanges,
       qualityScore: 0, // Will be calculated below
       ambiguityFlags: [],
+      apiChanges,
+      layeredFileChanges,
+      testPlan,
     };
 
     // Detect and remove ambiguities
@@ -533,6 +662,146 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   }
 
   /**
+   * Extracts API changes from deep analysis result if available
+   */
+  async extractApiChanges(analysis: CodebaseAnalysis): Promise<ApiChanges | undefined> {
+    const rawAnalysis = analysis as any;
+    if (rawAnalysis?.taskAnalysis?.apiChanges) {
+      const apiChanges = rawAnalysis.taskAnalysis.apiChanges;
+      if (apiChanges.endpoints && Array.isArray(apiChanges.endpoints) && apiChanges.endpoints.length > 0) {
+        return {
+          endpoints: apiChanges.endpoints
+            .filter((e: any) => e.method && e.route && e.description)
+            .map((e: any) => ({
+              method: e.method,
+              route: e.route,
+              controller: e.controller,
+              dto: e.dto,
+              description: e.description,
+              authentication: e.authentication || 'none',
+              status: e.status || 'new',
+            })),
+          baseUrl: apiChanges.baseUrl,
+          middlewares: apiChanges.middlewares,
+          rateLimiting: apiChanges.rateLimiting,
+        };
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Categorizes file changes by architectural layer
+   */
+  async categorizeFilesByLayer(
+    fileChanges: FileChange[],
+    context: CodebaseContext,
+  ): Promise<LayeredFileChanges> {
+    if (fileChanges.length === 0) {
+      return { backend: [], frontend: [], shared: [], infrastructure: [], documentation: [] };
+    }
+
+    try {
+      const directoryStructure = this.buildDirectoryStructure(context);
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+      const userPrompt = PromptTemplates.layerCategorizationPrompt(fileChanges, directoryStructure);
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<LayeredFileChanges>(response);
+
+      // Validate structure
+      if (!parsed.backend || !parsed.frontend) {
+        throw new Error('Invalid layer categorization structure');
+      }
+
+      return {
+        backend: Array.isArray(parsed.backend) ? parsed.backend : [],
+        frontend: Array.isArray(parsed.frontend) ? parsed.frontend : [],
+        shared: Array.isArray(parsed.shared) ? parsed.shared : [],
+        infrastructure: Array.isArray(parsed.infrastructure) ? parsed.infrastructure : [],
+        documentation: Array.isArray(parsed.documentation) ? parsed.documentation : [],
+      };
+    } catch (error) {
+      this.logger.warn(`Layer categorization failed, using fallback: ${String(error)}`);
+      return this.fallbackCategorization(fileChanges);
+    }
+  }
+
+  /**
+   * Heuristic fallback for file layer categorization when LLM fails
+   */
+  private fallbackCategorization(fileChanges: FileChange[]): LayeredFileChanges {
+    const result: LayeredFileChanges = {
+      backend: [],
+      frontend: [],
+      shared: [],
+      infrastructure: [],
+      documentation: [],
+    };
+
+    for (const fc of fileChanges) {
+      const path = fc.path.toLowerCase();
+      if (path.endsWith('.md') || path.startsWith('docs/')) {
+        result.documentation.push(fc);
+      } else if (path.startsWith('.github/') || path.includes('docker') || path.includes('terraform') || path.includes('ci/')) {
+        result.infrastructure.push(fc);
+      } else if (path.startsWith('shared/') || path.startsWith('packages/') || path.includes('/shared/')) {
+        result.shared.push(fc);
+      } else if (path.startsWith('client/') || path.startsWith('frontend/') || path.endsWith('.tsx') || path.endsWith('.jsx')) {
+        result.frontend.push(fc);
+      } else if (path.startsWith('backend/') || path.startsWith('server/') || path.startsWith('api/') || path.endsWith('.controller.ts') || path.endsWith('.service.ts') || path.endsWith('.module.ts')) {
+        result.backend.push(fc);
+      } else {
+        // Default: if it looks like backend code, put it there; otherwise shared
+        result.backend.push(fc);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Generates a comprehensive test plan for the specification
+   */
+  async generateTestPlan(
+    solution: SolutionSection,
+    acceptanceCriteria: AcceptanceCriterion[],
+    fileChanges: FileChange[],
+    context: CodebaseContext,
+  ): Promise<TestPlan | undefined> {
+    try {
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+      const userPrompt = PromptTemplates.testPlanPrompt(
+        solution.overview,
+        acceptanceCriteria,
+        fileChanges,
+      );
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<TestPlan>(response);
+
+      // Validate minimum structure
+      if (!parsed.summary || !Array.isArray(parsed.unitTests)) {
+        throw new Error('Invalid test plan structure');
+      }
+
+      // Ensure arrays exist
+      if (!Array.isArray(parsed.integrationTests)) parsed.integrationTests = [];
+      if (!Array.isArray(parsed.edgeCases)) parsed.edgeCases = [];
+
+      // Log warnings for low test counts
+      if (parsed.unitTests.length < 5) this.logger.warn(`Test plan has only ${parsed.unitTests.length} unit tests (5+ recommended)`);
+      if (parsed.integrationTests.length < 2) this.logger.warn(`Test plan has only ${parsed.integrationTests.length} integration tests (2+ recommended)`);
+      if (parsed.edgeCases.length < 2) this.logger.warn(`Test plan has only ${parsed.edgeCases.length} edge cases (2+ recommended)`);
+
+      return parsed;
+    } catch (error) {
+      this.logger.warn(`Test plan generation failed: ${String(error)}`);
+      return undefined;
+    }
+  }
+
+  /**
    * Generates scope items (in-scope or out-of-scope)
    */
   private async generateScope(title: string, description: string, inScope: boolean): Promise<string[]> {
@@ -630,12 +899,15 @@ Rewritten text (definitive, unambiguous):`;
   /**
    * Calculates quality score (0-100)
    *
-   * Breakdown:
+   * Breakdown (rebalanced for Epic 20):
    * - Problem Statement (0-20): narrative, whyItMatters, context, assumptions, constraints
-   * - Solution (0-30): steps count, file paths, line numbers, code snippets
-   * - Acceptance Criteria (0-20): count, BDD format, testability, edge cases
-   * - File Changes (0-15): paths specific, line numbers, imports, patterns
-   * - Ambiguity (0-15): deduct for ambiguous language, reward for definitive
+   * - Solution (0-25): steps count, file paths, line numbers, code snippets
+   * - Acceptance Criteria (0-15): count, BDD format, testability, edge cases
+   * - File Changes (0-10): paths specific, line numbers, imports, patterns
+   * - Ambiguity (0-10): deduct for ambiguous language, reward for definitive
+   * - Test Plan (0-10): comprehensive test coverage
+   * - Layer Categorization (0-5): backend/frontend split clarity
+   * - API Changes (0-5): endpoint documentation completeness
    */
   calculateQualityScore(spec: TechSpec): number {
     let score = 0;
@@ -643,17 +915,26 @@ Rewritten text (definitive, unambiguous):`;
     // Problem Statement (0-20)
     score += this.scoreProblemStatement(spec.problemStatement);
 
-    // Solution (0-30)
+    // Solution (0-25)
     score += this.scoreSolution(spec.solution);
 
-    // Acceptance Criteria (0-20)
+    // Acceptance Criteria (0-15)
     score += this.scoreAcceptanceCriteria(spec.acceptanceCriteria);
 
-    // File Changes (0-15)
+    // File Changes (0-10)
     score += this.scoreFileChanges(spec.fileChanges);
 
-    // Ambiguity (0-15)
+    // Ambiguity (0-10)
     score += this.scoreAmbiguity(spec);
+
+    // Epic 20: Test Plan (0-10)
+    if (spec.testPlan) score += this.scoreTestPlan(spec.testPlan);
+
+    // Epic 20: Layer Categorization (0-5)
+    if (spec.layeredFileChanges) score += this.scoreLayerCategorization(spec.layeredFileChanges);
+
+    // Epic 20: API Changes (0-5)
+    if (spec.apiChanges) score += this.scoreApiChanges(spec.apiChanges);
 
     return Math.min(100, Math.max(0, score));
   }
@@ -689,27 +970,27 @@ Rewritten text (definitive, unambiguous):`;
   }
 
   /**
-   * Scores solution (0-30)
+   * Scores solution (0-25)
    */
   private scoreSolution(solution: SolutionSection): number {
     let score = 0;
 
-    // steps count: 0-8
+    // steps count: 0-7
     const stepCount = Array.isArray(solution.steps) ? solution.steps.length : 0;
-    if (stepCount >= 5) score += 8;
-    else if (stepCount >= 3) score += 5;
+    if (stepCount >= 5) score += 7;
+    else if (stepCount >= 3) score += 4;
     else if (stepCount > 0) score += 2;
 
-    // file paths: 0-8
+    // file paths: 0-7
     const filesWithPaths = (solution.steps || []).filter((s) => s.file && s.file.includes('/'));
-    if (filesWithPaths.length === stepCount && stepCount > 0) score += 8;
-    else if (filesWithPaths.length / stepCount > 0.5) score += 5;
+    if (filesWithPaths.length === stepCount && stepCount > 0) score += 7;
+    else if (filesWithPaths.length / stepCount > 0.5) score += 4;
     else if (filesWithPaths.length > 0) score += 2;
 
-    // line numbers: 0-8
+    // line numbers: 0-6
     const filesWithLines = (solution.steps || []).filter((s) => s.lineNumbers);
-    if (filesWithLines.length >= 3) score += 8;
-    else if (filesWithLines.length >= 2) score += 5;
+    if (filesWithLines.length >= 3) score += 6;
+    else if (filesWithLines.length >= 2) score += 4;
     else if (filesWithLines.length > 0) score += 2;
 
     // code snippets: 0-3
@@ -717,36 +998,36 @@ Rewritten text (definitive, unambiguous):`;
     if (filesWithSnippets.length >= 2) score += 3;
     else if (filesWithSnippets.length > 0) score += 1;
 
-    // file changes: 0-3
+    // file changes: 0-2
     if (
       solution.fileChanges &&
       (solution.fileChanges.create?.length || 0) +
         (solution.fileChanges.modify?.length || 0) >
         0
     ) {
-      score += 3;
+      score += 2;
     }
 
     return score;
   }
 
   /**
-   * Scores acceptance criteria (0-20)
+   * Scores acceptance criteria (0-15)
    */
   private scoreAcceptanceCriteria(criteria: AcceptanceCriterion[]): number {
     let score = 0;
 
-    // count: 0-7
+    // count: 0-5
     const count = Array.isArray(criteria) ? criteria.length : 0;
-    if (count >= 5) score += 7;
-    else if (count >= 3) score += 4;
-    else if (count > 0) score += 2;
+    if (count >= 5) score += 5;
+    else if (count >= 3) score += 3;
+    else if (count > 0) score += 1;
 
-    // BDD format: 0-7
+    // BDD format: 0-5
     const validBDD = (criteria || []).filter((ac) => ac.given && ac.when && ac.then);
-    if (validBDD.length === count && count > 0) score += 7;
-    else if (validBDD.length / count > 0.7) score += 4;
-    else if (validBDD.length > 0) score += 2;
+    if (validBDD.length === count && count > 0) score += 5;
+    else if (validBDD.length / count > 0.7) score += 3;
+    else if (validBDD.length > 0) score += 1;
 
     // testability: 0-3
     const withNotes = (criteria || []).filter((ac) => ac.implementationNotes);
@@ -754,60 +1035,60 @@ Rewritten text (definitive, unambiguous):`;
     else if (withNotes.length / count > 0.5) score += 2;
     else if (withNotes.length > 0) score += 1;
 
-    // edge cases: 0-3
+    // edge cases: 0-2
     const hasEdgeCase = (criteria || []).some(
       (ac) =>
         ac.implementationNotes?.toLowerCase().includes('error') ||
         ac.implementationNotes?.toLowerCase().includes('edge') ||
         ac.then?.toLowerCase().includes('fail'),
     );
-    if (hasEdgeCase) score += 3;
+    if (hasEdgeCase) score += 2;
 
     return score;
   }
 
   /**
-   * Scores file changes (0-15)
+   * Scores file changes (0-10)
    */
   private scoreFileChanges(fileChanges: FileChange[]): number {
     let score = 0;
 
     const count = Array.isArray(fileChanges) ? fileChanges.length : 0;
 
-    // paths specific: 0-5
+    // paths specific: 0-4
     const withValidPaths = (fileChanges || []).filter((fc) => fc.path && fc.path.includes('/'));
-    if (withValidPaths.length === count && count > 0) score += 5;
-    else if (withValidPaths.length / count > 0.7) score += 3;
+    if (withValidPaths.length === count && count > 0) score += 4;
+    else if (withValidPaths.length / count > 0.7) score += 2;
     else if (withValidPaths.length > 0) score += 1;
 
-    // line numbers: 0-5
+    // line numbers: 0-3
     const modifyChanges = (fileChanges || []).filter((fc) => fc.action === 'modify');
     const withLineNumbers = modifyChanges.filter((fc) => fc.lineNumbers);
     if (modifyChanges.length > 0) {
-      if (withLineNumbers.length === modifyChanges.length) score += 5;
-      else if (withLineNumbers.length / modifyChanges.length > 0.5) score += 3;
+      if (withLineNumbers.length === modifyChanges.length) score += 3;
+      else if (withLineNumbers.length / modifyChanges.length > 0.5) score += 2;
       else if (withLineNumbers.length > 0) score += 1;
     } else if (count > 0) {
-      score += 2; // Creates don't need line numbers
+      score += 1; // Creates don't need line numbers
     }
 
-    // imports: 0-3
+    // imports: 0-2
     const withImports = (fileChanges || []).filter((fc) => fc.imports);
-    if (withImports.length > 0) score += 3;
+    if (withImports.length > 0) score += 2;
     else if (count > 0) score += 1;
 
-    // patterns: 0-2
+    // patterns: 0-1
     const withPattern = (fileChanges || []).filter((fc) => fc.pattern);
-    if (withPattern.length > 0) score += 2;
+    if (withPattern.length > 0) score += 1;
 
     return score;
   }
 
   /**
-   * Scores ambiguity (0-15)
+   * Scores ambiguity (0-10)
    */
   private scoreAmbiguity(spec: TechSpec): number {
-    let score = 15; // Start with full points
+    let score = 10; // Start with full points
 
     // Deduct for ambiguity flags
     score -= (spec.ambiguityFlags?.length || 0) * 2;
@@ -831,7 +1112,56 @@ Rewritten text (definitive, unambiguous):`;
       if (matches && matches.length > 2) score += 1;
     }
 
-    return Math.max(0, Math.min(15, score));
+    return Math.max(0, Math.min(10, score));
+  }
+
+  /**
+   * Scores test plan (0-10)
+   */
+  private scoreTestPlan(testPlan: TestPlan): number {
+    let score = 0;
+
+    if (testPlan.summary && testPlan.summary.length > 30) score += 2;
+
+    if (testPlan.unitTests?.length >= 5) score += 4;
+    else if (testPlan.unitTests?.length >= 3) score += 2;
+
+    if (testPlan.integrationTests?.length >= 2) score += 2;
+    else if (testPlan.integrationTests?.length >= 1) score += 1;
+
+    if (testPlan.edgeCases?.length >= 2) score += 2;
+    else if (testPlan.edgeCases?.length >= 1) score += 1;
+
+    return score;
+  }
+
+  /**
+   * Scores layer categorization (0-5)
+   */
+  private scoreLayerCategorization(layers: LayeredFileChanges): number {
+    let score = 0;
+    const totalFiles = (layers.backend?.length || 0) + (layers.frontend?.length || 0) +
+      (layers.shared?.length || 0) + (layers.infrastructure?.length || 0) + (layers.documentation?.length || 0);
+
+    if (totalFiles > 0) score += 3;
+    if ((layers.backend?.length || 0) > 0 && (layers.frontend?.length || 0) > 0) score += 2;
+
+    return score;
+  }
+
+  /**
+   * Scores API changes (0-5)
+   */
+  private scoreApiChanges(apiChanges: ApiChanges): number {
+    let score = 0;
+
+    if (apiChanges.endpoints?.length >= 3) score += 3;
+    else if (apiChanges.endpoints?.length >= 1) score += 2;
+
+    const withDtos = apiChanges.endpoints?.filter(e => e.dto?.request || e.dto?.response).length || 0;
+    if (withDtos === apiChanges.endpoints?.length && apiChanges.endpoints?.length > 0) score += 2;
+
+    return score;
   }
 
   /**
@@ -1138,11 +1468,18 @@ Rewritten text (definitive, unambiguous):`;
 
       const solution = await this.generateSolution(problemStatement, context);
 
-      const [acceptanceCriteria, fileChanges, inScope, outOfScope] = await Promise.all([
+      const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges] = await Promise.all([
         this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
         this.generateFileChanges(solution, context),
         this.generateScope(input.title, input.description || '', true),
         this.generateScope(input.title, input.description || '', false),
+        this.extractApiChanges(input.context.analysis),
+      ]);
+
+      // Generate sections that depend on fileChanges (parallel)
+      const [testPlan, layeredFileChanges] = await Promise.all([
+        this.generateTestPlan(solution, acceptanceCriteria, fileChanges, input.context),
+        this.categorizeFilesByLayer(fileChanges, input.context),
       ]);
 
       // Assemble final tech spec
@@ -1160,6 +1497,9 @@ Rewritten text (definitive, unambiguous):`;
         fileChanges,
         qualityScore: 0,
         ambiguityFlags: [],
+        apiChanges,
+        layeredFileChanges,
+        testPlan,
       };
 
       // Detect and remove remaining ambiguities

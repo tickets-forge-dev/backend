@@ -21,6 +21,7 @@ import {
   AnalysisProgressEvent,
 } from '@tickets/domain/deep-analysis/deep-analysis.service';
 import { DeepAnalysisResult } from '@tickets/domain/deep-analysis/deep-analysis.types';
+import { RepositoryFingerprintService, RepositoryFingerprint } from './RepositoryFingerprintService';
 
 /** Directories to always exclude from the tree the LLM sees */
 const SKIP_DIRS = new Set([
@@ -78,7 +79,10 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   private readonly llmModel: LanguageModel | null;
   private readonly providerName: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private fingerprintService: RepositoryFingerprintService,
+  ) {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
     const defaultProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
     const provider = this.configService.get<string>('LLM_PROVIDER') || defaultProvider;
@@ -107,7 +111,10 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   }
 
   /**
-   * Run full 3-phase deep analysis
+   * Run full 3-phase deep analysis with 2-pass fingerprinting for speed
+   *
+   * Pass 1 (fast): Extract fingerprint without reading file contents
+   * Pass 2 (detailed): Select and read relevant files, then full analysis
    */
   async analyze(input: DeepAnalysisInput): Promise<DeepAnalysisResult> {
     const startTime = Date.now();
@@ -122,6 +129,22 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     const configContents = this.buildConfigContents(input.configFiles);
 
     this.logger.log(`Phase 1: Tree has ${condensedTree.split('\n').length} source entries`);
+
+    // PASS 1: Fast fingerprinting (1-2 seconds)
+    // Emit to frontend immediately so user sees tech stack right away
+    emit({ phase: 'fingerprinting', message: 'Detecting tech stack...', percent: 15 });
+    const fingerprint = this.fingerprintService.extractFingerprint(
+      input.fileTree,
+      Object.fromEntries(input.configFiles),
+    );
+    this.logger.log(`Pass 1: Detected ${fingerprint.languages.join(', ')} using ${fingerprint.packageManager}`);
+
+    // Emit fingerprint result quickly (can be used by frontend immediately)
+    emit({
+      phase: 'fingerprinting',
+      message: `Detected: ${fingerprint.primaryLanguage}, ${fingerprint.frameworks.join(', ') || 'no framework'}`,
+      percent: 20,
+    });
 
     // Phase 2: LLM selects files to read
     let selectedFiles: string[] = [];
@@ -156,7 +179,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       this.logger.warn(`Phase 2 file selection failed: ${error.message}. Proceeding with config files only.`);
     }
 
-    // Phase 3: LLM deep analysis
+    // Phase 3: LLM deep analysis with fingerprint context
     try {
       emit({ phase: 'analyzing', message: 'Deep analyzing codebase patterns and architecture...', percent: 65 });
 
@@ -167,6 +190,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         fileContents,
         condensedTree,
         selectedFiles,
+        fingerprint,  // Pass fingerprint for context
       );
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -316,6 +340,7 @@ CRITICAL RULES:
     fileContents: Map<string, string>,
     condensedTree: string,
     llmFilesRead: string[],
+    fingerprint?: RepositoryFingerprint,
   ): Promise<DeepAnalysisResult> {
     // Build file contents string
     const sourceFilesText = Array.from(fileContents.entries())
@@ -328,10 +353,21 @@ CRITICAL: Your analysis must be specific to the task "${title}". Generic observa
 
 Return ONLY valid JSON. No markdown fences, no explanation text.`;
 
+    // Build fingerprint context for quick reference
+    const fingerprintContext = fingerprint ? `
+REPOSITORY FINGERPRINT (detected without reading all files):
+- Languages: ${fingerprint.languages.join(', ') || 'unknown'}
+- Primary: ${fingerprint.primaryLanguage}
+- Frameworks: ${fingerprint.frameworks.join(', ') || 'none'}
+- Package Manager: ${fingerprint.packageManager || 'unknown'}
+- Key Config Files: ${Object.keys(fingerprint.configFiles).join(', ') || 'none'}
+` : '';
+
     const userPrompt = `TASK: "${title}"
 ${description ? `DESCRIPTION: ${description}` : ''}
 
-I've read these source files from the repository. Analyze them for implementing the task above.
+I've analyzed this repository and read selected source files. Analyze them for implementing the task above.
+${fingerprintContext}
 
 DEPENDENCIES & CONFIG:
 ${configContents}
@@ -398,10 +434,39 @@ Based on the ACTUAL CODE above, return this JSON:
       "estimatedComplexity": "low|medium|high",
       "recommendedRounds": "0-3 integer. 0=trivial task (e.g. rename, change text), no questions needed, go straight to spec. 1=clear task with minor ambiguity (e.g. add a simple button). 2=moderate task with design decisions (e.g. add a form with validation). 3=complex task with significant ambiguity (e.g. implement OAuth2 from scratch). Base this on how much clarification the developer would realistically need."
     },
+    "apiChanges": {
+      "endpoints": [
+        For each API endpoint that needs to be created, modified, or deprecated for "${title}":
+        {
+          "method": "GET|POST|PUT|PATCH|DELETE",
+          "route": "/api/exact/path/:param",
+          "controller": "path/to/controller.ts",
+          "dto": {
+            "request": "RequestDtoType or { field: type }",
+            "response": "ResponseDtoType or { field: type }"
+          },
+          "description": "What this endpoint does",
+          "authentication": "required|optional|none",
+          "status": "new|modified|deprecated"
+        }
+      ],
+      "baseUrl": "API base URL if detectable",
+      "middlewares": ["auth", "validation", "rate-limiting"],
+      "rateLimiting": "Rate limiting strategy if applicable"
+    },
     "llmFilesRead": ${JSON.stringify(llmFilesRead)},
     "analysisTimestamp": "${new Date().toISOString()}"
   }
 }
+
+ADDITIONAL RULES for apiChanges:
+- Detect ALL API routes from NestJS controllers (@Get, @Post, @Put, @Patch, @Delete decorators), Express routes, or Next.js API routes
+- Include the FULL route path (e.g., "/api/v1/tickets/:id" not just "/tickets/:id")
+- For existing endpoints being modified, set status="modified" and describe what changes
+- For new endpoints, set status="new"
+- Include DTO shapes: request body type and response type
+- Set authentication based on guards/middleware present (e.g., @UseGuards(AuthGuard) = "required")
+- If no API endpoints are affected, return empty endpoints array: "endpoints": []
 
 QUALITY RULES:
 1. "files" array = ONLY files relevant to "${title}". NOT random project files.

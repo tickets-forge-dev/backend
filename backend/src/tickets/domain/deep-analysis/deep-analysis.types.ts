@@ -64,6 +64,20 @@ export interface DeepAnalysisResult {
       estimatedComplexity: 'low' | 'medium' | 'high';
       recommendedRounds: number;
     };
+    apiChanges?: {
+      endpoints: Array<{
+        method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
+        route: string;
+        controller?: string;
+        dto?: { request?: string; response?: string };
+        description: string;
+        authentication?: 'required' | 'optional' | 'none';
+        status: 'new' | 'modified' | 'deprecated';
+      }>;
+      baseUrl?: string;
+      middlewares?: string[];
+      rateLimiting?: string;
+    };
     llmFilesRead: string[];
     analysisTimestamp: string;
   } | null;

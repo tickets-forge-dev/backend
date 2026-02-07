@@ -33,6 +33,7 @@ import { CODEBASE_ANALYZER } from './application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from './application/ports/ProjectStackDetectorPort';
 import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
 import { DeepAnalysisServiceImpl } from './application/services/DeepAnalysisServiceImpl';
+import { RepositoryFingerprintService } from './application/services/RepositoryFingerprintService';
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 
 @Module({
@@ -116,6 +117,7 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
       useFactory: (impl: GitHubFileServiceImpl) => impl,
       inject: [GitHubFileServiceImpl],
     },
+    RepositoryFingerprintService,
     DeepAnalysisServiceImpl,
     {
       provide: DEEP_ANALYSIS_SERVICE,

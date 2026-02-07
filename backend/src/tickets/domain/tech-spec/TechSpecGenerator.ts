@@ -139,6 +139,69 @@ export interface FileChange {
 }
 
 /**
+ * API endpoint detected in the codebase or required by the task
+ */
+export interface ApiEndpoint {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
+  route: string; // e.g., "/api/v1/tickets/:id"
+  controller?: string; // File path to controller
+  dto?: {
+    request?: string; // DTO type or inline shape
+    response?: string; // DTO type or inline shape
+  };
+  description: string;
+  authentication?: 'required' | 'optional' | 'none';
+  status: 'new' | 'modified' | 'deprecated';
+}
+
+/**
+ * API changes section of a tech spec
+ */
+export interface ApiChanges {
+  endpoints: ApiEndpoint[];
+  baseUrl?: string;
+  middlewares?: string[];
+  rateLimiting?: string;
+}
+
+/**
+ * File changes organized by architectural layer
+ */
+export interface LayeredFileChanges {
+  backend: FileChange[];
+  frontend: FileChange[];
+  shared: FileChange[];
+  infrastructure: FileChange[];
+  documentation: FileChange[];
+}
+
+/**
+ * Individual test case in a test plan
+ */
+export interface TestCase {
+  type: 'unit' | 'integration' | 'e2e' | 'edge-case';
+  description: string;
+  testFile: string; // Suggested test file path
+  testName: string; // Test name (describe/it format)
+  setup?: string; // Arrange
+  action: string; // Act
+  assertion: string; // Assert
+  dependencies?: string[]; // Mocks, fixtures
+}
+
+/**
+ * Test plan section of a tech spec
+ */
+export interface TestPlan {
+  summary: string; // High-level testing approach
+  unitTests: TestCase[]; // 5+ minimum
+  integrationTests: TestCase[]; // 2+ minimum
+  edgeCases: TestCase[]; // 2+ minimum
+  testingNotes?: string;
+  coverageGoal?: number; // e.g., 80
+}
+
+/**
  * Complete technical specification
  *
  * Contains all sections: problem, solution, acceptance criteria, questions, file changes,
@@ -157,6 +220,9 @@ export interface TechSpec {
   fileChanges: FileChange[]; // File changes needed
   qualityScore: number; // Quality score 0-100
   ambiguityFlags: string[]; // Issues found during validation (should be empty)
+  apiChanges?: ApiChanges; // API endpoints affected by this spec
+  layeredFileChanges?: LayeredFileChanges; // File changes organized by layer
+  testPlan?: TestPlan; // Comprehensive test plan
 }
 
 /**
@@ -293,10 +359,13 @@ export interface TechSpecGenerator {
    *
    * Scoring breakdown (total 100 points):
    * - Problem Statement completeness (0-20)
-   * - Solution specificity (0-30)
-   * - Acceptance Criteria quality (0-20)
-   * - File Changes clarity (0-15)
-   * - Ambiguity and language (0-15)
+   * - Solution specificity (0-25)
+   * - Acceptance Criteria quality (0-15)
+   * - File Changes clarity (0-10)
+   * - Ambiguity and language (0-10)
+   * - Test Plan coverage (0-10)
+   * - Layer Categorization (0-5)
+   * - API Changes documentation (0-5)
    *
    * Score reflects completeness and specificity of the specification.
    *

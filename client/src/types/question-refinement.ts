@@ -49,6 +49,36 @@ export interface QuestionRound {
 }
 
 /**
+ * API endpoint detected or defined in the spec
+ */
+export interface ApiEndpointSpec {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
+  route: string;
+  controller?: string;
+  dto?: {
+    request?: string;
+    response?: string;
+  };
+  description: string;
+  authentication?: 'required' | 'optional' | 'none';
+  status: 'new' | 'modified' | 'deprecated';
+}
+
+/**
+ * Test case in a test plan
+ */
+export interface TestCaseSpec {
+  type: 'unit' | 'integration' | 'e2e' | 'edge-case';
+  description: string;
+  testFile: string;
+  testName: string;
+  setup?: string;
+  action: string;
+  assertion: string;
+  dependencies?: string[];
+}
+
+/**
  * Technical specification generated from questions
  */
 export interface TechSpec {
@@ -67,6 +97,27 @@ export interface TechSpec {
   }>;
   qualityScore: number; // 0-100
   generatedAt: Date;
+  apiChanges?: {
+    endpoints: ApiEndpointSpec[];
+    baseUrl?: string;
+    middlewares?: string[];
+    rateLimiting?: string;
+  };
+  layeredFileChanges?: {
+    backend: Array<{ path: string; action: string }>;
+    frontend: Array<{ path: string; action: string }>;
+    shared: Array<{ path: string; action: string }>;
+    infrastructure: Array<{ path: string; action: string }>;
+    documentation: Array<{ path: string; action: string }>;
+  };
+  testPlan?: {
+    summary: string;
+    unitTests: TestCaseSpec[];
+    integrationTests: TestCaseSpec[];
+    edgeCases: TestCaseSpec[];
+    testingNotes?: string;
+    coverageGoal?: number;
+  };
 }
 
 /**

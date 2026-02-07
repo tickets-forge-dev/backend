@@ -36,7 +36,30 @@ interface FileChangeEditState {
   action: string;
 }
 
-export type EditState = StringEditState | BDDEditState | FileChangeEditState;
+// API endpoint edit
+interface ApiEndpointEditState {
+  mode: 'apiEndpoint';
+  method: string;
+  route: string;
+  description: string;
+  authentication: string;
+  status: string;
+  requestDto: string;
+  responseDto: string;
+}
+
+// Test case edit
+interface TestCaseEditState {
+  mode: 'testCase';
+  description: string;
+  type: string;
+  testFile: string;
+  testName: string;
+  action: string;
+  assertion: string;
+}
+
+export type EditState = StringEditState | BDDEditState | FileChangeEditState | ApiEndpointEditState | TestCaseEditState;
 
 interface EditItemDialogProps {
   open: boolean;
@@ -68,6 +91,10 @@ export function EditItemDialog({
       ? `Edit ${local.label}`
       : local.mode === 'bdd'
       ? 'Edit Acceptance Criterion'
+      : local.mode === 'apiEndpoint'
+      ? 'Edit API Endpoint'
+      : local.mode === 'testCase'
+      ? 'Edit Test Case'
       : 'Edit File Change';
 
   return (
@@ -169,6 +196,165 @@ export function EditItemDialog({
                   <option value="create">Create</option>
                   <option value="delete">Delete</option>
                 </select>
+              </div>
+            </>
+          )}
+
+          {local.mode === 'apiEndpoint' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                    Method
+                  </label>
+                  <select
+                    value={local.method}
+                    onChange={(e) => setLocal({ ...local, method: e.target.value })}
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                    autoFocus
+                  >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="DELETE">DELETE</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                    Status
+                  </label>
+                  <select
+                    value={local.status}
+                    onChange={(e) => setLocal({ ...local, status: e.target.value })}
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                  >
+                    <option value="new">New</option>
+                    <option value="modified">Modified</option>
+                    <option value="deprecated">Deprecated</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Route
+                </label>
+                <Input
+                  value={local.route}
+                  onChange={(e) => setLocal({ ...local, route: e.target.value })}
+                  className="font-mono"
+                  placeholder="/api/v1/resource/:id"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Description
+                </label>
+                <Textarea
+                  value={local.description}
+                  onChange={(e) => setLocal({ ...local, description: e.target.value })}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                    Request DTO
+                  </label>
+                  <Input
+                    value={local.requestDto}
+                    onChange={(e) => setLocal({ ...local, requestDto: e.target.value })}
+                    className="font-mono text-xs"
+                    placeholder="CreateUserDto"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                    Response DTO
+                  </label>
+                  <Input
+                    value={local.responseDto}
+                    onChange={(e) => setLocal({ ...local, responseDto: e.target.value })}
+                    className="font-mono text-xs"
+                    placeholder="UserResponse"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {local.mode === 'testCase' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                    Type
+                  </label>
+                  <select
+                    value={local.type}
+                    onChange={(e) => setLocal({ ...local, type: e.target.value })}
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                    autoFocus
+                  >
+                    <option value="unit">Unit</option>
+                    <option value="integration">Integration</option>
+                    <option value="e2e">E2E</option>
+                    <option value="edge-case">Edge Case</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                    Test File
+                  </label>
+                  <Input
+                    value={local.testFile}
+                    onChange={(e) => setLocal({ ...local, testFile: e.target.value })}
+                    className="font-mono text-xs"
+                    placeholder="path/to/test.spec.ts"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Description
+                </label>
+                <Textarea
+                  value={local.description}
+                  onChange={(e) => setLocal({ ...local, description: e.target.value })}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Test Name
+                </label>
+                <Input
+                  value={local.testName}
+                  onChange={(e) => setLocal({ ...local, testName: e.target.value })}
+                  placeholder="describe > it should ..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Action (Act)
+                </label>
+                <Input
+                  value={local.action}
+                  onChange={(e) => setLocal({ ...local, action: e.target.value })}
+                  placeholder="Method or function call"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Assertion (Assert)
+                </label>
+                <Input
+                  value={local.assertion}
+                  onChange={(e) => setLocal({ ...local, assertion: e.target.value })}
+                  placeholder="Expected outcome"
+                />
               </div>
             </>
           )}

@@ -24,6 +24,9 @@ import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection'
 import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
+import { ApiEndpointsList } from '@/src/tickets/components/ApiEndpointsList';
+import { BackendClientChanges } from '@/src/tickets/components/BackendClientChanges';
+import { TestPlanSection } from '@/src/tickets/components/TestPlanSection';
 import { toast } from 'sonner';
 import type { RoundAnswers } from '@/types/question-refinement';
 
@@ -194,7 +197,10 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     techSpec?.problemStatement && { id: 'problem-statement', label: 'Problem' },
     techSpec?.solution && { id: 'solution', label: 'Solution' },
     techSpec?.acceptanceCriteria?.length > 0 && { id: 'spec-acceptance', label: 'Acceptance Criteria' },
+    techSpec?.apiChanges?.endpoints?.length > 0 && { id: 'api-endpoints', label: 'API Endpoints' },
     techSpec?.fileChanges?.length > 0 && { id: 'file-changes', label: 'File Changes' },
+    techSpec?.layeredFileChanges && { id: 'layered-changes', label: 'BE/FE Changes' },
+    techSpec?.testPlan && { id: 'test-plan', label: 'Test Plan' },
     (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0) && { id: 'scope', label: 'Scope' },
     currentTicket.acceptanceCriteria?.length > 0 && { id: 'ticket-acceptance', label: 'Criteria' },
     currentTicket.assumptions?.length > 0 && { id: 'assumptions', label: 'Assumptions' },
@@ -258,6 +264,40 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     } else if (section === 'fileChanges') {
       const fc = ts.fileChanges?.[index];
       if (fc) state = { mode: 'fileChange', path: fc.path, action: fc.action || fc.type || 'modify' };
+    } else if (section === 'apiEndpoints') {
+      const endpoint = ts.apiChanges?.endpoints?.[index];
+      if (endpoint) state = {
+        mode: 'apiEndpoint',
+        method: endpoint.method || 'GET',
+        route: endpoint.route || '',
+        description: endpoint.description || '',
+        authentication: endpoint.authentication || 'none',
+        status: endpoint.status || 'new',
+        requestDto: endpoint.dto?.request || '',
+        responseDto: endpoint.dto?.response || '',
+      };
+    } else if (section === 'testPlan') {
+      // Flatten all test arrays and find by global index
+      const allTests = [
+        ...(ts.testPlan?.unitTests || []),
+        ...(ts.testPlan?.integrationTests || []),
+        ...(ts.testPlan?.edgeCases || []),
+      ];
+      const test = allTests[index];
+      if (test) state = {
+        mode: 'testCase',
+        description: test.description || '',
+        type: test.type || 'unit',
+        testFile: test.testFile || '',
+        testName: test.testName || '',
+        action: test.action || '',
+        assertion: test.assertion || '',
+      };
+    } else if (section === 'layeredChanges') {
+      // Layered changes use file change edit mode
+      // Decode: layer is stored in editContext as section 'layeredChanges:backend', etc.
+      const fc = ts.fileChanges?.[index];
+      if (fc) state = { mode: 'fileChange', path: fc.path, action: fc.action || 'modify' };
     } else if (section === 'inScope') {
       const item = ts.inScope?.[index];
       if (item) state = { mode: 'string', value: item, label: 'In-Scope Item' };
@@ -316,6 +356,42 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       const arr = [...(ts.fileChanges || [])];
       arr[index] = { ...arr[index], path: updated.path, action: updated.action };
       patch.fileChanges = arr;
+    } else if (section === 'apiEndpoints' && updated.mode === 'apiEndpoint') {
+      const endpoints = [...(ts.apiChanges?.endpoints || [])];
+      endpoints[index] = {
+        method: updated.method as any,
+        route: updated.route,
+        description: updated.description,
+        authentication: updated.authentication as any,
+        status: updated.status as any,
+        dto: {
+          request: updated.requestDto || undefined,
+          response: updated.responseDto || undefined,
+        },
+      };
+      patch.apiChanges = { ...ts.apiChanges, endpoints };
+    } else if (section === 'testPlan' && updated.mode === 'testCase') {
+      // Reconstruct the test plan arrays from global index
+      const unitTests = [...(ts.testPlan?.unitTests || [])];
+      const integrationTests = [...(ts.testPlan?.integrationTests || [])];
+      const edgeCases = [...(ts.testPlan?.edgeCases || [])];
+      const updatedTest = {
+        type: updated.type as any,
+        description: updated.description,
+        testFile: updated.testFile,
+        testName: updated.testName,
+        action: updated.action,
+        assertion: updated.assertion,
+      };
+
+      if (index < unitTests.length) {
+        unitTests[index] = { ...unitTests[index], ...updatedTest };
+      } else if (index < unitTests.length + integrationTests.length) {
+        integrationTests[index - unitTests.length] = { ...integrationTests[index - unitTests.length], ...updatedTest };
+      } else {
+        edgeCases[index - unitTests.length - integrationTests.length] = { ...edgeCases[index - unitTests.length - integrationTests.length], ...updatedTest };
+      }
+      patch.testPlan = { ...ts.testPlan, unitTests, integrationTests, edgeCases };
     } else if (section === 'inScope' && updated.mode === 'string') {
       const arr = [...(ts.inScope || [])];
       arr[index] = updated.value;
@@ -384,6 +460,36 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       const updated = original.filter((_, i) => i !== index);
       deletePatch.fileChanges = updated;
       restorePatch.fileChanges = original;
+    } else if (section === 'apiEndpoints') {
+      const originalEndpoints = [...(ts.apiChanges?.endpoints || [])];
+      const endpoint = originalEndpoints[index];
+      itemLabel = endpoint ? `${endpoint.method} ${endpoint.route}` : 'API endpoint';
+      const updatedEndpoints = originalEndpoints.filter((_, i) => i !== index);
+      deletePatch.apiChanges = { ...ts.apiChanges, endpoints: updatedEndpoints };
+      restorePatch.apiChanges = { ...ts.apiChanges, endpoints: originalEndpoints };
+    } else if (section === 'testPlan') {
+      // Flatten, delete from global index, rebuild
+      const unitTests = [...(ts.testPlan?.unitTests || [])];
+      const integrationTests = [...(ts.testPlan?.integrationTests || [])];
+      const edgeCases = [...(ts.testPlan?.edgeCases || [])];
+      const allTests = [...unitTests, ...integrationTests, ...edgeCases];
+      itemLabel = allTests[index]?.description || 'Test case';
+
+      if (index < unitTests.length) {
+        const updated = unitTests.filter((_, i) => i !== index);
+        deletePatch.testPlan = { ...ts.testPlan, unitTests: updated, integrationTests, edgeCases };
+        restorePatch.testPlan = { ...ts.testPlan, unitTests, integrationTests, edgeCases };
+      } else if (index < unitTests.length + integrationTests.length) {
+        const localIdx = index - unitTests.length;
+        const updated = integrationTests.filter((_, i) => i !== localIdx);
+        deletePatch.testPlan = { ...ts.testPlan, unitTests, integrationTests: updated, edgeCases };
+        restorePatch.testPlan = { ...ts.testPlan, unitTests, integrationTests, edgeCases };
+      } else {
+        const localIdx = index - unitTests.length - integrationTests.length;
+        const updated = edgeCases.filter((_, i) => i !== localIdx);
+        deletePatch.testPlan = { ...ts.testPlan, unitTests, integrationTests, edgeCases: updated };
+        restorePatch.testPlan = { ...ts.testPlan, unitTests, integrationTests, edgeCases };
+      }
     } else if (section === 'inScope') {
       const original = [...(ts.inScope || [])];
       itemLabel = original[index] || 'In-scope item';
@@ -908,6 +1014,17 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             </CollapsibleSection>
           )}
 
+          {/* API Endpoints */}
+          {currentTicket.techSpec.apiChanges?.endpoints?.length > 0 && (
+            <CollapsibleSection id="api-endpoints" title="API Endpoints" defaultExpanded={true}>
+              <ApiEndpointsList
+                endpoints={currentTicket.techSpec.apiChanges.endpoints}
+                onEdit={(idx) => openEdit('apiEndpoints', idx)}
+                onDelete={(idx) => deleteTechSpecItem('apiEndpoints', idx)}
+              />
+            </CollapsibleSection>
+          )}
+
           {/* File Changes */}
           {currentTicket.techSpec.fileChanges?.length > 0 && (
             <CollapsibleSection id="file-changes" title="File Changes">
@@ -936,6 +1053,37 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   );
                 })}
               </ul>
+            </CollapsibleSection>
+          )}
+
+          {/* Backend / Frontend Changes (Layered) */}
+          {currentTicket.techSpec.layeredFileChanges && (
+            <CollapsibleSection id="layered-changes" title="Backend / Frontend Changes">
+              <BackendClientChanges
+                backendChanges={currentTicket.techSpec.layeredFileChanges.backend || []}
+                frontendChanges={currentTicket.techSpec.layeredFileChanges.frontend || []}
+                sharedChanges={currentTicket.techSpec.layeredFileChanges.shared || []}
+                infrastructureChanges={currentTicket.techSpec.layeredFileChanges.infrastructure || []}
+                documentationChanges={currentTicket.techSpec.layeredFileChanges.documentation || []}
+                onEdit={(layer, idx) => openEdit('fileChanges', idx)}
+                onDelete={(layer, idx) => deleteTechSpecItem('fileChanges', idx)}
+              />
+            </CollapsibleSection>
+          )}
+
+          {/* Test Plan */}
+          {currentTicket.techSpec.testPlan && (
+            <CollapsibleSection id="test-plan" title="Test Plan" defaultExpanded={true}>
+              <TestPlanSection
+                summary={currentTicket.techSpec.testPlan.summary}
+                unitTests={currentTicket.techSpec.testPlan.unitTests || []}
+                integrationTests={currentTicket.techSpec.testPlan.integrationTests || []}
+                edgeCases={currentTicket.techSpec.testPlan.edgeCases || []}
+                testingNotes={currentTicket.techSpec.testPlan.testingNotes}
+                coverageGoal={currentTicket.techSpec.testPlan.coverageGoal}
+                onEdit={(idx) => openEdit('testPlan', idx)}
+                onDelete={(idx) => deleteTechSpecItem('testPlan', idx)}
+              />
             </CollapsibleSection>
           )}
 
