@@ -1,8 +1,8 @@
 # Sprint Status — Forge
-# Last Updated: 2026-02-06
-# Current Phase: MVP Complete, Monetization Track Next
+# Last Updated: 2026-02-07
+# Current Phase: MVP Complete, Pre-Launch Gate Wrapping Up
 
-generated: 2026-02-06
+generated: 2026-02-07
 project: Forge (AI-Powered Ticket Generation)
 tracking_system: GitHub
 story_location: "docs/epics"
@@ -113,7 +113,7 @@ development_status:
       - 10-3-subscription-guard: backlog             # NestJS guard — check tier before ticket generation
       - 10-4-usage-metering: backlog                 # Count tickets per workspace per month, enforce limits
       - 10-5-stripe-customer-portal: backlog         # Self-serve billing (upgrade/downgrade/cancel)
-      - 10-6-pricing-page-ui: backlog                # Pricing table component + upgrade CTAs
+      - 10-6-pricing-page-ui: done                    # ✅ Completed via Story 0-4 (mock pricing page)
 
   epic-11:
     status: backlog
@@ -296,17 +296,18 @@ development_status:
 # METRICS & SUMMARY
 # =================
 metrics:
-  total_epics: 18
+  total_epics: 19
   completed_epics: 4
   in_progress_epics: 1
-  backlog_epics: 13
+  backlog_epics: 14
 
-  total_stories: 80
-  completed_stories: 17
-  backlog_stories: 63
+  total_stories: 87
+  completed_stories: 19
+  in_review_stories: 1
+  backlog_stories: 67
 
-  overall_completion: "21%"
-  critical_path: "Epic 10 + 11 → Epic 5 + 12 → Epic 13 → Epic 14 + 15"
+  overall_completion: "22%"
+  critical_path: "Epic 0 (finish) → Epic 10 + 11 → Epic 5 + 12 → Epic 13 → Epic 14 + 15"
 
 # EXECUTION ROADMAP
 # =================
@@ -388,15 +389,16 @@ phases:
     name: "Product Quality (Epics 16-20)"
     duration: "4-6 weeks"
     parallel: true  # Most are standalone
-    stories: ["16.1-16.5", "17.1-17.5", "18.1-18.5", "19.1-19.5", "20.1-20.3"]
+    stories: ["16.1-16.5", "17.1-17.5", "18.1-18.5", "19.1-19.5", "20.1-20.4", "22.1-22.4"]
     deliverables:
       - "Image/text context in wizard (richer specs)"
       - "Code guardrails auto-detection (CLAUDE.md, ESLint, tsconfig)"
       - "Formatted .md export + artifact storage per ticket"
       - "Markdown preview component + route"
-      - "API detection + BE/FE split + test plans in specs"
-    success_criteria: "Tickets include images, guardrails, artifacts, test plans, API changes"
-    outcome: "Enterprise-grade spec quality"
+      - "API detection + BE/FE split + test plans + API editor in specs"
+      - "AI wireframe generation from tickets (Excalidraw output)"
+    success_criteria: "Tickets include images, guardrails, artifacts, test plans, API changes, wireframes"
+    outcome: "Enterprise-grade spec quality + visual wireframes"
 
   phase-6:
     name: "Polish (Epic 21)"
@@ -444,21 +446,26 @@ decisions:
 standup_notes: |
   ✅ MVP complete — Epics 1, 1.5, 2, 9 all done
   ✅ Deployed to Vercel (frontend) + Render (backend)
-  ✅ OAuth HMAC fix for cross-domain (b0b2a08)
-  ✅ Monetization epics 10-15 planned from MONETIZATION-PLAN.md
-  ✅ Product quality epics 16-21 merged from EPIC-FUTURE-FEATURES + ONBOARDING-GAPS
-  ✅ Epic 5 upgraded to 8 stories (artifact bundle + XML serializer)
+  ✅ Epic 0: 3/4 stories done (production API, cheapest model, free tier quota)
+  ✅ Story 0-4 (pricing page) in review — Free $0, Pro $12, Team $59
+  ✅ Free tier: 3 tickets enforced (15 for admin), sidebar quota banner live
+  ✅ Login screen redesigned (horizontal 35/65 split with animated orbs)
+  ✅ Ticket status toggle (Draft ↔ Complete) implemented
+  ✅ Epic 22 added: AI Wireframe Generation (Excalidraw output)
+  ✅ Story 20-4 added: Interactive API Editor (mini Postman)
+  ✅ Epic 10 story 10-6 (Pricing UI) done via 0-4
+  ✅ Documentation cleaned: 78+ files archived, 13 core files remain
   ❌ Old epics 3, 4, 6, 7, 8 removed (superseded)
 
-  📊 Totals: 16 epics | 71 stories | 4 done | 12 backlog
+  📊 Totals: 19 epics | 87 stories | 19 done | 1 review | 67 backlog
 
   🎯 Execution:
-  Phase 0: PRE-LAUNCH GATE (Epic 0) — 1-2 days            ← URGENT NOW
+  Phase 0: PRE-LAUNCH GATE (Epic 0) — 1 story left (0-4 in review) ← ALMOST DONE
   Phase 1: Revenue unlock (Epics 10 + 11) — 3-4 weeks     ← START CHARGING
   Phase 2: Integrations + PM mode (Epics 5 + 12) — 3-4 weeks
   Phase 3: Team tier (Epic 13) — 3-4 weeks                 ← SEAT EXPANSION
   Phase 4: Advanced (Epics 14 + 15) — 4-6 weeks
-  Phase 5: Product quality (Epics 16-20) — 4-6 weeks       ← ENTERPRISE SPECS
+  Phase 5: Product quality (Epics 16-20, 22) — 4-6 weeks   ← ENTERPRISE SPECS + WIREFRAMES
   Phase 6: Polish (Epic 21) — 1-2 weeks
 
   💰 Revenue milestone: ~3-4 weeks

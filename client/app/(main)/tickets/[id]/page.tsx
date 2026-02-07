@@ -20,6 +20,7 @@ import { useServices } from '@/services/index';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
 import { QuestionRoundsSection } from '@/src/tickets/components/QuestionRoundsSection';
+import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
@@ -769,130 +770,125 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
           {/* Problem Statement */}
           {currentTicket.techSpec.problemStatement && (
-            <div id="problem-statement" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
-              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                Problem Statement
-              </h3>
-              <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-                {typeof currentTicket.techSpec.problemStatement === 'string'
-                  ? currentTicket.techSpec.problemStatement
-                  : currentTicket.techSpec.problemStatement.narrative}
-              </p>
-              {typeof currentTicket.techSpec.problemStatement === 'object' && (
-                <>
-                  {currentTicket.techSpec.problemStatement.whyItMatters && (
-                    <div className="pt-2 border-t border-[var(--border)]">
-                      <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
-                        Why it matters
-                      </p>
-                      <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                        {currentTicket.techSpec.problemStatement.whyItMatters}
-                      </p>
-                    </div>
-                  )}
-                  {currentTicket.techSpec.problemStatement.assumptions?.length > 0 && (
-                    <div className="pt-2 border-t border-[var(--border)]">
-                      <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
-                        Assumptions
-                      </p>
-                      <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                        {currentTicket.techSpec.problemStatement.assumptions.map((a: string, i: number) => (
-                          <li key={i}>
-                            <EditableItem onEdit={() => openEdit('assumptions', i)} onDelete={() => deleteTechSpecItem('assumptions', i)}>
-                              &#8226; {a}
-                            </EditableItem>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {currentTicket.techSpec.problemStatement.constraints?.length > 0 && (
-                    <div className="pt-2 border-t border-[var(--border)]">
-                      <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
-                        Constraints
-                      </p>
-                      <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                        {currentTicket.techSpec.problemStatement.constraints.map((c: string, i: number) => (
-                          <li key={i}>
-                            <EditableItem onEdit={() => openEdit('constraints', i)} onDelete={() => deleteTechSpecItem('constraints', i)}>
-                              &#8226; {c}
-                            </EditableItem>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+            <CollapsibleSection id="problem-statement" title="Problem Statement">
+              <div className="space-y-3">
+                <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                  {typeof currentTicket.techSpec.problemStatement === 'string'
+                    ? currentTicket.techSpec.problemStatement
+                    : currentTicket.techSpec.problemStatement.narrative}
+                </p>
+                {typeof currentTicket.techSpec.problemStatement === 'object' && (
+                  <>
+                    {currentTicket.techSpec.problemStatement.whyItMatters && (
+                      <div className="pt-2 border-t border-[var(--border)]">
+                        <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
+                          Why it matters
+                        </p>
+                        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                          {currentTicket.techSpec.problemStatement.whyItMatters}
+                        </p>
+                      </div>
+                    )}
+                    {currentTicket.techSpec.problemStatement.assumptions?.length > 0 && (
+                      <div className="pt-2 border-t border-[var(--border)]">
+                        <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
+                          Assumptions
+                        </p>
+                        <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                          {currentTicket.techSpec.problemStatement.assumptions.map((a: string, i: number) => (
+                            <li key={i}>
+                              <EditableItem onEdit={() => openEdit('assumptions', i)} onDelete={() => deleteTechSpecItem('assumptions', i)}>
+                                &#8226; {a}
+                              </EditableItem>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {currentTicket.techSpec.problemStatement.constraints?.length > 0 && (
+                      <div className="pt-2 border-t border-[var(--border)]">
+                        <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
+                          Constraints
+                        </p>
+                        <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                          {currentTicket.techSpec.problemStatement.constraints.map((c: string, i: number) => (
+                            <li key={i}>
+                              <EditableItem onEdit={() => openEdit('constraints', i)} onDelete={() => deleteTechSpecItem('constraints', i)}>
+                                &#8226; {c}
+                              </EditableItem>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Solution Steps */}
           {currentTicket.techSpec.solution && (
-            <div id="solution" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
-              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                Solution
-              </h3>
-              {typeof currentTicket.techSpec.solution === 'string' ? (
-                <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-                  {currentTicket.techSpec.solution}
-                </p>
-              ) : Array.isArray(currentTicket.techSpec.solution) ? (
-                <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                  {currentTicket.techSpec.solution.map((step: string | any, idx: number) => (
-                    <li key={idx}>
-                      <EditableItem onEdit={() => openEdit('steps', idx)} onDelete={() => deleteTechSpecItem('steps', idx)}>
-                        <div className="flex gap-3">
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
-                            {idx + 1}
-                          </span>
-                          <span className="pt-0.5">
-                            {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
-                          </span>
-                        </div>
-                      </EditableItem>
-                    </li>
-                  ))}
-                </ol>
-              ) : currentTicket.techSpec.solution.overview ? (
-                <div className="space-y-3">
+            <CollapsibleSection id="solution" title="Solution">
+              <div className="space-y-3">
+                {typeof currentTicket.techSpec.solution === 'string' ? (
                   <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-                    {currentTicket.techSpec.solution.overview}
+                    {currentTicket.techSpec.solution}
                   </p>
-                  {currentTicket.techSpec.solution.steps?.length > 0 && (
-                    <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                      {currentTicket.techSpec.solution.steps.map((step: any, idx: number) => (
-                        <li key={idx}>
-                          <EditableItem onEdit={() => openEdit('steps', idx)} onDelete={() => deleteTechSpecItem('steps', idx)}>
-                            <div className="flex gap-3">
-                              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
-                                {step.order || idx + 1}
-                              </span>
-                              <div className="pt-0.5">
-                                <p>{step.description}</p>
-                                {step.file && (
-                                  <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono mt-1">
-                                    {step.file}{step.lineNumbers ? `:${step.lineNumbers[0]}-${step.lineNumbers[1]}` : ''}
-                                  </p>
-                                )}
+                ) : Array.isArray(currentTicket.techSpec.solution) ? (
+                  <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                    {currentTicket.techSpec.solution.map((step: string | any, idx: number) => (
+                      <li key={idx}>
+                        <EditableItem onEdit={() => openEdit('steps', idx)} onDelete={() => deleteTechSpecItem('steps', idx)}>
+                          <div className="flex gap-3">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
+                              {idx + 1}
+                            </span>
+                            <span className="pt-0.5">
+                              {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
+                            </span>
+                          </div>
+                        </EditableItem>
+                      </li>
+                    ))}
+                  </ol>
+                ) : currentTicket.techSpec.solution.overview ? (
+                  <div className="space-y-3">
+                    <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                      {currentTicket.techSpec.solution.overview}
+                    </p>
+                    {currentTicket.techSpec.solution.steps?.length > 0 && (
+                      <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                        {currentTicket.techSpec.solution.steps.map((step: any, idx: number) => (
+                          <li key={idx}>
+                            <EditableItem onEdit={() => openEdit('steps', idx)} onDelete={() => deleteTechSpecItem('steps', idx)}>
+                              <div className="flex gap-3">
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
+                                  {step.order || idx + 1}
+                                </span>
+                                <div className="pt-0.5">
+                                  <p>{step.description}</p>
+                                  {step.file && (
+                                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono mt-1">
+                                      {step.file}{step.lineNumbers ? `:${step.lineNumbers[0]}-${step.lineNumbers[1]}` : ''}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </EditableItem>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              ) : null}
-            </div>
+                            </EditableItem>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Acceptance Criteria from spec (BDD format or string list) */}
           {currentTicket.techSpec.acceptanceCriteria?.length > 0 && (
-            <div id="spec-acceptance" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
-              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                Acceptance Criteria
-              </h3>
+            <CollapsibleSection id="spec-acceptance" title="Acceptance Criteria">
               <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
                 {currentTicket.techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
                   <li key={idx}>
@@ -915,15 +911,12 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   </li>
                 ))}
               </ul>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* File Changes */}
           {currentTicket.techSpec.fileChanges?.length > 0 && (
-            <div id="file-changes" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
-              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                File Changes
-              </h3>
+            <CollapsibleSection id="file-changes" title="File Changes">
               <ul className="space-y-2">
                 {currentTicket.techSpec.fileChanges.map((fc: any, idx: number) => {
                   const action = fc.action || fc.type || 'modify';
@@ -949,106 +942,96 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   );
                 })}
               </ul>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Scope */}
           {(currentTicket.techSpec.inScope?.length > 0 || currentTicket.techSpec.outOfScope?.length > 0) && (
-            <div id="scope" data-nav-section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {currentTicket.techSpec.inScope?.length > 0 && (
-                <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-2">
-                  <h3 className="text-[var(--text-sm)] font-medium text-green-600 dark:text-green-400">
-                    In Scope
-                  </h3>
-                  <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                    {currentTicket.techSpec.inScope.map((item: string, idx: number) => (
-                      <li key={idx}>
-                        <EditableItem onEdit={() => openEdit('inScope', idx)} onDelete={() => deleteTechSpecItem('inScope', idx)}>
-                          &#8226; {item}
-                        </EditableItem>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {currentTicket.techSpec.outOfScope?.length > 0 && (
-                <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-2">
-                  <h3 className="text-[var(--text-sm)] font-medium text-[var(--text-tertiary)]">
-                    Out of Scope
-                  </h3>
-                  <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                    {currentTicket.techSpec.outOfScope.map((item: string, idx: number) => (
-                      <li key={idx}>
-                        <EditableItem onEdit={() => openEdit('outOfScope', idx)} onDelete={() => deleteTechSpecItem('outOfScope', idx)}>
-                          &#8226; {item}
-                        </EditableItem>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+            <CollapsibleSection id="scope" title="Scope">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {currentTicket.techSpec.inScope?.length > 0 && (
+                  <div className="rounded-lg bg-[var(--bg-hover)] p-3 space-y-2">
+                    <h4 className="text-[var(--text-xs)] font-medium text-green-600 dark:text-green-400 uppercase">
+                      In Scope
+                    </h4>
+                    <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                      {currentTicket.techSpec.inScope.map((item: string, idx: number) => (
+                        <li key={idx}>
+                          <EditableItem onEdit={() => openEdit('inScope', idx)} onDelete={() => deleteTechSpecItem('inScope', idx)}>
+                            &#8226; {item}
+                          </EditableItem>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {currentTicket.techSpec.outOfScope?.length > 0 && (
+                  <div className="rounded-lg bg-[var(--bg-hover)] p-3 space-y-2">
+                    <h4 className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                      Out of Scope
+                    </h4>
+                    <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                      {currentTicket.techSpec.outOfScope.map((item: string, idx: number) => (
+                        <li key={idx}>
+                          <EditableItem onEdit={() => openEdit('outOfScope', idx)} onDelete={() => deleteTechSpecItem('outOfScope', idx)}>
+                            &#8226; {item}
+                          </EditableItem>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
           )}
         </section>
       )}
 
       {/* Acceptance Criteria */}
       {currentTicket.acceptanceCriteria && currentTicket.acceptanceCriteria.length > 0 && (
-        <section id="ticket-acceptance" data-nav-section className="space-y-3">
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Acceptance Criteria
-          </h2>
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
+        <section id="ticket-acceptance" data-nav-section>
+          <CollapsibleSection title="Acceptance Criteria" id="ticket-acceptance-collapsible" defaultExpanded={false}>
             <InlineEditableList
               items={currentTicket.acceptanceCriteria}
               type="numbered"
               onSave={handleSaveAcceptanceCriteria}
               emptyMessage="No acceptance criteria yet"
             />
-          </div>
+          </CollapsibleSection>
         </section>
       )}
 
       {/* Assumptions */}
       {currentTicket.assumptions && currentTicket.assumptions.length > 0 && (
-        <section id="assumptions" data-nav-section className="space-y-3">
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Assumptions
-          </h2>
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
+        <section id="assumptions" data-nav-section>
+          <CollapsibleSection title="Assumptions" id="assumptions-collapsible" defaultExpanded={false}>
             <InlineEditableList
               items={currentTicket.assumptions}
               type="bulleted"
               onSave={handleSaveAssumptions}
               emptyMessage="No assumptions yet"
             />
-          </div>
+          </CollapsibleSection>
         </section>
       )}
 
       {/* Affected Code */}
       {currentTicket.repoPaths && currentTicket.repoPaths.length > 0 && (
-        <section id="affected-code" data-nav-section className="space-y-3">
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Affected Code
-          </h2>
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
+        <section id="affected-code" data-nav-section>
+          <CollapsibleSection title="Affected Code" id="affected-code-collapsible" defaultExpanded={false}>
             <ul className="space-y-1 text-[var(--text-sm)] font-mono text-[var(--text-secondary)]">
               {currentTicket.repoPaths.map((path, index) => (
                 <li key={index}>{path}</li>
               ))}
             </ul>
-          </div>
+          </CollapsibleSection>
         </section>
       )}
 
       {/* Estimate */}
       {currentTicket.estimate && (
-        <section id="estimate" data-nav-section className="space-y-3">
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Estimate
-          </h2>
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
+        <section id="estimate" data-nav-section>
+          <CollapsibleSection title="Estimate" id="estimate-collapsible" defaultExpanded={false}>
             <div className="space-y-2">
               <p className="text-[var(--text-base)] text-[var(--text)]">
                 {currentTicket.estimate.min}-{currentTicket.estimate.max} hours{' '}
@@ -1064,7 +1047,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 </ul>
               )}
             </div>
-          </div>
+          </CollapsibleSection>
         </section>
       )}
 
