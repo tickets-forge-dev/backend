@@ -39,11 +39,11 @@ export class AEC {
     private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
-    // New fields for iterative refinement workflow
-    private _questionRounds: QuestionRound[] = [],
-    private _currentRound: number = 0,
+    // Simple question tracking (no rounds)
+    private _clarificationQuestions: ClarificationQuestion[] = [],
+    private _questionAnswers: Record<string, string | string[]> = {},
+    private _questionsAnsweredAt: Date | null = null,
     private _techSpec: TechSpec | null = null,
-    private _maxRounds: number = 3,
   ) {}
 
   // Factory method for creating new draft
@@ -52,7 +52,6 @@ export class AEC {
     title: string,
     description?: string,
     repositoryContext?: RepositoryContext,
-    maxRounds: number = 3,
     type?: TicketType,
     priority?: TicketPriority,
   ): AEC {
@@ -85,10 +84,10 @@ export class AEC {
       repositoryContext ?? null,
       new Date(),
       new Date(),
-      [], // _questionRounds
-      0, // _currentRound
+      [], // _clarificationQuestions
+      {}, // _questionAnswers
+      null, // _questionsAnsweredAt
       null, // _techSpec
-      maxRounds, // _maxRounds
     );
   }
 
@@ -117,10 +116,10 @@ export class AEC {
     repositoryContext: RepositoryContext | null,
     createdAt: Date,
     updatedAt: Date,
-    questionRounds?: QuestionRound[],
-    currentRound?: number,
+    clarificationQuestions?: ClarificationQuestion[],
+    questionAnswers?: Record<string, string | string[]>,
+    questionsAnsweredAt?: Date | null,
     techSpec?: TechSpec | null,
-    maxRounds?: number,
   ): AEC {
     return new AEC(
       id,
@@ -146,10 +145,10 @@ export class AEC {
       repositoryContext,
       createdAt,
       updatedAt,
-      questionRounds ?? [],
-      currentRound ?? 0,
+      clarificationQuestions ?? [],
+      questionAnswers ?? {},
+      questionsAnsweredAt ?? null,
       techSpec ?? null,
-      maxRounds ?? 3,
     );
   }
 
@@ -276,117 +275,34 @@ export class AEC {
   }
 
   /**
-   * Deprecated: Use startQuestionRound() for iterative refinement workflow
-   * Kept for backward compatibility but no longer enforces 3-question limit
+   * Set clarification questions (simple, single-set)
+   *
+   * Stores up to 5 clarification questions generated from the task.
+   * No rounds, no iterations - just one set of questions.
+   */
+  setQuestions(questions: ClarificationQuestion[]): void {
+    this._clarificationQuestions = questions;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Record user answers to clarification questions
+   *
+   * Called after user submits all question answers.
+   * Marks the time questions were answered for audit trail.
+   */
+  recordQuestionAnswers(answers: Record<string, string | string[]>): void {
+    this._questionAnswers = answers;
+    this._questionsAnsweredAt = new Date();
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Deprecated: Use setQuestions() instead
+   * Kept for backward compatibility with old API
    */
   addQuestions(questions: Question[]): void {
     this._questions = questions;
-    this._updatedAt = new Date();
-  }
-
-  /**
-   * Start a new question round in the iterative refinement workflow
-   *
-   * Guards:
-   * - Must complete previous round before starting next
-   * - Maximum 3 rounds total
-   * - Can only be called from DRAFT or IN_QUESTION_ROUND_N status
-   */
-  startQuestionRound(
-    roundNumber: number,
-    questions: ClarificationQuestion[],
-    codebaseContext: string,
-  ): void {
-    // Guard: Ensure maxRounds is valid (defensive)
-    if (this._maxRounds <= 0) {
-      throw new InvalidStateTransitionError(
-        `Cannot start questions. Ticket has no rounds (maxRounds=${this._maxRounds})`,
-      );
-    }
-
-    // Guard: Sequential rounds only
-    if (roundNumber > 1 && !this.isRoundComplete(roundNumber - 1)) {
-      throw new InvalidStateTransitionError(
-        `Cannot start round ${roundNumber}. Previous round not completed.`,
-      );
-    }
-
-    // Guard: Max rounds (adaptive)
-    if (roundNumber > this._maxRounds) {
-      throw new Error(`Maximum ${this._maxRounds} rounds allowed`);
-    }
-
-    const round: QuestionRound = {
-      roundNumber,
-      questions,
-      answers: {},
-      generatedAt: new Date(),
-      answeredAt: null,
-      codebaseContext,
-      skippedByUser: false,
-    };
-
-    this._questionRounds.push(round);
-    this._currentRound = roundNumber;
-
-    // Update status to reflect current round
-    this._status = `in-question-round-${roundNumber}` as AECStatus;
-    this._updatedAt = new Date();
-  }
-
-  /**
-   * Complete a question round with user answers
-   *
-   * Records answers and marks round as completed
-   */
-  completeQuestionRound(
-    roundNumber: number,
-    answers: Record<string, string | string[]>,
-  ): void {
-    const round = this._questionRounds.find((r) => r.roundNumber === roundNumber);
-    if (!round) {
-      throw new Error(`Round ${roundNumber} not found`);
-    }
-
-    round.answers = answers;
-    round.answeredAt = new Date();
-    this._updatedAt = new Date();
-  }
-
-  /**
-   * Check if a question round is complete
-   */
-  private isRoundComplete(roundNumber: number): boolean {
-    const round = this._questionRounds.find((r) => r.roundNumber === roundNumber);
-    return round ? round.answeredAt !== null : false;
-  }
-
-  /**
-   * User manually skips remaining rounds
-   *
-   * Marks current round as skipped and transitions to questions complete state
-   */
-  skipToFinalize(): void {
-    if (this._currentRound > 0) {
-      const currentRound = this._questionRounds[this._currentRound - 1];
-      if (currentRound) {
-        currentRound.skippedByUser = true;
-      }
-    }
-    this._status = AECStatus.QUESTIONS_COMPLETE;
-    this._updatedAt = new Date();
-  }
-
-  /**
-   * Mark ready for finalization when no clarification questions are needed
-   *
-   * Called when question generation produces zero questions (no ambiguities).
-   * Sets _currentRound to _maxRounds to signal that questions phase is complete
-   * and frontend should skip directly to finalize without showing question rounds.
-   */
-  markReadyForFinalization(): void {
-    this._currentRound = this._maxRounds;
-    this._status = AECStatus.QUESTIONS_COMPLETE;
     this._updatedAt = new Date();
   }
 
@@ -525,17 +441,24 @@ export class AEC {
     return this._updatedAt;
   }
 
-  // New getters for iterative refinement workflow
-  get questionRounds(): QuestionRound[] {
-    return [...this._questionRounds];
+  // Getters for clarification questions (simple, single-set)
+  get questions(): ClarificationQuestion[] {
+    return [...this._clarificationQuestions];
   }
-  get currentRound(): number {
-    return this._currentRound;
+
+  get questionAnswers(): Record<string, string | string[]> {
+    return { ...this._questionAnswers };
   }
+
+  get questionsAnsweredAt(): Date | null {
+    return this._questionsAnsweredAt;
+  }
+
+  get hasAnsweredQuestions(): boolean {
+    return this._questionsAnsweredAt !== null;
+  }
+
   get techSpec(): TechSpec | null {
     return this._techSpec;
-  }
-  get maxRounds(): number {
-    return this._maxRounds;
   }
 }
