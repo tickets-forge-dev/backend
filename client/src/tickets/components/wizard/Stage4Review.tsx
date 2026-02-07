@@ -1,11 +1,48 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { CheckCircle2 } from 'lucide-react';
+import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
+
+/** Recursively extract the first meaningful string from a deeply nested object */
+function extractText(value: unknown, maxDepth = 5): string {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && maxDepth > 0) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        const result = extractText(parsed, maxDepth - 1);
+        if (result.length > 10) return result;
+      } catch { /* not JSON */ }
+      // JSON string but nothing readable extracted — don't return raw JSON
+      return '';
+    }
+    return value;
+  }
+  if (maxDepth <= 0) return '';
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    for (const key of ['narrative', 'description', 'summary', 'overview', 'problem', 'text', 'whyItMatters', 'context']) {
+      if (typeof obj[key] === 'string' && (obj[key] as string).length > 10) return obj[key] as string;
+    }
+    for (const key of Object.keys(obj)) {
+      const result = extractText(obj[key], maxDepth - 1);
+      if (result.length > 10) return result;
+    }
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const result = extractText(item, maxDepth - 1);
+      if (result.length > 10) return result;
+    }
+  }
+  return '';
+}
 
 /**
  * Stage 4: Final Review Component
@@ -20,16 +57,7 @@ export function Stage4Review() {
   const router = useRouter();
   const { draftAecId, spec, input, reset } = useWizardStore();
 
-  // Auto-navigate to ticket detail page after a brief delay
-  useEffect(() => {
-    if (draftAecId) {
-      const timer = setTimeout(() => {
-        router.push(`/tickets/${draftAecId}`);
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [draftAecId, router]);
+  // No auto-redirect — let user click "View Ticket Details" manually
 
   if (!draftAecId) {
     return (
@@ -71,18 +99,19 @@ export function Stage4Review() {
             </div>
 
             {/* Problem Statement */}
-            {spec?.problemStatement && (
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Problem
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {typeof spec.problemStatement === 'string'
-                    ? spec.problemStatement
-                    : (spec.problemStatement as any).narrative || JSON.stringify(spec.problemStatement)}
-                </p>
-              </div>
-            )}
+            {spec?.problemStatement && (() => {
+              const ps = normalizeProblemStatement(spec.problemStatement);
+              return ps.narrative ? (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Problem
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {ps.narrative}
+                  </p>
+                </div>
+              ) : null;
+            })()}
 
             {/* Quality Score */}
             {spec?.qualityScore !== undefined && (
@@ -132,12 +161,6 @@ export function Stage4Review() {
         </Button>
       </div>
 
-      {/* Info */}
-      <div className="text-center">
-        <p className="text-xs text-gray-500 dark:text-gray-500">
-          Redirecting to ticket details in 2 seconds...
-        </p>
-      </div>
     </div>
   );
 }

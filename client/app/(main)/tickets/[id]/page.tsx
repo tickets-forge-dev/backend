@@ -29,6 +29,7 @@ import { BackendClientChanges } from '@/src/tickets/components/BackendClientChan
 import { TestPlanSection } from '@/src/tickets/components/TestPlanSection';
 import { toast } from 'sonner';
 import type { RoundAnswers } from '@/types/question-refinement';
+import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -192,12 +193,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   // Build section nav items based on what's actually rendered
   const techSpec = currentTicket.techSpec;
   const navSections = [
-    techSpec?.qualityScore !== undefined && { id: 'quality-score', label: 'Quality' },
-    techSpec && { id: 'description', label: 'Description' },
+    { id: 'notes', label: 'Notes' },
     techSpec?.problemStatement && { id: 'problem-statement', label: 'Problem' },
     techSpec?.solution && { id: 'solution', label: 'Solution' },
     techSpec?.acceptanceCriteria?.length > 0 && { id: 'spec-acceptance', label: 'Acceptance Criteria' },
-    techSpec?.apiChanges?.endpoints?.length > 0 && { id: 'api-endpoints', label: 'API Endpoints' },
+    techSpec && { id: 'api-endpoints', label: 'API Endpoints' },
     techSpec?.fileChanges?.length > 0 && { id: 'file-changes', label: 'File Changes' },
     techSpec?.layeredFileChanges && { id: 'layered-changes', label: 'BE/FE Changes' },
     techSpec?.testPlan && { id: 'test-plan', label: 'Test Plan' },
@@ -275,6 +275,8 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         status: endpoint.status || 'new',
         requestDto: endpoint.dto?.request || '',
         responseDto: endpoint.dto?.response || '',
+        headers: endpoint.headers || '',
+        requestBody: endpoint.requestBody || '',
       };
     } else if (section === 'testPlan') {
       // Flatten all test arrays and find by global index
@@ -358,7 +360,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       patch.fileChanges = arr;
     } else if (section === 'apiEndpoints' && updated.mode === 'apiEndpoint') {
       const endpoints = [...(ts.apiChanges?.endpoints || [])];
-      endpoints[index] = {
+      const newEndpoint = {
         method: updated.method as any,
         route: updated.route,
         description: updated.description,
@@ -368,7 +370,14 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           request: updated.requestDto || undefined,
           response: updated.responseDto || undefined,
         },
+        headers: updated.headers || undefined,
+        requestBody: updated.requestBody || undefined,
       };
+      if (index === -1) {
+        endpoints.push(newEndpoint);
+      } else {
+        endpoints[index] = newEndpoint;
+      }
       patch.apiChanges = { ...ts.apiChanges, endpoints };
     } else if (section === 'testPlan' && updated.mode === 'testCase') {
       // Reconstruct the test plan arrays from global index
@@ -634,8 +643,123 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         </div>
       </div>
 
+      {/* Hero Header — Title + Quality Badge */}
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-xl font-semibold text-[var(--text)] leading-tight">
+            {currentTicket.title}
+          </h1>
+          {techSpec?.qualityScore !== undefined && (() => {
+            const tips: string[] = [];
+            const ps = techSpec.problemStatement;
+            const sol = techSpec.solution;
+            const ac = techSpec.acceptanceCriteria;
+            // Problem statement checks
+            if (!ps || typeof ps === 'string') tips.push('Add a detailed problem statement');
+            else {
+              if (!ps.narrative || ps.narrative.length < 50) tips.push('Expand the problem narrative');
+              if (!ps.whyItMatters || ps.whyItMatters.length < 50) tips.push('Explain why this matters');
+              if (!ps.assumptions || ps.assumptions.length < 2) tips.push('Add more assumptions');
+            }
+            // Solution checks
+            const steps = sol?.steps || (Array.isArray(sol) ? sol : []);
+            if (steps.length < 3) tips.push('Add more solution steps');
+            if (steps.length > 0 && !steps.some((s: any) => s.file || s.codeSnippet)) tips.push('Add file paths to solution steps');
+            // Acceptance criteria
+            if (!ac || ac.length < 3) tips.push('Add more acceptance criteria');
+            else if (!ac.some((c: any) => c.given && c.when && c.then)) tips.push('Use BDD format (Given/When/Then)');
+            // File changes
+            if (!techSpec.fileChanges || techSpec.fileChanges.length === 0) tips.push('Identify file changes');
+            // Test plan
+            if (!techSpec.testPlan) tips.push('Add a test plan');
+            // API
+            if (!techSpec.apiChanges?.endpoints?.length) tips.push('Document API endpoints');
+
+            return (
+              <div className="relative group flex-shrink-0">
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white cursor-default ${
+                  techSpec.qualityScore >= 75
+                    ? 'bg-green-500'
+                    : techSpec.qualityScore >= 50
+                    ? 'bg-amber-500'
+                    : 'bg-red-500'
+                }`}>
+                  {techSpec.qualityScore}/100
+                </span>
+                {tips.length > 0 && (
+                  <div className="absolute right-0 top-full mt-2 w-64 p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                    <p className="text-[11px] font-medium text-[var(--text)] mb-2">
+                      To improve your score:
+                    </p>
+                    <ul className="space-y-1">
+                      {tips.slice(0, 5).map((tip, i) => (
+                        <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                          <span className="text-amber-500 mt-px">*</span>
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Type, Priority & Status row */}
+        <div className="flex items-center gap-2">
+          {currentTicket.type && (
+            <Badge variant="outline" className="capitalize gap-1.5">
+              {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
+                : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
+                : <Lightbulb className="h-3 w-3 text-amber-500" />}
+              {currentTicket.type}
+            </Badge>
+          )}
+          {currentTicket.priority && (
+            <Badge variant="outline" className="capitalize gap-1.5">
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                currentTicket.priority === 'urgent' ? 'bg-red-500'
+                  : currentTicket.priority === 'high' ? 'bg-orange-500'
+                  : currentTicket.priority === 'medium' ? 'bg-yellow-500'
+                  : 'bg-green-500'
+              }`} />
+              {currentTicket.priority}
+            </Badge>
+          )}
+          <div className="flex-1" />
+          {canToggleStatus && (
+            <button
+              onClick={() => setShowStatusConfirm(true)}
+              className={`
+                inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border
+                ${isComplete
+                  ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/20 hover:border-green-500/30'
+                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-tertiary)]'
+                }
+              `}
+            >
+              {isComplete ? (
+                <>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  <div className="text-left">
+                    <span className="block leading-tight">Complete</span>
+                    <span className="block text-[10px] font-normal opacity-60">Click to revert</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-left">
+                  <span className="block leading-tight">Draft</span>
+                  <span className="block text-[10px] font-normal opacity-60">Click to complete</span>
+                </div>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Content with section nav */}
-      <div className="relative space-y-6">
+      <div className="relative space-y-8">
         {/* Section Navigator — sticky left sidebar on wide screens */}
         {navSections.length > 0 && (
           <nav className="hidden xl:block absolute right-full mr-6 top-0 bottom-0 w-40">
@@ -677,46 +801,6 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           </nav>
         )}
 
-      {/* Type, Priority & Status row */}
-      <div className="flex items-center gap-2 mb-4">
-        {/* Type badge with icon */}
-        {currentTicket.type && (
-          <Badge variant="outline" className="capitalize gap-1.5">
-            {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
-              : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
-              : <Lightbulb className="h-3 w-3 text-amber-500" />}
-            {currentTicket.type}
-          </Badge>
-        )}
-        {/* Priority badge */}
-        {currentTicket.priority && (
-          <Badge variant="outline" className="capitalize gap-1.5">
-            <span className={`h-1.5 w-1.5 rounded-full ${
-              currentTicket.priority === 'urgent' ? 'bg-red-500'
-                : currentTicket.priority === 'high' ? 'bg-orange-500'
-                : currentTicket.priority === 'medium' ? 'bg-yellow-500'
-                : 'bg-green-500'
-            }`} />
-            {currentTicket.priority}
-          </Badge>
-        )}
-        <div className="flex-1" />
-        {canToggleStatus && (
-            <button
-              onClick={() => setShowStatusConfirm(true)}
-              className={`
-                inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer
-                ${isComplete
-                  ? 'bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20'
-                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                }
-              `}
-            >
-              {isComplete && <CheckCircle className="h-3.5 w-3.5" />}
-              {isComplete ? 'Complete' : 'Draft'}
-            </button>
-          )}
-      </div>
 
       {/* Error message */}
       {answerSubmitError && (
@@ -782,92 +866,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
       {/* Tech Spec - Main content for Stage 4 (Review) */}
       {currentTicket.techSpec && (
-        <section className="space-y-6">
-          {/* Quality Score */}
-          {currentTicket.techSpec.qualityScore !== undefined && (
-            <div id="quality-score" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                    Quality Score
-                  </p>
-                  <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                    {currentTicket.techSpec.qualityScore}/100
-                  </span>
-                </div>
-                <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      currentTicket.techSpec.qualityScore >= 75
-                        ? 'bg-green-500'
-                        : currentTicket.techSpec.qualityScore >= 50
-                        ? 'bg-amber-500'
-                        : 'bg-red-500'
-                    }`}
-                    style={{ width: `${Math.min(currentTicket.techSpec.qualityScore, 100)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Description — PM custom markdown notes */}
-          <div id="description" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] flex items-center gap-2">
-                <FileText className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
-                Description
-              </h3>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!isDescriptionDirty || isSavingDescription}
-                  onClick={handleSaveDescription}
-                  className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
-                >
-                  {isSavingDescription ? (
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                  ) : (
-                    <Save className="h-3 w-3 mr-1" />
-                  )}
-                  Save
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setDescriptionExpanded(true); setDescriptionMode('edit'); }}
-                  className="h-7 w-7 p-0 text-[var(--text-tertiary)] hover:text-[var(--text)]"
-                  title="Expand editor"
-                >
-                  <Expand className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-            <textarea
-              ref={descriptionRef}
-              value={descriptionDraft}
-              onChange={(e) => {
-                setDescriptionDraft(e.target.value);
-                setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  if (isDescriptionDirty) handleSaveDescription();
-                }
-              }}
-              placeholder="Add a description... (supports Markdown)"
-              rows={5}
-              className="w-full bg-transparent text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed font-mono resize-y rounded-md border border-[var(--border)]/30 px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 transition-colors"
-            />
-            {isDescriptionDirty && (
-              <p className="text-[10px] text-[var(--text-tertiary)]">
-                Unsaved changes. Press <kbd className="px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)] font-mono text-[9px]">Cmd+S</kbd> or click Save.
-              </p>
-            )}
-          </div>
-
+        <section className="space-y-8">
           {/* Technology Stack */}
           {currentTicket.techSpec.stack && (
             <CollapsibleSection id="technology-stack" title="Technology Stack">
@@ -894,68 +893,71 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             </CollapsibleSection>
           )}
 
-          {/* Problem Statement */}
-          {currentTicket.techSpec.problemStatement && (
-            <CollapsibleSection id="problem-statement" title="Problem Statement">
+          {/* Problem Statement — non-collapsible */}
+          {currentTicket.techSpec.problemStatement && (() => {
+            const ps = normalizeProblemStatement(currentTicket.techSpec.problemStatement);
+            return ps.narrative ? (
+            <div id="problem-statement" data-nav-section className="space-y-3">
+              <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
+                Problem Statement
+              </h3>
               <div className="space-y-3">
                 <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-                  {typeof currentTicket.techSpec.problemStatement === 'string'
-                    ? currentTicket.techSpec.problemStatement
-                    : currentTicket.techSpec.problemStatement.narrative}
+                  {ps.narrative}
                 </p>
-                {typeof currentTicket.techSpec.problemStatement === 'object' && (
-                  <>
-                    {currentTicket.techSpec.problemStatement.whyItMatters && (
-                      <div className="pt-2 border-t border-[var(--border)]">
-                        <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
-                          Why it matters
-                        </p>
-                        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                          {currentTicket.techSpec.problemStatement.whyItMatters}
-                        </p>
-                      </div>
-                    )}
-                    {currentTicket.techSpec.problemStatement.assumptions?.length > 0 && (
-                      <div className="pt-2 border-t border-[var(--border)]">
-                        <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
-                          Assumptions
-                        </p>
-                        <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                          {currentTicket.techSpec.problemStatement.assumptions.map((a: string, i: number) => (
-                            <li key={i}>
-                              <EditableItem onEdit={() => openEdit('assumptions', i)} onDelete={() => deleteTechSpecItem('assumptions', i)}>
-                                &#8226; {a}
-                              </EditableItem>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {currentTicket.techSpec.problemStatement.constraints?.length > 0 && (
-                      <div className="pt-2 border-t border-[var(--border)]">
-                        <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
-                          Constraints
-                        </p>
-                        <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                          {currentTicket.techSpec.problemStatement.constraints.map((c: string, i: number) => (
-                            <li key={i}>
-                              <EditableItem onEdit={() => openEdit('constraints', i)} onDelete={() => deleteTechSpecItem('constraints', i)}>
-                                &#8226; {c}
-                              </EditableItem>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </>
+                {ps.whyItMatters && (
+                  <div className="pt-2 border-t border-[var(--border)]">
+                    <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
+                      Why it matters
+                    </p>
+                    <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                      {ps.whyItMatters}
+                    </p>
+                  </div>
+                )}
+                {ps.assumptions.length > 0 && (
+                  <div className="pt-2 border-t border-[var(--border)]">
+                    <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
+                      Assumptions
+                    </p>
+                    <ul className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                      {ps.assumptions.map((a: string, i: number) => (
+                        <li key={i}>
+                          <EditableItem onEdit={() => openEdit('assumptions', i)} onDelete={() => deleteTechSpecItem('assumptions', i)}>
+                            <span className="text-[var(--text-tertiary)] mr-2">-</span>{a}
+                          </EditableItem>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {ps.constraints.length > 0 && (
+                  <div className="pt-2 border-t border-[var(--border)]">
+                    <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
+                      Constraints
+                    </p>
+                    <ul className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                      {ps.constraints.map((c: string, i: number) => (
+                        <li key={i}>
+                          <EditableItem onEdit={() => openEdit('constraints', i)} onDelete={() => deleteTechSpecItem('constraints', i)}>
+                            <span className="text-[var(--text-tertiary)] mr-2">-</span>{c}
+                          </EditableItem>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
-            </CollapsibleSection>
-          )}
+            </div>
+            ) : null;
+          })()}
 
-          {/* Solution Steps */}
+          {/* Solution Steps — non-collapsible */}
           {currentTicket.techSpec.solution && (
-            <CollapsibleSection id="solution" title="Solution">
+            <div id="solution" data-nav-section className="space-y-3">
+              <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
+                Solution
+              </h3>
               <div className="space-y-3">
                 {typeof currentTicket.techSpec.solution === 'string' ? (
                   <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
@@ -1009,25 +1011,28 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   </div>
                 ) : null}
               </div>
-            </CollapsibleSection>
+            </div>
           )}
 
-          {/* Acceptance Criteria from spec (BDD format or string list) */}
+          {/* Acceptance Criteria — non-collapsible, BDD color-coded */}
           {currentTicket.techSpec.acceptanceCriteria?.length > 0 && (
-            <CollapsibleSection id="spec-acceptance" title="Acceptance Criteria">
+            <div id="spec-acceptance" data-nav-section className="space-y-3">
+              <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
+                Acceptance Criteria
+              </h3>
               <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
                 {currentTicket.techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
                   <li key={idx}>
                     <EditableItem onEdit={() => openEdit('acceptanceCriteria', idx)} onDelete={() => deleteTechSpecItem('acceptanceCriteria', idx)}>
                       {typeof ac === 'string' ? (
-                        <span>&#8226; {ac}</span>
+                        <span><span className="text-[var(--text-tertiary)] mr-2">-</span>{ac}</span>
                       ) : (
-                        <div className="space-y-1 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-                          <p><span className="font-medium text-[var(--text-tertiary)]">Given</span> {ac.given}</p>
-                          <p><span className="font-medium text-[var(--text-tertiary)]">When</span> {ac.when}</p>
-                          <p><span className="font-medium text-[var(--text-tertiary)]">Then</span> {ac.then}</p>
+                        <div className="space-y-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-4 py-3">
+                          <p><span className="font-medium text-blue-500 mr-1">Given</span> {ac.given}</p>
+                          <p><span className="font-medium text-amber-500 mr-1">When</span> {ac.when}</p>
+                          <p><span className="font-medium text-green-500 mr-1">Then</span> {ac.then}</p>
                           {ac.implementationNotes && (
-                            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic mt-1">
+                            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic mt-1.5">
                               {ac.implementationNotes}
                             </p>
                           )}
@@ -1037,23 +1042,37 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   </li>
                 ))}
               </ul>
-            </CollapsibleSection>
+            </div>
           )}
 
           {/* API Endpoints */}
-          {currentTicket.techSpec.apiChanges?.endpoints?.length > 0 && (
-            <CollapsibleSection id="api-endpoints" title="API Endpoints" defaultExpanded={true}>
-              <ApiEndpointsList
-                endpoints={currentTicket.techSpec.apiChanges.endpoints}
-                onEdit={(idx) => openEdit('apiEndpoints', idx)}
-                onDelete={(idx) => deleteTechSpecItem('apiEndpoints', idx)}
-              />
-            </CollapsibleSection>
-          )}
+          <CollapsibleSection id="api-endpoints" title="API Endpoints" badge={`${(currentTicket.techSpec.apiChanges?.endpoints || []).length}`} defaultExpanded={true}>
+            <ApiEndpointsList
+              endpoints={currentTicket.techSpec.apiChanges?.endpoints || []}
+              onEdit={(idx) => openEdit('apiEndpoints', idx)}
+              onDelete={(idx) => deleteTechSpecItem('apiEndpoints', idx)}
+              onAdd={() => {
+                setEditContext({ section: 'apiEndpoints', index: -1 });
+                setEditState({
+                  mode: 'apiEndpoint',
+                  method: 'GET',
+                  route: '/api/',
+                  description: '',
+                  authentication: 'none',
+                  status: 'new',
+                  requestDto: '',
+                  responseDto: '',
+                  headers: '',
+                  requestBody: '',
+                });
+                setEditDialogOpen(true);
+              }}
+            />
+          </CollapsibleSection>
 
           {/* File Changes */}
           {currentTicket.techSpec.fileChanges?.length > 0 && (
-            <CollapsibleSection id="file-changes" title="File Changes">
+            <CollapsibleSection id="file-changes" title="File Changes" badge={`${currentTicket.techSpec.fileChanges.length}`}>
               <ul className="space-y-2">
                 {currentTicket.techSpec.fileChanges.map((fc: any, idx: number) => {
                   const action = fc.action || fc.type || 'modify';
@@ -1099,7 +1118,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
           {/* Test Plan */}
           {currentTicket.techSpec.testPlan && (
-            <CollapsibleSection id="test-plan" title="Test Plan" defaultExpanded={true}>
+            <CollapsibleSection id="test-plan" title="Test Plan" badge={`${(currentTicket.techSpec.testPlan.unitTests?.length || 0) + (currentTicket.techSpec.testPlan.integrationTests?.length || 0) + (currentTicket.techSpec.testPlan.edgeCases?.length || 0)} tests`} defaultExpanded={true}>
               <TestPlanSection
                 summary={currentTicket.techSpec.testPlan.summary}
                 unitTests={currentTicket.techSpec.testPlan.unitTests || []}
@@ -1122,11 +1141,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                     <h4 className="text-[var(--text-xs)] font-medium text-green-600 dark:text-green-400 uppercase">
                       In Scope
                     </h4>
-                    <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                    <ul className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
                       {currentTicket.techSpec.inScope.map((item: string, idx: number) => (
                         <li key={idx}>
                           <EditableItem onEdit={() => openEdit('inScope', idx)} onDelete={() => deleteTechSpecItem('inScope', idx)}>
-                            &#8226; {item}
+                            <span className="text-[var(--text-tertiary)] mr-2">-</span>{item}
                           </EditableItem>
                         </li>
                       ))}
@@ -1138,11 +1157,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                     <h4 className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
                       Out of Scope
                     </h4>
-                    <ul className="space-y-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                    <ul className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
                       {currentTicket.techSpec.outOfScope.map((item: string, idx: number) => (
                         <li key={idx}>
                           <EditableItem onEdit={() => openEdit('outOfScope', idx)} onDelete={() => deleteTechSpecItem('outOfScope', idx)}>
-                            &#8226; {item}
+                            <span className="text-[var(--text-tertiary)] mr-2">-</span>{item}
                           </EditableItem>
                         </li>
                       ))}
@@ -1256,41 +1275,63 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         </section>
       )}
 
-      {/* Questions (if readiness < 75) */}
-      {currentTicket.questions && currentTicket.questions.length > 0 && readinessScore < 75 && (
-        <section className="space-y-3">
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Clarification Needed
-          </h2>
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
-            <div className="space-y-4">
-              {currentTicket.questions.slice(0, 3).map((question, index) => (
-                <div key={question.id || index} className="space-y-2">
-                  <p className="text-[var(--text-base)] text-[var(--text)]">
-                    {index + 1}. {question.text}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {question.options.map((option: { value: string; label: string }) => (
-                      <Badge
-                        key={option.value}
-                        variant="outline"
-                        className="cursor-pointer hover:bg-[var(--bg-hover)]"
-                      >
-                        {option.label}
-                      </Badge>
-                    ))}
-                  </div>
-                  {question.defaultAssumption && (
-                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic">
-                      Default: {question.defaultAssumption}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
+
+      {/* Notes — PM custom markdown notes */}
+      <div id="notes" data-nav-section className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] flex items-center gap-2">
+            <FileText className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+            Notes
+          </h3>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!isDescriptionDirty || isSavingDescription}
+              onClick={handleSaveDescription}
+              className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+            >
+              {isSavingDescription ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Save className="h-3 w-3 mr-1" />
+              )}
+              Save
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setDescriptionExpanded(true); setDescriptionMode('edit'); }}
+              className="h-7 w-7 p-0 text-[var(--text-tertiary)] hover:text-[var(--text)]"
+              title="Expand editor"
+            >
+              <Expand className="h-3.5 w-3.5" />
+            </Button>
           </div>
-        </section>
-      )}
+        </div>
+        <textarea
+          ref={descriptionRef}
+          value={descriptionDraft}
+          onChange={(e) => {
+            setDescriptionDraft(e.target.value);
+            setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              if (isDescriptionDirty) handleSaveDescription();
+            }
+          }}
+          placeholder="Add notes... (supports Markdown)"
+          rows={3}
+          className="w-full bg-transparent text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed font-mono resize-y rounded-md border border-[var(--border)]/30 px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 transition-colors"
+        />
+        {isDescriptionDirty && (
+          <p className="text-[10px] text-[var(--text-tertiary)]">
+            Unsaved changes. Press <kbd className="px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)] font-mono text-[9px]">Cmd+S</kbd> or click Save.
+          </p>
+        )}
+      </div>
 
       {/* Footer with export and delete buttons */}
       <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
@@ -1369,7 +1410,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             <div className="flex items-center justify-between pr-8">
               <DialogTitle className="flex items-center gap-2 text-base">
                 <FileText className="h-4 w-4 text-[var(--text-tertiary)]" />
-                Description
+                Notes
               </DialogTitle>
               <div className="flex items-center gap-2">
                 {/* Edit / Preview toggle */}
@@ -1413,7 +1454,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 </Button>
               </div>
             </div>
-            <DialogDescription className="sr-only">Edit or preview the ticket description</DialogDescription>
+            <DialogDescription className="sr-only">Edit or preview ticket notes</DialogDescription>
           </DialogHeader>
 
           {/* Body */}
@@ -1432,7 +1473,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                     if (isDescriptionDirty) handleSaveDescription();
                   }
                 }}
-                placeholder="Add a description... (supports Markdown)"
+                placeholder="Add notes... (supports Markdown)"
                 className="w-full h-full bg-transparent text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed font-mono resize-none rounded-md border border-[var(--border)]/30 px-4 py-3 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/20 transition-colors"
               />
             ) : (
@@ -1440,7 +1481,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 {descriptionDraft ? (
                   <Markdown remarkPlugins={[remarkGfm]}>{descriptionDraft}</Markdown>
                 ) : (
-                  <p className="text-[var(--text-tertiary)] italic">No description yet. Switch to Edit mode to add one.</p>
+                  <p className="text-[var(--text-tertiary)] italic">No notes yet. Switch to Edit mode to add some.</p>
                 )}
               </div>
             )}

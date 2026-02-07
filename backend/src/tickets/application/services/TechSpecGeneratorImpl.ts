@@ -449,7 +449,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
         this.generateFileChanges(solution, context),
         this.generateScope(input.title, input.description || '', true),
         this.generateScope(input.title, input.description || '', false),
-        this.extractApiChanges(input.analysis),
+        this.extractApiChanges(context),
       ]);
 
     // Generate sections that depend on fileChanges (parallel)
@@ -472,13 +472,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       fileChanges,
       qualityScore: 0, // Will be calculated below
       ambiguityFlags: [],
-      stack: {
-        language: context.stack.language?.name || undefined,
-        framework: context.stack.framework?.name || undefined,
-        packageManager: typeof context.stack.packageManager === 'string'
-          ? context.stack.packageManager
-          : context.stack.packageManager?.type || undefined,
-      },
+      stack: this.resolveStack(context),
       apiChanges,
       layeredFileChanges,
       testPlan,
@@ -509,27 +503,84 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       const userPrompt = PromptTemplates.problemStatementPrompt(title, description);
 
       const response = await this.callLLM(systemPrompt, userPrompt);
-      const parsed = this.parseJSON<ProblemStatement>(response);
+      const parsed = this.parseJSON<any>(response);
 
-      // Validate structure
-      if (
-        !parsed.narrative ||
-        !parsed.whyItMatters ||
-        !parsed.context ||
-        !Array.isArray(parsed.assumptions) ||
-        !Array.isArray(parsed.constraints)
-      ) {
-        throw new Error('Invalid problem statement structure');
-      }
-
-      // Ensure minimum array sizes
-      parsed.assumptions = parsed.assumptions.slice(0, 5);
-      parsed.constraints = parsed.constraints.slice(0, 5);
-
-      return parsed;
+      return this.normalizeProblemStatement(parsed, title, description);
     } catch (error) {
       throw new Error(`Failed to generate problem statement: ${String(error)}`);
     }
+  }
+
+  /**
+   * Normalizes any LLM response shape into a valid ProblemStatement.
+   * If the LLM returns the expected shape, uses it directly.
+   * If the LLM returns arbitrary JSON, extracts meaningful strings
+   * and maps them into the expected fields.
+   */
+  private normalizeProblemStatement(
+    parsed: any,
+    title: string,
+    description: string,
+  ): ProblemStatement {
+    // Happy path: already has the expected structure
+    if (
+      parsed.narrative &&
+      parsed.whyItMatters &&
+      Array.isArray(parsed.assumptions) &&
+      Array.isArray(parsed.constraints)
+    ) {
+      return {
+        narrative: String(parsed.narrative),
+        whyItMatters: String(parsed.whyItMatters),
+        context: String(parsed.context || ''),
+        assumptions: parsed.assumptions.map(String).slice(0, 5),
+        constraints: parsed.constraints.map(String).slice(0, 5),
+      };
+    }
+
+    // Recovery: extract meaningful strings from arbitrary structure
+    const strings = this.extractStringsFromObject(parsed);
+    const arrays = this.extractStringArraysFromObject(parsed);
+
+    return {
+      narrative: strings[0] || `Implement: ${title}`,
+      whyItMatters: strings[1] || description || 'Addresses a key requirement',
+      context: strings[2] || '',
+      assumptions: (arrays[0] || []).slice(0, 5),
+      constraints: (arrays[1] || []).slice(0, 5),
+    };
+  }
+
+  /** Recursively collect all meaningful strings (>15 chars) from an object */
+  private extractStringsFromObject(obj: any, maxDepth = 5): string[] {
+    const results: string[] = [];
+    if (!obj || maxDepth <= 0) return results;
+    if (typeof obj === 'string' && obj.length > 15) {
+      results.push(obj);
+    } else if (Array.isArray(obj)) {
+      for (const item of obj) {
+        results.push(...this.extractStringsFromObject(item, maxDepth - 1));
+      }
+    } else if (typeof obj === 'object') {
+      for (const key of Object.keys(obj)) {
+        results.push(...this.extractStringsFromObject(obj[key], maxDepth - 1));
+      }
+    }
+    return results;
+  }
+
+  /** Recursively find string arrays from an object */
+  private extractStringArraysFromObject(obj: any, maxDepth = 5): string[][] {
+    const results: string[][] = [];
+    if (!obj || maxDepth <= 0) return results;
+    if (Array.isArray(obj) && obj.length > 0 && obj.every((v: any) => typeof v === 'string')) {
+      results.push(obj);
+    } else if (typeof obj === 'object' && !Array.isArray(obj)) {
+      for (const key of Object.keys(obj)) {
+        results.push(...this.extractStringArraysFromObject(obj[key], maxDepth - 1));
+      }
+    }
+    return results;
   }
 
   /**
@@ -671,12 +722,12 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   }
 
   /**
-   * Extracts API changes from deep analysis result if available
+   * Extracts API changes from deep analysis taskAnalysis if available
    */
-  async extractApiChanges(analysis: CodebaseAnalysis): Promise<ApiChanges | undefined> {
-    const rawAnalysis = analysis as any;
-    if (rawAnalysis?.taskAnalysis?.apiChanges) {
-      const apiChanges = rawAnalysis.taskAnalysis.apiChanges;
+  async extractApiChanges(context: CodebaseContext): Promise<ApiChanges | undefined> {
+    const taskAnalysis = (context as any)?.taskAnalysis;
+    if (taskAnalysis?.apiChanges) {
+      const apiChanges = taskAnalysis.apiChanges;
       if (apiChanges.endpoints && Array.isArray(apiChanges.endpoints) && apiChanges.endpoints.length > 0) {
         return {
           endpoints: apiChanges.endpoints
@@ -841,6 +892,29 @@ IMPORTANT:
       // Default scope if generation fails
       return inScope ? ['Feature implementation'] : [];
     }
+  }
+
+  /**
+   * Resolve tech stack from LLM analysis with fingerprint fallback.
+   * Treats "unknown"/"Unknown" as empty so fingerprint data is used instead.
+   */
+  private resolveStack(context: CodebaseContext): { language?: string; framework?: string; packageManager?: string } {
+    const isKnown = (v: string | undefined | null): string | undefined =>
+      v && v.toLowerCase() !== 'unknown' ? v : undefined;
+
+    const llmLang = isKnown(context.stack?.language?.name);
+    const llmFramework = isKnown(context.stack?.framework?.name);
+    const llmPm = typeof context.stack?.packageManager === 'string'
+      ? isKnown(context.stack.packageManager)
+      : isKnown(context.stack?.packageManager?.type);
+
+    const fp = context.taskAnalysis?.fingerprint;
+
+    return {
+      language: llmLang || isKnown(fp?.primaryLanguage) || undefined,
+      framework: llmFramework || isKnown(fp?.frameworks?.[0]) || undefined,
+      packageManager: llmPm || isKnown(fp?.packageManager) || undefined,
+    };
   }
 
   /**
@@ -1498,7 +1572,7 @@ Rewritten text (definitive, unambiguous):`;
         this.generateFileChanges(solution, context),
         this.generateScope(input.title, input.description || '', true),
         this.generateScope(input.title, input.description || '', false),
-        this.extractApiChanges(input.context.analysis),
+        this.extractApiChanges(context),
       ]);
 
       // Generate sections that depend on fileChanges (parallel)
@@ -1521,13 +1595,7 @@ Rewritten text (definitive, unambiguous):`;
         fileChanges,
         qualityScore: 0,
         ambiguityFlags: [],
-        stack: {
-          language: context.stack.language?.name || undefined,
-          framework: context.stack.framework?.name || undefined,
-          packageManager: typeof context.stack.packageManager === 'string'
-            ? context.stack.packageManager
-            : context.stack.packageManager?.type || undefined,
-        },
+        stack: this.resolveStack(context),
         apiChanges,
         layeredFileChanges,
         testPlan,
@@ -1724,22 +1792,9 @@ Generate valid JSON object:
 }`;
 
       const response = await this.callLLM(systemPrompt, userPrompt);
-      const parsed = this.parseJSON<ProblemStatement>(response);
+      const parsed = this.parseJSON<any>(response);
 
-      if (
-        !parsed.narrative ||
-        !parsed.whyItMatters ||
-        !parsed.context ||
-        !Array.isArray(parsed.assumptions) ||
-        !Array.isArray(parsed.constraints)
-      ) {
-        throw new Error('Invalid problem statement structure');
-      }
-
-      parsed.assumptions = parsed.assumptions.slice(0, 5);
-      parsed.constraints = parsed.constraints.slice(0, 5);
-
-      return parsed;
+      return this.normalizeProblemStatement(parsed, title, description);
     } catch (error) {
       throw new Error(`Failed to generate problem statement with answers: ${String(error)}`);
     }
