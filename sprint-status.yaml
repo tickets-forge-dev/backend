@@ -64,6 +64,21 @@ development_status:
       - 9-5-frontend-4-stage-wizard: done
       - 9-6-deep-analysis-pipeline: done
 
+  # 🔴 URGENT — PRE-LAUNCH GATE (Sprint 0)
+  epic-0:
+    status: in-progress
+    completion: 75%
+    stories: 4/4
+    summary: "Pre-Launch: Anthropic Production Test + Free Tier Gate"
+    priority: "P0 URGENT (Must ship before anything else)"
+    planned_start: "NOW"
+    dependencies: "None"
+    deliverables:
+      - 0-1-test-anthropic-production: done            # Verified — Anthropic API working in production
+      - 0-2-cheapest-model-selection: done             # Switched all LLM defaults to claude-3-5-haiku-20241022 (cheapest with vision)
+      - 0-3-free-tier-ticket-limit: done              # Free tier: 3 tickets (15 for admin), backend guard + sidebar quota banner
+      - 0-4-mock-pricing-page: drafted               # Pricing page UI with tier cards + "Subscribe" buttons (no Stripe yet)
+
   # ⚪ BACKLOG — MONETIZATION TRACK
   epic-5:
     status: backlog
@@ -265,14 +280,14 @@ development_status:
 # METRICS & SUMMARY
 # =================
 metrics:
-  total_epics: 16
+  total_epics: 17
   completed_epics: 4
   in_progress_epics: 0
-  backlog_epics: 12
+  backlog_epics: 13
 
-  total_stories: 71
+  total_stories: 75
   completed_stories: 15
-  backlog_stories: 56
+  backlog_stories: 60
 
   overall_completion: "21%"
   critical_path: "Epic 10 + 11 → Epic 5 + 12 → Epic 13 → Epic 14 + 15"
@@ -285,6 +300,18 @@ metrics:
 execution_path: "PATH B: Monetization First"
 
 phases:
+  phase-0:
+    name: "🔴 PRE-LAUNCH GATE (Epic 0)"
+    duration: "1-2 days"
+    stories: ["0.1-0.4"]
+    deliverables:
+      - "Anthropic API verified working in production"
+      - "Cheapest vision-capable model selected (Haiku 3.5)"
+      - "Free tier: 3 tickets/workspace enforced"
+      - "Mock pricing page live (no Stripe yet)"
+    success_criteria: "Can demo the product with real LLM, users see limits + pricing"
+    outcome: "Production-ready for early users"
+
   phase-1:
     name: "Revenue + Launch Readiness (Epics 10 + 11)"
     duration: "3-4 weeks"
@@ -392,8 +419,8 @@ risks:
 # DECISION POINTS
 # ===============
 decisions:
-  next_epic: "Epic 10 (Stripe + Subscriptions) — the revenue unlock"
-  parallel_track: "Epic 11 (Landing page, Sentry, analytics) — can start immediately"
+  next_epic: "Epic 0 (Pre-Launch Gate) — URGENT, ship today"
+  after_that: "Epic 10 (Stripe + Subscriptions) — the revenue unlock"
   rollout_strategy: "Revenue (Phase 1) → Integrations + PM Mode (Phase 2) → Teams (Phase 3) → Enterprise (Phase 4)"
 
 # NOTES
@@ -410,6 +437,7 @@ standup_notes: |
   📊 Totals: 16 epics | 71 stories | 4 done | 12 backlog
 
   🎯 Execution:
+  Phase 0: PRE-LAUNCH GATE (Epic 0) — 1-2 days            ← URGENT NOW
   Phase 1: Revenue unlock (Epics 10 + 11) — 3-4 weeks     ← START CHARGING
   Phase 2: Integrations + PM mode (Epics 5 + 12) — 3-4 weeks
   Phase 3: Team tier (Epic 13) — 3-4 weeks                 ← SEAT EXPANSION

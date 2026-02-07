@@ -13,7 +13,6 @@
  * @implements TechSpecGenerator
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
@@ -278,7 +277,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
 
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
-      const modelId = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-haiku-4-5-20251001';
+      const modelId = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-5-haiku-20241022';
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
@@ -331,6 +330,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       ]);
 
     // Assemble tech spec
+    const { v4: uuidv4 } = await import('uuid');
     const techSpec: TechSpec = {
       id: uuidv4(),
       title: input.title,
@@ -1146,6 +1146,7 @@ Rewritten text (definitive, unambiguous):`;
       ]);
 
       // Assemble final tech spec
+      const { v4: uuidv4 } = await import('uuid');
       const techSpec: TechSpec = {
         id: uuidv4(),
         title: input.title,

@@ -86,7 +86,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       const modelId =
-        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-haiku-4-5-20251001';
+        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-5-haiku-20241022';
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);

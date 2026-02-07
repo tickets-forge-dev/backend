@@ -17,7 +17,7 @@ export default function SettingsPage() {
           <h1 className="text-[var(--text-xl)] font-medium text-[var(--text)]">
             Settings
           </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+          <p className="mt-2 text-[var(--text-md)] text-[var(--text-secondary)]">
             Manage your preferences
           </p>
         </div>

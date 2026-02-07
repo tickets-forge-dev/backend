@@ -35,7 +35,7 @@ export class LLMConfigService {
     } else {
       // Anthropic/Claude models (production)
       this.fastModel = this.configService.get('ANTHROPIC_FAST_MODEL') || 'claude-3-5-haiku-20241022';
-      this.mainModel = this.configService.get('ANTHROPIC_MAIN_MODEL') || 'claude-3-5-sonnet-20241022';
+      this.mainModel = this.configService.get('ANTHROPIC_MAIN_MODEL') || 'claude-3-5-haiku-20241022';
 
       console.log(`🚀 LLM Provider: Anthropic/Claude (PRODUCTION MODE)`);
       console.log(`   Fast model: ${this.fastModel}`);

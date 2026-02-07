@@ -9,10 +9,6 @@ export class AuthService {
     await firebaseSignOut(auth);
   }
 
-  getCurrentUser(): User | null {
-    return auth.currentUser;
-  }
-
   async getIdToken(): Promise<string | null> {
     const user = auth.currentUser;
     if (!user) return null;

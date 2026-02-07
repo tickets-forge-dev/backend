@@ -531,7 +531,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
       <div className="relative space-y-6">
         {/* Section Navigator — sticky left sidebar on wide screens */}
         {navSections.length > 0 && (
-          <nav className="hidden 2xl:block absolute right-full mr-6 top-0 bottom-0 w-40">
+          <nav className="hidden xl:block absolute right-full mr-6 top-0 bottom-0 w-40">
             <div className="sticky top-24 space-y-0.5">
               <div className="relative">
                 {/* Vertical line */}

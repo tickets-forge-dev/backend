@@ -4,10 +4,8 @@ import { persist } from 'zustand/middleware';
 interface UIState {
   sidebarCollapsed: boolean;
   onboardingCompleted: boolean;
-  toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   completeOnboarding: () => void;
-  resetOnboarding: () => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -15,14 +13,10 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       sidebarCollapsed: false,
       onboardingCompleted: false,
-      toggleSidebar: () =>
-        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed: boolean) =>
         set({ sidebarCollapsed: collapsed }),
       completeOnboarding: () =>
         set({ onboardingCompleted: true }),
-      resetOnboarding: () =>
-        set({ onboardingCompleted: false }),
     }),
     {
       name: 'forge-ui-preferences',

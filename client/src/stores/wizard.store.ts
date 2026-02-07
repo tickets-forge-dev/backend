@@ -91,13 +91,17 @@ export interface WizardState {
 
   // Actions
   setStage: (stage: 1 | 2 | 3 | 4) => void;
+  // TODO: DEAD_CODE - nextStage never called. Use setStage instead.
   nextStage: () => void;
+  // TODO: DEAD_CODE - previousStage never called. Use setStage instead.
   previousStage: () => void;
   setTitle: (title: string) => void;
   setRepository: (repo: { id: number; fullName: string; name: string; owner: string }) => void;
   setBranch: (branch: string) => void;
   setGitHubContext: (context: GitHubContext) => void;
+  // TODO: DEAD_CODE - setIsAnalyzingCode never called
   setIsAnalyzingCode: (isAnalyzing: boolean) => void;
+  // TODO: DEAD_CODE - setAnalysisError never called
   setAnalysisError: (error?: string) => void;
   setDraftData: (data: Partial<DraftData>) => void;
   setQuestionRounds: (rounds: any[]) => void;

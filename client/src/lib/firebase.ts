@@ -29,8 +29,7 @@ export const auth = getAuth(app);
 if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
   console.log('🔧 Running on localhost - auth will redirect to current origin');
 }
-export const firestore = getFirestore(app);
-export const storage = getStorage(app);
+
 
 console.log('✅ Firebase services ready:', {
   auth: !!auth,
