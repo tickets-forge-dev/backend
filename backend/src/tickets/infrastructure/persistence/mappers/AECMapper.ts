@@ -6,6 +6,15 @@ import { ValidationResult, ValidatorType } from '../../../domain/value-objects/V
 import { TechSpec } from '../../../domain/tech-spec/TechSpecGenerator';
 import { Timestamp } from 'firebase-admin/firestore';
 
+/** Safely convert Firestore Timestamp, {_seconds,_nanoseconds}, or ISO string to Date */
+function toDate(value: any): Date {
+  if (!value) return new Date();
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function') return value.toDate();
+  if (typeof value._seconds === 'number') return new Date(value._seconds * 1000);
+  return new Date(value);
+}
+
 export interface ValidationResultDocument {
   criterion: string;
   passed: boolean;
@@ -78,7 +87,7 @@ export class AECMapper {
           branchName: doc.repositoryContext.branchName,
           commitSha: doc.repositoryContext.commitSha,
           isDefaultBranch: doc.repositoryContext.isDefaultBranch,
-          selectedAt: doc.repositoryContext.selectedAt.toDate(),
+          selectedAt: toDate(doc.repositoryContext.selectedAt),
         })
       : null;
 
@@ -153,14 +162,14 @@ export class AECMapper {
       doc.estimate,
       validationResults,
       doc.externalIssue,
-      doc.driftDetectedAt?.toDate() ?? null,
+      doc.driftDetectedAt ? toDate(doc.driftDetectedAt) : null,
       doc.driftReason ?? null,
       repositoryContext,
-      doc.createdAt.toDate(),
-      doc.updatedAt.toDate(),
+      toDate(doc.createdAt),
+      toDate(doc.updatedAt),
       doc.clarificationQuestions ?? [],
       doc.questionAnswers ?? {},
-      doc.questionsAnsweredAt?.toDate() ?? null,
+      doc.questionsAnsweredAt ? toDate(doc.questionsAnsweredAt) : null,
       doc.techSpec ?? null,
     );
   }

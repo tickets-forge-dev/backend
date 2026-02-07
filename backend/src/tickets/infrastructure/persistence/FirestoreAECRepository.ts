@@ -52,7 +52,7 @@ export class FirestoreAECRepository implements AECRepository {
       .collection('aecs')
       .doc(aec.id);
 
-    await docRef.set(doc);
+    await docRef.set(stripUndefined(doc));
 
     console.log(`✅ AEC saved successfully to Firestore at ${path}`);
   }
@@ -125,7 +125,7 @@ export class FirestoreAECRepository implements AECRepository {
       throw new AECNotFoundError(aec.id);
     }
 
-    await docRef.update(doc as any);
+    await docRef.update(stripUndefined(doc) as any);
   }
 
   async delete(aecId: string, workspaceId: string): Promise<void> {
