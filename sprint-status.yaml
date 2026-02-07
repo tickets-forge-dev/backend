@@ -77,7 +77,7 @@ development_status:
       - 0-1-test-anthropic-production: done            # Verified — Anthropic API working in production
       - 0-2-cheapest-model-selection: done             # Switched all LLM defaults to claude-3-5-haiku-20241022 (cheapest with vision)
       - 0-3-free-tier-ticket-limit: done              # Free tier: 3 tickets (15 for admin), backend guard + sidebar quota banner
-      - 0-4-mock-pricing-page: drafted               # Pricing page UI with tier cards + "Subscribe" buttons (no Stripe yet)
+      - 0-4-mock-pricing-page: review               # Pricing page UI with tier cards + "Subscribe" buttons (no Stripe yet)
 
   # ⚪ BACKLOG — MONETIZATION TRACK
   epic-5:

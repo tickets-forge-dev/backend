@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Ticket, Settings } from 'lucide-react';
+import { Ticket, Settings, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 
 const navigationItems = [
   { label: 'Tickets', href: '/tickets', icon: Ticket },
+  { label: 'Pricing', href: '/pricing', icon: CreditCard },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
