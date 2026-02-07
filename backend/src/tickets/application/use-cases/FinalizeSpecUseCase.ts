@@ -169,7 +169,7 @@ export class FinalizeSpecUseCase {
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
       console.log(`✨ [FinalizeSpecUseCase] Repository context built with framework: ${stack.framework?.name || 'unknown'}`);
-      return { stack, analysis, fileTree, files: filesMap };
+      return { stack, analysis, fileTree, files: filesMap, taskAnalysis: aec.taskAnalysis };
     } catch (error) {
       console.error('✨ [FinalizeSpecUseCase] Error building context:', error instanceof Error ? error.message : String(error));
       return {

@@ -1,7 +1,8 @@
 'use client';
 
-import { Globe } from 'lucide-react';
+import { Globe, Plus } from 'lucide-react';
 import { Badge } from '@/core/components/ui/badge';
+import { Button } from '@/core/components/ui/button';
 import { EditableItem } from './EditableItem';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 
@@ -25,67 +26,87 @@ interface ApiEndpointsListProps {
   endpoints: ApiEndpointSpec[];
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
+  onAdd?: () => void;
 }
 
-export function ApiEndpointsList({ endpoints, onEdit, onDelete }: ApiEndpointsListProps) {
-  if (!endpoints || endpoints.length === 0) {
-    return (
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] italic">
-        No API endpoints detected.
-      </p>
-    );
-  }
-
+export function ApiEndpointsList({ endpoints, onEdit, onDelete, onAdd }: ApiEndpointsListProps) {
   return (
-    <ul className="space-y-2">
-      {endpoints.map((endpoint, idx) => {
-        const methodColor = METHOD_COLORS[endpoint.method] || METHOD_COLORS.GET;
-        const statusInfo = STATUS_BADGE[endpoint.status] || STATUS_BADGE.new;
+    <div className="space-y-3">
+      {(!endpoints || endpoints.length === 0) && (
+        <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] italic">
+          No API endpoints detected.
+        </p>
+      )}
 
-        return (
-          <li key={idx}>
-            <EditableItem onEdit={() => onEdit(idx)} onDelete={() => onDelete(idx)}>
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide ${methodColor}`}>
-                    {endpoint.method}
-                  </span>
-                  <code className="font-mono text-[var(--text-sm)] text-[var(--text-secondary)]">
-                    {endpoint.route}
-                  </code>
-                  <Badge variant="outline" className={`text-[10px] ${statusInfo.className}`}>
-                    {statusInfo.label}
-                  </Badge>
-                  {endpoint.authentication === 'required' && (
-                    <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                      Auth
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                  {endpoint.description}
-                </p>
-                {(endpoint.dto?.request || endpoint.dto?.response) && (
-                  <div className="flex items-center gap-3 text-[10px] text-[var(--text-tertiary)] font-mono">
-                    {endpoint.dto.request && (
-                      <span>Req: {endpoint.dto.request}</span>
+      {endpoints && endpoints.length > 0 && (
+        <ul className="space-y-2">
+          {endpoints.map((endpoint, idx) => {
+            const methodColor = METHOD_COLORS[endpoint.method] || METHOD_COLORS.GET;
+            const statusInfo = STATUS_BADGE[endpoint.status] || STATUS_BADGE.new;
+
+            return (
+              <li key={idx}>
+                <EditableItem onEdit={() => onEdit(idx)} onDelete={() => onDelete(idx)}>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide ${methodColor}`}>
+                        {endpoint.method}
+                      </span>
+                      <code className="font-mono text-[var(--text-sm)] text-[var(--text-secondary)]">
+                        {endpoint.route}
+                      </code>
+                      <Badge variant="outline" className={`text-[10px] ${statusInfo.className}`}>
+                        {statusInfo.label}
+                      </Badge>
+                      {endpoint.authentication === 'required' && (
+                        <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          Auth
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                      {endpoint.description}
+                    </p>
+                    {(endpoint.dto?.request || endpoint.dto?.response) && (
+                      <div className="flex items-center gap-3 text-[10px] text-[var(--text-tertiary)] font-mono">
+                        {endpoint.dto.request && (
+                          <span>Req: {endpoint.dto.request}</span>
+                        )}
+                        {endpoint.dto.response && (
+                          <span>Res: {endpoint.dto.response}</span>
+                        )}
+                      </div>
                     )}
-                    {endpoint.dto.response && (
-                      <span>Res: {endpoint.dto.response}</span>
+                    {endpoint.headers && (
+                      <div className="text-[10px] text-[var(--text-tertiary)] font-mono">
+                        Headers: {endpoint.headers}
+                      </div>
+                    )}
+                    {endpoint.requestBody && (
+                      <div className="text-[10px] text-[var(--text-tertiary)] font-mono whitespace-pre-wrap">
+                        Body: {endpoint.requestBody}
+                      </div>
+                    )}
+                    {endpoint.controller && (
+                      <p className="text-[10px] text-[var(--text-tertiary)] font-mono">
+                        <Globe className="h-3 w-3 inline mr-1" />
+                        {endpoint.controller}
+                      </p>
                     )}
                   </div>
-                )}
-                {endpoint.controller && (
-                  <p className="text-[10px] text-[var(--text-tertiary)] font-mono">
-                    <Globe className="h-3 w-3 inline mr-1" />
-                    {endpoint.controller}
-                  </p>
-                )}
-              </div>
-            </EditableItem>
-          </li>
-        );
-      })}
-    </ul>
+                </EditableItem>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {onAdd && (
+        <Button variant="outline" size="sm" onClick={onAdd} className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" />
+          Add Endpoint
+        </Button>
+      )}
+    </div>
   );
 }

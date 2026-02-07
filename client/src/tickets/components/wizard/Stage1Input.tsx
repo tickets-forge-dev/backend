@@ -83,7 +83,7 @@ export function Stage1Input() {
   // Form validation
   const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
   const isTitleValid = wordCount >= 2 && input.title.length <= 100;
-  const isRepoValid = input.repoOwner.length > 0 && input.repoName.length > 0;
+  const isRepoValid = (input.repoOwner.length > 0 && input.repoName.length > 0) || !!selectedRepository;
   const isFormValid = isTitleValid && isRepoValid;
 
   // Validation messages
@@ -105,7 +105,7 @@ export function Stage1Input() {
     setTouchedFields((prev) => new Set([...prev, 'title']));
   };
 
-  const repoError = !isRepoValid && isTitleValid ? 'Please select a repository' : '';
+  const repoError = touchedFields.has('submit') && !isRepoValid ? 'Please select a repository' : '';
 
   return (
     <div className="space-y-8">
@@ -123,6 +123,7 @@ export function Stage1Input() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          setTouchedFields((prev) => new Set([...prev, 'submit']));
           if (isFormValid) {
             analyzeRepository();
           }

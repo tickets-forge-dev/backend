@@ -8,7 +8,7 @@ import { RepositoryContext } from '../../domain/value-objects/RepositoryContext'
 import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
 
 export const TICKET_LIMITS: Record<string, number> = {
-  'bar.idan@gmail.com': 15,
+  'bar.idan@gmail.com': 99999,
 };
 export const DEFAULT_TICKET_LIMIT = 3;
 
@@ -22,6 +22,7 @@ export interface CreateTicketCommand {
   maxRounds?: number;
   type?: 'feature' | 'bug' | 'task';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
+  taskAnalysis?: any;
 }
 
 @Injectable()
@@ -80,6 +81,11 @@ export class CreateTicketUseCase {
       command.type,
       command.priority,
     );
+
+    // Persist taskAnalysis from deep analysis if provided
+    if (command.taskAnalysis) {
+      aec.setTaskAnalysis(command.taskAnalysis);
+    }
 
     console.log('🎫 [CreateTicketUseCase] AEC created:', aec.id);
 

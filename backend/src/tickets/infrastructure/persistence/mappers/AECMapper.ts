@@ -72,6 +72,7 @@ export interface AECDocument {
   questionAnswers?: Record<string, string | string[]>;
   questionsAnsweredAt?: Timestamp | null;
   techSpec?: TechSpec | null;
+  taskAnalysis?: any;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -171,6 +172,7 @@ export class AECMapper {
       doc.questionAnswers ?? {},
       doc.questionsAnsweredAt ? toDate(doc.questionsAnsweredAt) : null,
       doc.techSpec ?? null,
+      doc.taskAnalysis ?? null,
     );
   }
 
@@ -218,6 +220,7 @@ export class AECMapper {
         ? Timestamp.fromDate(aec.questionsAnsweredAt)
         : null,
       techSpec: aec.techSpec,
+      taskAnalysis: aec.taskAnalysis ?? null,
     };
   }
 }

@@ -178,6 +178,7 @@ export class GenerateQuestionsUseCase {
         analysis,
         fileTree,
         files: filesMap,
+        taskAnalysis: aec.taskAnalysis,
       };
     } catch (error) {
       console.error('❓ [GenerateQuestionsUseCase] Error building codebase context:', error instanceof Error ? error.message : String(error));

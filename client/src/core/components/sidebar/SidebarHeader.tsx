@@ -44,18 +44,18 @@ export function SidebarHeader() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 px-2 py-2 h-auto"
+            className={`w-full gap-3 py-2 h-auto ${sidebarCollapsed ? 'justify-center px-0' : 'justify-start px-2'}`}
           >
             {/* Avatar - always visible */}
             {user.photoURL && !imgError ? (
               <img
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
-                className="h-8 w-8 rounded-full flex-shrink-0"
+                className="h-8 w-8 min-w-8 min-h-8 rounded-full flex-shrink-0 object-cover"
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="h-8 w-8 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center text-[var(--text-xs)] font-medium flex-shrink-0">
+              <div className="h-8 w-8 min-w-8 min-h-8 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center text-[var(--text-xs)] font-medium flex-shrink-0">
                 {getInitials(user.displayName)}
               </div>
             )}

@@ -37,4 +37,7 @@ export class CreateTicketDto {
   @IsIn(['low', 'medium', 'high', 'urgent'])
   @IsOptional()
   priority?: 'low' | 'medium' | 'high' | 'urgent';
+
+  @IsOptional()
+  taskAnalysis?: any;
 }

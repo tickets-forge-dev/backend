@@ -62,6 +62,8 @@ export interface ApiEndpointSpec {
   description: string;
   authentication?: 'required' | 'optional' | 'none';
   status: 'new' | 'modified' | 'deprecated';
+  headers?: string;
+  requestBody?: string;
 }
 
 /**

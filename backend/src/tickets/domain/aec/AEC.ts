@@ -44,6 +44,7 @@ export class AEC {
     private _questionAnswers: Record<string, string | string[]> = {},
     private _questionsAnsweredAt: Date | null = null,
     private _techSpec: TechSpec | null = null,
+    private _taskAnalysis: any = null,
   ) {}
 
   // Factory method for creating new draft
@@ -88,6 +89,7 @@ export class AEC {
       {}, // _questionAnswers
       null, // _questionsAnsweredAt
       null, // _techSpec
+      null, // _taskAnalysis
     );
   }
 
@@ -120,6 +122,7 @@ export class AEC {
     questionAnswers?: Record<string, string | string[]>,
     questionsAnsweredAt?: Date | null,
     techSpec?: TechSpec | null,
+    taskAnalysis?: any,
   ): AEC {
     return new AEC(
       id,
@@ -149,6 +152,7 @@ export class AEC {
       questionAnswers ?? {},
       questionsAnsweredAt ?? null,
       techSpec ?? null,
+      taskAnalysis ?? null,
     );
   }
 
@@ -457,5 +461,14 @@ export class AEC {
 
   get techSpec(): TechSpec | null {
     return this._techSpec;
+  }
+
+  get taskAnalysis(): any {
+    return this._taskAnalysis;
+  }
+
+  setTaskAnalysis(taskAnalysis: any): void {
+    this._taskAnalysis = taskAnalysis;
+    this._updatedAt = new Date();
   }
 }

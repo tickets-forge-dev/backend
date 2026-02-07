@@ -503,6 +503,16 @@ QUALITY RULES:
         parsed.taskAnalysis.implementationHints.recommendedRounds =
           isNaN(num) ? 3 : Math.max(0, Math.min(3, Math.round(num)));
       }
+
+      // Attach fingerprint for downstream use (tech stack fallback)
+      if (fingerprint) {
+        (parsed.taskAnalysis as any).fingerprint = {
+          primaryLanguage: fingerprint.primaryLanguage,
+          languages: fingerprint.languages,
+          frameworks: fingerprint.frameworks,
+          packageManager: fingerprint.packageManager,
+        };
+      }
     }
 
     return parsed;

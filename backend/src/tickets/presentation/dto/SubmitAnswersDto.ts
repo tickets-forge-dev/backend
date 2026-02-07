@@ -4,7 +4,8 @@ export class SubmitAnswersDto {
   @IsInt()
   @Min(1)
   @Max(3)
-  roundNumber!: number;
+  @IsOptional()
+  roundNumber?: number;
 
   @IsObject()
   @IsOptional()

@@ -16,14 +16,11 @@ import { Response } from 'express';
 import { CreateTicketUseCase, TICKET_LIMITS, DEFAULT_TICKET_LIMIT } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
-import { StartQuestionRoundUseCase } from '../../application/use-cases/StartQuestionRoundUseCase';
-import { SubmitAnswersUseCase } from '../../application/use-cases/SubmitAnswersUseCase';
 import { GenerateQuestionsUseCase } from '../../application/use-cases/GenerateQuestionsUseCase';
 import { SubmitQuestionAnswersUseCase } from '../../application/use-cases/SubmitQuestionAnswersUseCase';
 import { FinalizeSpecUseCase } from '../../application/use-cases/FinalizeSpecUseCase';
 import { CreateTicketDto } from '../dto/CreateTicketDto';
 import { UpdateAECDto } from '../dto/UpdateAECDto';
-import { StartRoundDto } from '../dto/StartRoundDto';
 import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
 import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
@@ -54,8 +51,6 @@ export class TicketsController {
     private readonly createTicketUseCase: CreateTicketUseCase,
     private readonly updateAECUseCase: UpdateAECUseCase,
     private readonly deleteAECUseCase: DeleteAECUseCase,
-    private readonly startQuestionRoundUseCase: StartQuestionRoundUseCase,
-    private readonly submitAnswersUseCase: SubmitAnswersUseCase,
     private readonly generateQuestionsUseCase: GenerateQuestionsUseCase,
     private readonly submitQuestionAnswersUseCase: SubmitQuestionAnswersUseCase,
     private readonly finalizeSpecUseCase: FinalizeSpecUseCase,
@@ -224,6 +219,7 @@ export class TicketsController {
         maxRounds: dto.maxRounds,
         type: dto.type,
         priority: dto.priority,
+        taskAnalysis: dto.taskAnalysis,
       });
 
       return this.mapToResponse(aec);
@@ -297,46 +293,6 @@ export class TicketsController {
     @Param('id') id: string,
   ) {
     await this.deleteAECUseCase.execute(id, workspaceId);
-  }
-
-  /**
-   * Start a question round - triggers initial or iterative question generation
-   */
-  @Post(':id/start-round')
-  async startQuestionRound(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-    @Body() dto: StartRoundDto,
-  ) {
-    const aec = await this.startQuestionRoundUseCase.execute({
-      aecId: id,
-      workspaceId,
-      roundNumber: dto.roundNumber,
-    });
-
-    return this.mapToResponse(aec);
-  }
-
-  /**
-   * Submit answers to current round - records answers and decides next action
-   */
-  @Post(':id/submit-answers')
-  async submitAnswers(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-    @Body() dto: SubmitAnswersDto,
-  ) {
-    const result = await this.submitAnswersUseCase.execute({
-      aecId: id,
-      workspaceId,
-      roundNumber: dto.roundNumber,
-      answers: dto.answers || {},
-    });
-
-    return {
-      aec: this.mapToResponse(result.aec),
-      nextAction: result.nextAction,
-    };
   }
 
   /**

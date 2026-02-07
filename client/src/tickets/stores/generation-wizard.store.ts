@@ -402,11 +402,22 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     try {
       const branch = ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
 
+      // Resolve owner/repo: prefer wizard store, fall back to tickets store
+      let owner = state.input.repoOwner;
+      let repo = state.input.repoName;
+      if ((!owner || !repo) && ticketsState.selectedRepository) {
+        const [o, r] = ticketsState.selectedRepository.split('/');
+        owner = o || owner;
+        repo = r || repo;
+        // Sync back to wizard store so subsequent calls are consistent
+        if (o && r) set((s) => ({ input: { ...s.input, repoOwner: o, repoName: r } }));
+      }
+
       const response = await authFetch('/tickets/analyze-repo', {
         method: 'POST',
         body: JSON.stringify({
-          owner: state.input.repoOwner,
-          repo: state.input.repoName,
+          owner,
+          repo,
           branch,
           title: state.input.title,
           description: state.input.description,
@@ -552,22 +563,27 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   confirmContextContinue: async () => {
     const state = get();
     const ticketsState = useTicketsStore.getState();
-    if (!state.input.title || !state.input.repoOwner || !state.input.repoName) return;
+
+    // Resolve owner/repo with fallback to tickets store
+    const repoOwner = state.input.repoOwner || ticketsState.selectedRepository?.split('/')[0] || '';
+    const repoName = state.input.repoName || ticketsState.selectedRepository?.split('/')[1] || '';
+    if (!state.input.title || !repoOwner || !repoName) return;
 
     set({ loading: true, error: null });
 
     try {
-      // Create draft AEC with adaptive maxRounds
+      // Create draft AEC with adaptive maxRounds + taskAnalysis from deep analysis
       const createResponse = await authFetch('/tickets', {
         method: 'POST',
         body: JSON.stringify({
           title: state.input.title,
           description: state.input.description,
-          repositoryFullName: `${state.input.repoOwner}/${state.input.repoName}`,
+          repositoryFullName: `${repoOwner}/${repoName}`,
           branchName: state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main',
           maxRounds: state.maxRounds,
           type: state.type,
           priority: state.priority,
+          taskAnalysis: state.context?.taskAnalysis ?? undefined,
         }),
       });
 
@@ -742,11 +758,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       const data = await response.json();
 
-      // Update state with finalized spec
+      // Update state with finalized spec — stay on Stage 3 for user review
       set({
         spec: data.techSpec,
         roundStatus: 'idle',
-        currentStage: 4, // Advance to review stage
       });
 
       // Clear localStorage
@@ -959,7 +974,6 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       set({
         spec: aec.techSpec,
         roundStatus: 'idle',
-        currentStage: 4, // Advance to review stage
       });
 
       // Clear localStorage draft

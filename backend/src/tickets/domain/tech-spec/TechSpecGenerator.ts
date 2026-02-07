@@ -240,6 +240,7 @@ export interface CodebaseContext {
   analysis: CodebaseAnalysis;
   fileTree: FileTree;
   files: Map<string, string>;
+  taskAnalysis?: any;
 }
 
 /**

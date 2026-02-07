@@ -46,6 +46,8 @@ interface ApiEndpointEditState {
   status: string;
   requestDto: string;
   responseDto: string;
+  headers: string;
+  requestBody: string;
 }
 
 // Test case edit
@@ -280,6 +282,30 @@ export function EditItemDialog({
                     placeholder="UserResponse"
                   />
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Headers
+                </label>
+                <Textarea
+                  value={local.headers}
+                  onChange={(e) => setLocal({ ...local, headers: e.target.value })}
+                  rows={2}
+                  className="font-mono text-xs resize-none"
+                  placeholder={"Content-Type: application/json\nAuthorization: Bearer <token>"}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+                  Request Body
+                </label>
+                <Textarea
+                  value={local.requestBody}
+                  onChange={(e) => setLocal({ ...local, requestBody: e.target.value })}
+                  rows={3}
+                  className="font-mono text-xs resize-none"
+                  placeholder={'{ "name": "string", "email": "string" }'}
+                />
               </div>
             </>
           )}
