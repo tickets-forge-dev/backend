@@ -79,6 +79,7 @@ export class StartQuestionRoundUseCase {
     const priorAnswers = this.aggregatePriorAnswers(aec, command.roundNumber);
 
     console.log(`🎯 [StartQuestionRoundUseCase] Generating questions for round ${command.roundNumber}`);
+    console.log(`🎯 [StartQuestionRoundUseCase] AEC state: currentRound=${aec.currentRound}, maxRounds=${aec.maxRounds}`);
 
     // Generate questions with retry logic
     const questions = await this.generateQuestionsWithRetry(
@@ -96,6 +97,19 @@ export class StartQuestionRoundUseCase {
       console.log(`🎯 [StartQuestionRoundUseCase] No clarification questions needed - marking ready for finalization`);
       aec.markReadyForFinalization();
       await this.aecRepository.save(aec);
+      return aec;
+    }
+
+    // Only proceed if we haven't already marked for finalization
+    if (aec.currentRound >= aec.maxRounds && aec.maxRounds > 0) {
+      console.log(`🎯 [StartQuestionRoundUseCase] Already at max rounds, skipping question creation`);
+      return aec;
+    }
+
+    // Validate we can start this round
+    if (aec.maxRounds === 0) {
+      console.warn(`🎯 [StartQuestionRoundUseCase] Warning: maxRounds is 0, resetting to 3`);
+      // This should not happen, but be defensive
       return aec;
     }
 

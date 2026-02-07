@@ -18,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOllamaProvider } from '@shared/infrastructure/mastra/providers/ollama.provider';
+import { v4 as uuidv4 } from 'uuid';
 import {
   TechSpecGenerator,
   TechSpecInput,
@@ -456,7 +457,6 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     ]);
 
     // Assemble tech spec
-    const { v4: uuidv4 } = await import('uuid');
     const techSpec: TechSpec = {
       id: uuidv4(),
       title: input.title,
@@ -1490,7 +1490,6 @@ Rewritten text (definitive, unambiguous):`;
       ]);
 
       // Assemble final tech spec
-      const { v4: uuidv4 } = await import('uuid');
       const techSpec: TechSpec = {
         id: uuidv4(),
         title: input.title,

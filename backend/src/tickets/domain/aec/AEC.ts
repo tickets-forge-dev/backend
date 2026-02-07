@@ -297,6 +297,13 @@ export class AEC {
     questions: ClarificationQuestion[],
     codebaseContext: string,
   ): void {
+    // Guard: Ensure maxRounds is valid (defensive)
+    if (this._maxRounds <= 0) {
+      throw new InvalidStateTransitionError(
+        `Cannot start questions. Ticket has no rounds (maxRounds=${this._maxRounds})`,
+      );
+    }
+
     // Guard: Sequential rounds only
     if (roundNumber > 1 && !this.isRoundComplete(roundNumber - 1)) {
       throw new InvalidStateTransitionError(
