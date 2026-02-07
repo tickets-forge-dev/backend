@@ -190,11 +190,11 @@ export interface WizardActions {
   analyzeRepository: () => Promise<void>;
   editStack: (updates: any) => void; // Legacy: ProjectStack type
   editAnalysis: (updates: any) => void; // Legacy: CodebaseAnalysis type
-  confirmContextContinue: () => void;
 
-  // Draft stage (legacy single spec)
+  // Draft stage
   answerQuestion: (questionId: string, answer: string | string[]) => void;
   editSpec: (section: string, updates: any) => void;
+  confirmContextContinue: () => Promise<void>;  // Creates draft AEC and generates initial spec
   confirmSpecContinue: () => void;
 
   // Recovery
@@ -317,11 +317,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       };
     }
 
-    // Stage 2 with context
+    // Stage 3 with context (skip Stage 2 - context review)
+    if (snapshot.currentStage === 3 && snapshot.context) {
+      return {
+        canRecover: true,
+        stage: 3,
+        title: snapshot.input.title,
+      };
+    }
+
+    // Legacy: Stage 2 with context (for old snapshots) - upgrade to stage 3
     if (snapshot.currentStage === 2 && snapshot.context) {
       return {
         canRecover: true,
-        stage: 2,
+        stage: 3,  // Upgrade to stage 3 (skip context review)
         title: snapshot.input.title,
       };
     }
@@ -353,10 +362,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
-    // Stage 2: restore context + form
-    if (snapshot.currentStage === 2 && snapshot.context) {
+    // Stage 3: restore context + form (skip Stage 2 context review)
+    if ((snapshot.currentStage === 2 || snapshot.currentStage === 3) && snapshot.context) {
       set({
-        currentStage: 2,
+        currentStage: 3,  // Always use stage 3 (skip context review)
         input: snapshot.input,
         type: snapshot.type,
         priority: snapshot.priority,
@@ -413,7 +422,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         }
         // Unexpected non-stream success — handle gracefully
         const { context } = await response.json();
-        set({ context, currentStage: 2, loading: false, loadingMessage: null, progressPercent: 100 });
+        set({ context, currentStage: 3, loading: false, loadingMessage: null, progressPercent: 100 });  // Skip Stage 2 (context)
         saveSnapshot(get());
         return;
       }
@@ -459,7 +468,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
             set({
               context: analysisContext,
               maxRounds: rounds,
-              currentStage: 2,
+              currentStage: 3,  // Skip Stage 2 (context) - go directly to Stage 3 (questions)
               loading: false,
               loadingMessage: null,
               progressPercent: 100,

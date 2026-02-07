@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useWizardStore, type RecoveryInfo } from '@/tickets/stores/generation-wizard.store';
 import { Stage1Input } from './wizard/Stage1Input';
-import { Stage2Context } from './wizard/Stage2Context';
 import { Stage3Draft } from './wizard/Stage3Draft';
 import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
@@ -109,10 +108,7 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
         {/* Stage 1: Input */}
         {currentStage === 1 && <Stage1Input />}
 
-        {/* Stage 2: Context Review */}
-        {currentStage === 2 && <Stage2Context />}
-
-        {/* Stage 3: Draft Review & Questions */}
+        {/* Stage 3: Draft Review & Questions (Stage 2 context review removed) */}
         {currentStage === 3 && <Stage3Draft />}
 
         {/* Stage 4: Final Review & Create */}

@@ -1,0 +1,50 @@
+# BMM Workflow Status - Forge Project
+# Quick Flow - Brownfield Track
+# Generated: 2026-02-07
+
+generated: "2026-02-07"
+project: "forge"
+project_type: "brownfield"
+project_level: "quick-flow"
+selected_track: "quick-flow"
+field_type: "brownfield"
+workflow_path: ".bmad/bmm/workflows/workflow-status/paths/quick-flow-brownfield.yaml"
+
+# Workflow Progress Tracking
+# =========================
+# Values:
+#   - required/optional/recommended: Pending start
+#   - skipped: Intentionally skipped
+#   - {file_path}: Completed (shows output file)
+
+workflow_status:
+  # PREREQUISITE PHASE (Optional for documented projects)
+  document-project: skipped  # Project already has codebase docs
+
+  # PHASE 0: DISCOVERY (Optional - user selected)
+  brainstorm-project: skipped  # Not needed for refinement work
+  research: skipped
+
+  # PHASE 1: PLANNING (Required)
+  tech-spec: in-progress  # Currently working: Epic 20 Spec Quality improvements
+
+  # PHASE 2: IMPLEMENTATION (Required - Next)
+  sprint-planning: recommended  # Will start after tech-spec complete
+
+# NOTES
+# =====
+# Current Work:
+# - Session 8: Completed multi-round refactor (3 commits, all phases)
+# - Session 7: Performance optimizations + UI improvements
+# - Session 6: Epic 20 implementation (API detection, BE/FE split, test plans)
+#
+# Tech-Spec Progress:
+# - Domain: ✅ Multi-round dropped, simplified question flow
+# - Backend: ✅ All use cases updated, 0 TypeScript errors
+# - Frontend: ✅ Stores and components synced, build successful
+# - Repository validation: ✅ Added form validation for repo selection
+#
+# Next Steps:
+# - Commit current work (Form validation for repo selection)
+# - Run full end-to-end test of question flow
+# - Then move to sprint-planning for Phase 2 execution

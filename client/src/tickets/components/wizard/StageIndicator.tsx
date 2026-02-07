@@ -11,11 +11,14 @@ import React from 'react';
  * - Current stage highlighted/filled
  */
 export function StageIndicator({ currentStage }: { currentStage: number }) {
+  // Map internal stage numbers (1, 3, 4) to display numbers (1, 2, 3) - Stage 2 (context) is skipped
+  const stageMap: Record<number, number> = { 1: 1, 3: 2, 4: 3 };
+  const displayStage = stageMap[currentStage] || 1;
+
   const stages = [
     { number: 1, label: 'Input', description: 'Enter title & repository' },
-    { number: 2, label: 'Context', description: 'Review stack & patterns' },
-    { number: 3, label: 'Draft', description: 'Review spec & questions' },
-    { number: 4, label: 'Review', description: 'Final review & create' },
+    { number: 2, label: 'Draft', description: 'Review spec & questions' },
+    { number: 3, label: 'Review', description: 'Final review & create' },
   ];
 
   return (
@@ -23,33 +26,33 @@ export function StageIndicator({ currentStage }: { currentStage: number }) {
       {/* Progress Summary */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-[var(--text)]">
-          Stage {currentStage} of 4
+          Stage {displayStage} of 3
         </h3>
         <p className="text-sm text-[var(--text-secondary)]">
-          {Math.round((currentStage / 4) * 100)}% complete
+          {Math.round((displayStage / 3) * 100)}% complete
         </p>
       </div>
 
       {/* Steps with aligned labels */}
       <div className="relative">
         {/* Connector line behind circles */}
-        <div className="absolute top-4 left-[calc(12.5%+16px)] right-[calc(12.5%+16px)] h-0.5 bg-[var(--border)]" />
+        <div className="absolute top-4 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-0.5 bg-[var(--border)]" />
         {/* Completed portion of connector */}
-        {currentStage > 1 && (
+        {displayStage > 1 && (
           <div
-            className="absolute top-4 left-[calc(12.5%+16px)] h-0.5 bg-green-600 dark:bg-green-500"
-            style={{ width: `${((Math.min(currentStage, 4) - 1) / 3) * (100 - 25)}%` }}
+            className="absolute top-4 left-[calc(16.67%+16px)] h-0.5 bg-green-600 dark:bg-green-500"
+            style={{ width: `${((Math.min(displayStage, 3) - 1) / 2) * (100 - 33.34)}%` }}
           />
         )}
 
         {/* Step columns */}
         <div className="relative flex justify-between">
           {stages.map((stage) => {
-            const isCompleted = stage.number < currentStage;
-            const isCurrent = stage.number === currentStage;
+            const isCompleted = stage.number < displayStage;
+            const isCurrent = stage.number === displayStage;
 
             return (
-              <div key={stage.number} className="flex flex-col items-center w-1/4">
+              <div key={stage.number} className="flex flex-col items-center w-1/3">
                 {/* Circle */}
                 <div
                   className={`

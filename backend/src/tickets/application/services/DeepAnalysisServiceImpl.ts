@@ -137,7 +137,8 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       input.fileTree,
       Object.fromEntries(input.configFiles),
     );
-    this.logger.log(`Pass 1: Detected ${fingerprint.languages.join(', ')} using ${fingerprint.packageManager}`);
+    const pmDisplay = fingerprint.packageManager || 'auto-detect';
+    this.logger.log(`Pass 1: Detected ${fingerprint.languages.join(', ') || 'unknown'} (${pmDisplay})`);
 
     // Emit fingerprint result quickly (can be used by frontend immediately)
     emit({

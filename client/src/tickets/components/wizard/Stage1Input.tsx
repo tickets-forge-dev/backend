@@ -84,7 +84,7 @@ export function Stage1Input() {
   const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
   const isTitleValid = wordCount >= 2 && input.title.length <= 100;
   const isRepoValid = input.repoOwner.length > 0 && input.repoName.length > 0;
-  const isFormValid = isTitleValid;
+  const isFormValid = isTitleValid && isRepoValid;
 
   // Validation messages
   const titleError = touchedFields.has('title')
@@ -104,6 +104,8 @@ export function Stage1Input() {
   const handleTitleBlur = () => {
     setTouchedFields((prev) => new Set([...prev, 'title']));
   };
+
+  const repoError = !isRepoValid && isTitleValid ? 'Please select a repository' : '';
 
   return (
     <div className="space-y-8">
@@ -267,6 +269,12 @@ export function Stage1Input() {
 
         {/* Repository Selection - Uses Real GitHub Integration */}
         <RepositorySelector />
+        {repoError && (
+          <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md border border-red-200 dark:border-red-800">
+            <span>⚠️</span>
+            <span>{repoError}</span>
+          </div>
+        )}
         <BranchSelector />
 
         {/* Submit Button */}
@@ -299,15 +307,6 @@ export function Stage1Input() {
           )}
         </div>
       </form>
-
-      {/* Help Text */}
-      <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
-        <p className="text-sm text-blue-900 dark:text-blue-200">
-          We'll analyze your repository's technology stack, codebase patterns, and files to generate
-          a code-aware specification. This ensures your ticket references actual files and follows
-          existing conventions.
-        </p>
-      </div>
     </div>
   );
 }

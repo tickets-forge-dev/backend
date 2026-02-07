@@ -6,6 +6,20 @@ import { AECMapper, AECDocument } from './mappers/AECMapper';
 import { AECNotFoundError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { FirebaseService } from '../../../shared/infrastructure/firebase/firebase.config';
 
+/** Recursively strip undefined values (Firestore rejects them) */
+function stripUndefined(obj: any): any {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) return obj.map(stripUndefined);
+  if (typeof obj === 'object' && !(obj instanceof Date)) {
+    const clean: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined) clean[k] = stripUndefined(v);
+    }
+    return clean;
+  }
+  return obj;
+}
+
 @Injectable()
 export class FirestoreAECRepository implements AECRepository {
   private firestore: Firestore | null = null;

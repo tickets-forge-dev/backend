@@ -55,6 +55,8 @@ class PromptTemplates {
     return `You are a technical specification writer specializing in code-aware specifications.
 Your task is to generate ZERO-AMBIGUITY technical specifications.
 
+CRITICAL: You MUST respond with ONLY valid JSON. No text before or after. No explanations. No apologies. Start your response with { or [. If you cannot fulfill the request, still respond with valid JSON using reasonable defaults.
+
 RULES:
 1. No "or" statements - all decisions are definitive
 2. No "might", "could", "possibly" - use "will", "must", "shall"
@@ -62,7 +64,7 @@ RULES:
 4. All code references must include exact line numbers when known
 5. All acceptance criteria must be testable and unambiguous
 6. Always reference existing code patterns and conventions
-7. JSON output must be valid and parseable
+7. ALWAYS respond with valid JSON only - never plain text
 
 PROJECT CONTEXT:
 - Framework: ${context.stack.framework?.name || 'Unknown'}
@@ -1179,24 +1181,40 @@ Rewritten text (definitive, unambiguous):`;
    */
   private async callLLM(systemPrompt: string, userPrompt: string): Promise<any> {
     if (!this.llmModel) {
-      return this.generateMockResponse(userPrompt);
+      throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
     }
 
-    try {
-      const { text } = await generateText({
-        model: this.llmModel,
-        system: systemPrompt,
-        prompt: userPrompt,
-        maxOutputTokens: 4096,
-        temperature: 0.2,
-      });
+    const maxRetries = 2;
+    let lastError: Error | null = null;
 
-      this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
-      return this.parseJSON(text);
-    } catch (error: any) {
-      this.logger.error(`LLM call failed (${this.providerName}): ${error.message}`);
-      throw new Error(`LLM call failed: ${error.message}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const prompt = attempt === 1
+          ? userPrompt
+          : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
+
+        const { text } = await generateText({
+          model: this.llmModel,
+          system: systemPrompt,
+          prompt,
+          maxOutputTokens: 4096,
+          temperature: 0.2,
+        });
+
+        this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
+        return this.parseJSON(text);
+      } catch (error: any) {
+        lastError = error;
+        if (attempt < maxRetries && error.message?.includes('Failed to parse response')) {
+          this.logger.warn(`LLM returned non-JSON (attempt ${attempt}/${maxRetries}), retrying...`);
+          continue;
+        }
+        this.logger.error(`LLM call failed (${this.providerName}): ${error.message}`);
+        throw new Error(`LLM call failed: ${error.message}`);
+      }
     }
+
+    throw new Error(`LLM call failed after ${maxRetries} attempts: ${lastError?.message}`);
   }
 
   /**

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
@@ -31,6 +31,7 @@ export function Stage3Draft() {
     currentRound,
     maxRounds,
     goBackToContext,
+    confirmContextContinue,
     confirmSpecContinue,
     startQuestionRound,
     submitRoundAnswers,
@@ -39,27 +40,32 @@ export function Stage3Draft() {
     setError,
   } = useWizardStore();
 
-  const [isInitialized, setIsInitialized] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const initRef = useRef(false);
 
-  // On first mount, start the first question round if needed
+  // Step 1: Create draft if needed
   useEffect(() => {
-    const initializeQuestions = async () => {
-      if (!isInitialized && draftAecId && questionRounds.length === 0) {
-        try {
-          await startQuestionRound(draftAecId, 1);
-          setIsInitialized(true);
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Failed to initialize questions';
-          setLocalError(errorMsg);
-          console.error('Failed to initialize first question round:', err);
-          setIsInitialized(true);
-        }
-      }
-    };
+    if (!draftAecId && !initRef.current) {
+      initRef.current = true;
+      console.log('[Stage3Draft] Creating draft...');
+      confirmContextContinue().catch((err) => {
+        console.error('[Stage3Draft] Draft creation failed:', err);
+        setLocalError(err instanceof Error ? err.message : 'Failed to create draft');
+      });
+    }
+  }, [draftAecId, confirmContextContinue]);
 
-    initializeQuestions();
-  }, [draftAecId, questionRounds.length, isInitialized, startQuestionRound]);
+  // Step 2: Start questions once draft exists
+  const rounds = questionRounds || [];
+  useEffect(() => {
+    if (draftAecId && rounds.length === 0) {
+      console.log('[Stage3Draft] Starting question round for draft:', draftAecId);
+      startQuestionRound(draftAecId, 1).catch((err) => {
+        console.error('[Stage3Draft] Question round failed:', err);
+        setLocalError(err instanceof Error ? err.message : 'Failed to start questions');
+      });
+    }
+  }, [draftAecId, rounds.length, startQuestionRound]);
 
   // Handle submitting answers for a round
   const handleSubmitAnswers = async (roundNumber: number, answers: RoundAnswers) => {
@@ -215,10 +221,10 @@ export function Stage3Draft() {
             Generating clarification questions...
           </p>
         </div>
-      ) : questionRounds.length > 0 && currentRound > 0 ? (
+      ) : rounds.length > 0 && currentRound > 0 ? (
         <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6">
           <QuestionRoundsSection
-            questionRounds={questionRounds}
+            questionRounds={rounds}
             currentRound={currentRound}
             maxRounds={maxRounds}
             onSubmitAnswers={handleSubmitAnswers}
@@ -249,7 +255,7 @@ export function Stage3Draft() {
         </Button>
 
         {/* Show continue button only if questions are done (no current round or finalization complete) */}
-        {(!questionRounds.length || currentRound === 0) && (
+        {(!rounds.length || currentRound === 0) && (
           <Button
             onClick={confirmSpecContinue}
             disabled={roundStatus === 'generating' || roundStatus === 'submitting' || roundStatus === 'finalizing'}
