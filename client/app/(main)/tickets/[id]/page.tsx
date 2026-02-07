@@ -595,7 +595,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           </Badge>
         )}
         <div className="flex-1" />
-        {canToggleStatus ? (
+        {canToggleStatus && (
             <button
               onClick={() => setShowStatusConfirm(true)}
               className={`
@@ -609,12 +609,6 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               {isComplete && <CheckCircle className="h-3.5 w-3.5" />}
               {isComplete ? 'Complete' : 'Draft'}
             </button>
-          ) : (
-            <Badge variant="outline" className="text-[var(--text-secondary)]">
-              {currentTicket.currentRound === 0
-                ? 'Draft'
-                : `Round ${currentTicket.currentRound}/${currentTicket.maxRounds}`}
-            </Badge>
           )}
       </div>
 
