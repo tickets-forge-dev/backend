@@ -416,9 +416,6 @@ export class AEC {
   get apiSnapshot(): ApiSnapshot | null {
     return this._apiSnapshot;
   }
-  get questions(): Question[] {
-    return [...this._questions];
-  }
   get estimate(): Estimate | null {
     return this._estimate;
   }

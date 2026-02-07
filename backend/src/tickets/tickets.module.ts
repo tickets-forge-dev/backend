@@ -6,7 +6,8 @@ import { DeleteAECUseCase } from './application/use-cases/DeleteAECUseCase';
 import { EstimateEffortUseCase } from './application/use-cases/EstimateEffortUseCase';
 import { StartQuestionRoundUseCase } from './application/use-cases/StartQuestionRoundUseCase';
 import { SubmitAnswersUseCase } from './application/use-cases/SubmitAnswersUseCase';
-import { SkipToFinalizeUseCase } from './application/use-cases/SkipToFinalizeUseCase';
+import { GenerateQuestionsUseCase } from './application/use-cases/GenerateQuestionsUseCase';
+import { SubmitQuestionAnswersUseCase } from './application/use-cases/SubmitQuestionAnswersUseCase';
 import { FinalizeSpecUseCase } from './application/use-cases/FinalizeSpecUseCase';
 import { ValidationEngine } from './application/services/validation/ValidationEngine';
 import { FirestoreAECRepository } from './infrastructure/persistence/FirestoreAECRepository';
@@ -46,7 +47,8 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     EstimateEffortUseCase,
     StartQuestionRoundUseCase,
     SubmitAnswersUseCase,
-    SkipToFinalizeUseCase,
+    GenerateQuestionsUseCase,
+    SubmitQuestionAnswersUseCase,
     FinalizeSpecUseCase,
     ValidationEngine,
     // Validators

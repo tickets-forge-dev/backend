@@ -1,7 +1,7 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
-import { TechSpecGenerator, CodebaseContext, ClarificationQuestion } from '../../domain/tech-spec/TechSpecGenerator';
+import { TechSpecGenerator, ClarificationQuestion, CodebaseContext } from '../../domain/tech-spec/TechSpecGenerator';
 import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
@@ -11,33 +11,36 @@ import { PROJECT_STACK_DETECTOR } from '../ports/ProjectStackDetectorPort';
 import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
 
 /**
- * Input command for starting a question round
+ * Input command for generating clarification questions
  */
-export interface StartQuestionRoundCommand {
+export interface GenerateQuestionsCommand {
   aecId: string;
   workspaceId: string;
-  roundNumber: number;
 }
 
 /**
- * StartQuestionRoundUseCase - Trigger initial or iterative question generation
+ * GenerateQuestionsUseCase - Generate up to 5 clarification questions for a ticket
  *
- * Orchestrates the process of generating clarification questions for a specific round:
+ * Orchestrates the process of generating clarification questions for a ticket:
  * 1. Load AEC aggregate from repository
- * 2. Build codebase context (stack, analysis, files)
- * 3. Aggregate previous round answers (if Round 2+)
- * 4. Call TechSpecGenerator with context and prior answers
- * 5. Apply LLM retry logic (3 attempts with exponential backoff)
- * 6. Update AEC domain entity via startQuestionRound()
- * 7. Persist changes to Firestore
+ * 2. Verify ticket is in draft state
+ * 3. Build codebase context (stack, analysis, files)
+ * 4. Call TechSpecGenerator to generate up to 5 questions
+ * 5. Store questions in AEC domain entity via setQuestions()
+ * 6. Persist changes to Firestore
+ *
+ * Key characteristics:
+ * - **Idempotent**: Can be called multiple times, returns same questions
+ * - **Best-effort**: If generation fails, returns empty array (skips to finalization)
+ * - **Single-call**: Generates all questions in one call (no rounds)
+ * - **Up to 5 questions**: LLM constrained to generate max 5 questions
  *
  * Throws:
  * - NotFoundException if AEC not found
- * - BadRequestException if invalid state (e.g., trying to start Round 2 without completing Round 1)
- * - Error if LLM fails after 3 retries
+ * - BadRequestException if workspace mismatch
  */
 @Injectable()
-export class StartQuestionRoundUseCase {
+export class GenerateQuestionsUseCase {
   // Retry configuration
   private static readonly MAX_RETRIES = 3;
   private static readonly INITIAL_BACKOFF_MS = 1000;
@@ -56,10 +59,10 @@ export class StartQuestionRoundUseCase {
   ) {}
 
   /**
-   * Execute the use case: Start a question round
+   * Execute the use case: Generate clarification questions
    */
-  async execute(command: StartQuestionRoundCommand): Promise<AEC> {
-    console.log(`🎯 [StartQuestionRoundUseCase] Starting round ${command.roundNumber} for AEC ${command.aecId}`);
+  async execute(command: GenerateQuestionsCommand): Promise<ClarificationQuestion[]> {
+    console.log(`❓ [GenerateQuestionsUseCase] Generating questions for AEC ${command.aecId}`);
 
     // Load AEC
     const aec = await this.aecRepository.findById(command.aecId);
@@ -75,32 +78,23 @@ export class StartQuestionRoundUseCase {
     // Build codebase context (fetches from GitHub and analyzes)
     const codebaseContext = await this.buildCodebaseContext(aec);
 
-    // No prior answers in simplified single-question flow
-    const priorAnswers: Array<{ questionId: string; answer: string | string[] }> = [];
-
-    console.log(`🎯 [StartQuestionRoundUseCase] Generating questions for round ${command.roundNumber}`);
-
     // Generate questions with retry logic
     const questions = await this.generateQuestionsWithRetry(
       aec.title,
       aec.description,
       codebaseContext,
-      priorAnswers,
-      command.roundNumber,
     );
 
-    console.log(`🎯 [StartQuestionRoundUseCase] Generated ${questions.length} questions`);
+    console.log(`❓ [GenerateQuestionsUseCase] Generated ${questions.length} questions`);
 
-    // Store questions in AEC
+    // Store questions in AEC domain entity
     if (questions.length > 0) {
       aec.setQuestions(questions);
       await this.aecRepository.save(aec);
-      console.log(`🎯 [StartQuestionRoundUseCase] Questions saved to AEC`);
+      console.log(`❓ [GenerateQuestionsUseCase] Questions saved to AEC`);
     }
 
-    console.log(`🎯 [StartQuestionRoundUseCase] Round ${command.roundNumber} started and persisted`);
-
-    return aec;
+    return questions;
   }
 
   /**
@@ -119,7 +113,7 @@ export class StartQuestionRoundUseCase {
 
     // Fallback to minimal context if no repository context
     if (!repoContext) {
-      console.warn('🎯 [StartQuestionRoundUseCase] No repository context available, using minimal context');
+      console.warn('❓ [GenerateQuestionsUseCase] No repository context available, using minimal context');
       return {
         stack: {
           framework: null,
@@ -148,10 +142,10 @@ export class StartQuestionRoundUseCase {
 
     try {
       const [owner, repo] = repoContext.repositoryFullName.split('/');
-      console.log(`🎯 [StartQuestionRoundUseCase] Analyzing repository: ${repoContext.repositoryFullName}`);
+      console.log(`❓ [GenerateQuestionsUseCase] Analyzing repository: ${repoContext.repositoryFullName}`);
 
       // Step 1: Fetch repository file tree from GitHub
-      console.log('🎯 [StartQuestionRoundUseCase] Fetching repository tree...');
+      console.log('❓ [GenerateQuestionsUseCase] Fetching repository tree...');
       const fileTree = await this.githubFileService.getTree(owner, repo, repoContext.branchName);
 
       // Step 2: Read key files for stack detection
@@ -162,22 +156,22 @@ export class StartQuestionRoundUseCase {
         try {
           const content = await this.githubFileService.readFile(owner, repo, fileName, repoContext.branchName);
           filesMap.set(fileName, content);
-          console.log(`🎯 [StartQuestionRoundUseCase] Read ${fileName}`);
+          console.log(`❓ [GenerateQuestionsUseCase] Read ${fileName}`);
         } catch (error) {
           // File may not exist, continue
-          console.log(`🎯 [StartQuestionRoundUseCase] ${fileName} not found (expected)`);
+          console.log(`❓ [GenerateQuestionsUseCase] ${fileName} not found (expected)`);
         }
       }
 
       // Step 3: Detect technology stack
-      console.log('🎯 [StartQuestionRoundUseCase] Detecting technology stack...');
+      console.log('❓ [GenerateQuestionsUseCase] Detecting technology stack...');
       const stack = await this.stackDetector.detectStack(filesMap);
 
       // Step 4: Analyze codebase patterns
-      console.log('🎯 [StartQuestionRoundUseCase] Analyzing codebase patterns...');
+      console.log('❓ [GenerateQuestionsUseCase] Analyzing codebase patterns...');
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
-      console.log(`🎯 [StartQuestionRoundUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`);
+      console.log(`❓ [GenerateQuestionsUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`);
 
       return {
         stack,
@@ -186,7 +180,7 @@ export class StartQuestionRoundUseCase {
         files: filesMap,
       };
     } catch (error) {
-      console.error('🎯 [StartQuestionRoundUseCase] Error building codebase context:', error instanceof Error ? error.message : String(error));
+      console.error('❓ [GenerateQuestionsUseCase] Error building codebase context:', error instanceof Error ? error.message : String(error));
       // Return partial context with minimal valid structure
       return {
         stack: {
@@ -215,54 +209,53 @@ export class StartQuestionRoundUseCase {
     }
   }
 
-
   /**
    * Generate questions with LLM retry logic
    *
    * Retries up to 3 times with exponential backoff: 1s, 2s, 4s
+   * If generation fails completely, returns empty array (best-effort)
    */
   private async generateQuestionsWithRetry(
     title: string,
     description: string | null,
     context: CodebaseContext,
-    priorAnswers: Array<{ questionId: string; answer: string | string[] }>,
-    roundNumber: number,
   ): Promise<ClarificationQuestion[]> {
     let lastError: Error | null = null;
 
-    for (let attempt = 1; attempt <= StartQuestionRoundUseCase.MAX_RETRIES; attempt++) {
+    for (let attempt = 1; attempt <= GenerateQuestionsUseCase.MAX_RETRIES; attempt++) {
       try {
-        console.log(`🎯 [StartQuestionRoundUseCase] Attempt ${attempt}/${StartQuestionRoundUseCase.MAX_RETRIES}`);
+        console.log(`❓ [GenerateQuestionsUseCase] Attempt ${attempt}/${GenerateQuestionsUseCase.MAX_RETRIES}`);
 
         const questions = await this.techSpecGenerator.generateQuestionsWithContext({
           title,
           description: description ?? undefined,
           context,
-          priorAnswers,
-          roundNumber,
+          priorAnswers: [], // No prior answers for first (and only) call
+          roundNumber: 1, // Always round 1 in simplified flow
         });
 
-        console.log(`🎯 [StartQuestionRoundUseCase] Successfully generated ${questions.length} questions`);
+        console.log(`❓ [GenerateQuestionsUseCase] Successfully generated ${questions.length} questions`);
         return questions;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         console.warn(
-          `🎯 [StartQuestionRoundUseCase] Attempt ${attempt} failed:`,
+          `❓ [GenerateQuestionsUseCase] Attempt ${attempt} failed:`,
           lastError.message,
         );
 
-        if (attempt < StartQuestionRoundUseCase.MAX_RETRIES) {
-          const backoffMs = StartQuestionRoundUseCase.INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1);
-          console.log(`🎯 [StartQuestionRoundUseCase] Retrying in ${backoffMs}ms...`);
+        if (attempt < GenerateQuestionsUseCase.MAX_RETRIES) {
+          const backoffMs = GenerateQuestionsUseCase.INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1);
+          console.log(`❓ [GenerateQuestionsUseCase] Retrying in ${backoffMs}ms...`);
           await this.sleep(backoffMs);
         }
       }
     }
 
-    // All retries exhausted
-    throw new Error(
-      `Failed to generate questions after ${StartQuestionRoundUseCase.MAX_RETRIES} attempts: ${lastError?.message}`,
+    // All retries exhausted - return empty array (best-effort, skip to finalization)
+    console.warn(
+      `❓ [GenerateQuestionsUseCase] Failed to generate questions after ${GenerateQuestionsUseCase.MAX_RETRIES} attempts, returning empty array (will skip to finalization)`,
     );
+    return [];
   }
 
   /**

@@ -58,10 +58,14 @@ export interface AECDocument {
   repositoryContext: RepositoryContextDocument | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  // New fields for iterative refinement workflow
+  // Simplified question refinement workflow
+  clarificationQuestions?: any[];
+  questionAnswers?: Record<string, string | string[]>;
+  questionsAnsweredAt?: Timestamp | null;
+  techSpec?: TechSpec | null;
+  // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
-  techSpec?: TechSpec | null;
   maxRounds?: number;
 }
 
@@ -130,18 +134,6 @@ export class AECMapper {
       })
       .filter((vr): vr is ValidationResult => vr !== null);
 
-    // Reconstitute question rounds if present
-    const questionRounds: QuestionRound[] = (doc.questionRounds || [])
-      .map((round) => ({
-        roundNumber: round.roundNumber,
-        questions: round.questions || [],
-        answers: round.answers || {},
-        generatedAt: round.generatedAt?.toDate() ?? new Date(),
-        answeredAt: round.answeredAt?.toDate() ?? null,
-        codebaseContext: round.codebaseContext || '{}',
-        skippedByUser: round.skippedByUser ?? false,
-      }));
-
     return AEC.reconstitute(
       doc.id,
       doc.workspaceId,
@@ -166,10 +158,10 @@ export class AECMapper {
       repositoryContext,
       doc.createdAt.toDate(),
       doc.updatedAt.toDate(),
-      questionRounds,
-      doc.currentRound ?? 0,
+      doc.clarificationQuestions ?? [],
+      doc.questionAnswers ?? {},
+      doc.questionsAnsweredAt?.toDate() ?? null,
       doc.techSpec ?? null,
-      doc.maxRounds ?? 3,
     );
   }
 
@@ -184,19 +176,6 @@ export class AECMapper {
           selectedAt: Timestamp.fromDate(aec.repositoryContext.selectedAt),
         }
       : null;
-
-    // Map question rounds to Firestore format
-    const questionRounds: QuestionRoundDocument[] = aec.questionRounds.map(
-      (round) => ({
-        roundNumber: round.roundNumber,
-        questions: round.questions,
-        answers: round.answers,
-        generatedAt: Timestamp.fromDate(round.generatedAt),
-        answeredAt: round.answeredAt ? Timestamp.fromDate(round.answeredAt) : null,
-        codebaseContext: round.codebaseContext,
-        skippedByUser: round.skippedByUser,
-      }),
-    );
 
     return {
       id: aec.id,
@@ -224,10 +203,12 @@ export class AECMapper {
       repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),
       updatedAt: Timestamp.fromDate(aec.updatedAt),
-      questionRounds,
-      currentRound: aec.currentRound,
+      clarificationQuestions: aec.questions,
+      questionAnswers: aec.questionAnswers,
+      questionsAnsweredAt: aec.questionsAnsweredAt
+        ? Timestamp.fromDate(aec.questionsAnsweredAt)
+        : null,
       techSpec: aec.techSpec,
-      maxRounds: aec.maxRounds,
     };
   }
 }

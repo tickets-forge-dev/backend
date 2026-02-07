@@ -18,7 +18,8 @@ import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
 import { StartQuestionRoundUseCase } from '../../application/use-cases/StartQuestionRoundUseCase';
 import { SubmitAnswersUseCase } from '../../application/use-cases/SubmitAnswersUseCase';
-import { SkipToFinalizeUseCase } from '../../application/use-cases/SkipToFinalizeUseCase';
+import { GenerateQuestionsUseCase } from '../../application/use-cases/GenerateQuestionsUseCase';
+import { SubmitQuestionAnswersUseCase } from '../../application/use-cases/SubmitQuestionAnswersUseCase';
 import { FinalizeSpecUseCase } from '../../application/use-cases/FinalizeSpecUseCase';
 import { CreateTicketDto } from '../dto/CreateTicketDto';
 import { UpdateAECDto } from '../dto/UpdateAECDto';
@@ -55,7 +56,8 @@ export class TicketsController {
     private readonly deleteAECUseCase: DeleteAECUseCase,
     private readonly startQuestionRoundUseCase: StartQuestionRoundUseCase,
     private readonly submitAnswersUseCase: SubmitAnswersUseCase,
-    private readonly skipToFinalizeUseCase: SkipToFinalizeUseCase,
+    private readonly generateQuestionsUseCase: GenerateQuestionsUseCase,
+    private readonly submitQuestionAnswersUseCase: SubmitQuestionAnswersUseCase,
     private readonly finalizeSpecUseCase: FinalizeSpecUseCase,
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
@@ -338,23 +340,41 @@ export class TicketsController {
   }
 
   /**
-   * Skip remaining rounds - user manual override to finalize immediately
+   * Generate clarification questions (simplified single-call flow)
    */
-  @Post(':id/skip-to-finalize')
-  async skipToFinalize(
+  @Post(':id/generate-questions')
+  async generateQuestions(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
   ) {
-    const aec = await this.skipToFinalizeUseCase.execute({
+    const questions = await this.generateQuestionsUseCase.execute({
       aecId: id,
       workspaceId,
+    });
+
+    return { questions };
+  }
+
+  /**
+   * Submit question answers and finalize technical specification
+   */
+  @Post(':id/submit-answers')
+  async submitQuestionAnswers(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: SubmitAnswersDto,
+  ) {
+    const aec = await this.submitQuestionAnswersUseCase.execute({
+      aecId: id,
+      workspaceId,
+      answers: dto.answers ?? {},
     });
 
     return this.mapToResponse(aec);
   }
 
   /**
-   * Finalize spec - generate final technical specification with all answers
+   * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
   @Post(':id/finalize')
   async finalizeSpec(

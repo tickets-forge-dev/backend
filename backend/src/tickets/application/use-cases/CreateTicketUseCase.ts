@@ -77,7 +77,6 @@ export class CreateTicketUseCase {
       command.title,
       command.description,
       repositoryContext,
-      command.maxRounds,
       command.type,
       command.priority,
     );

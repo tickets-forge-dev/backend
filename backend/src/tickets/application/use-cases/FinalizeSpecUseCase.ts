@@ -78,9 +78,13 @@ export class FinalizeSpecUseCase {
       throw new BadRequestException('Workspace mismatch');
     }
 
-    // Aggregate all answers from all rounds
-    const allAnswers = this.aggregateAllAnswers(aec);
-    console.log(`✨ [FinalizeSpecUseCase] Aggregated ${allAnswers.length} answers from ${aec.questionRounds.length} rounds`);
+    // Get question answers (single set, no rounds)
+    const answersRecord = aec.questionAnswers;
+    const allAnswers = Object.entries(answersRecord).map(([questionId, answer]) => ({
+      questionId,
+      answer,
+    }));
+    console.log(`✨ [FinalizeSpecUseCase] Aggregated ${allAnswers.length} answers`);
 
     // Build codebase context (fetches from GitHub and analyzes)
     const codebaseContext = await this.buildCodebaseContext(aec);
@@ -106,22 +110,6 @@ export class FinalizeSpecUseCase {
     return aec;
   }
 
-  /**
-   * Aggregate all answers from all question rounds
-   */
-  private aggregateAllAnswers(aec: AEC): Array<{ questionId: string; answer: string | string[] }> {
-    const allAnswers: Array<{ questionId: string; answer: string | string[] }> = [];
-
-    for (const round of aec.questionRounds) {
-      if (round.answeredAt !== null) {
-        for (const [questionId, answer] of Object.entries(round.answers)) {
-          allAnswers.push({ questionId, answer });
-        }
-      }
-    }
-
-    return allAnswers;
-  }
 
   /**
    * Build codebase context from AEC repository context
