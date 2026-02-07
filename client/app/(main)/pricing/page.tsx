@@ -38,9 +38,9 @@ const tiers: PricingTier[] = [
   },
   {
     name: 'Pro',
-    price: 29,
+    price: 12,
     period: 'month',
-    description: 'For teams scaling ticket generation',
+    description: 'For individuals and small teams scaling ticket generation',
     ticketsPerMonth: 30,
     features: [
       { name: '30 tickets/month', included: true },
@@ -55,7 +55,7 @@ const tiers: PricingTier[] = [
   },
   {
     name: 'Team',
-    price: 99,
+    price: 59,
     period: 'month',
     description: 'For organizations with advanced needs',
     ticketsPerMonth: -1, // unlimited

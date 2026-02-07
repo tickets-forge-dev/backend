@@ -11,7 +11,7 @@ so that I understand the cost structure and can decide to sign up.
 ## Acceptance Criteria
 
 1. **Pricing page route created**: `/pricing` route accessible from main app
-2. **Three tier cards displayed**: Free ($0), Pro ($29/mo), Team ($99/mo) with visual hierarchy
+2. **Three tier cards displayed**: Free ($0), Pro ($12/mo), Team ($59/mo) with visual hierarchy
 3. **Free tier details**: 3 tickets/month, basic features, upgrade CTA button
 4. **Pro tier details**: 30 tickets/month, export integrations, priority support, subscribe button
 5. **Team tier details**: Unlimited tickets, team workspace, role-based access, subscribe button
@@ -95,7 +95,7 @@ This story complements the quota feature by showing users pricing options when t
 - Design System: `client/app/globals.css` (design tokens, colors, typography)
 - Button Components: `client/src/core/components/ui/button.tsx`
 - Layout Patterns: Existing pages in `client/app/(main)/` (e.g., `tickets/page.tsx`)
-- Pricing Strategy: `sprint-status.yaml` Phase 0 notes (Free: 3 tickets, Pro: 30, Team: unlimited)
+- Pricing Strategy: `sprint-status.yaml` Phase 0 notes (Free: $0/3 tickets, Pro: $12/30 tickets, Team: $59/unlimited)
 
 ## Dev Agent Record
 
