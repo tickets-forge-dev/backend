@@ -868,6 +868,32 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             )}
           </div>
 
+          {/* Technology Stack */}
+          {currentTicket.techSpec.stack && (
+            <CollapsibleSection id="technology-stack" title="Technology Stack">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {currentTicket.techSpec.stack.language && (
+                  <div className="space-y-1">
+                    <p className="text-[var(--text-xs)] uppercase text-[var(--text-tertiary)]">Language</p>
+                    <p className="text-[var(--text-sm)] font-medium text-[var(--text)]">{currentTicket.techSpec.stack.language}</p>
+                  </div>
+                )}
+                {currentTicket.techSpec.stack.framework && (
+                  <div className="space-y-1">
+                    <p className="text-[var(--text-xs)] uppercase text-[var(--text-tertiary)]">Framework</p>
+                    <p className="text-[var(--text-sm)] font-medium text-[var(--text)]">{currentTicket.techSpec.stack.framework}</p>
+                  </div>
+                )}
+                {currentTicket.techSpec.stack.packageManager && (
+                  <div className="space-y-1">
+                    <p className="text-[var(--text-xs)] uppercase text-[var(--text-tertiary)]">Package Manager</p>
+                    <p className="text-[var(--text-sm)] font-medium text-[var(--text)]">{currentTicket.techSpec.stack.packageManager}</p>
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
+          )}
+
           {/* Problem Statement */}
           {currentTicket.techSpec.problemStatement && (
             <CollapsibleSection id="problem-statement" title="Problem Statement">
@@ -1193,8 +1219,9 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         </section>
       )}
 
-      {/* Question Refinement — collapsible, at bottom */}
+      {/* Question Refinement — collapsible, at bottom, only show if NOT finalized */}
       {!isStartingRound &&
+       !currentTicket.techSpec &&
        (currentTicket.currentRound ?? 0) > 0 &&
        currentTicket.questionRounds &&
        currentTicket.questionRounds.length > 0 && (
@@ -1221,6 +1248,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                   isSubmitting={isSubmittingAnswers}
                   error={answerSubmitError}
                   onDismissError={() => setAnswerSubmitError(null)}
+                  useModalUI={true}
                 />
               </div>
             )}

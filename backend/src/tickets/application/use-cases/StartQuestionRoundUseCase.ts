@@ -91,6 +91,14 @@ export class StartQuestionRoundUseCase {
 
     console.log(`🎯 [StartQuestionRoundUseCase] Generated ${questions.length} questions`);
 
+    // CRITICAL: If no questions generated, mark ready for finalization (skip empty rounds)
+    if (questions.length === 0) {
+      console.log(`🎯 [StartQuestionRoundUseCase] No clarification questions needed - marking ready for finalization`);
+      aec.markReadyForFinalization();
+      await this.aecRepository.save(aec);
+      return aec;
+    }
+
     // Update AEC domain entity
     const contextSnapshot = JSON.stringify(codebaseContext);
     aec.startQuestionRound(command.roundNumber, questions, contextSnapshot);

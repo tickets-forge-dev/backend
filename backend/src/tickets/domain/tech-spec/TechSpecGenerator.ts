@@ -220,6 +220,11 @@ export interface TechSpec {
   fileChanges: FileChange[]; // File changes needed
   qualityScore: number; // Quality score 0-100
   ambiguityFlags: string[]; // Issues found during validation (should be empty)
+  stack?: {
+    language?: string; // Detected language (e.g., "TypeScript")
+    framework?: string; // Detected framework (e.g., "React", "NestJS")
+    packageManager?: string; // Detected package manager (e.g., "npm", "yarn")
+  }; // Auto-detected technology stack at generation time
   apiChanges?: ApiChanges; // API endpoints affected by this spec
   layeredFileChanges?: LayeredFileChanges; // File changes organized by layer
   testPlan?: TestPlan; // Comprehensive test plan

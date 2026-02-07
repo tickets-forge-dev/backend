@@ -97,6 +97,11 @@ export interface TechSpec {
   }>;
   qualityScore: number; // 0-100
   generatedAt: Date;
+  stack?: {
+    language?: string; // Detected language (e.g., "TypeScript")
+    framework?: string; // Detected framework (e.g., "React", "NestJS")
+    packageManager?: string; // Detected package manager (e.g., "npm", "yarn")
+  }; // Auto-detected technology stack at generation time
   apiChanges?: {
     endpoints: ApiEndpointSpec[];
     baseUrl?: string;

@@ -371,6 +371,19 @@ export class AEC {
   }
 
   /**
+   * Mark ready for finalization when no clarification questions are needed
+   *
+   * Called when question generation produces zero questions (no ambiguities).
+   * Sets _currentRound to _maxRounds to signal that questions phase is complete
+   * and frontend should skip directly to finalize without showing question rounds.
+   */
+  markReadyForFinalization(): void {
+    this._currentRound = this._maxRounds;
+    this._status = AECStatus.QUESTIONS_COMPLETE;
+    this._updatedAt = new Date();
+  }
+
+  /**
    * Set the final technical specification
    *
    * Called after question refinement is complete and spec is finalized

@@ -5,6 +5,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { QuestionRoundPanel } from './wizard/QuestionRoundPanel';
+import { QuestionRefinementModal } from './QuestionRefinementModal';
 import type { QuestionRound, RoundAnswers } from '@/types/question-refinement';
 
 interface QuestionRoundsSectionProps {
@@ -17,6 +18,7 @@ interface QuestionRoundsSectionProps {
   isSubmitting?: boolean;
   error?: string | null;
   onDismissError?: () => void;
+  useModalUI?: boolean; // NEW: Enable modal UI instead of panels
 }
 
 /**
@@ -38,6 +40,7 @@ export function QuestionRoundsSection({
   isSubmitting = false,
   error = null,
   onDismissError,
+  useModalUI = false,
 }: QuestionRoundsSectionProps) {
   const [localAnswers, setLocalAnswers] = useState<RoundAnswers>({});
   const [isSkipping, setIsSkipping] = useState(false);
@@ -45,6 +48,63 @@ export function QuestionRoundsSection({
   if (!questionRounds || questionRounds.length === 0) {
     return null;
   }
+
+  // Modal UI path (new single-question interface)
+  if (useModalUI) {
+    const currentRoundData = questionRounds.find((r) => r.roundNumber === currentRound);
+    if (!currentRoundData || currentRoundData.questions.length === 0) {
+      return null;
+    }
+
+    const handleAnswerChange = (questionId: string, answer: string | string[]) => {
+      setLocalAnswers((prev) => ({
+        ...prev,
+        [questionId]: answer,
+      }));
+    };
+
+    const handleSubmit = async () => {
+      const allAnswers = {
+        ...currentRoundData.answers,
+        ...localAnswers,
+      };
+      try {
+        await onSubmitAnswers(currentRound, allAnswers);
+        setLocalAnswers({});
+        // Check if we should finalize
+        if (currentRound >= maxRounds && onFinalizeSpec) {
+          await onFinalizeSpec();
+        }
+      } catch (err) {
+        // Error handled by parent
+      }
+    };
+
+    const handleSkip = async () => {
+      setIsSkipping(true);
+      try {
+        await onSkipToFinalize();
+      } finally {
+        setIsSkipping(false);
+      }
+    };
+
+    return (
+      <QuestionRefinementModal
+        questions={currentRoundData.questions}
+        answers={{
+          ...currentRoundData.answers,
+          ...localAnswers,
+        }}
+        onAnswerChange={handleAnswerChange}
+        onSubmit={handleSubmit}
+        onSkip={handleSkip}
+        isSubmitting={isSubmitting}
+      />
+    );
+  }
+
+  // Existing panel UI path (backward compatible)
 
   const currentRoundData = questionRounds.find((r) => r.roundNumber === currentRound);
   const maxRound = Math.max(...questionRounds.map((r) => r.roundNumber), 0);

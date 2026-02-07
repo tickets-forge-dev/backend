@@ -470,6 +470,13 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       fileChanges,
       qualityScore: 0, // Will be calculated below
       ambiguityFlags: [],
+      stack: {
+        language: context.stack.language?.name || undefined,
+        framework: context.stack.framework?.name || undefined,
+        packageManager: typeof context.stack.packageManager === 'string'
+          ? context.stack.packageManager
+          : context.stack.packageManager?.type || undefined,
+      },
       apiChanges,
       layeredFileChanges,
       testPlan,
@@ -1382,7 +1389,7 @@ Rewritten text (definitive, unambiguous):`;
         throw new Error('Response is not an array');
       }
 
-      // Validate each question and limit to 5 per round
+      // Validate each question and limit by round (10 for Round 1, 3 for later rounds)
       return parsed
         .filter(
           (q) =>
@@ -1391,7 +1398,7 @@ Rewritten text (definitive, unambiguous):`;
             q.type &&
             ['radio', 'checkbox', 'text', 'select', 'multiline'].includes(q.type),
         )
-        .slice(0, 5); // Max 5 questions per round
+        .slice(0, input.roundNumber === 1 ? 10 : 3); // Front-load questions: Round 1 up to 10, Rounds 2-3 up to 3
     } catch (error) {
       throw new Error(`Failed to generate questions with context: ${String(error)}`);
     }
@@ -1497,6 +1504,13 @@ Rewritten text (definitive, unambiguous):`;
         fileChanges,
         qualityScore: 0,
         ambiguityFlags: [],
+        stack: {
+          language: context.stack.language?.name || undefined,
+          framework: context.stack.framework?.name || undefined,
+          packageManager: typeof context.stack.packageManager === 'string'
+            ? context.stack.packageManager
+            : context.stack.packageManager?.type || undefined,
+        },
         apiChanges,
         layeredFileChanges,
         testPlan,
@@ -1532,33 +1546,47 @@ Rewritten text (definitive, unambiguous):`;
         : '';
 
     if (roundNumber === 1) {
-      return `Analyze this request to identify key ambiguities that need clarification.
+      return `Analyze this request to identify key questions that need clarification.
 
 Title: ${title}
 Description: ${description || '(No description)'}
 
-Generate 2-5 clarification questions. Each question must:
+Generate 0-10 clarification questions. Focus on questions for:
+- Product owners, project managers, and stakeholders (non-technical language)
+- NOT implementation details or library choices
+- User experience and behavior
+- Business rules and scope
+- Success criteria and edge cases
+
+Each question must:
 - Have a unique id (q1, q2, q3, etc.)
+- Use clear, non-technical language
 - Explain WHY you're asking (context field)
-- Explain HOW the answer affects the spec (impact field)
+- Explain HOW the answer affects the user experience or scope (impact field)
 - Use appropriate type (radio, checkbox, text, select, multiline)
 - Be focused on reducing critical ambiguities
 
-Focus on questions that directly impact:
-1. Implementation approach
-2. Scope boundaries
-3. Acceptance criteria specificity
-4. File structure decisions
+Example good questions (non-technical):
+- "Who will primarily use this feature?" (user perspective)
+- "Should users see an error message if [action] fails?" (UX decision)
+- "What should happen when [edge case occurs]?" (behavior)
+
+Example bad questions (too technical):
+- "Which database should we use?" → Skip this
+- "What authentication mechanism?" → Skip this
+- "Which component library?" → Skip this
+
+Return empty array [] if NO ambiguities exist about user experience, scope, or success criteria.
 
 Generate valid JSON array:
 [
   {
     "id": "q1",
-    "question": "Specific question text",
+    "question": "Question phrased for non-technical stakeholders",
     "type": "radio|checkbox|text|select|multiline",
     "options": ["option 1", "option 2"],
-    "context": "Why this is ambiguous",
-    "impact": "How answer affects the spec"
+    "context": "Why we need to know this from a UX/scope perspective",
+    "impact": "How this clarifies the user experience or success criteria"
   }
 ]`;
     }
@@ -1616,10 +1644,10 @@ ${answersText}
 Current Round: ${currentRound}/3
 
 Assess:
-1. Are all critical ambiguities resolved?
-2. Can acceptance criteria be specific and testable?
-3. Are file changes deterministic and unambiguous?
-4. Is implementation approach clear?
+1. Can we determine core user experience and behavior?
+2. Are critical business rules clear?
+3. Are success criteria definable?
+4. Can we identify all affected code areas?
 
 Return valid JSON:
 {
@@ -1628,11 +1656,20 @@ Return valid JSON:
   "reasoning": "Brief explanation of decision"
 }
 
+CRITICAL: Only request another round if you CANNOT determine:
+1. Core user experience and behavior
+2. Critical business rules
+3. Success criteria and edge cases
+4. Which code areas need modification
+
+Be conservative: When in doubt, finalize.
+Prefer letting developers ask during implementation over endless clarification rounds.
+
 Guidelines:
-- shouldAskMore=true if more context would significantly improve spec quality
-- shouldAskMore=false if we can write a good spec with current info
+- shouldAskMore=true ONLY if current answers leave critical ambiguity
+- shouldAskMore=false if we can write an adequate spec with current info
 - Always return false for round 3+ (hard limit)
-- Consider that answers may contradict or need clarification`;
+- Default to false when uncertain`;
   }
 
   /**

@@ -227,6 +227,7 @@ export function Stage3Draft() {
             isSubmitting={isSubmitting}
             error={localError}
             onDismissError={() => setLocalError(null)}
+            useModalUI={true}
           />
         </div>
       ) : (
