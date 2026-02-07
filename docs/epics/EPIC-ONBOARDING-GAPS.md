@@ -179,6 +179,62 @@ Allow users to attach design mockups, screenshots, or asset files to tickets. Th
 
 ---
 
+### Story 6b: Rich Input with File Uploads
+**Priority:** High
+**Layer:** Backend (application), Frontend (presentation)
+
+Enhance Stage 1 (ticket input) to support Markdown editing and file uploads (`.md`, `.txt`, `.pdf`). Users can paste requirements as markdown, upload a spec document, or paste a PRD — extracted content populates the problem statement field.
+
+**Acceptance Criteria:**
+- Stage 1 input replaces plain `<textarea>` with MarkdownEditor component
+- Editor supports: syntax highlighting, live preview pane (tabs on mobile)
+- File upload zone (drag-drop or file picker) for `.md`, `.txt`, `.pdf` files
+- `.md` and `.txt` files auto-populate editor on upload
+- `.pdf` files trigger backend extraction (see below)
+- PDF text extracted server-side and inserted into editor
+- Extracted content can be edited before form submission
+- All markdown formatting preserved when saved to store
+- Error handling: unsupported file type, file too large (>5MB), extraction timeout
+- Mobile-friendly: edit/preview tabs instead of side-by-side panes
+
+**Backend Requirements:**
+- New endpoint: `POST /tickets/extract-pdf` accepts multipart file
+- Uses pdf extraction library to extract text from PDF
+- Returns plain text or structured fields (problem, requirements, assumptions)
+- Rate limiting: 1 extraction per user per minute
+- Timeout: max 10 seconds for extraction
+
+**Frontend Requirements:**
+- New component: `MarkdownEditor.tsx` in `client/src/core/components/editors/`
+- New component: `FileUploadZone.tsx` in `client/src/core/components/editors/`
+- Keyboard shortcuts: Ctrl+B (bold), Ctrl+I (italic), Ctrl+⇧K (link), Ctrl+⇧C (code block)
+- Preview rendering uses same styles as ticket descriptions (consistency)
+- Reusable for Notes field and other markdown inputs across app
+
+**Files likely involved:**
+- `client/src/core/components/editors/MarkdownEditor.tsx` — **new** component
+- `client/src/core/components/editors/FileUploadZone.tsx` — **new** component
+- `client/src/core/utils/file.ts` — **new** helper functions for file reading/validation
+- `client/src/tickets/components/wizard/Stage1Input.tsx` — integrate editor + upload
+- `client/src/tickets/stores/generation-wizard.store.ts` — preserve markdown in state
+- `backend/src/tickets/application/services/PdfExtractorService.ts` — **new** service
+- `backend/src/tickets/presentation/controllers/tickets.controller.ts` — add `/extract-pdf` endpoint
+- `backend/src/tickets/presentation/dto/ExtractPdfDto.ts` — **new** DTO
+- `package.json` — add: `remark`, `react-markdown`, `highlight.js` (frontend), `pdf-parse` (backend)
+
+**Dependencies:**
+- No hard dependencies; works standalone
+- Can optionally integrate with Story 4 (Linear Integration) for pre-filled exports
+- Shares PDF extraction logic with Story 6 (Design Assets) — coordinate service creation
+
+**Notes:**
+- Plain text input still supported (backward compatible)
+- Markdown formatting is preserved but not required — users can paste plain text
+- Consider Monaco Editor as upgrade path (heavier, more features) if users request advanced editing
+- PDF extraction is best-effort — corrupted/image-heavy PDFs may have limited results
+
+---
+
 ### Story 7: In-App Notifications
 **Priority:** Medium
 **Layer:** Backend (infrastructure + application), Client (presentation + stores)
@@ -225,10 +281,13 @@ Story 1 (API Detection) ──┐
 Story 2 (BE/FE Split)  ───┤── can be done in parallel
 Story 3 (Test Plan)    ───┘
 
+Story 6b (Rich Input)  ──── independent (enhances user data quality)
+
 Story 4 (Linear)  ─────┐── can be done in parallel
-Story 5 (Jira)    ─────┘
-                        │
-Story 6 (Assets) ──────── depends on storage infra, enhances exports
+Story 5 (Jira)    ─────┤── both depend on export infra
+                       │
+Story 6 (Assets) ──────┴─── depends on storage infra, enhances exports
+                            (can share PdfExtractorService with Story 6b)
 
 Story 7 (In-App Notif) ──── standalone
 Story 8 (Email Notif)  ──── depends on Story 7
@@ -237,8 +296,8 @@ Story 8 (Email Notif)  ──── depends on Story 7
 ## Suggested Execution Order
 
 1. **Sprint 1:** Stories 1 + 2 + 3 (spec quality — immediate user value)
-2. **Sprint 2:** Stories 4 + 5 (export integrations — the "deploy" promise)
-3. **Sprint 3:** Stories 6 + 7 (attachments + notifications — polish)
+2. **Sprint 2:** Story 6b (rich input — better data from users) + Stories 4 + 5 (export integrations)
+3. **Sprint 3:** Story 6 (design attachments) + Story 7 (notifications) — share PdfExtractorService
 4. **Sprint 4:** Story 8 (email — nice-to-have)
 
 ## Success Metric

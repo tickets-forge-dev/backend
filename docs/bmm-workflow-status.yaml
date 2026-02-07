@@ -26,25 +26,36 @@ workflow_status:
   research: skipped
 
   # PHASE 1: PLANNING (Required)
-  tech-spec: in-progress  # Currently working: Epic 20 Spec Quality improvements
+  tech-spec: in-progress  # Epic 20 Spec Quality — nearing completion
 
   # PHASE 2: IMPLEMENTATION (Required - Next)
   sprint-planning: recommended  # Will start after tech-spec complete
 
 # NOTES
 # =====
-# Current Work:
-# - Session 8: Completed multi-round refactor (3 commits, all phases)
-# - Session 7: Performance optimizations + UI improvements
-# - Session 6: Epic 20 implementation (API detection, BE/FE split, test plans)
+# Current Work (Session 9):
+# - Ticket Detail Page Readability Redesign (hero header, quality badge, BDD color-coding)
+# - Problem Statement JSON normalization (backend + frontend defense-in-depth)
+# - Quality score hover tooltip with actionable improvement tips
+# - Draft/Complete button redesign (border, subtitle hints)
+# - Renamed Description → Notes, moved to bottom of page
+# - Committed: e84879b
+# - Consolidated input enhancement into EPIC-ONBOARDING-GAPS as Story 6b (Rich Input with File Uploads)
+#
+# Previous Sessions:
+# - Session 8: Multi-round refactor → single-set question flow (3 commits)
+# - Session 7: 2-pass repo fingerprinting, collapsible sections, question UX redesign
+# - Session 6: Epic 20 core (API detection, BE/FE split, test plans, quality scoring)
 #
 # Tech-Spec Progress:
-# - Domain: ✅ Multi-round dropped, simplified question flow
-# - Backend: ✅ All use cases updated, 0 TypeScript errors
-# - Frontend: ✅ Stores and components synced, build successful
-# - Repository validation: ✅ Added form validation for repo selection
+# - Domain: ✅ Simplified question flow (max 5 questions, no rounds)
+# - Backend: ✅ All use cases updated, LLM normalization, 0 TS errors
+# - Frontend: ✅ Stores/components synced, readability redesign, build OK
+# - UX: ✅ Hero header, quality tooltip, BDD colors, Notes section
+# - Validation: ✅ Repo selection required, form guards added
+# - Input Enhancement: 📋 EPIC-23 created (5 stories, execution plan ready)
 #
-# Next Steps:
-# - Commit current work (Form validation for repo selection)
-# - Run full end-to-end test of question flow
-# - Then move to sprint-planning for Phase 2 execution
+# Remaining for tech-spec completion:
+# - Uncommitted changes on epic-20-impl branch (Session 9 readability redesign)
+# - End-to-end testing of full ticket creation flow
+# - Then move to sprint-planning for Phase 2 implementation
