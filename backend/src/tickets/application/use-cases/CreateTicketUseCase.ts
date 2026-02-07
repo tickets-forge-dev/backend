@@ -5,9 +5,16 @@ import { GitHubApiService } from '../../../shared/infrastructure/github/github-a
 import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
+import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
+
+export const TICKET_LIMITS: Record<string, number> = {
+  'bar.idan@gmail.com': 15,
+};
+export const DEFAULT_TICKET_LIMIT = 3;
 
 export interface CreateTicketCommand {
   workspaceId: string;
+  userEmail: string;
   title: string;
   description?: string;
   repositoryFullName?: string;
@@ -31,6 +38,13 @@ export class CreateTicketUseCase {
   async execute(command: CreateTicketCommand): Promise<AEC> {
     console.log('🎫 [CreateTicketUseCase] Creating ticket:', command.title);
     console.log('🎫 [CreateTicketUseCase] WorkspaceId:', command.workspaceId);
+
+    // Quota check
+    const limit = TICKET_LIMITS[command.userEmail] ?? DEFAULT_TICKET_LIMIT;
+    const used = await this.aecRepository.countByWorkspace(command.workspaceId);
+    if (used >= limit) {
+      throw new QuotaExceededError(used, limit);
+    }
 
     // Build repository context if repository info provided
     let repositoryContext: RepositoryContext | undefined;

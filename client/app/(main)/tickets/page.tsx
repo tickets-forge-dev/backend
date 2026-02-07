@@ -5,10 +5,10 @@ import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban } from 'lucide-react';
 
 export default function TicketsListPage() {
-  const { tickets, isLoading, loadError, loadTickets } = useTicketsStore();
+  const { tickets, isLoading, loadError, loadTickets, quota, fetchQuota } = useTicketsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -17,7 +17,8 @@ export default function TicketsListPage() {
 
   useEffect(() => {
     loadTickets();
-  }, [loadTickets]);
+    fetchQuota();
+  }, [loadTickets, fetchQuota]);
 
   // Filter and sort tickets - most recently updated first
   const filteredTickets = tickets
@@ -142,9 +143,18 @@ export default function TicketsListPage() {
       <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-end">
-        <Link href="/tickets/create">
-          <Button>New Ticket</Button>
-        </Link>
+        {quota && !quota.canCreate ? (
+          <div className="relative group">
+            <Button disabled>New Ticket</Button>
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[11px] text-[var(--text-secondary)] shadow-lg">
+              Ticket limit reached ({quota.used}/{quota.limit})
+            </div>
+          </div>
+        ) : (
+          <Link href="/tickets/create">
+            <Button>New Ticket</Button>
+          </Link>
+        )}
       </div>
 
       {/* Filter bar */}

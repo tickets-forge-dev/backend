@@ -119,4 +119,9 @@ export class TicketService {
   async delete(id: string): Promise<void> {
     await this.client.delete(`/tickets/${id}`);
   }
+
+  async getQuota(): Promise<{ used: number; limit: number; canCreate: boolean }> {
+    const response = await this.client.get<{ used: number; limit: number; canCreate: boolean }>('/tickets/quota');
+    return response.data;
+  }
 }

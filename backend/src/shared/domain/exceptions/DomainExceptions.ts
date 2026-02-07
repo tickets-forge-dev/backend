@@ -32,3 +32,13 @@ export class PermissionDeniedError extends Error {
     this.name = 'PermissionDeniedError';
   }
 }
+
+export class QuotaExceededError extends Error {
+  constructor(
+    public readonly used: number,
+    public readonly limit: number,
+  ) {
+    super(`Ticket quota exceeded: ${used}/${limit}`);
+    this.name = 'QuotaExceededError';
+  }
+}

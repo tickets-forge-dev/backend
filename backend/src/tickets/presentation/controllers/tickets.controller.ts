@@ -13,7 +13,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { CreateTicketUseCase } from '../../application/use-cases/CreateTicketUseCase';
+import { CreateTicketUseCase, TICKET_LIMITS, DEFAULT_TICKET_LIMIT } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
 import { StartQuestionRoundUseCase } from '../../application/use-cases/StartQuestionRoundUseCase';
@@ -26,15 +26,16 @@ import { StartRoundDto } from '../dto/StartRoundDto';
 import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
 import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
-import { InvalidStateTransitionError } from '../../../shared/domain/exceptions/DomainExceptions';
+import { InvalidStateTransitionError, QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectStackDetector';
-import { Inject, BadRequestException } from '@nestjs/common';
+import { Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
+import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
 import { GitHubFileService } from '@github/domain/github-file.service';
 import { GITHUB_FILE_SERVICE } from '../../application/ports/GitHubFileServicePort';
 import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
@@ -207,20 +208,39 @@ export class TicketsController {
   @HttpCode(HttpStatus.CREATED)
   async createTicket(
     @WorkspaceId() workspaceId: string,
+    @UserEmail() userEmail: string,
     @Body() dto: CreateTicketDto,
   ) {
-    const aec = await this.createTicketUseCase.execute({
-      workspaceId,
-      title: dto.title,
-      description: dto.description,
-      repositoryFullName: dto.repositoryFullName,
-      branchName: dto.branchName,
-      maxRounds: dto.maxRounds,
-      type: dto.type,
-      priority: dto.priority,
-    });
+    try {
+      const aec = await this.createTicketUseCase.execute({
+        workspaceId,
+        userEmail,
+        title: dto.title,
+        description: dto.description,
+        repositoryFullName: dto.repositoryFullName,
+        branchName: dto.branchName,
+        maxRounds: dto.maxRounds,
+        type: dto.type,
+        priority: dto.priority,
+      });
 
-    return this.mapToResponse(aec);
+      return this.mapToResponse(aec);
+    } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        throw new ForbiddenException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Get('quota')
+  async getQuota(
+    @WorkspaceId() workspaceId: string,
+    @UserEmail() userEmail: string,
+  ) {
+    const limit = TICKET_LIMITS[userEmail] ?? DEFAULT_TICKET_LIMIT;
+    const used = await this.aecRepository.countByWorkspace(workspaceId);
+    return { used, limit, canCreate: used < limit };
   }
 
   @Get(':id')

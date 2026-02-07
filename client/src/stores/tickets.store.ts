@@ -3,6 +3,12 @@ import { useServices } from '@/services/index';
 import type { AECResponse } from '@/services/ticket.service';
 import type { BranchInfo } from '@/services/github.service';
 
+interface QuotaInfo {
+  used: number;
+  limit: number;
+  canCreate: boolean;
+}
+
 interface TicketsState {
   tickets: AECResponse[];
   currentTicket: AECResponse | null;
@@ -16,6 +22,9 @@ interface TicketsState {
   isDeleting: boolean;
   deleteError: string | null;
 
+  // Quota
+  quota: QuotaInfo | null;
+
   // Branch selection state (AC#5, Task 9)
   selectedRepository: string | null; // "owner/repo"
   selectedBranch: string | null;
@@ -28,6 +37,7 @@ interface TicketsState {
   createTicket: (title: string, description?: string) => Promise<AECResponse | null>;
   loadTickets: () => Promise<void>;
   fetchTicket: (id: string) => Promise<void>;
+  fetchQuota: () => Promise<void>;
   updateTicket: (
     id: string,
     data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
@@ -54,6 +64,9 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   updateError: null,
   isDeleting: false,
   deleteError: null,
+
+  // Quota
+  quota: null,
 
   // Branch selection state (AC#5, Task 9)
   selectedRepository: null,
@@ -87,6 +100,9 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
         defaultBranch: null,
       }));
 
+      // Refresh quota after creation
+      get().fetchQuota();
+
       return aec;
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to create ticket';
@@ -106,6 +122,16 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to load tickets';
       set({ isLoading: false, loadError: errorMessage });
+    }
+  },
+
+  fetchQuota: async () => {
+    try {
+      const { ticketService } = useServices();
+      const quota = await ticketService.getQuota();
+      set({ quota });
+    } catch {
+      // Silently fail — banner simply won't show
     }
   },
 
@@ -166,6 +192,9 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
         currentTicket: state.currentTicket?.id === id ? null : state.currentTicket,
         isDeleting: false,
       }));
+
+      // Refresh quota after deletion
+      get().fetchQuota();
 
       return true;
     } catch (error: any) {
