@@ -1,0 +1,219 @@
+# BMM Sprint Status - Forge Project
+# Generated: 2026-02-07
+# Project: forge
+# Project Key: FORGE
+# Tracking System: file-system
+# Story Location: docs/sprint-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: "2026-02-07"
+project: forge
+project_key: FORGE
+tracking_system: file-system
+story_location: docs/sprint-artifacts
+
+development_status:
+  # ============================================================================
+  # EPIC: ONBOARDING-GAPS (Close the Onboarding Promise Gap)
+  # Status: Phase 1 Planning → Phase 2 Implementation
+  # Priority: High (Core user value - fulfill onboarding promises)
+  # ============================================================================
+
+  epic-onboarding-gaps: backlog
+
+  # Sprint 1: Spec Quality (Stories 1-3) — COMPLETED IN PHASE 1
+  1-1-explicit-api-endpoint-detection: done
+  1-2-explicit-backend-client-split-in-output: done
+  1-3-test-plan-generation: done
+
+  # Sprint 2: Rich Input + Exports (Stories 6b, 4, 5)
+  1-3b-interactive-api-editor-mini-postman: backlog
+  1-4-linear-integration: backlog
+  1-5-jira-integration: backlog
+
+  # Sprint 2-3: File Upload + Attachments (Stories 6b, 6)
+  1-6b-rich-input-with-file-uploads: backlog
+  1-6-design-and-asset-attachments: backlog
+
+  # Sprint 3: Notifications (Stories 7-8)
+  1-7-in-app-notifications: backlog
+  1-8-email-notifications: backlog
+
+  epic-onboarding-gaps-retrospective: optional
+
+  # ============================================================================
+  # EPIC 21: CACHING OPTIMIZATION (Repository Analysis Caching)
+  # Status: Planned
+  # Priority: High (Easy ROI - 10-20x speed improvement)
+  # Effort: 4 days
+  # ============================================================================
+
+  epic-21: backlog
+
+  21-1-create-hybrid-fingerprint-cache-service: backlog
+  21-2-integrate-cache-into-deep-analysis-service: backlog
+  21-3-setup-firestore-ttl-policy: backlog
+  21-4-performance-testing-and-validation: backlog
+
+  epic-21-retrospective: optional
+
+  # ============================================================================
+  # EPIC 22: WIREFRAME GENERATION (AI Wireframe Generation from Tickets)
+  # Status: Backlog
+  # Priority: P2 (High perceived value - visual output)
+  # Planned Start: Phase 5
+  # Effort: ~4 weeks
+  # ============================================================================
+
+  epic-22: backlog
+
+  22-1-wireframe-generation-service-backend: backlog
+  22-2-wireframe-api-endpoint-backend: backlog
+  22-3-wireframe-viewer-and-download-frontend: backlog
+  22-4-smart-screen-detection-from-specs: backlog
+
+  epic-22-retrospective: optional
+
+  # ============================================================================
+  # EPIC 10: REVENUE INFRASTRUCTURE (Stripe + Subscription Tiers)
+  # Status: Backlog
+  # Priority: P0 (Revenue unlock - business critical)
+  # Planned Start: Phase 4 (after spec quality complete)
+  # ============================================================================
+
+  epic-10: backlog
+
+  10-1-subscription-domain-model: backlog
+  10-2-stripe-checkout-integration: backlog
+  10-3-subscription-guard: backlog
+  10-4-usage-metering: backlog
+  10-5-stripe-customer-portal: backlog
+  10-6-pricing-page-ui: done  # Completed in Story 0-4
+
+  epic-10-retrospective: optional
+
+  # ============================================================================
+  # EPIC: DEPLOYMENT (Production Deployment)
+  # Status: Reference/Documentation
+  # Priority: Infrastructure (ongoing)
+  # ============================================================================
+
+  epic-deployment: backlog
+  epic-deployment-retrospective: optional
+
+  # ============================================================================
+  # FUTURE FEATURES: High-Level Epics (To be detailed in later phases)
+  # ============================================================================
+
+  # Epic 1: Enhanced Ticket Context (Images + Text)
+  future-epic-1: backlog
+
+  1-1-enhanced-ticket-context-stage-1-ui: backlog
+  1-2-storage-service-wrapper: backlog
+  1-3-wire-uploads-into-wizard-flow: backlog
+  1-4-extend-aec-domain-with-context-images: backlog
+  1-5-pass-multimodal-context-to-llm: backlog
+
+  future-epic-1-retrospective: optional
+
+  # Epic 2: Code Guardrails Detection
+  future-epic-2: backlog
+
+  2-1-define-guardrails-value-object: backlog
+  2-2-detect-guardrails-during-analysis: backlog
+  2-3-inject-guardrails-into-prompts: backlog
+  2-4-display-guardrails-on-stage-2: backlog
+  2-5-show-guardrails-on-ticket-detail: backlog
+
+  future-epic-2-retrospective: optional
+
+  # Epic 3: Tech Spec Document + Artifacts
+  future-epic-3: backlog
+
+  3-1-create-tech-spec-markdown-generator: backlog
+  3-2-create-artifact-storage-service: backlog
+  3-3-wire-into-finalize-spec-use-case: backlog
+  3-4-add-artifacts-section-to-ticket-detail: backlog
+  3-5-include-artifacts-in-ticket-api-response: backlog
+
+  future-epic-3-retrospective: optional
+
+  # Epic 4: Markdown Preview Page
+  future-epic-4: backlog
+
+  4-1-install-markdown-dependencies: backlog
+  4-2-create-markdown-renderer-component: backlog
+  4-3-create-preview-route: backlog
+  4-4-create-markdown-preview-drawer: backlog
+  4-5-syntax-highlighting-theme: backlog
+
+  future-epic-4-retrospective: optional
+
+  # Epic 5: Jira & Linear Integration (Full Export Bundle)
+  future-epic-5: backlog
+
+  5-1-linear-oauth: backlog
+  5-2-jira-oauth: backlog
+  5-3-linear-api-client-and-field-mapper: backlog
+  5-4-jira-api-client-and-field-mapper: backlog
+  5-5-aec-xml-serializer: backlog
+  5-6-artifact-bundle-assembler: backlog
+  5-7-platform-attachment-upload: backlog
+  5-8-export-use-case-and-ui: backlog
+
+  future-epic-5-retrospective: optional
+
+# ============================================================================
+# EXECUTION ROADMAP
+# ============================================================================
+# Phase 1 (CURRENT): Tech-Spec Planning
+#   └─ Epics created, Stories 1-3 of EPIC-ONBOARDING-GAPS completed
+#   └─ Next: End-to-end testing, then sprint-planning finalization
+#
+# Phase 2: Implementation (2-3 weeks)
+#   Sprint 1: Stories 1-3 backlog review + Story 6b (Rich Input)
+#   Sprint 2: Stories 4-5 (Linear/Jira), 6 (Design Assets)
+#   Sprint 3: Stories 7-8 (Notifications), 21 (Caching)
+#
+# Phase 3: Polish & Expansion (Months 2-3)
+#   └─ Future Epics 1-4 (Enhanced Context, Guardrails, Artifacts, Markdown)
+#   └─ EPIC-22 (Wireframe Generation)
+#
+# Phase 4: Revenue (Month 3+)
+#   └─ EPIC-10 (Subscription + Stripe)
+#   └─ Future Epic 5 (Full Jira/Linear Integration)
+#
+# ============================================================================
+# KEY METRICS
+# ============================================================================
+# Total Epics: 10 (EPIC-ONBOARDING-GAPS, EPIC-21, EPIC-22, EPIC-10, EPIC-DEPLOYMENT, 5 FUTURE)
+# Total Stories: 58 (across all epics)
+# Stories Completed: 4 (10-6 Pricing UI, 1-1, 1-2, 1-3)
+# Stories in Backlog: 54 (ready for dev assignment)
+#
+# Next Scheduled: Story 1-3b (Interactive API Editor)
+# ============================================================================
