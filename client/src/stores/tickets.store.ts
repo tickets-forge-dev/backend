@@ -48,6 +48,8 @@ interface TicketsState {
   // Branch selection actions (AC#5, Task 9)
   setRepository: (repositoryFullName: string | null) => Promise<void>;
   setBranch: (branchName: string | null) => void;
+  refreshBranches: () => Promise<void>;
+  clearBranchSelection: () => void;
 }
 
 export const useTicketsStore = create<TicketsState>((set, get) => ({

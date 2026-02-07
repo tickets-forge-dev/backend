@@ -6,6 +6,7 @@ interface UIState {
   onboardingCompleted: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   completeOnboarding: () => void;
+  resetOnboarding: () => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -17,6 +18,8 @@ export const useUIStore = create<UIState>()(
         set({ sidebarCollapsed: collapsed }),
       completeOnboarding: () =>
         set({ onboardingCompleted: true }),
+      resetOnboarding: () =>
+        set({ onboardingCompleted: false }),
     }),
     {
       name: 'forge-ui-preferences',

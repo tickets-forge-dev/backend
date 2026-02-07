@@ -5,7 +5,6 @@ import { Sidebar } from '@/core/components/sidebar/Sidebar';
 import { OnboardingDialog } from '@/core/components/onboarding/OnboardingDialog';
 import { useUIStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
-import { Menu } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { Toaster } from 'sonner';
 
@@ -22,7 +21,7 @@ export default function MainLayout({
 }
 
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { sidebarCollapsed } = useUIStore();
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
@@ -38,16 +37,6 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-
-      {/* Hamburger menu for mobile */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-[var(--z-sticky)] md:hidden"
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
 
       {/* Main content with margin for sidebar */}
       <main

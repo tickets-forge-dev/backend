@@ -253,16 +253,17 @@ development_status:
   epic-20:
     status: backlog
     completion: 0%
-    stories: 3/3
-    summary: "Spec Quality (API Detection, BE/FE Split, Test Plan)"
+    stories: 4/4
+    summary: "Spec Quality (API Detection, BE/FE Split, Test Plan, API Editor)"
     priority: "P2 (Immediate ticket quality improvement)"
     planned_start: "Phase 5"
     dependencies: "None (standalone)"
-    source: "EPIC-ONBOARDING-GAPS.md Stories 1-3"
+    source: "EPIC-ONBOARDING-GAPS.md Stories 1-3 + manual API editor"
     deliverables:
       - 20-1-api-endpoint-detection: backlog         # Detect API routes/controllers/DTOs, add "API Changes" section
       - 20-2-backend-client-split: backlog           # Group changes into "Backend Changes" / "Client Changes" sections
       - 20-3-test-plan-generation: backlog           # Generate "Test Plan" section (unit, integration, edge cases)
+      - 20-4-api-editor: backlog                     # Mini Postman: add/edit APIs (from detected or new), URL, method, payload, request/response
 
   epic-21:
     status: backlog
@@ -277,17 +278,32 @@ development_status:
       - 21-1-in-app-notifications: backlog           # Bell icon + dropdown, event types, Firestore persistence
       - 21-2-email-notifications: backlog            # SendGrid/Resend, settings toggle, unsubscribe, rate limit
 
+  epic-22:
+    status: backlog
+    completion: 0%
+    stories: 4/4
+    summary: "AI Wireframe Generation from Tickets (Excalidraw output)"
+    priority: "P2 (Visual output from tickets — high perceived value)"
+    planned_start: "Phase 5"
+    dependencies: "Enhanced by: Epic 20 (API data → form fields), Epic 1 (image context)"
+    source: "BMAD create-wireframe workflow pattern"
+    deliverables:
+      - 22-1-wireframe-generation-service: backlog  # LLM → Excalidraw JSON using BMAD templates/helpers
+      - 22-2-wireframe-api-endpoint: backlog        # POST /tickets/:id/generate-wireframe with SSE streaming
+      - 22-3-wireframe-viewer-download: backlog     # Frontend: generate button, progress, preview, download .excalidraw
+      - 22-4-smart-screen-detection: backlog        # Auto-detect screens from tech spec, file paths, API shapes
+
 # METRICS & SUMMARY
 # =================
 metrics:
-  total_epics: 17
+  total_epics: 18
   completed_epics: 4
-  in_progress_epics: 0
+  in_progress_epics: 1
   backlog_epics: 13
 
-  total_stories: 75
-  completed_stories: 15
-  backlog_stories: 60
+  total_stories: 80
+  completed_stories: 17
+  backlog_stories: 63
 
   overall_completion: "21%"
   critical_path: "Epic 10 + 11 → Epic 5 + 12 → Epic 13 → Epic 14 + 15"

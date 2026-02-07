@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, GithubAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -24,6 +23,7 @@ console.log('✅ Firebase initialized:', {
 
 // Initialize services
 export const auth = getAuth(app);
+const firestore = getFirestore(app);
 
 // Force emulator connection for local development if needed
 if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
@@ -34,7 +34,6 @@ if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
 console.log('✅ Firebase services ready:', {
   auth: !!auth,
   firestore: !!firestore,
-  storage: !!storage,
 });
 
 // OAuth providers

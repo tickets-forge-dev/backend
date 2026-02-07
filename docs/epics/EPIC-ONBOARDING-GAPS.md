@@ -78,6 +78,46 @@ Add a dedicated test plan section to generated specs. Currently only implementat
 
 ---
 
+### Story 3b: Interactive API Editor (Mini Postman)
+**Priority:** High
+**Layer:** Backend (domain + application + presentation), Client (presentation + stores)
+
+A mini Postman-style editor that lets users manually add, edit, or select API endpoints for their ticket. When the user adds a new API, they choose: "From existing (detected)" or "Create new". Detected APIs from Story 1 populate the selection list automatically.
+
+**Acceptance Criteria:**
+- Ticket detail page has an "API Endpoints" section with an "Add API" button
+- "Add API" opens a modal with two options: "Select from detected" or "Create new"
+- "Select from detected" shows a searchable list of auto-detected APIs (from Story 1)
+- "Create new" shows a form with: method (GET/POST/PUT/PATCH/DELETE), URL/path, request payload (JSON editor), response shape (JSON editor), description
+- Users can edit any API entry (both detected and manually added)
+- Users can remove API entries from the ticket
+- API entries are persisted on the AEC domain (new `apiEndpoints` field)
+- API entries are included in the tech spec generation as context
+- Each entry shows: method badge (colored), URL, payload preview, response preview
+
+**UX Flow:**
+```
+[Add API] → Dialog: "From existing?" / "Create new"
+  ├─ From existing → Searchable list of detected endpoints → Select → Pre-fills form → Edit/Confirm
+  └─ Create new → Empty form → Fill URL, method, payload, response → Save
+```
+
+**Files likely involved:**
+- `backend/src/tickets/domain/aec/AEC.ts` — add `apiEndpoints: ApiEndpoint[]` field
+- `backend/src/tickets/domain/value-objects/ApiEndpoint.ts` — **new** value object (method, url, requestPayload, responseShape, description, source: 'detected' | 'manual')
+- `backend/src/tickets/presentation/dto/UpdateAECDto.ts` — add apiEndpoints field
+- `backend/src/tickets/application/use-cases/UpdateAECUseCase.ts` — handle apiEndpoints updates
+- `client/src/tickets/components/ApiEndpointEditor.tsx` — **new** mini Postman form component
+- `client/src/tickets/components/ApiEndpointList.tsx` — **new** list with method badges
+- `client/app/(main)/tickets/[id]/page.tsx` — "API Endpoints" section
+- `backend/src/tickets/application/services/TechSpecGeneratorImpl.ts` — include apiEndpoints in prompts
+
+**Dependencies:**
+- Story 1 (API Detection) provides the "detected" endpoints list
+- Can be built in parallel with Stories 2 and 3
+
+---
+
 ### Story 4: Linear Integration
 **Priority:** High
 **Layer:** Backend (infrastructure + application), Client (presentation)

@@ -8,7 +8,7 @@ import { useUIStore } from '@/stores/ui.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 
 export function SidebarFooter() {
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
   const { quota, fetchQuota } = useTicketsStore();
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function SidebarFooter() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={toggleSidebar}
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-expanded={!sidebarCollapsed}
           className="h-8 w-8 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
