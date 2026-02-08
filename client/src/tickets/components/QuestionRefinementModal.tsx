@@ -70,7 +70,7 @@ export function QuestionRefinementModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionIndex, currentQuestion, isAnswered, isLastQuestion, isLocalSubmitting, hasQuestions]);
 
-  if (!hasQuestions) {
+  if (!hasQuestions || !currentQuestion) {
     return null;
   }
 
