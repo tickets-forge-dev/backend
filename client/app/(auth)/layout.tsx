@@ -48,9 +48,9 @@ export default function AuthLayout({
             <img
               src="/forge-icon.png"
               alt="Forge"
-              width={72}
-              height={72}
-              className="rounded-2xl"
+              width={140}
+              height={140}
+              className="drop-shadow-2xl"
             />
           </div>
           <h1 className="text-[28px] font-semibold text-white tracking-tight">

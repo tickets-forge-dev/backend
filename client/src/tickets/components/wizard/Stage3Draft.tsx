@@ -91,28 +91,37 @@ export function Stage3Draft() {
   const [customAnswer, setCustomAnswer] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const initRef = useRef(false);
-  const questionsInitRef = useRef(false);
   const autoSubmitRef = useRef(false);
 
-  // Step 1: Create draft if needed
+  // Step 1: Create draft (if needed) then generate questions
   useEffect(() => {
-    if (!draftAecId && !initRef.current) {
-      initRef.current = true;
-      confirmContextContinue().catch((err) => {
-        setLocalError(err instanceof Error ? err.message : 'Failed to create draft');
-      });
-    }
-  }, [draftAecId, confirmContextContinue]);
+    if (initRef.current) return;
+    // Already have questions or spec — nothing to do
+    if (clarificationQuestions.length > 0 || spec) return;
 
-  // Step 2: Generate questions once draft exists
-  useEffect(() => {
-    if (draftAecId && !questionsInitRef.current && clarificationQuestions.length === 0 && !spec) {
-      questionsInitRef.current = true;
-      generateQuestions().catch((err) => {
-        setLocalError(err instanceof Error ? err.message : 'Failed to generate questions');
-      });
-    }
-  }, [draftAecId, clarificationQuestions.length, spec, generateQuestions]);
+    initRef.current = true;
+
+    const init = async () => {
+      try {
+        // Create draft AEC if we don't have one yet
+        if (!draftAecId) {
+          await confirmContextContinue();
+          // Check if draft was created (confirmContextContinue sets draftAecId in store)
+          const newState = useWizardStore.getState();
+          if (!newState.draftAecId) {
+            // confirmContextContinue set an error in the store — don't proceed
+            return;
+          }
+        }
+        // Generate questions
+        await generateQuestions();
+      } catch (err) {
+        setLocalError(err instanceof Error ? err.message : 'Failed to initialize');
+      }
+    };
+
+    init();
+  }, [draftAecId, clarificationQuestions.length, spec, confirmContextContinue, generateQuestions]);
 
   // Auto-submit after all questions are answered
   const answeredCount = clarificationQuestions.filter(

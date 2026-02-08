@@ -22,6 +22,7 @@ import {
 } from '@tickets/domain/deep-analysis/deep-analysis.service';
 import { DeepAnalysisResult } from '@tickets/domain/deep-analysis/deep-analysis.types';
 import { RepositoryFingerprintService, RepositoryFingerprint } from './RepositoryFingerprintService';
+import { ApiDetectionService } from './ApiDetectionService';
 
 /** Directories to always exclude from the tree the LLM sees */
 const SKIP_DIRS = new Set([
@@ -82,6 +83,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   constructor(
     private configService: ConfigService,
     private fingerprintService: RepositoryFingerprintService,
+    private apiDetectionService: ApiDetectionService,
   ) {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
     const defaultProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
@@ -193,6 +195,32 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         selectedFiles,
         fingerprint,  // Pass fingerprint for context
       );
+
+      // Post-Phase 3: Enrich with regex-based controller scanning
+      // Uses files already read in Phase 2 — no extra GitHub API calls
+      if (fileContents.size > 0) {
+        try {
+          const codebaseApis = this.apiDetectionService.detectApisFromFileContents(fileContents);
+          if (codebaseApis.length > 0) {
+            // Ensure taskAnalysis and apiChanges exist
+            if (!result.taskAnalysis) result.taskAnalysis = {} as any;
+            const ta = result.taskAnalysis!;
+            if (!ta.apiChanges) ta.apiChanges = { endpoints: [] };
+            // Tag existing codebase APIs so frontend can distinguish source
+            ta.apiChanges.codebaseApis = codebaseApis.map((api) => ({
+              method: api.method,
+              route: api.path,
+              controller: api.sourceFile,
+              description: api.description,
+              status: 'existing' as const,
+              authentication: 'none' as const,
+            }));
+            this.logger.log(`Post-Phase 3: Found ${codebaseApis.length} APIs from controller scanning`);
+          }
+        } catch (scanErr: any) {
+          this.logger.warn(`Controller scan failed (non-critical): ${scanErr.message}`);
+        }
+      }
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       this.logger.log(`Deep analysis complete in ${elapsed}s`);

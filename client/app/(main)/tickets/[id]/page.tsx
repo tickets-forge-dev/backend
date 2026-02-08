@@ -25,8 +25,10 @@ import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
 import { ApiEndpointsList } from '@/src/tickets/components/ApiEndpointsList';
+import { ApiReviewSection } from '@/src/tickets/components/ApiReviewSection';
 import { BackendClientChanges } from '@/src/tickets/components/BackendClientChanges';
 import { TestPlanSection } from '@/src/tickets/components/TestPlanSection';
+import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpectationsSection';
 import { toast } from 'sonner';
 import type { RoundAnswers } from '@/types/question-refinement';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
@@ -53,10 +55,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionMode, setDescriptionMode] = useState<'edit' | 'preview'>('edit');
   const [questionsExpanded, setQuestionsExpanded] = useState(false);
+  const [isScanningApis, setIsScanningApis] = useState(false);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
-  const { questionRoundService } = useServices();
+  const { questionRoundService, ticketService } = useServices();
 
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
@@ -122,6 +125,53 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     setIsDescriptionDirty(false);
     setIsSavingDescription(false);
   };
+
+  const handleScanApis = useCallback(async () => {
+    if (!ticketId) return;
+    setIsScanningApis(true);
+    try {
+      const result = await ticketService.detectApis(ticketId);
+      if (result.apis.length === 0) {
+        toast.info('No API endpoints found in codebase');
+        return;
+      }
+
+      // Convert detected APIs to ApiEndpointSpec format and merge into techSpec
+      const newEndpoints = result.apis.map((api) => ({
+        method: api.method as any,
+        route: api.path,
+        description: api.description,
+        authentication: 'none' as const,
+        status: 'existing' as const,
+        controller: api.sourceFile,
+        dto: {
+          request: api.request?.shape || undefined,
+          response: api.response?.shape || undefined,
+        },
+      }));
+
+      const existingEndpoints = currentTicket?.techSpec?.apiChanges?.endpoints || [];
+      const existingRoutes = new Set(existingEndpoints.map((e: any) => `${e.method}:${e.route}`));
+      const uniqueNew = newEndpoints.filter((e) => !existingRoutes.has(`${e.method}:${e.route}`));
+
+      if (uniqueNew.length === 0) {
+        toast.info('All detected APIs already present in spec');
+        return;
+      }
+
+      const merged = [...existingEndpoints, ...uniqueNew];
+      await saveTechSpecPatch({
+        apiChanges: { ...currentTicket?.techSpec?.apiChanges, endpoints: merged },
+      });
+      await fetchTicket(ticketId);
+      toast.success(`Added ${uniqueNew.length} API endpoint${uniqueNew.length > 1 ? 's' : ''} from codebase`);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to scan APIs';
+      toast.error(msg);
+    } finally {
+      setIsScanningApis(false);
+    }
+  }, [ticketId, ticketService, currentTicket, fetchTicket]);
 
   // Track active section for left nav scroll spy
   useEffect(() => {
@@ -201,6 +251,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     techSpec?.fileChanges?.length > 0 && { id: 'file-changes', label: 'File Changes' },
     techSpec?.layeredFileChanges && { id: 'layered-changes', label: 'BE/FE Changes' },
     techSpec?.testPlan && { id: 'test-plan', label: 'Test Plan' },
+    techSpec?.visualExpectations && { id: 'visual-qa', label: 'Visual QA' },
     (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0) && { id: 'scope', label: 'Scope' },
     currentTicket.acceptanceCriteria?.length > 0 && { id: 'ticket-acceptance', label: 'Criteria' },
     currentTicket.assumptions?.length > 0 && { id: 'assumptions', label: 'Assumptions' },
@@ -952,6 +1003,22 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             ) : null;
           })()}
 
+          {/* Visual QA Expectations */}
+          {currentTicket.techSpec.visualExpectations && (
+            <CollapsibleSection
+              id="visual-qa"
+              title="Visual QA Expectations"
+              badge={`${currentTicket.techSpec.visualExpectations.expectations?.length || 0} screens`}
+              defaultExpanded={true}
+            >
+              <VisualExpectationsSection
+                summary={currentTicket.techSpec.visualExpectations.summary}
+                expectations={currentTicket.techSpec.visualExpectations.expectations || []}
+                flowDiagram={currentTicket.techSpec.visualExpectations.flowDiagram}
+              />
+            </CollapsibleSection>
+          )}
+
           {/* Solution Steps — non-collapsible */}
           {currentTicket.techSpec.solution && (
             <div id="solution" data-nav-section className="space-y-3">
@@ -1047,7 +1114,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
           {/* API Endpoints */}
           <CollapsibleSection id="api-endpoints" title="API Endpoints" badge={`${(currentTicket.techSpec.apiChanges?.endpoints || []).length}`} defaultExpanded={true}>
-            <ApiEndpointsList
+            <ApiReviewSection
               endpoints={currentTicket.techSpec.apiChanges?.endpoints || []}
               onEdit={(idx) => openEdit('apiEndpoints', idx)}
               onDelete={(idx) => deleteTechSpecItem('apiEndpoints', idx)}
@@ -1067,6 +1134,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 });
                 setEditDialogOpen(true);
               }}
+              onConfirmAll={(accepted, rejected) => {
+                toast.success(`API review complete: ${accepted.length} accepted, ${rejected.length} rejected`);
+              }}
+              onScanApis={handleScanApis}
+              isScanning={isScanningApis}
             />
           </CollapsibleSection>
 

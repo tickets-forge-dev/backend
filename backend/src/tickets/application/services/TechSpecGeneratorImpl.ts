@@ -36,6 +36,7 @@ import {
   LayeredFileChanges,
   TestPlan,
   TestCase,
+  VisualExpectations,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
 import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
 import { CodebaseAnalysis } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -453,9 +454,10 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       ]);
 
     // Generate sections that depend on fileChanges (parallel)
-    const [testPlan, layeredFileChanges] = await Promise.all([
+    const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
       this.generateTestPlan(solution, acceptanceCriteria, fileChanges, context),
       this.categorizeFilesByLayer(fileChanges, context),
+      this.generateVisualExpectations(solution, acceptanceCriteria, fileChanges, apiChanges, context),
     ]);
 
     // Assemble tech spec
@@ -476,6 +478,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       apiChanges,
       layeredFileChanges,
       testPlan,
+      visualExpectations,
     };
 
     // Detect and remove ambiguities
@@ -530,8 +533,8 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       Array.isArray(parsed.constraints)
     ) {
       return {
-        narrative: String(parsed.narrative),
-        whyItMatters: String(parsed.whyItMatters),
+        narrative: this.sanitizeNarrativeField(String(parsed.narrative), title),
+        whyItMatters: this.sanitizeNarrativeField(String(parsed.whyItMatters), ''),
         context: String(parsed.context || ''),
         assumptions: parsed.assumptions.map(String).slice(0, 5),
         constraints: parsed.constraints.map(String).slice(0, 5),
@@ -581,6 +584,29 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       }
     }
     return results;
+  }
+
+  /**
+   * Detect when a narrative/whyItMatters field is raw JSON and extract text.
+   * LLMs sometimes echo the user's JSON input into narrative fields.
+   */
+  private sanitizeNarrativeField(value: string, fallbackTitle: string): string {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      return value; // Normal text, no sanitization needed
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      // It's valid JSON — extract meaningful text from it
+      const strings = this.extractStringsFromObject(parsed);
+      if (strings.length > 0) {
+        return strings.slice(0, 3).join('. ');
+      }
+      return fallbackTitle || value;
+    } catch {
+      return value; // Not valid JSON, use as-is
+    }
   }
 
   /**
@@ -722,9 +748,11 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   }
 
   /**
-   * Extracts API changes from deep analysis taskAnalysis if available
+   * Extracts API changes from deep analysis taskAnalysis, or generates via LLM fallback.
+   * Ensures API-related tasks always get endpoint documentation.
    */
   async extractApiChanges(context: CodebaseContext): Promise<ApiChanges | undefined> {
+    // First: try to extract from deep analysis results
     const taskAnalysis = (context as any)?.taskAnalysis;
     if (taskAnalysis?.apiChanges) {
       const apiChanges = taskAnalysis.apiChanges;
@@ -747,7 +775,70 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
         };
       }
     }
-    return undefined;
+
+    // Fallback: generate API endpoints via LLM if context suggests API work
+    try {
+      return await this.generateApiChanges(context);
+    } catch (error) {
+      console.warn('[TechSpecGenerator] API generation fallback failed:', error instanceof Error ? error.message : String(error));
+      return undefined;
+    }
+  }
+
+  /**
+   * LLM fallback: generate API endpoint suggestions from the task context.
+   */
+  private async generateApiChanges(context: CodebaseContext): Promise<ApiChanges | undefined> {
+    const systemPrompt = PromptTemplates.systemPrompt(context);
+    const directoryStructure = this.buildDirectoryStructure(context);
+
+    // Include existing codebase APIs if available
+    const codebaseApis = (context as any)?.taskAnalysis?.apiChanges?.codebaseApis || [];
+    const existingApisBlock = codebaseApis.length > 0
+      ? `\nEXISTING CODEBASE APIs:\n${codebaseApis.slice(0, 15).map((a: any) => `  - ${a.method} ${a.route}${a.controller ? ` (${a.controller})` : ''}`).join('\n')}\n`
+      : '';
+
+    const userPrompt = `Given this task and codebase, identify ALL API endpoints that need to be created, modified, or are relevant.
+${existingApisBlock}
+Directory structure:
+${directoryStructure}
+
+Return JSON:
+{
+  "endpoints": [
+    {
+      "method": "GET|POST|PUT|PATCH|DELETE",
+      "route": "/api/...",
+      "description": "What this endpoint does",
+      "authentication": "required|optional|none",
+      "status": "new|modified|existing",
+      "dto": { "request": "TypeName or shape description", "response": "TypeName or shape description" }
+    }
+  ]
+}
+
+If no API endpoints are needed, return: { "endpoints": [] }
+Return ONLY valid JSON.`;
+
+    const response = await this.callLLM(systemPrompt, userPrompt);
+    const parsed = this.parseJSON<{ endpoints: any[] }>(response);
+
+    if (!parsed.endpoints || !Array.isArray(parsed.endpoints) || parsed.endpoints.length === 0) {
+      return undefined;
+    }
+
+    return {
+      endpoints: parsed.endpoints
+        .filter((e: any) => e.method && e.route && e.description)
+        .map((e: any) => ({
+          method: e.method,
+          route: e.route,
+          description: e.description,
+          authentication: e.authentication || 'none',
+          status: e.status || 'new',
+          dto: e.dto,
+        })),
+    };
   }
 
   /**
@@ -857,6 +948,101 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       return parsed;
     } catch (error) {
       this.logger.warn(`Test plan generation failed: ${String(error)}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Generates visual QA expectations with ASCII wireframes
+   */
+  async generateVisualExpectations(
+    solution: SolutionSection,
+    acceptanceCriteria: AcceptanceCriterion[],
+    fileChanges: FileChange[],
+    apiChanges: ApiChanges | undefined,
+    context: CodebaseContext,
+  ): Promise<VisualExpectations | undefined> {
+    try {
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+
+      const acText = acceptanceCriteria
+        .slice(0, 8)
+        .map((ac: any, i: number) => {
+          if (typeof ac === 'string') return `AC-${i + 1}: ${ac}`;
+          return `AC-${i + 1}: Given ${ac.given}, When ${ac.when}, Then ${ac.then}`;
+        })
+        .join('\n');
+
+      const apiText = apiChanges?.endpoints
+        ?.slice(0, 8)
+        .map((e: any) => `${e.method} ${e.route} — ${e.description}`)
+        .join('\n') || 'None';
+
+      const uiFiles = fileChanges
+        .filter((f: FileChange) => f.path.match(/\.(tsx|jsx|vue|svelte|html)$/))
+        .map((f: FileChange) => f.path)
+        .slice(0, 10)
+        .join('\n') || 'None';
+
+      const userPrompt = `Generate visual QA expectations for manual testing. For each key screen state, create an ASCII wireframe showing what the tester should see.
+
+Solution: ${solution.overview}
+
+Acceptance Criteria:
+${acText}
+
+API Endpoints:
+${apiText}
+
+UI Files Changed:
+${uiFiles}
+
+For each visual expectation, generate:
+1. The screen/component being tested
+2. The state (default, loading, error, empty, success, interaction)
+3. A clear description of what the tester should see
+4. An ASCII wireframe (use box-drawing: ┌─┐│└─┘, badges, buttons as [Button Text])
+5. Steps to reach this state
+
+Generate 3-6 visual expectations covering:
+- The main happy-path screen (default/success state)
+- At least one loading state
+- At least one error or empty state
+- Any key interaction states (modals, expanded sections, etc.)
+
+Also generate a simple flow diagram showing the happy-path user journey.
+
+Return valid JSON:
+{
+  "summary": "High-level description of what to visually verify",
+  "expectations": [
+    {
+      "screen": "Component or page name",
+      "state": "default|loading|error|empty|success|interaction",
+      "description": "What the tester should see",
+      "wireframe": "ASCII wireframe using box-drawing characters (use \\n for newlines)",
+      "steps": ["Step 1", "Step 2"],
+      "acceptanceCriterionRef": "AC-1"
+    }
+  ],
+  "flowDiagram": "ASCII flow diagram (use \\n for newlines, arrows like →, boxes like [Step])"
+}`;
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<VisualExpectations>(response);
+
+      if (!parsed.summary || !Array.isArray(parsed.expectations)) {
+        throw new Error('Invalid visual expectations structure');
+      }
+
+      // Validate each expectation
+      parsed.expectations = parsed.expectations
+        .filter((e: any) => e.screen && e.state && e.wireframe)
+        .slice(0, 8);
+
+      return parsed;
+    } catch (error) {
+      this.logger.warn(`Visual expectations generation failed: ${String(error)}`);
       return undefined;
     }
   }
@@ -1471,6 +1657,7 @@ Rewritten text (definitive, unambiguous):`;
         input.description,
         input.roundNumber,
         input.priorAnswers,
+        input.context,
       );
 
       const response = await this.callLLM(systemPrompt, userPrompt);
@@ -1576,9 +1763,10 @@ Rewritten text (definitive, unambiguous):`;
       ]);
 
       // Generate sections that depend on fileChanges (parallel)
-      const [testPlan, layeredFileChanges] = await Promise.all([
+      const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
         this.generateTestPlan(solution, acceptanceCriteria, fileChanges, input.context),
         this.categorizeFilesByLayer(fileChanges, input.context),
+        this.generateVisualExpectations(solution, acceptanceCriteria, fileChanges, apiChanges, input.context),
       ]);
 
       // Assemble final tech spec
@@ -1599,6 +1787,7 @@ Rewritten text (definitive, unambiguous):`;
         apiChanges,
         layeredFileChanges,
         testPlan,
+        visualExpectations,
       };
 
       // Detect and remove remaining ambiguities
@@ -1624,24 +1813,29 @@ Rewritten text (definitive, unambiguous):`;
     description: string | undefined,
     roundNumber: number,
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>,
+    context?: CodebaseContext,
   ): string {
     const priorAnswersText =
       priorAnswers.length > 0
         ? `Previous Answers:\n${priorAnswers.map((a) => `- Q${a.questionId}: ${JSON.stringify(a.answer)}`).join('\n')}\n\n`
         : '';
 
+    // Build detected API context block if available
+    const apiContextBlock = this.buildApiContextBlock(context);
+
     if (roundNumber === 1) {
       return `Analyze this request to identify key questions that need clarification.
 
 Title: ${title}
 Description: ${description || '(No description)'}
-
+${apiContextBlock}
 Generate 0-10 clarification questions. Focus on questions for:
 - Product owners, project managers, and stakeholders (non-technical language)
 - NOT implementation details or library choices
 - User experience and behavior
 - Business rules and scope
 - Success criteria and edge cases
+${apiContextBlock ? `- API-related decisions: which existing APIs are relevant, what new endpoints are needed, request/response expectations` : ''}
 
 Each question must:
 - Have a unique id (q1, q2, q3, etc.)
@@ -1650,6 +1844,12 @@ Each question must:
 - Explain HOW the answer affects the user experience or scope (impact field)
 - Use appropriate type (radio, checkbox, text, select, multiline)
 - Be focused on reducing critical ambiguities
+${apiContextBlock ? `
+API-SPECIFIC QUESTION GUIDELINES:
+- If existing APIs were detected in the codebase, include a checkbox question asking which ones are related to this task. Use the API routes as options (e.g., "POST /api/users", "GET /api/tickets/:id").
+- If the task likely needs NEW API endpoints, include a question asking the user to confirm or describe them. Use radio (yes/no) or text type.
+- Keep API questions simple: "Which of these existing features does this task affect?" with API names as options.
+- Do NOT ask about HTTP methods, status codes, or technical API design — focus on what the API does from a user perspective.` : ''}
 
 Example good questions (non-technical):
 - "Who will primarily use this feature?" (user perspective)
@@ -1703,6 +1903,39 @@ Return [] if:
 - All critical ambiguities already resolved
 - Acceptance criteria can be specific without more info
 - File changes are deterministic with current answers`;
+  }
+
+  /**
+   * Builds a text block describing detected APIs for injection into prompts.
+   * Returns empty string if no API data is available.
+   */
+  private buildApiContextBlock(context?: CodebaseContext): string {
+    if (!context?.taskAnalysis?.apiChanges) return '';
+
+    const apiChanges = context.taskAnalysis.apiChanges;
+    const parts: string[] = [];
+
+    // Existing codebase APIs detected via controller scanning
+    const codebaseApis = apiChanges.codebaseApis || [];
+    if (codebaseApis.length > 0) {
+      const apiList = codebaseApis
+        .slice(0, 15) // Limit to avoid prompt bloat
+        .map((api: { method: string; route: string; controller?: string; description: string }) => `  - ${api.method} ${api.route}${api.controller ? ` (${api.controller})` : ''}${api.description ? ` — ${api.description}` : ''}`)
+        .join('\n');
+      parts.push(`EXISTING CODEBASE APIs (detected from source code):\n${apiList}`);
+    }
+
+    // LLM-suggested new/modified APIs from deep analysis
+    const specApis = (apiChanges.endpoints || []).filter((e: { status: string }) => e.status !== 'existing');
+    if (specApis.length > 0) {
+      const apiList = specApis
+        .slice(0, 10)
+        .map((api: { status: string; method: string; route: string; description: string }) => `  - [${api.status.toUpperCase()}] ${api.method} ${api.route} — ${api.description}`)
+        .join('\n');
+      parts.push(`SUGGESTED API CHANGES (from analysis):\n${apiList}`);
+    }
+
+    return parts.length > 0 ? '\n' + parts.join('\n\n') + '\n' : '';
   }
 
   /**

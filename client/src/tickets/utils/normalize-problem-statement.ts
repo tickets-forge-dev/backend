@@ -43,6 +43,28 @@ function collectStringArrays(value: unknown, maxDepth = 5): string[][] {
 }
 
 /**
+ * Detect when a narrative field contains raw JSON and extract readable text.
+ * LLMs sometimes echo the user's JSON input into narrative fields.
+ */
+function sanitizeNarrativeField(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    return value; // Normal text
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    const strings = collectStrings(parsed);
+    if (strings.length > 0) {
+      return strings.slice(0, 3).join('. ');
+    }
+    return value;
+  } catch {
+    return value; // Not valid JSON
+  }
+}
+
+/**
  * Normalizes any problemStatement value into a predictable shape.
  *
  * Handles:
@@ -80,8 +102,8 @@ export function normalizeProblemStatement(raw: unknown): NormalizedProblemStatem
     // Happy path: has the expected shape
     if (typeof obj.narrative === 'string' && obj.narrative.length > 0) {
       return {
-        narrative: obj.narrative as string,
-        whyItMatters: typeof obj.whyItMatters === 'string' ? obj.whyItMatters : '',
+        narrative: sanitizeNarrativeField(obj.narrative as string),
+        whyItMatters: typeof obj.whyItMatters === 'string' ? sanitizeNarrativeField(obj.whyItMatters) : '',
         assumptions: Array.isArray(obj.assumptions) ? obj.assumptions.filter((v): v is string => typeof v === 'string') : [],
         constraints: Array.isArray(obj.constraints) ? obj.constraints.filter((v): v is string => typeof v === 'string') : [],
       };

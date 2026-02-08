@@ -1,11 +1,29 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Forge',
   description: 'Transform product intent into execution-ready tickets',
+  icons: {
+    icon: '/forge-icon.png',
+    shortcut: '/forge-icon.png',
+    apple: '/forge-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -29,7 +47,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className="preload">
+      <body className={`preload ${inter.variable} ${jetbrainsMono.variable}`}>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

@@ -35,6 +35,7 @@ import { PROJECT_STACK_DETECTOR } from './application/ports/ProjectStackDetector
 import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
 import { DeepAnalysisServiceImpl } from './application/services/DeepAnalysisServiceImpl';
 import { RepositoryFingerprintService } from './application/services/RepositoryFingerprintService';
+import { ApiDetectionService } from './application/services/ApiDetectionService';
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 
 @Module({
@@ -120,6 +121,7 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
       inject: [GitHubFileServiceImpl],
     },
     RepositoryFingerprintService,
+    ApiDetectionService,
     DeepAnalysisServiceImpl,
     {
       provide: DEEP_ANALYSIS_SERVICE,

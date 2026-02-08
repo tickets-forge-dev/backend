@@ -81,6 +81,27 @@ export interface TestCaseSpec {
 }
 
 /**
+ * A single visual QA expectation — describes what a screen/state should look like
+ */
+export interface VisualExpectationSpec {
+  screen: string;
+  state: 'default' | 'loading' | 'error' | 'empty' | 'success' | 'interaction';
+  description: string;
+  wireframe: string;
+  steps: string[];
+  acceptanceCriterionRef?: string;
+}
+
+/**
+ * Visual QA expectations section
+ */
+export interface VisualExpectationsSpec {
+  summary: string;
+  expectations: VisualExpectationSpec[];
+  flowDiagram?: string;
+}
+
+/**
  * Technical specification generated from questions
  */
 export interface TechSpec {
@@ -125,6 +146,7 @@ export interface TechSpec {
     testingNotes?: string;
     coverageGoal?: number;
   };
+  visualExpectations?: VisualExpectationsSpec;
 }
 
 /**

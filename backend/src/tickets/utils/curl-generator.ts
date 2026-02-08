@@ -90,22 +90,11 @@ export function parseCurlCommand(curlCommand: string): CurlOptions {
 }
 
 /**
- * Copy text to clipboard (frontend)
- * Backend won't use this, but kept for type consistency
+ * Copy text to clipboard — not available on backend
+ * Use the frontend version in client/src/tickets/utils/curl-generator.ts
  */
-export async function copyToClipboard(text: string): Promise<boolean> {
-  if (typeof navigator === 'undefined') {
-    // Server-side (backend)
-    return false;
-  }
-
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (err) {
-    console.error('Failed to copy to clipboard:', err);
-    return false;
-  }
+export function copyToClipboard(_text: string): Promise<boolean> {
+  return Promise.resolve(false);
 }
 
 /**

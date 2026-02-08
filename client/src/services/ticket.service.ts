@@ -124,4 +124,29 @@ export class TicketService {
     const response = await this.client.get<{ used: number; limit: number; canCreate: boolean }>('/tickets/quota');
     return response.data;
   }
+
+  async detectApis(ticketId: string): Promise<DetectApisResponse> {
+    const response = await this.client.post<DetectApisResponse>(`/tickets/${ticketId}/detect-apis`);
+    return response.data;
+  }
+}
+
+export interface DetectedApiResponse {
+  id: string;
+  status: 'existing' | 'new' | 'modified' | 'delete';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  request: { shape: string; example?: Record<string, unknown> };
+  response: { shape: string; example?: Record<string, unknown> };
+  description: string;
+  sourceFile?: string;
+  curlCommand: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface DetectApisResponse {
+  apis: DetectedApiResponse[];
+  count: number;
+  repository: string;
+  branch: string;
 }

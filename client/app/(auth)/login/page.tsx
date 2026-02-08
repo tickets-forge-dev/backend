@@ -63,13 +63,13 @@ export default function LoginPage() {
     <div className="space-y-10">
       {/* Mobile-only logo (hidden on desktop where left panel shows it) */}
       <div className="lg:hidden text-center">
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-6">
           <Image
             src="/forge-icon.png"
             alt="Forge"
-            width={64}
-            height={64}
-            className="rounded-2xl"
+            width={120}
+            height={120}
+            className="drop-shadow-xl"
           />
         </div>
         <h1 className="text-[var(--text-2xl)] font-semibold text-[var(--text)]">

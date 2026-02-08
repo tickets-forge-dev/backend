@@ -202,6 +202,27 @@ export interface TestPlan {
 }
 
 /**
+ * A single visual QA expectation — describes what a screen/state should look like
+ */
+export interface VisualExpectation {
+  screen: string; // Component or page being tested (e.g., "Ticket Detail — API Section")
+  state: 'default' | 'loading' | 'error' | 'empty' | 'success' | 'interaction';
+  description: string; // What the user should see in this state
+  wireframe: string; // ASCII wireframe of the expected UI
+  steps: string[]; // Steps to reach this state
+  acceptanceCriterionRef?: string; // Which AC this validates (e.g., "AC-1")
+}
+
+/**
+ * Visual QA expectations section of a tech spec
+ */
+export interface VisualExpectations {
+  summary: string; // High-level overview of what to visually verify
+  expectations: VisualExpectation[]; // Individual visual expectations
+  flowDiagram?: string; // Optional ASCII flow diagram of the happy path
+}
+
+/**
  * Complete technical specification
  *
  * Contains all sections: problem, solution, acceptance criteria, questions, file changes,
@@ -228,6 +249,7 @@ export interface TechSpec {
   apiChanges?: ApiChanges; // API endpoints affected by this spec
   layeredFileChanges?: LayeredFileChanges; // File changes organized by layer
   testPlan?: TestPlan; // Comprehensive test plan
+  visualExpectations?: VisualExpectations; // Visual QA expectations with wireframes
 }
 
 /**

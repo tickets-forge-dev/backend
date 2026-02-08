@@ -567,7 +567,14 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     // Resolve owner/repo with fallback to tickets store
     const repoOwner = state.input.repoOwner || ticketsState.selectedRepository?.split('/')[0] || '';
     const repoName = state.input.repoName || ticketsState.selectedRepository?.split('/')[1] || '';
-    if (!state.input.title || !repoOwner || !repoName) return;
+    if (!state.input.title || !repoOwner || !repoName) {
+      const missing = [];
+      if (!state.input.title) missing.push('title');
+      if (!repoOwner) missing.push('repository owner');
+      if (!repoName) missing.push('repository name');
+      set({ error: `Missing required fields: ${missing.join(', ')}`, loading: false });
+      return;
+    }
 
     set({ loading: true, error: null });
 

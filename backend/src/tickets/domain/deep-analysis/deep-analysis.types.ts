@@ -77,6 +77,14 @@ export interface DeepAnalysisResult {
       baseUrl?: string;
       middlewares?: string[];
       rateLimiting?: string;
+      codebaseApis?: Array<{
+        method: string;
+        route: string;
+        controller?: string;
+        description: string;
+        status: 'existing';
+        authentication: 'required' | 'optional' | 'none';
+      }>;
     };
     llmFilesRead: string[];
     analysisTimestamp: string;

@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { GitHubApiClient } from '../ports/GitHubApiClient';
-import { TechSpec } from '../../domain/tech-spec/TechSpec';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  GitHubFileService,
+} from '@github/domain/github-file.service';
+import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
+import type { TechSpec } from '../../domain/tech-spec/TechSpecGenerator';
 import { AEC } from '../../domain/aec/AEC';
 
 export interface DetectedApi {
@@ -33,7 +36,10 @@ export interface ApiDetectionResult {
 
 @Injectable()
 export class ApiDetectionService {
-  constructor(private gitHubApi: GitHubApiClient) {}
+  constructor(
+    @Inject(GITHUB_FILE_SERVICE)
+    private readonly githubFileService: GitHubFileService,
+  ) {}
 
   /**
    * Detect all APIs from the codebase by scanning controller files
@@ -47,7 +53,7 @@ export class ApiDetectionService {
     const detectedApis: DetectedApi[] = [];
 
     for (const file of controllerFiles) {
-      const content = await this.gitHubApi.getFileContent(
+      const content = await this.githubFileService.readFile(
         owner,
         repo,
         file.path,
@@ -168,6 +174,23 @@ export class ApiDetectionService {
     };
   }
 
+  /**
+   * Detect APIs from pre-read file contents (no GitHub API calls needed).
+   * Used by DeepAnalysisServiceImpl which already reads files in Phase 2.
+   */
+  detectApisFromFileContents(fileContents: Map<string, string>): DetectedApi[] {
+    const detectedApis: DetectedApi[] = [];
+
+    for (const [filePath, content] of fileContents) {
+      if (filePath.endsWith('.controller.ts') || filePath.includes('/controllers/')) {
+        const apis = this.parseControllerFile(content, filePath);
+        detectedApis.push(...apis);
+      }
+    }
+
+    return detectedApis;
+  }
+
   // ============================================================
   // PRIVATE HELPERS
   // ============================================================
@@ -180,35 +203,16 @@ export class ApiDetectionService {
     repo: string,
     branch: string,
   ): Promise<Array<{ path: string; name: string }>> {
-    // Scan: backend/src/**/*.controller.ts
-    const treeData = await this.gitHubApi.getRepositoryTree(
-      owner,
-      repo,
-      branch,
+    const tree = await this.githubFileService.getTree(owner, repo, branch);
+    const controllerPaths = await this.githubFileService.findByPattern(
+      tree,
+      '**/*.controller.ts',
     );
 
-    const controllerFiles: Array<{ path: string; name: string }> = [];
-
-    // Recursive search for .controller.ts files
-    const search = (items: any[], prefix: string = '') => {
-      for (const item of items) {
-        const fullPath = prefix ? `${prefix}/${item.path}` : item.path;
-
-        if (item.type === 'blob' && fullPath.includes('.controller.ts')) {
-          if (fullPath.startsWith('backend/src/')) {
-            controllerFiles.push({
-              path: fullPath,
-              name: item.path,
-            });
-          }
-        } else if (item.type === 'tree' && fullPath.startsWith('backend/src/')) {
-          // Could recurse, but for now just collect top-level search results
-        }
-      }
-    };
-
-    search(treeData.tree || []);
-    return controllerFiles;
+    return controllerPaths.map((p) => ({
+      path: p,
+      name: p.split('/').pop() || p,
+    }));
   }
 
   /**

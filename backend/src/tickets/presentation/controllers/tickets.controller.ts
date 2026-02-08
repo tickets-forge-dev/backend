@@ -41,6 +41,7 @@ import { GitHubTokenService } from '../../../github/application/services/github-
 import { Octokit } from '@octokit/rest';
 import { DEEP_ANALYSIS_SERVICE } from '../../application/ports/DeepAnalysisServicePort';
 import { DeepAnalysisService } from '@tickets/domain/deep-analysis/deep-analysis.service';
+import { ApiDetectionService } from '../../application/services/ApiDetectionService';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -67,6 +68,7 @@ export class TicketsController {
     private readonly githubTokenService: GitHubTokenService,
     @Inject(DEEP_ANALYSIS_SERVICE)
     private readonly deepAnalysisService: DeepAnalysisService,
+    private readonly apiDetectionService: ApiDetectionService,
   ) {}
 
   /**
@@ -343,6 +345,90 @@ export class TicketsController {
     });
 
     return this.mapToResponse(aec);
+  }
+
+  /**
+   * Detect APIs from the ticket's repository by scanning controller files.
+   * Resolves per-user GitHub token (same pattern as analyzeRepository).
+   */
+  @Post(':id/detect-apis')
+  async detectApis(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.aecRepository.findById(id);
+    if (!aec || aec.workspaceId !== workspaceId) {
+      throw new BadRequestException('Ticket not found');
+    }
+
+    const repoContext = aec.repositoryContext;
+    if (!repoContext?.repositoryFullName) {
+      throw new BadRequestException('No repository linked to this ticket');
+    }
+
+    const [owner, repo] = repoContext.repositoryFullName.split('/');
+    if (!owner || !repo) {
+      throw new BadRequestException('Invalid repository name');
+    }
+
+    const branch = repoContext.branchName || 'main';
+
+    try {
+      // Resolve per-user GitHub token (same as analyzeRepository)
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
+      if (!integration) {
+        throw new BadRequestException('GitHub not connected. Please connect GitHub in Settings first.');
+      }
+
+      const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+      const octokit = new Octokit({ auth: accessToken });
+
+      // Fetch tree and find controller files
+      const refResponse = await octokit.rest.git.getRef({
+        owner, repo, ref: `heads/${branch}`,
+      });
+      const treeResponse = await octokit.rest.git.getTree({
+        owner, repo, tree_sha: refResponse.data.object.sha, recursive: '1' as any,
+      });
+
+      const controllerPaths = (treeResponse.data.tree || [])
+        .filter((entry: any) => entry.type === 'blob' && (
+          entry.path.endsWith('.controller.ts') ||
+          entry.path.endsWith('.controller.js') ||
+          entry.path.includes('/controllers/') ||
+          entry.path.includes('/routes/')
+        ))
+        .map((entry: any) => entry.path);
+
+      // Read controller files
+      const fileContents = new Map<string, string>();
+      for (const filePath of controllerPaths.slice(0, 30)) { // cap at 30 files
+        try {
+          const fileResp = await octokit.rest.repos.getContent({
+            owner, repo, path: filePath, ref: branch,
+          });
+          if ('content' in fileResp.data && typeof fileResp.data.content === 'string') {
+            fileContents.set(filePath, Buffer.from(fileResp.data.content, 'base64').toString('utf-8'));
+          }
+        } catch {
+          // File unreadable, skip
+        }
+      }
+
+      // Use existing parser (no extra GitHub calls needed)
+      const apis = this.apiDetectionService.detectApisFromFileContents(fileContents);
+
+      return {
+        apis,
+        count: apis.length,
+        repository: repoContext.repositoryFullName,
+        branch,
+      };
+    } catch (error: any) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.error(`API detection failed: ${error.message}`);
+      throw new BadRequestException(`Failed to scan APIs: ${error.message}`);
+    }
   }
 
   private mapToResponse(aec: any) {
