@@ -26,6 +26,7 @@ import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
 import { ApiEndpointsList } from '@/src/tickets/components/ApiEndpointsList';
 import { ApiReviewSection } from '@/src/tickets/components/ApiReviewSection';
+import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { BackendClientChanges } from '@/src/tickets/components/BackendClientChanges';
 import { TestPlanSection } from '@/src/tickets/components/TestPlanSection';
 import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpectationsSection';
@@ -56,6 +57,8 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [descriptionMode, setDescriptionMode] = useState<'edit' | 'preview'>('edit');
   const [questionsExpanded, setQuestionsExpanded] = useState(false);
   const [isScanningApis, setIsScanningApis] = useState(false);
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
@@ -128,50 +131,52 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
 
   const handleScanApis = useCallback(async () => {
     if (!ticketId) return;
+    setScanDialogOpen(true);
+    setScannedApis([]);
     setIsScanningApis(true);
     try {
       const result = await ticketService.detectApis(ticketId);
-      if (result.apis.length === 0) {
-        toast.info('No API endpoints found in codebase');
-        return;
-      }
-
-      // Convert detected APIs to ApiEndpointSpec format and merge into techSpec
-      const newEndpoints = result.apis.map((api) => ({
+      // Convert to ApiEndpointSpec format
+      const endpoints = result.apis.map((api) => ({
         method: api.method as any,
         route: api.path,
         description: api.description,
         authentication: 'none' as const,
-        status: 'existing' as const,
+        status: 'modified' as const,
         controller: api.sourceFile,
         dto: {
           request: api.request?.shape || undefined,
           response: api.response?.shape || undefined,
         },
       }));
-
-      const existingEndpoints = currentTicket?.techSpec?.apiChanges?.endpoints || [];
-      const existingRoutes = new Set(existingEndpoints.map((e: any) => `${e.method}:${e.route}`));
-      const uniqueNew = newEndpoints.filter((e) => !existingRoutes.has(`${e.method}:${e.route}`));
-
-      if (uniqueNew.length === 0) {
-        toast.info('All detected APIs already present in spec');
-        return;
-      }
-
-      const merged = [...existingEndpoints, ...uniqueNew];
-      await saveTechSpecPatch({
-        apiChanges: { ...currentTicket?.techSpec?.apiChanges, endpoints: merged },
-      });
-      await fetchTicket(ticketId);
-      toast.success(`Added ${uniqueNew.length} API endpoint${uniqueNew.length > 1 ? 's' : ''} from codebase`);
+      setScannedApis(endpoints);
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || 'Failed to scan APIs';
       toast.error(msg);
+      setScanDialogOpen(false);
     } finally {
       setIsScanningApis(false);
     }
-  }, [ticketId, ticketService, currentTicket, fetchTicket]);
+  }, [ticketId, ticketService]);
+
+  const handleSaveScanSelection = useCallback(async (selected: import('@/types/question-refinement').ApiEndpointSpec[]) => {
+    if (!ticketId) return;
+    const existingEndpoints = currentTicket?.techSpec?.apiChanges?.endpoints || [];
+    const existingRoutes = new Set(existingEndpoints.map((e: any) => `${e.method}:${e.route}`));
+    const uniqueNew = selected.filter((e) => !existingRoutes.has(`${e.method}:${e.route}`));
+
+    if (uniqueNew.length === 0) {
+      toast.info('All selected APIs already present in spec');
+      return;
+    }
+
+    const merged = [...existingEndpoints, ...uniqueNew];
+    await saveTechSpecPatch({
+      apiChanges: { ...currentTicket?.techSpec?.apiChanges, endpoints: merged },
+    });
+    await fetchTicket(ticketId);
+    toast.success(`Added ${uniqueNew.length} API endpoint${uniqueNew.length !== 1 ? 's' : ''}`);
+  }, [ticketId, currentTicket, fetchTicket]);
 
   // Track active section for left nav scroll spy
   useEffect(() => {
@@ -1134,8 +1139,12 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
                 });
                 setEditDialogOpen(true);
               }}
-              onConfirmAll={(accepted, rejected) => {
-                toast.success(`API review complete: ${accepted.length} accepted, ${rejected.length} rejected`);
+              onSave={async (acceptedEndpoints) => {
+                await saveTechSpecPatch({
+                  apiChanges: { ...currentTicket?.techSpec?.apiChanges, endpoints: acceptedEndpoints },
+                });
+                if (ticketId) await fetchTicket(ticketId);
+                toast.success(`Saved ${acceptedEndpoints.length} API endpoint${acceptedEndpoints.length !== 1 ? 's' : ''}`);
               }}
               onScanApis={handleScanApis}
               isScanning={isScanningApis}
@@ -1473,6 +1482,15 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         editState={editState}
         onSave={handleEditSave}
         isSaving={isUpdating}
+      />
+
+      {/* API Scan Dialog */}
+      <ApiScanDialog
+        open={scanDialogOpen}
+        onOpenChange={setScanDialogOpen}
+        endpoints={scannedApis}
+        isLoading={isScanningApis}
+        onSave={handleSaveScanSelection}
       />
 
       {/* Expanded Description Dialog */}

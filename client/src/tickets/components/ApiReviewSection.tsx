@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Check, Plus, RotateCcw, Search, Loader2 } from 'lucide-react';
+import { Check, Plus, RotateCcw, Search, Loader2, Save } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { ApiCard, type ReviewStatus } from './ApiCard';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -11,7 +11,7 @@ interface ApiReviewSectionProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   onAdd?: () => void;
-  onConfirmAll?: (accepted: number[], rejected: number[]) => void;
+  onSave?: (acceptedEndpoints: ApiEndpointSpec[]) => Promise<void>;
   onScanApis?: () => Promise<void>;
   isScanning?: boolean;
 }
@@ -21,11 +21,12 @@ export function ApiReviewSection({
   onEdit,
   onDelete,
   onAdd,
-  onConfirmAll,
+  onSave,
   onScanApis,
   isScanning = false,
 }: ApiReviewSectionProps) {
   const [reviewStatuses, setReviewStatuses] = useState<Record<number, ReviewStatus>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleAccept = (index: number) => {
     setReviewStatuses((prev) => ({
@@ -53,24 +54,16 @@ export function ApiReviewSection({
     setReviewStatuses({});
   };
 
-  const handleConfirm = () => {
-    const accepted: number[] = [];
-    const rejected: number[] = [];
-
-    endpoints.forEach((_, idx) => {
-      const status = reviewStatuses[idx] || 'pending';
-      if (status === 'accepted') accepted.push(idx);
-      if (status === 'rejected') rejected.push(idx);
-    });
-
-    // Delete rejected endpoints
-    // Process in reverse order so indices remain valid
-    const sortedRejected = [...rejected].sort((a, b) => b - a);
-    for (const idx of sortedRejected) {
-      onDelete(idx);
+  const handleSave = async () => {
+    if (!onSave) return;
+    setIsSaving(true);
+    try {
+      const accepted = endpoints.filter((_, idx) => reviewStatuses[idx] === 'accepted');
+      await onSave(accepted);
+      setReviewStatuses({});
+    } finally {
+      setIsSaving(false);
     }
-
-    onConfirmAll?.(accepted, rejected);
   };
 
   const stats = useMemo(() => {
@@ -88,7 +81,7 @@ export function ApiReviewSection({
     return { accepted, rejected, pending, total: endpoints.length };
   }, [endpoints, reviewStatuses]);
 
-  const allReviewed = stats.pending === 0 && stats.total > 0;
+  const hasReviewed = stats.accepted > 0 || stats.rejected > 0;
 
   if (!endpoints || endpoints.length === 0) {
     return (
@@ -183,14 +176,19 @@ export function ApiReviewSection({
           )}
         </div>
 
-        {onConfirmAll && allReviewed && (
+        {onSave && hasReviewed && (
           <Button
             size="sm"
-            onClick={handleConfirm}
+            onClick={handleSave}
+            disabled={isSaving || stats.accepted === 0}
             className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
           >
-            <Check className="h-3.5 w-3.5" />
-            Confirm Review ({stats.accepted} accepted, {stats.rejected} rejected)
+            {isSaving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
+            {isSaving ? 'Saving...' : `Save Selection (${stats.accepted})`}
           </Button>
         )}
       </div>
