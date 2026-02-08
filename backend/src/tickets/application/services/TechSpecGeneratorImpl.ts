@@ -17,7 +17,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { createOllamaProvider } from '@shared/infrastructure/mastra/providers/ollama.provider';
+import { createOllamaProvider } from '../../../shared/infrastructure/mastra/providers/ollama.provider';
 import { randomUUID } from 'crypto';
 import {
   TechSpecGenerator,

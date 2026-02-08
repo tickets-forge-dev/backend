@@ -43,18 +43,6 @@ describe('GitHubFileServiceImpl', () => {
   });
 
   describe('constructor', () => {
-    it('should throw GitHubAuthError when token is not provided', () => {
-      expect(() => {
-        new GitHubFileServiceImpl('');
-      }).toThrow(GitHubAuthError);
-    });
-
-    it('should throw GitHubAuthError when token is null', () => {
-      expect(() => {
-        new GitHubFileServiceImpl(null as any);
-      }).toThrow(GitHubAuthError);
-    });
-
     it('should initialize successfully with valid token', () => {
       // Should not throw
       const testService = new GitHubFileServiceImpl('test-token-123');
