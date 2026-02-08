@@ -21,8 +21,8 @@ export interface ValidationIssue {
 export interface ValidationResultProps {
   criterion: ValidatorType;
   passed: boolean;
-  score: number;        // 0.0 to 1.0
-  weight: number;       // 0.0 to 1.0
+  score: number; // 0.0 to 1.0
+  weight: number; // 0.0 to 1.0
   issues: string[];
   blockers: string[];
   message: string;

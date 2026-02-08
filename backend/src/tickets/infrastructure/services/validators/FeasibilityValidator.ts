@@ -1,10 +1,10 @@
 /**
  * Feasibility Validator
  * Story 3-1: Task 4.3
- * 
+ *
  * LLM-based validator that checks for technical impossibilities
  * or requirements that conflict with technology constraints.
- * 
+ *
  * Weight: 0.7
  * Pass Threshold: 0.7
  */
@@ -26,7 +26,7 @@ export class FeasibilityValidator extends BaseValidator {
     blockers: string[];
   }> {
     console.log(`   🔍 [FeasibilityValidator] Analyzing technical feasibility...`);
-    
+
     const issues: string[] = [];
     const blockers: string[] = [];
 
@@ -39,11 +39,7 @@ export class FeasibilityValidator extends BaseValidator {
       /unlimited.*concurrent/i,
     ];
 
-    const allText = [
-      aec.title,
-      aec.description || '',
-      ...aec.acceptanceCriteria,
-    ].join(' ');
+    const allText = [aec.title, aec.description || '', ...aec.acceptanceCriteria].join(' ');
 
     let score = 0.9; // Assume feasible unless proven otherwise
     let impossibilityCount = 0;
@@ -77,12 +73,19 @@ export class FeasibilityValidator extends BaseValidator {
 
     score = Math.max(0, Math.min(1, score));
 
-    console.log(`   📊 [FeasibilityValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
+    console.log(
+      `   📊 [FeasibilityValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`,
+    );
 
     return { score, issues, blockers };
   }
 
-  protected generateMessage(score: number, passed: boolean, issues: string[], blockers: string[]): string {
+  protected generateMessage(
+    score: number,
+    passed: boolean,
+    issues: string[],
+    blockers: string[],
+  ): string {
     if (blockers.length > 0) {
       return `Requirements are not feasible: ${blockers[0]}`;
     }

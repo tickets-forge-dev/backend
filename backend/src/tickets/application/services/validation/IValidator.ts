@@ -1,7 +1,7 @@
 /**
  * Validator Interface
  * Story 3-1: Task 2.1
- * 
+ *
  * Defines the contract that all validators must implement.
  * Each validator evaluates an AEC against a specific criterion.
  */

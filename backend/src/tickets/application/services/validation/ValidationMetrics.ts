@@ -1,7 +1,7 @@
 /**
  * Validation Metrics Collection
  * Story 3-1: Task 3 (Telemetry)
- * 
+ *
  * Collects and tracks validation metrics for monitoring and analysis
  */
 
@@ -42,7 +42,9 @@ export class ValidationMetrics {
 
     // Log to console for observability
     console.log(`📈 [ValidationMetrics] Recorded validation for ${metric.aecId}:`);
-    console.log(`   Overall Score: ${(metric.overallScore * 100).toFixed(1)}% (${metric.passed ? 'PASS' : 'FAIL'})`);
+    console.log(
+      `   Overall Score: ${(metric.overallScore * 100).toFixed(1)}% (${metric.passed ? 'PASS' : 'FAIL'})`,
+    );
     console.log(`   Duration: ${metric.duration}ms`);
     console.log(`   Validators: ${metric.passedValidators}/${metric.totalValidators} passed`);
     console.log(`   Issues: ${metric.totalIssues} (${metric.criticalIssues} critical)`);
@@ -59,16 +61,14 @@ export class ValidationMetrics {
    * Get metrics for a specific workspace
    */
   static getWorkspaceMetrics(workspaceId: string): ValidationMetric[] {
-    return this.metrics.filter(m => m.workspaceId === workspaceId);
+    return this.metrics.filter((m) => m.workspaceId === workspaceId);
   }
 
   /**
    * Get average validation score
    */
   static getAverageScore(workspaceId?: string): number {
-    const metricsToAnalyze = workspaceId
-      ? this.getWorkspaceMetrics(workspaceId)
-      : this.metrics;
+    const metricsToAnalyze = workspaceId ? this.getWorkspaceMetrics(workspaceId) : this.metrics;
 
     if (metricsToAnalyze.length === 0) return 0;
 
@@ -80,13 +80,11 @@ export class ValidationMetrics {
    * Get pass rate
    */
   static getPassRate(workspaceId?: string): number {
-    const metricsToAnalyze = workspaceId
-      ? this.getWorkspaceMetrics(workspaceId)
-      : this.metrics;
+    const metricsToAnalyze = workspaceId ? this.getWorkspaceMetrics(workspaceId) : this.metrics;
 
     if (metricsToAnalyze.length === 0) return 0;
 
-    const passedCount = metricsToAnalyze.filter(m => m.passed).length;
+    const passedCount = metricsToAnalyze.filter((m) => m.passed).length;
     return passedCount / metricsToAnalyze.length;
   }
 
@@ -94,9 +92,7 @@ export class ValidationMetrics {
    * Get average duration
    */
   static getAverageDuration(workspaceId?: string): number {
-    const metricsToAnalyze = workspaceId
-      ? this.getWorkspaceMetrics(workspaceId)
-      : this.metrics;
+    const metricsToAnalyze = workspaceId ? this.getWorkspaceMetrics(workspaceId) : this.metrics;
 
     if (metricsToAnalyze.length === 0) return 0;
 
@@ -112,8 +108,8 @@ export class ValidationMetrics {
     passRate: number;
     totalRuns: number;
   } {
-    const validatorMetrics = this.metrics.flatMap(m =>
-      m.validatorScores.filter(v => v.validator === validatorType)
+    const validatorMetrics = this.metrics.flatMap((m) =>
+      m.validatorScores.filter((v) => v.validator === validatorType),
     );
 
     if (validatorMetrics.length === 0) {
@@ -121,7 +117,7 @@ export class ValidationMetrics {
     }
 
     const sum = validatorMetrics.reduce((acc, v) => acc + v.score, 0);
-    const passedCount = validatorMetrics.filter(v => v.passed).length;
+    const passedCount = validatorMetrics.filter((v) => v.passed).length;
 
     return {
       averageScore: sum / validatorMetrics.length,
@@ -140,18 +136,19 @@ export class ValidationMetrics {
     averageDuration: number;
     validatorStats: Record<string, ReturnType<typeof ValidationMetrics.getValidatorStats>>;
   } {
-    const metricsToAnalyze = workspaceId
-      ? this.getWorkspaceMetrics(workspaceId)
-      : this.metrics;
+    const metricsToAnalyze = workspaceId ? this.getWorkspaceMetrics(workspaceId) : this.metrics;
 
     // Get unique validator types
     const validatorTypes = new Set<string>();
-    metricsToAnalyze.forEach(m => {
-      m.validatorScores.forEach(v => validatorTypes.add(v.validator));
+    metricsToAnalyze.forEach((m) => {
+      m.validatorScores.forEach((v) => validatorTypes.add(v.validator));
     });
 
-    const validatorStats: Record<string, ReturnType<typeof ValidationMetrics.getValidatorStats>> = {};
-    validatorTypes.forEach(type => {
+    const validatorStats: Record<
+      string,
+      ReturnType<typeof ValidationMetrics.getValidatorStats>
+    > = {};
+    validatorTypes.forEach((type) => {
       validatorStats[type] = this.getValidatorStats(type);
     });
 

@@ -180,9 +180,7 @@ describe('GitHubFileServiceImpl', () => {
         code: 'EAUTH',
       });
 
-      await expect(service.getTree('owner', 'repo')).rejects.toThrow(
-        GitHubAuthError
-      );
+      await expect(service.getTree('owner', 'repo')).rejects.toThrow(GitHubAuthError);
     });
 
     it('should throw GitHubRateLimitError on 403 rate limit', async () => {
@@ -205,9 +203,7 @@ describe('GitHubFileServiceImpl', () => {
         message: 'Connection refused',
       });
 
-      await expect(service.getTree('owner', 'repo')).rejects.toThrow(
-        NetworkError
-      );
+      await expect(service.getTree('owner', 'repo')).rejects.toThrow(NetworkError);
     });
 
     it('should throw NetworkError on timeout', async () => {
@@ -216,9 +212,7 @@ describe('GitHubFileServiceImpl', () => {
         message: 'Request timeout',
       });
 
-      await expect(service.getTree('owner', 'repo')).rejects.toThrow(
-        NetworkError
-      );
+      await expect(service.getTree('owner', 'repo')).rejects.toThrow(NetworkError);
     });
   });
 
@@ -297,9 +291,9 @@ describe('GitHubFileServiceImpl', () => {
     it('should throw FileNotFoundError on 404', async () => {
       mockOctokit.repos.getContent.mockRejectedValue({ status: 404 });
 
-      await expect(
-        service.readFile('owner', 'repo', 'nonexistent.js')
-      ).rejects.toThrow(FileNotFoundError);
+      await expect(service.readFile('owner', 'repo', 'nonexistent.js')).rejects.toThrow(
+        FileNotFoundError,
+      );
     });
 
     it('should throw error when path is a directory', async () => {
@@ -310,17 +304,13 @@ describe('GitHubFileServiceImpl', () => {
         ],
       });
 
-      await expect(
-        service.readFile('owner', 'repo', 'src')
-      ).rejects.toThrow();
+      await expect(service.readFile('owner', 'repo', 'src')).rejects.toThrow();
     });
 
     it('should throw GitHubAuthError on 401', async () => {
       mockOctokit.repos.getContent.mockRejectedValue({ status: 401 });
 
-      await expect(service.readFile('owner', 'repo', 'file.ts')).rejects.toThrow(
-        GitHubAuthError
-      );
+      await expect(service.readFile('owner', 'repo', 'file.ts')).rejects.toThrow(GitHubAuthError);
     });
 
     it('should throw NetworkError on connection refused', async () => {
@@ -329,9 +319,7 @@ describe('GitHubFileServiceImpl', () => {
         message: 'Connection refused',
       });
 
-      await expect(
-        service.readFile('owner', 'repo', 'file.ts')
-      ).rejects.toThrow(NetworkError);
+      await expect(service.readFile('owner', 'repo', 'file.ts')).rejects.toThrow(NetworkError);
     });
   });
 
@@ -479,9 +467,7 @@ describe('GitHubFileServiceImpl', () => {
       const tree = {
         sha: 'abc',
         url: '',
-        tree: [
-          { path: 'tsconfig.json', type: 'blob', mode: '100644', sha: '1', url: '' },
-        ],
+        tree: [{ path: 'tsconfig.json', type: 'blob', mode: '100644', sha: '1', url: '' }],
         truncated: false,
       };
 
@@ -534,9 +520,7 @@ describe('GitHubFileServiceImpl', () => {
       const tree = {
         sha: 'abc',
         url: '',
-        tree: [
-          { path: 'vite.config.ts', type: 'blob', mode: '100644', sha: '1', url: '' },
-        ],
+        tree: [{ path: 'vite.config.ts', type: 'blob', mode: '100644', sha: '1', url: '' }],
         truncated: false,
       };
 
@@ -548,9 +532,7 @@ describe('GitHubFileServiceImpl', () => {
       const tree = {
         sha: 'abc',
         url: '',
-        tree: [
-          { path: 'rollup.config.js', type: 'blob', mode: '100644', sha: '1', url: '' },
-        ],
+        tree: [{ path: 'rollup.config.js', type: 'blob', mode: '100644', sha: '1', url: '' }],
         truncated: false,
       };
 
@@ -562,9 +544,7 @@ describe('GitHubFileServiceImpl', () => {
       const tree = {
         sha: 'abc',
         url: '',
-        tree: [
-          { path: 'index.html', type: 'blob', mode: '100644', sha: '1', url: '' },
-        ],
+        tree: [{ path: 'index.html', type: 'blob', mode: '100644', sha: '1', url: '' }],
         truncated: false,
       };
 
@@ -623,9 +603,7 @@ describe('GitHubFileServiceImpl', () => {
     it('should wrap unknown errors as NetworkError', async () => {
       mockOctokit.git.getTree.mockRejectedValue(new Error('Unknown error'));
 
-      await expect(service.getTree('owner', 'repo')).rejects.toThrow(
-        NetworkError
-      );
+      await expect(service.getTree('owner', 'repo')).rejects.toThrow(NetworkError);
     });
 
     it('should include path in FileNotFoundError', async () => {
@@ -673,9 +651,7 @@ describe('GitHubFileServiceImpl', () => {
 
       // Mock file read
       const packageContent = { name: 'test', version: '1.0.0' };
-      const encodedContent = Buffer.from(
-        JSON.stringify(packageContent)
-      ).toString('base64');
+      const encodedContent = Buffer.from(JSON.stringify(packageContent)).toString('base64');
 
       mockOctokit.repos.getContent.mockResolvedValue({
         data: {

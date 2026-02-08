@@ -10,9 +10,7 @@ describe('DriftDetectorService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DriftDetectorService,
-      ],
+      providers: [DriftDetectorService],
     }).compile();
 
     service = module.get<DriftDetectorService>(DriftDetectorService);

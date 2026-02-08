@@ -1,23 +1,17 @@
 /**
  * HTTP Logging Interceptor
- * 
+ *
  * Provides comprehensive request/response logging with:
  * - Request details (method, URL, headers, body)
  * - Response details (status, headers, body)
  * - Execution time
  * - Error tracking
  * - Beautiful formatting with colors
- * 
+ *
  * Layer: Infrastructure
  */
 
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request, Response } from 'express';
@@ -44,12 +38,7 @@ interface ResponseLog {
 @Injectable()
 export class HttpLoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
-  private readonly sensitiveHeaders = [
-    'authorization',
-    'cookie',
-    'x-api-key',
-    'x-auth-token',
-  ];
+  private readonly sensitiveHeaders = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
   private readonly maxBodyLength = 1000; // Max characters to log for body
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -88,12 +77,7 @@ export class HttpLoggingInterceptor implements NestInterceptor {
     this.logger.log(this.formatRequest(requestLog));
   }
 
-  private logResponse(
-    request: Request,
-    response: Response,
-    data: any,
-    duration: number,
-  ): void {
+  private logResponse(request: Request, response: Response, data: any, duration: number): void {
     const responseLog: ResponseLog = {
       timestamp: new Date().toISOString(),
       statusCode: response.statusCode,
@@ -105,12 +89,7 @@ export class HttpLoggingInterceptor implements NestInterceptor {
     this.logger.log(this.formatResponse(request, responseLog));
   }
 
-  private logError(
-    request: Request,
-    response: Response,
-    error: any,
-    duration: number,
-  ): void {
+  private logError(request: Request, response: Response, error: any, duration: number): void {
     const errorLog = {
       timestamp: new Date().toISOString(),
       statusCode: error.status || 500,
@@ -173,12 +152,12 @@ export class HttpLoggingInterceptor implements NestInterceptor {
     lines.push(`║  ${request.method.padEnd(6)} ${request.url.substring(0, 53).padEnd(53)}║`);
     lines.push('╠═══════════════════════════════════════════════════════════════╣');
     lines.push(`║  ${statusEmoji} Status: ${String(log.statusCode).padEnd(49)}║`);
-    lines.push(`║  ${durationColor} Duration: ${log.duration}ms${String('').padEnd(52 - String(log.duration).length)}║`);
+    lines.push(
+      `║  ${durationColor} Duration: ${log.duration}ms${String('').padEnd(52 - String(log.duration).length)}║`,
+    );
 
     if (log.body) {
-      const bodyStr = typeof log.body === 'string' 
-        ? log.body 
-        : JSON.stringify(log.body, null, 2);
+      const bodyStr = typeof log.body === 'string' ? log.body : JSON.stringify(log.body, null, 2);
       const bodyLines = bodyStr.split('\n').slice(0, 5);
       lines.push('║  📦 Response:                                                 ║');
       bodyLines.forEach((line) => {
@@ -202,9 +181,11 @@ export class HttpLoggingInterceptor implements NestInterceptor {
     lines.push(`║  ${request.method.padEnd(6)} ${request.url.substring(0, 53).padEnd(53)}║`);
     lines.push('╠═══════════════════════════════════════════════════════════════╣');
     lines.push(`║  🔴 Status: ${String(log.statusCode).padEnd(48)}║`);
-    lines.push(`║  ⏱️  Duration: ${log.duration}ms${String('').padEnd(50 - String(log.duration).length)}║`);
+    lines.push(
+      `║  ⏱️  Duration: ${log.duration}ms${String('').padEnd(50 - String(log.duration).length)}║`,
+    );
     lines.push('║  💥 Error:                                                    ║');
-    
+
     const errorLines = log.error.message.split('\n');
     errorLines.forEach((line: string) => {
       lines.push(`║     ${line.substring(0, 56).padEnd(56)}║`);
@@ -241,27 +222,27 @@ export class HttpLoggingInterceptor implements NestInterceptor {
 
   private sanitizeBody(body: any): any {
     if (!body) return body;
-    
+
     const sanitized = { ...body };
     const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'accessToken'];
-    
+
     sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '[REDACTED]';
       }
     });
-    
+
     return sanitized;
   }
 
   private truncateBody(data: any): any {
     if (!data) return data;
-    
+
     const str = typeof data === 'string' ? data : JSON.stringify(data);
     if (str.length > this.maxBodyLength) {
       return str.substring(0, this.maxBodyLength) + '... (truncated)';
     }
-    
+
     return data;
   }
 }

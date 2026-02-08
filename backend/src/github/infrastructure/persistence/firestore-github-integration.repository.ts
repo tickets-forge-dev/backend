@@ -1,12 +1,12 @@
 /**
  * Firestore GitHub Integration Repository
- * 
+ *
  * Persistence adapter for GitHubIntegration entity.
  * Implements the repository port defined in domain layer.
- * 
+ *
  * Part of: Story 4.1 - GitHub App Integration
  * Layer: Infrastructure (adapter for Firestore)
- * 
+ *
  * Firestore Path: /workspaces/{workspaceId}/integrations/github
  */
 
@@ -92,7 +92,7 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
   async save(integration: GitHubIntegration): Promise<void> {
     try {
       const data = this.toDocument(integration);
-      
+
       await this.firestore
         .collection(this.collectionPath)
         .doc(integration.workspaceId)
@@ -102,7 +102,10 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
 
       this.logger.log(`Saved GitHub integration for workspace ${integration.workspaceId}`);
     } catch (error: any) {
-      this.logger.error(`Failed to save integration for workspace ${integration.workspaceId}:`, error.message);
+      this.logger.error(
+        `Failed to save integration for workspace ${integration.workspaceId}:`,
+        error.message,
+      );
       throw new Error(`Failed to save GitHub integration: ${error.message}`);
     }
   }
@@ -121,7 +124,10 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
 
       this.logger.log(`Deleted GitHub integration from workspace ${workspaceId}`);
     } catch (error: any) {
-      this.logger.error(`Failed to delete integration for workspace ${workspaceId}:`, error.message);
+      this.logger.error(
+        `Failed to delete integration for workspace ${workspaceId}:`,
+        error.message,
+      );
       throw new Error(`Failed to delete GitHub integration: ${error.message}`);
     }
   }
@@ -134,7 +140,7 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
     try {
       // Find the integration first to get workspace ID
       const integration = await this.findById(id);
-      
+
       if (!integration) {
         this.logger.warn(`Attempted to delete non-existent integration ${id}`);
         return;
@@ -155,7 +161,10 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
       const integration = await this.findByWorkspaceId(workspaceId);
       return integration !== null;
     } catch (error: any) {
-      this.logger.error(`Failed to check integration existence for workspace ${workspaceId}:`, error.message);
+      this.logger.error(
+        `Failed to check integration existence for workspace ${workspaceId}:`,
+        error.message,
+      );
       return false;
     }
   }
@@ -191,7 +200,7 @@ export class FirestoreGitHubIntegrationRepository implements GitHubIntegrationRe
       accountType: doc.accountType,
       encryptedAccessToken: doc.encryptedAccessToken,
       selectedRepositories: doc.selectedRepositories.map((repoProps) =>
-        GitHubRepository.create(repoProps)
+        GitHubRepository.create(repoProps),
       ),
       connectedAt: doc.connectedAt.toDate(),
       updatedAt: doc.updatedAt.toDate(),

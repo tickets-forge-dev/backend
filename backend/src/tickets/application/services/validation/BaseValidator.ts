@@ -1,7 +1,7 @@
 /**
  * Base Validator Class
  * Story 3-1: Task 2.2
- * 
+ *
  * Abstract base class providing common validation logic.
  * Concrete validators extend this and implement the scoring logic.
  */
@@ -74,19 +74,19 @@ export abstract class BaseValidator implements IValidator {
     blockers: string[],
   ): string {
     const percentage = Math.round(score * 100);
-    
+
     if (passed && issues.length === 0) {
       return `${this.type} validation passed with ${percentage}% score`;
     }
-    
+
     if (passed) {
       return `${this.type} validation passed with ${percentage}% score, but has ${issues.length} issue(s)`;
     }
-    
+
     if (blockers.length > 0) {
       return `${this.type} validation failed (${percentage}%) with ${blockers.length} critical blocker(s)`;
     }
-    
+
     return `${this.type} validation failed with ${percentage}% score`;
   }
 
@@ -94,10 +94,7 @@ export abstract class BaseValidator implements IValidator {
    * Helper: Check if AEC has minimum required content
    */
   protected hasMinimumContent(aec: AEC): boolean {
-    return (
-      aec.title.length >= 3 &&
-      aec.acceptanceCriteria.length > 0
-    );
+    return aec.title.length >= 3 && aec.acceptanceCriteria.length > 0;
   }
 
   /**
@@ -106,7 +103,7 @@ export abstract class BaseValidator implements IValidator {
   protected calculateCountScore(actual: number, minimum: number, ideal: number): number {
     if (actual >= ideal) return 1.0;
     if (actual < minimum) return 0.0;
-    
+
     // Linear interpolation between minimum and ideal
     return (actual - minimum) / (ideal - minimum);
   }

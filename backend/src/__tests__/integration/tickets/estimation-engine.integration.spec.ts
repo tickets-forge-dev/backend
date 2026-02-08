@@ -34,9 +34,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -56,9 +64,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -79,9 +95,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -101,9 +125,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -123,9 +155,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: true,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -147,9 +187,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: true,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -170,9 +218,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: true,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -192,9 +248,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -213,9 +277,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [{}, {}, {}], // 3 historical tickets
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [{}, {}, {}], // 3 historical tickets
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -233,9 +305,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [{}, {}, {}, {}, {}, {}], // 6 historical tickets
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [{}, {}, {}, {}, {}, {}], // 6 historical tickets
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -253,9 +333,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [{}, {}, {}, {}, {}, {}],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [{}, {}, {}, {}, {}, {}],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -274,9 +362,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -297,9 +393,17 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockResolvedValue({
-        docs: [],
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockResolvedValue({
+          docs: [],
+        });
 
       const estimate = await service.estimateEffort(params);
 
@@ -318,9 +422,15 @@ describe('Effort Estimation Integration', () => {
         hasAuthChanges: false,
       };
 
-      mockFirestore.collection().doc().collection().where().where().where().limit().get.mockRejectedValue(
-        new Error('Firestore error')
-      );
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .where()
+        .limit()
+        .get.mockRejectedValue(new Error('Firestore error'));
 
       const estimate = await service.estimateEffort(params);
 

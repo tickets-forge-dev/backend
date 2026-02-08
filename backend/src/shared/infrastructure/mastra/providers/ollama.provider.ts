@@ -4,10 +4,7 @@ import { createOpenAI } from '@ai-sdk/openai';
  * Custom fetch middleware to fix 'developer' role issue with Ollama
  * Ollama only supports: system, user, assistant (not 'developer')
  */
-function ollamaCompatibleFetch(
-  url: string,
-  options?: RequestInit,
-): Promise<Response> {
+function ollamaCompatibleFetch(url: string, options?: RequestInit): Promise<Response> {
   if (options?.body) {
     try {
       const body = JSON.parse(options.body as string);

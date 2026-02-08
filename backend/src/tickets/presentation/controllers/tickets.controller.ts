@@ -13,7 +13,11 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { CreateTicketUseCase, TICKET_LIMITS, DEFAULT_TICKET_LIMIT } from '../../application/use-cases/CreateTicketUseCase';
+import {
+  CreateTicketUseCase,
+  TICKET_LIMITS,
+  DEFAULT_TICKET_LIMIT,
+} from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
 import { GenerateQuestionsUseCase } from '../../application/use-cases/GenerateQuestionsUseCase';
@@ -24,7 +28,10 @@ import { UpdateAECDto } from '../dto/UpdateAECDto';
 import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
 import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
-import { InvalidStateTransitionError, QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
+import {
+  InvalidStateTransitionError,
+  QuotaExceededError,
+} from '../../../shared/domain/exceptions/DomainExceptions';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -36,7 +43,10 @@ import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId
 import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
 import { GitHubFileService } from '@github/domain/github-file.service';
 import { GITHUB_FILE_SERVICE } from '../../application/ports/GitHubFileServicePort';
-import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
+import {
+  GitHubIntegrationRepository,
+  GITHUB_INTEGRATION_REPOSITORY,
+} from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { Octokit } from '@octokit/rest';
 import { DEEP_ANALYSIS_SERVICE } from '../../application/ports/DeepAnalysisServicePort';
@@ -85,7 +95,9 @@ export class TicketsController {
     @Body() dto: AnalyzeRepositoryDto,
     @Res() res: Response,
   ) {
-    this.logger.log(`Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`);
+    this.logger.log(
+      `Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`,
+    );
 
     // Set SSE headers and start streaming
     res.setHeader('Content-Type', 'text/event-stream');
@@ -103,10 +115,14 @@ export class TicketsController {
 
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
       if (!integration) {
-        throw new BadRequestException('GitHub not connected. Please connect GitHub in Settings first.');
+        throw new BadRequestException(
+          'GitHub not connected. Please connect GitHub in Settings first.',
+        );
       }
 
-      const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+      const accessToken = await this.githubTokenService.decryptToken(
+        integration.encryptedAccessToken,
+      );
       const octokit = new Octokit({ auth: accessToken });
       const branch = dto.branch || 'main';
 
@@ -189,14 +205,20 @@ export class TicketsController {
       this.logger.log(`Repository analysis complete`);
 
       // Final complete event with result payload
-      send({ phase: 'complete', message: 'Analysis complete', percent: 100, result: { context: result } });
+      send({
+        phase: 'complete',
+        message: 'Analysis complete',
+        percent: 100,
+        result: { context: result },
+      });
       res.end();
     } catch (error: any) {
       this.logger.error(`Repository analysis failed: ${error.message}`);
 
-      const errorMessage = error.status === 404 && !error.message?.includes('LLM')
-        ? `Repository ${dto.owner}/${dto.repo} not found or not accessible`
-        : `Failed to analyze repository: ${error.message}`;
+      const errorMessage =
+        error.status === 404 && !error.message?.includes('LLM')
+          ? `Repository ${dto.owner}/${dto.repo} not found or not accessible`
+          : `Failed to analyze repository: ${error.message}`;
 
       send({ phase: 'error', message: errorMessage, percent: 0 });
       res.end();
@@ -234,20 +256,14 @@ export class TicketsController {
   }
 
   @Get('quota')
-  async getQuota(
-    @WorkspaceId() workspaceId: string,
-    @UserEmail() userEmail: string,
-  ) {
+  async getQuota(@WorkspaceId() workspaceId: string, @UserEmail() userEmail: string) {
     const limit = TICKET_LIMITS[userEmail] ?? DEFAULT_TICKET_LIMIT;
     const used = await this.aecRepository.countByWorkspace(workspaceId);
     return { used, limit, canCreate: used < limit };
   }
 
   @Get(':id')
-  async getTicket(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  async getTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.aecRepository.findById(id);
     if (!aec) {
       throw new Error('AEC not found');
@@ -290,10 +306,7 @@ export class TicketsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteTicket(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  async deleteTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     await this.deleteAECUseCase.execute(id, workspaceId);
   }
 
@@ -301,10 +314,7 @@ export class TicketsController {
    * Generate clarification questions (simplified single-call flow)
    */
   @Post(':id/generate-questions')
-  async generateQuestions(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  async generateQuestions(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const questions = await this.generateQuestionsUseCase.execute({
       aecId: id,
       workspaceId,
@@ -335,10 +345,7 @@ export class TicketsController {
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
   @Post(':id/finalize')
-  async finalizeSpec(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  async finalizeSpec(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.finalizeSpecUseCase.execute({
       aecId: id,
       workspaceId,
@@ -352,10 +359,7 @@ export class TicketsController {
    * Resolves per-user GitHub token (same pattern as analyzeRepository).
    */
   @Post(':id/detect-apis')
-  async detectApis(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  async detectApis(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.aecRepository.findById(id);
     if (!aec || aec.workspaceId !== workspaceId) {
       throw new BadRequestException('Ticket not found');
@@ -377,38 +381,56 @@ export class TicketsController {
       // Resolve per-user GitHub token (same as analyzeRepository)
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
       if (!integration) {
-        throw new BadRequestException('GitHub not connected. Please connect GitHub in Settings first.');
+        throw new BadRequestException(
+          'GitHub not connected. Please connect GitHub in Settings first.',
+        );
       }
 
-      const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+      const accessToken = await this.githubTokenService.decryptToken(
+        integration.encryptedAccessToken,
+      );
       const octokit = new Octokit({ auth: accessToken });
 
       // Fetch tree and find controller files
       const refResponse = await octokit.rest.git.getRef({
-        owner, repo, ref: `heads/${branch}`,
+        owner,
+        repo,
+        ref: `heads/${branch}`,
       });
       const treeResponse = await octokit.rest.git.getTree({
-        owner, repo, tree_sha: refResponse.data.object.sha, recursive: '1' as any,
+        owner,
+        repo,
+        tree_sha: refResponse.data.object.sha,
+        recursive: '1' as any,
       });
 
       const controllerPaths = (treeResponse.data.tree || [])
-        .filter((entry: any) => entry.type === 'blob' && (
-          entry.path.endsWith('.controller.ts') ||
-          entry.path.endsWith('.controller.js') ||
-          entry.path.includes('/controllers/') ||
-          entry.path.includes('/routes/')
-        ))
+        .filter(
+          (entry: any) =>
+            entry.type === 'blob' &&
+            (entry.path.endsWith('.controller.ts') ||
+              entry.path.endsWith('.controller.js') ||
+              entry.path.includes('/controllers/') ||
+              entry.path.includes('/routes/')),
+        )
         .map((entry: any) => entry.path);
 
       // Read controller files
       const fileContents = new Map<string, string>();
-      for (const filePath of controllerPaths.slice(0, 30)) { // cap at 30 files
+      for (const filePath of controllerPaths.slice(0, 30)) {
+        // cap at 30 files
         try {
           const fileResp = await octokit.rest.repos.getContent({
-            owner, repo, path: filePath, ref: branch,
+            owner,
+            repo,
+            path: filePath,
+            ref: branch,
           });
           if ('content' in fileResp.data && typeof fileResp.data.content === 'string') {
-            fileContents.set(filePath, Buffer.from(fileResp.data.content, 'base64').toString('utf-8'));
+            fileContents.set(
+              filePath,
+              Buffer.from(fileResp.data.content, 'base64').toString('utf-8'),
+            );
           }
         } catch {
           // File unreadable, skip

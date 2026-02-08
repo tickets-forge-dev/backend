@@ -87,12 +87,7 @@ export interface GitHubFileService {
    * const pkg = JSON.parse(content);
    * ```
    */
-  readFile(
-    owner: string,
-    repo: string,
-    path: string,
-    branch?: string
-  ): Promise<string>;
+  readFile(owner: string, repo: string, path: string, branch?: string): Promise<string>;
 
   /**
    * Find files in tree matching glob pattern
@@ -133,7 +128,7 @@ export interface GitHubFileService {
    */
   getFileByType(
     tree: FileTree,
-    type: 'package.json' | 'tsconfig' | 'config'
+    type: 'package.json' | 'tsconfig' | 'config',
   ): Promise<string | null>;
 }
 
@@ -146,7 +141,10 @@ export class GitHubError extends Error {
    * @param message - Human-readable error message
    * @param code - Machine-readable error code for error handling logic
    */
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
     super(message);
     this.name = 'GitHubError';
   }

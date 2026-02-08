@@ -22,13 +22,17 @@ import { TicketsModule } from '../tickets/tickets.module';
       useFactory: (firebaseService: FirebaseService) => {
         try {
           if (!firebaseService.isFirebaseConfigured()) {
-            console.warn('⚠️  GitHub Integration Repository: Firebase not configured, using null repository');
+            console.warn(
+              '⚠️  GitHub Integration Repository: Firebase not configured, using null repository',
+            );
             return null;
           }
           const firestore = firebaseService.getFirestore();
           return new FirestoreGitHubIntegrationRepository(firestore);
         } catch (error) {
-          console.warn('⚠️  GitHub Integration Repository: Failed to initialize, using null repository');
+          console.warn(
+            '⚠️  GitHub Integration Repository: Failed to initialize, using null repository',
+          );
           return null;
         }
       },

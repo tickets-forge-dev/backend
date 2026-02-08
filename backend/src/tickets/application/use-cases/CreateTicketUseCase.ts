@@ -2,7 +2,10 @@ import { Injectable, Inject, BadRequestException, ForbiddenException } from '@ne
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { GitHubApiService } from '../../../shared/infrastructure/github/github-api.service';
-import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
+import {
+  GitHubIntegrationRepository,
+  GITHUB_INTEGRATION_REPOSITORY,
+} from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
 import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
@@ -51,14 +54,23 @@ export class CreateTicketUseCase {
     let repositoryContext: RepositoryContext | undefined;
 
     if (command.repositoryFullName && command.branchName) {
-      console.log('🎫 [CreateTicketUseCase] Repository context provided:', command.repositoryFullName, '@', command.branchName);
+      console.log(
+        '🎫 [CreateTicketUseCase] Repository context provided:',
+        command.repositoryFullName,
+        '@',
+        command.branchName,
+      );
 
       // Try to fetch GitHub access token from OAuth integration
       // If not available, we'll use on-demand code scanning with env token instead
-      const integration = await this.githubIntegrationRepository.findByWorkspaceId(command.workspaceId);
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(
+        command.workspaceId,
+      );
 
       if (integration) {
-        const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+        const accessToken = await this.githubTokenService.decryptToken(
+          integration.encryptedAccessToken,
+        );
         repositoryContext = await this.buildRepositoryContext(
           command.repositoryFullName,
           command.branchName,
@@ -68,7 +80,9 @@ export class CreateTicketUseCase {
         // No OAuth integration - skip creating context
         // Code will be read on-demand via GitHubFileService (uses GITHUB_TOKEN from env)
         // Repository context will be determined at question round generation time
-        console.log('🎫 [CreateTicketUseCase] No GitHub OAuth integration - code will be scanned on-demand');
+        console.log(
+          '🎫 [CreateTicketUseCase] No GitHub OAuth integration - code will be scanned on-demand',
+        );
       }
     }
 
@@ -114,22 +128,40 @@ export class CreateTicketUseCase {
     }
 
     // Verify repository access (AC#4)
-    const hasAccess = await this.gitHubApiService.verifyRepositoryAccess(owner, repo, githubAccessToken);
+    const hasAccess = await this.gitHubApiService.verifyRepositoryAccess(
+      owner,
+      repo,
+      githubAccessToken,
+    );
     if (!hasAccess) {
       throw new ForbiddenException(`Repository ${repositoryFullName} not found or access revoked`);
     }
 
     // Verify branch exists (AC#4)
-    const branchExists = await this.gitHubApiService.verifyBranchExists(owner, repo, branchName, githubAccessToken);
+    const branchExists = await this.gitHubApiService.verifyBranchExists(
+      owner,
+      repo,
+      branchName,
+      githubAccessToken,
+    );
     if (!branchExists) {
       throw new BadRequestException(`Branch "${branchName}" not found in ${repositoryFullName}`);
     }
 
     // Get HEAD commit SHA (AC#4)
-    const commitSha = await this.gitHubApiService.getBranchHead(owner, repo, branchName, githubAccessToken);
+    const commitSha = await this.gitHubApiService.getBranchHead(
+      owner,
+      repo,
+      branchName,
+      githubAccessToken,
+    );
 
     // Check if this is the default branch (AC#3)
-    const defaultBranch = await this.gitHubApiService.getDefaultBranch(owner, repo, githubAccessToken);
+    const defaultBranch = await this.gitHubApiService.getDefaultBranch(
+      owner,
+      repo,
+      githubAccessToken,
+    );
     const isDefaultBranch = branchName === defaultBranch;
 
     console.log('🎫 [CreateTicketUseCase] Repository context built:', {

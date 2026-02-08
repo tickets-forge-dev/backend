@@ -1,10 +1,10 @@
 /**
  * GitHubIntegrationRepository Interface (Port)
- * 
+ *
  * Defines the contract for persisting and retrieving GitHub integrations.
  * This is a PORT in Hexagonal Architecture.
  * Implementation will be in infrastructure layer (adapter).
- * 
+ *
  * Part of: Story 4.1 - GitHub App Integration
  * Layer: Domain (interface only, no implementation)
  */

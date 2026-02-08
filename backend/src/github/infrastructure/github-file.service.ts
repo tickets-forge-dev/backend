@@ -98,11 +98,7 @@ export class GitHubFileServiceImpl implements GitHubFileService {
    * }
    * ```
    */
-  async getTree(
-    owner: string,
-    repo: string,
-    branch: string = 'main'
-  ): Promise<FileTree> {
+  async getTree(owner: string, repo: string, branch: string = 'main'): Promise<FileTree> {
     // Check if GitHub token is configured
     if (!this.githubToken) {
       throw new GitHubAuthError();
@@ -171,7 +167,7 @@ export class GitHubFileServiceImpl implements GitHubFileService {
     owner: string,
     repo: string,
     path: string,
-    branch: string = 'main'
+    branch: string = 'main',
   ): Promise<string> {
     // Check if GitHub token is configured
     if (!this.githubToken) {
@@ -291,7 +287,7 @@ export class GitHubFileServiceImpl implements GitHubFileService {
    */
   async getFileByType(
     tree: FileTree,
-    type: 'package.json' | 'tsconfig' | 'config'
+    type: 'package.json' | 'tsconfig' | 'config',
   ): Promise<string | null> {
     const patterns: Record<string, string[]> = {
       'package.json': ['package.json'],

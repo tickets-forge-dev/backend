@@ -1,10 +1,10 @@
 /**
  * Clarity Validator
  * Story 3-1: Task 4.2
- * 
+ *
  * LLM-based validator that assesses requirement clarity and identifies
  * vague or ambiguous statements.
- * 
+ *
  * Weight: 0.8
  * Pass Threshold: 0.7
  */
@@ -33,7 +33,7 @@ export class ClarityValidator extends BaseValidator {
     blockers: string[];
   }> {
     console.log(`   🔍 [ClarityValidator] Analyzing requirement clarity...`);
-    
+
     const issues: string[] = [];
     const blockers: string[] = [];
 
@@ -52,7 +52,9 @@ export class ClarityValidator extends BaseValidator {
 
     // Build issues list
     if (analysis.vaguePhrases.length > 0) {
-      issues.push(`Found ${analysis.vaguePhrases.length} vague phrase(s): ${analysis.vaguePhrases.slice(0, 3).join(', ')}`);
+      issues.push(
+        `Found ${analysis.vaguePhrases.length} vague phrase(s): ${analysis.vaguePhrases.slice(0, 3).join(', ')}`,
+      );
       console.log(`      ⚠️  ${analysis.vaguePhrases.length} vague phrases detected`);
     }
 
@@ -62,7 +64,7 @@ export class ClarityValidator extends BaseValidator {
     }
 
     // Add suggestions as issues
-    analysis.suggestions.forEach(suggestion => issues.push(suggestion));
+    analysis.suggestions.forEach((suggestion) => issues.push(suggestion));
 
     // Critical blocker if score is very low
     if (analysis.score < 0.4) {
@@ -70,7 +72,9 @@ export class ClarityValidator extends BaseValidator {
       console.log(`      ❌ Critical: Requirements too vague`);
     }
 
-    console.log(`   📊 [ClarityValidator] Final score: ${(analysis.score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
+    console.log(
+      `   📊 [ClarityValidator] Final score: ${(analysis.score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`,
+    );
 
     return {
       score: analysis.score,
@@ -84,13 +88,13 @@ export class ClarityValidator extends BaseValidator {
     const words = text.split(/\s+/).length;
     const hasNumbers = /\d/.test(text);
     const hasSpecifics = /\b(must|should|will|when|then|given)\b/i.test(text);
-    
+
     let score = 0.5; // Base score
-    
+
     if (words > 50) score += 0.2;
     if (hasNumbers) score += 0.15;
     if (hasSpecifics) score += 0.15;
-    
+
     score = Math.min(1, score);
 
     return {
@@ -101,7 +105,12 @@ export class ClarityValidator extends BaseValidator {
     };
   }
 
-  protected generateMessage(score: number, passed: boolean, issues: string[], blockers: string[]): string {
+  protected generateMessage(
+    score: number,
+    passed: boolean,
+    issues: string[],
+    blockers: string[],
+  ): string {
     if (blockers.length > 0) {
       return `Requirements lack clarity: ${blockers[0]}`;
     }

@@ -102,10 +102,22 @@ describe('CodebaseAnalyzerImpl', () => {
         url: 'test',
         truncated: false,
         tree: [
-          { path: 'src/presentation/controllers', type: 'tree', mode: '040000', sha: '1', url: 'test' },
+          {
+            path: 'src/presentation/controllers',
+            type: 'tree',
+            mode: '040000',
+            sha: '1',
+            url: 'test',
+          },
           { path: 'src/application/services', type: 'tree', mode: '040000', sha: '2', url: 'test' },
           { path: 'src/domain/entities', type: 'tree', mode: '040000', sha: '3', url: 'test' },
-          { path: 'src/infrastructure/persistence', type: 'tree', mode: '040000', sha: '4', url: 'test' },
+          {
+            path: 'src/infrastructure/persistence',
+            type: 'tree',
+            mode: '040000',
+            sha: '4',
+            url: 'test',
+          },
         ],
       };
 
@@ -120,9 +132,7 @@ describe('CodebaseAnalyzerImpl', () => {
         sha: 'abc',
         url: 'test',
         truncated: false,
-        tree: [
-          { path: 'index.js', type: 'blob', mode: '100644', sha: '1', url: 'test' },
-        ],
+        tree: [{ path: 'index.js', type: 'blob', mode: '100644', sha: '1', url: 'test' }],
       };
 
       const pattern = analyzer.detectArchitecture(tree);
@@ -193,7 +203,13 @@ describe('CodebaseAnalyzerImpl', () => {
         truncated: false,
         tree: [
           { path: 'jest.config.js', type: 'blob', mode: '100644', sha: '1', url: 'test' },
-          { path: 'src/__tests__/example.spec.ts', type: 'blob', mode: '100644', sha: '2', url: 'test' },
+          {
+            path: 'src/__tests__/example.spec.ts',
+            type: 'blob',
+            mode: '100644',
+            sha: '2',
+            url: 'test',
+          },
         ],
       };
 
@@ -208,9 +224,7 @@ describe('CodebaseAnalyzerImpl', () => {
         sha: 'abc',
         url: 'test',
         truncated: false,
-        tree: [
-          { path: 'vitest.config.ts', type: 'blob', mode: '100644', sha: '1', url: 'test' },
-        ],
+        tree: [{ path: 'vitest.config.ts', type: 'blob', mode: '100644', sha: '1', url: 'test' }],
       };
 
       const strategy = analyzer.detectTestingStrategy(tree);
@@ -225,7 +239,13 @@ describe('CodebaseAnalyzerImpl', () => {
         url: 'test',
         truncated: false,
         tree: [
-          { path: 'src/__tests__/service.spec.ts', type: 'blob', mode: '100644', sha: '1', url: 'test' },
+          {
+            path: 'src/__tests__/service.spec.ts',
+            type: 'blob',
+            mode: '100644',
+            sha: '1',
+            url: 'test',
+          },
           { path: 'src/service.test.ts', type: 'blob', mode: '100644', sha: '2', url: 'test' },
         ],
       };
@@ -255,7 +275,10 @@ describe('CodebaseAnalyzerImpl', () => {
   describe('detectStateManagement', () => {
     it('should detect Zustand', () => {
       const files = new Map([
-        ['src/store.ts', "import { create } from 'zustand';\nconst useStore = create((set) => ({...}))"],
+        [
+          'src/store.ts',
+          "import { create } from 'zustand';\nconst useStore = create((set) => ({...}))",
+        ],
       ]);
 
       const state = analyzer.detectStateManagement(files, {} as any);

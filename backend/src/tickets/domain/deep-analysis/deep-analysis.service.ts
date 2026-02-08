@@ -7,10 +7,10 @@ export type AnalysisPhase =
   | 'connecting'
   | 'fetching_tree'
   | 'reading_configs'
-  | 'fingerprinting'      // NEW: Pass 1 - fast fingerprint
+  | 'fingerprinting' // NEW: Pass 1 - fast fingerprint
   | 'selecting_files'
   | 'reading_files'
-  | 'analyzing'           // Pass 2 - full analysis with selected files
+  | 'analyzing' // Pass 2 - full analysis with selected files
   | 'complete'
   | 'error';
 

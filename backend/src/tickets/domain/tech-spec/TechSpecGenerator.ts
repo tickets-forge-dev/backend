@@ -335,10 +335,7 @@ export interface TechSpecGenerator {
    * @param context - Codebase context
    * @returns Solution with overview, steps, and file changes
    */
-  generateSolution(
-    problem: ProblemStatement,
-    context: CodebaseContext,
-  ): Promise<SolutionSection>;
+  generateSolution(problem: ProblemStatement, context: CodebaseContext): Promise<SolutionSection>;
 
   /**
    * Generates Acceptance Criteria in BDD format
@@ -377,10 +374,7 @@ export interface TechSpecGenerator {
    * @param context - Codebase context
    * @returns Array of file changes with specific paths and actions
    */
-  generateFileChanges(
-    solution: SolutionSection,
-    context: CodebaseContext,
-  ): Promise<FileChange[]>;
+  generateFileChanges(solution: SolutionSection, context: CodebaseContext): Promise<FileChange[]>;
 
   /**
    * Calculates quality score for a specification

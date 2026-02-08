@@ -97,7 +97,9 @@ export class FinalizeSpecUseCase {
       allAnswers,
     );
 
-    console.log(`✨ [FinalizeSpecUseCase] Generated final spec with quality score ${techSpec.qualityScore}`);
+    console.log(
+      `✨ [FinalizeSpecUseCase] Generated final spec with quality score ${techSpec.qualityScore}`,
+    );
 
     // Update AEC with final spec
     aec.setTechSpec(techSpec);
@@ -110,7 +112,6 @@ export class FinalizeSpecUseCase {
     return aec;
   }
 
-
   /**
    * Build codebase context from AEC repository context
    *
@@ -120,7 +121,9 @@ export class FinalizeSpecUseCase {
     const repoContext = aec.repositoryContext;
 
     if (!repoContext) {
-      console.warn('✨ [FinalizeSpecUseCase] No repository context available, using minimal context');
+      console.warn(
+        '✨ [FinalizeSpecUseCase] No repository context available, using minimal context',
+      );
       return {
         stack: {
           framework: null,
@@ -134,8 +137,21 @@ export class FinalizeSpecUseCase {
         },
         analysis: {
           architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
-          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
-          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          naming: {
+            files: 'kebab-case',
+            variables: 'camelCase',
+            functions: 'camelCase',
+            classes: 'PascalCase',
+            components: 'PascalCase',
+            confidence: 0,
+          },
+          testing: {
+            runner: null,
+            location: 'colocated',
+            namingPattern: '*.test.ts',
+            libraries: [],
+            confidence: 0,
+          },
           stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
           apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
           directories: [],
@@ -149,16 +165,29 @@ export class FinalizeSpecUseCase {
 
     try {
       const [owner, repo] = repoContext.repositoryFullName.split('/');
-      console.log(`✨ [FinalizeSpecUseCase] Analyzing repository for final spec: ${repoContext.repositoryFullName}`);
+      console.log(
+        `✨ [FinalizeSpecUseCase] Analyzing repository for final spec: ${repoContext.repositoryFullName}`,
+      );
 
       const fileTree = await this.githubFileService.getTree(owner, repo, repoContext.branchName);
 
       const filesMap = new Map<string, string>();
-      const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
+      const keyFiles = [
+        'package.json',
+        'tsconfig.json',
+        'requirements.txt',
+        'Dockerfile',
+        'pom.xml',
+      ];
 
       for (const fileName of keyFiles) {
         try {
-          const content = await this.githubFileService.readFile(owner, repo, fileName, repoContext.branchName);
+          const content = await this.githubFileService.readFile(
+            owner,
+            repo,
+            fileName,
+            repoContext.branchName,
+          );
           filesMap.set(fileName, content);
         } catch (error) {
           // File may not exist
@@ -168,10 +197,15 @@ export class FinalizeSpecUseCase {
       const stack = await this.stackDetector.detectStack(filesMap);
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
-      console.log(`✨ [FinalizeSpecUseCase] Repository context built with framework: ${stack.framework?.name || 'unknown'}`);
+      console.log(
+        `✨ [FinalizeSpecUseCase] Repository context built with framework: ${stack.framework?.name || 'unknown'}`,
+      );
       return { stack, analysis, fileTree, files: filesMap, taskAnalysis: aec.taskAnalysis };
     } catch (error) {
-      console.error('✨ [FinalizeSpecUseCase] Error building context:', error instanceof Error ? error.message : String(error));
+      console.error(
+        '✨ [FinalizeSpecUseCase] Error building context:',
+        error instanceof Error ? error.message : String(error),
+      );
       return {
         stack: {
           framework: null,
@@ -185,8 +219,21 @@ export class FinalizeSpecUseCase {
         },
         analysis: {
           architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
-          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
-          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          naming: {
+            files: 'kebab-case',
+            variables: 'camelCase',
+            functions: 'camelCase',
+            classes: 'PascalCase',
+            components: 'PascalCase',
+            confidence: 0,
+          },
+          testing: {
+            runner: null,
+            location: 'colocated',
+            namingPattern: '*.test.ts',
+            libraries: [],
+            confidence: 0,
+          },
           stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
           apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
           directories: [],
@@ -214,7 +261,9 @@ export class FinalizeSpecUseCase {
 
     for (let attempt = 1; attempt <= FinalizeSpecUseCase.MAX_RETRIES; attempt++) {
       try {
-        console.log(`✨ [FinalizeSpecUseCase] Generation attempt ${attempt}/${FinalizeSpecUseCase.MAX_RETRIES}`);
+        console.log(
+          `✨ [FinalizeSpecUseCase] Generation attempt ${attempt}/${FinalizeSpecUseCase.MAX_RETRIES}`,
+        );
 
         const spec = await this.techSpecGenerator.generateWithAnswers({
           title,
@@ -227,10 +276,7 @@ export class FinalizeSpecUseCase {
         return spec;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.warn(
-          `✨ [FinalizeSpecUseCase] Attempt ${attempt} failed:`,
-          lastError.message,
-        );
+        console.warn(`✨ [FinalizeSpecUseCase] Attempt ${attempt} failed:`, lastError.message);
 
         if (attempt < FinalizeSpecUseCase.MAX_RETRIES) {
           const backoffMs = FinalizeSpecUseCase.INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1);

@@ -1,7 +1,7 @@
 /**
  * Estimation Engine Interface
  * Port for calculating effort estimates based on code complexity
- * 
+ *
  * Part of: Story 4.5 - Effort Estimation
  * Layer: Application
  */

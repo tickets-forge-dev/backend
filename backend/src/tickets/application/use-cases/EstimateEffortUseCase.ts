@@ -1,7 +1,7 @@
 /**
  * Estimate Effort Use Case
  * Calculates and stores effort estimate for an AEC
- * 
+ *
  * Part of: Story 4.5 - Effort Estimation
  * Layer: Application
  */
@@ -51,9 +51,7 @@ export class EstimateEffortUseCase {
     aec.setEstimate(estimate);
     await this.aecRepository.save(aec);
 
-    this.logger.log(
-      `Estimate saved: ${estimate.min}-${estimate.max}h (${estimate.confidence})`,
-    );
+    this.logger.log(`Estimate saved: ${estimate.min}-${estimate.max}h (${estimate.confidence})`);
 
     return estimate;
   }
@@ -66,20 +64,22 @@ export class EstimateEffortUseCase {
   private detectDatabaseChanges(aec: any): boolean {
     // Check for migration-related files in repoPaths
     const repoPaths = aec.repoPaths || [];
-    return repoPaths.some((path: string) =>
-      path.toLowerCase().includes('migration') ||
-      path.toLowerCase().includes('schema') ||
-      path.toLowerCase().includes('database'),
+    return repoPaths.some(
+      (path: string) =>
+        path.toLowerCase().includes('migration') ||
+        path.toLowerCase().includes('schema') ||
+        path.toLowerCase().includes('database'),
     );
   }
 
   private detectAuthChanges(aec: any): boolean {
     // Check for auth-related files in repoPaths
     const repoPaths = aec.repoPaths || [];
-    return repoPaths.some((path: string) =>
-      path.toLowerCase().includes('auth') ||
-      path.toLowerCase().includes('permission') ||
-      path.toLowerCase().includes('role'),
+    return repoPaths.some(
+      (path: string) =>
+        path.toLowerCase().includes('auth') ||
+        path.toLowerCase().includes('permission') ||
+        path.toLowerCase().includes('role'),
     );
   }
 }

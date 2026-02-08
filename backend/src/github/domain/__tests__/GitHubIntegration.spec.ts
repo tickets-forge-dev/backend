@@ -1,6 +1,6 @@
 /**
  * Unit Tests for GitHubIntegration Entity
- * 
+ *
  * Tests domain business rules, state transitions, and validation logic.
  * No external dependencies - pure domain logic only.
  */
@@ -42,9 +42,9 @@ describe('GitHubIntegration', () => {
     });
 
     it('should reject empty integration ID', () => {
-      expect(() =>
-        GitHubIntegration.create('', 'ws_456', 789, 'octocat', 'User', 'token'),
-      ).toThrow('Integration ID is required');
+      expect(() => GitHubIntegration.create('', 'ws_456', 789, 'octocat', 'User', 'token')).toThrow(
+        'Integration ID is required',
+      );
     });
 
     it('should reject empty workspace ID', () => {
@@ -64,9 +64,9 @@ describe('GitHubIntegration', () => {
     });
 
     it('should reject empty account login', () => {
-      expect(() =>
-        GitHubIntegration.create('int_123', 'ws_456', 789, '', 'User', 'token'),
-      ).toThrow('Account login is required');
+      expect(() => GitHubIntegration.create('int_123', 'ws_456', 789, '', 'User', 'token')).toThrow(
+        'Account login is required',
+      );
     });
 
     it('should reject invalid account type', () => {
@@ -293,9 +293,7 @@ describe('GitHubIntegration', () => {
         'token',
       );
 
-      expect(() => integration.updateAccessToken('')).toThrow(
-        'Encrypted access token is required',
-      );
+      expect(() => integration.updateAccessToken('')).toThrow('Encrypted access token is required');
     });
   });
 

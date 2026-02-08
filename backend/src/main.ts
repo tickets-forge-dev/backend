@@ -24,7 +24,7 @@ async function bootstrap() {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 1000 * 60 * 15, // 15 minutes
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
+        sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
         domain: undefined,
       },
       name: 'forge.sid', // Custom session name

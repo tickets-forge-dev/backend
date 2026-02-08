@@ -1,11 +1,11 @@
 /**
  * GitHub Token Service
- * 
+ *
  * Handles GitHub OAuth token operations:
  * - Exchange authorization code for access token
  * - Token encryption/decryption for secure storage
  * - Token refresh (if applicable)
- * 
+ *
  * Part of: Story 4.1 - GitHub App Integration
  * Layer: Application (business logic)
  */
@@ -37,9 +37,11 @@ export class GitHubTokenService {
 
   constructor(private readonly configService: ConfigService) {
     this.encryptionKey = this.configService.get<string>('GITHUB_ENCRYPTION_KEY') || '';
-    
+
     if (!this.encryptionKey) {
-      this.logger.warn('GITHUB_ENCRYPTION_KEY not set - token encryption will use default (INSECURE)');
+      this.logger.warn(
+        'GITHUB_ENCRYPTION_KEY not set - token encryption will use default (INSECURE)',
+      );
     }
   }
 
@@ -62,7 +64,7 @@ export class GitHubTokenService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           client_id: clientId,
@@ -75,7 +77,7 @@ export class GitHubTokenService {
         throw new Error(`Token exchange failed: ${response.statusText}`);
       }
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
 
       if (data.error) {
         throw new Error(`GitHub OAuth error: ${data.error_description || data.error}`);

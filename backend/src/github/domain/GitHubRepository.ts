@@ -1,9 +1,9 @@
 /**
  * GitHubRepository Value Object
- * 
+ *
  * Represents metadata about a GitHub repository.
  * Immutable value object - no setters, only getters.
- * 
+ *
  * Part of: Story 4.1 - GitHub App Integration
  * Layer: Domain (no external dependencies)
  */

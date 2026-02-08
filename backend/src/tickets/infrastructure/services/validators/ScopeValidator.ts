@@ -1,10 +1,10 @@
 /**
  * Scope Validator
  * Story 3-1: Additional validator for scope appropriateness
- * 
+ *
  * Rule-based validator that checks if ticket scope is appropriate
  * (not too broad or too narrow for a single ticket).
- * 
+ *
  * Weight: 0.6
  * Pass Threshold: 0.6
  */
@@ -26,7 +26,7 @@ export class ScopeValidator extends BaseValidator {
     blockers: string[];
   }> {
     console.log(`   🔍 [ScopeValidator] Analyzing ticket scope...`);
-    
+
     const issues: string[] = [];
     const blockers: string[] = [];
     let score = 0.7; // Neutral starting point
@@ -50,7 +50,9 @@ export class ScopeValidator extends BaseValidator {
 
     // Too many ACs might indicate broad scope
     if (acCount > 8) {
-      issues.push('Large number of acceptance criteria (>8) - consider breaking into multiple tickets');
+      issues.push(
+        'Large number of acceptance criteria (>8) - consider breaking into multiple tickets',
+      );
       score -= 0.3;
       console.log(`      ⚠️  ${acCount} ACs - scope may be too broad`);
       if (acCount > 12) {
@@ -99,12 +101,19 @@ export class ScopeValidator extends BaseValidator {
 
     score = Math.max(0, Math.min(1, score));
 
-    console.log(`   📊 [ScopeValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
+    console.log(
+      `   📊 [ScopeValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`,
+    );
 
     return { score, issues, blockers };
   }
 
-  protected generateMessage(score: number, passed: boolean, issues: string[], blockers: string[]): string {
+  protected generateMessage(
+    score: number,
+    passed: boolean,
+    issues: string[],
+    blockers: string[],
+  ): string {
     if (blockers.length > 0) {
       return `Scope issues: ${blockers[0]}`;
     }

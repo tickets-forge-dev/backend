@@ -24,13 +24,12 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { GitHubApiService } from '../../../shared/infrastructure/github/github-api.service';
-import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../domain/GitHubIntegrationRepository';
-import { GitHubTokenService } from '../../application/services/github-token.service';
 import {
-  RepositoryResponseDto,
-  BranchesResponseDto,
-  BranchDto,
-} from '../dto/repository.dto';
+  GitHubIntegrationRepository,
+  GITHUB_INTEGRATION_REPOSITORY,
+} from '../../domain/GitHubIntegrationRepository';
+import { GitHubTokenService } from '../../application/services/github-token.service';
+import { RepositoryResponseDto, BranchesResponseDto, BranchDto } from '../dto/repository.dto';
 
 @ApiTags('github')
 @Controller('github')
@@ -156,12 +155,14 @@ export class GitHubController {
    */
   private async getWorkspaceAccessToken(workspaceId: string): Promise<string> {
     const integration = await this.gitHubIntegrationRepository.findByWorkspaceId(workspaceId);
-    
+
     if (!integration) {
       throw new UnauthorizedException('GitHub integration not found. Please connect GitHub first.');
     }
 
-    const accessToken = await this.gitHubTokenService.decryptToken(integration.encryptedAccessToken);
+    const accessToken = await this.gitHubTokenService.decryptToken(
+      integration.encryptedAccessToken,
+    );
     return accessToken;
   }
 }

@@ -1,14 +1,17 @@
 /**
  * Estimation Engine Service
  * Calculates effort estimates based on multiple factors
- * 
+ *
  * Part of: Story 4.5 - Effort Estimation
  * Layer: Infrastructure
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
-import { IEstimationEngine, EstimationParams } from '../../application/services/estimation-engine.interface';
+import {
+  IEstimationEngine,
+  EstimationParams,
+} from '../../application/services/estimation-engine.interface';
 import { Estimate } from '../../domain/value-objects/Estimate';
 
 @Injectable()

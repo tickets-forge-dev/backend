@@ -1,9 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Workspace } from '../../domain/Workspace';
-import {
-  WorkspaceRepository,
-  WORKSPACE_REPOSITORY,
-} from '../ports/WorkspaceRepository';
+import { WorkspaceRepository, WORKSPACE_REPOSITORY } from '../ports/WorkspaceRepository';
 import { FirebaseService } from '../../../shared/infrastructure/firebase/firebase.config';
 
 export interface CreateWorkspaceCommand {
@@ -21,9 +18,7 @@ export class CreateWorkspaceUseCase {
 
   async execute(command: CreateWorkspaceCommand): Promise<Workspace> {
     // Check if workspace already exists
-    const existing = await this.workspaceRepository.findByOwnerId(
-      command.ownerId,
-    );
+    const existing = await this.workspaceRepository.findByOwnerId(command.ownerId);
 
     if (existing) {
       return existing;
@@ -41,9 +36,7 @@ export class CreateWorkspaceUseCase {
         workspaceId: workspace.id,
       });
 
-      console.log(
-        `✅ Custom claims set for user ${command.ownerId}: workspaceId=${workspace.id}`,
-      );
+      console.log(`✅ Custom claims set for user ${command.ownerId}: workspaceId=${workspace.id}`);
     } catch (error) {
       console.error('Failed to set custom claims:', error);
       // Don't fail the use case - workspace is created, claims are optimization

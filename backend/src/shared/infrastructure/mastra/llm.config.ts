@@ -31,11 +31,15 @@ export class LLMConfigService {
       console.log(`🔧 LLM Provider: Ollama (DEBUG MODE)`);
       console.log(`   Fast model: ${this.fastModel}`);
       console.log(`   Main model: ${this.mainModel}`);
-      console.log(`   Base URL: ${this.configService.get('OLLAMA_BASE_URL') || 'http://localhost:11434/v1'}`);
+      console.log(
+        `   Base URL: ${this.configService.get('OLLAMA_BASE_URL') || 'http://localhost:11434/v1'}`,
+      );
     } else {
       // Anthropic/Claude models (production)
-      this.fastModel = this.configService.get('ANTHROPIC_FAST_MODEL') || 'claude-3-5-haiku-20241022';
-      this.mainModel = this.configService.get('ANTHROPIC_MAIN_MODEL') || 'claude-3-5-haiku-20241022';
+      this.fastModel =
+        this.configService.get('ANTHROPIC_FAST_MODEL') || 'claude-3-5-haiku-20241022';
+      this.mainModel =
+        this.configService.get('ANTHROPIC_MAIN_MODEL') || 'claude-3-5-haiku-20241022';
 
       console.log(`🚀 LLM Provider: Anthropic/Claude (PRODUCTION MODE)`);
       console.log(`   Fast model: ${this.fastModel}`);
@@ -62,7 +66,9 @@ export class LLMConfigService {
       if (!apiKey) {
         throw new Error('ANTHROPIC_API_KEY not set in .env');
       }
-      throw new Error('Anthropic provider requires @ai-sdk/anthropic to be installed. This feature will be implemented in Story 9.4.');
+      throw new Error(
+        'Anthropic provider requires @ai-sdk/anthropic to be installed. This feature will be implemented in Story 9.4.',
+      );
     }
   }
 

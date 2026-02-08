@@ -41,16 +41,7 @@ export interface Dependency {
  * Detected framework information with version parsing
  */
 export interface Framework {
-  name:
-    | 'next.js'
-    | 'react'
-    | 'vue'
-    | 'svelte'
-    | 'angular'
-    | 'nuxt'
-    | 'remix'
-    | 'qwik'
-    | string;
+  name: 'next.js' | 'react' | 'vue' | 'svelte' | 'angular' | 'nuxt' | 'remix' | 'qwik' | string;
   version: string;
   majorVersion: number;
   prerelease?: boolean;

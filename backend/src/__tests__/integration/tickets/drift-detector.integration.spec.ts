@@ -17,9 +17,7 @@ describe('Drift Detection Integration', () => {
     mockFirestore = createFirestoreMock();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DriftDetectorService,
-      ],
+      providers: [DriftDetectorService],
     }).compile();
 
     service = module.get<DriftDetectorService>(DriftDetectorService);
@@ -35,10 +33,16 @@ describe('Drift Detection Integration', () => {
         codeSnapshot: { commitSha: 'abc123', indexId: 'idx-1' },
       });
 
-      mockFirestore.collection().doc().collection().where().where().get.mockResolvedValue({
-        docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
-        empty: false,
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .get.mockResolvedValue({
+          docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
+          empty: false,
+        });
 
       mockFirestore.collection().doc().collection().doc().update.mockResolvedValue(null);
 
@@ -48,7 +52,7 @@ describe('Drift Detection Integration', () => {
         expect.objectContaining({
           status: 'drifted',
           driftReason: expect.stringContaining('Code snapshot changed'),
-        })
+        }),
       );
     });
 
@@ -58,10 +62,16 @@ describe('Drift Detection Integration', () => {
         codeSnapshot: { commitSha: 'abc123', indexId: 'idx-1' },
       });
 
-      mockFirestore.collection().doc().collection().where().where().get.mockResolvedValue({
-        docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
-        empty: false,
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .get.mockResolvedValue({
+          docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
+          empty: false,
+        });
 
       await service.detectDrift('ws-1', 'test/repo', 'abc123');
 
@@ -74,10 +84,16 @@ describe('Drift Detection Integration', () => {
         codeSnapshot: null,
       });
 
-      mockFirestore.collection().doc().collection().where().where().get.mockResolvedValue({
-        docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
-        empty: false,
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .get.mockResolvedValue({
+          docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
+          empty: false,
+        });
 
       await service.detectDrift('ws-1', 'test/repo', 'def456');
 
@@ -95,7 +111,7 @@ describe('Drift Detection Integration', () => {
       expect(mockFirestore.collection().doc().collection().where).toHaveBeenCalledWith(
         'status',
         'in',
-        ['ready', 'created']
+        ['ready', 'created'],
       );
     });
   });
@@ -107,10 +123,16 @@ describe('Drift Detection Integration', () => {
         apiSnapshot: { specUrl: 'openapi.yaml', hash: 'abc123hash' },
       });
 
-      mockFirestore.collection().doc().collection().where().where().get.mockResolvedValue({
-        docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
-        empty: false,
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .get.mockResolvedValue({
+          docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
+          empty: false,
+        });
 
       mockFirestore.collection().doc().collection().doc().update.mockResolvedValue(null);
 
@@ -120,7 +142,7 @@ describe('Drift Detection Integration', () => {
         expect.objectContaining({
           status: 'drifted',
           driftReason: expect.stringContaining('API spec changed'),
-        })
+        }),
       );
     });
 
@@ -130,10 +152,16 @@ describe('Drift Detection Integration', () => {
         apiSnapshot: { specUrl: 'openapi.yaml', hash: 'abc123hash' },
       });
 
-      mockFirestore.collection().doc().collection().where().where().get.mockResolvedValue({
-        docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
-        empty: false,
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .get.mockResolvedValue({
+          docs: [{ id: 'aec-1', data: () => aecToFirestore(aec) }],
+          empty: false,
+        });
 
       await service.detectApiDrift('ws-1', 'test/repo', 'abc123hash');
 
@@ -152,13 +180,19 @@ describe('Drift Detection Integration', () => {
         codeSnapshot: { commitSha: 'abc123', indexId: 'idx-2' },
       });
 
-      mockFirestore.collection().doc().collection().where().where().get.mockResolvedValue({
-        docs: [
-          { id: 'aec-1', data: () => aecToFirestore(aec1) },
-          { id: 'aec-2', data: () => aecToFirestore(aec2) },
-        ],
-        empty: false,
-      });
+      mockFirestore
+        .collection()
+        .doc()
+        .collection()
+        .where()
+        .where()
+        .get.mockResolvedValue({
+          docs: [
+            { id: 'aec-1', data: () => aecToFirestore(aec1) },
+            { id: 'aec-2', data: () => aecToFirestore(aec2) },
+          ],
+          empty: false,
+        });
 
       mockFirestore.collection().doc().collection().doc().update.mockResolvedValue(null);
 
@@ -181,7 +215,12 @@ function createFirestoreMock() {
   // Chain methods
   whereMock.mockReturnValue({ where: whereMock, get: getMock, limit: limitMock });
   limitMock.mockReturnValue({ get: getMock });
-  docMock.mockReturnValue({ update: updateMock, set: setMock, get: getMock, collection: collectionMock });
+  docMock.mockReturnValue({
+    update: updateMock,
+    set: setMock,
+    get: getMock,
+    collection: collectionMock,
+  });
   collectionMock.mockReturnValue({ doc: docMock, where: whereMock, get: getMock });
 
   return {

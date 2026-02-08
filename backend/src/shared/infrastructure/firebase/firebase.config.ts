@@ -23,7 +23,7 @@ export class FirebaseService implements OnModuleInit {
 
   private initializeFirebase() {
     console.log('🔍 [FirebaseService] Initializing Firebase Admin SDK...');
-    
+
     const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
     const privateKey = this.configService
       .get<string>('FIREBASE_PRIVATE_KEY')
@@ -67,7 +67,7 @@ export class FirebaseService implements OnModuleInit {
   getAuth() {
     if (!this.app) {
       throw new ServiceUnavailableException(
-        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env'
+        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env',
       );
     }
     return admin.auth(this.app);
@@ -76,7 +76,7 @@ export class FirebaseService implements OnModuleInit {
   getFirestore() {
     if (!this.app) {
       throw new ServiceUnavailableException(
-        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env'
+        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env',
       );
     }
     return admin.firestore(this.app);
@@ -85,7 +85,7 @@ export class FirebaseService implements OnModuleInit {
   getStorage() {
     if (!this.app) {
       throw new ServiceUnavailableException(
-        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env'
+        'Firebase not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env',
       );
     }
     return admin.storage(this.app);

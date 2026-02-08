@@ -1,4 +1,14 @@
-import { IsString, IsOptional, IsInt, IsIn, Min, Max, MinLength, MaxLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsIn,
+  Min,
+  Max,
+  MinLength,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 
 export class CreateTicketDto {
   @IsString()

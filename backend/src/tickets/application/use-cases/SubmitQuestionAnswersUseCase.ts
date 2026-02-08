@@ -94,9 +94,7 @@ export class SubmitQuestionAnswersUseCase {
     // Check all questions have answers
     for (const question of questions) {
       if (!(question.id in answers)) {
-        throw new BadRequestException(
-          `Missing answer for question: ${question.question}`,
-        );
+        throw new BadRequestException(`Missing answer for question: ${question.question}`);
       }
 
       const answer = answers[question.id];
@@ -104,19 +102,17 @@ export class SubmitQuestionAnswersUseCase {
       // Validate non-empty
       if (typeof answer === 'string') {
         if (answer.trim().length === 0) {
-          throw new BadRequestException(
-            `Empty answer for question: ${question.question}`,
-          );
+          throw new BadRequestException(`Empty answer for question: ${question.question}`);
         }
       } else if (Array.isArray(answer)) {
         if (answer.length === 0) {
-          throw new BadRequestException(
-            `No options selected for question: ${question.question}`,
-          );
+          throw new BadRequestException(`No options selected for question: ${question.question}`);
         }
       }
     }
 
-    console.log(`✅ [SubmitQuestionAnswersUseCase] All answers validated (${questions.length} questions)`);
+    console.log(
+      `✅ [SubmitQuestionAnswersUseCase] All answers validated (${questions.length} questions)`,
+    );
   }
 }

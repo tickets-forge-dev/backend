@@ -59,25 +59,25 @@ export class FirestoreAECRepository implements AECRepository {
 
   async findById(id: string): Promise<AEC | null> {
     const firestore = this.getFirestore();
-    
+
     // Note: We use collectionGroup to find across all workspaces
     // This requires the workspaceId to be validated by auth guards
     // For now, we need to scan all workspaces (not ideal but works)
-    
+
     try {
       // Get all workspaces
       const workspacesSnapshot = await firestore.collection('workspaces').listDocuments();
-      
+
       // Try to find the AEC in each workspace
       for (const workspaceRef of workspacesSnapshot) {
         const aecRef = workspaceRef.collection('aecs').doc(id);
         const aecDoc = await aecRef.get();
-        
+
         if (aecDoc.exists) {
           return AECMapper.toDomain(aecDoc.data() as AECDocument);
         }
       }
-      
+
       return null;
     } catch (error) {
       console.error('❌ [FirestoreAECRepository] findById error:', error);
@@ -106,9 +106,7 @@ export class FirestoreAECRepository implements AECRepository {
       .orderBy('updatedAt', 'desc')
       .get();
 
-    return snapshot.docs.map((doc) =>
-      AECMapper.toDomain(doc.data() as AECDocument),
-    );
+    return snapshot.docs.map((doc) => AECMapper.toDomain(doc.data() as AECDocument));
   }
 
   async update(aec: AEC): Promise<void> {

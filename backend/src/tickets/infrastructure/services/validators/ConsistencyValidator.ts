@@ -1,9 +1,9 @@
 /**
  * Consistency Validator
  * Story 3-1: Task 4.4
- * 
+ *
  * LLM-based validator that detects contradictions within the ticket.
- * 
+ *
  * Weight: 0.8
  * Pass Threshold: 0.7
  */
@@ -25,7 +25,7 @@ export class ConsistencyValidator extends BaseValidator {
     blockers: string[];
   }> {
     console.log(`   🔍 [ConsistencyValidator] Checking for contradictions...`);
-    
+
     const issues: string[] = [];
     const blockers: string[] = [];
 
@@ -43,7 +43,9 @@ export class ConsistencyValidator extends BaseValidator {
       aec.description || '',
       ...aec.acceptanceCriteria,
       ...aec.assumptions,
-    ].join(' ').toLowerCase();
+    ]
+      .join(' ')
+      .toLowerCase();
 
     let contradictionCount = 0;
 
@@ -55,7 +57,7 @@ export class ConsistencyValidator extends BaseValidator {
     }
 
     // Check for conflicting acceptance criteria
-    const acLower = aec.acceptanceCriteria.map(ac => ac.toLowerCase());
+    const acLower = aec.acceptanceCriteria.map((ac) => ac.toLowerCase());
     for (let i = 0; i < acLower.length; i++) {
       for (let j = i + 1; j < acLower.length; j++) {
         if (this.detectOpposites(acLower[i], acLower[j])) {
@@ -72,7 +74,7 @@ export class ConsistencyValidator extends BaseValidator {
     }
 
     // Score based on contradictions
-    let score = 1.0 - (contradictionCount * 0.2);
+    let score = 1.0 - contradictionCount * 0.2;
     score = Math.max(0, Math.min(1, score));
 
     if (contradictionCount > 2) {
@@ -80,7 +82,9 @@ export class ConsistencyValidator extends BaseValidator {
       console.log(`      ❌ Critical: ${contradictionCount} contradictions is too many`);
     }
 
-    console.log(`   📊 [ConsistencyValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
+    console.log(
+      `   📊 [ConsistencyValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`,
+    );
 
     return { score, issues, blockers };
   }
@@ -105,7 +109,12 @@ export class ConsistencyValidator extends BaseValidator {
     return false;
   }
 
-  protected generateMessage(score: number, passed: boolean, issues: string[], blockers: string[]): string {
+  protected generateMessage(
+    score: number,
+    passed: boolean,
+    issues: string[],
+    blockers: string[],
+  ): string {
     if (blockers.length > 0) {
       return `Requirements contain contradictions: ${blockers[0]}`;
     }

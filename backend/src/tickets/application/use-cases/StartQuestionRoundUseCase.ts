@@ -1,7 +1,11 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
-import { TechSpecGenerator, CodebaseContext, ClarificationQuestion } from '../../domain/tech-spec/TechSpecGenerator';
+import {
+  TechSpecGenerator,
+  CodebaseContext,
+  ClarificationQuestion,
+} from '../../domain/tech-spec/TechSpecGenerator';
 import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
@@ -59,7 +63,9 @@ export class StartQuestionRoundUseCase {
    * Execute the use case: Start a question round
    */
   async execute(command: StartQuestionRoundCommand): Promise<AEC> {
-    console.log(`🎯 [StartQuestionRoundUseCase] Starting round ${command.roundNumber} for AEC ${command.aecId}`);
+    console.log(
+      `🎯 [StartQuestionRoundUseCase] Starting round ${command.roundNumber} for AEC ${command.aecId}`,
+    );
 
     // Load AEC
     const aec = await this.aecRepository.findById(command.aecId);
@@ -78,7 +84,9 @@ export class StartQuestionRoundUseCase {
     // No prior answers in simplified single-question flow
     const priorAnswers: Array<{ questionId: string; answer: string | string[] }> = [];
 
-    console.log(`🎯 [StartQuestionRoundUseCase] Generating questions for round ${command.roundNumber}`);
+    console.log(
+      `🎯 [StartQuestionRoundUseCase] Generating questions for round ${command.roundNumber}`,
+    );
 
     // Generate questions with retry logic
     const questions = await this.generateQuestionsWithRetry(
@@ -98,7 +106,9 @@ export class StartQuestionRoundUseCase {
       console.log(`🎯 [StartQuestionRoundUseCase] Questions saved to AEC`);
     }
 
-    console.log(`🎯 [StartQuestionRoundUseCase] Round ${command.roundNumber} started and persisted`);
+    console.log(
+      `🎯 [StartQuestionRoundUseCase] Round ${command.roundNumber} started and persisted`,
+    );
 
     return aec;
   }
@@ -119,7 +129,9 @@ export class StartQuestionRoundUseCase {
 
     // Fallback to minimal context if no repository context
     if (!repoContext) {
-      console.warn('🎯 [StartQuestionRoundUseCase] No repository context available, using minimal context');
+      console.warn(
+        '🎯 [StartQuestionRoundUseCase] No repository context available, using minimal context',
+      );
       return {
         stack: {
           framework: null,
@@ -133,8 +145,21 @@ export class StartQuestionRoundUseCase {
         },
         analysis: {
           architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
-          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
-          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          naming: {
+            files: 'kebab-case',
+            variables: 'camelCase',
+            functions: 'camelCase',
+            classes: 'PascalCase',
+            components: 'PascalCase',
+            confidence: 0,
+          },
+          testing: {
+            runner: null,
+            location: 'colocated',
+            namingPattern: '*.test.ts',
+            libraries: [],
+            confidence: 0,
+          },
           stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
           apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
           directories: [],
@@ -148,7 +173,9 @@ export class StartQuestionRoundUseCase {
 
     try {
       const [owner, repo] = repoContext.repositoryFullName.split('/');
-      console.log(`🎯 [StartQuestionRoundUseCase] Analyzing repository: ${repoContext.repositoryFullName}`);
+      console.log(
+        `🎯 [StartQuestionRoundUseCase] Analyzing repository: ${repoContext.repositoryFullName}`,
+      );
 
       // Step 1: Fetch repository file tree from GitHub
       console.log('🎯 [StartQuestionRoundUseCase] Fetching repository tree...');
@@ -156,11 +183,22 @@ export class StartQuestionRoundUseCase {
 
       // Step 2: Read key files for stack detection
       const filesMap = new Map<string, string>();
-      const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
+      const keyFiles = [
+        'package.json',
+        'tsconfig.json',
+        'requirements.txt',
+        'Dockerfile',
+        'pom.xml',
+      ];
 
       for (const fileName of keyFiles) {
         try {
-          const content = await this.githubFileService.readFile(owner, repo, fileName, repoContext.branchName);
+          const content = await this.githubFileService.readFile(
+            owner,
+            repo,
+            fileName,
+            repoContext.branchName,
+          );
           filesMap.set(fileName, content);
           console.log(`🎯 [StartQuestionRoundUseCase] Read ${fileName}`);
         } catch (error) {
@@ -177,7 +215,9 @@ export class StartQuestionRoundUseCase {
       console.log('🎯 [StartQuestionRoundUseCase] Analyzing codebase patterns...');
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
-      console.log(`🎯 [StartQuestionRoundUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`);
+      console.log(
+        `🎯 [StartQuestionRoundUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`,
+      );
 
       return {
         stack,
@@ -186,7 +226,10 @@ export class StartQuestionRoundUseCase {
         files: filesMap,
       };
     } catch (error) {
-      console.error('🎯 [StartQuestionRoundUseCase] Error building codebase context:', error instanceof Error ? error.message : String(error));
+      console.error(
+        '🎯 [StartQuestionRoundUseCase] Error building codebase context:',
+        error instanceof Error ? error.message : String(error),
+      );
       // Return partial context with minimal valid structure
       return {
         stack: {
@@ -201,8 +244,21 @@ export class StartQuestionRoundUseCase {
         },
         analysis: {
           architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
-          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
-          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          naming: {
+            files: 'kebab-case',
+            variables: 'camelCase',
+            functions: 'camelCase',
+            classes: 'PascalCase',
+            components: 'PascalCase',
+            confidence: 0,
+          },
+          testing: {
+            runner: null,
+            location: 'colocated',
+            namingPattern: '*.test.ts',
+            libraries: [],
+            confidence: 0,
+          },
           stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
           apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
           directories: [],
@@ -214,7 +270,6 @@ export class StartQuestionRoundUseCase {
       };
     }
   }
-
 
   /**
    * Generate questions with LLM retry logic
@@ -232,7 +287,9 @@ export class StartQuestionRoundUseCase {
 
     for (let attempt = 1; attempt <= StartQuestionRoundUseCase.MAX_RETRIES; attempt++) {
       try {
-        console.log(`🎯 [StartQuestionRoundUseCase] Attempt ${attempt}/${StartQuestionRoundUseCase.MAX_RETRIES}`);
+        console.log(
+          `🎯 [StartQuestionRoundUseCase] Attempt ${attempt}/${StartQuestionRoundUseCase.MAX_RETRIES}`,
+        );
 
         const questions = await this.techSpecGenerator.generateQuestionsWithContext({
           title,
@@ -242,7 +299,9 @@ export class StartQuestionRoundUseCase {
           roundNumber,
         });
 
-        console.log(`🎯 [StartQuestionRoundUseCase] Successfully generated ${questions.length} questions`);
+        console.log(
+          `🎯 [StartQuestionRoundUseCase] Successfully generated ${questions.length} questions`,
+        );
         return questions;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));

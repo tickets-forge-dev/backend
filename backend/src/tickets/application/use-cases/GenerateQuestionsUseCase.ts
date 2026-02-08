@@ -1,7 +1,11 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
-import { TechSpecGenerator, ClarificationQuestion, CodebaseContext } from '../../domain/tech-spec/TechSpecGenerator';
+import {
+  TechSpecGenerator,
+  ClarificationQuestion,
+  CodebaseContext,
+} from '../../domain/tech-spec/TechSpecGenerator';
 import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
@@ -113,7 +117,9 @@ export class GenerateQuestionsUseCase {
 
     // Fallback to minimal context if no repository context
     if (!repoContext) {
-      console.warn('❓ [GenerateQuestionsUseCase] No repository context available, using minimal context');
+      console.warn(
+        '❓ [GenerateQuestionsUseCase] No repository context available, using minimal context',
+      );
       return {
         stack: {
           framework: null,
@@ -127,8 +133,21 @@ export class GenerateQuestionsUseCase {
         },
         analysis: {
           architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
-          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
-          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          naming: {
+            files: 'kebab-case',
+            variables: 'camelCase',
+            functions: 'camelCase',
+            classes: 'PascalCase',
+            components: 'PascalCase',
+            confidence: 0,
+          },
+          testing: {
+            runner: null,
+            location: 'colocated',
+            namingPattern: '*.test.ts',
+            libraries: [],
+            confidence: 0,
+          },
           stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
           apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
           directories: [],
@@ -142,7 +161,9 @@ export class GenerateQuestionsUseCase {
 
     try {
       const [owner, repo] = repoContext.repositoryFullName.split('/');
-      console.log(`❓ [GenerateQuestionsUseCase] Analyzing repository: ${repoContext.repositoryFullName}`);
+      console.log(
+        `❓ [GenerateQuestionsUseCase] Analyzing repository: ${repoContext.repositoryFullName}`,
+      );
 
       // Step 1: Fetch repository file tree from GitHub
       console.log('❓ [GenerateQuestionsUseCase] Fetching repository tree...');
@@ -150,11 +171,22 @@ export class GenerateQuestionsUseCase {
 
       // Step 2: Read key files for stack detection
       const filesMap = new Map<string, string>();
-      const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
+      const keyFiles = [
+        'package.json',
+        'tsconfig.json',
+        'requirements.txt',
+        'Dockerfile',
+        'pom.xml',
+      ];
 
       for (const fileName of keyFiles) {
         try {
-          const content = await this.githubFileService.readFile(owner, repo, fileName, repoContext.branchName);
+          const content = await this.githubFileService.readFile(
+            owner,
+            repo,
+            fileName,
+            repoContext.branchName,
+          );
           filesMap.set(fileName, content);
           console.log(`❓ [GenerateQuestionsUseCase] Read ${fileName}`);
         } catch (error) {
@@ -171,7 +203,9 @@ export class GenerateQuestionsUseCase {
       console.log('❓ [GenerateQuestionsUseCase] Analyzing codebase patterns...');
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
-      console.log(`❓ [GenerateQuestionsUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`);
+      console.log(
+        `❓ [GenerateQuestionsUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`,
+      );
 
       return {
         stack,
@@ -181,7 +215,10 @@ export class GenerateQuestionsUseCase {
         taskAnalysis: aec.taskAnalysis,
       };
     } catch (error) {
-      console.error('❓ [GenerateQuestionsUseCase] Error building codebase context:', error instanceof Error ? error.message : String(error));
+      console.error(
+        '❓ [GenerateQuestionsUseCase] Error building codebase context:',
+        error instanceof Error ? error.message : String(error),
+      );
       // Return partial context with minimal valid structure
       return {
         stack: {
@@ -196,8 +233,21 @@ export class GenerateQuestionsUseCase {
         },
         analysis: {
           architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
-          naming: { files: 'kebab-case', variables: 'camelCase', functions: 'camelCase', classes: 'PascalCase', components: 'PascalCase', confidence: 0 },
-          testing: { runner: null, location: 'colocated', namingPattern: '*.test.ts', libraries: [], confidence: 0 },
+          naming: {
+            files: 'kebab-case',
+            variables: 'camelCase',
+            functions: 'camelCase',
+            classes: 'PascalCase',
+            components: 'PascalCase',
+            confidence: 0,
+          },
+          testing: {
+            runner: null,
+            location: 'colocated',
+            namingPattern: '*.test.ts',
+            libraries: [],
+            confidence: 0,
+          },
           stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
           apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
           directories: [],
@@ -225,7 +275,9 @@ export class GenerateQuestionsUseCase {
 
     for (let attempt = 1; attempt <= GenerateQuestionsUseCase.MAX_RETRIES; attempt++) {
       try {
-        console.log(`❓ [GenerateQuestionsUseCase] Attempt ${attempt}/${GenerateQuestionsUseCase.MAX_RETRIES}`);
+        console.log(
+          `❓ [GenerateQuestionsUseCase] Attempt ${attempt}/${GenerateQuestionsUseCase.MAX_RETRIES}`,
+        );
 
         const questions = await this.techSpecGenerator.generateQuestionsWithContext({
           title,
@@ -235,14 +287,13 @@ export class GenerateQuestionsUseCase {
           roundNumber: 1, // Always round 1 in simplified flow
         });
 
-        console.log(`❓ [GenerateQuestionsUseCase] Successfully generated ${questions.length} questions`);
+        console.log(
+          `❓ [GenerateQuestionsUseCase] Successfully generated ${questions.length} questions`,
+        );
         return questions;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.warn(
-          `❓ [GenerateQuestionsUseCase] Attempt ${attempt} failed:`,
-          lastError.message,
-        );
+        console.warn(`❓ [GenerateQuestionsUseCase] Attempt ${attempt} failed:`, lastError.message);
 
         if (attempt < GenerateQuestionsUseCase.MAX_RETRIES) {
           const backoffMs = GenerateQuestionsUseCase.INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1);

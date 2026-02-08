@@ -26,10 +26,7 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
   /**
    * Well-known framework names and their detection patterns
    */
-  private readonly FRAMEWORK_PATTERNS: Record<
-    string,
-    { name: string; packages: string[] }
-  > = {
+  private readonly FRAMEWORK_PATTERNS: Record<string, { name: string; packages: string[] }> = {
     'next.js': { name: 'next.js', packages: ['next'] },
     react: { name: 'react', packages: ['react', 'react-dom'] },
     vue: { name: 'vue', packages: ['vue'] },
@@ -236,10 +233,7 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
 
     // Check for Python
     const pythonFiles = Array.from(files.keys()).filter(
-      (f) =>
-        f.endsWith('.py') ||
-        f.endsWith('setup.py') ||
-        f.endsWith('pyproject.toml'),
+      (f) => f.endsWith('.py') || f.endsWith('setup.py') || f.endsWith('pyproject.toml'),
     );
     if (pythonFiles.length > 0) {
       return {
@@ -275,16 +269,10 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
 
     // Default to JavaScript/TypeScript based on presence of .ts/.tsx/.js files
     const tsxFiles = Array.from(files.keys()).filter(
-      (f) =>
-        f.endsWith('.ts') ||
-        f.endsWith('.tsx') ||
-        f.endsWith('.js') ||
-        f.endsWith('.jsx'),
+      (f) => f.endsWith('.ts') || f.endsWith('.tsx') || f.endsWith('.js') || f.endsWith('.jsx'),
     );
     if (tsxFiles.length > 0) {
-      const hasTs = tsxFiles.some(
-        (f) => f.endsWith('.ts') || f.endsWith('.tsx'),
-      );
+      const hasTs = tsxFiles.some((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
       if (hasTs) {
         return {
           name: 'typescript',
@@ -335,20 +323,14 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
    * Extracts runtime dependencies from package.json
    */
   extractDependencies(packageJson: Record<string, any>): Dependency[] {
-    return this.extractDependenciesByType(
-      packageJson.dependencies || {},
-      'runtime',
-    );
+    return this.extractDependenciesByType(packageJson.dependencies || {}, 'runtime');
   }
 
   /**
    * Extracts development dependencies from package.json
    */
   private extractDevDependencies(packageJson: Record<string, any>): Dependency[] {
-    return this.extractDependenciesByType(
-      packageJson.devDependencies || {},
-      'dev',
-    );
+    return this.extractDependenciesByType(packageJson.devDependencies || {}, 'dev');
   }
 
   /**
@@ -372,9 +354,7 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
   /**
    * Parses scoped package name (e.g., @org/package → org, package)
    */
-  private parseScopedPackage(
-    name: string,
-  ): { scope?: string; packageName: string } {
+  private parseScopedPackage(name: string): { scope?: string; packageName: string } {
     if (name.startsWith('@')) {
       const [scope, packageName] = name.substring(1).split('/');
       return { scope, packageName };
@@ -399,9 +379,7 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
     };
 
     // Remove undefined entries
-    return Object.fromEntries(
-      Object.entries(tooling).filter(([_, v]) => v !== undefined),
-    );
+    return Object.fromEntries(Object.entries(tooling).filter(([_, v]) => v !== undefined));
   }
 
   /**
@@ -455,10 +433,7 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
   /**
    * Checks if project is a monorepo (nx, turborepo, lerna, etc.)
    */
-  private isMonorepoProject(
-    packageJson: Record<string, any>,
-    files: Map<string, string>,
-  ): boolean {
+  private isMonorepoProject(packageJson: Record<string, any>, files: Map<string, string>): boolean {
     // Check for lerna.json
     if (files.has('lerna.json')) {
       return true;
@@ -504,17 +479,7 @@ export class ProjectStackDetectorImpl implements ProjectStackDetector {
    * Checks if a version string is a prerelease (alpha, beta, rc, etc.)
    */
   private isPrerelease(version: string): boolean {
-    const prereleasePrefixes = [
-      'alpha',
-      'beta',
-      'rc',
-      'dev',
-      'pre',
-      'next',
-      'experimental',
-    ];
-    return prereleasePrefixes.some(
-      (prefix) => version.toLowerCase().includes(prefix),
-    );
+    const prereleasePrefixes = ['alpha', 'beta', 'rc', 'dev', 'pre', 'next', 'experimental'];
+    return prereleasePrefixes.some((prefix) => version.toLowerCase().includes(prefix));
   }
 }

@@ -1,12 +1,12 @@
 /**
  * GitHubIntegration Entity
- * 
+ *
  * Core domain entity representing a workspace's GitHub integration.
  * Manages GitHub connection state, access tokens, and repository selections.
- * 
+ *
  * Part of: Story 4.1 - GitHub App Integration
  * Layer: Domain (no external dependencies)
- * 
+ *
  * Business Rules:
  * - One integration per workspace
  * - Access token must be encrypted before storage
@@ -166,9 +166,7 @@ export class GitHubIntegration {
     }
 
     const idsToRemove = new Set(repositoryIds);
-    const filtered = this.props.selectedRepositories.filter(
-      (repo) => !idsToRemove.has(repo.id),
-    );
+    const filtered = this.props.selectedRepositories.filter((repo) => !idsToRemove.has(repo.id));
 
     this.props.selectedRepositories = filtered;
     this.props.updatedAt = new Date();
@@ -202,7 +200,7 @@ export class GitHubIntegration {
 
   private removeDuplicateRepositories(repositories: GitHubRepository[]): GitHubRepository[] {
     const seen = new Map<number, GitHubRepository>();
-    
+
     for (const repo of repositories) {
       if (!seen.has(repo.id)) {
         seen.set(repo.id, repo);
@@ -263,8 +261,8 @@ export class GitHubIntegration {
       ...this.props,
       connectedAt: new Date(this.props.connectedAt),
       updatedAt: new Date(this.props.updatedAt),
-      selectedRepositories: this.props.selectedRepositories.map((repo) => 
-        GitHubRepository.create(repo.toObject())
+      selectedRepositories: this.props.selectedRepositories.map((repo) =>
+        GitHubRepository.create(repo.toObject()),
       ),
     };
   }

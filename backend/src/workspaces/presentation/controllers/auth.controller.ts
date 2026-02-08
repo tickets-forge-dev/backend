@@ -4,9 +4,7 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly createWorkspaceUseCase: CreateWorkspaceUseCase,
-  ) {}
+  constructor(private readonly createWorkspaceUseCase: CreateWorkspaceUseCase) {}
 
   /**
    * Initialize user workspace on first login

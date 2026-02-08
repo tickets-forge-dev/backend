@@ -1,7 +1,7 @@
 /**
  * Completeness Validator
  * Story 3-1: Task 3.1
- * 
+ *
  * Rule-based validator that checks if all required sections are present
  * and have minimum content length.
  */
@@ -23,7 +23,7 @@ export class CompletenessValidator extends BaseValidator {
     blockers: string[];
   }> {
     console.log(`   🔍 [CompletenessValidator] Analyzing ticket completeness...`);
-    
+
     const issues: string[] = [];
     const blockers: string[] = [];
     let score = 0;
@@ -76,7 +76,9 @@ export class CompletenessValidator extends BaseValidator {
       console.log(`      ⚠️  No description or assumptions`);
     } else {
       score += 0.15;
-      console.log(`      ✅ Has ${hasDescription ? 'description' : ''}${hasDescription && hasAssumptions ? ' and ' : ''}${hasAssumptions ? 'assumptions' : ''}`);
+      console.log(
+        `      ✅ Has ${hasDescription ? 'description' : ''}${hasDescription && hasAssumptions ? ' and ' : ''}${hasAssumptions ? 'assumptions' : ''}`,
+      );
     }
 
     // Check 5: Repository paths (optional)
@@ -94,12 +96,19 @@ export class CompletenessValidator extends BaseValidator {
       console.log(`      ✅ Has repository context`);
     }
 
-    console.log(`   📊 [CompletenessValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
+    console.log(
+      `   📊 [CompletenessValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`,
+    );
 
     return { score, issues, blockers };
   }
 
-  protected generateMessage(score: number, passed: boolean, issues: string[], blockers: string[]): string {
+  protected generateMessage(
+    score: number,
+    passed: boolean,
+    issues: string[],
+    blockers: string[],
+  ): string {
     if (blockers.length > 0) {
       return `Ticket is incomplete: ${blockers.join('; ')}`;
     }

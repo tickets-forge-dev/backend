@@ -1,10 +1,10 @@
 /**
  * Context Alignment Validator
  * Story 3-1: Task 4.5
- * 
+ *
  * Validates that suggested file paths align with repository structure
  * when repository context is provided.
- * 
+ *
  * Weight: 0.7
  * Pass Threshold: 0.7
  */
@@ -26,7 +26,7 @@ export class ContextAlignmentValidator extends BaseValidator {
     blockers: string[];
   }> {
     console.log(`   🔍 [ContextAlignmentValidator] Checking repository context alignment...`);
-    
+
     const issues: string[] = [];
     const blockers: string[] = [];
 
@@ -51,8 +51,8 @@ export class ContextAlignmentValidator extends BaseValidator {
       console.log(`      ⚠️  No file paths suggested`);
     } else {
       // Validate path formats
-      const invalidPaths = aec.repoPaths.filter(path => !this.isValidPath(path));
-      
+      const invalidPaths = aec.repoPaths.filter((path) => !this.isValidPath(path));
+
       if (invalidPaths.length > 0) {
         issues.push(`${invalidPaths.length} path(s) have invalid format`);
         score -= invalidPaths.length * 0.1;
@@ -70,7 +70,9 @@ export class ContextAlignmentValidator extends BaseValidator {
 
     score = Math.max(0, Math.min(1, score));
 
-    console.log(`   📊 [ContextAlignmentValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
+    console.log(
+      `   📊 [ContextAlignmentValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`,
+    );
 
     return { score, issues, blockers };
   }
@@ -80,11 +82,16 @@ export class ContextAlignmentValidator extends BaseValidator {
     if (!path || path.trim().length === 0) return false;
     if (path.includes('..')) return false; // No parent directory traversal
     if (path.startsWith('/') || path.startsWith('\\')) return false; // Should be relative
-    
+
     return true;
   }
 
-  protected generateMessage(score: number, passed: boolean, issues: string[], blockers: string[]): string {
+  protected generateMessage(
+    score: number,
+    passed: boolean,
+    issues: string[],
+    blockers: string[],
+  ): string {
     if (blockers.length > 0) {
       return `Repository context alignment issues: ${blockers[0]}`;
     }

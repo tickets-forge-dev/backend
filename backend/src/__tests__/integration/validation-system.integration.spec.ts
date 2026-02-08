@@ -1,7 +1,7 @@
 /**
  * Validation System Integration Tests
  * Story 3-1: Task 8
- * 
+ *
  * Tests the complete validation pipeline end-to-end
  */
 
@@ -40,7 +40,15 @@ describe('Validation System Integration', () => {
             consistency: ConsistencyValidator,
             contextAlignment: ContextAlignmentValidator,
             scope: ScopeValidator,
-          ) => [completeness, testability, clarity, feasibility, consistency, contextAlignment, scope],
+          ) => [
+            completeness,
+            testability,
+            clarity,
+            feasibility,
+            consistency,
+            contextAlignment,
+            scope,
+          ],
           inject: [
             CompletenessValidator,
             TestabilityValidator,
@@ -66,7 +74,7 @@ describe('Validation System Integration', () => {
       expect(results).toHaveLength(7); // All 7 validators
 
       // Completeness should fail
-      const completeness = results.find(r => r.criterion === 'completeness');
+      const completeness = results.find((r) => r.criterion === 'completeness');
       expect(completeness).toBeDefined();
       expect(completeness?.passed).toBe(false);
       expect(completeness?.blockers.length).toBeGreaterThan(0);
@@ -104,12 +112,12 @@ describe('Validation System Integration', () => {
       expect(results).toHaveLength(7);
 
       // Completeness should pass (threshold 0.9)
-      const completeness = results.find(r => r.criterion === 'completeness');
+      const completeness = results.find((r) => r.criterion === 'completeness');
       // May not pass threshold due to missing repo context, but score should be decent
       expect(completeness?.score).toBeGreaterThan(0.7);
 
       // Testability should pass (good AC structure, threshold 0.8)
-      const testability = results.find(r => r.criterion === 'testability');
+      const testability = results.find((r) => r.criterion === 'testability');
       expect(testability?.score).toBeGreaterThan(0.6);
 
       // Overall should pass
@@ -145,7 +153,7 @@ describe('Validation System Integration', () => {
       (aec as any)._description = 'Good description with details';
 
       const results = await validationEngine.validate(aec);
-      const completeness = results.find(r => r.criterion === 'completeness');
+      const completeness = results.find((r) => r.criterion === 'completeness');
 
       // Score should be good (0.75-0.85 range without repo context)
       expect(completeness?.score).toBeGreaterThan(0.7);
@@ -162,7 +170,7 @@ describe('Validation System Integration', () => {
       (aec as any)._type = 'feature';
 
       const results = await validationEngine.validate(aec);
-      const testability = results.find(r => r.criterion === 'testability');
+      const testability = results.find((r) => r.criterion === 'testability');
 
       expect(testability?.score).toBeGreaterThan(0.6);
     });
@@ -173,12 +181,16 @@ describe('Validation System Integration', () => {
       (aec as any)._type = 'feature';
 
       const results = await validationEngine.validate(aec);
-      const scope = results.find(r => r.criterion === 'scope');
+      const scope = results.find((r) => r.criterion === 'scope');
 
       // Should flag issues for having too many ACs
       expect(scope?.issues.length).toBeGreaterThan(0);
       // Check for issue about too many ACs (message may vary)
-      expect(scope?.issues.some(i => i.toLowerCase().includes('many') || i.toLowerCase().includes('large'))).toBe(true);
+      expect(
+        scope?.issues.some(
+          (i) => i.toLowerCase().includes('many') || i.toLowerCase().includes('large'),
+        ),
+      ).toBe(true);
     });
 
     it('ConsistencyValidator should detect contradictions', async () => {
@@ -190,7 +202,7 @@ describe('Validation System Integration', () => {
       (aec as any)._type = 'feature';
 
       const results = await validationEngine.validate(aec);
-      const consistency = results.find(r => r.criterion === 'consistency');
+      const consistency = results.find((r) => r.criterion === 'consistency');
 
       // Should detect the always/never contradiction
       expect(consistency?.issues.length).toBeGreaterThan(0);
@@ -206,13 +218,13 @@ describe('Validation System Integration', () => {
       const results = await validationEngine.validate(aec);
 
       // Check weights are applied
-      expect(results.find(r => r.criterion === 'completeness')?.weight).toBe(1.0);
-      expect(results.find(r => r.criterion === 'testability')?.weight).toBe(0.9);
-      expect(results.find(r => r.criterion === 'clarity')?.weight).toBe(0.8);
-      expect(results.find(r => r.criterion === 'scope')?.weight).toBe(0.6);
+      expect(results.find((r) => r.criterion === 'completeness')?.weight).toBe(1.0);
+      expect(results.find((r) => r.criterion === 'testability')?.weight).toBe(0.9);
+      expect(results.find((r) => r.criterion === 'clarity')?.weight).toBe(0.8);
+      expect(results.find((r) => r.criterion === 'scope')?.weight).toBe(0.6);
 
       // Weighted scores should be calculated
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.weightedScore).toBe(result.score * result.weight);
       });
     });

@@ -1,7 +1,7 @@
 /**
  * ValidationEngine Service
  * Story 3-1: Task 5
- * 
+ *
  * Orchestrates all validators and produces comprehensive validation results.
  * Runs validators in parallel for performance and calculates weighted scores.
  */
@@ -35,7 +35,9 @@ export class ValidationEngine {
         try {
           console.log(`  ⚙️  Running ${validator.type} validator...`);
           const result = await validator.validate(aec);
-          console.log(`  ✓ ${validator.type}: ${(result.score * 100).toFixed(0)}% (${result.passed ? 'PASS' : 'FAIL'})`);
+          console.log(
+            `  ✓ ${validator.type}: ${(result.score * 100).toFixed(0)}% (${result.passed ? 'PASS' : 'FAIL'})`,
+          );
           return result;
         } catch (error) {
           console.error(`  ✗ ${validator.type} validator failed:`, error);
@@ -58,7 +60,7 @@ export class ValidationEngine {
 
     // Calculate overall statistics
     const overallScore = this.calculateOverallScore(results);
-    const passedCount = results.filter(r => r.passed).length;
+    const passedCount = results.filter((r) => r.passed).length;
     const failedCount = results.length - passedCount;
 
     console.log(`📊 [ValidationEngine] Overall Score: ${(overallScore * 100).toFixed(0)}%`);
@@ -73,7 +75,7 @@ export class ValidationEngine {
       timestamp: new Date(),
       overallScore: summary.overallScore,
       passed: summary.passed,
-      validatorScores: results.map(r => ({
+      validatorScores: results.map((r) => ({
         validator: r.criterion,
         score: r.score,
         passed: r.passed,
@@ -118,8 +120,8 @@ export class ValidationEngine {
     totalIssues: number;
   } {
     const overallScore = this.calculateOverallScore(results);
-    const passedValidators = results.filter(r => r.passed).length;
-    const criticalIssues = results.filter(r => r.hasCriticalIssues()).length;
+    const passedValidators = results.filter((r) => r.passed).length;
+    const criticalIssues = results.filter((r) => r.hasCriticalIssues()).length;
     const totalIssues = results.reduce((sum, r) => sum + r.issues.length, 0);
 
     return {

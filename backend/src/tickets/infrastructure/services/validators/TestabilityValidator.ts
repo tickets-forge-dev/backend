@@ -1,7 +1,7 @@
 /**
  * Testability Validator
  * Story 3-1: Task 3.2
- * 
+ *
  * Rule-based validator that checks if acceptance criteria are measurable
  * and ticket provides enough detail for QA testing.
  */
@@ -14,14 +14,36 @@ import { AEC } from '../../../domain/aec/AEC';
 @Injectable()
 export class TestabilityValidator extends BaseValidator {
   private readonly measurableKeywords = [
-    'when', 'then', 'should', 'must', 'can', 'will',
-    'displays', 'shows', 'returns', 'creates', 'updates', 'deletes',
-    'validates', 'allows', 'prevents', 'redirects', 'sends',
+    'when',
+    'then',
+    'should',
+    'must',
+    'can',
+    'will',
+    'displays',
+    'shows',
+    'returns',
+    'creates',
+    'updates',
+    'deletes',
+    'validates',
+    'allows',
+    'prevents',
+    'redirects',
+    'sends',
   ];
 
   private readonly vagueWords = [
-    'better', 'improved', 'good', 'nice', 'clean', 'properly',
-    'correctly', 'well', 'appropriately', 'reasonable',
+    'better',
+    'improved',
+    'good',
+    'nice',
+    'clean',
+    'properly',
+    'correctly',
+    'well',
+    'appropriately',
+    'reasonable',
   ];
 
   constructor() {
@@ -34,7 +56,7 @@ export class TestabilityValidator extends BaseValidator {
     blockers: string[];
   }> {
     console.log(`   🔍 [TestabilityValidator] Analyzing testability...`);
-    
+
     const issues: string[] = [];
     const blockers: string[] = [];
     let score = 0;
@@ -57,7 +79,7 @@ export class TestabilityValidator extends BaseValidator {
       const lowerAc = ac.toLowerCase();
 
       // Check for measurable language
-      const hasMeasurableKeyword = this.measurableKeywords.some(keyword =>
+      const hasMeasurableKeyword = this.measurableKeywords.some((keyword) =>
         lowerAc.includes(keyword),
       );
 
@@ -66,7 +88,7 @@ export class TestabilityValidator extends BaseValidator {
       }
 
       // Check for vague language
-      const hasVagueWord = this.vagueWords.some(word => lowerAc.includes(word));
+      const hasVagueWord = this.vagueWords.some((word) => lowerAc.includes(word));
       if (hasVagueWord) {
         vagueCount++;
       }
@@ -84,15 +106,21 @@ export class TestabilityValidator extends BaseValidator {
     const measurableRatio = measurableCount / aec.acceptanceCriteria.length;
     if (measurableRatio >= 0.8) {
       score += 0.4;
-      console.log(`      ✅ ${measurableCount}/${aec.acceptanceCriteria.length} ACs have measurable language (${Math.round(measurableRatio * 100)}%)`);
+      console.log(
+        `      ✅ ${measurableCount}/${aec.acceptanceCriteria.length} ACs have measurable language (${Math.round(measurableRatio * 100)}%)`,
+      );
     } else if (measurableRatio >= 0.5) {
       score += 0.25;
       issues.push('Some acceptance criteria lack measurable language');
-      console.log(`      ⚠️  ${measurableCount}/${aec.acceptanceCriteria.length} ACs measurable (${Math.round(measurableRatio * 100)}%)`);
+      console.log(
+        `      ⚠️  ${measurableCount}/${aec.acceptanceCriteria.length} ACs measurable (${Math.round(measurableRatio * 100)}%)`,
+      );
     } else {
       score += 0.1;
       issues.push('Most acceptance criteria are not measurable');
-      console.log(`      ❌ Only ${measurableCount}/${aec.acceptanceCriteria.length} ACs measurable (${Math.round(measurableRatio * 100)}%)`);
+      console.log(
+        `      ❌ Only ${measurableCount}/${aec.acceptanceCriteria.length} ACs measurable (${Math.round(measurableRatio * 100)}%)`,
+      );
     }
 
     // Penalize vague language
@@ -135,12 +163,19 @@ export class TestabilityValidator extends BaseValidator {
       console.log(`      ❌ Critical: Score too low (${(score * 100).toFixed(0)}%)`);
     }
 
-    console.log(`   📊 [TestabilityValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`);
+    console.log(
+      `   📊 [TestabilityValidator] Final score: ${(score * 100).toFixed(0)}%, Issues: ${issues.length}, Blockers: ${blockers.length}`,
+    );
 
     return { score, issues, blockers };
   }
 
-  protected generateMessage(score: number, passed: boolean, issues: string[], blockers: string[]): string {
+  protected generateMessage(
+    score: number,
+    passed: boolean,
+    issues: string[],
+    blockers: string[],
+  ): string {
     if (blockers.length > 0) {
       return `Ticket is not testable: ${blockers.join('; ')}`;
     }

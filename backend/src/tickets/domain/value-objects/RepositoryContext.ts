@@ -1,21 +1,21 @@
 /**
  * Repository Context Value Object
- * 
+ *
  * Represents the repository and branch context for an AEC.
  * This enables:
  * - Snapshot locking (commit SHA)
  * - Drift detection (compare current vs original)
  * - Branch-aware code analysis
- * 
+ *
  * Domain Layer - No framework dependencies
  */
 
 export interface RepositoryContextProps {
   repositoryFullName: string; // "owner/repo"
-  branchName: string;         // "main", "develop", etc.
-  commitSha: string;          // HEAD commit at generation time
-  isDefaultBranch: boolean;   // true if this is the repo's default branch
-  selectedAt: Date;           // When the branch was selected
+  branchName: string; // "main", "develop", etc.
+  commitSha: string; // HEAD commit at generation time
+  isDefaultBranch: boolean; // true if this is the repo's default branch
+  selectedAt: Date; // When the branch was selected
 }
 
 export class RepositoryContext {
@@ -59,9 +59,7 @@ export class RepositoryContext {
     // Validate commit SHA (40 character hex string)
     const shaRegex = /^[a-f0-9]{40}$/;
     if (!shaRegex.test(this.commitSha)) {
-      throw new Error(
-        `Invalid commit SHA: ${this.commitSha}. Must be 40 character hex string`,
-      );
+      throw new Error(`Invalid commit SHA: ${this.commitSha}. Must be 40 character hex string`);
     }
 
     // Validate date

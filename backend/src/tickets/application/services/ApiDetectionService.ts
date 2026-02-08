@@ -1,7 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  GitHubFileService,
-} from '@github/domain/github-file.service';
+import { GitHubFileService } from '@github/domain/github-file.service';
 import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
 import type { TechSpec } from '../../domain/tech-spec/TechSpecGenerator';
 import { AEC } from '../../domain/aec/AEC';
@@ -53,12 +51,7 @@ export class ApiDetectionService {
     const detectedApis: DetectedApi[] = [];
 
     for (const file of controllerFiles) {
-      const content = await this.githubFileService.readFile(
-        owner,
-        repo,
-        file.path,
-        branch,
-      );
+      const content = await this.githubFileService.readFile(owner, repo, file.path, branch);
       const apis = this.parseControllerFile(content, file.path);
       detectedApis.push(...apis);
     }
@@ -70,11 +63,7 @@ export class ApiDetectionService {
    * Detect APIs from spec analysis (via LLM during deep analysis)
    * This is called from DeepAnalysisServiceImpl with parsed LLM response
    */
-  async detectApisFromSpec(
-    spec: TechSpec,
-    aec: AEC,
-    llmResponse: any,
-  ): Promise<DetectedApi[]> {
+  async detectApisFromSpec(spec: TechSpec, aec: AEC, llmResponse: any): Promise<DetectedApi[]> {
     // LLM response format (from DeepAnalysisServiceImpl):
     // {
     //   apis: [
@@ -109,11 +98,7 @@ export class ApiDetectionService {
       },
       description: api.description || '',
       confidence: api.confidence || 'medium',
-      curlCommand: this.generateCurlCommand(
-        api.method,
-        api.path,
-        api.request?.example,
-      ),
+      curlCommand: this.generateCurlCommand(api.method, api.path, api.request?.example),
       createdAt: new Date(),
     }));
   }
@@ -204,10 +189,7 @@ export class ApiDetectionService {
     branch: string,
   ): Promise<Array<{ path: string; name: string }>> {
     const tree = await this.githubFileService.getTree(owner, repo, branch);
-    const controllerPaths = await this.githubFileService.findByPattern(
-      tree,
-      '**/*.controller.ts',
-    );
+    const controllerPaths = await this.githubFileService.findByPattern(tree, '**/*.controller.ts');
 
     return controllerPaths.map((p) => ({
       path: p,
@@ -224,8 +206,7 @@ export class ApiDetectionService {
 
     // Regex to find NestJS route decorators
     // Matches: @Get('path'), @Post('path'), etc.
-    const decoratorRegex =
-      /@(Get|Post|Put|Patch|Delete)\(['"]([^'"]+)['"]\)/g;
+    const decoratorRegex = /@(Get|Post|Put|Patch|Delete)\(['"]([^'"]+)['"]\)/g;
 
     let match;
     const basePathMatch = content.match(/@Controller\(['"]([^'"]+)['"]\)/);
