@@ -31,10 +31,31 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
+  // CORS - Allow multiple origins for different environments
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    process.env.FRONTEND_URL,
+    // Production domains
+    'https://forge-ai.dev',
+    'https://www.forge-ai.dev',
+    'https://forge.dev.ai',
+    'https://www.forge.dev.ai',
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: (requestOrigin, callback) => {
+      if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+        callback(null, true);
+      } else {
+        console.warn(`❌ CORS blocked request from: ${requestOrigin}`);
+        callback(new Error('CORS not allowed'), false);
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global validation pipe (Zod validation at controller layer)
