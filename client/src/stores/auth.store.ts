@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Zustand store: useServices() is lazy service access, not a React hook */
 import { create } from 'zustand';
 import { User } from 'firebase/auth';
 import { SignInUseCase } from '@/src/auth/application/sign-in.use-case';

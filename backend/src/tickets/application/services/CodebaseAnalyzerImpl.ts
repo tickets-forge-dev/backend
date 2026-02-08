@@ -2,7 +2,6 @@ import {
   CodebaseAnalyzer,
   CodebaseAnalysis,
   ArchitecturePattern,
-  ArchitectureType,
   NamingConventions,
   NamingStyle,
   TestingStrategy,
@@ -10,7 +9,6 @@ import {
   StateManagement,
   StateManagementType,
   APIRouting,
-  APIRoutingType,
   DirectoryEntry,
   DirectoryEntryType,
 } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -35,10 +33,7 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
   /**
    * Performs complete codebase analysis across all pattern categories
    */
-  async analyzeStructure(
-    files: Map<string, string>,
-    tree: FileTree,
-  ): Promise<CodebaseAnalysis> {
+  async analyzeStructure(files: Map<string, string>, tree: FileTree): Promise<CodebaseAnalysis> {
     const architecture = this.detectArchitecture(tree);
     const naming = this.detectNamingConventions(tree, files);
     const testing = this.detectTestingStrategy(tree);
@@ -87,16 +82,11 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
    * Detects architecture pattern from directory structure
    */
   detectArchitecture(tree: FileTree): ArchitecturePattern {
-    const paths = tree.tree
-      .map((entry: TreeEntry) => entry.path)
-      .filter((p: string) => p);
+    const paths = tree.tree.map((entry: TreeEntry) => entry.path).filter((p: string) => p);
     const pathSet = new Set<string>(paths);
 
     // Check for feature-based architecture
-    if (
-      this.hasPath(pathSet, 'src/features') ||
-      this.hasPath(pathSet, 'src/modules')
-    ) {
+    if (this.hasPath(pathSet, 'src/features') || this.hasPath(pathSet, 'src/modules')) {
       return {
         type: 'feature-based',
         confidence: 92,
@@ -130,10 +120,7 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
     }
 
     // Check for clean architecture / hexagonal
-    if (
-      this.hasPath(pathSet, 'src/domain') &&
-      this.hasPath(pathSet, 'src/ports')
-    ) {
+    if (this.hasPath(pathSet, 'src/domain') && this.hasPath(pathSet, 'src/ports')) {
       return {
         type: 'clean-architecture',
         confidence: 85,
@@ -190,10 +177,7 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
   /**
    * Detects naming conventions from file and code samples
    */
-  detectNamingConventions(
-    tree: FileTree,
-    files: Map<string, string>,
-  ): NamingConventions {
+  detectNamingConventions(tree: FileTree, files: Map<string, string>): NamingConventions {
     // Sample file names (strip extensions for analysis)
     const fileNames = tree.tree
       .filter((e: TreeEntry) => e.type === 'blob' && e.path.match(/\.(ts|tsx|js|jsx)$/))
@@ -209,7 +193,7 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
 
     // Sample variable and function names from code
     let variableStyle: NamingStyle = 'camelCase';
-    let functionStyle: NamingStyle = 'camelCase';
+    const functionStyle: NamingStyle = 'camelCase';
     let classStyle: NamingStyle = 'PascalCase';
 
     // Scan files for code patterns
@@ -309,10 +293,7 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
   /**
    * Detects state management approach from imports and patterns
    */
-  detectStateManagement(
-    files: Map<string, string>,
-    stack: ProjectStack,
-  ): StateManagement {
+  detectStateManagement(files: Map<string, string>, _stack: ProjectStack): StateManagement {
     let detectedType: StateManagementType = 'unknown';
     const packages: string[] = [];
     const patterns: string[] = [];
@@ -363,7 +344,7 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
   /**
    * Detects API routing convention from directory structure and imports
    */
-  detectAPIRouting(stack: ProjectStack, files: Map<string, string>): APIRouting {
+  detectAPIRouting(stack: ProjectStack, _files: Map<string, string>): APIRouting {
     // For Next.js projects, detect based on directory structure
     if (stack.framework?.name === 'next.js') {
       // Check if app/api exists (App Router)
@@ -436,7 +417,7 @@ export class CodebaseAnalyzerImpl implements CodebaseAnalyzer {
     naming: NamingConventions,
     testing: TestingStrategy,
     stateManagement: StateManagement,
-    apiRouting: APIRouting,
+    _apiRouting: APIRouting,
   ): string[] {
     const recommendations: string[] = [];
 

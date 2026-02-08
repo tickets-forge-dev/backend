@@ -10,14 +10,18 @@
  *
  * NOTE: This will be properly implemented in Story 9.4 (TechSpecGenerator)
  */
-export const createAnthropicProvider = (apiKey: string) => {
-  throw new Error('Anthropic provider requires @ai-sdk/anthropic to be installed. Install with: npm install @ai-sdk/anthropic');
+export const createAnthropicProvider = (_apiKey: string) => {
+  throw new Error(
+    'Anthropic provider requires @ai-sdk/anthropic to be installed. Install with: npm install @ai-sdk/anthropic',
+  );
 };
 
 /**
  * Create a Claude model instance
  * @param modelId - Claude model name
  */
-export const claude = (apiKey: string, modelId: string): any => {
-  throw new Error('Anthropic provider requires @ai-sdk/anthropic to be installed. Install with: npm install @ai-sdk/anthropic');
+export const claude = (_apiKey: string, _modelId: string): any => {
+  throw new Error(
+    'Anthropic provider requires @ai-sdk/anthropic to be installed. Install with: npm install @ai-sdk/anthropic',
+  );
 };

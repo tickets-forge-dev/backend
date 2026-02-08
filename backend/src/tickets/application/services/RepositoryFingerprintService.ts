@@ -112,34 +112,31 @@ export class RepositoryFingerprintService {
   /**
    * Detect frameworks from config file contents
    */
-  private detectFrameworks(
-    configContents: Record<string, string>,
-    languages: string[],
-  ): string[] {
+  private detectFrameworks(configContents: Record<string, string>, _languages: string[]): string[] {
     const frameworks = new Set<string>();
 
     // Check package.json dependencies
     const packageJsonStr = configContents['package.json'] || '';
     if (packageJsonStr) {
       const packagePatterns: Record<string, string> = {
-        'react': 'React',
-        'vue': 'Vue',
-        'angular': 'Angular',
-        'next': 'Next.js',
-        'nuxt': 'Nuxt',
-        'nest': 'NestJS',
-        'express': 'Express',
-        'fastify': 'Fastify',
-        'django': 'Django',
-        'flask': 'Flask',
-        'rails': 'Rails',
-        'spring': 'Spring',
+        react: 'React',
+        vue: 'Vue',
+        angular: 'Angular',
+        next: 'Next.js',
+        nuxt: 'Nuxt',
+        nest: 'NestJS',
+        express: 'Express',
+        fastify: 'Fastify',
+        django: 'Django',
+        flask: 'Flask',
+        rails: 'Rails',
+        spring: 'Spring',
         'django-rest': 'Django REST',
-        'fastapi': 'FastAPI',
-        'svelte': 'Svelte',
-        'remix': 'Remix',
-        'astro': 'Astro',
-        'qwik': 'Qwik',
+        fastapi: 'FastAPI',
+        svelte: 'Svelte',
+        remix: 'Remix',
+        astro: 'Astro',
+        qwik: 'Qwik',
       };
 
       for (const [pattern, framework] of Object.entries(packagePatterns)) {
@@ -198,9 +195,7 @@ export class RepositoryFingerprintService {
    */
   private identifyConfigFiles(fileTree: FileTree): Record<string, boolean> {
     const configFiles = new Set<string>();
-    const rootFiles = fileTree.tree
-      .filter((e) => !e.path.includes('/'))
-      .map((e) => e.path);
+    const rootFiles = fileTree.tree.filter((e) => !e.path.includes('/')).map((e) => e.path);
 
     const knownConfigs = [
       'tsconfig.json',
@@ -231,7 +226,7 @@ export class RepositoryFingerprintService {
   /**
    * Detect likely entry points based on directory structure
    */
-  private detectEntryPoints(fileTree: FileTree, languages: string[]): string[] {
+  private detectEntryPoints(fileTree: FileTree, _languages: string[]): string[] {
     const entryPoints = new Set<string>();
 
     // Common entry point patterns

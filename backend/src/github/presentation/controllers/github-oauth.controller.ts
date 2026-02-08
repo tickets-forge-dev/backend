@@ -1,6 +1,6 @@
 /**
  * GitHub OAuth Controller
- * 
+ *
  * Handles GitHub OAuth flow endpoints:
  * - GET /api/github/oauth/authorize - Generate OAuth URL
  * - GET /api/github/oauth/callback - Handle OAuth callback
@@ -8,7 +8,7 @@
  * - POST /api/github/repositories/select - Select repositories for indexing
  * - POST /api/github/disconnect - Disconnect GitHub integration
  * - GET /api/github/connection - Check connection status
- * 
+ *
  * Part of: Story 4.1 - GitHub App Integration
  * Layer: Presentation (HTTP/REST)
  */
@@ -21,7 +21,6 @@ import {
   Body,
   UseGuards,
   Logger,
-  BadRequestException,
   InternalServerErrorException,
   NotFoundException,
   Redirect,
@@ -34,7 +33,10 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { GitHubTokenService } from '../../application/services/github-token.service';
-import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../domain/GitHubIntegrationRepository';
+import {
+  GitHubIntegrationRepository,
+  GITHUB_INTEGRATION_REPOSITORY,
+} from '../../domain/GitHubIntegrationRepository';
 import { GitHubIntegration } from '../../domain/GitHubIntegration';
 import { GitHubRepository } from '../../domain/GitHubRepository';
 
@@ -76,7 +78,9 @@ export class GitHubOAuthController {
     const clientId = this.configService.get<string>('GITHUB_CLIENT_ID');
     const redirectUri = this.configService.get<string>('GITHUB_OAUTH_REDIRECT_URI');
 
-    this.logger.log(`GitHub OAuth config check - ClientID: ${clientId ? '✓ set' : '✗ missing'}, RedirectURI: ${redirectUri ? '✓ set' : '✗ missing'}`);
+    this.logger.log(
+      `GitHub OAuth config check - ClientID: ${clientId ? '✓ set' : '✗ missing'}, RedirectURI: ${redirectUri ? '✓ set' : '✗ missing'}`,
+    );
 
     if (!clientId || !redirectUri) {
       this.logger.error('GitHub OAuth not configured - missing env vars');
@@ -86,7 +90,9 @@ export class GitHubOAuthController {
     // Generate HMAC-signed state that embeds workspaceId (no session needed)
     const state = this.tokenService.generateSignedState(workspaceId);
 
-    this.logger.log(`📝 Generated signed state for workspace ${workspaceId}, state prefix: ${state.substring(0, 8)}...`);
+    this.logger.log(
+      `📝 Generated signed state for workspace ${workspaceId}, state prefix: ${state.substring(0, 8)}...`,
+    );
 
     const oauthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,repo&state=${state}`;
 
@@ -178,10 +184,7 @@ export class GitHubOAuthController {
     status: 200,
     description: 'Repository list retrieved successfully',
   })
-  async listRepositories(
-    @WorkspaceId() workspaceId: string,
-    @Query('page') page?: string,
-  ) {
+  async listRepositories(@WorkspaceId() workspaceId: string, @Query('page') page?: string) {
     try {
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
@@ -199,7 +202,7 @@ export class GitHubOAuthController {
       // List only repos owned by the authenticated user (not contributed/org repos)
       const { data } = await octokit.rest.repos.listForAuthenticatedUser({
         affiliation: 'owner', // Only show repos owned by the user
-        per_page: 50,         // More reasonable page size
+        per_page: 50, // More reasonable page size
         page: pageNum,
         sort: 'updated',
         direction: 'desc',
@@ -216,7 +219,9 @@ export class GitHubOAuthController {
         updatedAt: repo.updated_at,
       }));
 
-      this.logger.log(`📦 Fetched ${repositories.length} repositories for user ${integration.accountLogin} (page ${pageNum})`);
+      this.logger.log(
+        `📦 Fetched ${repositories.length} repositories for user ${integration.accountLogin} (page ${pageNum})`,
+      );
 
       return {
         repositories,
@@ -243,7 +248,18 @@ export class GitHubOAuthController {
   })
   async selectRepositories(
     @WorkspaceId() workspaceId: string,
-    @Body() body: { repositories: Array<{ id: number; fullName: string; name: string; owner: string; private: boolean; defaultBranch: string; url: string }> },
+    @Body()
+    body: {
+      repositories: Array<{
+        id: number;
+        fullName: string;
+        name: string;
+        owner: string;
+        private: boolean;
+        defaultBranch: string;
+        url: string;
+      }>;
+    },
   ) {
     try {
       if (!this.integrationRepository) {
@@ -267,7 +283,7 @@ export class GitHubOAuthController {
           private: repo.private,
           defaultBranch: repo.defaultBranch,
           url: repo.url,
-        })
+        }),
       );
 
       // Update selection
@@ -282,11 +298,11 @@ export class GitHubOAuthController {
       };
     } catch (error: any) {
       this.logger.error('Failed to select repositories:', error.message, error.stack);
-      
+
       if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
       }
-      
+
       throw new InternalServerErrorException(`Failed to select repositories: ${error.message}`);
     }
   }
@@ -304,7 +320,7 @@ export class GitHubOAuthController {
   })
   async disconnect(@WorkspaceId() workspaceId: string) {
     this.logger.log(`Attempting to disconnect GitHub for workspace ${workspaceId}`);
-    
+
     try {
       if (!this.integrationRepository) {
         this.logger.error('Integration repository is null - Firebase may not be configured');
@@ -320,7 +336,7 @@ export class GitHubOAuthController {
       }
 
       this.logger.log(`Found integration for workspace ${workspaceId}, deleting...`);
-      
+
       // Use direct delete by workspace ID to avoid collection group query
       await this.integrationRepository.deleteByWorkspaceId(workspaceId);
 
@@ -331,16 +347,20 @@ export class GitHubOAuthController {
         message: 'GitHub disconnected successfully',
       };
     } catch (error: any) {
-      this.logger.error(`Failed to disconnect GitHub for workspace ${workspaceId}:`, error.message, error.stack);
-      
+      this.logger.error(
+        `Failed to disconnect GitHub for workspace ${workspaceId}:`,
+        error.message,
+        error.stack,
+      );
+
       if (error instanceof NotFoundException) {
         throw error;
       }
-      
+
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      
+
       throw new InternalServerErrorException(`Failed to disconnect GitHub: ${error.message}`);
     }
   }

@@ -35,13 +35,13 @@ function PrivacyNote() {
       {expanded && (
         <div className="mt-3 rounded-lg bg-[var(--bg-subtle)] p-4 text-[12px] text-[var(--text-tertiary)] leading-relaxed space-y-2">
           <p>
-            Forge uses the GitHub API to read your repository's file tree and selected source files — the same way you browse code on github.com. We request <strong className="text-[var(--text-secondary)]">read-only</strong> access and never write, push, or clone anything.
+            Forge uses the GitHub API to read your repository&apos;s file tree and selected source files — the same way you browse code on github.com. We request <strong className="text-[var(--text-secondary)]">read-only</strong> access and never write, push, or clone anything.
           </p>
           <p>
             During analysis, the AI reads config files and a small set of source files (10-25) to understand your stack, patterns, and architecture. File contents are processed in-memory and never stored on disk.
           </p>
           <p>
-            You can disconnect at any time from Settings and we'll revoke all access immediately.
+            You can disconnect at any time from Settings and we&apos;ll revoke all access immediately.
           </p>
         </div>
       )}
@@ -151,7 +151,7 @@ export function OnboardingDialog() {
               </h2>
               <p className="text-[14px] text-[var(--text-secondary)] max-w-[400px] mx-auto leading-relaxed">
                 Transform product intent into execution-ready engineering tickets.
-                Let's get you set up in a few quick steps.
+                Let&apos;s get you set up in a few quick steps.
               </p>
             </div>
 

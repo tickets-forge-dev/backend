@@ -1,7 +1,6 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
-import { QuestionRound } from '../../../domain/value-objects/QuestionRound';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { TechSpec } from '../../../domain/tech-spec/TechSpecGenerator';
 import { Timestamp } from 'firebase-admin/firestore';
@@ -97,12 +96,16 @@ export class AECMapper {
       .filter((vr) => {
         // Skip invalid validation results
         if (!vr || typeof vr !== 'object') return false;
-        
-        const hasValidScore = typeof vr.score === 'number' && !isNaN(vr.score) && isFinite(vr.score);
-        const hasValidWeight = typeof vr.weight === 'number' && !isNaN(vr.weight) && isFinite(vr.weight);
-        const hasCriterion = vr.criterion && typeof vr.criterion === 'string' && vr.criterion.trim().length > 0;
-        const hasMessage = vr.message && typeof vr.message === 'string' && vr.message.trim().length > 0;
-        
+
+        const hasValidScore =
+          typeof vr.score === 'number' && !isNaN(vr.score) && isFinite(vr.score);
+        const hasValidWeight =
+          typeof vr.weight === 'number' && !isNaN(vr.weight) && isFinite(vr.weight);
+        const hasCriterion =
+          vr.criterion && typeof vr.criterion === 'string' && vr.criterion.trim().length > 0;
+        const hasMessage =
+          vr.message && typeof vr.message === 'string' && vr.message.trim().length > 0;
+
         return hasCriterion && hasValidScore && hasValidWeight && hasMessage;
       })
       .map((vr) => {
@@ -110,7 +113,7 @@ export class AECMapper {
           // Handle legacy data where scores might be stored as percentages (0-100)
           let normalizedScore = vr.score;
           let normalizedWeight = vr.weight;
-          
+
           // Normalize scores if they're > 1 (likely percentages)
           if (normalizedScore > 1) {
             normalizedScore = Math.min(normalizedScore / 100, 1.0);
@@ -118,16 +121,17 @@ export class AECMapper {
           if (normalizedWeight > 1) {
             normalizedWeight = Math.min(normalizedWeight / 100, 1.0);
           }
-          
+
           // Clamp to valid range [0, 1]
           normalizedScore = Math.max(0, Math.min(1, normalizedScore));
           normalizedWeight = Math.max(0, Math.min(1, normalizedWeight));
-          
+
           // Ensure message exists (fallback for legacy data)
-          const message = vr.message && vr.message.trim().length > 0 
-            ? vr.message 
-            : `Validation check for ${vr.criterion}`;
-          
+          const message =
+            vr.message && vr.message.trim().length > 0
+              ? vr.message
+              : `Validation check for ${vr.criterion}`;
+
           return ValidationResult.create({
             criterion: vr.criterion as ValidatorType,
             passed: vr.passed === true,
@@ -207,9 +211,7 @@ export class AECMapper {
       estimate: aec.estimate,
       validationResults: aec.validationResults.map((vr) => vr.toPlainObject()),
       externalIssue: aec.externalIssue,
-      driftDetectedAt: aec.driftDetectedAt
-        ? Timestamp.fromDate(aec.driftDetectedAt)
-        : null,
+      driftDetectedAt: aec.driftDetectedAt ? Timestamp.fromDate(aec.driftDetectedAt) : null,
       driftReason: aec.driftReason,
       repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),

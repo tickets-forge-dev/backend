@@ -3,7 +3,6 @@ import { GenerationState } from '../value-objects/GenerationState';
 import { Estimate } from '../value-objects/Estimate';
 import { CodeSnapshot, ApiSnapshot } from '../value-objects/Snapshot';
 import { Question } from '../value-objects/Question';
-import { QuestionRound } from '../value-objects/QuestionRound';
 import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
@@ -159,9 +158,7 @@ export class AEC {
   // State machine transitions
   validate(validationResults: ValidationResult[]): void {
     if (this._status !== AECStatus.DRAFT) {
-      throw new InvalidStateTransitionError(
-        `Cannot validate from ${this._status}`,
-      );
+      throw new InvalidStateTransitionError(`Cannot validate from ${this._status}`);
     }
     this._validationResults = validationResults;
     this._readinessScore = this.calculateReadinessScore(validationResults);
@@ -178,10 +175,7 @@ export class AEC {
     const totalWeight = this._validationResults.reduce((sum, r) => sum + r.weight, 0);
     if (totalWeight === 0) return 0;
 
-    const weightedSum = this._validationResults.reduce(
-      (sum, r) => sum + r.weightedScore,
-      0,
-    );
+    const weightedSum = this._validationResults.reduce((sum, r) => sum + r.weightedScore, 0);
 
     return weightedSum / totalWeight;
   }
@@ -197,19 +191,15 @@ export class AEC {
    * Check if there are any critical blockers
    */
   get hasCriticalBlockers(): boolean {
-    return this._validationResults.some(r => r.hasCriticalIssues());
+    return this._validationResults.some((r) => r.hasCriticalIssues());
   }
 
   markReady(codeSnapshot: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
     if (this._status !== AECStatus.VALIDATED) {
-      throw new InvalidStateTransitionError(
-        `Cannot mark ready from ${this._status}`,
-      );
+      throw new InvalidStateTransitionError(`Cannot mark ready from ${this._status}`);
     }
     if (this._readinessScore < 75) {
-      throw new InsufficientReadinessError(
-        `Score ${this._readinessScore} < 75`,
-      );
+      throw new InsufficientReadinessError(`Score ${this._readinessScore} < 75`);
     }
     this._codeSnapshot = codeSnapshot;
     this._apiSnapshot = apiSnapshot ?? null;
@@ -219,9 +209,7 @@ export class AEC {
 
   export(externalIssue: ExternalIssue): void {
     if (this._status !== AECStatus.READY) {
-      throw new InvalidStateTransitionError(
-        `Cannot export from ${this._status}`,
-      );
+      throw new InvalidStateTransitionError(`Cannot export from ${this._status}`);
     }
     this._externalIssue = externalIssue;
     this._status = AECStatus.CREATED;
@@ -248,10 +236,8 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
-  detectDrift(reason: string): void {
-    if (
-      ![AECStatus.READY, AECStatus.CREATED].includes(this._status)
-    ) {
+  detectDrift(_reason: string): void {
+    if (![AECStatus.READY, AECStatus.CREATED].includes(this._status)) {
       return;
     }
     this._status = AECStatus.DRIFTED;
@@ -374,10 +360,7 @@ export class AEC {
     if (results.length === 0) return 0;
 
     const totalWeight = results.reduce((sum, r) => sum + r.weight, 0);
-    const weightedScore = results.reduce(
-      (sum, r) => sum + r.score * r.weight,
-      0,
-    );
+    const weightedScore = results.reduce((sum, r) => sum + r.score * r.weight, 0);
 
     // Return as percentage (0-100) rounded to nearest integer
     return Math.round((weightedScore / totalWeight) * 100);

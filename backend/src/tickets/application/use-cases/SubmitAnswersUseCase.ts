@@ -1,7 +1,7 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
-import { TechSpecGenerator, CodebaseContext } from '../../domain/tech-spec/TechSpecGenerator';
+import { TechSpecGenerator } from '../../domain/tech-spec/TechSpecGenerator';
 import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
@@ -71,7 +71,9 @@ export class SubmitAnswersUseCase {
    * Execute the use case: Submit answers and decide next action
    */
   async execute(command: SubmitAnswersCommand): Promise<SubmitAnswersResult> {
-    console.log(`📋 [SubmitAnswersUseCase] Submitting answers for round ${command.roundNumber} of AEC ${command.aecId}`);
+    console.log(
+      `📋 [SubmitAnswersUseCase] Submitting answers for round ${command.roundNumber} of AEC ${command.aecId}`,
+    );
 
     // Load AEC
     const aec = await this.aecRepository.findById(command.aecId);
@@ -102,5 +104,4 @@ export class SubmitAnswersUseCase {
       nextAction,
     };
   }
-
 }

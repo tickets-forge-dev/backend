@@ -21,7 +21,10 @@ import {
   AnalysisProgressEvent,
 } from '@tickets/domain/deep-analysis/deep-analysis.service';
 import { DeepAnalysisResult } from '@tickets/domain/deep-analysis/deep-analysis.types';
-import { RepositoryFingerprintService, RepositoryFingerprint } from './RepositoryFingerprintService';
+import {
+  RepositoryFingerprintService,
+  RepositoryFingerprint,
+} from './RepositoryFingerprintService';
 import { ApiDetectionService } from './ApiDetectionService';
 
 /** Directories to always exclude from the tree the LLM sees */
@@ -38,28 +41,30 @@ const SKIP_DIRS = new Set([
   '__pycache__',
   '.venv',
   'venv',
-  '.bmad',       // BMAD workflow configs — never relevant to app code
-  '.github',     // CI/CD workflows
+  '.bmad', // BMAD workflow configs — never relevant to app code
+  '.github', // CI/CD workflows
   '.vscode',
   '.idea',
 ]);
 
 /** File extensions to skip (binary, generated, non-source) */
 const SKIP_EXTENSIONS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp',
-  '.woff', '.woff2', '.ttf', '.eot',
-  '.lock', '.map',
-  '.min.js', '.min.css',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.svg',
+  '.ico',
+  '.webp',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.eot',
+  '.lock',
+  '.map',
+  '.min.js',
+  '.min.css',
   '.d.ts',
-]);
-
-/** Source code extensions the LLM should focus on */
-const SOURCE_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
-  '.json', '.yaml', '.yml',
-  '.py', '.go', '.rs', '.java', '.rb',
-  '.css', '.scss', '.html',
-  '.env.example', '.env.local.example',
 ]);
 
 /** Max files the LLM can request to read */
@@ -102,8 +107,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         this.providerName = 'none (ANTHROPIC_API_KEY not set)';
       }
     } else {
-      const modelId =
-        this.configService.get<string>('OLLAMA_MODEL') || 'qwen2.5-coder:latest';
+      const modelId = this.configService.get<string>('OLLAMA_MODEL') || 'qwen2.5-coder:latest';
       const ollamaProvider = createOllamaProvider();
       this.llmModel = ollamaProvider.chat(modelId);
       this.providerName = `Ollama (${modelId})`;
@@ -122,9 +126,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     const startTime = Date.now();
     const emit = (event: AnalysisProgressEvent) => input.onProgress?.(event);
 
-    this.logger.log(
-      `Starting deep analysis for ${input.owner}/${input.repo} — "${input.title}"`,
-    );
+    this.logger.log(`Starting deep analysis for ${input.owner}/${input.repo} — "${input.title}"`);
 
     // Phase 1: Build condensed tree (input already has tree + configs)
     const condensedTree = this.buildFileTreeString(input.fileTree);
@@ -140,7 +142,9 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       Object.fromEntries(input.configFiles),
     );
     const pmDisplay = fingerprint.packageManager || 'auto-detect';
-    this.logger.log(`Pass 1: Detected ${fingerprint.languages.join(', ') || 'unknown'} (${pmDisplay})`);
+    this.logger.log(
+      `Pass 1: Detected ${fingerprint.languages.join(', ') || 'unknown'} (${pmDisplay})`,
+    );
 
     // Emit fingerprint result quickly (can be used by frontend immediately)
     emit({
@@ -154,7 +158,11 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     let fileContents = new Map<string, string>();
 
     try {
-      emit({ phase: 'selecting_files', message: 'AI is selecting relevant files to analyze...', percent: 35 });
+      emit({
+        phase: 'selecting_files',
+        message: 'AI is selecting relevant files to analyze...',
+        percent: 35,
+      });
 
       selectedFiles = await this.selectFilesToRead(
         input.title,
@@ -166,7 +174,11 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
 
       this.logger.log(`Phase 2: LLM selected ${selectedFiles.length} files to read`);
 
-      emit({ phase: 'reading_files', message: `Reading ${selectedFiles.length} source files from GitHub...`, percent: 50 });
+      emit({
+        phase: 'reading_files',
+        message: `Reading ${selectedFiles.length} source files from GitHub...`,
+        percent: 50,
+      });
 
       // Read selected files from GitHub
       fileContents = await this.readFilesFromGitHub(
@@ -179,12 +191,18 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
 
       this.logger.log(`Phase 2: Read ${fileContents.size} files from GitHub`);
     } catch (error: any) {
-      this.logger.warn(`Phase 2 file selection failed: ${error.message}. Proceeding with config files only.`);
+      this.logger.warn(
+        `Phase 2 file selection failed: ${error.message}. Proceeding with config files only.`,
+      );
     }
 
     // Phase 3: LLM deep analysis with fingerprint context
     try {
-      emit({ phase: 'analyzing', message: 'Deep analyzing codebase patterns and architecture...', percent: 65 });
+      emit({
+        phase: 'analyzing',
+        message: 'Deep analyzing codebase patterns and architecture...',
+        percent: 65,
+      });
 
       const result = await this.analyzeWithLLM(
         input.title,
@@ -193,7 +211,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         fileContents,
         condensedTree,
         selectedFiles,
-        fingerprint,  // Pass fingerprint for context
+        fingerprint, // Pass fingerprint for context
       );
 
       // Post-Phase 3: Enrich with regex-based controller scanning
@@ -215,7 +233,9 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
               status: 'existing' as const,
               authentication: 'none' as const,
             }));
-            this.logger.log(`Post-Phase 3: Found ${codebaseApis.length} APIs from controller scanning`);
+            this.logger.log(
+              `Post-Phase 3: Found ${codebaseApis.length} APIs from controller scanning`,
+            );
           }
         } catch (scanErr: any) {
           this.logger.warn(`Controller scan failed (non-critical): ${scanErr.message}`);
@@ -383,14 +403,16 @@ CRITICAL: Your analysis must be specific to the task "${title}". Generic observa
 Return ONLY valid JSON. No markdown fences, no explanation text.`;
 
     // Build fingerprint context for quick reference
-    const fingerprintContext = fingerprint ? `
+    const fingerprintContext = fingerprint
+      ? `
 REPOSITORY FINGERPRINT (detected without reading all files):
 - Languages: ${fingerprint.languages.join(', ') || 'unknown'}
 - Primary: ${fingerprint.primaryLanguage}
 - Frameworks: ${fingerprint.frameworks.join(', ') || 'none'}
 - Package Manager: ${fingerprint.packageManager || 'unknown'}
 - Key Config Files: ${Object.keys(fingerprint.configFiles).join(', ') || 'none'}
-` : '';
+`
+      : '';
 
     const userPrompt = `TASK: "${title}"
 ${description ? `DESCRIPTION: ${description}` : ''}
@@ -528,8 +550,9 @@ QUALITY RULES:
       if (parsed.taskAnalysis.implementationHints) {
         const raw = parsed.taskAnalysis.implementationHints.recommendedRounds;
         const num = typeof raw === 'number' ? raw : parseInt(String(raw), 10);
-        parsed.taskAnalysis.implementationHints.recommendedRounds =
-          isNaN(num) ? 3 : Math.max(0, Math.min(3, Math.round(num)));
+        parsed.taskAnalysis.implementationHints.recommendedRounds = isNaN(num)
+          ? 3
+          : Math.max(0, Math.min(3, Math.round(num)));
       }
 
       // Attach fingerprint for downstream use (tech stack fallback)
@@ -599,9 +622,7 @@ QUALITY RULES:
     const sections: string[] = [];
     for (const [path, content] of configFiles) {
       const truncated =
-        content.length > 3000
-          ? content.slice(0, 3000) + '\n... (truncated)'
-          : content;
+        content.length > 3000 ? content.slice(0, 3000) + '\n... (truncated)' : content;
       sections.push(`--- ${path} ---\n${truncated}`);
     }
     return sections.join('\n\n');
@@ -616,7 +637,9 @@ QUALITY RULES:
     }
 
     try {
-      this.logger.log(`Calling LLM (${this.providerName}), prompt length: ${userPrompt.length} chars`);
+      this.logger.log(
+        `Calling LLM (${this.providerName}), prompt length: ${userPrompt.length} chars`,
+      );
       const startTime = Date.now();
 
       const { text } = await generateText({

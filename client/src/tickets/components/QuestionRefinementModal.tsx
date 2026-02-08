@@ -29,17 +29,16 @@ export function QuestionRefinementModal({
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [isLocalSubmitting, setIsLocalSubmitting] = useState(false);
 
-  if (!questions || questions.length === 0) {
-    return null;
-  }
-
-  const currentQuestion = questions[questionIndex];
-  const isLastQuestion = questionIndex === questions.length - 1;
+  const hasQuestions = questions && questions.length > 0;
+  const currentQuestion = hasQuestions ? questions[questionIndex] : null;
+  const isLastQuestion = hasQuestions ? questionIndex === questions.length - 1 : false;
   const isFirstQuestion = questionIndex === 0;
-  const isAnswered = currentQuestion.id in answers && answers[currentQuestion.id] !== null;
+  const isAnswered = currentQuestion ? currentQuestion.id in answers && answers[currentQuestion.id] !== null : false;
 
   // Handle keyboard navigation
   useEffect(() => {
+    if (!hasQuestions) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Arrow up/down: navigate options
       if (e.key === 'ArrowUp') {
@@ -47,7 +46,7 @@ export function QuestionRefinementModal({
         setHighlightedOptionIndex((prev) => Math.max(0, prev - 1));
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        const maxIndex = (currentQuestion.options?.length || 1) - 1;
+        const maxIndex = (currentQuestion?.options?.length || 1) - 1;
         setHighlightedOptionIndex((prev) => Math.min(maxIndex, prev + 1));
       }
       // Enter: select highlighted option and advance
@@ -68,7 +67,12 @@ export function QuestionRefinementModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [questionIndex, currentQuestion, isAnswered, isLastQuestion, isLocalSubmitting, questions.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionIndex, currentQuestion, isAnswered, isLastQuestion, isLocalSubmitting, hasQuestions]);
+
+  if (!hasQuestions) {
+    return null;
+  }
 
   const handleNext = () => {
     if (questionIndex < questions.length - 1) {

@@ -9,7 +9,6 @@ import { GitHubTokenService } from '../github-token.service';
 
 describe('GitHubTokenService', () => {
   let service: GitHubTokenService;
-  let configService: ConfigService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,7 +31,6 @@ describe('GitHubTokenService', () => {
     }).compile();
 
     service = module.get<GitHubTokenService>(GitHubTokenService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -69,7 +67,9 @@ describe('GitHubTokenService', () => {
     });
 
     it('should throw error when decrypting invalid format', async () => {
-      await expect(service.decryptToken('invalid-format')).rejects.toThrow('Failed to decrypt token');
+      await expect(service.decryptToken('invalid-format')).rejects.toThrow(
+        'Failed to decrypt token',
+      );
     });
   });
 

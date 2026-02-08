@@ -66,7 +66,7 @@ export function Stage2Context() {
           Review Repository Context
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          We've analyzed your repository. Review the detected context below and edit if needed.
+          We&apos;ve analyzed your repository. Review the detected context below and edit if needed.
         </p>
       </div>
 

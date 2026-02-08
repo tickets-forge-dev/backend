@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Zustand store: useServices() is lazy service access, not a React hook */
 import { create } from 'zustand';
 import { useServices } from '@/services/index';
 import type { AECResponse } from '@/services/ticket.service';

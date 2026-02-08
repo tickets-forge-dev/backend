@@ -1,5 +1,4 @@
 import { ProjectStackDetectorImpl } from '../ProjectStackDetectorImpl';
-import { Framework, Language, ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
 
 describe('ProjectStackDetectorImpl', () => {
   let detector: ProjectStackDetectorImpl;
@@ -438,9 +437,7 @@ describe('ProjectStackDetectorImpl', () => {
         },
       };
 
-      const stack = detector.detectStack(
-        new Map([['package.json', JSON.stringify(packageJson)]]),
-      );
+      detector.detectStack(new Map([['package.json', JSON.stringify(packageJson)]]));
 
       // Note: These are async, but for synchronous detection within detectStack:
       expect.assertions(0); // Will be verified in integration test

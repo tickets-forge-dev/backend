@@ -1,12 +1,12 @@
 /**
  * GitHub Webhook Handler
- * 
+ *
  * Handles incoming GitHub webhook events for:
  * - push events: Trigger repository re-indexing
  * - pull_request events: Update branch metadata
- * 
+ *
  * Security: Verifies webhook signature using HMAC-SHA256
- * 
+ *
  * Part of: Story 4.2 - Task 1 (Deferred from Story 4.1)
  * Layer: Infrastructure
  */
@@ -18,14 +18,16 @@ import {
   Headers,
   Logger,
   UnauthorizedException,
-  BadRequestException,
   HttpCode,
   Inject,
   Optional,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
-import { IDriftDetector, DRIFT_DETECTOR } from '../../../tickets/application/services/drift-detector.interface';
+import {
+  IDriftDetector,
+  DRIFT_DETECTOR,
+} from '../../../tickets/application/services/drift-detector.interface';
 import * as crypto from 'crypto';
 
 interface PushPayload {
@@ -71,14 +73,15 @@ export class GitHubWebhookHandler {
 
   constructor(
     private readonly configService: ConfigService,
-    @Optional() @Inject(DRIFT_DETECTOR)
+    @Optional()
+    @Inject(DRIFT_DETECTOR)
     private readonly driftDetector?: IDriftDetector,
   ) {}
 
   /**
    * Handle GitHub webhook events
    * POST /api/webhooks/github
-   * 
+   *
    * No auth guard - signature verification provides security
    */
   @Post()
@@ -122,9 +125,7 @@ export class GitHubWebhookHandler {
   private async handlePushEvent(payload: PushPayload): Promise<void> {
     const { repository, ref, after: commitSha } = payload;
 
-    this.logger.log(
-      `Push event: ${repository.full_name} on ${ref} (${commitSha.substring(0, 7)})`,
-    );
+    this.logger.log(`Push event: ${repository.full_name} on ${ref} (${commitSha.substring(0, 7)})`);
 
     // Extract branch name from ref (e.g., "refs/heads/main" -> "main")
     const branch = ref.replace('refs/heads/', '');
@@ -134,13 +135,9 @@ export class GitHubWebhookHandler {
       // TODO: Extract workspaceId from repository context or config
       // For now, using a placeholder - will need proper workspace mapping
       const workspaceId = 'default-workspace';
-      
+
       if (this.driftDetector) {
-        await this.driftDetector.detectDrift(
-          workspaceId,
-          repository.full_name,
-          commitSha,
-        );
+        await this.driftDetector.detectDrift(workspaceId, repository.full_name, commitSha);
       } else {
         this.logger.warn('Drift detector not available - skipping drift detection');
       }
@@ -159,18 +156,14 @@ export class GitHubWebhookHandler {
     //   commitSha,
     // });
 
-    this.logger.log(
-      `TODO: Queue re-indexing job for ${repository.full_name}@${branch}`,
-    );
+    this.logger.log(`TODO: Queue re-indexing job for ${repository.full_name}@${branch}`);
   }
 
   /**
    * Handle pull_request events
    * Updates branch metadata (new branches, PR info)
    */
-  private async handlePullRequestEvent(
-    payload: PullRequestPayload,
-  ): Promise<void> {
+  private async handlePullRequestEvent(payload: PullRequestPayload): Promise<void> {
     const { action, pull_request, repository } = payload;
 
     this.logger.log(
@@ -188,15 +181,13 @@ export class GitHubWebhookHandler {
       //   prNumber: pull_request.number,
       // });
 
-      this.logger.log(
-        `TODO: Queue indexing for PR branch ${pull_request.head.ref}`,
-      );
+      this.logger.log(`TODO: Queue indexing for PR branch ${pull_request.head.ref}`);
     }
   }
 
   /**
    * Verify webhook signature using HMAC-SHA256
-   * 
+   *
    * GitHub sends signature in header: x-hub-signature-256
    * Format: "sha256=<hex-digest>"
    */
@@ -220,10 +211,7 @@ export class GitHubWebhookHandler {
 
     // Constant-time comparison to prevent timing attacks
     try {
-      return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature),
-      );
+      return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
     } catch (error) {
       // Length mismatch or other error
       return false;

@@ -24,22 +24,16 @@ import {
   TechSpecInput,
   ProblemStatement,
   SolutionSection,
-  SolutionStep,
   AcceptanceCriterion,
   ClarificationQuestion,
   FileChange,
   TechSpec,
   CodebaseContext,
-  QuestionType,
   ApiChanges,
-  ApiEndpoint,
   LayeredFileChanges,
   TestPlan,
-  TestCase,
   VisualExpectations,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
-import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
-import { CodebaseAnalysis } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 
 /**
  * Prompt templates for each section generation
@@ -76,10 +70,7 @@ PROJECT CONTEXT:
 - Naming Conventions: Files=${context.analysis.naming.files}, Variables=${context.analysis.naming.variables}, Classes=${context.analysis.naming.classes}`;
   }
 
-  static problemStatementPrompt(
-    title: string,
-    description: string,
-  ): string {
+  static problemStatementPrompt(title: string, description: string): string {
     return `Analyze the following request and generate a problem statement:
 
 Title: ${title}
@@ -108,9 +99,7 @@ IMPORTANT:
     context: CodebaseContext,
     files: Map<string, string>,
   ): string {
-    const keyFiles = Array.from(files.keys())
-      .slice(0, 5)
-      .join(', ');
+    const keyFiles = Array.from(files.keys()).slice(0, 5).join(', ');
 
     return `Based on the following problem and project context, generate a detailed solution:
 
@@ -148,10 +137,7 @@ IMPORTANT:
 - Use definitive language throughout`;
   }
 
-  static acceptanceCriteriaPrompt(
-    title: string,
-    problemNarrative: string,
-  ): string {
+  static acceptanceCriteriaPrompt(title: string, problemNarrative: string): string {
     return `Generate 5+ acceptance criteria in Given/When/Then format for:
 
 Title: ${title}
@@ -178,10 +164,7 @@ IMPORTANT:
 - Valid JSON only - ensure array brackets`;
   }
 
-  static clarificationQuestionsPrompt(
-    title: string,
-    description: string,
-  ): string {
+  static clarificationQuestionsPrompt(title: string, description: string): string {
     return `Identify ANY ambiguities in this request that need clarification:
 
 Title: ${title}
@@ -226,9 +209,7 @@ IMPORTANT:
       .map((ac, i) => `${i + 1}. Given ${ac.given}, When ${ac.when}, Then ${ac.then}`)
       .join('\n');
 
-    const filesText = fileChanges
-      .map((fc) => `- ${fc.path} (${fc.action})`)
-      .join('\n');
+    const filesText = fileChanges.map((fc) => `- ${fc.path} (${fc.action})`).join('\n');
 
     return `Generate a comprehensive test plan for this implementation:
 
@@ -293,13 +274,8 @@ IMPORTANT:
 - Reference specific functions, classes, or modules from the file changes`;
   }
 
-  static layerCategorizationPrompt(
-    fileChanges: FileChange[],
-    projectStructure: string,
-  ): string {
-    const filesText = fileChanges
-      .map((fc) => `- ${fc.path} (${fc.action})`)
-      .join('\n');
+  static layerCategorizationPrompt(fileChanges: FileChange[], projectStructure: string): string {
+    const filesText = fileChanges.map((fc) => `- ${fc.path} (${fc.action})`).join('\n');
 
     return `Categorize these file changes by architectural layer:
 
@@ -331,10 +307,7 @@ RULES:
 - *.md, docs/ → documentation`;
   }
 
-  static fileChangesPrompt(
-    solutionOverview: string,
-    directoryStructure: string,
-  ): string {
+  static fileChangesPrompt(solutionOverview: string, directoryStructure: string): string {
     return `Based on the solution, identify ALL files that need to be created, modified, or deleted:
 
 Solution: ${solutionOverview}
@@ -400,7 +373,8 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
 
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
-      const modelId = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-5-haiku-20241022';
+      const modelId =
+        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-5-haiku-20241022';
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
@@ -443,21 +417,33 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
 
     const solution = await this.generateSolution(problemStatement, context);
 
-    const [acceptanceCriteria, clarificationQuestions, fileChanges, inScope, outOfScope, apiChanges] =
-      await Promise.all([
-        this.generateAcceptanceCriteria(context),
-        this.generateClarificationQuestions(context),
-        this.generateFileChanges(solution, context),
-        this.generateScope(input.title, input.description || '', true),
-        this.generateScope(input.title, input.description || '', false),
-        this.extractApiChanges(context),
-      ]);
+    const [
+      acceptanceCriteria,
+      clarificationQuestions,
+      fileChanges,
+      inScope,
+      outOfScope,
+      apiChanges,
+    ] = await Promise.all([
+      this.generateAcceptanceCriteria(context),
+      this.generateClarificationQuestions(context),
+      this.generateFileChanges(solution, context),
+      this.generateScope(input.title, input.description || '', true),
+      this.generateScope(input.title, input.description || '', false),
+      this.extractApiChanges(context),
+    ]);
 
     // Generate sections that depend on fileChanges (parallel)
     const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
       this.generateTestPlan(solution, acceptanceCriteria, fileChanges, context),
       this.categorizeFilesByLayer(fileChanges, context),
-      this.generateVisualExpectations(solution, acceptanceCriteria, fileChanges, apiChanges, context),
+      this.generateVisualExpectations(
+        solution,
+        acceptanceCriteria,
+        fileChanges,
+        apiChanges,
+        context,
+      ),
     ]);
 
     // Assemble tech spec
@@ -618,11 +604,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   ): Promise<SolutionSection> {
     try {
       const systemPrompt = PromptTemplates.systemPrompt(context);
-      const userPrompt = PromptTemplates.solutionPrompt(
-        problem,
-        context,
-        context.files,
-      );
+      const userPrompt = PromptTemplates.solutionPrompt(problem, context, context.files);
 
       const response = await this.callLLM(systemPrompt, userPrompt);
       const parsed = this.parseJSON<SolutionSection>(response);
@@ -672,9 +654,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       }
 
       // Ensure all criteria have required fields
-      return parsed
-        .filter((ac) => ac.given && ac.when && ac.then)
-        .slice(0, 15); // Limit to 15 criteria
+      return parsed.filter((ac) => ac.given && ac.when && ac.then).slice(0, 15); // Limit to 15 criteria
     } catch (error) {
       throw new Error(`Failed to generate acceptance criteria: ${String(error)}`);
     }
@@ -725,10 +705,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     try {
       const directoryStructure = this.buildDirectoryStructure(context);
       const systemPrompt = PromptTemplates.systemPrompt(context);
-      const userPrompt = PromptTemplates.fileChangesPrompt(
-        solution.overview,
-        directoryStructure,
-      );
+      const userPrompt = PromptTemplates.fileChangesPrompt(solution.overview, directoryStructure);
 
       const response = await this.callLLM(systemPrompt, userPrompt);
       const parsed = this.parseJSON<FileChange[]>(response);
@@ -756,7 +733,11 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     const taskAnalysis = (context as any)?.taskAnalysis;
     if (taskAnalysis?.apiChanges) {
       const apiChanges = taskAnalysis.apiChanges;
-      if (apiChanges.endpoints && Array.isArray(apiChanges.endpoints) && apiChanges.endpoints.length > 0) {
+      if (
+        apiChanges.endpoints &&
+        Array.isArray(apiChanges.endpoints) &&
+        apiChanges.endpoints.length > 0
+      ) {
         return {
           endpoints: apiChanges.endpoints
             .filter((e: any) => e.method && e.route && e.description)
@@ -780,7 +761,10 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     try {
       return await this.generateApiChanges(context);
     } catch (error) {
-      console.warn('[TechSpecGenerator] API generation fallback failed:', error instanceof Error ? error.message : String(error));
+      console.warn(
+        '[TechSpecGenerator] API generation fallback failed:',
+        error instanceof Error ? error.message : String(error),
+      );
       return undefined;
     }
   }
@@ -794,9 +778,15 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
 
     // Include existing codebase APIs if available
     const codebaseApis = (context as any)?.taskAnalysis?.apiChanges?.codebaseApis || [];
-    const existingApisBlock = codebaseApis.length > 0
-      ? `\nEXISTING CODEBASE APIs:\n${codebaseApis.slice(0, 15).map((a: any) => `  - ${a.method} ${a.route}${a.controller ? ` (${a.controller})` : ''}`).join('\n')}\n`
-      : '';
+    const existingApisBlock =
+      codebaseApis.length > 0
+        ? `\nEXISTING CODEBASE APIs:\n${codebaseApis
+            .slice(0, 15)
+            .map(
+              (a: any) => `  - ${a.method} ${a.route}${a.controller ? ` (${a.controller})` : ''}`,
+            )
+            .join('\n')}\n`
+        : '';
 
     const userPrompt = `Given this task and codebase, identify ALL API endpoints that need to be created, modified, or are relevant.
 ${existingApisBlock}
@@ -894,13 +884,34 @@ Return ONLY valid JSON.`;
       const path = fc.path.toLowerCase();
       if (path.endsWith('.md') || path.startsWith('docs/')) {
         result.documentation.push(fc);
-      } else if (path.startsWith('.github/') || path.includes('docker') || path.includes('terraform') || path.includes('ci/')) {
+      } else if (
+        path.startsWith('.github/') ||
+        path.includes('docker') ||
+        path.includes('terraform') ||
+        path.includes('ci/')
+      ) {
         result.infrastructure.push(fc);
-      } else if (path.startsWith('shared/') || path.startsWith('packages/') || path.includes('/shared/')) {
+      } else if (
+        path.startsWith('shared/') ||
+        path.startsWith('packages/') ||
+        path.includes('/shared/')
+      ) {
         result.shared.push(fc);
-      } else if (path.startsWith('client/') || path.startsWith('frontend/') || path.endsWith('.tsx') || path.endsWith('.jsx')) {
+      } else if (
+        path.startsWith('client/') ||
+        path.startsWith('frontend/') ||
+        path.endsWith('.tsx') ||
+        path.endsWith('.jsx')
+      ) {
         result.frontend.push(fc);
-      } else if (path.startsWith('backend/') || path.startsWith('server/') || path.startsWith('api/') || path.endsWith('.controller.ts') || path.endsWith('.service.ts') || path.endsWith('.module.ts')) {
+      } else if (
+        path.startsWith('backend/') ||
+        path.startsWith('server/') ||
+        path.startsWith('api/') ||
+        path.endsWith('.controller.ts') ||
+        path.endsWith('.service.ts') ||
+        path.endsWith('.module.ts')
+      ) {
         result.backend.push(fc);
       } else {
         // Default: if it looks like backend code, put it there; otherwise shared
@@ -941,9 +952,18 @@ Return ONLY valid JSON.`;
       if (!Array.isArray(parsed.edgeCases)) parsed.edgeCases = [];
 
       // Log warnings for low test counts
-      if (parsed.unitTests.length < 5) this.logger.warn(`Test plan has only ${parsed.unitTests.length} unit tests (5+ recommended)`);
-      if (parsed.integrationTests.length < 2) this.logger.warn(`Test plan has only ${parsed.integrationTests.length} integration tests (2+ recommended)`);
-      if (parsed.edgeCases.length < 2) this.logger.warn(`Test plan has only ${parsed.edgeCases.length} edge cases (2+ recommended)`);
+      if (parsed.unitTests.length < 5)
+        this.logger.warn(
+          `Test plan has only ${parsed.unitTests.length} unit tests (5+ recommended)`,
+        );
+      if (parsed.integrationTests.length < 2)
+        this.logger.warn(
+          `Test plan has only ${parsed.integrationTests.length} integration tests (2+ recommended)`,
+        );
+      if (parsed.edgeCases.length < 2)
+        this.logger.warn(
+          `Test plan has only ${parsed.edgeCases.length} edge cases (2+ recommended)`,
+        );
 
       return parsed;
     } catch (error) {
@@ -973,16 +993,18 @@ Return ONLY valid JSON.`;
         })
         .join('\n');
 
-      const apiText = apiChanges?.endpoints
-        ?.slice(0, 8)
-        .map((e: any) => `${e.method} ${e.route} — ${e.description}`)
-        .join('\n') || 'None';
+      const apiText =
+        apiChanges?.endpoints
+          ?.slice(0, 8)
+          .map((e: any) => `${e.method} ${e.route} — ${e.description}`)
+          .join('\n') || 'None';
 
-      const uiFiles = fileChanges
-        .filter((f: FileChange) => f.path.match(/\.(tsx|jsx|vue|svelte|html)$/))
-        .map((f: FileChange) => f.path)
-        .slice(0, 10)
-        .join('\n') || 'None';
+      const uiFiles =
+        fileChanges
+          .filter((f: FileChange) => f.path.match(/\.(tsx|jsx|vue|svelte|html)$/))
+          .map((f: FileChange) => f.path)
+          .slice(0, 10)
+          .join('\n') || 'None';
 
       const userPrompt = `Generate visual QA expectations for manual testing. For each key screen state, create an ASCII wireframe showing what the tester should see.
 
@@ -1050,7 +1072,11 @@ Return valid JSON:
   /**
    * Generates scope items (in-scope or out-of-scope)
    */
-  private async generateScope(title: string, description: string, inScope: boolean): Promise<string[]> {
+  private async generateScope(
+    title: string,
+    description: string,
+    inScope: boolean,
+  ): Promise<string[]> {
     try {
       const scopeType = inScope ? 'in-scope' : 'out-of-scope';
       const prompt = `Based on this request, generate ${scopeType} items:
@@ -1084,15 +1110,20 @@ IMPORTANT:
    * Resolve tech stack from LLM analysis with fingerprint fallback.
    * Treats "unknown"/"Unknown" as empty so fingerprint data is used instead.
    */
-  private resolveStack(context: CodebaseContext): { language?: string; framework?: string; packageManager?: string } {
+  private resolveStack(context: CodebaseContext): {
+    language?: string;
+    framework?: string;
+    packageManager?: string;
+  } {
     const isKnown = (v: string | undefined | null): string | undefined =>
       v && v.toLowerCase() !== 'unknown' ? v : undefined;
 
     const llmLang = isKnown(context.stack?.language?.name);
     const llmFramework = isKnown(context.stack?.framework?.name);
-    const llmPm = typeof context.stack?.packageManager === 'string'
-      ? isKnown(context.stack.packageManager)
-      : isKnown(context.stack?.packageManager?.type);
+    const llmPm =
+      typeof context.stack?.packageManager === 'string'
+        ? isKnown(context.stack.packageManager)
+        : isKnown(context.stack?.packageManager?.type);
 
     const fp = context.taskAnalysis?.fingerprint;
 
@@ -1270,9 +1301,7 @@ Rewritten text (definitive, unambiguous):`;
     // file changes: 0-2
     if (
       solution.fileChanges &&
-      (solution.fileChanges.create?.length || 0) +
-        (solution.fileChanges.modify?.length || 0) >
-        0
+      (solution.fileChanges.create?.length || 0) + (solution.fileChanges.modify?.length || 0) > 0
     ) {
       score += 2;
     }
@@ -1363,10 +1392,7 @@ Rewritten text (definitive, unambiguous):`;
     score -= (spec.ambiguityFlags?.length || 0) * 2;
 
     // Deduct for ambiguity markers in text
-    const allText = [
-      spec.problemStatement.narrative,
-      spec.solution.overview,
-    ].join(' ');
+    const allText = [spec.problemStatement.narrative, spec.solution.overview].join(' ');
 
     for (const marker of TechSpecGeneratorImpl.AMBIGUITY_MARKERS) {
       const regex = new RegExp(`\\b${marker}\\b`, 'gi');
@@ -1409,8 +1435,12 @@ Rewritten text (definitive, unambiguous):`;
    */
   private scoreLayerCategorization(layers: LayeredFileChanges): number {
     let score = 0;
-    const totalFiles = (layers.backend?.length || 0) + (layers.frontend?.length || 0) +
-      (layers.shared?.length || 0) + (layers.infrastructure?.length || 0) + (layers.documentation?.length || 0);
+    const totalFiles =
+      (layers.backend?.length || 0) +
+      (layers.frontend?.length || 0) +
+      (layers.shared?.length || 0) +
+      (layers.infrastructure?.length || 0) +
+      (layers.documentation?.length || 0);
 
     if (totalFiles > 0) score += 3;
     if ((layers.backend?.length || 0) > 0 && (layers.frontend?.length || 0) > 0) score += 2;
@@ -1427,7 +1457,8 @@ Rewritten text (definitive, unambiguous):`;
     if (apiChanges.endpoints?.length >= 3) score += 3;
     else if (apiChanges.endpoints?.length >= 1) score += 2;
 
-    const withDtos = apiChanges.endpoints?.filter(e => e.dto?.request || e.dto?.response).length || 0;
+    const withDtos =
+      apiChanges.endpoints?.filter((e) => e.dto?.request || e.dto?.response).length || 0;
     if (withDtos === apiChanges.endpoints?.length && apiChanges.endpoints?.length > 0) score += 2;
 
     return score;
@@ -1449,9 +1480,10 @@ Rewritten text (definitive, unambiguous):`;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const prompt = attempt === 1
-          ? userPrompt
-          : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
+        const prompt =
+          attempt === 1
+            ? userPrompt
+            : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
 
         const { text } = await generateText({
           model: this.llmModel,
@@ -1491,14 +1523,8 @@ Rewritten text (definitive, unambiguous):`;
         whyItMatters:
           'Technical specifications must be definitive to prevent implementation errors and misalignment.',
         context: 'The project uses a clean architecture with TypeScript and Jest testing.',
-        assumptions: [
-          'LLM API is available and responsive',
-          'Codebase context is provided',
-        ],
-        constraints: [
-          '30-second timeout per LLM call',
-          'Token limit of 4000 per request',
-        ],
+        assumptions: ['LLM API is available and responsive', 'Codebase context is provided'],
+        constraints: ['30-second timeout per LLM call', 'Token limit of 4000 per request'],
       };
     }
 
@@ -1550,7 +1576,10 @@ Rewritten text (definitive, unambiguous):`;
       ];
     }
 
-    if (prompt.toLowerCase().includes('ambiguities') || prompt.toLowerCase().includes('ambiguity')) {
+    if (
+      prompt.toLowerCase().includes('ambiguities') ||
+      prompt.toLowerCase().includes('ambiguity')
+    ) {
       return [];
     }
 
@@ -1598,8 +1627,7 @@ Rewritten text (definitive, unambiguous):`;
           } catch {
             // Last resort: try to fix common LLM JSON issues
             // Remove trailing commas before } or ]
-            const fixedTrailing = sanitized
-              .replace(/,\s*([}\]])/g, '$1');
+            const fixedTrailing = sanitized.replace(/,\s*([}\]])/g, '$1');
             return JSON.parse(fixedTrailing);
           }
         }
@@ -1631,10 +1659,7 @@ Rewritten text (definitive, unambiguous):`;
     }
 
     // Sort and limit
-    return Array.from(dirs)
-      .sort()
-      .slice(0, 20)
-      .join('\n');
+    return Array.from(dirs).sort().slice(0, 20).join('\n');
   }
 
   /**
@@ -1712,9 +1737,11 @@ Rewritten text (definitive, unambiguous):`;
       );
 
       const response = await this.callLLM(systemPrompt, userPrompt);
-      const parsed = this.parseJSON<{ shouldAskMore: boolean; confidence: number; reasoning: string }>(
-        response,
-      );
+      const parsed = this.parseJSON<{
+        shouldAskMore: boolean;
+        confidence: number;
+        reasoning: string;
+      }>(response);
 
       // Validate structure
       if (typeof parsed.shouldAskMore !== 'boolean') {
@@ -1766,7 +1793,13 @@ Rewritten text (definitive, unambiguous):`;
       const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
         this.generateTestPlan(solution, acceptanceCriteria, fileChanges, input.context),
         this.categorizeFilesByLayer(fileChanges, input.context),
-        this.generateVisualExpectations(solution, acceptanceCriteria, fileChanges, apiChanges, input.context),
+        this.generateVisualExpectations(
+          solution,
+          acceptanceCriteria,
+          fileChanges,
+          apiChanges,
+          input.context,
+        ),
       ]);
 
       // Assemble final tech spec
@@ -1844,12 +1877,16 @@ Each question must:
 - Explain HOW the answer affects the user experience or scope (impact field)
 - Use appropriate type (radio, checkbox, text, select, multiline)
 - Be focused on reducing critical ambiguities
-${apiContextBlock ? `
+${
+  apiContextBlock
+    ? `
 API-SPECIFIC QUESTION GUIDELINES:
 - If existing APIs were detected in the codebase, include a checkbox question asking which ones are related to this task. Use the API routes as options (e.g., "POST /api/users", "GET /api/tickets/:id").
 - If the task likely needs NEW API endpoints, include a question asking the user to confirm or describe them. Use radio (yes/no) or text type.
 - Keep API questions simple: "Which of these existing features does this task affect?" with API names as options.
-- Do NOT ask about HTTP methods, status codes, or technical API design — focus on what the API does from a user perspective.` : ''}
+- Do NOT ask about HTTP methods, status codes, or technical API design — focus on what the API does from a user perspective.`
+    : ''
+}
 
 Example good questions (non-technical):
 - "Who will primarily use this feature?" (user perspective)
@@ -1920,17 +1957,25 @@ Return [] if:
     if (codebaseApis.length > 0) {
       const apiList = codebaseApis
         .slice(0, 15) // Limit to avoid prompt bloat
-        .map((api: { method: string; route: string; controller?: string; description: string }) => `  - ${api.method} ${api.route}${api.controller ? ` (${api.controller})` : ''}${api.description ? ` — ${api.description}` : ''}`)
+        .map(
+          (api: { method: string; route: string; controller?: string; description: string }) =>
+            `  - ${api.method} ${api.route}${api.controller ? ` (${api.controller})` : ''}${api.description ? ` — ${api.description}` : ''}`,
+        )
         .join('\n');
       parts.push(`EXISTING CODEBASE APIs (detected from source code):\n${apiList}`);
     }
 
     // LLM-suggested new/modified APIs from deep analysis
-    const specApis = (apiChanges.endpoints || []).filter((e: { status: string }) => e.status !== 'existing');
+    const specApis = (apiChanges.endpoints || []).filter(
+      (e: { status: string }) => e.status !== 'existing',
+    );
     if (specApis.length > 0) {
       const apiList = specApis
         .slice(0, 10)
-        .map((api: { status: string; method: string; route: string; description: string }) => `  - [${api.status.toUpperCase()}] ${api.method} ${api.route} — ${api.description}`)
+        .map(
+          (api: { status: string; method: string; route: string; description: string }) =>
+            `  - [${api.status.toUpperCase()}] ${api.method} ${api.route} — ${api.description}`,
+        )
         .join('\n');
       parts.push(`SUGGESTED API CHANGES (from analysis):\n${apiList}`);
     }
@@ -2071,9 +2116,7 @@ Generate valid JSON array:
         throw new Error('Response is not an array');
       }
 
-      return parsed
-        .filter((ac) => ac.given && ac.when && ac.then)
-        .slice(0, 15);
+      return parsed.filter((ac) => ac.given && ac.when && ac.then).slice(0, 15);
     } catch (error) {
       throw new Error(`Failed to generate acceptance criteria with answers: ${String(error)}`);
     }

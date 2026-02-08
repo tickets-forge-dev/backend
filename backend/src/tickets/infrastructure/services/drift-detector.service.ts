@@ -1,14 +1,16 @@
 /**
  * Drift Detector Service
  * Detects when code/API snapshots have changed for open AECs
- * 
+ *
  * Part of: Story 4.4 - Drift Detection
  * Layer: Infrastructure
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
-import { IDriftDetector, DriftDetectionResult } from '../../application/services/drift-detector.interface';
+import {
+  IDriftDetector,
+} from '../../application/services/drift-detector.interface';
 import { AEC } from '../../domain/aec/AEC';
 import { AECStatus } from '../../domain/value-objects/AECStatus';
 import { AECMapper } from '../persistence/mappers/AECMapper';
@@ -22,11 +24,7 @@ export class DriftDetectorService implements IDriftDetector {
     this.firestore = new Firestore();
   }
 
-  async detectDrift(
-    workspaceId: string,
-    repositoryName: string,
-    commitSha: string,
-  ): Promise<void> {
+  async detectDrift(workspaceId: string, repositoryName: string, commitSha: string): Promise<void> {
     this.logger.log(
       `Detecting code drift for ${repositoryName}@${commitSha.substring(0, 7)} in workspace ${workspaceId}`,
     );
@@ -43,18 +41,16 @@ export class DriftDetectorService implements IDriftDetector {
 
       if (aec.codeSnapshot.commitSha !== commitSha) {
         const reason = `Code snapshot changed: ${aec.codeSnapshot.commitSha.substring(0, 7)} → ${commitSha.substring(0, 7)}`;
-        
+
         aec.markDrifted(reason);
         await this.saveAEC(workspaceId, aec);
-        
+
         driftedCount++;
         this.logger.log(`Marked AEC ${aec.id} as drifted: ${reason}`);
       }
     }
 
-    this.logger.log(
-      `Drift detection complete: ${driftedCount} drifted, ${aecs.length} checked`,
-    );
+    this.logger.log(`Drift detection complete: ${driftedCount} drifted, ${aecs.length} checked`);
   }
 
   async detectApiDrift(
@@ -77,10 +73,10 @@ export class DriftDetectorService implements IDriftDetector {
 
       if (aec.apiSnapshot.hash !== specHash) {
         const reason = `API spec changed: ${aec.apiSnapshot.hash.substring(0, 7)} → ${specHash.substring(0, 7)}`;
-        
+
         aec.markDrifted(reason);
         await this.saveAEC(workspaceId, aec);
-        
+
         driftedCount++;
         this.logger.log(`Marked AEC ${aec.id} as drifted: ${reason}`);
       }
@@ -91,10 +87,7 @@ export class DriftDetectorService implements IDriftDetector {
     );
   }
 
-  private async findOpenAECs(
-    workspaceId: string,
-    repositoryName: string,
-  ): Promise<AEC[]> {
+  private async findOpenAECs(workspaceId: string, repositoryName: string): Promise<AEC[]> {
     const snapshot = await this.firestore
       .collection('workspaces')
       .doc(workspaceId)

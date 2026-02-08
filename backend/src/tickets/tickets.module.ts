@@ -23,7 +23,6 @@ import { ScopeValidator } from './infrastructure/services/validators/ScopeValida
 import { AEC_REPOSITORY } from './application/ports/AECRepository';
 import { DRIFT_DETECTOR } from './application/services/drift-detector.interface';
 import { ESTIMATION_ENGINE } from './application/services/estimation-engine.interface';
-import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 import { GitHubModule } from '../github/github.module';
 import { TechSpecGeneratorImpl } from './application/services/TechSpecGeneratorImpl';
 import { TECH_SPEC_GENERATOR } from './application/ports/TechSpecGeneratorPort';
@@ -71,15 +70,7 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
         consistency: ConsistencyValidator,
         contextAlignment: ContextAlignmentValidator,
         scope: ScopeValidator,
-      ) => [
-        completeness,
-        testability,
-        clarity,
-        feasibility,
-        consistency,
-        contextAlignment,
-        scope,
-      ],
+      ) => [completeness, testability, clarity, feasibility, consistency, contextAlignment, scope],
       inject: [
         CompletenessValidator,
         TestabilityValidator,
@@ -128,6 +119,13 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
       useExisting: DeepAnalysisServiceImpl,
     },
   ],
-  exports: [CreateTicketUseCase, UpdateAECUseCase, EstimateEffortUseCase, AEC_REPOSITORY, DRIFT_DETECTOR, ESTIMATION_ENGINE],
+  exports: [
+    CreateTicketUseCase,
+    UpdateAECUseCase,
+    EstimateEffortUseCase,
+    AEC_REPOSITORY,
+    DRIFT_DETECTOR,
+    ESTIMATION_ENGINE,
+  ],
 })
 export class TicketsModule {}
