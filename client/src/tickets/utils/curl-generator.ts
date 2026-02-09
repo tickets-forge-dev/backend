@@ -21,7 +21,7 @@ export function generateCurlCommand(options: CurlOptions): string {
   const {
     method,
     path,
-    baseUrl = 'http://localhost:3000',
+    baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
     body,
     headers = {},
     queryParams = {},

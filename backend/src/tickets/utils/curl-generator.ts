@@ -20,7 +20,7 @@ export function generateCurlCommand(options: CurlOptions): string {
   const {
     method,
     path,
-    baseUrl = 'http://localhost:3000',
+    baseUrl = process.env.API_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000',
     body,
     headers = {},
     queryParams = {},
