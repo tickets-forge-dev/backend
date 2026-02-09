@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo } from '@/tickets/stores/generation-wizard.store';
 import { Stage1Input } from './wizard/Stage1Input';
 import { Stage3Draft } from './wizard/Stage3Draft';
@@ -26,6 +27,7 @@ import { WizardOverlay } from './wizard/WizardOverlay';
  * - Overall wizard flow
  */
 export function GenerationWizard({ resumeId }: { resumeId?: string }) {
+  const router = useRouter();
   const {
     currentStage,
     loading,
@@ -45,6 +47,13 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
   useEffect(() => {
     if (resumeId) {
       resumeDraft(resumeId);
+      // Also show banner for resume URL param so user can start fresh if needed
+      setRecoveryInfo({
+        canRecover: true,
+        stage: 2, // Will be updated to correct stage by resumeDraft
+        title: 'Draft Ticket',
+      });
+      setShowRecoveryBanner(true);
       return;
     }
 
@@ -67,7 +76,11 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
     reset();
     setShowRecoveryBanner(false);
     setRecoveryInfo(null);
-  }, [reset]);
+    // Clear the resume param from URL so user doesn't get stuck
+    if (resumeId) {
+      router.push('/create');
+    }
+  }, [reset, resumeId, router]);
 
   return (
     <div className="relative w-full h-full bg-white dark:bg-gray-950">
