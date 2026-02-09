@@ -84,6 +84,9 @@ importers:
       minimatch:
         specifier: ^10.1.2
         version: 10.1.2
+      multer:
+        specifier: ^2.0.2
+        version: 2.0.2
       reflect-metadata:
         specifier: ^0.2.1
         version: 0.2.2
