@@ -63,6 +63,24 @@ export class LinearService {
   }
 
   /**
+   * Search for Linear issues by ID or title
+   * Used for autocomplete in import wizard
+   */
+  async searchIssues(query: string): Promise<
+    Array<{ id: string; identifier: string; title: string }>
+  > {
+    try {
+      const { data } = await this.client.get('/linear/issues/search', {
+        params: { query },
+      });
+      return data.issues || [];
+    } catch {
+      // If endpoint doesn't exist, return empty array
+      return [];
+    }
+  }
+
+  /**
    * Import Linear issue and create draft ticket
    */
   async importIssue(issueId: string): Promise<{

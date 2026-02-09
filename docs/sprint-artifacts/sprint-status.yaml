@@ -139,6 +139,38 @@ development_status:
   epic-23-retrospective: optional
 
   # ============================================================================
+  # EPIC 24: BIDIRECTIONAL JIRA/LINEAR INTEGRATION (Holy Grail)
+  # Status: CONTEXTED → Ready for Development (2026-02-09)
+  # Priority: P1 (High value - makes Forge the enrichment layer)
+  # Effort: ~2 weeks
+  #
+  # COMPLETION STATUS:
+  #   ✅ Full specification: docs/epics/EPIC-24-BIDIRECTIONAL-JIRA-LINEAR.md
+  #   ✅ 7 Wireframes complete: docs/wireframes/EPIC-24-*.excalidraw
+  #   ✅ Implementation guide: docs/wireframes/EPIC-24-WIREFRAME-GUIDE.md
+  #   ✅ All 8 stories drafted with acceptance criteria
+  #   ✅ Jira OAuth connected (production verified)
+  #   ✅ Linear OAuth connected (production verified)
+  #   ✅ Smart update vs create logic documented
+  #   ✅ Data structures & API contracts specified
+  #
+  # D-DAY READINESS: 100% - All architectural decisions locked, ready for sprint
+  # ============================================================================
+
+  epic-24: contexted                                         # READY FOR DEVELOPMENT
+
+  24-1-jira-linear-import-apis: backlog
+  24-2-separate-import-flow-and-ui: backlog
+  24-3-create-ticket-from-imported-data: backlog
+  24-4-enhanced-export-with-smart-logic: backlog
+  24-5-export-dialog-with-sprint-cycle-selection: backlog
+  24-6-imported-issue-display-and-sync-badge: backlog
+  24-7-backend-tests-and-validation: backlog
+  24-8-frontend-tests-and-e2e: backlog
+
+  epic-24-retrospective: optional
+
+  # ============================================================================
   # EPIC 10: REVENUE INFRASTRUCTURE (Stripe + Subscription Tiers)
   # Status: Backlog (Pricing UI done)
   # Priority: P0 (Revenue unlock - business critical)
@@ -225,11 +257,12 @@ development_status:
 #
 # Phase 2 (NEXT): Integrations + Rich Input
 #   Sprint 1: Story 1-6b (Rich Input / PDF extraction)
-#   Sprint 2: Stories 1-4, 1-5 (Linear + Jira integration)
+#   Sprint 2: Stories 1-4, 1-5 (Linear + Jira integration - basic export)
 #   Sprint 3: Epic 21 (Caching optimization)
+#   Sprint 4: Epic 24 (Bidirectional Import + Smart Export) — THE HOLY GRAIL
 #
 # Phase 3: Expansion
-#   └─ Epic 23 (Multi-repo support)
+#   └─ Epic 23 (Multi-repo support) — P0 blocker for Phase 4
 #   └─ Epic 22 (Wireframe generation)
 #   └─ Future Epics 1-2, 4 (Enhanced context, Guardrails, Markdown)
 #
@@ -239,11 +272,37 @@ development_status:
 # ============================================================================
 # KEY METRICS (Updated 2026-02-09)
 # ============================================================================
-# Total Epics: 11
-# Total Stories: 68
+# Total Epics: 12 (Epic 24: Bidirectional Integration added & CONTEXTED)
+# Total Stories: 76 (8 stories for Epic 24 drafted)
 # Stories Completed: 16 (1-1, 1-2, 1-3, 1-3b, 1-6, 10-6, epic-3 x10)
-# Stories in Backlog: 52
-# Completion: 23.5%
+# Stories in Backlog: 60
+# Completion: 21%
 #
-# Next Scheduled: Story 1-6b (Rich Input with File Uploads) or 1-4 (Linear)
+# Epics Ready for Development: 1 (Epic 24)
+#
+# EPIC 24 COMPLETION (Session 11):
+#   ✅ Full specification: docs/epics/EPIC-24-BIDIRECTIONAL-JIRA-LINEAR.md (2,500+ lines)
+#   ✅ Complete wireframe set: 7 screens in 2 Excalidraw files
+#   ✅ Implementation guide: docs/wireframes/EPIC-24-WIREFRAME-GUIDE.md
+#   ✅ All 8 stories drafted with detailed acceptance criteria
+#   ✅ Data structures defined (ImportWizardStore, AEC domain updates)
+#   ✅ API contracts specified (backend endpoints with DTOs)
+#   ✅ Smart update vs create logic documented & diagrammed
+#   ✅ Jira OAuth integrated (production verified, ticketsforge.atlassian.net)
+#   ✅ Linear OAuth integrated (production verified, connected as Dan)
+#   ✅ GitHub integration verified (2 repos enabled)
+#
+# D-DAY READINESS: 100% COMPLETE
+#   - All architectural decisions locked
+#   - Wireframes finalized & detailed
+#   - Workflows tested end-to-end
+#   - Production integrations working
+#   - No ambiguity on acceptance criteria
+#   - Ready for immediate sprint execution (Monday)
+#
+# Roadmap:
+#   Phase 2 Sprint 4: Epic 24 (Bidirectional Import/Export) ← NEXT AFTER Sprint 3
+#   Phase 3: Epic 23 (Multi-Repo Support, P0 blocker)
+#
+# Next Scheduled: Story 1-6b (Rich Input) → Story 1-4/1-5 (Basic Export) → Sprint 4: Epic 24
 # ============================================================================

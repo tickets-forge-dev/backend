@@ -1,32 +1,85 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { useImportWizardStore } from '@/tickets/stores/import-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 
 interface Props {
   onError: (message: string) => void;
 }
 
+interface IssueOption {
+  id: string;
+  key?: string;
+  identifier?: string;
+  title: string;
+}
+
 /**
  * ImportStage1Selector
  *
- * MVP approach: Ask user to paste issue key/ID
+ * Enhanced with autocomplete: Ask user to paste issue key/ID
  * - Platform selection: Jira or Linear
- * - Issue key/ID input: PROJ-123 for Jira, FOR-123 or UUID for Linear
- *
- * Validates format and fetches issue details on continue.
+ * - Issue key/ID input with real-time autocomplete suggestions
+ * - Shows matching issues as user types
+ * - User can select from dropdown or continue with manual entry
  */
 export function ImportStage1Selector({ onError }: Props) {
   const { jiraService, linearService } = useServices();
   const { platform, setPlatform, setSelectedIssue, goToStage } = useImportWizardStore();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [issueKey, setIssueKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [autocompleteOptions, setAutocompleteOptions] = useState<IssueOption[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Handle autocomplete search
+  useEffect(() => {
+    if (!platform || !issueKey.trim() || issueKey.length < 2) {
+      setAutocompleteOptions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const searchIssues = async () => {
+      setIsSearching(true);
+      try {
+        const query = issueKey.trim();
+        const results = platform === 'jira'
+          ? await jiraService.searchIssues(query)
+          : await linearService.searchIssues(query);
+
+        setAutocompleteOptions(results);
+        setShowDropdown(results.length > 0);
+      } catch (err) {
+        // Silently fail on autocomplete - don't show error banner
+        setAutocompleteOptions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchIssues, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [issueKey, platform, jiraService, linearService]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const validateIssueKey = (): boolean => {
     setValidationError(null);
@@ -53,6 +106,39 @@ export function ImportStage1Selector({ onError }: Props) {
     }
 
     return true;
+  };
+
+  const handleSelectOption = async (option: IssueOption) => {
+    const selectedKey = platform === 'jira' ? (option.key || '') : (option.identifier || '');
+    setIssueKey(selectedKey);
+    setShowDropdown(false);
+    setValidationError(null);
+
+    // Auto-import selected issue
+    setIsLoading(true);
+    try {
+      const issue = platform === 'jira'
+        ? await jiraService.importIssue(option.key || '')
+        : await linearService.importIssue(option.identifier || option.id);
+
+      setSelectedIssue({
+        id: issue.importedFrom.issueId,
+        key: platform === 'jira' ? option.key : undefined,
+        identifier: platform === 'linear' ? option.identifier : undefined,
+        title: option.title,
+        description: '',
+        url: issue.importedFrom.issueUrl,
+        mappedType: 'task',
+        mappedPriority: 'medium',
+      });
+
+      goToStage(2);
+    } catch (err: any) {
+      const message = err.response?.data?.message || err.message || 'Failed to import issue';
+      onError(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleContinue = async () => {
@@ -144,24 +230,66 @@ export function ImportStage1Selector({ onError }: Props) {
             </p>
           </div>
 
-          {/* Issue key input */}
-          <div className="space-y-2">
+          {/* Issue key input with autocomplete */}
+          <div className="space-y-2 relative">
             <label className="block text-sm font-medium">
-              {platform === 'jira' ? 'Jira Issue Key' : 'Linear Issue ID'}
+              {platform === 'jira' ? 'Jira Issue Key or Title' : 'Linear Issue ID or Title'}
             </label>
-            <Input
-              type="text"
-              value={issueKey}
-              onChange={(e) => {
-                setIssueKey(e.target.value);
-                setValidationError(null);
-              }}
-              placeholder={platform === 'jira' ? 'PROJ-123' : 'FOR-123 or UUID'}
-              className={validationError ? 'border-red-500/50 focus:border-red-500' : ''}
-              disabled={isLoading}
-            />
+            <div className="relative" ref={dropdownRef}>
+              <Input
+                type="text"
+                value={issueKey}
+                onChange={(e) => {
+                  setIssueKey(e.target.value);
+                  setValidationError(null);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => {
+                  if (issueKey.trim().length >= 2 && autocompleteOptions.length > 0) {
+                    setShowDropdown(true);
+                  }
+                }}
+                placeholder={platform === 'jira' ? 'Search PROJ-123 or issue title...' : 'Search FOR-123, UUID, or title...'}
+                className={validationError ? 'border-red-500/50 focus:border-red-500' : ''}
+                disabled={isLoading}
+              />
+
+              {/* Autocomplete dropdown */}
+              {showDropdown && autocompleteOptions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {autocompleteOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => handleSelectOption(option)}
+                      disabled={isLoading}
+                      className="w-full text-left px-4 py-3 hover:bg-[var(--bg-hover)] border-b border-[var(--border)]/50 last:border-b-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm">{option.key || option.identifier}</div>
+                          <div className="text-xs text-[var(--text-secondary)] truncate">
+                            {option.title}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Search indicator */}
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
+                </div>
+              )}
+            </div>
+
             {validationError && (
               <p className="text-xs text-red-600">{validationError}</p>
+            )}
+            {showDropdown && autocompleteOptions.length === 0 && issueKey.trim().length >= 2 && !isSearching && (
+              <p className="text-xs text-[var(--text-tertiary)]">No matching issues found</p>
             )}
           </div>
 

@@ -66,6 +66,24 @@ export class JiraService {
   }
 
   /**
+   * Search for Jira issues by key or summary
+   * Used for autocomplete in import wizard
+   */
+  async searchIssues(query: string): Promise<
+    Array<{ id: string; key: string; title: string }>
+  > {
+    try {
+      const { data } = await this.client.get('/jira/issues/search', {
+        params: { query },
+      });
+      return data.issues || [];
+    } catch {
+      // If endpoint doesn't exist, return empty array
+      return [];
+    }
+  }
+
+  /**
    * Import Jira issue and create draft ticket
    */
   async importIssue(issueKey: string): Promise<{
