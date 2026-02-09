@@ -4,6 +4,7 @@ import {
   Post,
   Delete,
   Body,
+  Query,
   Req,
   BadRequestException,
   Logger,
@@ -140,5 +141,34 @@ export class JiraController {
 
     this.logger.log(`Jira disconnected for user ${userId}`);
     return { success: true };
+  }
+
+  @Get('issues/search')
+  async searchIssues(
+    @Query('query') query: string,
+    @Req() req: any,
+  ) {
+    const workspaceId = req.workspaceId;
+    const userId = req.user?.uid;
+    if (!workspaceId || !userId) throw new BadRequestException('Missing workspace or user');
+
+    if (!query || query.trim().length === 0) {
+      throw new BadRequestException('Query parameter is required');
+    }
+
+    const integration = await this.jiraRepo.findByUserAndWorkspace(userId, workspaceId);
+    if (!integration) {
+      throw new BadRequestException('Jira not connected. Connect Jira in Settings.');
+    }
+
+    const apiToken = await this.tokenService.decryptToken(integration.apiToken);
+    const issues = await this.apiClient.searchIssues(
+      integration.jiraUrl,
+      integration.username,
+      apiToken,
+      query,
+    );
+
+    return { issues };
   }
 }

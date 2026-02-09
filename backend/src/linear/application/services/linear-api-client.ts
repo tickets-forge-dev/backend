@@ -164,4 +164,43 @@ export class LinearApiClient {
     const data = await this.graphql(accessToken, '{ viewer { id name email } }');
     return data.viewer;
   }
+
+  /**
+   * Search for Linear issues by identifier or title
+   * Used for autocomplete in import wizard
+   */
+  async searchIssues(
+    accessToken: string,
+    query: string,
+  ): Promise<Array<{ id: string; identifier: string; title: string }>> {
+    try {
+      const data = await this.graphql(
+        accessToken,
+        `
+          query SearchIssues($filter: IssueFilter!) {
+            issues(filter: $filter, first: 20) {
+              nodes {
+                id
+                identifier
+                title
+              }
+            }
+          }
+        `,
+        {
+          filter: {
+            or: [
+              { identifier: { contains: query } },
+              { title: { contains: query } },
+            ],
+          },
+        },
+      );
+
+      return data.issues.nodes || [];
+    } catch (error: any) {
+      this.logger.warn(`Failed to search Linear issues: ${error.message}`);
+      return []; // Return empty list on error
+    }
+  }
 }

@@ -385,4 +385,43 @@ export class JiraApiClient {
 
     return nodes;
   }
+
+  /**
+   * Search for Jira issues by key or summary
+   * Used for autocomplete in import wizard
+   */
+  async searchIssues(
+    jiraUrl: string,
+    username: string,
+    apiToken: string,
+    query: string,
+  ): Promise<Array<{ id: string; key: string; title: string }>> {
+    // Use JQL (Jira Query Language) to search by key or summary
+    // Maximum 20 results for autocomplete
+    const jql = `key ~ "${query.replace(/"/g, '\\"')}" OR summary ~ "${query.replace(/"/g, '\\"')}"`;
+    const url = new URL(this.buildApiUrl(jiraUrl, 'search'));
+    url.searchParams.append('jql', jql);
+    url.searchParams.append('maxResults', '20');
+    url.searchParams.append('fields', 'key,summary');
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: this.buildAuth(username, apiToken),
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      this.logger.warn(`Failed to search Jira issues: ${response.status} ${text}`);
+      return []; // Return empty list on error
+    }
+
+    const data = (await response.json()) as any;
+    return (data.issues || []).map((issue: any) => ({
+      id: issue.id,
+      key: issue.key,
+      title: issue.fields.summary,
+    }));
+  }
 }

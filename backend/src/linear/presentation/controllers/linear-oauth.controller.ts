@@ -6,6 +6,7 @@ import {
   UseGuards,
   Logger,
   Inject,
+  BadRequestException,
   InternalServerErrorException,
   NotFoundException,
   Redirect,
@@ -142,5 +143,26 @@ export class LinearOAuthController {
 
     await this.integrationRepository.deleteByWorkspaceId(workspaceId);
     return { success: true };
+  }
+
+  @Get('issues/search')
+  @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
+  async searchIssues(
+    @Query('query') query: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    if (!query || query.trim().length === 0) {
+      throw new BadRequestException('Query parameter is required');
+    }
+
+    const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+    if (!integration) {
+      throw new BadRequestException('Linear not connected. Connect Linear in Settings.');
+    }
+
+    const accessToken = await this.tokenService.decryptToken(integration.accessToken);
+    const issues = await this.apiClient.searchIssues(accessToken, query);
+
+    return { issues };
   }
 }
