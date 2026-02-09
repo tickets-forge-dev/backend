@@ -8,11 +8,12 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
-import { Lightbulb, Bug, ClipboardList } from 'lucide-react';
+import { Lightbulb, Bug, ClipboardList, ChevronDown } from 'lucide-react';
 import { RepositorySelector } from '../RepositorySelector';
 import { BranchSelector } from '../BranchSelector';
 import { MarkdownInput } from './MarkdownInput';
 import { WizardFileUpload } from './WizardFileUpload';
+import { CollapsibleSection } from '../CollapsibleSection';
 
 /**
  * Stage 1: Input Component
@@ -50,9 +51,26 @@ export function Stage1Input() {
   // Validation state
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
   // Elapsed time counter
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  };
+
+  const isSectionExpanded = (sectionId: string) => expandedSections.has(sectionId);
 
   useEffect(() => {
     if (loading) {
@@ -246,30 +264,61 @@ export function Stage1Input() {
           </div>
         </div>
 
-        {/* Description Input (markdown) */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Description
-            <span className="text-gray-500 dark:text-gray-500 font-normal">
-              {' '}
-              (optional — helps the AI analyze your repo)
-            </span>
-          </label>
-          <MarkdownInput
-            value={input.description || ''}
-            onChange={setDescription}
-            placeholder="Describe what you want to build or change. Supports **markdown** formatting."
-            maxLength={2000}
-            rows={4}
-          />
-        </div>
+        {/* Additional Details (Collapsible) */}
+        <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
+          <button
+            type="button"
+            onClick={() => toggleSection('details')}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Additional Details
+            </h3>
+            <ChevronDown
+              className={`h-4 w-4 text-gray-400 transition-transform ${
+                isSectionExpanded('details') ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
 
-        {/* File Upload */}
-        <WizardFileUpload
-          files={pendingFiles}
-          onAdd={addPendingFile}
-          onRemove={removePendingFile}
-        />
+          {isSectionExpanded('details') && (
+            <div className="mt-4 space-y-6">
+              {/* Description Input (markdown) */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Description
+                  <span className="text-gray-500 dark:text-gray-500 font-normal">
+                    {' '}
+                    (helps the AI understand context)
+                  </span>
+                </label>
+                <MarkdownInput
+                  value={input.description || ''}
+                  onChange={setDescription}
+                  placeholder="Describe what you want to build or change. Supports **markdown** formatting."
+                  maxLength={2000}
+                  rows={4}
+                />
+              </div>
+
+              {/* File Upload */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Attachments
+                  <span className="text-gray-500 dark:text-gray-500 font-normal">
+                    {' '}
+                    (optional)
+                  </span>
+                </label>
+                <WizardFileUpload
+                  files={pendingFiles}
+                  onAdd={addPendingFile}
+                  onRemove={removePendingFile}
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Repository Selection - Uses Real GitHub Integration */}
         <RepositorySelector />
