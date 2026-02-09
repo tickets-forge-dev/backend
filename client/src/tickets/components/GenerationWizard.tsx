@@ -70,7 +70,11 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
     setRecoveryInfo(null);
     // applyRecovery reads the snapshot and restores state (or calls resumeDraft for Stage 3+)
     await applyRecovery();
-  }, [applyRecovery]);
+    // Clear resume param from URL so user doesn't auto-resume on next visit
+    if (resumeId) {
+      router.push('/create');
+    }
+  }, [applyRecovery, resumeId, router]);
 
   const handleStartFresh = useCallback(() => {
     reset();
