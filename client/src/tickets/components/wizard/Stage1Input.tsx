@@ -8,12 +8,11 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
-import { Lightbulb, Bug, ClipboardList, ChevronDown } from 'lucide-react';
+import { Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import { RepositorySelector } from '../RepositorySelector';
 import { BranchSelector } from '../BranchSelector';
 import { MarkdownInput } from './MarkdownInput';
 import { WizardFileUpload } from './WizardFileUpload';
-import { CollapsibleSection } from '../CollapsibleSection';
 
 /**
  * Stage 1: Input Component
@@ -51,26 +50,9 @@ export function Stage1Input() {
   // Validation state
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
-  // Collapsible sections state
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-
   // Elapsed time counter
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
-  };
-
-  const isSectionExpanded = (sectionId: string) => expandedSections.has(sectionId);
 
   useEffect(() => {
     if (loading) {
@@ -193,142 +175,146 @@ export function Stage1Input() {
           </div>
         </div>
 
-        {/* Type & Priority Selectors */}
-        <div className="flex gap-4">
-          <div className="flex-1 space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Type
-            </label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="feature">
-                  <span className="inline-flex items-center gap-2">
-                    <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
-                    Feature
-                  </span>
-                </SelectItem>
-                <SelectItem value="bug">
-                  <span className="inline-flex items-center gap-2">
-                    <Bug className="h-3.5 w-3.5 text-red-500" />
-                    Bug
-                  </span>
-                </SelectItem>
-                <SelectItem value="task">
-                  <span className="inline-flex items-center gap-2">
-                    <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
-                    Task
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* TICKET DETAILS CARD */}
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Ticket Details</h3>
 
-          <div className="flex-1 space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Priority
-            </label>
-            <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-green-500" />
-                    Low
-                  </span>
-                </SelectItem>
-                <SelectItem value="medium">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-yellow-500" />
-                    Medium
-                  </span>
-                </SelectItem>
-                <SelectItem value="high">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-orange-500" />
-                    High
-                  </span>
-                </SelectItem>
-                <SelectItem value="urgent">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-red-500" />
-                    Urgent
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Type & Priority Selectors */}
+          <div className="flex gap-4">
+            <div className="flex-1 space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Type
+              </label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="feature">
+                    <span className="inline-flex items-center gap-2">
+                      <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                      Feature
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="bug">
+                    <span className="inline-flex items-center gap-2">
+                      <Bug className="h-3.5 w-3.5 text-red-500" />
+                      Bug
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="task">
+                    <span className="inline-flex items-center gap-2">
+                      <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
+                      Task
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex-1 space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Priority
+              </label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-green-500" />
+                      Low
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="medium">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                      Medium
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="high">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-orange-500" />
+                      High
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="urgent">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-red-500" />
+                      Urgent
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
-        {/* Additional Details (Collapsible) */}
-        <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
-          <button
-            type="button"
-            onClick={() => toggleSection('details')}
-            className="w-full flex items-center justify-between text-left"
-          >
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Additional Details
-            </h3>
-            <ChevronDown
-              className={`h-4 w-4 text-gray-400 transition-transform ${
-                isSectionExpanded('details') ? 'rotate-180' : ''
-              }`}
+        {/* CONTEXT & DETAILS CARD */}
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 space-y-6 bg-gray-50/50 dark:bg-gray-900/30">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Context & Details</h3>
+
+          {/* Description Input (markdown) */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Description
+              <span className="text-gray-500 dark:text-gray-500 font-normal">
+                {' '}
+                (optional — helps AI understand context)
+              </span>
+            </label>
+            <MarkdownInput
+              value={input.description || ''}
+              onChange={setDescription}
+              placeholder="Describe what you want to build or change. Supports **markdown** formatting."
+              maxLength={2000}
+              rows={4}
             />
-          </button>
+          </div>
 
-          {isSectionExpanded('details') && (
-            <div className="mt-4 space-y-6">
-              {/* Description Input (markdown) */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                  <span className="text-gray-500 dark:text-gray-500 font-normal">
-                    {' '}
-                    (helps the AI understand context)
-                  </span>
-                </label>
-                <MarkdownInput
-                  value={input.description || ''}
-                  onChange={setDescription}
-                  placeholder="Describe what you want to build or change. Supports **markdown** formatting."
-                  maxLength={2000}
-                  rows={4}
-                />
-              </div>
+          {/* File Upload */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Attachments
+              <span className="text-gray-500 dark:text-gray-500 font-normal">
+                {' '}
+                (optional — max 5 files, 5MB each)
+              </span>
+            </label>
+            <WizardFileUpload
+              files={pendingFiles}
+              onAdd={addPendingFile}
+              onRemove={removePendingFile}
+            />
+          </div>
+        </div>
 
-              {/* File Upload */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Attachments
-                  <span className="text-gray-500 dark:text-gray-500 font-normal">
-                    {' '}
-                    (optional)
-                  </span>
-                </label>
-                <WizardFileUpload
-                  files={pendingFiles}
-                  onAdd={addPendingFile}
-                  onRemove={removePendingFile}
-                />
-              </div>
+        {/* CODE SELECTION CARD */}
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Code Selection</h3>
+
+          {/* Repository Selection */}
+          <RepositorySelector />
+          {repoError && (
+            <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md border border-red-200 dark:border-red-800">
+              <span>⚠️</span>
+              <span>{repoError}</span>
             </div>
           )}
-        </div>
 
-        {/* Repository Selection - Uses Real GitHub Integration */}
-        <RepositorySelector />
-        {repoError && (
-          <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md border border-red-200 dark:border-red-800">
-            <span>⚠️</span>
-            <span>{repoError}</span>
-          </div>
-        )}
-        <BranchSelector />
+          {/* Branch Selection */}
+          <BranchSelector />
+
+          {/* Future multi-repo placeholder */}
+          <button
+            type="button"
+            disabled
+            className="w-full text-center py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            + Add another repository (coming soon)
+          </button>
+        </div>
 
         {/* Submit Button */}
         <div className="pt-4 space-y-3 flex flex-col items-end">
