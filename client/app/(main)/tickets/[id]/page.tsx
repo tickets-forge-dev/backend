@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye, ExternalLink, Upload } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -49,8 +49,18 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
-  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment } = useTicketsStore();
-  const { questionRoundService, ticketService } = useServices();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
+  const { questionRoundService, ticketService, linearService, jiraService } = useServices();
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportPlatform, setExportPlatform] = useState<'linear' | 'jira'>('linear');
+  const [exportTeams, setExportTeams] = useState<Array<{ id: string; name: string; key: string }>>([]);
+  const [exportProjects, setExportProjects] = useState<Array<{ id: string; key: string; name: string }>>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const [selectedProjectKey, setSelectedProjectKey] = useState<string>('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [isLoadingExportOptions, setIsLoadingExportOptions] = useState(false);
+  const [linearConnected, setLinearConnected] = useState<boolean | null>(null);
+  const [jiraConnected, setJiraConnected] = useState<boolean | null>(null);
 
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
@@ -578,6 +588,110 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const isComplete = currentTicket.status === 'complete';
   const canToggleStatus = currentTicket.status === 'draft' || currentTicket.status === 'complete';
 
+  const handleOpenExport = async () => {
+    setShowExportDialog(true);
+    setSelectedTeamId('');
+    setSelectedProjectKey('');
+    setExportTeams([]);
+    setExportProjects([]);
+
+    // Check which integrations are connected
+    try {
+      const [linearStatus, jiraStatus] = await Promise.allSettled([
+        linearService.getConnectionStatus(),
+        jiraService.getConnectionStatus(),
+      ]);
+      const isLinearConnected = linearStatus.status === 'fulfilled' && linearStatus.value.connected;
+      const isJiraConnected = jiraStatus.status === 'fulfilled' && jiraStatus.value.connected;
+      setLinearConnected(isLinearConnected);
+      setJiraConnected(isJiraConnected);
+
+      // Auto-select the first connected platform
+      if (isLinearConnected) {
+        setExportPlatform('linear');
+        loadLinearTeams();
+      } else if (isJiraConnected) {
+        setExportPlatform('jira');
+        loadJiraProjects();
+      }
+    } catch {
+      setLinearConnected(false);
+      setJiraConnected(false);
+    }
+  };
+
+  const loadLinearTeams = async () => {
+    setIsLoadingExportOptions(true);
+    try {
+      const teams = await linearService.getTeams();
+      setExportTeams(teams);
+      if (teams.length === 1) setSelectedTeamId(teams[0].id);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to load Linear teams');
+    } finally {
+      setIsLoadingExportOptions(false);
+    }
+  };
+
+  const loadJiraProjects = async () => {
+    setIsLoadingExportOptions(true);
+    try {
+      const projects = await jiraService.getProjects();
+      setExportProjects(projects);
+      if (projects.length === 1) setSelectedProjectKey(projects[0].key);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to load Jira projects');
+    } finally {
+      setIsLoadingExportOptions(false);
+    }
+  };
+
+  const handlePlatformChange = (platform: 'linear' | 'jira') => {
+    setExportPlatform(platform);
+    setSelectedTeamId('');
+    setSelectedProjectKey('');
+    if (platform === 'linear') loadLinearTeams();
+    else loadJiraProjects();
+  };
+
+  const handleExport = async () => {
+    if (!ticketId) return;
+    setIsExporting(true);
+    try {
+      if (exportPlatform === 'linear') {
+        if (!selectedTeamId) return;
+        const result = await exportToLinear(ticketId, selectedTeamId);
+        if (result) {
+          toast.success(
+            <span>
+              Exported as <a href={result.issueUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">{result.identifier}</a>
+            </span>,
+          );
+          setShowExportDialog(false);
+        } else {
+          toast.error('Export failed');
+        }
+      } else {
+        if (!selectedProjectKey) return;
+        const result = await exportToJira(ticketId, selectedProjectKey);
+        if (result) {
+          toast.success(
+            <span>
+              Exported as <a href={result.issueUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">{result.issueKey}</a>
+            </span>,
+          );
+          setShowExportDialog(false);
+        } else {
+          toast.error('Export failed');
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Export failed');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!ticketId) return;
     const success = await deleteTicket(ticketId);
@@ -753,7 +867,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onDismissError={() => setAnswerSubmitError(null)}
       />
 
-      {/* Footer with delete button */}
+      {/* Footer with actions */}
       <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
         <Button
           variant="ghost"
@@ -763,6 +877,30 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Ticket
         </Button>
+
+        {techSpec && (
+          <div className="flex items-center gap-2">
+            {currentTicket.externalIssue ? (
+              <a
+                href={currentTicket.externalIssue.issueUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
+              </a>
+            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenExport}
+            >
+              <Upload className="h-3.5 w-3.5 mr-2" />
+              Export
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Status Toggle Confirmation Dialog */}
@@ -913,6 +1051,133 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               </p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Export Ticket</DialogTitle>
+            <DialogDescription>
+              Export this ticket to an external project management tool.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {/* Platform selector */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[var(--text)]">Platform</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => linearConnected && handlePlatformChange('linear')}
+                  disabled={!linearConnected}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    exportPlatform === 'linear'
+                      ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : linearConnected
+                      ? 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
+                      : 'border-[var(--border)] text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.633 11.2a9.553 9.553 0 0 1 .776-2.297l4.324 4.324a3.04 3.04 0 0 0 3.34 3.34l4.324 4.324A9.6 9.6 0 0 1 2.633 11.2z" />
+                    <path d="M5.265 6.265l12.47 12.47A9.6 9.6 0 0 0 5.265 6.265z" />
+                  </svg>
+                  Linear
+                  {!linearConnected && <span className="text-[10px] ml-auto">(not connected)</span>}
+                </button>
+                <button
+                  onClick={() => jiraConnected && handlePlatformChange('jira')}
+                  disabled={!jiraConnected}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    exportPlatform === 'jira'
+                      ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : jiraConnected
+                      ? 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
+                      : 'border-[var(--border)] text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.593 24V12.518a1.005 1.005 0 0 0-1.022-1.005z" />
+                    <path d="M17.373 0h-5.748a5.218 5.218 0 0 0 5.232 5.215h2.129v2.057A5.215 5.215 0 0 0 24.218 12.487V1.005A1.005 1.005 0 0 0 23.196 0h-5.823z" opacity=".5" />
+                  </svg>
+                  Jira
+                  {!jiraConnected && <span className="text-[10px] ml-auto">(not connected)</span>}
+                </button>
+              </div>
+              {!linearConnected && !jiraConnected && (
+                <p className="text-xs text-[var(--text-tertiary)]">
+                  Connect Linear or Jira in Settings to export tickets.
+                </p>
+              )}
+            </div>
+
+            {/* Platform-specific options */}
+            {isLoadingExportOptions ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
+                <span className="ml-2 text-sm text-[var(--text-secondary)]">Loading...</span>
+              </div>
+            ) : exportPlatform === 'linear' && linearConnected ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[var(--text)]">Team</label>
+                <select
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
+                >
+                  <option value="">Select a team...</option>
+                  {exportTeams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name} ({team.key})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : exportPlatform === 'jira' && jiraConnected ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[var(--text)]">Project</label>
+                <select
+                  value={selectedProjectKey}
+                  onChange={(e) => setSelectedProjectKey(e.target.value)}
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
+                >
+                  <option value="">Select a project...</option>
+                  {exportProjects.map((project) => (
+                    <option key={project.id} value={project.key}>
+                      {project.name} ({project.key})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportDialog(false)} disabled={isExporting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleExport}
+              disabled={
+                isExporting ||
+                (exportPlatform === 'linear' && !selectedTeamId) ||
+                (exportPlatform === 'jira' && !selectedProjectKey) ||
+                (!linearConnected && !jiraConnected)
+              }
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Export to {exportPlatform === 'linear' ? 'Linear' : 'Jira'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

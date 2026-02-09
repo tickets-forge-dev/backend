@@ -51,6 +51,7 @@ export interface AECResponse {
   currentRound?: number; // Current round number (1-N or 0 if not started)
   maxRounds?: number; // Adaptive max rounds (0-3, default 3)
   techSpec?: any; // TechSpec | null
+  externalIssue?: { platform: 'linear' | 'jira'; issueId: string; issueUrl: string } | null;
   attachments?: AttachmentResponse[];
   createdAt: string;
   updatedAt: string;
@@ -153,6 +154,22 @@ export class TicketService {
     const response = await this.client.get<string>(`/tickets/${ticketId}/export/xml`, {
       responseType: 'text',
     });
+    return response.data;
+  }
+
+  async exportToJira(ticketId: string, projectKey: string): Promise<{ issueId: string; issueKey: string; issueUrl: string }> {
+    const response = await this.client.post<{ issueId: string; issueKey: string; issueUrl: string }>(
+      `/tickets/${ticketId}/export/jira`,
+      { projectKey },
+    );
+    return response.data;
+  }
+
+  async exportToLinear(ticketId: string, teamId: string): Promise<{ issueId: string; issueUrl: string; identifier: string }> {
+    const response = await this.client.post<{ issueId: string; issueUrl: string; identifier: string }>(
+      `/tickets/${ticketId}/export/linear`,
+      { teamId },
+    );
     return response.data;
   }
 

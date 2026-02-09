@@ -50,6 +50,10 @@ interface TicketsState {
   deleteTicket: (id: string) => Promise<boolean>;
   clearCreateError: () => void;
 
+  // Export actions
+  exportToLinear: (ticketId: string, teamId: string) => Promise<{ issueUrl: string; identifier: string } | null>;
+  exportToJira: (ticketId: string, projectKey: string) => Promise<{ issueKey: string; issueUrl: string } | null>;
+
   // Attachment actions
   uploadAttachment: (ticketId: string, file: File, onProgress?: (percent: number) => void) => Promise<boolean>;
   deleteAttachment: (ticketId: string, attachmentId: string) => Promise<boolean>;
@@ -190,6 +194,34 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
 
   clearCreateError: () => {
     set({ createError: null });
+  },
+
+  exportToLinear: async (ticketId: string, teamId: string) => {
+    try {
+      const { ticketService } = useServices();
+      const result = await ticketService.exportToLinear(ticketId, teamId);
+
+      // Refresh the ticket to get the external issue link
+      await get().fetchTicket(ticketId);
+
+      return { issueUrl: result.issueUrl, identifier: result.identifier };
+    } catch (error: any) {
+      return null;
+    }
+  },
+
+  exportToJira: async (ticketId: string, projectKey: string) => {
+    try {
+      const { ticketService } = useServices();
+      const result = await ticketService.exportToJira(ticketId, projectKey);
+
+      // Refresh the ticket to get the external issue link
+      await get().fetchTicket(ticketId);
+
+      return { issueKey: result.issueKey, issueUrl: result.issueUrl };
+    } catch (error: any) {
+      return null;
+    }
   },
 
   uploadAttachment: async (ticketId: string, file: File, onProgress?: (percent: number) => void) => {

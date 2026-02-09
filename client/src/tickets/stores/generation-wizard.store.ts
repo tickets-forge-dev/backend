@@ -59,10 +59,13 @@ function loadSnapshot(): WizardSnapshot | null {
  */
 async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   const user = auth.currentUser;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(init?.headers as Record<string, string>),
-  };
+  const incomingHeaders = (init?.headers as Record<string, string>) || {};
+  const headers: Record<string, string> = { ...incomingHeaders };
+
+  // Only set Content-Type if not explicitly overridden (allows multipart uploads)
+  if (!('Content-Type' in headers) && !('content-type' in headers)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (user) {
     const token = await user.getIdToken();
@@ -150,6 +153,9 @@ export interface WizardState {
   spec: TechSpec | null;
   answers: Record<string, string | string[]>; // Legacy: Clarification question answers
 
+  // File uploads (staged before draft creation)
+  pendingFiles: File[];
+
   // Simplified question refinement (NEW - single set, no rounds)
   draftAecId: string | null;
   clarificationQuestions: ClarificationQuestion[];
@@ -190,6 +196,10 @@ export interface WizardActions {
   analyzeRepository: () => Promise<void>;
   editStack: (updates: any) => void; // Legacy: ProjectStack type
   editAnalysis: (updates: any) => void; // Legacy: CodebaseAnalysis type
+
+  // File uploads
+  addPendingFile: (file: File) => void;
+  removePendingFile: (index: number) => void;
 
   // Draft stage
   answerQuestion: (questionId: string, answer: string | string[]) => void;
@@ -254,6 +264,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   context: null,
   spec: null,
   answers: {},
+  pendingFiles: [],
   draftAecId: null,
   clarificationQuestions: [],
   questionAnswers: {},
@@ -278,6 +289,17 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   setDescription: (description: string) =>
     set((state) => ({
       input: { ...state.input, description },
+    })),
+
+  // File upload actions
+  addPendingFile: (file: File) =>
+    set((state) => ({
+      pendingFiles: [...state.pendingFiles, file],
+    })),
+
+  removePendingFile: (index: number) =>
+    set((state) => ({
+      pendingFiles: state.pendingFiles.filter((_, i) => i !== index),
     })),
 
   setRepository: (owner: string, name: string) =>
@@ -645,6 +667,32 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         currentStage: 3,
         loading: false,
       });
+
+      // Upload pending files in background (best-effort, don't block wizard)
+      const filesToUpload = get().pendingFiles;
+      if (filesToUpload.length > 0) {
+        set({ pendingFiles: [] });
+        for (const file of filesToUpload) {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            // Use native fetch for multipart — authFetch would add Content-Type
+            const uploadUser = auth.currentUser;
+            const uploadHeaders: Record<string, string> = {};
+            if (uploadUser) {
+              uploadHeaders['Authorization'] = `Bearer ${await uploadUser.getIdToken()}`;
+            }
+            await fetch(`${API_URL}/tickets/${aec.id}/attachments`, {
+              method: 'POST',
+              headers: uploadHeaders,
+              body: formData,
+            });
+          } catch (uploadError) {
+            console.warn('Failed to upload file:', file.name, uploadError);
+          }
+        }
+      }
+
       saveSnapshot(get());
       // Stage3Draft component will auto-start the first question round via useEffect
     } catch (error) {
@@ -1153,6 +1201,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       context: null,
       spec: null,
       answers: {},
+      pendingFiles: [],
       draftAecId: null,
       questionRounds: [],
       currentRound: 0,

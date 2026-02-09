@@ -7,11 +7,12 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
-import { Textarea } from '@/core/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
 import { Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import { RepositorySelector } from '../RepositorySelector';
 import { BranchSelector } from '../BranchSelector';
+import { MarkdownInput } from './MarkdownInput';
+import { WizardFileUpload } from './WizardFileUpload';
 
 /**
  * Stage 1: Input Component
@@ -41,6 +42,9 @@ export function Stage1Input() {
     setType,
     setPriority,
     analyzeRepository,
+    pendingFiles,
+    addPendingFile,
+    removePendingFile,
   } = useWizardStore();
 
   // Validation state
@@ -242,31 +246,30 @@ export function Stage1Input() {
           </div>
         </div>
 
-        {/* Description Input (optional — hidden from UI but logic preserved) */}
-        <div className="hidden space-y-2">
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
+        {/* Description Input (markdown) */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Description
             <span className="text-gray-500 dark:text-gray-500 font-normal">
               {' '}
               (optional — helps the AI analyze your repo)
             </span>
           </label>
-          <Textarea
-            id="description"
-            placeholder="Describe what you want to build or change. The more detail, the better the analysis."
+          <MarkdownInput
             value={input.description || ''}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            maxLength={500}
-            className="w-full resize-none"
+            onChange={setDescription}
+            placeholder="Describe what you want to build or change. Supports **markdown** formatting."
+            maxLength={2000}
+            rows={4}
           />
-          <span className="text-xs text-gray-500 dark:text-gray-400 block text-right">
-            {(input.description || '').length}/500
-          </span>
         </div>
+
+        {/* File Upload */}
+        <WizardFileUpload
+          files={pendingFiles}
+          onAdd={addPendingFile}
+          onRemove={removePendingFile}
+        />
 
         {/* Repository Selection - Uses Real GitHub Integration */}
         <RepositorySelector />

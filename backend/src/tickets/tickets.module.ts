@@ -24,6 +24,10 @@ import { AEC_REPOSITORY } from './application/ports/AECRepository';
 import { DRIFT_DETECTOR } from './application/services/drift-detector.interface';
 import { ESTIMATION_ENGINE } from './application/services/estimation-engine.interface';
 import { GitHubModule } from '../github/github.module';
+import { LinearModule } from '../linear/linear.module';
+import { JiraModule } from '../jira/jira.module';
+import { ExportToLinearUseCase } from './application/use-cases/ExportToLinearUseCase';
+import { ExportToJiraUseCase } from './application/use-cases/ExportToJiraUseCase';
 import { TechSpecGeneratorImpl } from './application/services/TechSpecGeneratorImpl';
 import { TECH_SPEC_GENERATOR } from './application/ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzerImpl } from './application/services/CodebaseAnalyzerImpl';
@@ -41,7 +45,7 @@ import { AttachmentStorageService } from './infrastructure/storage/AttachmentSto
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 
 @Module({
-  imports: [GitHubModule],
+  imports: [GitHubModule, LinearModule, JiraModule],
   controllers: [TicketsController],
   providers: [
     CreateTicketUseCase,
@@ -53,6 +57,8 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     GenerateQuestionsUseCase,
     SubmitQuestionAnswersUseCase,
     FinalizeSpecUseCase,
+    ExportToLinearUseCase,
+    ExportToJiraUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,

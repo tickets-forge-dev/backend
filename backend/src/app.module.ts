@@ -4,6 +4,8 @@ import { SharedModule } from './shared/shared.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { GitHubModule } from './github/github.module';
+import { LinearModule } from './linear/linear.module';
+import { JiraModule } from './jira/jira.module';
 
 @Module({
   imports: [
@@ -15,8 +17,8 @@ import { GitHubModule } from './github/github.module';
     WorkspacesModule,
     TicketsModule,
     GitHubModule,
-    // Additional feature modules will be added in subsequent stories
-    // IntegrationsModule (Story 5.x)
+    LinearModule,
+    JiraModule,
   ],
   controllers: [],
   providers: [],

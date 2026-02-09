@@ -39,7 +39,7 @@ import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort'
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectStackDetector';
-import { Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Inject, BadRequestException, ForbiddenException, Req } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
@@ -59,6 +59,8 @@ import { TechSpecMarkdownGenerator } from '../../application/services/TechSpecMa
 import { AecXmlSerializer } from '../../application/services/AecXmlSerializer';
 import { AttachmentStorageService } from '../../infrastructure/storage/AttachmentStorageService';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE, MAX_ATTACHMENTS } from '../../domain/value-objects/Attachment';
+import { ExportToLinearUseCase } from '../../application/use-cases/ExportToLinearUseCase';
+import { ExportToJiraUseCase } from '../../application/use-cases/ExportToJiraUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -89,6 +91,8 @@ export class TicketsController {
     private readonly techSpecMarkdownGenerator: TechSpecMarkdownGenerator,
     private readonly aecXmlSerializer: AecXmlSerializer,
     private readonly attachmentStorageService: AttachmentStorageService,
+    private readonly exportToLinearUseCase: ExportToLinearUseCase,
+    private readonly exportToJiraUseCase: ExportToJiraUseCase,
   ) {}
 
   /**
@@ -624,6 +628,53 @@ export class TicketsController {
     }
 
     return aec.attachments;
+  }
+
+  /**
+   * Export ticket to Linear as an issue.
+   */
+  @Post(':id/export/linear')
+  async exportToLinear(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() body: { teamId: string },
+  ) {
+    try {
+      const result = await this.exportToLinearUseCase.execute({
+        aecId: id,
+        workspaceId,
+        teamId: body.teamId,
+      });
+      return result;
+    } catch (error: any) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  /**
+   * Export ticket to Jira as an issue.
+   */
+  @Post(':id/export/jira')
+  async exportToJira(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() body: { projectKey: string },
+    @Req() req: any,
+  ) {
+    const userId = req.user?.uid;
+    if (!userId) throw new BadRequestException('Missing user');
+
+    try {
+      const result = await this.exportToJiraUseCase.execute({
+        aecId: id,
+        workspaceId,
+        userId,
+        projectKey: body.projectKey,
+      });
+      return result;
+    } catch (error: any) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   private mapToResponse(aec: any) {

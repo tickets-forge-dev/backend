@@ -221,6 +221,18 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Set external issue link without status transition.
+   * Works from any status that has a techSpec (draft, complete, etc).
+   */
+  setExternalIssue(externalIssue: ExternalIssue): void {
+    if (!this._techSpec) {
+      throw new InvalidStateTransitionError('Cannot set external issue without a tech spec');
+    }
+    this._externalIssue = externalIssue;
+    this._updatedAt = new Date();
+  }
+
   markComplete(): void {
     if (this._status !== AECStatus.DRAFT) {
       throw new InvalidStateTransitionError(
