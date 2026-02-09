@@ -755,8 +755,13 @@ export class TicketsController {
   async importFromJira(
     @Body() dto: ImportFromJiraDto,
     @WorkspaceId() workspaceId: string,
-    @UserEmail() userId: string,
+    @Req() req: any,
   ) {
+    const userId = req.user?.uid;
+    if (!userId) {
+      throw new BadRequestException('User ID not found');
+    }
+
     try {
       return await this.importFromJiraUseCase.execute({
         workspaceId,
