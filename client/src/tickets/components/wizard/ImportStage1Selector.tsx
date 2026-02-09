@@ -81,31 +81,38 @@ export function ImportStage1Selector({ onError }: Props) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const validateIssueKey = (): boolean => {
+  const validateAndNormalizeIssueKey = (): string | null => {
     setValidationError(null);
 
     if (!issueKey.trim()) {
       setValidationError('Issue key/ID is required');
-      return false;
+      return null;
     }
 
+    const trimmed = issueKey.trim();
+
     if (platform === 'jira') {
-      // Jira format: PROJECT-123
-      const jiraKeyRegex = /^[A-Z][A-Z0-9]*-\d+$/;
-      if (!jiraKeyRegex.test(issueKey.trim())) {
-        setValidationError('Invalid Jira issue key. Expected format: PROJECT-123');
-        return false;
+      // Jira format: PROJECT-123 or PROJECT123 (auto-correct)
+      const jiraKeyRegex = /^[A-Z][A-Z0-9]*-?\d+$/;
+      if (!jiraKeyRegex.test(trimmed)) {
+        setValidationError('Invalid Jira issue key. Expected format: PROJECT-123 or PROJECT123');
+        return null;
       }
+
+      // Auto-correct: Convert "PROJECT123" to "PROJECT-123"
+      const normalized = trimmed.replace(/^([A-Z][A-Z0-9]*?)(\d+)$/, '$1-$2');
+      return normalized;
     } else if (platform === 'linear') {
       // Linear format: FOR-123 or UUID
       const linearKeyRegex = /^([A-Z]+-\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
-      if (!linearKeyRegex.test(issueKey.trim())) {
+      if (!linearKeyRegex.test(trimmed)) {
         setValidationError('Invalid Linear issue ID. Expected format: TEAM-123 or UUID');
-        return false;
+        return null;
       }
+      return trimmed;
     }
 
-    return true;
+    return null;
   };
 
   const handleSelectOption = async (option: IssueOption) => {
@@ -117,7 +124,13 @@ export function ImportStage1Selector({ onError }: Props) {
       return;
     }
 
-    setIssueKey(selectedKey);
+    // Normalize the key (for Jira, convert PROJECT123 to PROJECT-123)
+    let normalizedKey = selectedKey;
+    if (platform === 'jira') {
+      normalizedKey = selectedKey.replace(/^([A-Z][A-Z0-9]*?)(\d+)$/, '$1-$2');
+    }
+
+    setIssueKey(normalizedKey);
     setShowDropdown(false);
     setValidationError(null);
 
@@ -125,7 +138,7 @@ export function ImportStage1Selector({ onError }: Props) {
     setIsLoading(true);
     try {
       const issue = platform === 'jira'
-        ? await jiraService.importIssue(option.key || '')
+        ? await jiraService.importIssue(normalizedKey)
         : await linearService.importIssue(option.identifier || option.id);
 
       setSelectedIssue({
@@ -160,14 +173,15 @@ export function ImportStage1Selector({ onError }: Props) {
   };
 
   const handleContinue = async () => {
-    if (!validateIssueKey()) return;
+    const normalizedKey = validateAndNormalizeIssueKey();
+    if (!normalizedKey) return;
 
     setIsLoading(true);
     try {
       // Fetch full issue details
       const issue = platform === 'jira'
-        ? await jiraService.importIssue(issueKey.trim())
-        : await linearService.importIssue(issueKey.trim());
+        ? await jiraService.importIssue(normalizedKey)
+        : await linearService.importIssue(normalizedKey);
 
       // The API response has { ticketId, importedFrom }
       // We need to extract the issue data. For MVP, we'll store minimal data.
@@ -254,7 +268,7 @@ export function ImportStage1Selector({ onError }: Props) {
           <div className="p-4 bg-[var(--bg-subtle)] rounded-lg border border-[var(--border)]">
             <p className="text-sm text-[var(--text-secondary)]">
               {platform === 'jira'
-                ? 'Enter the Jira issue key (e.g., PROJ-123)'
+                ? 'Enter the Jira issue key (e.g., PROJ-123 or PROJ123 - both formats accepted)'
                 : 'Enter the Linear issue ID (e.g., FOR-123 or UUID)'}
             </p>
           </div>
@@ -278,7 +292,7 @@ export function ImportStage1Selector({ onError }: Props) {
                     setShowDropdown(true);
                   }
                 }}
-                placeholder={platform === 'jira' ? 'Search PROJ-123 or issue title...' : 'Search FOR-123, UUID, or title...'}
+                placeholder={platform === 'jira' ? 'e.g., KAN-2 or KAN2' : 'e.g., FOR-123 or UUID'}
                 className={validationError ? 'border-red-500/50 focus:border-red-500' : ''}
                 disabled={isLoading}
               />
