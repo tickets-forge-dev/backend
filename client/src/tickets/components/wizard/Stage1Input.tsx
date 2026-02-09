@@ -274,20 +274,11 @@ export function Stage1Input() {
           </div>
 
           {/* File Upload */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Attachments
-              <span className="text-gray-500 dark:text-gray-500 font-normal">
-                {' '}
-                (optional — max 5 files, 5MB each)
-              </span>
-            </label>
-            <WizardFileUpload
-              files={pendingFiles}
-              onAdd={addPendingFile}
-              onRemove={removePendingFile}
-            />
-          </div>
+          <WizardFileUpload
+            files={pendingFiles}
+            onAdd={addPendingFile}
+            onRemove={removePendingFile}
+          />
         </div>
 
         {/* CODE SELECTION CARD */}
