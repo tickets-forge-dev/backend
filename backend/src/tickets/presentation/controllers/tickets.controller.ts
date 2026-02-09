@@ -346,11 +346,17 @@ export class TicketsController {
    * Generate clarification questions (simplified single-call flow)
    */
   @Post(':id/generate-questions')
-  async generateQuestions(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+  async generateQuestions(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @UserId() userId: string,
+  ) {
     const questions = await this.generateQuestionsUseCase.execute({
       aecId: id,
       workspaceId,
     });
+
+    this.telemetry.trackQuestionsGenerated(userId, id, questions.length);
 
     return { questions };
   }
@@ -362,6 +368,7 @@ export class TicketsController {
   async submitQuestionAnswers(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
+    @UserId() userId: string,
     @Body() dto: SubmitAnswersDto,
   ) {
     const aec = await this.submitQuestionAnswersUseCase.execute({
@@ -369,6 +376,23 @@ export class TicketsController {
       workspaceId,
       answers: dto.answers ?? {},
     });
+
+    // Track spec finalization after answers are submitted
+    if (aec.techSpec) {
+      this.telemetry.trackSpecGenerated(
+        userId,
+        id,
+        aec.techSpec.qualityScore ?? 0,
+        0, // Duration not tracked at controller level, could be added to domain
+      );
+
+      this.telemetry.trackTicketFinalized(
+        userId,
+        id,
+        0, // Total duration not tracked, would need to store creation time
+        0, // Total cost not tracked at this level
+      );
+    }
 
     return this.mapToResponse(aec);
   }
