@@ -44,6 +44,8 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
+import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
+import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
 import { GitHubFileService } from '@github/domain/github-file.service';
 import { GITHUB_FILE_SERVICE } from '../../application/ports/GitHubFileServicePort';
 import {
@@ -105,6 +107,7 @@ export class TicketsController {
     private readonly getImportAvailabilityUseCase: GetImportAvailabilityUseCase,
     private readonly importFromJiraUseCase: ImportFromJiraUseCase,
     private readonly importFromLinearUseCase: ImportFromLinearUseCase,
+    private readonly telemetry: TelemetryService,
   ) {}
 
   /**
@@ -256,9 +259,12 @@ export class TicketsController {
   async createTicket(
     @WorkspaceId() workspaceId: string,
     @UserEmail() userEmail: string,
+    @UserId() userId: string,
     @Body() dto: CreateTicketDto,
   ) {
     try {
+      this.telemetry.trackTicketCreationStarted(userId, workspaceId, 'create_new');
+
       const aec = await this.createTicketUseCase.execute({
         workspaceId,
         userEmail,
@@ -755,19 +761,17 @@ export class TicketsController {
   async importFromJira(
     @Body() dto: ImportFromJiraDto,
     @WorkspaceId() workspaceId: string,
-    @Req() req: any,
+    @UserId() userId: string,
   ) {
-    const userId = req.user?.uid;
-    if (!userId) {
-      throw new BadRequestException('User ID not found');
-    }
-
     try {
-      return await this.importFromJiraUseCase.execute({
+      const result = await this.importFromJiraUseCase.execute({
         workspaceId,
         userId,
         issueKey: dto.issueKey,
       });
+
+      this.telemetry.trackJiraIssueImported(userId, dto.issueKey, result.ticketId);
+      return result;
     } catch (error: any) {
       if (error.message.includes('not connected')) {
         throw new BadRequestException(error.message);
@@ -792,12 +796,16 @@ export class TicketsController {
   async importFromLinear(
     @Body() dto: ImportFromLinearDto,
     @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
   ) {
     try {
-      return await this.importFromLinearUseCase.execute({
+      const result = await this.importFromLinearUseCase.execute({
         workspaceId,
         issueId: dto.issueId,
       });
+
+      this.telemetry.trackLinearIssueImported(userId, dto.issueId, result.ticketId);
+      return result;
     } catch (error: any) {
       if (error.message.includes('not connected')) {
         throw new BadRequestException(error.message);

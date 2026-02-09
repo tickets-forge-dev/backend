@@ -40,9 +40,6 @@ export class CreateTicketUseCase {
   ) {}
 
   async execute(command: CreateTicketCommand): Promise<AEC> {
-    console.log('🎫 [CreateTicketUseCase] Creating ticket:', command.title);
-    console.log('🎫 [CreateTicketUseCase] WorkspaceId:', command.workspaceId);
-
     // Quota check
     const limit = TICKET_LIMITS[command.userEmail] ?? DEFAULT_TICKET_LIMIT;
     const used = await this.aecRepository.countByWorkspace(command.workspaceId);
@@ -54,13 +51,6 @@ export class CreateTicketUseCase {
     let repositoryContext: RepositoryContext | undefined;
 
     if (command.repositoryFullName && command.branchName) {
-      console.log(
-        '🎫 [CreateTicketUseCase] Repository context provided:',
-        command.repositoryFullName,
-        '@',
-        command.branchName,
-      );
-
       // Try to fetch GitHub access token from OAuth integration
       // If not available, we'll use on-demand code scanning with env token instead
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(
@@ -76,14 +66,8 @@ export class CreateTicketUseCase {
           command.branchName,
           accessToken,
         );
-      } else {
-        // No OAuth integration - skip creating context
-        // Code will be read on-demand via GitHubFileService (uses GITHUB_TOKEN from env)
-        // Repository context will be determined at question round generation time
-        console.log(
-          '🎫 [CreateTicketUseCase] No GitHub OAuth integration - code will be scanned on-demand',
-        );
       }
+      // No OAuth integration - code will be read on-demand via GitHubFileService
     }
 
     // Create domain entity
@@ -101,12 +85,8 @@ export class CreateTicketUseCase {
       aec.setTaskAnalysis(command.taskAnalysis);
     }
 
-    console.log('🎫 [CreateTicketUseCase] AEC created:', aec.id);
-
     // Persist draft
     await this.aecRepository.save(aec);
-
-    console.log('🎫 [CreateTicketUseCase] AEC saved, returning draft');
 
     return aec;
   }
@@ -163,13 +143,6 @@ export class CreateTicketUseCase {
       githubAccessToken,
     );
     const isDefaultBranch = branchName === defaultBranch;
-
-    console.log('🎫 [CreateTicketUseCase] Repository context built:', {
-      repositoryFullName,
-      branchName,
-      commitSha: commitSha.substring(0, 7),
-      isDefaultBranch,
-    });
 
     return RepositoryContext.create({
       repositoryFullName,
