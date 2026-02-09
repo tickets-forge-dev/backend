@@ -51,7 +51,7 @@ interface TicketsState {
   clearCreateError: () => void;
 
   // Attachment actions
-  uploadAttachment: (ticketId: string, file: File) => Promise<boolean>;
+  uploadAttachment: (ticketId: string, file: File, onProgress?: (percent: number) => void) => Promise<boolean>;
   deleteAttachment: (ticketId: string, attachmentId: string) => Promise<boolean>;
 
   // Branch selection actions (AC#5, Task 9)
@@ -192,12 +192,12 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
     set({ createError: null });
   },
 
-  uploadAttachment: async (ticketId: string, file: File) => {
+  uploadAttachment: async (ticketId: string, file: File, onProgress?: (percent: number) => void) => {
     set({ isUploadingAttachment: true, uploadAttachmentError: null });
 
     try {
       const { ticketService } = useServices();
-      const attachment = await ticketService.uploadAttachment(ticketId, file);
+      const attachment = await ticketService.uploadAttachment(ticketId, file, onProgress);
 
       // Update current ticket attachments
       set((state) => {

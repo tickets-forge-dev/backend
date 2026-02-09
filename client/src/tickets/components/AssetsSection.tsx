@@ -16,7 +16,7 @@ interface AssetsSectionProps {
   ticketTitle: string;
   ticketUpdatedAt?: string;
   attachments?: AttachmentResponse[];
-  onUploadAttachment?: (file: File) => Promise<boolean>;
+  onUploadAttachment?: (file: File, onProgress?: (percent: number) => void) => Promise<boolean>;
   onDeleteAttachment?: (attachmentId: string) => Promise<boolean>;
   isUploadingAttachment?: boolean;
 }
@@ -134,7 +134,7 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* For Humans — Tech Spec */}
-        <div className="rounded-lg border border-[var(--border)]/40 bg-[var(--bg-hover)] p-4 space-y-3">
+        <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
               <FileText className="h-4.5 w-4.5 text-blue-500" />
@@ -184,7 +184,7 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
         </div>
 
         {/* For Machines — AEC XML */}
-        <div className="rounded-lg border border-[var(--border)]/40 bg-[var(--bg-hover)] p-4 space-y-3">
+        <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center">
               <Code2 className="h-4.5 w-4.5 text-purple-500" />

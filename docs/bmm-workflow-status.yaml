@@ -26,36 +26,40 @@ workflow_status:
   research: skipped
 
   # PHASE 1: PLANNING (Required)
-  tech-spec: in-progress  # Epic 20 Spec Quality — nearing completion
+  tech-spec: docs/sprint-artifacts/SUPER-SPRINT-6-EPICS.md
 
   # PHASE 2: IMPLEMENTATION (Required - Next)
-  sprint-planning: recommended  # Will start after tech-spec complete
+  sprint-planning: in-progress  # Epics 1,3,6 done. Epics 2,4,5 remaining.
 
 # NOTES
 # =====
-# Current Work (Session 9):
-# - Ticket Detail Page Readability Redesign (hero header, quality badge, BDD color-coding)
-# - Problem Statement JSON normalization (backend + frontend defense-in-depth)
-# - Quality score hover tooltip with actionable improvement tips
-# - Draft/Complete button redesign (border, subtitle hints)
-# - Renamed Description → Notes, moved to bottom of page
-# - Committed: e84879b
-# - Consolidated input enhancement into EPIC-ONBOARDING-GAPS as Story 6b (Rich Input with File Uploads)
+# Last Updated: 2026-02-09 (Session 10)
 #
-# Previous Sessions:
+# COMPLETED EPICS:
+# - Epic 1: Interactive API Editor ✅ (Session 6 — API detection, review section, BE/FE split, test plans)
+# - Epic 3: Tech Spec + AEC XML Export ✅ (Session 10 — .md + .xml export, preview, download, copy)
+# - Epic 6: Design & Asset Attachments ✅ (Session 10 — Firebase Storage, upload with progress, delete, lightbox)
+#
+# IN-PROGRESS / PARTIAL:
+# - Epic 2: Rich Input (Markdown + PDF) — markdown rendering exists, PDF extraction not started
+#
+# NOT STARTED:
+# - Epic 4: Linear Integration
+# - Epic 5: Jira Integration
+#
+# BONUS WORK (outside sprint plan):
+# - Tabbed ticket detail page (Specification | Implementation tabs + Overview Card)
+# - Single-set question flow (replaced multi-round system)
+# - 2-pass repository fingerprinting (performance)
+# - Ticket status toggle (Draft/Complete)
+# - Collapsible sections, question UX redesign
+# - Loading state with Forge icon
+# - Firebase Storage bucket fix + upload progress UI
+#
+# Session History:
+# - Session 10: Tabbed redesign, attachments progress UI, exports, Forge loading icon
+# - Session 9: Readability redesign (hero header, quality badge, BDD color-coding)
 # - Session 8: Multi-round refactor → single-set question flow (3 commits)
 # - Session 7: 2-pass repo fingerprinting, collapsible sections, question UX redesign
 # - Session 6: Epic 20 core (API detection, BE/FE split, test plans, quality scoring)
-#
-# Tech-Spec Progress:
-# - Domain: ✅ Simplified question flow (max 5 questions, no rounds)
-# - Backend: ✅ All use cases updated, LLM normalization, 0 TS errors
-# - Frontend: ✅ Stores/components synced, readability redesign, build OK
-# - UX: ✅ Hero header, quality tooltip, BDD colors, Notes section
-# - Validation: ✅ Repo selection required, form guards added
-# - Input Enhancement: 📋 EPIC-23 created (5 stories, execution plan ready)
-#
-# Remaining for tech-spec completion:
-# - Uncommitted changes on epic-20-impl branch (Session 9 readability redesign)
-# - End-to-end testing of full ticket creation flow
-# - Then move to sprint-planning for Phase 2 implementation
+# - Session 5: Ticket status toggle (Draft/Complete)

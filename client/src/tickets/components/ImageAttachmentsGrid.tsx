@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Button } from '@/core/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Upload, Trash2, Download, Eye, FileText, Loader2, ImageIcon } from 'lucide-react';
+import { Trash2, Download, Eye, FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AttachmentResponse } from '@/services/ticket.service';
 
@@ -19,7 +18,7 @@ const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'ap
 
 interface ImageAttachmentsGridProps {
   attachments: AttachmentResponse[];
-  onUpload: (file: File) => Promise<boolean>;
+  onUpload: (file: File, onProgress?: (percent: number) => void) => Promise<boolean>;
   onDelete: (attachmentId: string) => Promise<boolean>;
   isUploading: boolean;
 }
@@ -34,6 +33,51 @@ function isImageMimeType(mimeType: string): boolean {
   return mimeType.startsWith('image/');
 }
 
+/** Circular progress ring SVG */
+function UploadProgress({ percent, fileName }: { percent: number; fileName: string }) {
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-2">
+      <div className="relative">
+        <svg width="72" height="72" className="transform -rotate-90">
+          {/* Background ring */}
+          <circle
+            cx="36"
+            cy="36"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            className="text-[var(--border)]"
+          />
+          {/* Progress ring */}
+          <circle
+            cx="36"
+            cy="36"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            className="text-[var(--primary)] transition-[stroke-dashoffset] duration-200"
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-[var(--text)]">
+          {percent}%
+        </span>
+      </div>
+      <p className="text-[10px] text-[var(--text-tertiary)] truncate max-w-full px-2">
+        {fileName}
+      </p>
+    </div>
+  );
+}
+
 export function ImageAttachmentsGrid({
   attachments,
   onUpload,
@@ -44,6 +88,8 @@ export function ImageAttachmentsGrid({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [lightboxName, setLightboxName] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadFileName, setUploadFileName] = useState('');
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +114,16 @@ export function ImageAttachmentsGrid({
         return;
       }
 
-      const success = await onUpload(file);
+      setUploadProgress(0);
+      setUploadFileName(file.name);
+
+      const success = await onUpload(file, (percent) => {
+        setUploadProgress(percent);
+      });
+
+      setUploadProgress(null);
+      setUploadFileName('');
+
       if (success) {
         toast.success(`Uploaded ${file.name}`);
       } else {
@@ -106,6 +161,7 @@ export function ImageAttachmentsGrid({
   }, []);
 
   const canUpload = attachments.length < MAX_ATTACHMENTS && !isUploading;
+  const isActivelyUploading = uploadProgress !== null;
 
   return (
     <>
@@ -117,120 +173,118 @@ export function ImageAttachmentsGrid({
         className="hidden"
       />
 
-      {attachments.length === 0 && !isUploading ? (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <ImageIcon className="h-8 w-8 text-[var(--text-tertiary)] mb-3" />
-          <p className="text-sm text-[var(--text-secondary)] mb-1">No attachments yet</p>
-          <p className="text-xs text-[var(--text-tertiary)] mb-4">Upload images or PDFs to this ticket</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={!canUpload}
-          >
-            <Upload className="h-3.5 w-3.5 mr-1.5" />
-            Upload File
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {attachments.map((attachment) => {
-              const isImage = isImageMimeType(attachment.mimeType);
-              const isDeleting = deletingId === attachment.id;
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {/* Existing attachments */}
+          {attachments.map((attachment) => {
+            const isImage = isImageMimeType(attachment.mimeType);
+            const isDeleting = deletingId === attachment.id;
 
-              return (
-                <div
-                  key={attachment.id}
-                  className="group relative rounded-lg border border-[var(--border)]/40 bg-[var(--bg-hover)] overflow-hidden"
-                >
-                  {/* Thumbnail / Icon */}
-                  <div className="aspect-square relative">
-                    {isImage ? (
-                      <img
-                        src={attachment.storageUrl}
-                        alt={attachment.fileName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[var(--bg-subtle)]">
-                        <FileText className="h-10 w-10 text-[var(--text-tertiary)]" />
-                      </div>
-                    )}
-
-                    {/* Hover overlay with actions */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      {isImage && (
-                        <button
-                          onClick={() => {
-                            setLightboxUrl(attachment.storageUrl);
-                            setLightboxName(attachment.fileName);
-                          }}
-                          className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                          title="Preview"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDownload(attachment)}
-                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(attachment)}
-                        disabled={isDeleting}
-                        className="p-1.5 rounded-full bg-red-500/40 hover:bg-red-500/60 text-white transition-colors"
-                        title="Delete"
-                      >
-                        {isDeleting ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
+            return (
+              <div
+                key={attachment.id}
+                className="group relative rounded-lg border border-[var(--border)]/40 bg-[var(--bg-hover)] overflow-hidden"
+              >
+                <div className="aspect-square relative">
+                  {isImage ? (
+                    <img
+                      src={attachment.storageUrl}
+                      alt={attachment.fileName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[var(--bg-subtle)]">
+                      <FileText className="h-10 w-10 text-[var(--text-tertiary)]" />
                     </div>
-                  </div>
+                  )}
 
-                  {/* File info */}
-                  <div className="px-2 py-1.5">
-                    <p className="text-[11px] text-[var(--text-secondary)] truncate" title={attachment.fileName}>
-                      {attachment.fileName}
-                    </p>
-                    <p className="text-[10px] text-[var(--text-tertiary)]">
-                      {formatFileSize(attachment.fileSize)}
-                    </p>
+                  {/* Hover overlay with actions */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    {isImage && (
+                      <button
+                        onClick={() => {
+                          setLightboxUrl(attachment.storageUrl);
+                          setLightboxName(attachment.fileName);
+                        }}
+                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                        title="Preview"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDownload(attachment)}
+                      className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(attachment)}
+                      disabled={isDeleting}
+                      className="p-1.5 rounded-full bg-red-500/40 hover:bg-red-500/60 text-white transition-colors"
+                      title="Delete"
+                    >
+                      {isDeleting ? (
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
-              );
-            })}
 
-            {/* Upload card */}
-            {canUpload && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-lg border-2 border-dashed border-[var(--border)]/60 hover:border-[var(--primary)]/40 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-[var(--text-tertiary)]" />
-                ) : (
-                  <>
-                    <Upload className="h-5 w-5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">Upload</span>
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+                {/* File info */}
+                <div className="px-2 py-1.5">
+                  <p className="text-[11px] text-[var(--text-secondary)] truncate" title={attachment.fileName}>
+                    {attachment.fileName}
+                  </p>
+                  <p className="text-[10px] text-[var(--text-tertiary)]">
+                    {formatFileSize(attachment.fileSize)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
 
-          {/* Upload limit hint */}
-          <p className="text-[10px] text-[var(--text-tertiary)]">
-            {attachments.length}/{MAX_ATTACHMENTS} files attached. Max 5MB each (PNG, JPEG, GIF, WebP, PDF).
-          </p>
+          {/* Upload progress card — same dimensions as attachment cards */}
+          {isActivelyUploading && (
+            <div className="rounded-lg border border-[var(--primary)]/30 bg-[var(--bg-subtle)] overflow-hidden">
+              <div className="aspect-square flex items-center justify-center">
+                <UploadProgress percent={uploadProgress} fileName={uploadFileName} />
+              </div>
+              <div className="px-2 py-1.5">
+                <p className="text-[11px] text-[var(--text-secondary)] truncate">Uploading...</p>
+                <p className="text-[10px] text-[var(--text-tertiary)]">{uploadProgress}%</p>
+              </div>
+            </div>
+          )}
+
+          {/* Add placeholder — dotted border, same dimensions */}
+          {canUpload && !isActivelyUploading && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-lg border-2 border-dashed border-[var(--border)]/50 hover:border-[var(--primary)]/40 bg-transparent hover:bg-[var(--bg-hover)] transition-colors overflow-hidden cursor-pointer group"
+            >
+              <div className="aspect-square flex flex-col items-center justify-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-[var(--bg-subtle)] group-hover:bg-[var(--primary)]/10 flex items-center justify-center transition-colors">
+                  <Plus className="h-5 w-5 text-[var(--text-tertiary)] group-hover:text-[var(--primary)] transition-colors" />
+                </div>
+                <span className="text-[11px] text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] transition-colors">
+                  Add file
+                </span>
+              </div>
+              <div className="px-2 py-1.5">
+                <p className="text-[10px] text-[var(--text-tertiary)]">
+                  {attachments.length}/{MAX_ATTACHMENTS} · Max 5MB
+                </p>
+              </div>
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Lightbox Dialog */}
       <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>

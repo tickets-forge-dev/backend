@@ -156,14 +156,27 @@ export class TicketService {
     return response.data;
   }
 
-  async uploadAttachment(ticketId: string, file: File): Promise<AttachmentResponse> {
+  async uploadAttachment(
+    ticketId: string,
+    file: File,
+    onProgress?: (percent: number) => void,
+  ): Promise<AttachmentResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
     const response = await this.client.post<AttachmentResponse>(
       `/tickets/${ticketId}/attachments`,
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: onProgress
+          ? (event) => {
+              if (event.total) {
+                onProgress(Math.round((event.loaded * 100) / event.total));
+              }
+            }
+          : undefined,
+      },
     );
     return response.data;
   }

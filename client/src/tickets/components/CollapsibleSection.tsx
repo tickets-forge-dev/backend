@@ -25,7 +25,6 @@ export function CollapsibleSection({
   return (
     <div
       id={id}
-      data-nav-section
       className={`rounded-lg bg-[var(--bg-subtle)] overflow-hidden ${className}`}
     >
       <button
