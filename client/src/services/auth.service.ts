@@ -17,7 +17,6 @@ export class AuthService {
       const token = await user.getIdToken();
       return token;
     } catch (error) {
-      console.error('Failed to get ID token:', error);
       return null;
     }
   }
@@ -29,7 +28,11 @@ export class AuthService {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+      }
+
       const response = await fetch(`${apiUrl}/auth/init`, {
         method: 'POST',
         headers: {
@@ -42,13 +45,9 @@ export class AuthService {
         throw new Error('Failed to initialize workspace');
       }
 
-      const data = await response.json();
-      console.log('✅ Workspace initialized:', data.workspaceId);
-
       // Force token refresh to get custom claims
       await auth.currentUser?.getIdToken(true);
     } catch (error: any) {
-      console.error('Workspace initialization failed:', error);
       throw error;
     }
   }

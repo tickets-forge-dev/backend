@@ -6,6 +6,20 @@ import { HttpLoggingInterceptor } from './shared/infrastructure/interceptors/htt
 import session = require('express-session');
 
 async function bootstrap() {
+  // Validate critical environment variables before app startup
+  const isProduction = process.env.NODE_ENV === 'production';
+  const requiredEnvVars = ['SESSION_SECRET', 'FRONTEND_URL'];
+
+  if (isProduction) {
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    if (missingVars.length > 0) {
+      throw new Error(
+        `❌ Production Error: Missing required environment variables: ${missingVars.join(', ')}\n` +
+        'Required vars: SESSION_SECRET, FRONTEND_URL'
+      );
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Global prefix
@@ -17,7 +31,7 @@ async function bootstrap() {
   // Session configuration (required for OAuth flow)
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+      secret: process.env.SESSION_SECRET!,
       resave: false,
       saveUninitialized: true, // Changed to true to ensure session is created
       cookie: {
@@ -49,7 +63,6 @@ async function bootstrap() {
       if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
         callback(null, true);
       } else {
-        console.warn(`❌ CORS blocked request from: ${requestOrigin}`);
         callback(new Error('CORS not allowed'), false);
       }
     },
@@ -81,9 +94,10 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`🚀 Server running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
-  console.log(`📊 HTTP Logging: Enabled`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`🚀 Server running on: http://localhost:${port}`);
+    console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap();

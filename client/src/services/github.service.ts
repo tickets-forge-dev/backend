@@ -109,8 +109,10 @@ export class GitHubService {
   private client: AxiosInstance;
 
   constructor() {
-    const baseURL =
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const baseURL = process.env.NEXT_PUBLIC_API_URL;
+    if (!baseURL) {
+      throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+    }
 
     this.client = axios.create({
       baseURL,
@@ -128,12 +130,9 @@ export class GitHubService {
         if (user) {
           const token = await user.getIdToken();
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('🔐 [GitHubService] Added auth token to request:', config.url);
-        } else {
-          console.warn('⚠️ [GitHubService] No auth user found for request:', config.url);
         }
       } catch (error) {
-        console.error('❌ [GitHubService] Failed to get auth token:', error);
+        // Silently fail - token refresh may not be critical for all requests
       }
       return config;
     });

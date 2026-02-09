@@ -19,7 +19,7 @@ function ollamaCompatibleFetch(url: string, options?: RequestInit): Promise<Resp
       }
       options.body = JSON.stringify(body);
     } catch (error) {
-      console.warn('Failed to parse request body for developer role fix:', error);
+      // Silently fail - this is a best-effort transformation
     }
   }
   return fetch(url, options);
@@ -34,15 +34,22 @@ function ollamaCompatibleFetch(url: string, options?: RequestInit): Promise<Resp
  */
 export const createOllamaProvider = (baseURL?: string) => {
   // Ensure baseURL always ends with /v1 for OpenAI-compatible API
-  let resolvedURL = baseURL || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-  if (!resolvedURL.endsWith('/v1')) {
-    resolvedURL = resolvedURL.replace(/\/+$/, '') + '/v1';
+  const resolvedURL = baseURL || process.env.OLLAMA_BASE_URL;
+
+  if (!resolvedURL) {
+    throw new Error(
+      'Ollama provider requires baseURL parameter or OLLAMA_BASE_URL environment variable'
+    );
   }
+
+  const finalURL = resolvedURL.endsWith('/v1')
+    ? resolvedURL
+    : resolvedURL.replace(/\/+$/, '') + '/v1';
 
   return createOpenAI({
     name: 'ollama',
     apiKey: 'ollama', // Ollama doesn't require API key
-    baseURL: resolvedURL,
+    baseURL: finalURL,
     fetch: ollamaCompatibleFetch as any, // Type assertion for custom fetch
   });
 };

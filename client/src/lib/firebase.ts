@@ -12,29 +12,32 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Validate Firebase configuration before initialization
+const requiredFirebaseVars = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  'NEXT_PUBLIC_FIREBASE_APP_ID',
+];
+
+const missingFirebaseVars = requiredFirebaseVars.filter(
+  (varName) => !process.env[varName]
+);
+
+if (missingFirebaseVars.length > 0) {
+  throw new Error(
+    `❌ Firebase initialization failed. Missing environment variables: ${missingFirebaseVars.join(', ')}`
+  );
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-console.log('✅ Firebase initialized:', {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-  currentOrigin: typeof window !== 'undefined' ? window.location.origin : 'server'
-});
 
 // Initialize services
 export const auth = getAuth(app);
 const firestore = getFirestore(app);
-
-// Force emulator connection for local development if needed
-if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-  console.log('🔧 Running on localhost - auth will redirect to current origin');
-}
-
-
-console.log('✅ Firebase services ready:', {
-  auth: !!auth,
-  firestore: !!firestore,
-});
 
 // OAuth providers
 export const googleProvider = new GoogleAuthProvider();
@@ -44,11 +47,9 @@ export const githubProvider = new GithubAuthProvider();
 if (typeof window !== 'undefined') {
   import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
     enableIndexedDbPersistence(firestore).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed: Multiple tabs open');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence not available in this browser');
-      }
+      // Silently fail - offline persistence is optional
+      // err.code === 'failed-precondition' means multiple tabs open
+      // err.code === 'unimplemented' means browser doesn't support IndexedDB
     });
   });
 }

@@ -61,8 +61,10 @@ export class TicketService {
   private client: AxiosInstance;
 
   constructor() {
-    const baseURL =
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const baseURL = process.env.NEXT_PUBLIC_API_URL;
+    if (!baseURL) {
+      throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+    }
 
     this.client = axios.create({
       baseURL,
@@ -84,23 +86,10 @@ export class TicketService {
   }
 
   async create(data: CreateTicketRequest): Promise<AECResponse> {
-    console.log('🎫 [TicketService] Creating ticket:', data);
-
     try {
-      const user = auth.currentUser;
-      console.log('🎫 [TicketService] Current user:', user?.email || 'none');
-      console.log('🎫 [TicketService] API URL:', this.client.defaults.baseURL);
-
       const response = await this.client.post<AECResponse>('/tickets', data);
-      console.log('🎫 [TicketService] Ticket created:', response.data.id);
       return response.data;
     } catch (error: any) {
-      console.error('❌ [TicketService] Create failed');
-      console.error('Status:', error.response?.status);
-      console.error('Data:', error.response?.data);
-      console.error('Message:', error.message);
-      console.error('Full error:', error);
-
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
       }

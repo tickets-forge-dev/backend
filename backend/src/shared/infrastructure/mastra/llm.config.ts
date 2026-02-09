@@ -27,23 +27,12 @@ export class LLMConfigService {
       // Ollama models (local debugging)
       this.fastModel = this.configService.get('OLLAMA_FAST_MODEL') || 'qwen2.5-coder:latest';
       this.mainModel = this.configService.get('OLLAMA_MAIN_MODEL') || 'qwen2.5-coder:latest';
-
-      console.log(`🔧 LLM Provider: Ollama (DEBUG MODE)`);
-      console.log(`   Fast model: ${this.fastModel}`);
-      console.log(`   Main model: ${this.mainModel}`);
-      console.log(
-        `   Base URL: ${this.configService.get('OLLAMA_BASE_URL') || 'http://localhost:11434/v1'}`,
-      );
     } else {
       // Anthropic/Claude models (production)
       this.fastModel =
         this.configService.get('ANTHROPIC_FAST_MODEL') || 'claude-3-5-haiku-20241022';
       this.mainModel =
         this.configService.get('ANTHROPIC_MAIN_MODEL') || 'claude-3-5-haiku-20241022';
-
-      console.log(`🚀 LLM Provider: Anthropic/Claude (PRODUCTION MODE)`);
-      console.log(`   Fast model: ${this.fastModel}`);
-      console.log(`   Main model: ${this.mainModel}`);
     }
   }
 
@@ -53,12 +42,9 @@ export class LLMConfigService {
    */
   getModel(type: ModelType): any {
     const modelId = type === 'fast' ? this.fastModel : this.mainModel;
-    console.log(`🔧 [LLMConfig] getModel(${type}) -> ${modelId} via ${this.provider}`);
 
     if (this.provider === 'ollama') {
-      const model = ollama(modelId);
-      console.log(`🔧 [LLMConfig] Created Ollama model instance`);
-      return model;
+      return ollama(modelId);
     } else {
       // Anthropic provider - dynamically import to avoid hard dependency
       // This will be properly implemented in the TechSpecGenerator (Story 9.4)
