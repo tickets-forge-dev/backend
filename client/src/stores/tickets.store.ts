@@ -16,6 +16,7 @@ interface TicketsState {
   isCreating: boolean;
   createError: string | null;
   isLoading: boolean;
+  isInitialLoad: boolean; // Track if first load hasn't completed yet
   loadError: string | null;
   fetchError: string | null;
   isUpdating: boolean;
@@ -71,6 +72,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   isCreating: false,
   createError: null,
   isLoading: false,
+  isInitialLoad: true, // Show skeletons only on first load
   loadError: null,
   fetchError: null,
   isUpdating: false,
@@ -129,16 +131,34 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   },
 
   loadTickets: async () => {
-    set({ isLoading: true, loadError: null });
+    const { isInitialLoad, tickets: cachedTickets } = get();
+
+    // First load: show skeleton loaders
+    if (isInitialLoad) {
+      set({ isLoading: true, loadError: null });
+    }
+    // Subsequent loads: show cached tickets, fetch silently in background
+    else if (cachedTickets.length > 0) {
+      set({ loadError: null });
+    }
 
     try {
       const { ticketService } = useServices();
       const tickets = await ticketService.list();
 
-      set({ tickets, isLoading: false });
+      set({
+        tickets,
+        isLoading: false,
+        isInitialLoad: false,
+        loadError: null,
+      });
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to load tickets';
-      set({ isLoading: false, loadError: errorMessage });
+      set({
+        isLoading: false,
+        isInitialLoad: false,
+        loadError: errorMessage
+      });
     }
   },
 

@@ -12,6 +12,10 @@ import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import { Loader2, Star, GitBranch, AlertCircle, RefreshCw } from 'lucide-react';
 
+interface Props {
+  hideLabel?: boolean; // Hide internal label when parent is handling it
+}
+
 /**
  * Branch Selector Component (AC#2, Task 6)
  *
@@ -22,7 +26,7 @@ import { Loader2, Star, GitBranch, AlertCircle, RefreshCw } from 'lucide-react';
  * - Search/filter support
  * - Loading and error states
  */
-export function BranchSelector() {
+export function BranchSelector({ hideLabel = false }: Props) {
   const {
     selectedRepository,
     selectedBranch,
@@ -43,9 +47,11 @@ export function BranchSelector() {
   if (isBranchesLoading) {
     return (
       <div className="space-y-2">
-        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-          Branch
-        </label>
+        {!hideLabel && (
+          <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+            Branch
+          </label>
+        )}
         <div className="flex items-center gap-2 h-10 px-3 border border-[var(--border)] rounded-md bg-[var(--bg-subtle)]">
           <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
           <span className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
@@ -60,9 +66,11 @@ export function BranchSelector() {
   if (branchesError) {
     return (
       <div className="space-y-2">
-        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-          Branch
-        </label>
+        {!hideLabel && (
+          <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+            Branch
+          </label>
+        )}
         <div className="flex items-center gap-2 h-10 px-3 border border-[var(--red)]/50 rounded-md bg-[var(--red)]/5">
           <AlertCircle className="h-4 w-4 text-[var(--red)]" />
           <span className="text-[var(--text-sm)] text-[var(--red)]">
@@ -77,9 +85,11 @@ export function BranchSelector() {
   if (availableBranches.length === 0) {
     return (
       <div className="space-y-2">
-        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-          Branch
-        </label>
+        {!hideLabel && (
+          <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+            Branch
+          </label>
+        )}
         <div className="flex items-center gap-2 h-10 px-3 border border-[var(--border)] rounded-md bg-[var(--bg-subtle)]">
           <GitBranch className="h-4 w-4 text-[var(--text-tertiary)]" />
           <span className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
@@ -93,9 +103,11 @@ export function BranchSelector() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-          Branch
-        </label>
+        {!hideLabel && (
+          <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+            Branch
+          </label>
+        )}
         <Button
           variant="ghost"
           size="sm"

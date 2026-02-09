@@ -5,7 +5,7 @@ import { useServices } from '@/hooks/useServices';
 import { useImportWizardStore } from '@/tickets/stores/import-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, ChevronDown } from 'lucide-react';
 
 interface Props {
   onError: (message: string) => void;
@@ -24,13 +24,15 @@ interface IssueOption {
  * Enhanced with autocomplete: Ask user to paste issue key/ID
  * - Platform selection: Jira or Linear
  * - Issue key/ID input with real-time autocomplete suggestions
- * - Shows matching issues as user types
+ * - Shows matching issues as user types with full details
+ * - Keyboard navigation (↑/↓/Enter/Esc)
  * - User can select from dropdown or continue with manual entry
  */
 export function ImportStage1Selector({ onError }: Props) {
   const { jiraService, linearService } = useServices();
   const { platform, setPlatform, setSelectedIssue, goToStage } = useImportWizardStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [issueKey, setIssueKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +40,7 @@ export function ImportStage1Selector({ onError }: Props) {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [autocompleteOptions, setAutocompleteOptions] = useState<IssueOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   // Handle autocomplete search
   useEffect(() => {
@@ -80,6 +83,42 @@ export function ImportStage1Selector({ onError }: Props) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Keyboard navigation for dropdown
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown || autocompleteOptions.length === 0) {
+      if (e.key === 'Enter' && issueKey.trim()) {
+        handleContinue();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < autocompleteOptions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < autocompleteOptions.length) {
+          handleSelectOption(autocompleteOptions[highlightedIndex]);
+        } else if (issueKey.trim()) {
+          handleContinue();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowDropdown(false);
+        setHighlightedIndex(-1);
+        break;
+    }
+  };
 
   const validateAndNormalizeIssueKey = (): string | null => {
     setValidationError(null);
@@ -280,13 +319,16 @@ export function ImportStage1Selector({ onError }: Props) {
             </label>
             <div className="relative" ref={dropdownRef}>
               <Input
+                ref={inputRef}
                 type="text"
                 value={issueKey}
                 onChange={(e) => {
                   setIssueKey(e.target.value);
                   setValidationError(null);
                   setShowDropdown(true);
+                  setHighlightedIndex(-1);
                 }}
+                onKeyDown={handleKeyDown}
                 onFocus={() => {
                   if (issueKey.trim().length >= 2 && autocompleteOptions.length > 0) {
                     setShowDropdown(true);
@@ -295,44 +337,69 @@ export function ImportStage1Selector({ onError }: Props) {
                 placeholder={platform === 'jira' ? 'e.g., KAN-2 or KAN2' : 'e.g., FOR-123 or UUID'}
                 className={validationError ? 'border-red-500/50 focus:border-red-500' : ''}
                 disabled={isLoading}
+                autoComplete="off"
               />
 
-              {/* Autocomplete dropdown */}
-              {showDropdown && autocompleteOptions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
-                  {autocompleteOptions.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => handleSelectOption(option)}
-                      disabled={isLoading}
-                      className="w-full text-left px-4 py-3 hover:bg-[var(--bg-hover)] border-b border-[var(--border)]/50 last:border-b-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm">{option.key || option.identifier}</div>
-                          <div className="text-xs text-[var(--text-secondary)] truncate">
-                            {option.title}
+              {/* Autocomplete dropdown with enhanced styling */}
+              {showDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg)] border border-[var(--border)]/40 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
+                  {isSearching && (
+                    <div className="px-4 py-8 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
+                    </div>
+                  )}
+
+                  {!isSearching && autocompleteOptions.length === 0 && issueKey.trim().length >= 2 && (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-sm text-[var(--text-tertiary)]">No matching issues found</p>
+                      <p className="text-xs text-[var(--text-tertiary)]/70 mt-1">
+                        Try a different search term
+                      </p>
+                    </div>
+                  )}
+
+                  {!isSearching && autocompleteOptions.length > 0 && (
+                    <>
+                      {autocompleteOptions.map((option, index) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleSelectOption(option)}
+                          disabled={isLoading}
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                          onMouseLeave={() => setHighlightedIndex(-1)}
+                          className={`w-full text-left px-4 py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                            index === highlightedIndex
+                              ? 'bg-[var(--primary)]/10 border-l-2 border-[var(--primary)]'
+                              : 'hover:bg-[var(--bg-hover)] border-l-2 border-transparent'
+                          } ${index < autocompleteOptions.length - 1 ? 'border-b border-[var(--border)]/20' : ''}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              {/* Issue Key/Identifier */}
+                              <div className="font-semibold text-sm text-[var(--text)]">
+                                {option.key || option.identifier}
+                              </div>
+                              {/* Issue Title */}
+                              <div className="text-xs text-[var(--text-secondary)] truncate mt-0.5">
+                                {option.title}
+                              </div>
+                            </div>
+                            {/* Checkmark on selection */}
+                            {index === highlightedIndex && (
+                              <Check className="h-4 w-4 text-[var(--primary)] flex-shrink-0 mt-0.5" />
+                            )}
                           </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
 
-              {/* Search indicator */}
-              {isSearching && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
-                </div>
-              )}
             </div>
 
             {validationError && (
               <p className="text-xs text-red-600">{validationError}</p>
-            )}
-            {showDropdown && autocompleteOptions.length === 0 && issueKey.trim().length >= 2 && !isSearching && (
-              <p className="text-xs text-[var(--text-tertiary)]">No matching issues found</p>
             )}
           </div>
 

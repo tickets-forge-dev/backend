@@ -396,32 +396,55 @@ export class JiraApiClient {
     apiToken: string,
     query: string,
   ): Promise<Array<{ id: string; key: string; title: string }>> {
-    // Use JQL (Jira Query Language) to search by key or summary
-    // Maximum 20 results for autocomplete
-    const jql = `key ~ "${query.replace(/"/g, '\\"')}" OR summary ~ "${query.replace(/"/g, '\\"')}"`;
-    const url = new URL(this.buildApiUrl(jiraUrl, 'search'));
-    url.searchParams.append('jql', jql);
-    url.searchParams.append('maxResults', '20');
-    url.searchParams.append('fields', 'key,summary');
+    const queryUpper = query.toUpperCase().trim();
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: this.buildAuth(username, apiToken),
-        Accept: 'application/json',
-      },
-    });
+    try {
+      // Try to fetch the exact issue key first (most reliable method)
+      if (queryUpper.length >= 2) {
+        try {
+          const issue = await this.getIssue(jiraUrl, username, apiToken, queryUpper);
+          return [{
+            id: issue.id,
+            key: issue.key,
+            title: issue.summary || '',
+          }];
+        } catch {
+          // Issue doesn't exist with exact key, try JQL for partial matches
+        }
+      }
 
-    if (!response.ok) {
-      const text = await response.text();
-      this.logger.warn(`Failed to search Jira issues: ${response.status} ${text}`);
-      return []; // Return empty list on error
+      // Fallback to JQL search for partial matches
+      const jql = `issuekey ~ "${queryUpper}"`;
+      const url = new URL(this.buildApiUrl(jiraUrl, 'search'));
+      url.searchParams.append('jql', jql);
+      url.searchParams.append('maxResults', '20');
+      url.searchParams.append('fields', 'key,summary');
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Authorization: this.buildAuth(username, apiToken),
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const data = (await response.json()) as any;
+
+      if (data.issues && data.issues.length > 0) {
+        return data.issues.map((issue: any) => ({
+          id: issue.id,
+          key: issue.key,
+          title: issue.fields.summary || '',
+        }));
+      }
+
+      return [];
+    } catch (error: any) {
+      this.logger.error(`Jira search error: ${error.message}`);
+      return [];
     }
-
-    const data = (await response.json()) as any;
-    return (data.issues || []).map((issue: any) => ({
-      id: issue.id,
-      key: issue.key,
-      title: issue.fields.summary,
-    }));
   }
 }

@@ -5,10 +5,11 @@ import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban } from 'lucide-react';
 
 export default function TicketsListPage() {
-  const { tickets, isLoading, loadError, loadTickets, quota, fetchQuota } = useTicketsStore();
+  const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota } = useTicketsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -240,13 +241,12 @@ export default function TicketsListPage() {
         </div>
       </div>
 
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex min-h-[400px] items-center justify-center">
-          <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Loading tickets...</span>
-          </div>
+      {/* Loading state: Show skeletons only on initial load */}
+      {isInitialLoad && isLoading && (
+        <div className="space-y-1.5">
+          {[...Array(5)].map((_, i) => (
+            <TicketSkeletonRow key={i} />
+          ))}
         </div>
       )}
 
@@ -258,7 +258,7 @@ export default function TicketsListPage() {
       )}
 
       {/* Tickets list */}
-      {!isLoading && !loadError && filteredTickets.length === 0 && (
+      {!isInitialLoad && !loadError && filteredTickets.length === 0 && (
         <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)]/40 bg-[var(--bg-subtle)]">
           <div className="text-center">
             <p className="text-[var(--text-base)] text-[var(--text-secondary)]">
@@ -273,7 +273,7 @@ export default function TicketsListPage() {
         </div>
       )}
 
-      {!isLoading && !loadError && filteredTickets.length > 0 && (
+      {!isInitialLoad && !loadError && filteredTickets.length > 0 && (
         <div className="space-y-1.5">
           {filteredTickets.map((ticket) => {
             const readinessScore = ticket.techSpec?.qualityScore ?? ticket.readinessScore ?? 0;

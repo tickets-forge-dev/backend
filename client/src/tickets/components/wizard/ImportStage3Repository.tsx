@@ -102,7 +102,7 @@ export function ImportStage3Repository({ onError }: Props) {
       {selectedRepository && (
         <div>
           <label className="block text-sm font-medium mb-3">Branch (optional)</label>
-          <BranchSelector />
+          <BranchSelector hideLabel />
         </div>
       )}
 

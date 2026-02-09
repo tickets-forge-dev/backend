@@ -77,8 +77,8 @@ export class JiraService {
         params: { query },
       });
       return data.issues || [];
-    } catch {
-      // If endpoint doesn't exist, return empty array
+    } catch (error) {
+      // Silently fail - return empty array
       return [];
     }
   }

@@ -150,7 +150,10 @@ export class JiraController {
   ) {
     const workspaceId = req.workspaceId;
     const userId = req.user?.uid;
-    if (!workspaceId || !userId) throw new BadRequestException('Missing workspace or user');
+
+    if (!workspaceId || !userId) {
+      throw new BadRequestException('Missing workspace or user');
+    }
 
     if (!query || query.trim().length === 0) {
       throw new BadRequestException('Query parameter is required');
@@ -161,14 +164,19 @@ export class JiraController {
       throw new BadRequestException('Jira not connected. Connect Jira in Settings.');
     }
 
-    const apiToken = await this.tokenService.decryptToken(integration.apiToken);
-    const issues = await this.apiClient.searchIssues(
-      integration.jiraUrl,
-      integration.username,
-      apiToken,
-      query,
-    );
+    try {
+      const apiToken = await this.tokenService.decryptToken(integration.apiToken);
+      const issues = await this.apiClient.searchIssues(
+        integration.jiraUrl,
+        integration.username,
+        apiToken,
+        query,
+      );
 
-    return { issues };
+      return { issues };
+    } catch (error: any) {
+      this.logger.error(`Jira search failed: ${error.message}`);
+      throw new BadRequestException(`Search failed: ${error.message}`);
+    }
   }
 }
