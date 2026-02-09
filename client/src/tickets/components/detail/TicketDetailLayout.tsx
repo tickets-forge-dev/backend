@@ -4,15 +4,12 @@ import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
-import { QuestionRoundsSection } from '@/src/tickets/components/QuestionRoundsSection';
 import { ImageAttachmentsGrid } from '@/src/tickets/components/ImageAttachmentsGrid';
 import { OverviewCard } from './OverviewCard';
 import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
-import { Loader2, CheckCircle, ChevronDown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
-import type { RoundAnswers } from '@/types/question-refinement';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 
 interface TicketDetailLayoutProps {
@@ -42,16 +39,6 @@ interface TicketDetailLayoutProps {
   // Tech spec patch
   saveTechSpecPatch: (patch: Record<string, any>) => Promise<boolean | undefined>;
   fetchTicket: (id: string) => Promise<void>;
-  // Question refinement
-  isStartingRound: boolean;
-  questionsExpanded: boolean;
-  onToggleQuestions: () => void;
-  onSubmitRoundAnswers: (roundNumber: number, answers: RoundAnswers) => Promise<void>;
-  onSkipToFinalize: () => Promise<void>;
-  onFinalizeSpec: () => Promise<void>;
-  isSubmittingAnswers: boolean;
-  answerSubmitError: string | null;
-  onDismissError: () => void;
 }
 
 export function TicketDetailLayout({
@@ -76,15 +63,6 @@ export function TicketDetailLayout({
   isUploadingAttachment,
   saveTechSpecPatch,
   fetchTicket,
-  isStartingRound,
-  questionsExpanded,
-  onToggleQuestions,
-  onSubmitRoundAnswers,
-  onSkipToFinalize,
-  onFinalizeSpec,
-  isSubmittingAnswers,
-  answerSubmitError,
-  onDismissError,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -119,88 +97,6 @@ export function TicketDetailLayout({
           onDescriptionExpand={onDescriptionExpand}
         />
 
-        {/* Error message */}
-        {answerSubmitError && (
-          <div className="rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-[var(--red)] flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-[var(--text-sm)] font-medium text-[var(--red)]">
-                  {answerSubmitError.includes('Maximum') ? 'Cannot start round' : 'Something went wrong'}
-                </p>
-                <p className="text-[var(--text-xs)] text-[var(--red)] mt-1">
-                  {answerSubmitError}
-                </p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={onDismissError} className="text-[var(--red)]">
-                Dismiss
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Special case: maxRounds=0 (no questions needed) */}
-        {!isStartingRound && ticket.maxRounds === 0 && (
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-6">
-            <div className="flex flex-col items-center justify-center gap-3">
-              <CheckCircle className="h-12 w-12 text-green-500" />
-              <div className="text-center">
-                <h3 className="text-[var(--text-md)] font-medium text-[var(--text)] mb-1">
-                  No Clarification Needed
-                </h3>
-                <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                  This task is straightforward enough to generate a spec directly
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Loading state while generating questions */}
-        {isStartingRound && (
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-8">
-            <div className="flex flex-col items-center justify-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
-              <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                Generating questions...
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Question Refinement */}
-        {!isStartingRound &&
-         (ticket.currentRound ?? 0) > 0 &&
-         ticket.questionRounds &&
-         ticket.questionRounds.length > 0 && (
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
-            <button
-              onClick={onToggleQuestions}
-              className="flex items-center justify-between w-full"
-            >
-              <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                Question Refinement
-              </h3>
-              <ChevronDown className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform ${questionsExpanded ? 'rotate-180' : ''}`} />
-            </button>
-            {questionsExpanded && (
-              <div className="pt-4 mt-4 border-t border-[var(--border)]">
-                <QuestionRoundsSection
-                  questionRounds={ticket.questionRounds}
-                  currentRound={ticket.currentRound!}
-                  maxRounds={ticket.maxRounds ?? 3}
-                  onSubmitAnswers={onSubmitRoundAnswers}
-                  onSkipToFinalize={onSkipToFinalize}
-                  onFinalizeSpec={onFinalizeSpec}
-                  isSubmitting={isSubmittingAnswers}
-                  error={answerSubmitError}
-                  onDismissError={onDismissError}
-                  useModalUI={true}
-                />
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Attachments */}
         <CollapsibleSection

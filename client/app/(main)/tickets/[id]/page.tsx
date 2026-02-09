@@ -22,7 +22,6 @@ import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
 import { toast } from 'sonner';
-import type { RoundAnswers } from '@/types/question-refinement';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -33,9 +32,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
-  const [isSubmittingAnswers, setIsSubmittingAnswers] = useState(false);
-  const [answerSubmitError, setAnswerSubmitError] = useState<string | null>(null);
-  const [isStartingRound, setIsStartingRound] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [editContext, setEditContext] = useState<{ section: string; index: number } | null>(null);
@@ -44,13 +40,12 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionMode, setDescriptionMode] = useState<'edit' | 'preview'>('edit');
-  const [questionsExpanded, setQuestionsExpanded] = useState(false);
   const [isScanningApis, setIsScanningApis] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
-  const { questionRoundService, ticketService, linearService, jiraService } = useServices();
+  const { ticketService, linearService, jiraService } = useServices();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportPlatform, setExportPlatform] = useState<'linear' | 'jira'>('linear');
   const [exportTeams, setExportTeams] = useState<Array<{ id: string; name: string; key: string }>>([]);
@@ -74,31 +69,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     }
   }, [ticketId, fetchTicket]);
 
-  const startQuestionRound1 = useCallback(async () => {
-    if (!ticketId || !currentTicket) return;
-    if (currentTicket.maxRounds === 0) return;
-    if ((currentTicket.currentRound ?? 0) > 0) return;
-
-    setIsStartingRound(true);
-    setAnswerSubmitError(null);
-    try {
-      await questionRoundService.startRound(ticketId, 1);
-      await fetchTicket(ticketId);
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to start question round';
-      setAnswerSubmitError(errorMessage);
-    } finally {
-      setIsStartingRound(false);
-    }
-  }, [ticketId, currentTicket, questionRoundService, fetchTicket]);
-
-  // Auto-start round 1 when ticket loads
-  useEffect(() => {
-    if (currentTicket && (currentTicket.currentRound ?? 0) === 0 && (currentTicket.maxRounds ?? 0) > 0) {
-      startQuestionRound1();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTicket?.id]);
 
   // Sync description draft when ticket loads
   useEffect(() => {
@@ -530,51 +500,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     }
   };
 
-  const handleSubmitRoundAnswers = async (roundNumber: number, answers: RoundAnswers) => {
-    if (!ticketId) return;
-    setIsSubmittingAnswers(true);
-    setAnswerSubmitError(null);
-    try {
-      await questionRoundService.submitAnswers(ticketId, roundNumber as 1 | 2 | 3, answers);
-      await fetchTicket(ticketId);
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to submit answers';
-      setAnswerSubmitError(errorMessage);
-    } finally {
-      setIsSubmittingAnswers(false);
-    }
-  };
-
-  const handleSkipToFinalize = async () => {
-    if (!ticketId) return;
-    setIsSubmittingAnswers(true);
-    setAnswerSubmitError(null);
-    try {
-      await questionRoundService.skipToFinalize(ticketId);
-      await fetchTicket(ticketId);
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to skip to finalize';
-      setAnswerSubmitError(errorMessage);
-    } finally {
-      setIsSubmittingAnswers(false);
-    }
-  };
-
-  const handleFinalizeSpec = async () => {
-    if (!ticketId || !currentTicket?.questionRounds) return;
-    setIsSubmittingAnswers(true);
-    setAnswerSubmitError(null);
-    try {
-      const allAnswers = currentTicket.questionRounds.map(round => round.answers || {});
-      await questionRoundService.finalizeSpec(ticketId, allAnswers);
-      await fetchTicket(ticketId);
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to finalize spec';
-      setAnswerSubmitError(errorMessage);
-    } finally {
-      setIsSubmittingAnswers(false);
-    }
-  };
 
   const handleToggleStatus = async () => {
     if (!ticketId) return;
@@ -856,15 +781,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         isUploadingAttachment={isUploadingAttachment}
         saveTechSpecPatch={saveTechSpecPatch}
         fetchTicket={fetchTicket}
-        isStartingRound={isStartingRound}
-        questionsExpanded={questionsExpanded}
-        onToggleQuestions={() => setQuestionsExpanded(v => !v)}
-        onSubmitRoundAnswers={handleSubmitRoundAnswers}
-        onSkipToFinalize={handleSkipToFinalize}
-        onFinalizeSpec={handleFinalizeSpec}
-        isSubmittingAnswers={isSubmittingAnswers}
-        answerSubmitError={answerSubmitError}
-        onDismissError={() => setAnswerSubmitError(null)}
       />
 
       {/* Footer with actions */}

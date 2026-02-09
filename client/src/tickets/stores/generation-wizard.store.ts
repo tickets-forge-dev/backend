@@ -3,7 +3,10 @@ import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestion
 import { useTicketsStore } from '@/stores/tickets.store';
 import { auth } from '@/lib/firebase';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+if (!API_URL) {
+  throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+}
 
 const WIZARD_STORAGE_KEY = 'wizard-snapshot';
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
