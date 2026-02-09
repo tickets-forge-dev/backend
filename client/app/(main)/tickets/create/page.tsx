@@ -2,26 +2,25 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { GenerationWizard } from '@/tickets/components/GenerationWizard';
+import { CreationRouter } from '@/tickets/components/CreationRouter';
 
 /**
  * Create Ticket Page
  *
- * Routes to the 4-stage wizard for ticket generation:
- * 1. Input: Title + Repository selection
- * 2. Context: GitHub code analysis review
- * 3. Draft: Spec review + iterative questions (1-3 rounds)
- * 4. Review: Final ticket summary and creation
- *
- * Supports ?resume={aecId} query param to resume an in-progress draft.
+ * Routes to the appropriate wizard based on URL params:
+ * - ?resume={aecId}: Resume an in-progress draft (GenerationWizard)
+ * - ?mode=new: Create new ticket from scratch (GenerationWizard)
+ * - ?mode=import: Import from Jira/Linear (ImportWizard)
+ * - no params: Show creation choice modal
  */
 function CreateTicketContent() {
   const searchParams = useSearchParams();
   const resumeId = searchParams.get('resume') || undefined;
+  const mode = (searchParams.get('mode') as 'new' | 'import' | undefined) || undefined;
 
   return (
     <div className="w-full h-full">
-      <GenerationWizard resumeId={resumeId} />
+      <CreationRouter resumeId={resumeId} mode={mode} />
     </div>
   );
 }

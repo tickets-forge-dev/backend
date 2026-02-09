@@ -61,4 +61,15 @@ export class LinearService {
     const { data } = await this.client.post<LinearExportResult>(`/tickets/${ticketId}/export/linear`, { teamId });
     return data;
   }
+
+  /**
+   * Import Linear issue and create draft ticket
+   */
+  async importIssue(issueId: string): Promise<{
+    ticketId: string;
+    importedFrom: { platform: 'linear'; issueId: string; issueUrl: string };
+  }> {
+    const { data } = await this.client.post('/tickets/import/linear', { issueId });
+    return data;
+  }
 }

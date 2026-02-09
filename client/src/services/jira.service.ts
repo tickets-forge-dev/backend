@@ -64,4 +64,15 @@ export class JiraService {
     const { data } = await this.client.post<JiraExportResult>(`/tickets/${ticketId}/export/jira`, { projectKey });
     return data;
   }
+
+  /**
+   * Import Jira issue and create draft ticket
+   */
+  async importIssue(issueKey: string): Promise<{
+    ticketId: string;
+    importedFrom: { platform: 'jira'; issueId: string; issueUrl: string };
+  }> {
+    const { data } = await this.client.post('/tickets/import/jira', { issueKey });
+    return data;
+  }
 }
