@@ -48,13 +48,11 @@ export default function LoginPage() {
   }, [user, router]);
 
   const handleGoogleSignIn = async () => {
-    console.log('🔵 [LoginPage] Google sign-in button clicked');
     clearError();
     await signInWithGoogle();
   };
 
   const handleGitHubSignIn = async () => {
-    console.log('🔵 [LoginPage] GitHub sign-in button clicked');
     clearError();
     await signInWithGitHub();
   };

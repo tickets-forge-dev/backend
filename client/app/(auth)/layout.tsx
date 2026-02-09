@@ -53,17 +53,17 @@ export default function AuthLayout({
               className="drop-shadow-2xl"
             />
           </div>
-          <h1 className="text-[28px] font-semibold text-white tracking-tight">
+          <h1 className="text-[var(--text-2xl)] font-semibold text-white tracking-tight">
             Forge
           </h1>
-          <p className="text-[14px] text-[#a1a1aa] mt-3 max-w-[280px] leading-relaxed">
+          <p className="text-[var(--text-md)] text-[#a1a1aa] mt-3 max-w-[280px] leading-relaxed">
             Transform product intent into execution-ready engineering tickets
           </p>
         </div>
 
         {/* Bottom attribution */}
         <div className="absolute bottom-8 left-0 right-0 text-center">
-          <p className="text-[11px] text-[#52525b]">
+          <p className="text-[var(--text-xs)] text-[#52525b]">
             Built for engineering teams
           </p>
         </div>
