@@ -110,6 +110,13 @@ export function ImportStage1Selector({ onError }: Props) {
 
   const handleSelectOption = async (option: IssueOption) => {
     const selectedKey = platform === 'jira' ? (option.key || '') : (option.identifier || '');
+
+    // Validate that we have a key before proceeding
+    if (!selectedKey) {
+      setValidationError('No valid issue key/ID selected');
+      return;
+    }
+
     setIssueKey(selectedKey);
     setShowDropdown(false);
     setValidationError(null);
@@ -134,7 +141,18 @@ export function ImportStage1Selector({ onError }: Props) {
 
       goToStage(2);
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Failed to import issue';
+      // Extract backend error message
+      let message = 'Failed to import issue';
+
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        message = err.response.data.error;
+      } else if (err.message) {
+        message = err.message;
+      }
+
+      console.error('Import error:', { status: err.response?.status, data: err.response?.data, error: err });
       onError(message);
     } finally {
       setIsLoading(false);
@@ -173,7 +191,18 @@ export function ImportStage1Selector({ onError }: Props) {
 
       goToStage(2);
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Failed to import issue';
+      // Extract backend error message more reliably
+      let message = 'Failed to import issue';
+
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        message = err.response.data.error;
+      } else if (err.message) {
+        message = err.message;
+      }
+
+      console.error('Import error:', { status: err.response?.status, data: err.response?.data, error: err });
       onError(message);
     } finally {
       setIsLoading(false);
