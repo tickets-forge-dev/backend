@@ -29,16 +29,23 @@ async function bootstrap() {
   app.useGlobalInterceptors(new HttpLoggingInterceptor());
 
   // Session configuration (required for OAuth flow)
+  // Use production secret if set, otherwise use development default
+  const sessionSecret = process.env.SESSION_SECRET || (isProduction ? undefined : 'dev-secret-for-local-testing');
+
+  if (isProduction && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+  }
+
   app.use(
     session({
-      secret: process.env.SESSION_SECRET!,
+      secret: sessionSecret!,
       resave: false,
       saveUninitialized: true, // Changed to true to ensure session is created
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProduction,
         maxAge: 1000 * 60 * 15, // 15 minutes
-        sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
+        sameSite: isProduction ? ('none' as const) : ('lax' as const),
         domain: undefined,
       },
       name: 'forge.sid', // Custom session name
