@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 import type { RoundAnswers } from '@/types/question-refinement';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
 import { AssetsSection } from '@/src/tickets/components/AssetsSection';
+import { ImageAttachmentsGrid } from '@/src/tickets/components/ImageAttachmentsGrid';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -62,7 +63,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
-  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, fetchTicket, updateTicket, deleteTicket } = useTicketsStore();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment } = useTicketsStore();
   const { questionRoundService, ticketService } = useServices();
 
   // Unwrap params (Next.js 15 async params)
@@ -258,7 +259,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     techSpec?.layeredFileChanges && { id: 'layered-changes', label: 'BE/FE Changes' },
     techSpec?.testPlan && { id: 'test-plan', label: 'Test Plan' },
     techSpec?.visualExpectations && { id: 'visual-qa', label: 'Visual QA' },
-    techSpec && { id: 'assets', label: 'Assets' },
+    (techSpec || (currentTicket.attachments && currentTicket.attachments.length > 0)) && { id: 'assets', label: 'Assets' },
     (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0) && { id: 'scope', label: 'Scope' },
     currentTicket.acceptanceCriteria?.length > 0 && { id: 'ticket-acceptance', label: 'Criteria' },
     currentTicket.assumptions?.length > 0 && { id: 'assumptions', label: 'Assumptions' },
@@ -1033,9 +1034,17 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
             </CollapsibleSection>
           )}
 
-          {/* Assets — Export documents */}
-          <CollapsibleSection id="assets" title="Assets" defaultExpanded={true}>
-            <AssetsSection ticketId={ticketId!} ticketTitle={currentTicket.title} ticketUpdatedAt={currentTicket.updatedAt} />
+          {/* Assets — Export documents + Attachments */}
+          <CollapsibleSection id="assets" title="Assets" badge={currentTicket.attachments?.length ? `${currentTicket.attachments.length} files` : undefined} defaultExpanded={true}>
+            <AssetsSection
+              ticketId={ticketId!}
+              ticketTitle={currentTicket.title}
+              ticketUpdatedAt={currentTicket.updatedAt}
+              attachments={currentTicket.attachments}
+              onUploadAttachment={async (file) => uploadAttachment(ticketId!, file)}
+              onDeleteAttachment={async (attachmentId) => deleteAttachment(ticketId!, attachmentId)}
+              isUploadingAttachment={isUploadingAttachment}
+            />
           </CollapsibleSection>
 
           {/* Solution Steps — non-collapsible */}
@@ -1266,6 +1275,20 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               </div>
             </CollapsibleSection>
           )}
+        </section>
+      )}
+
+      {/* Assets section when no tech spec (attachments only) */}
+      {!currentTicket.techSpec && (
+        <section id="assets" data-nav-section>
+          <CollapsibleSection id="assets-attachments" title="Attachments" badge={currentTicket.attachments?.length ? `${currentTicket.attachments.length} files` : undefined} defaultExpanded={true}>
+            <ImageAttachmentsGrid
+              attachments={currentTicket.attachments || []}
+              onUpload={async (file) => uploadAttachment(ticketId!, file)}
+              onDelete={async (attachmentId) => deleteAttachment(ticketId!, attachmentId)}
+              isUploading={isUploadingAttachment}
+            />
+          </CollapsibleSection>
         </section>
       )}
 

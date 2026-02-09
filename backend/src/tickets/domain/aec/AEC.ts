@@ -6,6 +6,7 @@ import { Question } from '../value-objects/Question';
 import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
+import { Attachment, MAX_ATTACHMENTS } from '../value-objects/Attachment';
 import { TechSpec, ClarificationQuestion } from '../tech-spec/TechSpecGenerator';
 import {
   InvalidStateTransitionError,
@@ -44,6 +45,7 @@ export class AEC {
     private _questionsAnsweredAt: Date | null = null,
     private _techSpec: TechSpec | null = null,
     private _taskAnalysis: any = null,
+    private _attachments: Attachment[] = [],
   ) {}
 
   // Factory method for creating new draft
@@ -89,6 +91,7 @@ export class AEC {
       null, // _questionsAnsweredAt
       null, // _techSpec
       null, // _taskAnalysis
+      [], // _attachments
     );
   }
 
@@ -122,6 +125,7 @@ export class AEC {
     questionsAnsweredAt?: Date | null,
     techSpec?: TechSpec | null,
     taskAnalysis?: any,
+    attachments?: Attachment[],
   ): AEC {
     return new AEC(
       id,
@@ -152,6 +156,7 @@ export class AEC {
       questionsAnsweredAt ?? null,
       techSpec ?? null,
       taskAnalysis ?? null,
+      attachments ?? [],
     );
   }
 
@@ -452,6 +457,23 @@ export class AEC {
 
   setTaskAnalysis(taskAnalysis: any): void {
     this._taskAnalysis = taskAnalysis;
+    this._updatedAt = new Date();
+  }
+
+  get attachments(): Attachment[] {
+    return [...this._attachments];
+  }
+
+  addAttachment(attachment: Attachment): void {
+    if (this._attachments.length >= MAX_ATTACHMENTS) {
+      throw new Error(`Maximum of ${MAX_ATTACHMENTS} attachments per ticket`);
+    }
+    this._attachments.push(attachment);
+    this._updatedAt = new Date();
+  }
+
+  removeAttachment(attachmentId: string): void {
+    this._attachments = this._attachments.filter((a) => a.id !== attachmentId);
     this._updatedAt = new Date();
   }
 }

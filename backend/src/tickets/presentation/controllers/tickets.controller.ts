@@ -9,9 +9,12 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Logger,
   Res,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import {
   CreateTicketUseCase,
@@ -54,6 +57,8 @@ import { DeepAnalysisService } from '@tickets/domain/deep-analysis/deep-analysis
 import { ApiDetectionService } from '../../application/services/ApiDetectionService';
 import { TechSpecMarkdownGenerator } from '../../application/services/TechSpecMarkdownGenerator';
 import { AecXmlSerializer } from '../../application/services/AecXmlSerializer';
+import { AttachmentStorageService } from '../../infrastructure/storage/AttachmentStorageService';
+import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE, MAX_ATTACHMENTS } from '../../domain/value-objects/Attachment';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -83,6 +88,7 @@ export class TicketsController {
     private readonly apiDetectionService: ApiDetectionService,
     private readonly techSpecMarkdownGenerator: TechSpecMarkdownGenerator,
     private readonly aecXmlSerializer: AecXmlSerializer,
+    private readonly attachmentStorageService: AttachmentStorageService,
   ) {}
 
   /**
@@ -523,6 +529,103 @@ export class TicketsController {
     }
   }
 
+  /**
+   * Upload a file attachment to a ticket.
+   */
+  @Post(':id/attachments')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file', {
+    storage: require('multer').memoryStorage(),
+    limits: { fileSize: MAX_FILE_SIZE },
+  }))
+  async uploadAttachment(
+    @WorkspaceId() workspaceId: string,
+    @UserEmail() userEmail: string,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      throw new BadRequestException(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+    }
+
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype as any)) {
+      throw new BadRequestException(
+        `File type not allowed. Accepted: ${ALLOWED_MIME_TYPES.join(', ')}`,
+      );
+    }
+
+    const aec = await this.aecRepository.findById(id);
+    if (!aec || aec.workspaceId !== workspaceId) {
+      throw new BadRequestException('Ticket not found');
+    }
+
+    if (aec.attachments.length >= MAX_ATTACHMENTS) {
+      throw new BadRequestException(`Maximum of ${MAX_ATTACHMENTS} attachments per ticket`);
+    }
+
+    try {
+      const attachment = await this.attachmentStorageService.upload(
+        workspaceId,
+        id,
+        file,
+        userEmail,
+      );
+
+      aec.addAttachment(attachment);
+      await this.aecRepository.save(aec);
+
+      return attachment;
+    } catch (error: any) {
+      this.logger.error(`Attachment upload failed: ${error.message}`, error.stack);
+      throw new BadRequestException(`Upload failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a file attachment from a ticket.
+   */
+  @Delete(':id/attachments/:attachmentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAttachment(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const aec = await this.aecRepository.findById(id);
+    if (!aec || aec.workspaceId !== workspaceId) {
+      throw new BadRequestException('Ticket not found');
+    }
+
+    const attachment = aec.attachments.find((a) => a.id === attachmentId);
+    if (!attachment) {
+      throw new BadRequestException('Attachment not found');
+    }
+
+    await this.attachmentStorageService.delete(attachment.storagePath);
+    aec.removeAttachment(attachmentId);
+    await this.aecRepository.save(aec);
+  }
+
+  /**
+   * List attachments for a ticket.
+   */
+  @Get(':id/attachments')
+  async listAttachments(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.aecRepository.findById(id);
+    if (!aec || aec.workspaceId !== workspaceId) {
+      throw new BadRequestException('Ticket not found');
+    }
+
+    return aec.attachments;
+  }
+
   private mapToResponse(aec: any) {
     return {
       id: aec.id,
@@ -558,6 +661,7 @@ export class TicketsController {
       currentRound: aec.currentRound,
       techSpec: aec.techSpec,
       maxRounds: aec.maxRounds,
+      attachments: aec.attachments ?? [],
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };

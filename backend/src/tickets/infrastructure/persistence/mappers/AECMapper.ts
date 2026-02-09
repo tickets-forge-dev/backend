@@ -2,6 +2,7 @@ import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
+import { Attachment } from '../../../domain/value-objects/Attachment';
 import { TechSpec } from '../../../domain/tech-spec/TechSpecGenerator';
 import { Timestamp } from 'firebase-admin/firestore';
 
@@ -72,6 +73,7 @@ export interface AECDocument {
   questionsAnsweredAt?: Timestamp | null;
   techSpec?: TechSpec | null;
   taskAnalysis?: any;
+  attachments?: any[];
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -177,6 +179,10 @@ export class AECMapper {
       doc.questionsAnsweredAt ? toDate(doc.questionsAnsweredAt) : null,
       doc.techSpec ?? null,
       doc.taskAnalysis ?? null,
+      (doc.attachments || []).map((a: any) => ({
+        ...a,
+        uploadedAt: toDate(a.uploadedAt),
+      })) as Attachment[],
     );
   }
 
@@ -223,6 +229,10 @@ export class AECMapper {
         : null,
       techSpec: aec.techSpec,
       taskAnalysis: aec.taskAnalysis ?? null,
+      attachments: aec.attachments.map((a) => ({
+        ...a,
+        uploadedAt: Timestamp.fromDate(a.uploadedAt),
+      })),
     };
   }
 }

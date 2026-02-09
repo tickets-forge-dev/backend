@@ -47,12 +47,14 @@ export class FirebaseService implements OnModuleInit {
 
     try {
       console.log('🔄 [FirebaseService] Attempting to initialize Firebase...');
+      const storageBucket = this.configService.get<string>('FIREBASE_STORAGE_BUCKET') || `${projectId}.appspot.com`;
       this.app = admin.initializeApp({
         credential: admin.credential.cert({
           projectId,
           privateKey,
           clientEmail,
         }),
+        storageBucket,
       });
 
       this.isConfigured = true;

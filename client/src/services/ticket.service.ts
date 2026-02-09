@@ -10,6 +10,17 @@ export interface CreateTicketRequest {
   priority?: string;
 }
 
+export interface AttachmentResponse {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  storageUrl: string;
+  storagePath: string;
+  uploadedAt: string;
+  uploadedBy: string;
+}
+
 export interface AECResponse {
   id: string;
   workspaceId: string;
@@ -40,6 +51,7 @@ export interface AECResponse {
   currentRound?: number; // Current round number (1-N or 0 if not started)
   maxRounds?: number; // Adaptive max rounds (0-3, default 3)
   techSpec?: any; // TechSpec | null
+  attachments?: AttachmentResponse[];
   createdAt: string;
   updatedAt: string;
 }
@@ -142,6 +154,22 @@ export class TicketService {
       responseType: 'text',
     });
     return response.data;
+  }
+
+  async uploadAttachment(ticketId: string, file: File): Promise<AttachmentResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await this.client.post<AttachmentResponse>(
+      `/tickets/${ticketId}/attachments`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return response.data;
+  }
+
+  async deleteAttachment(ticketId: string, attachmentId: string): Promise<void> {
+    await this.client.delete(`/tickets/${ticketId}/attachments/${attachmentId}`);
   }
 }
 

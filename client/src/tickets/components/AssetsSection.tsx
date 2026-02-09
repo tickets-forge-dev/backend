@@ -8,13 +8,20 @@ import { useServices } from '@/services/index';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
 import { toast } from 'sonner';
 
+import type { AttachmentResponse } from '@/services/ticket.service';
+import { ImageAttachmentsGrid } from './ImageAttachmentsGrid';
+
 interface AssetsSectionProps {
   ticketId: string;
   ticketTitle: string;
   ticketUpdatedAt?: string;
+  attachments?: AttachmentResponse[];
+  onUploadAttachment?: (file: File) => Promise<boolean>;
+  onDeleteAttachment?: (attachmentId: string) => Promise<boolean>;
+  isUploadingAttachment?: boolean;
 }
 
-export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt }: AssetsSectionProps) {
+export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachments, onUploadAttachment, onDeleteAttachment, isUploadingAttachment }: AssetsSectionProps) {
   const { ticketService } = useServices();
   const [markdownContent, setMarkdownContent] = useState<string | null>(null);
   const [xmlContent, setXmlContent] = useState<string | null>(null);
@@ -240,6 +247,21 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt }: Assets
           </div>
         </div>
       </div>
+
+      {/* Attachments subsection */}
+      {onUploadAttachment && onDeleteAttachment && (
+        <div className="pt-4 mt-4 border-t border-[var(--border)]/40">
+          <h4 className="text-xs font-medium text-[var(--text-tertiary)] uppercase mb-3">
+            Attachments{attachments && attachments.length > 0 ? ` (${attachments.length})` : ''}
+          </h4>
+          <ImageAttachmentsGrid
+            attachments={attachments || []}
+            onUpload={onUploadAttachment}
+            onDelete={onDeleteAttachment}
+            isUploading={isUploadingAttachment || false}
+          />
+        </div>
+      )}
 
       <DocumentPreviewModal
         open={previewOpen}

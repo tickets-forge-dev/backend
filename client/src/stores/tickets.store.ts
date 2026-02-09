@@ -23,6 +23,10 @@ interface TicketsState {
   isDeleting: boolean;
   deleteError: string | null;
 
+  // Attachments
+  isUploadingAttachment: boolean;
+  uploadAttachmentError: string | null;
+
   // Quota
   quota: QuotaInfo | null;
 
@@ -46,6 +50,10 @@ interface TicketsState {
   deleteTicket: (id: string) => Promise<boolean>;
   clearCreateError: () => void;
 
+  // Attachment actions
+  uploadAttachment: (ticketId: string, file: File) => Promise<boolean>;
+  deleteAttachment: (ticketId: string, attachmentId: string) => Promise<boolean>;
+
   // Branch selection actions (AC#5, Task 9)
   setRepository: (repositoryFullName: string | null) => Promise<void>;
   setBranch: (branchName: string | null) => void;
@@ -65,6 +73,10 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   updateError: null,
   isDeleting: false,
   deleteError: null,
+
+  // Attachments
+  isUploadingAttachment: false,
+  uploadAttachmentError: null,
 
   // Quota
   quota: null,
@@ -178,6 +190,61 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
 
   clearCreateError: () => {
     set({ createError: null });
+  },
+
+  uploadAttachment: async (ticketId: string, file: File) => {
+    set({ isUploadingAttachment: true, uploadAttachmentError: null });
+
+    try {
+      const { ticketService } = useServices();
+      const attachment = await ticketService.uploadAttachment(ticketId, file);
+
+      // Update current ticket attachments
+      set((state) => {
+        const current = state.currentTicket;
+        if (current && current.id === ticketId) {
+          return {
+            currentTicket: {
+              ...current,
+              attachments: [...(current.attachments || []), attachment],
+            },
+            isUploadingAttachment: false,
+          };
+        }
+        return { isUploadingAttachment: false };
+      });
+
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to upload attachment';
+      set({ isUploadingAttachment: false, uploadAttachmentError: errorMessage });
+      return false;
+    }
+  },
+
+  deleteAttachment: async (ticketId: string, attachmentId: string) => {
+    try {
+      const { ticketService } = useServices();
+      await ticketService.deleteAttachment(ticketId, attachmentId);
+
+      // Update current ticket attachments
+      set((state) => {
+        const current = state.currentTicket;
+        if (current && current.id === ticketId) {
+          return {
+            currentTicket: {
+              ...current,
+              attachments: (current.attachments || []).filter((a) => a.id !== attachmentId),
+            },
+          };
+        }
+        return {};
+      });
+
+      return true;
+    } catch (error: any) {
+      return false;
+    }
   },
 
   deleteTicket: async (id: string) => {

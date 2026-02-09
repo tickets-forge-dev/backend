@@ -37,6 +37,7 @@ import { RepositoryFingerprintService } from './application/services/RepositoryF
 import { ApiDetectionService } from './application/services/ApiDetectionService';
 import { TechSpecMarkdownGenerator } from './application/services/TechSpecMarkdownGenerator';
 import { AecXmlSerializer } from './application/services/AecXmlSerializer';
+import { AttachmentStorageService } from './infrastructure/storage/AttachmentStorageService';
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 
 @Module({
@@ -117,6 +118,7 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     ApiDetectionService,
     TechSpecMarkdownGenerator,
     AecXmlSerializer,
+    AttachmentStorageService,
     DeepAnalysisServiceImpl,
     {
       provide: DEEP_ANALYSIS_SERVICE,
