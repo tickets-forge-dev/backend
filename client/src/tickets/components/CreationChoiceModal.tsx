@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useServices } from '@/hooks/useServices';
 import { useState, useEffect } from 'react';
+import { IntegrationOnboarding } from './IntegrationOnboarding';
 
 /**
  * CreationChoiceModal
  *
- * Entry point for ticket creation. Shows user two options:
- * 1. Create new ticket from scratch
- * 2. Import ticket from Jira/Linear
+ * Entry point for ticket creation. Shows user:
+ * 1. Integration onboarding slide (first time or dismissible)
+ * 2. Choice between create new or import from Jira/Linear
  *
  * Checks availability of import platforms before showing import option.
  */
@@ -17,6 +18,7 @@ export function CreationChoiceModal() {
   const router = useRouter();
   const { jiraService, linearService } = useServices();
 
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [availability, setAvailability] = useState<{
     jira: boolean;
     linear: boolean;
@@ -25,6 +27,11 @@ export function CreationChoiceModal() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Check if onboarding has been dismissed before
+    const dismissed = localStorage.getItem('integration-onboarding-dismissed');
+    if (!dismissed) {
+      setShowOnboarding(true);
+    }
     loadAvailability();
   }, []);
 
@@ -54,6 +61,11 @@ export function CreationChoiceModal() {
   const handleImport = () => {
     router.push('/tickets/create?mode=import');
   };
+
+  // Show onboarding slide first
+  if (showOnboarding) {
+    return <IntegrationOnboarding onClose={() => setShowOnboarding(false)} />;
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
