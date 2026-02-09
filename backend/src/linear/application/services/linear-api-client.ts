@@ -13,6 +13,15 @@ export interface LinearIssueResult {
   url: string;
 }
 
+export interface LinearIssue {
+  id: string;
+  identifier: string;
+  title: string;
+  description?: string;
+  priority?: number;
+  url: string;
+}
+
 @Injectable()
 export class LinearApiClient {
   private readonly logger = new Logger(LinearApiClient.name);
@@ -124,6 +133,31 @@ export class LinearApiClient {
     }
 
     return data.issueUpdate.issue;
+  }
+
+  async getIssue(accessToken: string, issueId: string): Promise<LinearIssue> {
+    const data = await this.graphql(
+      accessToken,
+      `
+        query GetIssue($issueId: String!) {
+          issue(id: $issueId) {
+            id
+            identifier
+            title
+            description
+            priority
+            url
+          }
+        }
+      `,
+      { issueId },
+    );
+
+    if (!data.issue) {
+      throw new Error(`Linear issue ${issueId} not found`);
+    }
+
+    return data.issue;
   }
 
   async getViewer(accessToken: string): Promise<{ id: string; name: string; email: string }> {

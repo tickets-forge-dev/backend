@@ -17,6 +17,16 @@ export interface JiraIssueResult {
   self: string;
 }
 
+export interface JiraIssue {
+  id: string;
+  key: string;
+  self: string;
+  summary: string;
+  description: any; // ADF document
+  priority?: string;
+  issueType?: string;
+}
+
 interface CreateIssueInput {
   projectKey: string;
   summary: string;
@@ -159,6 +169,43 @@ export class JiraApiClient {
       const text = await response.text();
       throw new Error(`Failed to update Jira issue: ${response.status} ${text}`);
     }
+  }
+
+  async getIssue(
+    jiraUrl: string,
+    username: string,
+    apiToken: string,
+    issueKey: string,
+  ): Promise<JiraIssue> {
+    const url = this.buildApiUrl(jiraUrl, `issue/${issueKey}`);
+    const response = await fetch(url, {
+      headers: {
+        Authorization: this.buildAuth(username, apiToken),
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      if (response.status === 404) {
+        throw new Error(`Jira issue ${issueKey} not found`);
+      }
+      if (response.status === 403) {
+        throw new Error(`No permission to access Jira issue ${issueKey}`);
+      }
+      throw new Error(`Failed to fetch Jira issue: ${response.status} ${text}`);
+    }
+
+    const data = (await response.json()) as any;
+    return {
+      id: data.id,
+      key: data.key,
+      self: data.self,
+      summary: data.fields.summary,
+      description: data.fields.description,
+      priority: data.fields.priority?.name,
+      issueType: data.fields.issuetype?.name,
+    };
   }
 
   async verifyConnection(jiraUrl: string, username: string, apiToken: string): Promise<{ displayName: string; emailAddress: string }> {

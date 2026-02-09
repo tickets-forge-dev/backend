@@ -233,6 +233,16 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Set import source metadata on draft ticket.
+   * Unlike setExternalIssue(), this works without requiring a tech spec.
+   * Used when importing from Jira/Linear to draft tickets.
+   */
+  setImportedFrom(externalIssue: ExternalIssue): void {
+    this._externalIssue = externalIssue;
+    this._updatedAt = new Date();
+  }
+
   markComplete(): void {
     if (this._status !== AECStatus.DRAFT) {
       throw new InvalidStateTransitionError(

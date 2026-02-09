@@ -61,6 +61,15 @@ import { AttachmentStorageService } from '../../infrastructure/storage/Attachmen
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE, MAX_ATTACHMENTS } from '../../domain/value-objects/Attachment';
 import { ExportToLinearUseCase } from '../../application/use-cases/ExportToLinearUseCase';
 import { ExportToJiraUseCase } from '../../application/use-cases/ExportToJiraUseCase';
+import { GetImportAvailabilityUseCase } from '../../application/use-cases/GetImportAvailabilityUseCase';
+import { ImportFromJiraUseCase } from '../../application/use-cases/ImportFromJiraUseCase';
+import { ImportFromLinearUseCase } from '../../application/use-cases/ImportFromLinearUseCase';
+import { ImportFromJiraDto } from '../dto/ImportFromJiraDto';
+import { ImportFromLinearDto } from '../dto/ImportFromLinearDto';
+import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import type { ImportAvailabilityResult } from '../../application/use-cases/GetImportAvailabilityUseCase';
+import type { ImportFromJiraResult } from '../../application/use-cases/ImportFromJiraUseCase';
+import type { ImportFromLinearResult } from '../../application/use-cases/ImportFromLinearUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -93,6 +102,9 @@ export class TicketsController {
     private readonly attachmentStorageService: AttachmentStorageService,
     private readonly exportToLinearUseCase: ExportToLinearUseCase,
     private readonly exportToJiraUseCase: ExportToJiraUseCase,
+    private readonly getImportAvailabilityUseCase: GetImportAvailabilityUseCase,
+    private readonly importFromJiraUseCase: ImportFromJiraUseCase,
+    private readonly importFromLinearUseCase: ImportFromLinearUseCase,
   ) {}
 
   /**
@@ -716,5 +728,83 @@ export class TicketsController {
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };
+  }
+
+  /**
+   * GET /tickets/import/availability
+   * Check which platforms are connected and available for import
+   */
+  @Get('import/availability')
+  @HttpCode(HttpStatus.OK)
+  async getImportAvailability(
+    @WorkspaceId() workspaceId: string,
+    @UserEmail() userId: string,
+  ) {
+    return await this.getImportAvailabilityUseCase.execute({
+      workspaceId,
+      userId,
+    });
+  }
+
+  /**
+   * POST /tickets/import/jira
+   * Import ticket from Jira
+   */
+  @Post('import/jira')
+  @HttpCode(HttpStatus.CREATED)
+  async importFromJira(
+    @Body() dto: ImportFromJiraDto,
+    @WorkspaceId() workspaceId: string,
+    @UserEmail() userId: string,
+  ) {
+    try {
+      return await this.importFromJiraUseCase.execute({
+        workspaceId,
+        userId,
+        issueKey: dto.issueKey,
+      });
+    } catch (error: any) {
+      if (error.message.includes('not connected')) {
+        throw new BadRequestException(error.message);
+      }
+      if (error.message.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+      if (error.message.includes('No permission')) {
+        throw new ForbiddenException(error.message);
+      }
+      this.logger.error(`Jira import failed: ${error.message}`);
+      throw new InternalServerErrorException('Failed to import from Jira');
+    }
+  }
+
+  /**
+   * POST /tickets/import/linear
+   * Import ticket from Linear
+   */
+  @Post('import/linear')
+  @HttpCode(HttpStatus.CREATED)
+  async importFromLinear(
+    @Body() dto: ImportFromLinearDto,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    try {
+      return await this.importFromLinearUseCase.execute({
+        workspaceId,
+        issueId: dto.issueId,
+      });
+    } catch (error: any) {
+      if (error.message.includes('not connected')) {
+        throw new BadRequestException(error.message);
+      }
+      if (error.message.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+      if (error.message.includes('No access') || error.message.includes('No permission')) {
+        throw new ForbiddenException(error.message);
+      }
+      this.logger.error(`Linear import failed: ${error.message}`);
+      throw new InternalServerErrorException('Failed to import from Linear');
+    }
   }
 }

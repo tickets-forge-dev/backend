@@ -28,6 +28,9 @@ import { LinearModule } from '../linear/linear.module';
 import { JiraModule } from '../jira/jira.module';
 import { ExportToLinearUseCase } from './application/use-cases/ExportToLinearUseCase';
 import { ExportToJiraUseCase } from './application/use-cases/ExportToJiraUseCase';
+import { GetImportAvailabilityUseCase } from './application/use-cases/GetImportAvailabilityUseCase';
+import { ImportFromJiraUseCase } from './application/use-cases/ImportFromJiraUseCase';
+import { ImportFromLinearUseCase } from './application/use-cases/ImportFromLinearUseCase';
 import { TechSpecGeneratorImpl } from './application/services/TechSpecGeneratorImpl';
 import { TECH_SPEC_GENERATOR } from './application/ports/TechSpecGeneratorPort';
 import { CodebaseAnalyzerImpl } from './application/services/CodebaseAnalyzerImpl';
@@ -59,6 +62,9 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     FinalizeSpecUseCase,
     ExportToLinearUseCase,
     ExportToJiraUseCase,
+    GetImportAvailabilityUseCase,
+    ImportFromJiraUseCase,
+    ImportFromLinearUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,
