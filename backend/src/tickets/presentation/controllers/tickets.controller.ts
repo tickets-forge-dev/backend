@@ -52,6 +52,8 @@ import { Octokit } from '@octokit/rest';
 import { DEEP_ANALYSIS_SERVICE } from '../../application/ports/DeepAnalysisServicePort';
 import { DeepAnalysisService } from '@tickets/domain/deep-analysis/deep-analysis.service';
 import { ApiDetectionService } from '../../application/services/ApiDetectionService';
+import { TechSpecMarkdownGenerator } from '../../application/services/TechSpecMarkdownGenerator';
+import { AecXmlSerializer } from '../../application/services/AecXmlSerializer';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -79,6 +81,8 @@ export class TicketsController {
     @Inject(DEEP_ANALYSIS_SERVICE)
     private readonly deepAnalysisService: DeepAnalysisService,
     private readonly apiDetectionService: ApiDetectionService,
+    private readonly techSpecMarkdownGenerator: TechSpecMarkdownGenerator,
+    private readonly aecXmlSerializer: AecXmlSerializer,
   ) {}
 
   /**
@@ -352,6 +356,72 @@ export class TicketsController {
     });
 
     return this.mapToResponse(aec);
+  }
+
+  /**
+   * Export ticket as Markdown tech spec document.
+   * Uses @Res() for custom Content-Type, so we manually handle errors.
+   */
+  @Get(':id/export/markdown')
+  async exportMarkdown(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const aec = await this.aecRepository.findById(id);
+      if (!aec || aec.workspaceId !== workspaceId) {
+        res.status(400).json({ message: 'Ticket not found' });
+        return;
+      }
+      if (!aec.techSpec) {
+        res.status(400).json({ message: 'Ticket has no tech spec. Generate a spec first.' });
+        return;
+      }
+
+      const markdown = this.techSpecMarkdownGenerator.generate(aec);
+      const filename = `${(aec.title || 'ticket').replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '-').toLowerCase()}-spec.md`;
+
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(markdown);
+    } catch (error: any) {
+      this.logger.error(`Export markdown failed: ${error.message}`);
+      res.status(500).json({ message: 'Failed to export markdown' });
+    }
+  }
+
+  /**
+   * Export ticket as AEC XML contract.
+   * Uses @Res() for custom Content-Type, so we manually handle errors.
+   */
+  @Get(':id/export/xml')
+  async exportXml(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const aec = await this.aecRepository.findById(id);
+      if (!aec || aec.workspaceId !== workspaceId) {
+        res.status(400).json({ message: 'Ticket not found' });
+        return;
+      }
+      if (!aec.techSpec) {
+        res.status(400).json({ message: 'Ticket has no tech spec. Generate a spec first.' });
+        return;
+      }
+
+      const xml = this.aecXmlSerializer.serialize(aec);
+      const filename = `${(aec.title || 'ticket').replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '-').toLowerCase()}-aec.xml`;
+
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(xml);
+    } catch (error: any) {
+      this.logger.error(`Export XML failed: ${error.message}`);
+      res.status(500).json({ message: 'Failed to export XML' });
+    }
   }
 
   /**

@@ -35,6 +35,8 @@ import { GITHUB_FILE_SERVICE } from './application/ports/GitHubFileServicePort';
 import { DeepAnalysisServiceImpl } from './application/services/DeepAnalysisServiceImpl';
 import { RepositoryFingerprintService } from './application/services/RepositoryFingerprintService';
 import { ApiDetectionService } from './application/services/ApiDetectionService';
+import { TechSpecMarkdownGenerator } from './application/services/TechSpecMarkdownGenerator';
+import { AecXmlSerializer } from './application/services/AecXmlSerializer';
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 
 @Module({
@@ -113,6 +115,8 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     },
     RepositoryFingerprintService,
     ApiDetectionService,
+    TechSpecMarkdownGenerator,
+    AecXmlSerializer,
     DeepAnalysisServiceImpl,
     {
       provide: DEEP_ANALYSIS_SERVICE,

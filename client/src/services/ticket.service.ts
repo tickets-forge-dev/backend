@@ -129,6 +129,20 @@ export class TicketService {
     const response = await this.client.post<DetectApisResponse>(`/tickets/${ticketId}/detect-apis`);
     return response.data;
   }
+
+  async exportMarkdown(ticketId: string): Promise<string> {
+    const response = await this.client.get<string>(`/tickets/${ticketId}/export/markdown`, {
+      responseType: 'text',
+    });
+    return response.data;
+  }
+
+  async exportXml(ticketId: string): Promise<string> {
+    const response = await this.client.get<string>(`/tickets/${ticketId}/export/xml`, {
+      responseType: 'text',
+    });
+    return response.data;
+  }
 }
 
 export interface DetectedApiResponse {

@@ -33,6 +33,7 @@ import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpect
 import { toast } from 'sonner';
 import type { RoundAnswers } from '@/types/question-refinement';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
+import { AssetsSection } from '@/src/tickets/components/AssetsSection';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -257,6 +258,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
     techSpec?.layeredFileChanges && { id: 'layered-changes', label: 'BE/FE Changes' },
     techSpec?.testPlan && { id: 'test-plan', label: 'Test Plan' },
     techSpec?.visualExpectations && { id: 'visual-qa', label: 'Visual QA' },
+    techSpec && { id: 'assets', label: 'Assets' },
     (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0) && { id: 'scope', label: 'Scope' },
     currentTicket.acceptanceCriteria?.length > 0 && { id: 'ticket-acceptance', label: 'Criteria' },
     currentTicket.assumptions?.length > 0 && { id: 'assumptions', label: 'Assumptions' },
@@ -684,8 +686,15 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         <Button
           variant="outline"
           size="sm"
-          disabled
-          title="Export functionality coming soon"
+          disabled={!techSpec}
+          title={techSpec ? 'Scroll to Assets section' : 'Generate a spec first'}
+          onClick={() => {
+            const el = document.getElementById('assets');
+            if (el) {
+              const y = el.getBoundingClientRect().top + window.scrollY - 100;
+              window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+          }}
         >
           <Upload className="h-3.5 w-3.5 mr-1.5" />
           Export
@@ -1023,6 +1032,11 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
               />
             </CollapsibleSection>
           )}
+
+          {/* Assets — Export documents */}
+          <CollapsibleSection id="assets" title="Assets" defaultExpanded={true}>
+            <AssetsSection ticketId={ticketId!} ticketTitle={currentTicket.title} ticketUpdatedAt={currentTicket.updatedAt} />
+          </CollapsibleSection>
 
           {/* Solution Steps — non-collapsible */}
           {currentTicket.techSpec.solution && (
