@@ -12,7 +12,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validate Firebase configuration before initialization
+// Validate Firebase configuration before initialization (production-only)
 const requiredFirebaseVars = [
   'NEXT_PUBLIC_FIREBASE_API_KEY',
   'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
@@ -26,7 +26,7 @@ const missingFirebaseVars = requiredFirebaseVars.filter(
   (varName) => !process.env[varName]
 );
 
-if (missingFirebaseVars.length > 0) {
+if (missingFirebaseVars.length > 0 && process.env.NODE_ENV === 'production') {
   throw new Error(
     `❌ Firebase initialization failed. Missing environment variables: ${missingFirebaseVars.join(', ')}`
   );

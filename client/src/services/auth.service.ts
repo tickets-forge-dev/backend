@@ -28,11 +28,7 @@ export class AuthService {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
-      }
-
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
       const response = await fetch(`${apiUrl}/auth/init`, {
         method: 'POST',
         headers: {

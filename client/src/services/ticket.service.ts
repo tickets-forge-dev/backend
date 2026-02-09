@@ -61,10 +61,7 @@ export class TicketService {
   private client: AxiosInstance;
 
   constructor() {
-    const baseURL = process.env.NEXT_PUBLIC_API_URL;
-    if (!baseURL) {
-      throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
-    }
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
     this.client = axios.create({
       baseURL,
