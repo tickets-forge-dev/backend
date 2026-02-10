@@ -24,7 +24,7 @@ export default function LandingPage() {
               height={32}
               className="drop-shadow-sm"
             />
-            <span className="font-semibold text-lg tracking-tight">Forge</span>
+            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
           </div>
           <div className="flex items-center gap-4">
             <Link 
@@ -328,7 +328,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center gap-4 mb-8">
             <div className="flex items-center gap-2 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
               <Image src="/forge-icon.png" alt="Forge" width={24} height={24} />
-              <span className="font-semibold text-base">Forge</span>
+              <span className="font-bold text-base bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
             </div>
           </div>
           <p>&copy; {new Date().getFullYear()} Forge. All rights reserved.</p>
