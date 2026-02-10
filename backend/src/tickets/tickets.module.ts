@@ -26,6 +26,7 @@ import { ESTIMATION_ENGINE } from './application/services/estimation-engine.inte
 import { GitHubModule } from '../github/github.module';
 import { LinearModule } from '../linear/linear.module';
 import { JiraModule } from '../jira/jira.module';
+import { PostHogModule } from '../shared/infrastructure/posthog/posthog.module';
 import { ExportToLinearUseCase } from './application/use-cases/ExportToLinearUseCase';
 import { ExportToJiraUseCase } from './application/use-cases/ExportToJiraUseCase';
 import { GetImportAvailabilityUseCase } from './application/use-cases/GetImportAvailabilityUseCase';
@@ -48,7 +49,7 @@ import { AttachmentStorageService } from './infrastructure/storage/AttachmentSto
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 
 @Module({
-  imports: [GitHubModule, LinearModule, JiraModule],
+  imports: [GitHubModule, LinearModule, JiraModule, PostHogModule],
   controllers: [TicketsController],
   providers: [
     CreateTicketUseCase,
