@@ -21,6 +21,7 @@ import { EditItemDialog, type EditState } from '@/src/tickets/components/EditIte
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
+import { DEMO_TICKETS } from '@/tickets/mocks/demo-tickets';
 import { toast } from 'sonner';
 
 interface TicketDetailPageProps {
@@ -65,7 +66,18 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   // Fetch ticket when ID is available
   useEffect(() => {
     if (ticketId) {
-      fetchTicket(ticketId);
+      // Handle demo tickets locally without API call
+      if (ticketId.startsWith('demo-')) {
+        const demoTicket = DEMO_TICKETS.find((t) => t.id === ticketId);
+        if (demoTicket) {
+          // Manually set currentTicket for demo tickets
+          // This simulates what fetchTicket would do
+          useTicketsStore.setState({ currentTicket: demoTicket });
+        }
+      } else {
+        // Regular ticket - fetch from API
+        fetchTicket(ticketId);
+      }
     }
   }, [ticketId, fetchTicket]);
 
@@ -670,9 +682,16 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       {/* Hero Header — Title + Quality Badge */}
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-4">
-          <h1 className="text-xl font-semibold text-[var(--text)] leading-tight">
-            {currentTicket.title}
-          </h1>
+          <div className="flex items-center gap-3">
+            {ticketId?.startsWith('demo-') && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20">
+                Demo Ticket
+              </span>
+            )}
+            <h1 className="text-xl font-semibold text-[var(--text)] leading-tight">
+              {currentTicket.title}
+            </h1>
+          </div>
           {techSpec?.qualityScore !== undefined && (
             <div className="relative group flex-shrink-0">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white cursor-default ${
