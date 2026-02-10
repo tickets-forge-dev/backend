@@ -67,9 +67,15 @@ import { GetImportAvailabilityUseCase } from '../../application/use-cases/GetImp
 import { ImportFromJiraUseCase } from '../../application/use-cases/ImportFromJiraUseCase';
 import { ImportFromLinearUseCase } from '../../application/use-cases/ImportFromLinearUseCase';
 import { PRDBreakdownUseCase } from '../../application/use-cases/PRDBreakdownUseCase';
+import { BulkCreateFromBreakdownUseCase } from '../../application/use-cases/BulkCreateFromBreakdownUseCase';
 import { ImportFromJiraDto } from '../dto/ImportFromJiraDto';
 import { ImportFromLinearDto } from '../dto/ImportFromLinearDto';
-import { PRDBreakdownRequestDto, PRDBreakdownResponseDto } from '../dto/PRDBreakdownDto';
+import {
+  PRDBreakdownRequestDto,
+  PRDBreakdownResponseDto,
+  BulkCreateFromBreakdownRequestDto,
+  BulkCreateFromBreakdownResponseDto,
+} from '../dto/PRDBreakdownDto';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import type { ImportAvailabilityResult } from '../../application/use-cases/GetImportAvailabilityUseCase';
 import type { ImportFromJiraResult } from '../../application/use-cases/ImportFromJiraUseCase';
@@ -110,6 +116,7 @@ export class TicketsController {
     private readonly importFromJiraUseCase: ImportFromJiraUseCase,
     private readonly importFromLinearUseCase: ImportFromLinearUseCase,
     private readonly prdBreakdownUseCase: PRDBreakdownUseCase,
+    private readonly bulkCreateFromBreakdownUseCase: BulkCreateFromBreakdownUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -893,6 +900,47 @@ export class TicketsController {
       this.logger.error(`PRD breakdown failed: ${error.message}`);
       throw new BadRequestException(
         error.message || 'Failed to analyze PRD. Please ensure it contains clear requirements.',
+      );
+    }
+  }
+
+  /**
+   * POST /tickets/breakdown/bulk-create
+   * Bulk create draft tickets from a PRD breakdown result
+   *
+   * Request body: List of breakdown tickets to create
+   * Response: Created ticket IDs and any errors
+   */
+  @Post('breakdown/bulk-create')
+  @HttpCode(HttpStatus.CREATED)
+  async bulkCreateFromBreakdown(
+    @WorkspaceId() workspaceId: string,
+    @UserEmail() userEmail: string,
+    @UserId() userId: string,
+    @Body() dto: BulkCreateFromBreakdownRequestDto,
+  ): Promise<BulkCreateFromBreakdownResponseDto> {
+    try {
+      this.logger.log(`📦 Bulk creating ${dto.tickets.length} tickets from PRD breakdown`);
+
+      const result = await this.bulkCreateFromBreakdownUseCase.execute({
+        workspaceId,
+        userEmail,
+        tickets: dto.tickets,
+      });
+
+      this.logger.log(
+        `✅ Bulk creation complete: ${result.createdCount}/${dto.tickets.length} tickets created`,
+      );
+
+      return {
+        createdCount: result.createdCount,
+        ticketIds: result.ticketIds,
+        errors: result.errors,
+      };
+    } catch (error: any) {
+      this.logger.error(`Bulk creation failed: ${error.message}`);
+      throw new BadRequestException(
+        error.message || 'Failed to create tickets from breakdown',
       );
     }
   }

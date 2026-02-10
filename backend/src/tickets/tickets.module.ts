@@ -49,6 +49,7 @@ import { AttachmentStorageService } from './infrastructure/storage/AttachmentSto
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 import { PRDBreakdownUseCase } from './application/use-cases/PRDBreakdownUseCase';
 import { PRDBreakdownService } from './application/services/PRDBreakdownService';
+import { BulkCreateFromBreakdownUseCase } from './application/use-cases/BulkCreateFromBreakdownUseCase';
 
 @Module({
   imports: [GitHubModule, LinearModule, JiraModule, PostHogModule],
@@ -69,6 +70,7 @@ import { PRDBreakdownService } from './application/services/PRDBreakdownService'
     ImportFromJiraUseCase,
     ImportFromLinearUseCase,
     PRDBreakdownUseCase,
+    BulkCreateFromBreakdownUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,
