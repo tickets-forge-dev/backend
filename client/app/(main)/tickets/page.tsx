@@ -6,10 +6,12 @@ import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban } from 'lucide-react';
+import { useDemoTickets } from '@/tickets/hooks/useDemoTickets';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X } from 'lucide-react';
 
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota } = useTicketsStore();
+  const { activeDemoTickets, dismissDemoTicket } = useDemoTickets();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -21,8 +23,11 @@ export default function TicketsListPage() {
     fetchQuota();
   }, [loadTickets, fetchQuota]);
 
+  // Combine real tickets and demo tickets for display
+  const allTickets = [...activeDemoTickets, ...tickets];
+
   // Filter and sort tickets - most recently updated first
-  const filteredTickets = tickets
+  const filteredTickets = allTickets
     .filter((ticket) => {
       const matchesSearch =
         searchQuery === '' ||
@@ -276,6 +281,7 @@ export default function TicketsListPage() {
       {!isInitialLoad && !loadError && filteredTickets.length > 0 && (
         <div className="space-y-1.5">
           {filteredTickets.map((ticket) => {
+            const isDemoTicket = ticket.id.startsWith('demo-');
             const readinessScore = ticket.techSpec?.qualityScore ?? ticket.readinessScore ?? 0;
             const progressColor =
               readinessScore >= 75
@@ -285,14 +291,15 @@ export default function TicketsListPage() {
                 : 'bg-[var(--text-tertiary)]/40';
 
             return (
-              <Link key={ticket.id} href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`}>
-                <div className="group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer">
+              <div key={ticket.id} className="group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center justify-between gap-4">
+                <Link href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`} className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-4">
                     {/* Left: Title row */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5">
                         {getTypeIcon(ticket.type)}
                         <h3 className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] truncate group-hover:text-[var(--text)] transition-colors">
+                          {isDemoTicket && <span className="text-[var(--text-tertiary)]">Demo Ticket • </span>}
                           {ticket.title}
                         </h3>
                         {getPriorityIndicator(ticket.priority)}
@@ -330,8 +337,22 @@ export default function TicketsListPage() {
                       </span>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+
+                {/* Delete button for demo tickets */}
+                {isDemoTicket && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      dismissDemoTicket(ticket.id);
+                    }}
+                    className="flex-shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Delete demo ticket"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
