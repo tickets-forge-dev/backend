@@ -6,10 +6,11 @@
  * Users can then enrich individual tickets through the normal flow.
  */
 
-import { Injectable, BadRequestException, Logger, Inject } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, Inject, ForbiddenException } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { CreateTicketUseCase } from './CreateTicketUseCase';
 import { AEC } from '../../domain/aec/AEC';
+import { WORKSPACE_REPOSITORY, WorkspaceRepository } from '../../../workspaces/application/ports/WorkspaceRepository';
 
 /**
  * Single ticket from breakdown to create
@@ -29,6 +30,7 @@ export interface BreakdownTicketToCreate {
 export interface BulkCreateCommand {
   workspaceId: string;
   userEmail: string;
+  userId: string; // Firebase UID for workspace ownership verification
   tickets: BreakdownTicketToCreate[];
 }
 
@@ -51,6 +53,8 @@ export class BulkCreateFromBreakdownUseCase {
   constructor(
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
+    @Inject(WORKSPACE_REPOSITORY)
+    private readonly workspaceRepository: WorkspaceRepository,
     private readonly createTicketUseCase: CreateTicketUseCase,
   ) {}
 
@@ -67,6 +71,18 @@ export class BulkCreateFromBreakdownUseCase {
     this.logger.log(
       `📦 Starting bulk creation of ${command.tickets.length} tickets for ${command.userEmail}`,
     );
+
+    // CRITICAL FIX #3: Verify workspace isolation
+    const workspace = await this.workspaceRepository.findById(command.workspaceId);
+    if (!workspace) {
+      throw new BadRequestException(`Workspace "${command.workspaceId}" not found`);
+    }
+
+    if (workspace.ownerId !== command.userId) {
+      throw new ForbiddenException(
+        'User does not have permission to create tickets in this workspace',
+      );
+    }
 
     if (!command.tickets || command.tickets.length === 0) {
       throw new BadRequestException('No tickets provided for bulk creation');
@@ -98,7 +114,27 @@ export class BulkCreateFromBreakdownUseCase {
         if (ticket.acceptanceCriteria) {
           try {
             const criteria = JSON.parse(ticket.acceptanceCriteria);
-            if (Array.isArray(criteria) && criteria.length > 0) {
+
+            // CRITICAL FIX #1: Validate BDD structure
+            if (!Array.isArray(criteria)) {
+              throw new BadRequestException(
+                `Invalid acceptance criteria format for "${ticket.title}": must be an array`,
+              );
+            }
+
+            // Validate each criterion has required fields
+            const invalidIndices = criteria
+              .map((c: any, idx: number) => ({ c, idx }))
+              .filter(({ c }) => !c.given?.trim() || !c.when?.trim() || !c.then?.trim())
+              .map(({ idx }) => idx);
+
+            if (invalidIndices.length > 0) {
+              throw new BadRequestException(
+                `Invalid BDD criteria in "${ticket.title}": criterion(s) at index ${invalidIndices.join(', ')} missing required fields (given, when, then)`,
+              );
+            }
+
+            if (criteria.length > 0) {
               aec.updateAcceptanceCriteria(
                 criteria.map((c: any) =>
                   `Given ${c.given}\nWhen ${c.when}\nThen ${c.then}`,
@@ -106,8 +142,15 @@ export class BulkCreateFromBreakdownUseCase {
               );
             }
           } catch (e) {
-            this.logger.warn(
-              `Failed to parse AC for ticket ${ticket.title}: ${e}`,
+            // Re-throw BadRequestException (validation errors)
+            if (e instanceof BadRequestException) {
+              throw e;
+            }
+            // Convert parse errors to BadRequestException
+            throw new BadRequestException(
+              `Failed to parse acceptance criteria for "${ticket.title}": ${
+                e instanceof Error ? e.message : String(e)
+              }`,
             );
           }
         }

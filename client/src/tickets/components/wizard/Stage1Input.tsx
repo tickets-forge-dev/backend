@@ -308,7 +308,7 @@ export function Stage1Input() {
         </div>
 
         {/* Submit Button */}
-        <div className="pt-4 space-y-3 flex flex-col items-end">
+        <div className="pt-1 space-y-3 flex flex-col items-end">
           <Button
             type="submit"
             disabled={!isFormValid || loading}

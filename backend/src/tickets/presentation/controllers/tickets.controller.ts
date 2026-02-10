@@ -925,6 +925,7 @@ export class TicketsController {
       const result = await this.bulkCreateFromBreakdownUseCase.execute({
         workspaceId,
         userEmail,
+        userId,
         tickets: dto.tickets,
       });
 
@@ -939,6 +940,13 @@ export class TicketsController {
       };
     } catch (error: any) {
       this.logger.error(`Bulk creation failed: ${error.message}`);
+
+      // Return proper error format (not wrapped in BadRequestException)
+      // NestJS will handle the error response format
+      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+        throw error;
+      }
+
       throw new BadRequestException(
         error.message || 'Failed to create tickets from breakdown',
       );
