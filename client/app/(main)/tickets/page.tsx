@@ -146,7 +146,8 @@ export default function TicketsListPage() {
     };
   
     return (
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-r from-[var(--bg-subtle)] via-[var(--bg)] to-[var(--bg-subtle)]">
+        <div className="space-y-6 max-w-7xl mx-auto px-4">
       {/* Header */}
       <div className="flex items-start justify-end">
         {quota && !quota.canCreate ? (
@@ -357,6 +358,7 @@ export default function TicketsListPage() {
           })}
         </div>
       )}
-    </div>
+        </div>
+      </div>
   );
 }
