@@ -5,10 +5,14 @@ import { useServices } from '@/hooks/useServices';
 import { useImportWizardStore } from '@/tickets/stores/import-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
-import { Loader2, Check, ChevronDown } from 'lucide-react';
+import { Loader2, Check, ChevronDown, Link2 } from 'lucide-react';
 
 interface Props {
   onError: (message: string) => void;
+  availability?: {
+    jira: boolean;
+    linear: boolean;
+  };
 }
 
 interface IssueOption {
@@ -28,7 +32,7 @@ interface IssueOption {
  * - Keyboard navigation (↑/↓/Enter/Esc)
  * - User can select from dropdown or continue with manual entry
  */
-export function ImportStage1Selector({ onError }: Props) {
+export function ImportStage1Selector({ onError, availability }: Props) {
   const { jiraService, linearService } = useServices();
   const { platform, setPlatform, setSelectedIssue, goToStage } = useImportWizardStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -272,32 +276,57 @@ export function ImportStage1Selector({ onError }: Props) {
       </div>
 
       {/* Platform selector */}
-      <div className="flex gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => {
             setPlatform('jira');
             setValidationError(null);
           }}
-          className={`px-4 py-2 rounded-lg border-2 transition-colors font-medium ${
+          className={`px-4 py-4 rounded-lg border-2 transition-colors ${
             platform === 'jira'
-              ? 'border-blue-500 bg-blue-500/10 text-blue-700'
+              ? 'border-blue-500 bg-blue-500/10'
               : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-blue-500/50'
-          }`}
+          } ${!availability?.jira && platform !== 'jira' ? 'opacity-60' : ''}`}
         >
-          Jira
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-3xl">🔵</div>
+            <div className="text-sm font-semibold text-blue-600">Jira</div>
+            {availability?.jira ? (
+              <div className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-700 font-medium">
+                ✓ Connected
+              </div>
+            ) : (
+              <div className="text-xs px-2 py-1 rounded bg-gray-500/20 text-gray-600">
+                Connect in Settings
+              </div>
+            )}
+          </div>
         </button>
+
         <button
           onClick={() => {
             setPlatform('linear');
             setValidationError(null);
           }}
-          className={`px-4 py-2 rounded-lg border-2 transition-colors font-medium ${
+          className={`px-4 py-4 rounded-lg border-2 transition-colors ${
             platform === 'linear'
-              ? 'border-purple-500 bg-purple-500/10 text-purple-700'
+              ? 'border-purple-500 bg-purple-500/10'
               : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-purple-500/50'
-          }`}
+          } ${!availability?.linear && platform !== 'linear' ? 'opacity-60' : ''}`}
         >
-          Linear
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-3xl">🟣</div>
+            <div className="text-sm font-semibold text-purple-600">Linear</div>
+            {availability?.linear ? (
+              <div className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-700 font-medium">
+                ✓ Connected
+              </div>
+            ) : (
+              <div className="text-xs px-2 py-1 rounded bg-gray-500/20 text-gray-600">
+                Connect in Settings
+              </div>
+            )}
+          </div>
         </button>
       </div>
 

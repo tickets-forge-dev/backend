@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useServices } from '@/hooks/useServices';
 import { useImportWizardStore } from '@/tickets/stores/import-wizard.store';
 import { ImportStage1Selector } from './ImportStage1Selector';
 import { ImportStage2Preview } from './ImportStage2Preview';
@@ -18,8 +19,31 @@ import { Button } from '@/core/components/ui/button';
  */
 export function ImportWizard() {
   const router = useRouter();
+  const { jiraService, linearService } = useServices();
   const { currentStage, reset } = useImportWizardStore();
   const [error, setError] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<{
+    jira: boolean;
+    linear: boolean;
+  }>({ jira: false, linear: false });
+
+  useEffect(() => {
+    const loadAvailability = async () => {
+      try {
+        const [jiraStatus, linearStatus] = await Promise.all([
+          jiraService.getConnectionStatus(),
+          linearService.getConnectionStatus(),
+        ]);
+        setAvailability({
+          jira: jiraStatus.connected,
+          linear: linearStatus.connected,
+        });
+      } catch (err) {
+        console.error('Failed to load platform availability', err);
+      }
+    };
+    loadAvailability();
+  }, [jiraService, linearService]);
 
   const handleCancel = () => {
     reset();
@@ -46,7 +70,7 @@ export function ImportWizard() {
       )}
 
       {/* Stage renderer */}
-      {currentStage === 1 && <ImportStage1Selector onError={setError} />}
+      {currentStage === 1 && <ImportStage1Selector onError={setError} availability={availability} />}
       {currentStage === 2 && <ImportStage2Preview onError={setError} />}
       {currentStage === 3 && <ImportStage3Repository onError={setError} />}
 
