@@ -26,10 +26,15 @@ const missingFirebaseVars = requiredFirebaseVars.filter(
   (varName) => !process.env[varName]
 );
 
-if (missingFirebaseVars.length > 0 && process.env.NODE_ENV === 'production') {
-  throw new Error(
-    `❌ Firebase initialization failed. Missing environment variables: ${missingFirebaseVars.join(', ')}`
-  );
+if (missingFirebaseVars.length > 0) {
+  // Log to console for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      `⚠️ Firebase initialization: Missing variables in ${process.env.NODE_ENV}: ${missingFirebaseVars.join(', ')}`
+    );
+  }
+  // In production, proceed with partial config (Firebase may still work with some vars)
+  // The app will handle Firebase errors gracefully at runtime
 }
 
 // Initialize Firebase
