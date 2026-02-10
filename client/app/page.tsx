@@ -46,15 +46,20 @@ export default function LandingPage() {
       {/* Hero */}
       <main className="flex-1">
         <section className="flex flex-col items-center justify-center text-center px-4 py-24 sm:py-32 border-b border-[var(--border)]">
-          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6 max-w-4xl text-[var(--text)]">
-            The power of the codebase, <br className="hidden sm:block" />
-            <span className="text-[var(--primary)]">without writing code.</span>
+          <div className="inline-block mb-4 px-4 py-2 rounded-full border border-[var(--border)] bg-[var(--primary)]/5">
+            <span className="text-sm font-medium text-[var(--primary)]">✨ Bidirectional Jira & Linear Sync</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-7xl font-bold tracking-tight mb-6 max-w-4xl text-[var(--text)]">
+            Ship features, not PRDs. <br className="hidden sm:block" />
+            <span className="bg-gradient-to-r from-[var(--primary)] via-blue-500 to-purple-500 text-transparent bg-clip-text">
+              Code-aware specs in seconds.
+            </span>
           </h1>
-          
+
           <p className="text-lg sm:text-xl text-[var(--text-secondary)] mb-10 max-w-2xl leading-relaxed mx-auto">
-            Forge gives Product Managers direct access to engineering reality. 
-            Turn your PRDs, Jira tickets, and wireframes into execution-ready specs 
-            that developers (and agents) love.
+            Import Jira & Linear issues. Enrich them with deep code analysis. Export executable specs.
+            Forge turns vague requirements into detailed technical specs that AI agents and developers actually execute.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
@@ -82,49 +87,59 @@ export default function LandingPage() {
         <section id="how-it-works" className="py-24 border-b border-[var(--border)] bg-[var(--bg-subtle)]/30">
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">From Idea to Execution</h2>
-              <p className="text-[var(--text-secondary)]">No Git knowledge required. Just pure product leverage.</p>
+              <h2 className="text-3xl font-bold mb-4">Transform Requirements into Reality</h2>
+              <p className="text-[var(--text-secondary)]">Works with your existing workflow. Import from Jira/Linear, enrich with code, export to anywhere.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
               {/* Connector Line (Desktop) */}
-              <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-[var(--border)] via-[var(--primary)]/20 to-[var(--border)] -z-10" />
+              <div className="hidden md:block absolute top-12 left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-[var(--border)] via-[var(--primary)]/20 to-[var(--border)] -z-10" />
 
-              {/* Step 1 */}
+              {/* Step 1: Import */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-sm flex items-center justify-center text-4xl mb-6 relative z-10">
-                  📥
-                  <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[var(--text)] text-[var(--bg)] flex items-center justify-center font-bold text-sm">1</div>
+                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-sm flex items-center justify-center text-3xl mb-6 relative z-10">
+                  🔗
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs">1</div>
                 </div>
-                <h3 className="font-semibold text-xl mb-3">Load Context</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed max-w-[280px]">
-                  Paste your Jira tickets, upload images, or drop in a PRD. 
-                  <span className="block mt-2 text-[var(--text)] font-medium bg-[var(--bg-subtle)] px-2 py-1 rounded border border-[var(--border)] border-dashed inline-block">Repo is pre-configured</span>
-                  <br/>No need to touch Git.
+                <h3 className="font-semibold text-lg mb-2">Import Issues</h3>
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Pull issues directly from <span className="font-medium">Jira or Linear</span> with automatic priority & type mapping.
                 </p>
               </div>
 
-              {/* Step 2 */}
+              {/* Step 2: Enrich */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-sm flex items-center justify-center text-4xl mb-6 relative z-10">
-                  ⚡️
-                  <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[var(--text)] text-[var(--bg)] flex items-center justify-center font-bold text-sm">2</div>
+                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-sm flex items-center justify-center text-3xl mb-6 relative z-10">
+                  🧠
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs">2</div>
                 </div>
-                <h3 className="font-semibold text-xl mb-3">Transform & Unify</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed max-w-[280px]">
-                  AI analyzes your codebase to ground your requirements in reality. We generate a unified spec with API changes, test plans, and architectural insights.
+                <h3 className="font-semibold text-lg mb-2">Deep Analysis</h3>
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                  AI analyzes your codebase to generate API specs, test plans, and architectural insights automatically.
                 </p>
               </div>
 
-              {/* Step 3 */}
+              {/* Step 3: Refine */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-sm flex items-center justify-center text-4xl mb-6 relative z-10">
-                  🤖
-                  <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[var(--text)] text-[var(--bg)] flex items-center justify-center font-bold text-sm">3</div>
+                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-sm flex items-center justify-center text-3xl mb-6 relative z-10">
+                  ✨
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs">3</div>
                 </div>
-                <h3 className="font-semibold text-xl mb-3">Execute</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed max-w-[280px]">
-                  Get a machine-readable <code className="text-xs font-mono bg-[var(--bg-subtle)] px-1 py-0.5 rounded">AEC.xml</code> file including API specs, tests, and wireframes for your dev agent.
+                <h3 className="font-semibold text-lg mb-2">Clarify</h3>
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Answer smart clarification questions to finalize acceptance criteria and implementation details.
+                </p>
+              </div>
+
+              {/* Step 4: Export */}
+              <div className="flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-sm flex items-center justify-center text-3xl mb-6 relative z-10">
+                  📤
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs">4</div>
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Execute</h3>
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Export to Jira, Linear, Markdown, or AEC.xml for AI agents. Your choice.
                 </p>
               </div>
             </div>
@@ -135,9 +150,9 @@ export default function LandingPage() {
         <section className="py-24">
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">Built for High-Velocity Teams</h2>
+              <h2 className="text-3xl font-bold mb-4">Everything You Need to Ship Fast</h2>
               <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
-                From deep analysis to agent contracts, Forge handles the heavy lifting of technical planning.
+                From bidirectional integrations to agent-ready specs, Forge automates the entire spec-to-execution pipeline.
               </p>
             </div>
 
@@ -186,25 +201,25 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* Feature 5: Seamless Sync */}
+              {/* Feature 5: Bidirectional Sync */}
               <div className="p-6 rounded-xl border border-[var(--border)] bg-[var(--bg)] hover:border-[var(--text-secondary)] transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500 mb-4">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Linear & Jira Sync</h3>
+                <h3 className="font-semibold text-lg mb-2">Bidirectional Import & Export</h3>
                 <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Export finalized tickets directly to your issue tracker with one click. Keeps your project management in sync with your codebase.
+                  Import issues from Jira or Linear, enrich them with AI analysis, then export specs back or create new tickets. Full cycle sync.
                 </p>
               </div>
 
-              {/* Feature 6: Markdown Exports */}
+              {/* Feature 6: Quality Scoring */}
               <div className="p-6 rounded-xl border border-[var(--border)] bg-[var(--bg)] hover:border-[var(--text-secondary)] transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-500 mb-4">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Tech Spec Docs</h3>
+                <h3 className="font-semibold text-lg mb-2">Quality Metrics</h3>
                 <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Get beautiful Markdown tech specs, test plans, and implementation guides that you can commit directly to your repo docs.
+                  Get real-time quality scoring (0-100) based on spec completeness, clarity, technical accuracy, and test coverage.
                 </p>
               </div>
             </div>
