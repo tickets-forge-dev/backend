@@ -47,6 +47,8 @@ import { TechSpecMarkdownGenerator } from './application/services/TechSpecMarkdo
 import { AecXmlSerializer } from './application/services/AecXmlSerializer';
 import { AttachmentStorageService } from './infrastructure/storage/AttachmentStorageService';
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
+import { PRDBreakdownUseCase } from './application/use-cases/PRDBreakdownUseCase';
+import { PRDBreakdownService } from './application/services/PRDBreakdownService';
 
 @Module({
   imports: [GitHubModule, LinearModule, JiraModule, PostHogModule],
@@ -66,6 +68,7 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     GetImportAvailabilityUseCase,
     ImportFromJiraUseCase,
     ImportFromLinearUseCase,
+    PRDBreakdownUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,
@@ -132,6 +135,7 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     TechSpecMarkdownGenerator,
     AecXmlSerializer,
     AttachmentStorageService,
+    PRDBreakdownService,
     DeepAnalysisServiceImpl,
     {
       provide: DEEP_ANALYSIS_SERVICE,

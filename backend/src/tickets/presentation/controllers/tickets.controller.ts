@@ -66,8 +66,10 @@ import { ExportToJiraUseCase } from '../../application/use-cases/ExportToJiraUse
 import { GetImportAvailabilityUseCase } from '../../application/use-cases/GetImportAvailabilityUseCase';
 import { ImportFromJiraUseCase } from '../../application/use-cases/ImportFromJiraUseCase';
 import { ImportFromLinearUseCase } from '../../application/use-cases/ImportFromLinearUseCase';
+import { PRDBreakdownUseCase } from '../../application/use-cases/PRDBreakdownUseCase';
 import { ImportFromJiraDto } from '../dto/ImportFromJiraDto';
 import { ImportFromLinearDto } from '../dto/ImportFromLinearDto';
+import { PRDBreakdownRequestDto, PRDBreakdownResponseDto } from '../dto/PRDBreakdownDto';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import type { ImportAvailabilityResult } from '../../application/use-cases/GetImportAvailabilityUseCase';
 import type { ImportFromJiraResult } from '../../application/use-cases/ImportFromJiraUseCase';
@@ -107,6 +109,7 @@ export class TicketsController {
     private readonly getImportAvailabilityUseCase: GetImportAvailabilityUseCase,
     private readonly importFromJiraUseCase: ImportFromJiraUseCase,
     private readonly importFromLinearUseCase: ImportFromLinearUseCase,
+    private readonly prdBreakdownUseCase: PRDBreakdownUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -842,6 +845,55 @@ export class TicketsController {
       }
       this.logger.error(`Linear import failed: ${error.message}`);
       throw new InternalServerErrorException('Failed to import from Linear');
+    }
+  }
+
+  /**
+   * POST /tickets/breakdown/prd
+   * Analyze a PRD and return a breakdown into epics and stories
+   *
+   * Request body:
+   * {
+   *   "prdText": "...",
+   *   "repositoryOwner": "user",
+   *   "repositoryName": "repo",
+   *   "projectName": "My Project" (optional)
+   * }
+   *
+   * Response: Breakdown with epics, stories, FR coverage, and analysis metadata
+   */
+  @Post('breakdown/prd')
+  @HttpCode(HttpStatus.OK)
+  async breakdownPRD(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Body() dto: PRDBreakdownRequestDto,
+  ): Promise<PRDBreakdownResponseDto> {
+    try {
+      this.logger.log(`🔍 PRD breakdown requested for ${dto.repositoryOwner}/${dto.repositoryName}`);
+
+      const result = await this.prdBreakdownUseCase.execute({
+        prdText: dto.prdText,
+        repositoryOwner: dto.repositoryOwner,
+        repositoryName: dto.repositoryName,
+        projectName: dto.projectName,
+        workspaceId,
+      });
+
+      this.logger.log(
+        `✅ PRD breakdown complete: ${result.estimatedTicketsCount} tickets in ${result.analysisTime}ms`,
+      );
+
+      return {
+        breakdown: result.breakdown,
+        analysisTime: result.analysisTime,
+        estimatedTicketsCount: result.estimatedTicketsCount,
+      };
+    } catch (error: any) {
+      this.logger.error(`PRD breakdown failed: ${error.message}`);
+      throw new BadRequestException(
+        error.message || 'Failed to analyze PRD. Please ensure it contains clear requirements.',
+      );
     }
   }
 }
