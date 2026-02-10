@@ -1,20 +1,58 @@
 'use client';
 
-import { BreakdownEpic } from '@/tickets/stores/prd-breakdown.store';
+import { BreakdownEpic, usePRDBreakdownStore } from '@/tickets/stores/prd-breakdown.store';
 import { TicketCard } from './TicketCard';
+import { AddTicketDialog } from './AddTicketDialog';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 
 /**
- * EpicGroup - Displays an epic and its stories
+ * EpicGroup - Displays an epic and its stories with drag & drop reordering
  *
  * Shows:
  * - Epic name, goal, FR coverage
  * - List of tickets in the epic
+ * - Drag & drop support for reordering
  * - Collapsible for large epics
  */
 export function EpicGroup({ epic }: { epic: BreakdownEpic }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [draggedItem, setDraggedItem] = useState<{ index: number; epicIndex: number } | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const { reorderTickets } = usePRDBreakdownStore();
+
+  const handleDragStart = (e: React.DragEvent, index: number, epicIndex: number) => {
+    setDraggedItem({ index, epicIndex });
+    e.dataTransfer?.setData('application/json', JSON.stringify({ index, epicIndex }));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDropIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    setDropIndex(null);
+
+    if (!draggedItem) return;
+
+    // Only allow reordering within the same epic
+    if (draggedItem.epicIndex === epic.index && draggedItem.index !== targetIndex) {
+      reorderTickets(epic.index, draggedItem.index, targetIndex);
+      setDraggedItem(null);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDropIndex(null);
+  };
 
   return (
     <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -46,21 +84,34 @@ export function EpicGroup({ epic }: { epic: BreakdownEpic }) {
             </div>
           )}
         </div>
-        <span className="text-xs font-semibold text-slate-600 flex-shrink-0 bg-white px-2 py-1 rounded border border-slate-200">
-          {epic.stories.length} stories
-        </span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-1 rounded border border-slate-200">
+            {epic.stories.length} stories
+          </span>
+          <AddTicketDialog epicIndex={epic.index} epicName={epic.name} />
+        </div>
       </button>
 
       {/* Epic stories */}
       {isExpanded && (
         <div className="divide-y divide-slate-100">
           {epic.stories.map((ticket, index) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              index={index}
-              epicIndex={epic.index}
-            />
+            <div
+              key={`drop-zone-${ticket.id}`}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, index)}
+              className={`${
+                dropIndex === index ? 'bg-blue-100 border-l-2 border-blue-400' : ''
+              }`}
+            >
+              <TicketCard
+                ticket={ticket}
+                index={index}
+                epicIndex={epic.index}
+                onDragStart={handleDragStart}
+              />
+            </div>
           ))}
         </div>
       )}

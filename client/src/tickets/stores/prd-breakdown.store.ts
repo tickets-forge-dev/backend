@@ -94,6 +94,7 @@ interface PRDBreakdownState {
   // Editing actions
   updateTicket: (ticketId: number, updates: Partial<BreakdownTicket>) => void;
   deleteTicket: (ticketId: number) => void;
+  addTicket: (epicIndex: number, ticket: Omit<BreakdownTicket, 'id'>) => void;
   reorderTickets: (epicIndex: number, oldIndex: number, newIndex: number) => void;
 
   // Creation actions
@@ -192,6 +193,43 @@ export const usePRDBreakdownStore = create<PRDBreakdownState>()(
               summary: {
                 ...state.breakdown.summary,
                 epicCount: updatedEpics.length,
+                epics: updatedEpics,
+              },
+            },
+          };
+        }),
+
+      addTicket: (epicIndex, newTicket) =>
+        set((state) => {
+          if (!state.breakdown) return state;
+
+          // Generate new ID (use max existing ID + 1)
+          const maxId = state.breakdown.tickets.length > 0
+            ? Math.max(...state.breakdown.tickets.map((t) => t.id))
+            : 0;
+          const newId = maxId + 1;
+
+          const ticketWithId: BreakdownTicket = {
+            ...newTicket,
+            id: newId,
+          };
+
+          // Add to epic
+          const updatedEpics = state.breakdown.summary.epics.map((epic) =>
+            epic.index === epicIndex
+              ? { ...epic, stories: [...epic.stories, ticketWithId] }
+              : epic,
+          );
+
+          const updatedTickets = [...state.breakdown.tickets, ticketWithId];
+
+          return {
+            breakdown: {
+              ...state.breakdown,
+              tickets: updatedTickets,
+              summary: {
+                ...state.breakdown.summary,
+                totalTickets: updatedTickets.length,
                 epics: updatedEpics,
               },
             },

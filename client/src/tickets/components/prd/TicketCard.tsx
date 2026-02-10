@@ -6,28 +6,32 @@ import {
   usePRDBreakdownStore,
 } from '@/tickets/stores/prd-breakdown.store';
 import { Button } from '@/core/components/ui/button';
-import { ChevronDown, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, Edit2, Trash2, GripVertical } from 'lucide-react';
 
 /**
- * TicketCard - Individual ticket preview
+ * TicketCard - Individual ticket preview with drag support
  *
  * Displays:
  * - Title, description, type/priority badges
  * - Acceptance criteria (BDD format)
  * - Collapsible for details
  * - Edit/delete buttons
+ * - Drag handle for reordering
  */
 export function TicketCard({
   ticket,
   index,
   epicIndex,
+  onDragStart,
 }: {
   ticket: BreakdownTicket;
   index: number;
   epicIndex: number;
+  onDragStart?: (e: React.DragEvent, index: number, epicIndex: number) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const { updateTicket, deleteTicket } = usePRDBreakdownStore();
 
   const [editedTitle, setEditedTitle] = useState(ticket.title);
@@ -48,6 +52,18 @@ export function TicketCard({
     setEditedPriority(ticket.priority);
     setEditedType(ticket.type);
     setIsEditing(false);
+  };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    if (onDragStart) {
+      onDragStart(e, index, epicIndex);
+    }
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
   };
 
   const getTypeColor = (type: string) => {
@@ -134,9 +150,21 @@ export function TicketCard({
   }
 
   return (
-    <div className="p-4 hover:bg-slate-50 transition-colors border-l-4 border-transparent hover:border-blue-300">
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      className={`p-4 hover:bg-slate-50 transition-colors border-l-4 border-transparent hover:border-blue-300 cursor-grab active:cursor-grabbing ${
+        isDragging ? 'opacity-50 bg-blue-50' : ''
+      }`}
+    >
       {/* Header */}
       <div className="flex items-start gap-3">
+        {/* Drag handle */}
+        <div className="text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing mt-1">
+          <GripVertical className="w-4 h-4" />
+        </div>
+
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="mt-1"
