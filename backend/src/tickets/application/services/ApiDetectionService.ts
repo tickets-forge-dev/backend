@@ -200,9 +200,21 @@ export class ApiDetectionService {
   /**
    * Parse a single controller file to extract API endpoints
    * Looks for @Get, @Post, @Put, @Patch, @Delete decorators
+   * Excludes system/health check endpoints
    */
   private parseControllerFile(content: string, filePath: string): DetectedApi[] {
     const apis: DetectedApi[] = [];
+
+    // System endpoints to exclude from API detection
+    const systemEndpointPatterns = [
+      /^\/health$/i,
+      /^\/api\/health$/i,
+      /^\/api-docs$/i,
+      /^\/swagger$/i,
+      /^\/docs$/i,
+      /^\/metrics$/i,
+      /^\/status$/i,
+    ];
 
     // Regex to find NestJS route decorators
     // Matches: @Get('path'), @Post('path'), etc.
@@ -216,6 +228,11 @@ export class ApiDetectionService {
       const method = match[1].toUpperCase();
       const path = match[2];
       const fullPath = basePath ? `/${basePath}/${path}`.replace(/\/+/g, '/') : `/${path}`;
+
+      // Skip system/health check endpoints
+      if (systemEndpointPatterns.some((pattern) => pattern.test(fullPath))) {
+        continue;
+      }
 
       apis.push({
         id: `codebase-${filePath}-${fullPath}`,

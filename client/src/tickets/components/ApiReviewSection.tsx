@@ -112,13 +112,13 @@ export function ApiReviewSection({
       {/* Review toolbar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 text-[11px] text-[var(--text-tertiary)]">
-          <span>
+          <span title="Endpoints to include in specification">
             <span className="text-green-600 dark:text-green-400 font-medium">{stats.accepted}</span> accepted
           </span>
-          <span>
+          <span title="Endpoints to exclude (will be discarded)">
             <span className="text-red-600 dark:text-red-400 font-medium">{stats.rejected}</span> rejected
           </span>
-          <span>
+          <span title="Not yet reviewed">
             <span className="font-medium">{stats.pending}</span> pending
           </span>
         </div>
@@ -182,13 +182,14 @@ export function ApiReviewSection({
             onClick={handleSave}
             disabled={isSaving || stats.accepted === 0}
             className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+            title={stats.rejected > 0 ? `Save ${stats.accepted} endpoints and discard ${stats.rejected} rejected` : `Save ${stats.accepted} endpoint${stats.accepted !== 1 ? 's' : ''}`}
           >
             {isSaving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Save className="h-3.5 w-3.5" />
             )}
-            {isSaving ? 'Saving...' : `Save Selection (${stats.accepted})`}
+            {isSaving ? 'Saving...' : stats.rejected > 0 ? `Save & Discard (${stats.accepted} / ${stats.rejected})` : `Save Selection (${stats.accepted})`}
           </Button>
         )}
       </div>
