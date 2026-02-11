@@ -45,10 +45,11 @@ export interface EnrichmentProgressEvent {
  */
 export interface EnrichedQuestion {
   id: string;
-  text: string;
-  type: 'radio' | 'checkbox' | 'text' | 'textarea' | 'select';
+  question: string;
+  type: 'radio' | 'checkbox' | 'text' | 'multiline' | 'select';
   options?: string[];
-  required: boolean;
+  context?: string;
+  impact?: string;
 }
 
 /**
@@ -232,12 +233,13 @@ export class EnrichMultipleTicketsUseCase {
       });
 
       // Convert to EnrichedQuestion format
-      const enrichedQuestions: EnrichedQuestion[] = questions.map((q: any) => ({
+      const enrichedQuestions: EnrichedQuestion[] = questions.map((q) => ({
         id: q.id,
-        text: q.text,
-        type: q.type || 'textarea',
+        question: q.question,
+        type: q.type,
         options: q.options,
-        required: true,
+        context: q.context,
+        impact: q.impact,
       }));
 
       return {
