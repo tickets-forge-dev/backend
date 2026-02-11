@@ -71,7 +71,7 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
           {/* Create New Ticket */}
           <button
             onClick={() => {
-              router.push('/tickets/create');
+              router.push('/tickets/create?mode=new');
               setIsOpen(false);
             }}
             className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors first:rounded-t-lg border-b border-slate-100 last:border-b-0"
@@ -87,7 +87,7 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
           {hasImportOptions && (
             <button
               onClick={() => {
-                router.push('/tickets/create?import=true');
+                router.push('/tickets/create?mode=import');
                 setIsOpen(false);
               }}
               className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"

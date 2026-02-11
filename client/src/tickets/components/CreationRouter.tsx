@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import { GenerationWizard } from './GenerationWizard';
 import { ImportWizard } from './wizard/ImportWizard';
-import { CreationChoiceModal } from './CreationChoiceModal';
 
 interface Props {
   resumeId?: string;
@@ -17,7 +16,10 @@ interface Props {
  * - resume={id}: Load and resume a draft ticket (GenerationWizard)
  * - mode=new: Create new ticket from scratch (GenerationWizard)
  * - mode=import: Import from Jira/Linear (ImportWizard)
- * - no params: Show choice modal (CreationChoiceModal)
+ * - no params: Default to create new (GenerationWizard)
+ *
+ * Note: CreationChoiceModal is no longer used since users select from
+ * the CreationMenu dropdown before visiting this page.
  */
 export function CreationRouter({ resumeId, mode }: Props) {
   // If resuming a draft, always use GenerationWizard
@@ -25,16 +27,7 @@ export function CreationRouter({ resumeId, mode }: Props) {
     return <GenerationWizard resumeId={resumeId} />;
   }
 
-  // If mode not set, show choice modal
-  if (!mode) {
-    return (
-      <Suspense>
-        <CreationChoiceModal />
-      </Suspense>
-    );
-  }
-
-  // Route to appropriate wizard
+  // Route to import wizard if requested
   if (mode === 'import') {
     return (
       <Suspense>
@@ -43,6 +36,6 @@ export function CreationRouter({ resumeId, mode }: Props) {
     );
   }
 
-  // Default to create new
+  // Default to create new (handles mode=new and no mode)
   return <GenerationWizard />;
 }
