@@ -46,10 +46,13 @@ export function ReproductionStepsSection({
       defaultExpanded={true}
     >
       <div className="space-y-4">
-        {/* Steps list */}
+        {/* Steps list
+            TODO: Use step.id or step.order as key instead of array index to prevent
+            state bugs if steps are reordered. Currently using index as temporary solution.
+        */}
         {bugDetails.reproductionSteps.map((step, idx) => (
           <ReproductionStepCard
-            key={idx}
+            key={`step-${step.order}-${idx}`}
             step={step}
             index={idx}
             onEdit={() => onEdit(idx)}

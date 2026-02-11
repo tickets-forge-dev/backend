@@ -85,6 +85,7 @@ interface EditItemDialogProps {
   editState: EditState | null;
   onSave: (editState: EditState) => void;
   isSaving?: boolean;
+  onError?: (message: string) => void;
 }
 
 export function EditItemDialog({
@@ -93,6 +94,7 @@ export function EditItemDialog({
   editState,
   onSave,
   isSaving,
+  onError,
 }: EditItemDialogProps) {
   const [local, setLocal] = useState<EditState | null>(null);
 
@@ -101,6 +103,47 @@ export function EditItemDialog({
       setLocal({ ...editState } as EditState);
     }
   }, [editState]);
+
+  const handleSave = () => {
+    if (!local) return;
+
+    // Validate based on mode
+    if (local.mode === 'reproductionStep') {
+      // Validate required field: action
+      if (!local.action || local.action.trim() === '') {
+        onError?.('Action is required - please describe what the user does');
+        return;
+      }
+
+      // Validate API call if present
+      if (local.apiCall) {
+        if (!local.apiCall.url || local.apiCall.url.trim() === '') {
+          onError?.('API URL is required when API call is present');
+          return;
+        }
+
+        // Validate status codes if present
+        if (local.apiCall.expectedStatus !== undefined) {
+          const status = local.apiCall.expectedStatus;
+          if (status < 100 || status > 599 || !Number.isInteger(status)) {
+            onError?.('Expected status must be a valid HTTP status code (100-599)');
+            return;
+          }
+        }
+
+        if (local.apiCall.actualStatus !== undefined) {
+          const status = local.apiCall.actualStatus;
+          if (status < 100 || status > 599 || !Number.isInteger(status)) {
+            onError?.('Actual status must be a valid HTTP status code (100-599)');
+            return;
+          }
+        }
+      }
+    }
+
+    // Validation passed, save
+    onSave(local);
+  };
 
   if (!local) return null;
 
@@ -488,23 +531,26 @@ export function EditItemDialog({
                         />
                         <Button
                           onClick={() => {
-                            if (local.curlCommand) {
-                              try {
-                                const parsed = parseCurlCommand(
-                                  local.curlCommand
-                                );
-                                setLocal({
-                                  ...local,
-                                  apiCall: {
-                                    method: parsed.method as any,
-                                    url: parsed.url,
-                                    headers: parsed.headers,
-                                    body: parsed.body,
-                                  },
-                                });
-                              } catch (err) {
-                                console.error('Failed to parse curl:', err);
-                              }
+                            if (!local.curlCommand?.trim()) {
+                              onError?.('Please paste a curl command first');
+                              return;
+                            }
+
+                            try {
+                              const parsed = parseCurlCommand(local.curlCommand);
+                              // Method is validated by parseCurlCommand
+                              setLocal({
+                                ...local,
+                                apiCall: {
+                                  method: parsed.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+                                  url: parsed.url,
+                                  headers: parsed.headers,
+                                  body: parsed.body,
+                                },
+                              });
+                            } catch (err) {
+                              const message = err instanceof Error ? err.message : 'Failed to parse curl command';
+                              onError?.(`Curl parsing error: ${message}`);
                             }
                           }}
                           variant="outline"
@@ -524,15 +570,19 @@ export function EditItemDialog({
                         </label>
                         <select
                           value={local.apiCall.method}
-                          onChange={(e) =>
-                            setLocal({
-                              ...local,
-                              apiCall: {
-                                ...local.apiCall!,
-                                method: e.target.value as any,
-                              },
-                            })
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Validate against allowed methods
+                            if (['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(value)) {
+                              setLocal({
+                                ...local,
+                                apiCall: {
+                                  ...local.apiCall!,
+                                  method: value as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+                                },
+                              });
+                            }
+                          }}
                           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                         >
                           <option value="GET">GET</option>
@@ -540,6 +590,8 @@ export function EditItemDialog({
                           <option value="PUT">PUT</option>
                           <option value="PATCH">PATCH</option>
                           <option value="DELETE">DELETE</option>
+                          <option value="HEAD">HEAD</option>
+                          <option value="OPTIONS">OPTIONS</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
@@ -710,7 +762,7 @@ export function EditItemDialog({
           >
             Cancel
           </Button>
-          <Button onClick={() => onSave(local)} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

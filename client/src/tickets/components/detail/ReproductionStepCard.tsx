@@ -56,19 +56,21 @@ export function ReproductionStepCard({
   const handleCopyCurl = async () => {
     if (!step.apiCall) return;
 
-    const curl = generateCurlCommand({
-      method: step.apiCall.method,
-      url: step.apiCall.url,
-      headers: step.apiCall.headers,
-      body: step.apiCall.body,
-    });
-
     try {
+      const curl = generateCurlCommand({
+        method: step.apiCall.method,
+        url: step.apiCall.url,
+        headers: step.apiCall.headers,
+        body: step.apiCall.body,
+      });
+
       await navigator.clipboard.writeText(curl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      // Fail silently - clipboard API might not be available or command generation failed
+      // Button text still shows, user can try again
+      console.warn('Clipboard operation not available');
     }
   };
 
@@ -128,6 +130,7 @@ export function ReproductionStepCard({
       )}
 
       {/* API Call Details (collapsible) */}
+      {/* After this check, step.apiCall is guaranteed to exist within this block */}
       {step.apiCall && (
         <div>
           <button
