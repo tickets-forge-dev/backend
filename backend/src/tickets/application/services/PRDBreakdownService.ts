@@ -12,11 +12,11 @@
  * 5. Return structured breakdown ready for review and bulk creation
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { generateText } from 'ai';
-import { ollama } from '../../../shared/infrastructure/mastra/providers/ollama.provider';
-import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, LanguageModel } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOllamaProvider } from '../../../shared/infrastructure/mastra/providers/ollama.provider';
 import {
   PRDBreakdownCommand,
   PRDBreakdownResult,
@@ -48,10 +48,48 @@ interface GeneratedStory {
 }
 
 @Injectable()
-export class PRDBreakdownService {
+export class PRDBreakdownService implements OnModuleInit {
   private readonly logger = new Logger(PRDBreakdownService.name);
+  private llmModel: LanguageModel | null = null;
+  private providerName: string = 'uninitialized';
 
   constructor(private readonly configService: ConfigService) {}
+
+  onModuleInit() {
+    this.initializeLLM();
+  }
+
+  /**
+   * Initialize LLM provider based on configuration
+   * Follows same pattern as TechSpecGeneratorImpl
+   */
+  private initializeLLM(): void {
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    const defaultProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
+    const provider = this.configService.get<string>('LLM_PROVIDER') || defaultProvider;
+
+    if (provider === 'anthropic') {
+      const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
+      const modelId =
+        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-5-haiku-20241022';
+      if (apiKey) {
+        const anthropic = createAnthropic({ apiKey });
+        this.llmModel = anthropic(modelId);
+        this.providerName = `Anthropic (${modelId})`;
+      } else {
+        this.llmModel = null;
+        this.providerName = 'mock (ANTHROPIC_API_KEY not set)';
+      }
+    } else {
+      // Ollama (default) — local, free
+      const modelId = this.configService.get<string>('OLLAMA_MODEL') || 'qwen2.5-coder:latest';
+      const ollamaProvider = createOllamaProvider();
+      this.llmModel = ollamaProvider.chat(modelId);
+      this.providerName = `Ollama (${modelId})`;
+    }
+
+    this.logger.log(`📊 PRD Breakdown LLM ready: ${this.providerName}`);
+  }
 
   /**
    * Execute the PRD breakdown workflow
@@ -131,7 +169,9 @@ export class PRDBreakdownService {
    * Step 1: Extract functional requirements from PRD
    */
   private async extractFunctionalRequirements(prdText: string): Promise<ExtractedFR[]> {
-    const model = this.getModel('main');
+    if (!this.llmModel) {
+      throw new Error('LLM model not initialized. Check ANTHROPIC_API_KEY or Ollama connection.');
+    }
 
     const prompt = `You are a product analyst specializing in extracting requirements from Product Requirements Documents.
 
@@ -159,7 +199,7 @@ Guidelines:
 
     try {
       const result = await generateText({
-        model,
+        model: this.llmModel!,
         system: 'You are a JSON-only assistant. Respond with ONLY valid JSON, no other text.',
         prompt,
         temperature: 0.3, // Low temperature for consistency
@@ -185,7 +225,9 @@ Guidelines:
     frInventory: ExtractedFR[],
     projectName?: string,
   ): Promise<EpicProposal[]> {
-    const model = this.getModel('main');
+    if (!this.llmModel) {
+      throw new Error('LLM model not initialized. Check ANTHROPIC_API_KEY or Ollama connection.');
+    }
 
     const frList = frInventory.map((fr) => `${fr.id}: ${fr.description}`).join('\n');
 
@@ -222,7 +264,7 @@ Guidelines:
 
     try {
       const result = await generateText({
-        model,
+        model: this.llmModel!,
         system: 'You are a JSON-only assistant. Respond with ONLY valid JSON, no other text.',
         prompt,
         temperature: 0.4,
@@ -248,7 +290,9 @@ Guidelines:
     allFRs: ExtractedFR[],
     epicIndex: number,
   ): Promise<GeneratedStory[]> {
-    const model = this.getModel('main');
+    if (!this.llmModel) {
+      throw new Error('LLM model not initialized. Check ANTHROPIC_API_KEY or Ollama connection.');
+    }
 
     const relevantFRs = allFRs.filter((fr) => epic.functionalRequirements.includes(fr.id));
     const frList = relevantFRs.map((fr) => `${fr.id}: ${fr.description}`).join('\n');
@@ -300,7 +344,7 @@ Guidelines:
 
     try {
       const result = await generateText({
-        model,
+        model: this.llmModel!,
         system: 'You are a JSON-only assistant. Respond with ONLY valid JSON, no other text.',
         prompt,
         temperature: 0.5,
@@ -392,31 +436,6 @@ Guidelines:
         `⚠️ ${uncovered.length} functional requirements not covered by any story: ${uncovered.map((fr) => fr.id).join(', ')}`,
       );
       // Don't throw - coverage is best-effort
-    }
-  }
-
-  /**
-   * Get LLM model based on environment
-   */
-  private getModel(type: 'fast' | 'main'): any {
-    const provider = this.configService.get<string>('LLM_PROVIDER') || 'ollama';
-
-    if (provider === 'ollama') {
-      const modelName =
-        type === 'fast'
-          ? this.configService.get('OLLAMA_FAST_MODEL') || 'qwen2.5-coder:latest'
-          : this.configService.get('OLLAMA_MAIN_MODEL') || 'qwen2.5-coder:latest';
-      return ollama(modelName);
-    } else if (provider === 'anthropic') {
-      const modelName =
-        type === 'fast'
-          ? this.configService.get('ANTHROPIC_FAST_MODEL') || 'claude-3-5-haiku-20241022'
-          : this.configService.get('ANTHROPIC_MAIN_MODEL') || 'claude-3-5-sonnet-20241022';
-      return anthropic(modelName);
-    } else {
-      throw new Error(
-        `Unsupported LLM provider: ${provider}. Supported providers: ollama, anthropic`,
-      );
     }
   }
 }
