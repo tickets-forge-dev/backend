@@ -7,7 +7,7 @@ import { Stage1Input } from './wizard/Stage1Input';
 import { Stage3Draft } from './wizard/Stage3Draft';
 import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
-import { WizardOverlay } from './wizard/WizardOverlay';
+import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
 
 /**
  * GenerationWizard Container Component
@@ -37,6 +37,9 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
     tryRecover,
     applyRecovery,
     resumeDraft,
+    currentPhase,
+    loadingMessage,
+    progressPercent,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -132,8 +135,14 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
         {currentStage === 4 && <Stage4Review />}
       </div>
 
-      {/* Loading Overlay */}
-      {loading && <WizardOverlay />}
+      {/* Analysis Progress Dialog */}
+      {loading && (
+        <AnalysisProgressDialog
+          currentPhase={currentPhase}
+          message={loadingMessage}
+          percent={progressPercent}
+        />
+      )}
 
       {/* Error Display */}
       {error && (

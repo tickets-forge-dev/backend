@@ -298,25 +298,6 @@ export function Stage1Input() {
           >
             {loading ? 'Analyzing...' : 'Next'}
           </Button>
-
-          {/* Progress bar + phase message + elapsed timer */}
-          {loading && (
-            <div className="w-full space-y-2">
-              {/* Progress bar track */}
-              <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-blue-500 dark:bg-blue-400 transition-all duration-700 ease-out"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-
-              {/* Phase message + elapsed time */}
-              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>{loadingMessage || 'Starting...'}</span>
-                <span>{elapsed}s</span>
-              </div>
-            </div>
-          )}
         </div>
       </form>
     </div>

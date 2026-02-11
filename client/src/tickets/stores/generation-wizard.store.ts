@@ -169,6 +169,7 @@ export interface WizardState {
   loading: boolean;
   loadingMessage: string | null;
   progressPercent: number;
+  currentPhase: string | null; // Current analysis phase (e.g., 'connecting', 'analyzing', etc.)
   error: string | null;
 }
 
@@ -275,6 +276,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   loading: false,
   loadingMessage: null,
   progressPercent: 0,
+  currentPhase: null,
   error: null,
 
   // ============================================================================
@@ -419,7 +421,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   analyzeRepository: async () => {
     const state = get();
     const ticketsState = useTicketsStore.getState();
-    set({ loading: true, loadingMessage: 'Connecting to GitHub...', progressPercent: 0, error: null });
+    set({ loading: true, loadingMessage: 'Connecting to GitHub...', progressPercent: 0, currentPhase: 'connecting', error: null });
 
     try {
       const branch = ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
@@ -505,6 +507,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
               loading: false,
               loadingMessage: null,
               progressPercent: 100,
+              currentPhase: 'complete',
             });
             saveSnapshot(get());
             return;
@@ -516,12 +519,14 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
               loading: false,
               loadingMessage: null,
               progressPercent: 0,
+              currentPhase: null,
             });
             return;
           }
 
           // Progress update
           set({
+            currentPhase: event.phase || null,
             loadingMessage: event.message || 'Analyzing...',
             progressPercent: event.percent || 0,
           });
@@ -530,7 +535,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       // Stream ended without complete/error event
       if (get().loading) {
-        set({ error: 'Analysis stream ended unexpectedly', loading: false, loadingMessage: null, progressPercent: 0 });
+        set({ error: 'Analysis stream ended unexpectedly', loading: false, loadingMessage: null, progressPercent: 0, currentPhase: null });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -539,6 +544,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         loading: false,
         loadingMessage: null,
         progressPercent: 0,
+        currentPhase: null,
       });
     }
   },
@@ -1210,6 +1216,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       loading: false,
       loadingMessage: null,
       progressPercent: 0,
+      currentPhase: null,
       error: null,
     });
   },
