@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { usePRDBreakdownStore } from '@/tickets/stores/prd-breakdown.store';
 import { usePRDService } from '@/services/prd.service';
+import { BulkEnrichmentWizard } from '@/tickets/components/bulk';
 import { EpicGroup } from './EpicGroup';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
@@ -30,9 +32,16 @@ function formatAnalysisTime(ms: number): string {
  * - Edit acceptance criteria
  * - Delete tickets
  * - Reorder tickets within epics
- * - Then bulk create all tickets
+ * - Then bulk enrich all tickets in parallel
+ *
+ * Flow:
+ * 1. Click "Enrich & Create" → Create draft tickets (POST /breakdown/bulk-create)
+ * 2. Show BulkEnrichmentWizard with ticket IDs
+ * 3. Wizard handles: enrichment (Stage 1) → questions (Stage 2) → finalization (Stage 3)
+ * 4. On completion → Redirect to /tickets with "new" badges
  */
 export function BreakdownReview() {
+  const router = useRouter();
   const prdService = usePRDService();
   const {
     breakdown,
@@ -47,6 +56,8 @@ export function BreakdownReview() {
   } = usePRDBreakdownStore();
 
   const [creationError, setCreationError] = useState<string | null>(null);
+  const [draftTicketIds, setDraftTicketIds] = useState<string[]>([]);
+  const [showEnrichmentWizard, setShowEnrichmentWizard] = useState(false);
 
   if (!breakdown) {
     return (
@@ -73,6 +84,7 @@ export function BreakdownReview() {
 
     setCreating(true);
     try {
+      // Step 1: Create draft tickets
       const request = {
         tickets: breakdown.tickets.map((ticket) => ({
           epicName: ticket.epicName,
@@ -85,15 +97,31 @@ export function BreakdownReview() {
       };
 
       const result = await prdService.bulkCreateFromBreakdown(request);
-      setCreatedTicketIds(result.ticketIds);
-      moveToSuccess();
+
+      // Step 2: Store created ticket IDs and show enrichment wizard
+      setDraftTicketIds(result.ticketIds);
+      setShowEnrichmentWizard(true);
+      setCreating(false);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to create tickets';
       setCreationError(message);
-    } finally {
       setCreating(false);
     }
+  };
+
+  const handleEnrichmentComplete = (enrichedTicketIds: string[]) => {
+    // Store created ticket IDs in store
+    setCreatedTicketIds(enrichedTicketIds);
+
+    // Close wizard and move to success state
+    setShowEnrichmentWizard(false);
+    moveToSuccess();
+
+    // Redirect to tickets list after a brief delay
+    setTimeout(() => {
+      router.push('/tickets');
+    }, 500);
   };
 
   return (
@@ -182,10 +210,22 @@ export function BreakdownReview() {
         >
           {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
           {isCreating
-            ? `Enriching ${breakdown.tickets.length} tickets...`
+            ? `Creating ${breakdown.tickets.length} tickets...`
             : `Enrich & Create ${breakdown.tickets.length} Tickets`}
         </Button>
       </div>
+
+      {/* Bulk Enrichment Wizard Modal */}
+      {showEnrichmentWizard && draftTicketIds.length > 0 && (
+        <BulkEnrichmentWizard
+          ticketIds={draftTicketIds}
+          ticketTitles={new Map(
+            breakdown.tickets.map((ticket, index) => [draftTicketIds[index] || '', ticket.title]),
+          )}
+          onComplete={handleEnrichmentComplete}
+          onClose={() => setShowEnrichmentWizard(false)}
+        />
+      )}
     </div>
   );
 }
