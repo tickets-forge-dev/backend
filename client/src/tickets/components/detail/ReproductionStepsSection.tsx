@@ -46,6 +46,24 @@ export function ReproductionStepsSection({
       defaultExpanded={true}
     >
       <div className="space-y-4">
+        {/* Empty state - important notice */}
+        {bugDetails.reproductionSteps.length === 0 && (
+          <div className="p-4 bg-red-500/10 border-l-4 border-red-500 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="text-xl">⚠️</div>
+              <div>
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">
+                  No reproduction steps yet
+                </p>
+                <p className="text-xs text-red-600 dark:text-red-300">
+                  Adding clear, step-by-step instructions is essential for developers to understand and fix this bug.
+                  Include specific actions, expected behavior, and actual behavior.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Steps list
             TODO: Use step.id or step.order as key instead of array index to prevent
             state bugs if steps are reordered. Currently using index as temporary solution.
