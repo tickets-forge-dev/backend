@@ -5,6 +5,8 @@
  * Handles SSE connections for real-time progress streaming.
  */
 
+import { auth } from '@/lib/firebase';
+
 /**
  * Request DTO for bulk enrichment
  */
@@ -50,6 +52,22 @@ export class BulkEnrichmentService {
   }
 
   /**
+   * Get Firebase ID token for authenticated requests
+   */
+  private async getAuthToken(): Promise<string | null> {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No authenticated user');
+      }
+      return await user.getIdToken();
+    } catch (error) {
+      console.error('Failed to get auth token:', error);
+      return null;
+    }
+  }
+
+  /**
    * Enrich multiple tickets in parallel
    *
    * Streams SSE progress events including real-time agent progress.
@@ -79,6 +97,12 @@ export class BulkEnrichmentService {
       branch: '', // Will be unused
     };
 
+    // Get auth token
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No authorization token available. Please ensure you are logged in.');
+    }
+
     return new Promise((resolve, reject) => {
       let timeout: NodeJS.Timeout | null = null;
       let isCompleted = false;
@@ -97,6 +121,7 @@ export class BulkEnrichmentService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       })
@@ -193,6 +218,12 @@ export class BulkEnrichmentService {
     const url = `${this.apiUrl}/tickets/bulk/finalize`;
     const TIMEOUT_MS = 60000; // 60 second timeout
 
+    // Get auth token
+    const token = await this.getAuthToken();
+    if (!token) {
+      throw new Error('No authorization token available. Please ensure you are logged in.');
+    }
+
     return new Promise((resolve, reject) => {
       let timeout: NodeJS.Timeout | null = null;
       let isCompleted = false;
@@ -211,6 +242,7 @@ export class BulkEnrichmentService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ answers }),
       })

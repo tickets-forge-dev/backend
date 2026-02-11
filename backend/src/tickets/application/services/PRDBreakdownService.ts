@@ -103,21 +103,32 @@ export class PRDBreakdownService implements OnModuleInit {
     this.validatePRDText(command.prdText);
 
     // Step 1: Extract functional requirements
+    this.emitProgress(command, 'extracting', 'Extracting functional requirements from PRD...');
     const frInventory = await this.extractFunctionalRequirements(command.prdText);
     this.logger.log(`✅ Extracted ${frInventory.length} functional requirements`);
+    this.emitProgress(command, 'extracted', `Found ${frInventory.length} functional requirements`);
 
     // Step 2: Propose epic structure
+    this.emitProgress(command, 'proposing', 'Proposing epic structure based on user value...');
     const epicProposals = await this.proposeEpicStructure(
       command.prdText,
       frInventory,
       command.projectName,
     );
     this.logger.log(`✅ Proposed ${epicProposals.length} epics`);
+    this.emitProgress(command, 'proposed', `Proposed ${epicProposals.length} epics with ${frInventory.length} mapped requirements`);
 
     // Step 3: Generate stories for each epic
+    this.emitProgress(command, 'generating', 'Generating user stories for each epic...');
     const epics: PRDBreakdownEpic[] = [];
     for (let i = 0; i < epicProposals.length; i++) {
       const epicProposal = epicProposals[i];
+      this.emitProgress(
+        command,
+        'generating',
+        `Generating stories for epic "${epicProposal.name}" (${i + 1}/${epicProposals.length})...`,
+      );
+
       const stories = await this.generateStoriesForEpic(
         command.prdText,
         epicProposal,
@@ -134,20 +145,38 @@ export class PRDBreakdownService implements OnModuleInit {
         functionalRequirements: epicProposal.functionalRequirements,
       });
     }
-    this.logger.log(
-      `✅ Generated ${epics.reduce((sum, e) => sum + e.stories.length, 0)} total stories`,
-    );
+    const totalStories = epics.reduce((sum, e) => sum + e.stories.length, 0);
+    this.logger.log(`✅ Generated ${totalStories} total stories`);
+    this.emitProgress(command, 'generated', `Generated ${totalStories} total stories across ${epics.length} epics`);
 
     // Step 4: Build summary with FR coverage
+    this.emitProgress(command, 'summarizing', 'Building breakdown summary with requirement coverage...');
     const summary = this.buildSummary(epics, frInventory);
+    this.emitProgress(command, 'summarized', `Built summary: ${summary.totalTickets} total tickets, ${summary.epicCount} epics`);
 
     // Step 5: Validate coverage
+    this.emitProgress(command, 'validating', 'Validating functional requirement coverage...');
     this.validateFRCoverage(summary, frInventory);
+    this.emitProgress(command, 'complete', 'PRD breakdown complete!');
 
     return {
       tickets: epics.flatMap((e) => e.stories),
       summary,
     };
+  }
+
+  /**
+   * Emit progress event if callback is provided
+   */
+  private emitProgress(command: PRDBreakdownCommand, step: string, message: string): void {
+    if (command.onProgress) {
+      try {
+        command.onProgress(step, message);
+      } catch (error) {
+        this.logger.warn(`Failed to emit progress event: ${error}`);
+        // Continue silently - progress reporting should not block analysis
+      }
+    }
   }
 
   /**

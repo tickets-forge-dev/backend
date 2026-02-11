@@ -41,6 +41,18 @@ export interface BulkCreateResponse {
 }
 
 /**
+ * Progress event from PRD breakdown SSE stream
+ */
+export interface PRDBreakdownProgressEvent {
+  type: 'progress' | 'complete' | 'error';
+  step?: string;
+  message?: string;
+  breakdown?: BreakdownResult;
+  analysisTime?: number;
+  estimatedTicketsCount?: number;
+}
+
+/**
  * PRD Service - handles PRD breakdown API calls
  */
 class PRDService {
@@ -54,7 +66,7 @@ class PRDService {
   }
 
   /**
-   * Analyze a PRD and return breakdown into epics and stories
+   * Analyze a PRD and return breakdown into epics and stories (legacy JSON endpoint)
    */
   async breakdownPRD(request: PRDBreakdownRequest): Promise<PRDBreakdownResponse> {
     const token = await auth.currentUser?.getIdToken();
@@ -76,6 +88,126 @@ class PRDService {
     }
 
     return response.json();
+  }
+
+  /**
+   * Analyze a PRD with real-time progress streaming
+   * Streams SSE events showing analysis progress
+   */
+  async breakdownPRDWithProgress(
+    request: PRDBreakdownRequest,
+    onProgress?: (event: PRDBreakdownProgressEvent) => void,
+  ): Promise<PRDBreakdownResponse> {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      throw new Error('No authorization token available. Please ensure you are logged in.');
+    }
+
+    const TIMEOUT_MS = 120000; // 120 second timeout for PRD analysis
+
+    return new Promise((resolve, reject) => {
+      let timeout: NodeJS.Timeout | null = null;
+      let isCompleted = false;
+
+      const resetTimeout = () => {
+        if (timeout) clearTimeout(timeout);
+        if (!isCompleted) {
+          timeout = setTimeout(() => {
+            isCompleted = true;
+            reject(new Error('PRD analysis timeout: No response for 120 seconds. Check your network connection.'));
+          }, TIMEOUT_MS);
+        }
+      };
+
+      fetch(`${this.apiUrl}/tickets/breakdown/prd`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(request),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          // Read the streaming response
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error('No response body');
+          }
+
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let finalResult: PRDBreakdownResponse | null = null;
+
+          const read = async (): Promise<void> => {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              isCompleted = true;
+              if (timeout) clearTimeout(timeout);
+              if (finalResult) {
+                resolve(finalResult);
+              } else {
+                reject(new Error('No final result received'));
+              }
+              return;
+            }
+
+            resetTimeout(); // Reset timeout on each chunk received
+
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE events
+            const lines = buffer.split('\n');
+            buffer = lines[lines.length - 1]; // Keep incomplete line in buffer
+
+            for (let i = 0; i < lines.length - 1; i++) {
+              const line = lines[i];
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6)) as PRDBreakdownProgressEvent;
+                  if (onProgress) {
+                    onProgress(data);
+                  }
+
+                  if (data.type === 'complete') {
+                    if (data.breakdown && data.analysisTime !== undefined && data.estimatedTicketsCount !== undefined) {
+                      finalResult = {
+                        breakdown: data.breakdown,
+                        analysisTime: data.analysisTime,
+                        estimatedTicketsCount: data.estimatedTicketsCount,
+                      };
+                    }
+                  } else if (data.type === 'error') {
+                    reader.cancel();
+                    isCompleted = true;
+                    if (timeout) clearTimeout(timeout);
+                    reject(new Error(data.message || 'PRD analysis failed'));
+                    return;
+                  }
+                } catch (error) {
+                  console.error('Failed to parse SSE event:', error);
+                }
+              }
+            }
+
+            return read();
+          };
+
+          return read();
+        })
+        .catch((error) => {
+          isCompleted = true;
+          if (timeout) clearTimeout(timeout);
+          reject(error);
+        });
+
+      // Start initial timeout
+      resetTimeout();
+    });
   }
 
   /**

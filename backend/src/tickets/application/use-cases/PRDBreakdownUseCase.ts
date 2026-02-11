@@ -24,6 +24,7 @@ import {
  */
 export interface PRDBreakdownExecuteCommand extends PRDBreakdownCommand {
   workspaceId: string;
+  onProgress?: (step: string, message: string) => void;
 }
 
 /**
@@ -63,8 +64,16 @@ export class PRDBreakdownUseCase {
       // Validate command
       this.validateCommand(command);
 
+      // Send initial progress event
+      if (command.onProgress) {
+        command.onProgress('extracting', 'Extracting functional requirements from PRD...');
+      }
+
       // Execute breakdown
-      const breakdown = await this.prdBreakdownService.breakdown(command);
+      const breakdown = await this.prdBreakdownService.breakdown({
+        ...command,
+        onProgress: command.onProgress,
+      });
 
       const analysisTime = Date.now() - startTime;
       const estimatedTicketsCount = breakdown.tickets.length;

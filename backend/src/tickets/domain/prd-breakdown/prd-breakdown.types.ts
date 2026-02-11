@@ -83,4 +83,5 @@ export interface PRDBreakdownCommand {
   repositoryName: string;
   projectName?: string;
   workspaceId: string;
+  onProgress?: (step: string, message: string) => void;
 }

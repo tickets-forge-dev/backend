@@ -865,6 +865,12 @@ export class TicketsController {
    * POST /tickets/breakdown/prd
    * Analyze a PRD and return a breakdown into epics and stories
    *
+   * Streams progress events via SSE so frontend can show real-time feedback:
+   * - "Extracting functional requirements..."
+   * - "Proposing epics..."
+   * - "Generating stories..."
+   * - Final completion event with breakdown result
+   *
    * Request body:
    * {
    *   "prdText": "...",
@@ -873,17 +879,29 @@ export class TicketsController {
    *   "projectName": "My Project" (optional)
    * }
    *
-   * Response: Breakdown with epics, stories, FR coverage, and analysis metadata
+   * Response: SSE stream with progress events, final event contains breakdown
    */
   @Post('breakdown/prd')
-  @HttpCode(HttpStatus.OK)
   async breakdownPRD(
     @WorkspaceId() workspaceId: string,
     @UserId() userId: string,
     @Body() dto: PRDBreakdownRequestDto,
-  ): Promise<PRDBreakdownResponseDto> {
+    @Res() res: Response,
+  ): Promise<void> {
+    // Set up SSE headers for streaming response
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
     try {
       this.logger.log(`🔍 PRD breakdown requested for ${dto.repositoryOwner}/${dto.repositoryName}`);
+
+      // Send progress: Starting analysis
+      res.write(`data: ${JSON.stringify({
+        type: 'progress',
+        step: 'extracting',
+        message: 'Extracting functional requirements from PRD...',
+      })}\n\n`);
 
       const result = await this.prdBreakdownUseCase.execute({
         prdText: dto.prdText,
@@ -891,22 +909,37 @@ export class TicketsController {
         repositoryName: dto.repositoryName,
         projectName: dto.projectName,
         workspaceId,
+        onProgress: (step: string, message: string) => {
+          // Stream progress events as analysis proceeds
+          res.write(`data: ${JSON.stringify({
+            type: 'progress',
+            step,
+            message,
+          })}\n\n`);
+        },
       });
 
       this.logger.log(
         `✅ PRD breakdown complete: ${result.estimatedTicketsCount} tickets in ${result.analysisTime}ms`,
       );
 
-      return {
+      // Send final completion event with breakdown result
+      res.write(`data: ${JSON.stringify({
+        type: 'complete',
         breakdown: result.breakdown,
         analysisTime: result.analysisTime,
         estimatedTicketsCount: result.estimatedTicketsCount,
-      };
+      })}\n\n`);
+
+      res.end();
     } catch (error: any) {
       this.logger.error(`PRD breakdown failed: ${error.message}`);
-      throw new BadRequestException(
-        error.message || 'Failed to analyze PRD. Please ensure it contains clear requirements.',
-      );
+      const errorEvent = {
+        type: 'error',
+        message: error.message || 'Failed to analyze PRD. Please ensure it contains clear requirements.',
+      };
+      res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
+      res.end();
     }
   }
 
