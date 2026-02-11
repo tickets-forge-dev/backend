@@ -250,7 +250,7 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
 
       {/* Attachments subsection */}
       {onUploadAttachment && onDeleteAttachment && (
-        <div className="pt-4 mt-4 border-t border-[var(--border)]/40">
+        <div className="mt-6">
           <h4 className="text-xs font-medium text-[var(--text-tertiary)] uppercase mb-3">
             Attachments{attachments && attachments.length > 0 ? ` (${attachments.length})` : ''}
           </h4>

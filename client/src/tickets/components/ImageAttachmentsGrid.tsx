@@ -262,17 +262,17 @@ export function ImageAttachmentsGrid({
             </div>
           )}
 
-          {/* Add placeholder — dotted border, same dimensions */}
+          {/* Add placeholder — nice background, same dimensions */}
           {canUpload && !isActivelyUploading && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg border-2 border-dashed border-[var(--border)]/50 hover:border-[var(--primary)]/40 bg-transparent hover:bg-[var(--bg-hover)] transition-colors overflow-hidden cursor-pointer group"
+              className="rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 hover:border-[var(--primary)]/40 transition-all overflow-hidden cursor-pointer group"
             >
               <div className="aspect-square flex flex-col items-center justify-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-[var(--bg-subtle)] group-hover:bg-[var(--primary)]/10 flex items-center justify-center transition-colors">
-                  <Plus className="h-5 w-5 text-[var(--text-tertiary)] group-hover:text-[var(--primary)] transition-colors" />
+                <div className="w-10 h-10 rounded-full bg-[var(--primary)]/15 group-hover:bg-[var(--primary)]/25 flex items-center justify-center transition-colors">
+                  <Plus className="h-5 w-5 text-[var(--primary)] transition-colors" />
                 </div>
-                <span className="text-[11px] text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] transition-colors">
+                <span className="text-[11px] text-[var(--text-secondary)]">
                   Add file
                 </span>
               </div>
