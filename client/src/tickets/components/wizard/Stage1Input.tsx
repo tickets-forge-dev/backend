@@ -200,20 +200,15 @@ export function Stage1Input() {
           maxLength={500}
           rows={3}
         />
-        <div className="flex items-center justify-between">
-          {titleError && (
-            <span
-              id="title-error"
-              role="alert"
-              className="text-xs text-red-600 dark:text-red-400"
-            >
-              {titleError}
-            </span>
-          )}
-          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-            {input.title.length}/500
+        {titleError && (
+          <span
+            id="title-error"
+            role="alert"
+            className="text-xs text-red-600 dark:text-red-400"
+          >
+            {titleError}
           </span>
-        </div>
+        )}
       </div>
 
       {/* Form */}
