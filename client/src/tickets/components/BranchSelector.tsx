@@ -102,42 +102,45 @@ export function BranchSelector({ hideLabel = false }: Props) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        {!hideLabel && (
-          <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-            Branch
-          </label>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={refreshBranches}
-          disabled={isBranchesLoading}
-          className="h-6 px-2 text-[var(--text-tertiary)] hover:text-[var(--text)]"
-        >
-          <RefreshCw className={`h-3 w-3 mr-1 ${isBranchesLoading ? 'animate-spin' : ''}`} />
-          <span className="text-xs">Refresh</span>
-        </Button>
-      </div>
+      {!hideLabel && (
+        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          Branch
+        </label>
+      )}
       <Select value={selectedBranch || ''} onValueChange={setBranch}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select a branch">
-            {selectedBranch && (
-              <div className="flex items-center gap-2">
-                <GitBranch className="h-4 w-4 text-[var(--text-tertiary)]" />
-                <span>{selectedBranch}</span>
-                {selectedBranch === defaultBranch && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs px-1.5 py-0 h-5 text-[var(--yellow)] border-[var(--yellow)]/30"
-                  >
-                    <Star className="h-3 w-3 mr-1 fill-[var(--yellow)]" />
-                    default
-                  </Badge>
-                )}
-              </div>
-            )}
-          </SelectValue>
+          <div className="flex items-center justify-between flex-1">
+            <SelectValue placeholder="Select a branch">
+              {selectedBranch && (
+                <div className="flex items-center gap-2">
+                  <GitBranch className="h-4 w-4 text-[var(--text-tertiary)]" />
+                  <span>{selectedBranch}</span>
+                  {selectedBranch === defaultBranch && (
+                    <Badge
+                      variant="outline"
+                      className="text-xs px-1.5 py-0 h-5 text-[var(--yellow)] border-[var(--yellow)]/30"
+                    >
+                      <Star className="h-3 w-3 mr-1 fill-[var(--yellow)]" />
+                      default
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </SelectValue>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                refreshBranches();
+              }}
+              disabled={isBranchesLoading}
+              className="h-4 w-4 p-0 ml-2 text-[var(--text-tertiary)] hover:text-[var(--text)] flex-shrink-0"
+            >
+              <RefreshCw className={`h-3 w-3 ${isBranchesLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </SelectTrigger>
         <SelectContent>
           {availableBranches.map((branch) => (
