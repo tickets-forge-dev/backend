@@ -20,8 +20,8 @@ export class BulkEnrichDto {
 
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[a-zA-Z0-9/_-]+$/, {
-    message: 'branch must contain only alphanumeric, /, -, _',
+  @Matches(/^[a-zA-Z0-9/_.-]+$/, {
+    message: 'branch must contain only alphanumeric, /, -, _, .',
   })
   branch!: string;
 }
