@@ -85,6 +85,10 @@ export class LinearService {
    */
   async importIssue(issueId: string): Promise<{
     ticketId: string;
+    title: string;
+    description?: string;
+    type: 'task';
+    priority: 'low' | 'medium' | 'high' | 'urgent';
     importedFrom: { platform: 'linear'; issueId: string; issueUrl: string };
   }> {
     const { data } = await this.client.post('/tickets/import/linear', { issueId });

@@ -88,6 +88,10 @@ export class JiraService {
    */
   async importIssue(issueKey: string): Promise<{
     ticketId: string;
+    title: string;
+    description?: string;
+    type: 'feature' | 'bug' | 'task';
+    priority: 'low' | 'medium' | 'high' | 'urgent';
     importedFrom: { platform: 'jira'; issueId: string; issueUrl: string };
   }> {
     const { data } = await this.client.post('/tickets/import/jira', { issueKey });

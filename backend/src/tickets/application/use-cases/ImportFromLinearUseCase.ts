@@ -16,6 +16,10 @@ interface ImportFromLinearCommand {
 
 export interface ImportFromLinearResult {
   ticketId: string;
+  title: string;
+  description?: string;
+  type: 'task'; // Linear issues always map to task
+  priority: TicketPriority;
   importedFrom: {
     platform: 'linear';
     issueId: string;
@@ -115,6 +119,10 @@ export class ImportFromLinearUseCase {
 
     return {
       ticketId: aec.id,
+      title,
+      description,
+      type: 'task',
+      priority: priority ?? 'medium',
       importedFrom: {
         platform: 'linear',
         issueId: linearIssue.identifier,

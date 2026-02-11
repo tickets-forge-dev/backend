@@ -188,11 +188,11 @@ export function ImportStage1Selector({ onError, availability }: Props) {
         id: issue.importedFrom.issueId,
         key: platform === 'jira' ? option.key : undefined,
         identifier: platform === 'linear' ? option.identifier : undefined,
-        title: option.title,
-        description: '',
+        title: issue.title,
+        description: issue.description || '',
         url: issue.importedFrom.issueUrl,
-        mappedType: 'task',
-        mappedPriority: 'medium',
+        mappedType: issue.type || 'task',
+        mappedPriority: issue.priority || 'medium',
       });
 
       goToStage(2);
@@ -221,29 +221,20 @@ export function ImportStage1Selector({ onError, availability }: Props) {
 
     setIsLoading(true);
     try {
-      // Fetch full issue details
+      // Import issue and get full details from backend
       const issue = platform === 'jira'
         ? await jiraService.importIssue(normalizedKey)
         : await linearService.importIssue(normalizedKey);
 
-      // The API response has { ticketId, importedFrom }
-      // We need to extract the issue data. For MVP, we'll store minimal data.
-      // The backend creates the ticket, so we just transition to the next stage.
-      // Actually, let me re-read the plan...
-
-      // The plan says fetch via jiraService.getIssue() for preview.
-      // But we don't have that endpoint yet. Let's use a simplified approach:
-      // Store the imported data and go to preview stage.
-
       setSelectedIssue({
         id: issue.importedFrom.issueId,
-        key: platform === 'jira' ? issueKey.trim() : undefined,
-        identifier: platform === 'linear' ? issueKey.trim() : undefined,
-        title: '', // Will be fetched in next stage
-        description: '',
+        key: platform === 'jira' ? normalizedKey : undefined,
+        identifier: platform === 'linear' ? normalizedKey : undefined,
+        title: issue.title,
+        description: issue.description || '',
         url: issue.importedFrom.issueUrl,
-        mappedType: 'task',
-        mappedPriority: 'medium',
+        mappedType: issue.type || 'task',
+        mappedPriority: issue.priority || 'medium',
       });
 
       goToStage(2);
