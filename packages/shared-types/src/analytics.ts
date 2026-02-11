@@ -9,9 +9,18 @@
 export type AuthEvent = 'auth_signup' | 'auth_login' | 'auth_logout' | 'auth_error';
 
 // Integration events
-export type IntegrationEvent = 'integration_connected' | 'integration_disconnected' | 'integration_error';
-export type JiraIntegrationEvent = IntegrationEvent | 'jira_issue_searched' | 'jira_issue_imported';
-export type LinearIntegrationEvent = IntegrationEvent | 'linear_issue_searched' | 'linear_issue_imported';
+export type IntegrationEvent =
+  | 'integration_connected'
+  | 'integration_disconnected'
+  | 'integration_error';
+export type JiraIntegrationEvent =
+  | IntegrationEvent
+  | 'jira_issue_searched'
+  | 'jira_issue_imported';
+export type LinearIntegrationEvent =
+  | IntegrationEvent
+  | 'linear_issue_searched'
+  | 'linear_issue_imported';
 
 // Ticket creation events
 export type TicketCreationEvent =
