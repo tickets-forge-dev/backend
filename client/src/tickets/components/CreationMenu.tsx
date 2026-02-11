@@ -58,10 +58,10 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
       <Button
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center"
-        size="icon"
+        className="flex items-center gap-2"
       >
         <Plus className="w-4 h-4" />
+        Create
       </Button>
 
       {/* Floating Menu */}
