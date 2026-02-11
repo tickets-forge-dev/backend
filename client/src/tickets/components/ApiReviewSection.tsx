@@ -155,6 +155,7 @@ export function ApiReviewSection({
             onAccept={() => handleAccept(idx)}
             onReject={() => handleReject(idx)}
             onEdit={() => onEdit(idx)}
+            onDelete={() => onDelete(idx)}
           />
         ))}
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, X, Pencil, Copy, ChevronDown, Shield, Globe } from 'lucide-react';
+import { Check, X, Pencil, Copy, ChevronDown, Shield, Globe, Trash2 } from 'lucide-react';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
 import { generateCurlCommand, copyToClipboard } from '@/tickets/utils/curl-generator';
@@ -33,6 +33,7 @@ interface ApiCardProps {
   onAccept: () => void;
   onReject: () => void;
   onEdit: () => void;
+  onDelete?: () => void;
   showReviewActions?: boolean;
 }
 
@@ -42,6 +43,7 @@ export function ApiCard({
   onAccept,
   onReject,
   onEdit,
+  onDelete,
   showReviewActions = true,
 }: ApiCardProps) {
   const [curlExpanded, setCurlExpanded] = useState(false);
@@ -209,6 +211,18 @@ export function ApiCard({
             <X className="h-3.5 w-3.5" />
             Reject
           </Button>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              className="gap-1.5 text-xs h-7 text-red-600 dark:text-red-400 hover:bg-red-500/10"
+              title="Delete API endpoint"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Button>
+          )}
         </div>
       )}
     </div>
