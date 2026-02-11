@@ -55,6 +55,11 @@ export class BulkEnrichmentService {
    * Streams SSE progress events including real-time agent progress.
    * Includes 60-second timeout to prevent hanging connections.
    *
+   * NOTE: Uses fetch with streaming response instead of EventSource because:
+   * - EventSource only supports GET requests
+   * - This endpoint requires POST with JSON body
+   * - fetch with Response.body.getReader() gives us streaming capability
+   *
    * @param ticketIds IDs of tickets to enrich
    * @param onProgress Callback for each progress event
    * @returns Promise that resolves when enrichment completes
@@ -82,52 +87,88 @@ export class BulkEnrichmentService {
         if (timeout) clearTimeout(timeout);
         if (!isCompleted) {
           timeout = setTimeout(() => {
-            eventSource.close();
             isCompleted = true;
             reject(new Error('Enrichment timeout: No response for 60 seconds. Check your network connection.'));
           }, TIMEOUT_MS);
         }
       };
 
-      const eventSource = new EventSource(
-        `${url}?${new URLSearchParams(Object.entries(body)).toString()}`,
-      );
-
-      eventSource.onmessage = (event) => {
-        try {
-          resetTimeout(); // Reset timeout on each message
-
-          const data = JSON.parse(event.data) as EnrichmentProgressEvent;
-
-          if (onProgress) {
-            onProgress(data);
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
 
-          if (data.type === 'complete' || data.type === 'error') {
-            eventSource.close();
-            isCompleted = true;
-            if (timeout) clearTimeout(timeout);
+          // Read the streaming response
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error('No response body');
+          }
 
-            if (data.type === 'error') {
-              reject(new Error(data.message || 'Enrichment failed'));
-            } else {
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          const read = async (): Promise<void> => {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              isCompleted = true;
+              if (timeout) clearTimeout(timeout);
               resolve();
+              return;
             }
-          }
-        } catch (error) {
-          eventSource.close();
+
+            resetTimeout(); // Reset timeout on each chunk received
+
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE events
+            const lines = buffer.split('\n');
+            buffer = lines[lines.length - 1]; // Keep incomplete line in buffer
+
+            for (let i = 0; i < lines.length - 1; i++) {
+              const line = lines[i];
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6)) as EnrichmentProgressEvent;
+                  if (onProgress) {
+                    onProgress(data);
+                  }
+
+                  if (data.type === 'complete' || data.type === 'error') {
+                    reader.cancel();
+                    isCompleted = true;
+                    if (timeout) clearTimeout(timeout);
+
+                    if (data.type === 'error') {
+                      reject(new Error(data.message || 'Enrichment failed'));
+                    } else {
+                      resolve();
+                    }
+                    return;
+                  }
+                } catch (error) {
+                  console.error('Failed to parse SSE event:', error);
+                }
+              }
+            }
+
+            return read();
+          };
+
+          return read();
+        })
+        .catch((error) => {
           isCompleted = true;
           if (timeout) clearTimeout(timeout);
           reject(error);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        eventSource.close();
-        isCompleted = true;
-        if (timeout) clearTimeout(timeout);
-        reject(new Error('Connection error. Check your internet connection.'));
-      };
+        });
 
       // Start initial timeout
       resetTimeout();
