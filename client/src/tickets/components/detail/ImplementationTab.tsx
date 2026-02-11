@@ -10,6 +10,7 @@ import { BackendClientChanges } from '@/src/tickets/components/BackendClientChan
 import { TestPlanSection } from '@/src/tickets/components/TestPlanSection';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
 import { AssetsSection } from '@/src/tickets/components/AssetsSection';
+import { ReproductionStepsSection } from './ReproductionStepsSection';
 import type { AECResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 
@@ -27,6 +28,9 @@ interface ImplementationTabProps {
   isUploadingAttachment: boolean;
   saveTechSpecPatch: (patch: Record<string, any>) => Promise<boolean | undefined>;
   fetchTicket: (id: string) => Promise<void>;
+  onEditReproductionStep?: (index: number) => void;
+  onDeleteReproductionStep?: (index: number) => void;
+  onAddReproductionStep?: () => void;
 }
 
 export function ImplementationTab({
@@ -43,9 +47,13 @@ export function ImplementationTab({
   isUploadingAttachment,
   saveTechSpecPatch,
   fetchTicket,
+  onEditReproductionStep,
+  onDeleteReproductionStep,
+  onAddReproductionStep,
 }: ImplementationTabProps) {
   const techSpec = ticket.techSpec;
   const [showFilePaths, setShowFilePaths] = useState(false);
+  const isBugTicket = ticket.type === 'bug';
 
   // Check if any solution steps have file references
   const solutionSteps = techSpec?.solution?.steps || (Array.isArray(techSpec?.solution) ? techSpec.solution : []);
@@ -53,8 +61,48 @@ export function ImplementationTab({
 
   return (
     <div className="space-y-8">
-      {/* Acceptance Criteria — non-collapsible, BDD color-coded */}
-      {techSpec?.acceptanceCriteria?.length > 0 && (
+      {/* Reproduction Steps — bug tickets only, shows first */}
+      {isBugTicket && techSpec?.bugDetails && (
+        <ReproductionStepsSection
+          bugDetails={techSpec.bugDetails}
+          onEdit={onEditReproductionStep || (() => {})}
+          onDelete={onDeleteReproductionStep || (() => {})}
+          onAdd={onAddReproductionStep || (() => {})}
+        />
+      )}
+
+      {/* Acceptance Criteria — non-collapsible for features, collapsible for bugs */}
+      {techSpec?.acceptanceCriteria?.length > 0 && isBugTicket ? (
+        <CollapsibleSection
+          id="acceptance-criteria"
+          title="Acceptance Criteria"
+          badge={`${techSpec.acceptanceCriteria.length}`}
+          defaultExpanded={false}
+        >
+          <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            {techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
+              <li key={idx}>
+                <EditableItem onEdit={() => onEditItem('acceptanceCriteria', idx)} onDelete={() => onDeleteItem('acceptanceCriteria', idx)}>
+                  {typeof ac === 'string' ? (
+                    <span><span className="text-[var(--text-tertiary)] mr-2">-</span>{ac}</span>
+                  ) : (
+                    <div className="space-y-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-4 py-3">
+                      <p><span className="font-medium text-blue-500 mr-1">Given</span> {ac.given}</p>
+                      <p><span className="font-medium text-amber-500 mr-1">When</span> {ac.when}</p>
+                      <p><span className="font-medium text-green-500 mr-1">Then</span> {ac.then}</p>
+                      {ac.implementationNotes && (
+                        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic mt-1.5">
+                          {ac.implementationNotes}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </EditableItem>
+              </li>
+            ))}
+          </ul>
+        </CollapsibleSection>
+      ) : techSpec?.acceptanceCriteria?.length > 0 ? (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
             Acceptance Criteria
@@ -82,7 +130,7 @@ export function ImplementationTab({
             ))}
           </ul>
         </div>
-      )}
+      ) : null}
 
       {/* File Changes */}
       {techSpec?.fileChanges?.length > 0 && (

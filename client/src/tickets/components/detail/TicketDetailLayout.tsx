@@ -169,6 +169,9 @@ export function TicketDetailLayout({
             isUploadingAttachment={isUploadingAttachment}
             saveTechSpecPatch={saveTechSpecPatch}
             fetchTicket={fetchTicket}
+            onEditReproductionStep={onEditReproductionStep}
+            onDeleteReproductionStep={onDeleteReproductionStep}
+            onAddReproductionStep={onAddReproductionStep}
           />
         </TabsContent>
 

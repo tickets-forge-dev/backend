@@ -45,6 +45,8 @@ export interface TechSpecInput {
   };
   stack: ProjectStack; // Project technology stack
   analysis: CodebaseAnalysis; // Codebase analysis results
+  ticketType?: 'feature' | 'bug' | 'task'; // Optional: ticket type
+  reproductionSteps?: ReproductionStep[]; // Optional: bug reproduction steps
 }
 
 /**
