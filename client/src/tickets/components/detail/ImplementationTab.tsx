@@ -11,6 +11,7 @@ import { TestPlanSection } from '@/src/tickets/components/TestPlanSection';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
 import { AssetsSection } from '@/src/tickets/components/AssetsSection';
 import { ReproductionStepsSection } from './ReproductionStepsSection';
+import { SectionNavigator } from './SectionNavigator';
 import type { AECResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 
@@ -60,11 +61,13 @@ export function ImplementationTab({
   const hasFilePaths = solutionSteps.some((s: any) => typeof s !== 'string' && s.file);
 
   return (
-    <div className="space-y-8">
-      {/* Reproduction Steps — bug tickets only, shows first */}
-      {isBugTicket && techSpec?.bugDetails && (
+    <>
+      <SectionNavigator ticket={ticket} techSpec={techSpec} />
+      <div className="space-y-8">
+        {/* Reproduction Steps — bug tickets only, shows first */}
+      {isBugTicket && (
         <ReproductionStepsSection
-          bugDetails={techSpec.bugDetails}
+          bugDetails={techSpec?.bugDetails || { reproductionSteps: [] }}
           onEdit={onEditReproductionStep || (() => {})}
           onDelete={onDeleteReproductionStep || (() => {})}
           onAdd={onAddReproductionStep || (() => {})}
@@ -344,6 +347,7 @@ export function ImplementationTab({
           />
         </CollapsibleSection>
       )}
-    </div>
+      </div>
+    </>
   );
 }
