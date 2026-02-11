@@ -275,7 +275,14 @@ export function Stage1Input() {
 
         {/* CODE SELECTION CARD */}
         <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-5 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-gray-700 dark:text-gray-400">Repository</h3>
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Codebase to Scan
+            </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Select the repository we&apos;ll analyze to understand your codebase structure, technology stack, and generate implementation-ready tickets based on the actual code.
+            </p>
+          </div>
 
           {/* Repository Selection */}
           <RepositorySelector />
@@ -287,7 +294,15 @@ export function Stage1Input() {
           )}
 
           {/* Branch Selection */}
-          <BranchSelector />
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-400">
+              Branch to Analyze
+            </p>
+            <BranchSelector />
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              We&apos;ll read code from this branch to provide context for your ticket.
+            </p>
+          </div>
 
           {/* Future multi-repo placeholder */}
           <button
