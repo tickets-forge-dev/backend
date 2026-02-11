@@ -1,10 +1,12 @@
 'use client';
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { usePRDBreakdownStore } from '@/tickets/stores/prd-breakdown.store';
 import { PRDInputForm } from '@/tickets/components/prd/PRDInputForm';
 import { BreakdownReview } from '@/tickets/components/prd/BreakdownReview';
 import { SuccessView } from '@/tickets/components/prd/SuccessView';
+import { ArrowLeft } from 'lucide-react';
 
 /**
  * PRD Breakdown Page
@@ -20,6 +22,12 @@ export default function BreakdownPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Back button */}
+        <Link href="/tickets" className="inline-flex items-center gap-2 mb-6 hover:opacity-75 transition-opacity">
+          <ArrowLeft className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+          <span style={{ color: 'var(--text-secondary)' }}>Back to Tickets</span>
+        </Link>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text)' }}>
