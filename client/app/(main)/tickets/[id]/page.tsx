@@ -1058,35 +1058,38 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             )}
 
             {/* Section Selection */}
-            <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+            <div className="space-y-3 pt-4 border-t border-[var(--border)]">
               <label className="text-sm font-medium text-[var(--text)]">Sections to Export</label>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'problem', label: 'Problem Statement' },
-                  { id: 'solution', label: 'Solution' },
-                  { id: 'criteria', label: 'Acceptance Criteria' },
-                  { id: 'files', label: 'File Changes' },
-                  { id: 'api', label: 'API Endpoints' },
-                  { id: 'tests', label: 'Test Plan' },
-                  { id: 'scope', label: 'Scope' },
+                  { id: 'problem', label: 'Problem', icon: '📋' },
+                  { id: 'solution', label: 'Solution', icon: '💡' },
+                  { id: 'criteria', label: 'Criteria', icon: '✓' },
+                  { id: 'files', label: 'Files', icon: '📁' },
+                  { id: 'api', label: 'APIs', icon: '🔌' },
+                  { id: 'tests', label: 'Tests', icon: '🧪' },
+                  { id: 'scope', label: 'Scope', icon: '🎯' },
                 ].map((section) => (
-                  <label key={section.id} className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text)]">
-                    <input
-                      type="checkbox"
-                      checked={exportSections.has(section.id)}
-                      onChange={(e) => {
-                        const newSections = new Set(exportSections);
-                        if (e.target.checked) {
-                          newSections.add(section.id);
-                        } else {
-                          newSections.delete(section.id);
-                        }
-                        setExportSections(newSections);
-                      }}
-                      className="rounded border-[var(--border)]"
-                    />
-                    {section.label}
-                  </label>
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      const newSections = new Set(exportSections);
+                      if (newSections.has(section.id)) {
+                        newSections.delete(section.id);
+                      } else {
+                        newSections.add(section.id);
+                      }
+                      setExportSections(newSections);
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+                      exportSections.has(section.id)
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
+                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
+                    }`}
+                  >
+                    <span className="text-base">{section.icon}</span>
+                    <span>{section.label}</span>
+                  </button>
                 ))}
               </div>
             </div>
