@@ -27,6 +27,7 @@ import { GitHubModule } from '../github/github.module';
 import { LinearModule } from '../linear/linear.module';
 import { JiraModule } from '../jira/jira.module';
 import { PostHogModule } from '../shared/infrastructure/posthog/posthog.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { ExportToLinearUseCase } from './application/use-cases/ExportToLinearUseCase';
 import { ExportToJiraUseCase } from './application/use-cases/ExportToJiraUseCase';
 import { GetImportAvailabilityUseCase } from './application/use-cases/GetImportAvailabilityUseCase';
@@ -52,7 +53,7 @@ import { PRDBreakdownService } from './application/services/PRDBreakdownService'
 import { BulkCreateFromBreakdownUseCase } from './application/use-cases/BulkCreateFromBreakdownUseCase';
 
 @Module({
-  imports: [GitHubModule, LinearModule, JiraModule, PostHogModule],
+  imports: [GitHubModule, LinearModule, JiraModule, PostHogModule, WorkspacesModule],
   controllers: [TicketsController],
   providers: [
     CreateTicketUseCase,
