@@ -184,12 +184,6 @@ export function ImplementationTab({
             onEdit={(idx) => onEditItem('apiEndpoints', idx)}
             onDelete={(idx) => onDeleteItem('apiEndpoints', idx)}
             onAdd={onAddApiEndpoint}
-            onSave={async (acceptedEndpoints) => {
-              await saveTechSpecPatch({
-                apiChanges: { ...techSpec.apiChanges, endpoints: acceptedEndpoints },
-              });
-              await fetchTicket(ticketId);
-            }}
             onScanApis={onScanApis}
             isScanning={isScanningApis}
           />

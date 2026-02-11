@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Check, Plus, RotateCcw, Search, Loader2, Save } from 'lucide-react';
+import { Plus, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { ApiCard, type ReviewStatus } from './ApiCard';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -11,7 +10,6 @@ interface ApiReviewSectionProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   onAdd?: () => void;
-  onSave?: (acceptedEndpoints: ApiEndpointSpec[]) => Promise<void>;
   onScanApis?: () => Promise<void>;
   isScanning?: boolean;
 }
@@ -21,84 +19,27 @@ export function ApiReviewSection({
   onEdit,
   onDelete,
   onAdd,
-  onSave,
   onScanApis,
   isScanning = false,
 }: ApiReviewSectionProps) {
-  const [reviewStatuses, setReviewStatuses] = useState<Record<number, ReviewStatus>>({});
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleAccept = (index: number) => {
-    setReviewStatuses((prev) => ({
-      ...prev,
-      [index]: prev[index] === 'accepted' ? 'pending' : 'accepted',
-    }));
-  };
-
-  const handleReject = (index: number) => {
-    setReviewStatuses((prev) => ({
-      ...prev,
-      [index]: prev[index] === 'rejected' ? 'pending' : 'rejected',
-    }));
-  };
-
-  const handleAcceptAll = () => {
-    const all: Record<number, ReviewStatus> = {};
-    endpoints.forEach((_, idx) => {
-      all[idx] = 'accepted';
-    });
-    setReviewStatuses(all);
-  };
-
-  const handleResetAll = () => {
-    setReviewStatuses({});
-  };
-
-  const handleSave = async () => {
-    if (!onSave) return;
-    setIsSaving(true);
-    try {
-      const accepted = endpoints.filter((_, idx) => reviewStatuses[idx] === 'accepted');
-      await onSave(accepted);
-      setReviewStatuses({});
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const stats = useMemo(() => {
-    let accepted = 0;
-    let rejected = 0;
-    let pending = 0;
-
-    endpoints.forEach((_, idx) => {
-      const status = reviewStatuses[idx] || 'pending';
-      if (status === 'accepted') accepted++;
-      else if (status === 'rejected') rejected++;
-      else pending++;
-    });
-
-    return { accepted, rejected, pending, total: endpoints.length };
-  }, [endpoints, reviewStatuses]);
-
-  const hasReviewed = stats.accepted > 0 || stats.rejected > 0;
+  const reviewStatus: ReviewStatus = 'pending';
 
   if (!endpoints || endpoints.length === 0) {
     return (
-      <div className="space-y-3">
-        <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] italic">
+      <div className="space-y-2">
+        <p className="text-xs text-[var(--text-tertiary)]">
           No API endpoints detected.
         </p>
         <div className="flex items-center gap-2">
           {onScanApis && (
-            <Button variant="outline" size="sm" onClick={onScanApis} disabled={isScanning} className="gap-1.5">
-              {isScanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+            <Button variant="outline" size="sm" onClick={onScanApis} disabled={isScanning} className="gap-1.5 text-xs h-7">
+              {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
               {isScanning ? 'Scanning...' : 'Scan Codebase'}
             </Button>
           )}
           {onAdd && (
-            <Button variant="outline" size="sm" onClick={onAdd} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
+            <Button variant="outline" size="sm" onClick={onAdd} className="gap-1.5 text-xs h-7">
+              <Plus className="h-3 w-3" />
               Add Endpoint
             </Button>
           )}
@@ -108,89 +49,32 @@ export function ApiReviewSection({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Review toolbar */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3 text-[11px] text-[var(--text-tertiary)]">
-          <span title="Endpoints to include in specification">
-            <span className="text-green-600 dark:text-green-400 font-medium">{stats.accepted}</span> accepted
-          </span>
-          <span title="Endpoints to exclude (will be discarded)">
-            <span className="text-red-600 dark:text-red-400 font-medium">{stats.rejected}</span> rejected
-          </span>
-          <span title="Not yet reviewed">
-            <span className="font-medium">{stats.pending}</span> pending
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAcceptAll}
-            className="gap-1.5 text-xs h-7"
-          >
-            <Check className="h-3.5 w-3.5" />
-            Accept All
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetAll}
-            className="gap-1.5 text-xs h-7"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Reset
-          </Button>
-        </div>
-      </div>
-
+    <div className="space-y-2">
       {/* API Cards */}
-      <div className="space-y-3">
-        {endpoints.map((endpoint, idx) => (
-          <ApiCard
-            key={`${endpoint.method}-${endpoint.route}-${idx}`}
-            endpoint={endpoint}
-            reviewStatus={reviewStatuses[idx] || 'pending'}
-            onAccept={() => handleAccept(idx)}
-            onReject={() => handleReject(idx)}
-            onEdit={() => onEdit(idx)}
-            onDelete={() => onDelete(idx)}
-          />
-        ))}
-      </div>
+      {endpoints.map((endpoint, idx) => (
+        <ApiCard
+          key={`${endpoint.method}-${endpoint.route}-${idx}`}
+          endpoint={endpoint}
+          reviewStatus={reviewStatus}
+          onAccept={() => {}}
+          onReject={() => {}}
+          onEdit={() => onEdit(idx)}
+          onDelete={() => onDelete(idx)}
+        />
+      ))}
 
       {/* Bottom actions */}
-      <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]/50">
-        <div className="flex items-center gap-2">
-          {onScanApis && (
-            <Button variant="outline" size="sm" onClick={onScanApis} disabled={isScanning} className="gap-1.5">
-              {isScanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              {isScanning ? 'Scanning...' : 'Scan Codebase'}
-            </Button>
-          )}
-          {onAdd && (
-            <Button variant="outline" size="sm" onClick={onAdd} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              Add Endpoint
-            </Button>
-          )}
-        </div>
-
-        {onSave && hasReviewed && (
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving || stats.accepted === 0}
-            className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
-            title={stats.rejected > 0 ? `Save ${stats.accepted} endpoints and discard ${stats.rejected} rejected` : `Save ${stats.accepted} endpoint${stats.accepted !== 1 ? 's' : ''}`}
-          >
-            {isSaving ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Save className="h-3.5 w-3.5" />
-            )}
-            {isSaving ? 'Saving...' : stats.rejected > 0 ? `Save & Discard (${stats.accepted} / ${stats.rejected})` : `Save Selection (${stats.accepted})`}
+      <div className="flex items-center gap-2 pt-1">
+        {onScanApis && (
+          <Button variant="outline" size="sm" onClick={onScanApis} disabled={isScanning} className="gap-1.5 text-xs h-7">
+            {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+            {isScanning ? 'Scanning...' : 'Scan Codebase'}
+          </Button>
+        )}
+        {onAdd && (
+          <Button variant="outline" size="sm" onClick={onAdd} className="gap-1.5 text-xs h-7">
+            <Plus className="h-3 w-3" />
+            Add Endpoint
           </Button>
         )}
       </div>

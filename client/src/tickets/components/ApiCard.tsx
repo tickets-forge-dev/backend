@@ -67,56 +67,36 @@ export function ApiCard({
     }
   };
 
-  const reviewBorderClass =
-    reviewStatus === 'accepted'
-      ? 'border-l-2 border-l-green-500'
-      : reviewStatus === 'rejected'
-      ? 'border-l-2 border-l-red-500 opacity-60'
-      : 'border-l-2 border-l-transparent';
+  const reviewBorderClass = 'border-l-2 border-l-transparent';
 
   return (
     <div
-      className={`rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3 ${reviewBorderClass}`}
+      className={`rounded-lg bg-[var(--bg-subtle)] p-3 space-y-2 ${reviewBorderClass}`}
     >
       {/* Header: Method + Route + Status + Auth */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide flex-shrink-0 ${methodColor}`}
-          >
-            {endpoint.method}
-          </span>
-          <code className="font-mono text-sm text-[var(--text-secondary)] break-all">
-            {endpoint.route}
-          </code>
-          <Badge variant="outline" className={`text-[10px] ${statusInfo.className}`}>
-            {statusInfo.label}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide flex-shrink-0 ${methodColor}`}
+        >
+          {endpoint.method}
+        </span>
+        <code className="font-mono text-xs text-[var(--text-secondary)] break-all">
+          {endpoint.route}
+        </code>
+        <Badge variant="outline" className={`text-[9px] ${statusInfo.className}`}>
+          {statusInfo.label}
+        </Badge>
+        {endpoint.authentication === 'required' && (
+          <Badge variant="outline" className="text-[9px] bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <Shield className="h-2 w-2 mr-0.5" />
+            Auth
           </Badge>
-          {endpoint.authentication === 'required' && (
-            <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400">
-              <Shield className="h-2.5 w-2.5 mr-0.5" />
-              Auth
-            </Badge>
-          )}
-        </div>
-
-        {/* Review status indicator */}
-        {reviewStatus !== 'pending' && (
-          <span
-            className={`text-[10px] font-medium px-2 py-0.5 rounded ${
-              reviewStatus === 'accepted'
-                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                : 'bg-red-500/10 text-red-600 dark:text-red-400'
-            }`}
-          >
-            {reviewStatus === 'accepted' ? 'Accepted' : 'Rejected'}
-          </span>
         )}
       </div>
 
       {/* Description */}
       {endpoint.description && (
-        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
+        <p className="text-xs text-[var(--text-tertiary)] leading-tight">
           {typeof endpoint.description === 'string' ? endpoint.description : JSON.stringify(endpoint.description)}
         </p>
       )}
@@ -142,10 +122,10 @@ export function ApiCard({
       )}
 
       {/* cURL section */}
-      <div className="pt-1">
+      <div>
         <button
           onClick={() => setCurlExpanded(!curlExpanded)}
-          className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+          className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
         >
           <ChevronDown
             className={`h-3 w-3 transition-transform ${curlExpanded ? 'rotate-180' : ''}`}
@@ -173,53 +153,27 @@ export function ApiCard({
         )}
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons - Edit and Delete only */}
       {showReviewActions && (
-        <div className="flex items-center gap-2 pt-1 border-t border-[var(--border)]/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onAccept}
-            className={`gap-1.5 text-xs h-7 ${
-              reviewStatus === 'accepted'
-                ? 'text-green-600 dark:text-green-400 bg-green-500/10'
-                : 'text-[var(--text-tertiary)]'
-            }`}
-          >
-            <Check className="h-3.5 w-3.5" />
-            Accept
-          </Button>
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={onEdit}
-            className="gap-1.5 text-xs h-7 text-[var(--text-tertiary)]"
+            className="gap-1 text-xs h-6 text-[var(--text-tertiary)] px-1.5"
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-3 w-3" />
             Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReject}
-            className={`gap-1.5 text-xs h-7 ${
-              reviewStatus === 'rejected'
-                ? 'text-red-600 dark:text-red-400 bg-red-500/10'
-                : 'text-[var(--text-tertiary)]'
-            }`}
-          >
-            <X className="h-3.5 w-3.5" />
-            Reject
           </Button>
           {onDelete && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onDelete}
-              className="gap-1.5 text-xs h-7 text-red-600 dark:text-red-400 hover:bg-red-500/10"
+              className="gap-1 text-xs h-6 text-red-600 dark:text-red-400 hover:bg-red-500/10 px-1.5"
               title="Delete API endpoint"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3 w-3" />
               Delete
             </Button>
           )}
