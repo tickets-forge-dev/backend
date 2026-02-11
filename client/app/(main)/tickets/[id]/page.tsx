@@ -883,19 +883,19 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           Delete Ticket
         </Button>
 
-        {techSpec && (
-          <div className="flex items-center gap-2">
-            {currentTicket.externalIssue ? (
-              <a
-                href={currentTicket.externalIssue.issueUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
-              </a>
-            ) : null}
+        <div className="flex items-center gap-2">
+          {techSpec && currentTicket.externalIssue ? (
+            <a
+              href={currentTicket.externalIssue.issueUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
+            </a>
+          ) : null}
+          {techSpec && (
             <Button
               variant="outline"
               size="sm"
@@ -904,8 +904,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               <Upload className="h-3.5 w-3.5 mr-2" />
               Export
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Status Toggle Confirmation Dialog */}
