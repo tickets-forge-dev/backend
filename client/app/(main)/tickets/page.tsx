@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { useDemoTickets } from '@/tickets/hooks/useDemoTickets';
+import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X } from 'lucide-react';
 
 export default function TicketsListPage() {
@@ -151,15 +152,13 @@ export default function TicketsListPage() {
       <div className="flex items-start justify-end">
         {quota && !quota.canCreate ? (
           <div className="relative group">
-            <Button disabled>New Ticket</Button>
+            <CreationMenu disabled={true} />
             <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[11px] text-[var(--text-secondary)] shadow-lg">
               Ticket limit reached ({quota.used}/{quota.limit})
             </div>
           </div>
         ) : (
-          <Link href="/tickets/create">
-            <Button>New Ticket</Button>
-          </Link>
+          <CreationMenu disabled={false} />
         )}
       </div>
 
