@@ -68,7 +68,7 @@ export function TicketDetailLayout({
   const router = useRouter();
   const hasTechSpec = !!ticket.techSpec;
 
-  const initialTab = searchParams.get('tab') === 'implementation' ? 'implementation' : 'specification';
+  const initialTab = searchParams.get('tab') === 'specification' ? 'specification' : 'implementation';
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const handleTabChange = (value: string) => {
@@ -134,28 +134,18 @@ export function TicketDetailLayout({
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="w-full grid grid-cols-2 bg-[var(--bg-subtle)] h-12 rounded-lg p-1">
           <TabsTrigger
-            value="specification"
-            className="text-sm font-medium data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white data-[state=active]:shadow-md text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors rounded-md"
-          >
-            Specification
-          </TabsTrigger>
-          <TabsTrigger
             value="implementation"
             className="text-sm font-medium data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white data-[state=active]:shadow-md text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors rounded-md"
           >
             Implementation
           </TabsTrigger>
+          <TabsTrigger
+            value="specification"
+            className="text-sm font-medium data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white data-[state=active]:shadow-md text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors rounded-md"
+          >
+            Specification
+          </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="specification" className="mt-6">
-          <SpecificationTab
-            ticket={ticket}
-            onEditItem={onEditItem}
-            onDeleteItem={onDeleteItem}
-            onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
-            onSaveAssumptions={onSaveAssumptions}
-          />
-        </TabsContent>
 
         <TabsContent value="implementation" className="mt-6">
           <ImplementationTab
@@ -172,6 +162,16 @@ export function TicketDetailLayout({
             isUploadingAttachment={isUploadingAttachment}
             saveTechSpecPatch={saveTechSpecPatch}
             fetchTicket={fetchTicket}
+          />
+        </TabsContent>
+
+        <TabsContent value="specification" className="mt-6">
+          <SpecificationTab
+            ticket={ticket}
+            onEditItem={onEditItem}
+            onDeleteItem={onDeleteItem}
+            onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
+            onSaveAssumptions={onSaveAssumptions}
           />
         </TabsContent>
       </Tabs>

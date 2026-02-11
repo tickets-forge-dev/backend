@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Badge } from '@/core/components/ui/badge';
-import { FileCode, FilePlus, FileX } from 'lucide-react';
+import { FileCode, FilePlus, FileX, Code } from 'lucide-react';
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { ApiReviewSection } from '@/src/tickets/components/ApiReviewSection';
@@ -44,32 +45,43 @@ export function ImplementationTab({
   fetchTicket,
 }: ImplementationTabProps) {
   const techSpec = ticket.techSpec;
+  const [showFilePaths, setShowFilePaths] = useState(false);
+
+  // Check if any solution steps have file references
+  const solutionSteps = techSpec?.solution?.steps || (Array.isArray(techSpec?.solution) ? techSpec.solution : []);
+  const hasFilePaths = solutionSteps.some((s: any) => typeof s !== 'string' && s.file);
 
   return (
     <div className="space-y-8">
-      {/* API Endpoints */}
-      {techSpec && (
-        <CollapsibleSection
-          id="api-endpoints"
-          title="API Endpoints"
-          badge={`${(techSpec.apiChanges?.endpoints || []).length}`}
-          defaultExpanded={true}
-        >
-          <ApiReviewSection
-            endpoints={techSpec.apiChanges?.endpoints || []}
-            onEdit={(idx) => onEditItem('apiEndpoints', idx)}
-            onDelete={(idx) => onDeleteItem('apiEndpoints', idx)}
-            onAdd={onAddApiEndpoint}
-            onSave={async (acceptedEndpoints) => {
-              await saveTechSpecPatch({
-                apiChanges: { ...techSpec.apiChanges, endpoints: acceptedEndpoints },
-              });
-              await fetchTicket(ticketId);
-            }}
-            onScanApis={onScanApis}
-            isScanning={isScanningApis}
-          />
-        </CollapsibleSection>
+      {/* Acceptance Criteria — non-collapsible, BDD color-coded */}
+      {techSpec?.acceptanceCriteria?.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
+            Acceptance Criteria
+          </h3>
+          <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            {techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
+              <li key={idx}>
+                <EditableItem onEdit={() => onEditItem('acceptanceCriteria', idx)} onDelete={() => onDeleteItem('acceptanceCriteria', idx)}>
+                  {typeof ac === 'string' ? (
+                    <span><span className="text-[var(--text-tertiary)] mr-2">-</span>{ac}</span>
+                  ) : (
+                    <div className="space-y-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-4 py-3">
+                      <p><span className="font-medium text-blue-500 mr-1">Given</span> {ac.given}</p>
+                      <p><span className="font-medium text-amber-500 mr-1">When</span> {ac.when}</p>
+                      <p><span className="font-medium text-green-500 mr-1">Then</span> {ac.then}</p>
+                      {ac.implementationNotes && (
+                        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic mt-1.5">
+                          {ac.implementationNotes}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </EditableItem>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* File Changes */}
@@ -106,6 +118,108 @@ export function ImplementationTab({
             })}
           </ul>
         </CollapsibleSection>
+      )}
+
+      {/* API Endpoints */}
+      {techSpec && (
+        <CollapsibleSection
+          id="api-endpoints"
+          title="API Endpoints"
+          badge={`${(techSpec.apiChanges?.endpoints || []).length}`}
+          defaultExpanded={true}
+        >
+          <ApiReviewSection
+            endpoints={techSpec.apiChanges?.endpoints || []}
+            onEdit={(idx) => onEditItem('apiEndpoints', idx)}
+            onDelete={(idx) => onDeleteItem('apiEndpoints', idx)}
+            onAdd={onAddApiEndpoint}
+            onSave={async (acceptedEndpoints) => {
+              await saveTechSpecPatch({
+                apiChanges: { ...techSpec.apiChanges, endpoints: acceptedEndpoints },
+              });
+              await fetchTicket(ticketId);
+            }}
+            onScanApis={onScanApis}
+            isScanning={isScanningApis}
+          />
+        </CollapsibleSection>
+      )}
+
+      {/* Solution Steps — non-collapsible */}
+      {techSpec?.solution && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
+              Solution
+            </h3>
+            {hasFilePaths && (
+              <button
+                onClick={() => setShowFilePaths(v => !v)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                  showFilePaths
+                    ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                <Code className="h-3 w-3" />
+                {showFilePaths ? 'Hide files' : 'Show files'}
+              </button>
+            )}
+          </div>
+          <div className="space-y-3">
+            {typeof techSpec.solution === 'string' ? (
+              <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                {techSpec.solution}
+              </p>
+            ) : Array.isArray(techSpec.solution) ? (
+              <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                {techSpec.solution.map((step: string | any, idx: number) => (
+                  <li key={idx}>
+                    <EditableItem onEdit={() => onEditItem('steps', idx)} onDelete={() => onDeleteItem('steps', idx)}>
+                      <div className="flex gap-3">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
+                          {idx + 1}
+                        </span>
+                        <span className="pt-0.5">
+                          {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
+                        </span>
+                      </div>
+                    </EditableItem>
+                  </li>
+                ))}
+              </ol>
+            ) : techSpec.solution.overview ? (
+              <div className="space-y-3">
+                <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                  {techSpec.solution.overview}
+                </p>
+                {techSpec.solution.steps?.length > 0 && (
+                  <ol className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                    {techSpec.solution.steps.map((step: any, idx: number) => (
+                      <li key={idx}>
+                        <EditableItem onEdit={() => onEditItem('steps', idx)} onDelete={() => onDeleteItem('steps', idx)}>
+                          <div className="flex gap-3">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-medium text-[var(--text-tertiary)]">
+                              {step.order || idx + 1}
+                            </span>
+                            <div className="pt-0.5">
+                              <p>{step.description}</p>
+                              {showFilePaths && step.file && (
+                                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono mt-1">
+                                  {step.file}{step.lineNumbers ? `:${step.lineNumbers[0]}-${step.lineNumbers[1]}` : ''}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </EditableItem>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
       )}
 
       {/* Backend / Frontend Changes (Layered) */}
