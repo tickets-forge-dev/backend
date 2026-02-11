@@ -60,9 +60,17 @@ export function EpicGroup({ epic }: { epic: BreakdownEpic }) {
       style={{ borderColor: 'var(--border)', borderWidth: '1px' }}
     >
       {/* Epic header */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-start gap-4 p-4 hover:transition-colors"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
+        className="w-full flex items-start gap-4 p-4 hover:transition-colors cursor-pointer"
         style={{
           backgroundColor: 'var(--bg-hover)',
           borderBottomColor: 'var(--border)',
@@ -117,7 +125,7 @@ export function EpicGroup({ epic }: { epic: BreakdownEpic }) {
           </span>
           <AddTicketDialog epicIndex={epic.index} epicName={epic.name} />
         </div>
-      </button>
+      </div>
 
       {/* Epic stories */}
       {isExpanded && (
