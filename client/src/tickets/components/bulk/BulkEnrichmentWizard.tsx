@@ -7,6 +7,7 @@ import { useBulkEnrichmentStore } from '@/tickets/stores/bulk-enrichment.store';
 import { useBulkEnrichmentService } from '@/services/bulk-enrichment.service';
 import { AgentProgressCard } from './AgentProgressCard';
 import { UnifiedQuestionForm } from './UnifiedQuestionForm';
+import { EnrichmentErrorState } from './EnrichmentErrorState';
 
 /**
  * BulkEnrichmentWizard - 3-stage wizard for parallel enrichment
@@ -156,6 +157,7 @@ export function BulkEnrichmentWizard({
         onSubmit={handleFinalize}
         enrichedCount={enrichedCount}
         failedCount={failedCount}
+        errors={errors}
         onClose={onClose}
       />
     );
@@ -171,6 +173,7 @@ export function BulkEnrichmentWizard({
         totalCount={enrichedCount + failedCount}
         isComplete={phase === 'complete'}
         estimatedTimeRemaining={estimatedTimeRemaining}
+        errors={errors}
         onClose={onClose}
       />
     );
@@ -335,6 +338,17 @@ interface AnsweringStageProps {
   onClose?: () => void;
 }
 
+interface AnsweringStageProps {
+  questionsByTicket: Map<string, any[]>;
+  ticketTitles: Map<string, string>;
+  onAnswerChange: (questionId: string, answer: string) => void;
+  onSubmit: () => void;
+  enrichedCount: number;
+  failedCount: number;
+  errors?: Map<string, string>;
+  onClose?: () => void;
+}
+
 function AnsweringStage({
   questionsByTicket,
   ticketTitles,
@@ -342,8 +356,11 @@ function AnsweringStage({
   onSubmit,
   enrichedCount,
   failedCount,
+  errors,
   onClose,
 }: AnsweringStageProps) {
+  const hasQuestions = questionsByTicket.size > 0;
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div
@@ -366,7 +383,9 @@ function AnsweringStage({
               className="text-sm mt-1"
               style={{ color: 'var(--text-secondary)' }}
             >
-              {enrichedCount} tickets analyzed • {failedCount > 0 && `${failedCount} failed • `}Ready for clarification
+              {enrichedCount} tickets analyzed
+              {failedCount > 0 && ` • ${failedCount} failed`}
+              {hasQuestions && ' • Ready for clarification'}
             </p>
           </div>
           {onClose && (
@@ -376,13 +395,37 @@ function AnsweringStage({
           )}
         </div>
 
-        {/* Questions form */}
-        <UnifiedQuestionForm
-          questionsByTicket={questionsByTicket}
-          ticketTitles={ticketTitles}
-          onAnswerChange={onAnswerChange}
-          onSubmit={onSubmit}
-        />
+        {/* Error state (if any) */}
+        {failedCount > 0 && errors && (
+          <EnrichmentErrorState errors={errors} failedCount={failedCount} onCancel={onClose} />
+        )}
+
+        {/* Questions form (only if we have questions) */}
+        {hasQuestions ? (
+          <UnifiedQuestionForm
+            questionsByTicket={questionsByTicket}
+            ticketTitles={ticketTitles}
+            onAnswerChange={onAnswerChange}
+            onSubmit={onSubmit}
+          />
+        ) : (
+          <div
+            className="p-4 rounded-lg border text-center"
+            style={{
+              backgroundColor: 'var(--bg-subtle)',
+              borderColor: 'var(--border)',
+            }}
+          >
+            <p
+              className="text-sm"
+              style={{ color: failedCount > 0 ? 'var(--red)' : 'var(--text-secondary)' }}
+            >
+              {failedCount > 0
+                ? 'No enrichable tickets. All enrichments failed.'
+                : 'No questions to answer. You can now finalize the tickets.'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -398,6 +441,7 @@ interface FinalizingStageProps {
   totalCount: number;
   isComplete: boolean;
   estimatedTimeRemaining: number;
+  errors?: Map<string, string>;
   onClose?: () => void;
 }
 
@@ -408,6 +452,7 @@ function FinalizingStage({
   totalCount,
   isComplete,
   estimatedTimeRemaining,
+  errors,
   onClose,
 }: FinalizingStageProps) {
   return (
@@ -442,6 +487,11 @@ function FinalizingStage({
             </button>
           )}
         </div>
+
+        {/* Error state (if any) */}
+        {failedCount > 0 && errors && isComplete && (
+          <EnrichmentErrorState errors={errors} failedCount={failedCount} onCancel={onClose} />
+        )}
 
         {/* Progress summary */}
         <div className="grid grid-cols-3 gap-3">
