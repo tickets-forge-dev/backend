@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useServices } from '@/hooks/useServices';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/core/components/ui/button';
-import { Plus, Upload, FileText } from 'lucide-react';
+import { Plus, Upload, FileText, Bug, Lightbulb, ClipboardList } from 'lucide-react';
 
 /**
  * CreationMenu - Unified entry point for all ticket creation workflows
@@ -67,18 +67,48 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
       {/* Floating Menu */}
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-xl z-50">
-          {/* Create New Ticket */}
+          {/* Create Feature */}
           <button
             onClick={() => {
-              router.push('/tickets/create?mode=new');
+              router.push('/tickets/create?mode=new&type=feature');
               setIsOpen(false);
             }}
             className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors first:rounded-t-lg border-b border-slate-100 dark:border-slate-700 last:border-b-0"
           >
-            <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <Lightbulb className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="text-left">
-              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create New Ticket</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Single ticket with deep analysis</p>
+              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create Feature</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">New feature with analysis</p>
+            </div>
+          </button>
+
+          {/* Create Bug */}
+          <button
+            onClick={() => {
+              router.push('/tickets/create?mode=new&type=bug');
+              setIsOpen(false);
+            }}
+            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+          >
+            <Bug className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="text-left">
+              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create Bug Report</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Bug with reproduction steps</p>
+            </div>
+          </button>
+
+          {/* Create Task */}
+          <button
+            onClick={() => {
+              router.push('/tickets/create?mode=new&type=task');
+              setIsOpen(false);
+            }}
+            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+          >
+            <ClipboardList className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="text-left">
+              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create Task</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Task with requirements</p>
             </div>
           </button>
 
