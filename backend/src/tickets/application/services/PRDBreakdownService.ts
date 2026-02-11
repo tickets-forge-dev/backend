@@ -16,6 +16,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText } from 'ai';
 import { ollama } from '../../../shared/infrastructure/mastra/providers/ollama.provider';
+import { anthropic } from '@ai-sdk/anthropic';
 import {
   PRDBreakdownCommand,
   PRDBreakdownResult,
@@ -406,10 +407,15 @@ Guidelines:
           ? this.configService.get('OLLAMA_FAST_MODEL') || 'qwen2.5-coder:latest'
           : this.configService.get('OLLAMA_MAIN_MODEL') || 'qwen2.5-coder:latest';
       return ollama(modelName);
+    } else if (provider === 'anthropic') {
+      const modelName =
+        type === 'fast'
+          ? this.configService.get('ANTHROPIC_FAST_MODEL') || 'claude-3-5-haiku-20241022'
+          : this.configService.get('ANTHROPIC_MAIN_MODEL') || 'claude-3-5-sonnet-20241022';
+      return anthropic(modelName);
     } else {
-      // Anthropic provider - will be implemented when @ai-sdk/anthropic is installed
       throw new Error(
-        'Anthropic provider requires @ai-sdk/anthropic to be installed. Currently only Ollama provider is available for PRD breakdown.',
+        `Unsupported LLM provider: ${provider}. Supported providers: ollama, anthropic`,
       );
     }
   }
