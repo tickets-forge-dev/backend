@@ -13,10 +13,7 @@ export type IntegrationEvent =
   | 'integration_connected'
   | 'integration_disconnected'
   | 'integration_error';
-export type JiraIntegrationEvent =
-  | IntegrationEvent
-  | 'jira_issue_searched'
-  | 'jira_issue_imported';
+export type JiraIntegrationEvent = IntegrationEvent | 'jira_issue_searched' | 'jira_issue_imported';
 export type LinearIntegrationEvent =
   | IntegrationEvent
   | 'linear_issue_searched'
