@@ -297,7 +297,7 @@ function EnrichingStage({
 
         {/* Agent progress cards */}
         <div className="space-y-3">
-          {[1, 2, 3].map((agentId) => {
+          {Array.from({ length: totalCount }, (_, i) => i + 1).map((agentId) => {
             const progress = agentProgress.get(agentId);
             if (!progress) {
               return (
@@ -305,7 +305,7 @@ function EnrichingStage({
                   key={agentId}
                   agentId={agentId}
                   ticketTitle="Waiting..."
-                  phase="question_generation"
+                  phase="deep_analysis"
                   status="started"
                   message="Waiting to start..."
                 />
@@ -555,7 +555,7 @@ function FinalizingStage({
 
         {/* Agent progress cards */}
         <div className="space-y-3">
-          {[1, 2, 3].map((agentId) => {
+          {Array.from({ length: totalCount }, (_, i) => i + 1).map((agentId) => {
             const progress = agentProgress.get(agentId);
             if (!progress) {
               return (
