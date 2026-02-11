@@ -6,7 +6,7 @@ import {
   usePRDBreakdownStore,
 } from '@/tickets/stores/prd-breakdown.store';
 import { Button } from '@/core/components/ui/button';
-import { ChevronDown, Edit2, Trash2, GripVertical } from 'lucide-react';
+import { ChevronDown, Edit2, Trash2, GripVertical, Check } from 'lucide-react';
 
 /**
  * TicketCard - Individual ticket preview with drag support
@@ -32,7 +32,7 @@ export function TicketCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const { updateTicket, deleteTicket } = usePRDBreakdownStore();
+  const { updateTicket, deleteTicket, toggleTicketSelection } = usePRDBreakdownStore();
 
   const [editedTitle, setEditedTitle] = useState(ticket.title);
   const [editedPriority, setEditedPriority] = useState(ticket.priority);
@@ -183,7 +183,7 @@ export function TicketCard({
       style={{
         backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
         borderLeftColor: isDragging ? 'var(--blue)' : 'transparent',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.5 : ticket.isSelected ? 1 : 0.5,
       }}
       onMouseEnter={(e) => {
         if (!isDragging) {
@@ -200,6 +200,21 @@ export function TicketCard({
     >
       {/* Header */}
       <div className="flex items-start gap-3">
+        {/* Selection checkbox */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleTicketSelection(ticket.id);
+          }}
+          className="mt-1 flex-shrink-0 flex items-center justify-center w-5 h-5 rounded border transition-colors"
+          style={{
+            borderColor: ticket.isSelected ? 'var(--blue)' : 'var(--border)',
+            backgroundColor: ticket.isSelected ? 'var(--blue)' : 'transparent',
+          }}
+        >
+          {ticket.isSelected && <Check className="w-3 h-3 text-white" />}
+        </button>
+
         {/* Drag handle */}
         <div className="cursor-grab active:cursor-grabbing mt-1" style={{ color: 'var(--text-tertiary)' }}>
           <GripVertical className="w-4 h-4" />

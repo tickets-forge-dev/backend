@@ -53,6 +53,8 @@ export function BreakdownReview() {
     setError,
     setCreatedTicketIds,
     moveToSuccess,
+    selectAllTickets,
+    deselectAllTickets,
   } = usePRDBreakdownStore();
 
   const [creationError, setCreationError] = useState<string | null>(null);
@@ -73,20 +75,24 @@ export function BreakdownReview() {
     );
   }
 
+  const selectedTickets = breakdown.tickets.filter((t) => t.isSelected);
+  const selectedCount = selectedTickets.length;
+  const totalCount = breakdown.tickets.length;
+
   const handleCreateTickets = async () => {
     setCreationError(null);
     setError(null);
 
-    if (breakdown.tickets.length === 0) {
-      setCreationError('No tickets to create');
+    if (selectedTickets.length === 0) {
+      setCreationError('No tickets selected. Please select at least one ticket to create.');
       return;
     }
 
     setCreating(true);
     try {
-      // Step 1: Create draft tickets
+      // Step 1: Create draft tickets (only selected ones)
       const request = {
-        tickets: breakdown.tickets.map((ticket) => ({
+        tickets: selectedTickets.map((ticket) => ({
           epicName: ticket.epicName,
           title: ticket.title,
           description: ticket.description,
@@ -211,6 +217,34 @@ export function BreakdownReview() {
         </p>
       </div>
 
+      {/* Selection toolbar */}
+      <div className="flex items-center justify-between p-4 rounded-lg border" style={{
+        backgroundColor: 'var(--bg-subtle)',
+        borderColor: 'var(--border)',
+      }}>
+        <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+          {selectedCount} of {totalCount} tickets selected
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => selectAllTickets()}
+            disabled={selectedCount === totalCount}
+          >
+            Select All
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => deselectAllTickets()}
+            disabled={selectedCount === 0}
+          >
+            Deselect All
+          </Button>
+        </div>
+      </div>
+
       {/* Epic groups */}
       <div className="space-y-8">
         {breakdown.summary.epics.map((epic) => (
@@ -223,13 +257,13 @@ export function BreakdownReview() {
         <Button variant="outline">← Back to Input</Button>
         <Button
           onClick={handleCreateTickets}
-          disabled={isCreating || breakdown.tickets.length === 0}
+          disabled={isCreating || selectedCount === 0}
           className="flex items-center gap-2"
         >
           {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
           {isCreating
-            ? `Creating ${breakdown.tickets.length} tickets...`
-            : `Enrich & Create ${breakdown.tickets.length} Tickets`}
+            ? `Creating ${selectedCount} tickets...`
+            : `Enrich & Create ${selectedCount > 0 ? selectedCount : 0} Tickets`}
         </Button>
       </div>
 

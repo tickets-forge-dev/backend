@@ -32,6 +32,7 @@ export interface BreakdownTicket {
   functionalRequirements: string[];
   blockedBy: number[];
   technicalNotes?: string;
+  isSelected: boolean;
 }
 
 export interface BreakdownEpic {
@@ -98,8 +99,13 @@ interface PRDBreakdownState {
   // Editing actions
   updateTicket: (ticketId: number, updates: Partial<BreakdownTicket>) => void;
   deleteTicket: (ticketId: number) => void;
-  addTicket: (epicIndex: number, ticket: Omit<BreakdownTicket, 'id'>) => void;
+  addTicket: (epicIndex: number, ticket: Omit<BreakdownTicket, 'id' | 'isSelected'>) => void;
   reorderTickets: (epicIndex: number, oldIndex: number, newIndex: number) => void;
+
+  // Selection actions
+  toggleTicketSelection: (ticketId: number) => void;
+  selectAllTickets: () => void;
+  deselectAllTickets: () => void;
 
   // Creation actions
   setCreating: (creating: boolean) => void;
@@ -219,6 +225,7 @@ export const usePRDBreakdownStore = create<PRDBreakdownState>()(
           const ticketWithId: BreakdownTicket = {
             ...newTicket,
             id: newId,
+            isSelected: true,
           };
 
           // Add to epic
@@ -265,6 +272,97 @@ export const usePRDBreakdownStore = create<PRDBreakdownState>()(
 
           // Rebuild tickets list
           const updatedTickets = updatedEpics.flatMap((e) => e.stories);
+
+          return {
+            breakdown: {
+              ...state.breakdown,
+              tickets: updatedTickets,
+              summary: {
+                ...state.breakdown.summary,
+                epics: updatedEpics,
+              },
+            },
+          };
+        }),
+
+      toggleTicketSelection: (ticketId) =>
+        set((state) => {
+          if (!state.breakdown) return state;
+
+          const updatedTickets = state.breakdown.tickets.map((ticket) =>
+            ticket.id === ticketId
+              ? { ...ticket, isSelected: !ticket.isSelected }
+              : ticket,
+          );
+
+          // Update epics with modified tickets
+          const updatedEpics = state.breakdown.summary.epics.map((epic) => ({
+            ...epic,
+            stories: epic.stories.map(
+              (story) =>
+                updatedTickets.find((t) => t.id === story.id) || story,
+            ),
+          }));
+
+          return {
+            breakdown: {
+              ...state.breakdown,
+              tickets: updatedTickets,
+              summary: {
+                ...state.breakdown.summary,
+                epics: updatedEpics,
+              },
+            },
+          };
+        }),
+
+      selectAllTickets: () =>
+        set((state) => {
+          if (!state.breakdown) return state;
+
+          const updatedTickets = state.breakdown.tickets.map((ticket) => ({
+            ...ticket,
+            isSelected: true,
+          }));
+
+          // Update epics with modified tickets
+          const updatedEpics = state.breakdown.summary.epics.map((epic) => ({
+            ...epic,
+            stories: epic.stories.map(
+              (story) =>
+                updatedTickets.find((t) => t.id === story.id) || story,
+            ),
+          }));
+
+          return {
+            breakdown: {
+              ...state.breakdown,
+              tickets: updatedTickets,
+              summary: {
+                ...state.breakdown.summary,
+                epics: updatedEpics,
+              },
+            },
+          };
+        }),
+
+      deselectAllTickets: () =>
+        set((state) => {
+          if (!state.breakdown) return state;
+
+          const updatedTickets = state.breakdown.tickets.map((ticket) => ({
+            ...ticket,
+            isSelected: false,
+          }));
+
+          // Update epics with modified tickets
+          const updatedEpics = state.breakdown.summary.epics.map((epic) => ({
+            ...epic,
+            stories: epic.stories.map(
+              (story) =>
+                updatedTickets.find((t) => t.id === story.id) || story,
+            ),
+          }));
 
           return {
             breakdown: {
