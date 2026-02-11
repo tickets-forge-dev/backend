@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Button } from '@/core/components/ui/button';
 import { usePRDBreakdownStore } from '@/tickets/stores/prd-breakdown.store';
 import { usePRDService } from '@/services/prd.service';
+import { useTicketsStore } from '@/stores/tickets.store';
+import { RepositorySelector } from '../RepositorySelector';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 /**
@@ -14,15 +16,13 @@ import { AlertCircle, Loader2 } from 'lucide-react';
  */
 export function PRDInputForm() {
   const prdService = usePRDService();
+  const { selectedRepository } = useTicketsStore();
   const {
     prdText,
-    repositoryOwner,
-    repositoryName,
     projectName,
     isAnalyzing,
     error,
     setPRDText,
-    setRepository,
     setProjectName,
     setBreakdown,
     setAnalyzing,
@@ -47,10 +47,13 @@ export function PRDInputForm() {
       return;
     }
 
-    if (!repositoryOwner || !repositoryName) {
+    if (!selectedRepository) {
       setValidationError('Repository selection is required');
       return;
     }
+
+    // Parse repository from "owner/name" format
+    const [repositoryOwner, repositoryName] = selectedRepository.split('/');
 
     // Analyze
     setAnalyzing(true);
@@ -138,80 +141,14 @@ export function PRDInputForm() {
         </p>
       </div>
 
-      {/* Repository and project */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Repository owner */}
-        <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-            Repository Owner
-          </label>
-          <input
-            type="text"
-            value={repositoryOwner}
-            onChange={(e) => setRepository(e.target.value, repositoryName)}
-            placeholder="e.g., facebook"
-            className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-            style={{
-              backgroundColor: 'var(--bg)',
-              color: 'var(--text)',
-              borderColor: 'var(--border)',
-              borderWidth: '1px',
-            }}
-            disabled={isAnalyzing}
-          />
-        </div>
-
-        {/* Repository name */}
-        <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-            Repository Name
-          </label>
-          <input
-            type="text"
-            value={repositoryName}
-            onChange={(e) => setRepository(repositoryOwner, e.target.value)}
-            placeholder="e.g., react"
-            className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-            style={{
-              backgroundColor: 'var(--bg)',
-              color: 'var(--text)',
-              borderColor: 'var(--border)',
-              borderWidth: '1px',
-            }}
-            disabled={isAnalyzing}
-          />
-          <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
-            Used for tech stack detection and code-aware analysis
-          </p>
-        </div>
-
-        {/* Project name */}
-        <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-            Project Name (optional)
-          </label>
-          <input
-            type="text"
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            placeholder="e.g., Authentication System"
-            className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-            style={{
-              backgroundColor: 'var(--bg)',
-              color: 'var(--text)',
-              borderColor: 'var(--border)',
-              borderWidth: '1px',
-            }}
-            disabled={isAnalyzing}
-          />
-        </div>
-      </div>
+      {/* Repository selection */}
+      <RepositorySelector />
 
       {/* Analyze button */}
       <div className="flex justify-end">
         <Button
           onClick={handleAnalyze}
-          disabled={isAnalyzing || !prdText.trim() || !repositoryOwner}
+          disabled={isAnalyzing || !prdText.trim() || !selectedRepository}
           className="flex items-center gap-2"
         >
           {isAnalyzing && <Loader2 className="w-4 h-4 animate-spin" />}
