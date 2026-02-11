@@ -10,7 +10,7 @@ import {
 } from '@/core/components/ui/select';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
-import { Loader2, Star, GitBranch, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, Star, GitBranch, AlertCircle, RefreshCw, Lightbulb } from 'lucide-react';
 
 interface Props {
   hideLabel?: boolean; // Hide internal label when parent is handling it
@@ -162,9 +162,17 @@ export function BranchSelector({ hideLabel = false }: Props) {
         </SelectContent>
       </Select>
       {selectedBranch && (
-        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          Ticket will be generated based on code in this branch
-        </p>
+        <div className="flex items-start gap-3 p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50">
+          <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
+              Ticket will be generated based on code in this branch
+            </p>
+            <p className="text-xs text-blue-800 dark:text-blue-200">
+              We&apos;ll read code from this branch to provide context for your ticket.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
