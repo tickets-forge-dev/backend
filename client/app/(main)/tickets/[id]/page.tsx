@@ -48,7 +48,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
   const [showExportDialog, setShowExportDialog] = useState(false);
-  const [exportPlatform, setExportPlatform] = useState<'linear' | 'jira'>('linear');
+  const [exportPlatform, setExportPlatform] = useState<'linear' | 'jira'>('jira');
   const [exportTeams, setExportTeams] = useState<Array<{ id: string; name: string; key: string }>>([]);
   const [exportProjects, setExportProjects] = useState<Array<{ id: string; key: string; name: string }>>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
@@ -598,42 +598,19 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     setSelectedProjectKey('');
     setExportTeams([]);
     setExportProjects([]);
+    setSelectedProjectKey('');
 
-    // Check which integrations are connected
+    // Check Jira connection status
     try {
-      const [linearStatus, jiraStatus] = await Promise.allSettled([
-        linearService.getConnectionStatus(),
-        jiraService.getConnectionStatus(),
-      ]);
-      const isLinearConnected = linearStatus.status === 'fulfilled' && linearStatus.value.connected;
-      const isJiraConnected = jiraStatus.status === 'fulfilled' && jiraStatus.value.connected;
-      setLinearConnected(isLinearConnected);
+      const jiraStatus = await jiraService.getConnectionStatus();
+      const isJiraConnected = jiraStatus.connected;
       setJiraConnected(isJiraConnected);
 
-      // Auto-select the first connected platform
-      if (isLinearConnected) {
-        setExportPlatform('linear');
-        loadLinearTeams();
-      } else if (isJiraConnected) {
-        setExportPlatform('jira');
+      if (isJiraConnected) {
         loadJiraProjects();
       }
     } catch {
-      setLinearConnected(false);
       setJiraConnected(false);
-    }
-  };
-
-  const loadLinearTeams = async () => {
-    setIsLoadingExportOptions(true);
-    try {
-      const teams = await linearService.getTeams();
-      setExportTeams(teams);
-      if (teams.length === 1) setSelectedTeamId(teams[0].id);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to load Linear teams');
-    } finally {
-      setIsLoadingExportOptions(false);
     }
   };
 
@@ -650,44 +627,21 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     }
   };
 
-  const handlePlatformChange = (platform: 'linear' | 'jira') => {
-    setExportPlatform(platform);
-    setSelectedTeamId('');
-    setSelectedProjectKey('');
-    if (platform === 'linear') loadLinearTeams();
-    else loadJiraProjects();
-  };
-
   const handleExport = async () => {
     if (!ticketId) return;
     setIsExporting(true);
     try {
-      if (exportPlatform === 'linear') {
-        if (!selectedTeamId) return;
-        const result = await exportToLinear(ticketId, selectedTeamId);
-        if (result) {
-          toast.success(
-            <span>
-              Exported as <a href={result.issueUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">{result.identifier}</a>
-            </span>,
-          );
-          setShowExportDialog(false);
-        } else {
-          toast.error('Export failed');
-        }
+      if (!selectedProjectKey) return;
+      const result = await exportToJira(ticketId, selectedProjectKey);
+      if (result) {
+        toast.success(
+          <span>
+            Ticket created: <a href={result.issueUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">{result.issueKey}</a>
+          </span>,
+        );
+        setShowExportDialog(false);
       } else {
-        if (!selectedProjectKey) return;
-        const result = await exportToJira(ticketId, selectedProjectKey);
-        if (result) {
-          toast.success(
-            <span>
-              Exported as <a href={result.issueUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">{result.issueKey}</a>
-            </span>,
-          );
-          setShowExportDialog(false);
-        } else {
-          toast.error('Export failed');
-        }
+        toast.error('Export failed');
       }
     } catch (err: any) {
       toast.error(err?.message || 'Export failed');
@@ -1067,77 +1021,15 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            {/* Platform selector */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--text)]">Platform</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => linearConnected && handlePlatformChange('linear')}
-                  disabled={!linearConnected}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                    exportPlatform === 'linear'
-                      ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
-                      : linearConnected
-                      ? 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
-                      : 'border-[var(--border)] text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M2.633 11.2a9.553 9.553 0 0 1 .776-2.297l4.324 4.324a3.04 3.04 0 0 0 3.34 3.34l4.324 4.324A9.6 9.6 0 0 1 2.633 11.2z" />
-                    <path d="M5.265 6.265l12.47 12.47A9.6 9.6 0 0 0 5.265 6.265z" />
-                  </svg>
-                  Linear
-                  {!linearConnected && <span className="text-[10px] ml-auto">(not connected)</span>}
-                </button>
-                <button
-                  onClick={() => jiraConnected && handlePlatformChange('jira')}
-                  disabled={!jiraConnected}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                    exportPlatform === 'jira'
-                      ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
-                      : jiraConnected
-                      ? 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
-                      : 'border-[var(--border)] text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.593 24V12.518a1.005 1.005 0 0 0-1.022-1.005z" />
-                    <path d="M17.373 0h-5.748a5.218 5.218 0 0 0 5.232 5.215h2.129v2.057A5.215 5.215 0 0 0 24.218 12.487V1.005A1.005 1.005 0 0 0 23.196 0h-5.823z" opacity=".5" />
-                  </svg>
-                  Jira
-                  {!jiraConnected && <span className="text-[10px] ml-auto">(not connected)</span>}
-                </button>
-              </div>
-              {!linearConnected && !jiraConnected && (
-                <p className="text-xs text-[var(--text-tertiary)]">
-                  Connect Linear or Jira in Settings to export tickets.
-                </p>
-              )}
-            </div>
+            {/* Jira only */}
 
-            {/* Platform-specific options */}
+            {/* Jira project selector */}
             {isLoadingExportOptions ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
                 <span className="ml-2 text-sm text-[var(--text-secondary)]">Loading...</span>
               </div>
-            ) : exportPlatform === 'linear' && linearConnected ? (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--text)]">Team</label>
-                <select
-                  value={selectedTeamId}
-                  onChange={(e) => setSelectedTeamId(e.target.value)}
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
-                >
-                  <option value="">Select a team...</option>
-                  {exportTeams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name} ({team.key})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : exportPlatform === 'jira' && jiraConnected ? (
+            ) : jiraConnected ? (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[var(--text)]">Project</label>
                 <select
@@ -1153,7 +1045,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                   ))}
                 </select>
               </div>
-            ) : null}
+            ) : (
+              <p className="text-xs text-[var(--text-tertiary)]">
+                Connect Jira in Settings to export tickets.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowExportDialog(false)} disabled={isExporting}>
@@ -1163,9 +1059,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               onClick={handleExport}
               disabled={
                 isExporting ||
-                (exportPlatform === 'linear' && !selectedTeamId) ||
-                (exportPlatform === 'jira' && !selectedProjectKey) ||
-                (!linearConnected && !jiraConnected)
+                !selectedProjectKey ||
+                !jiraConnected
               }
             >
               {isExporting ? (
@@ -1176,7 +1071,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-2" />
-                  Export to {exportPlatform === 'linear' ? 'Linear' : 'Jira'}
+                  Export to Jira
                 </>
               )}
             </Button>
