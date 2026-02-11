@@ -225,6 +225,55 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     return updateTicket(ticketId, { techSpec: patch });
   };
 
+  // Reproduction steps handlers
+  const onAddReproductionStep = () => {
+    if (!ticketId || !currentTicket?.techSpec) return;
+    setEditState({
+      mode: 'reproductionStep',
+      order: (currentTicket.techSpec.bugDetails?.reproductionSteps?.length || 0) + 1,
+      action: '',
+      expectedBehavior: '',
+      actualBehavior: '',
+      consoleLog: '',
+      codeSnippet: '',
+      notes: '',
+      curlCommand: '',
+    });
+    setEditContext({ section: 'reproductionSteps', index: -1 }); // -1 means "new step"
+    setEditDialogOpen(true);
+  };
+
+  const onEditReproductionStep = (index: number) => {
+    if (!currentTicket?.techSpec?.bugDetails?.reproductionSteps) return;
+    const step = currentTicket.techSpec.bugDetails.reproductionSteps[index];
+    if (!step) return;
+    setEditState({
+      mode: 'reproductionStep',
+      order: step.order,
+      action: step.action || '',
+      expectedBehavior: step.expectedBehavior || '',
+      actualBehavior: step.actualBehavior || '',
+      consoleLog: '',
+      codeSnippet: '',
+      notes: step.notes || '',
+      curlCommand: '',
+    });
+    setEditContext({ section: 'reproductionSteps', index });
+    setEditDialogOpen(true);
+  };
+
+  const onDeleteReproductionStep = async (index: number) => {
+    if (!ticketId || !currentTicket?.techSpec?.bugDetails) return;
+    const updated = currentTicket.techSpec.bugDetails.reproductionSteps.filter((_: any, i: number) => i !== index);
+    await saveTechSpecPatch({
+      bugDetails: {
+        ...currentTicket.techSpec.bugDetails,
+        reproductionSteps: updated,
+      },
+    });
+    await fetchTicket(ticketId);
+  };
+
   const openEdit = (section: string, index: number) => {
     const ts = currentTicket?.techSpec;
     if (!ts) return;
@@ -400,6 +449,24 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       const arr = [...(ts.outOfScope || [])];
       arr[index] = updated.value;
       patch.outOfScope = arr;
+    } else if (section === 'reproductionSteps' && updated.mode === 'reproductionStep') {
+      const steps = [...(ts.bugDetails?.reproductionSteps || [])];
+      const newStep = {
+        order: updated.order,
+        action: updated.action,
+        expectedBehavior: updated.expectedBehavior || undefined,
+        actualBehavior: updated.actualBehavior || undefined,
+        notes: updated.notes || undefined,
+      };
+      if (index === -1) {
+        steps.push(newStep);
+      } else {
+        steps[index] = newStep;
+      }
+      patch.bugDetails = {
+        ...(ts.bugDetails || {}),
+        reproductionSteps: steps,
+      };
     }
 
     if (Object.keys(patch).length > 0) {
@@ -791,6 +858,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onDeleteItem={deleteTechSpecItem}
         onSaveAcceptanceCriteria={handleSaveAcceptanceCriteria}
         onSaveAssumptions={handleSaveAssumptions}
+        onEditReproductionStep={onEditReproductionStep}
+        onDeleteReproductionStep={onDeleteReproductionStep}
+        onAddReproductionStep={onAddReproductionStep}
         onAddApiEndpoint={handleAddApiEndpoint}
         onSaveApiEndpoints={handleSaveApiEndpoints}
         onScanApis={handleScanApis}
