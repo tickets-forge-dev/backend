@@ -737,6 +737,16 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Tickets
         </Button>
+        {currentTicket?.techSpec && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenExport}
+          >
+            <Upload className="h-3.5 w-3.5 mr-2" />
+            Export
+          </Button>
+        )}
       </div>
 
       {/* Progress Stepper */}
@@ -883,29 +893,17 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           Delete Ticket
         </Button>
 
-        <div className="flex items-center gap-2">
-          {techSpec && currentTicket.externalIssue ? (
-            <a
-              href={currentTicket.externalIssue.issueUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
-            </a>
-          ) : null}
-          {techSpec && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleOpenExport}
-            >
-              <Upload className="h-3.5 w-3.5 mr-2" />
-              Export
-            </Button>
-          )}
-        </div>
+        {techSpec && currentTicket.externalIssue && (
+          <a
+            href={currentTicket.externalIssue.issueUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
+          </a>
+        )}
       </div>
 
       {/* Status Toggle Confirmation Dialog */}
