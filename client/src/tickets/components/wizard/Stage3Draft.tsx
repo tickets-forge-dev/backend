@@ -7,6 +7,7 @@ import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
 import { AlertTriangle, Loader2, CheckCircle2, ChevronLeft, Check } from 'lucide-react';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
+import { SpecGenerationProgressDialog } from './SpecGenerationProgressDialog';
 
 /** Recursively extract the first meaningful string from a deeply nested object */
 function extractText(value: unknown, maxDepth = 5): string {
@@ -329,18 +330,12 @@ export function Stage3Draft() {
         </>
       )}
 
-      {/* Generating / Submitting States */}
-      {!spec && (isGenerating || isSubmitting) && (
-        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 text-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {isSubmitting ? 'Generating specification...' : 'Generating clarification questions...'}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {isSubmitting ? 'Analyzing your answers and building the spec' : 'This usually takes a few seconds'}
-          </p>
-        </div>
-      )}
+      {/* Detailed Progress Dialog for Generating / Submitting States */}
+      <SpecGenerationProgressDialog
+        isVisible={!spec && (isGenerating || isSubmitting)}
+        isSubmitting={isSubmitting}
+        isGenerating={isGenerating}
+      />
 
       {/* One-at-a-Time Question Flow */}
       {!spec && !isGenerating && !isSubmitting && currentQuestion && (
