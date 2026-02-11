@@ -61,8 +61,8 @@ export interface BreakdownResult {
 interface PRDBreakdownState {
   // Input step
   prdText: string;
-  repositoryOwner: string;
-  repositoryName: string;
+  repositoryOwner?: string;
+  repositoryName?: string;
   projectName: string;
 
   // Breakdown result
@@ -113,8 +113,8 @@ interface PRDBreakdownState {
 
 const initialState = {
   prdText: '',
-  repositoryOwner: '',
-  repositoryName: '',
+  repositoryOwner: undefined,
+  repositoryName: undefined,
   projectName: '',
   breakdown: null,
   analysisTime: null,

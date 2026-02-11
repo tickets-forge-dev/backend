@@ -62,10 +62,17 @@ interface TicketEnrichmentResult {
 
 /**
  * Command for enrichment
+ *
+ * NOTE: Repository fields are optional - only needed during deep analysis,
+ * which happens per-ticket in the controller. Question generation doesn't
+ * require repository information.
  */
 export interface EnrichMultipleCommand {
   workspaceId: string;
   ticketIds: string[];
+  repositoryOwner?: string; // Optional - not used during question generation
+  repositoryName?: string; // Optional - not used during question generation
+  branch?: string; // Optional - not used during question generation
   onProgress?: (event: EnrichmentProgressEvent) => void;
 }
 

@@ -9,8 +9,8 @@ import type { BreakdownResult } from '@/tickets/stores/prd-breakdown.store';
 
 export interface PRDBreakdownRequest {
   prdText: string;
-  repositoryOwner: string;
-  repositoryName: string;
+  repositoryOwner?: string;
+  repositoryName?: string;
   projectName?: string;
 }
 

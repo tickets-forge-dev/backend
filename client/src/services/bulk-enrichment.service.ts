@@ -12,9 +12,9 @@ import { auth } from '@/lib/firebase';
  */
 export interface BulkEnrichDto {
   ticketIds: string[];
-  repositoryOwner: string;
-  repositoryName: string;
-  branch: string;
+  repositoryOwner?: string;
+  repositoryName?: string;
+  branch?: string;
 }
 
 /**
@@ -78,6 +78,10 @@ export class BulkEnrichmentService {
    * - This endpoint requires POST with JSON body
    * - fetch with Response.body.getReader() gives us streaming capability
    *
+   * Repository fields are not sent - they're only needed during deep analysis,
+   * which happens per-ticket in the controller. Question generation doesn't
+   * require repository information.
+   *
    * @param ticketIds IDs of tickets to enrich
    * @param onProgress Callback for each progress event
    * @returns Promise that resolves when enrichment completes
@@ -92,9 +96,7 @@ export class BulkEnrichmentService {
 
     const body: BulkEnrichDto = {
       ticketIds,
-      repositoryOwner: '', // Will be unused - enrichment only generates questions
-      repositoryName: '', // Will be unused
-      branch: '', // Will be unused
+      // Repository fields are not sent - not needed for question generation
     };
 
     // Get auth token

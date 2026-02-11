@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsNotEmpty, MinLength, Matches, ArrayMaxSize, ArrayMinSize } from 'class-validator';
+import { IsArray, IsString, IsNotEmpty, MinLength, Matches, ArrayMaxSize, ArrayMinSize, IsOptional } from 'class-validator';
 
 export class BulkEnrichDto {
   @IsArray()
@@ -9,19 +9,19 @@ export class BulkEnrichDto {
   ticketIds!: string[];
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MinLength(1)
-  repositoryOwner!: string;
+  repositoryOwner?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MinLength(1)
-  repositoryName!: string;
+  repositoryName?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @Matches(/^[a-zA-Z0-9/_.-]+$/, {
     message: 'branch must contain only alphanumeric, /, -, _, .',
   })
-  branch!: string;
+  branch?: string;
 }

@@ -17,12 +17,12 @@ export class PRDBreakdownRequestDto {
   prdText!: string;
 
   @IsString()
-  @IsNotEmpty()
-  repositoryOwner!: string;
+  @IsOptional()
+  repositoryOwner?: string;
 
   @IsString()
-  @IsNotEmpty()
-  repositoryName!: string;
+  @IsOptional()
+  repositoryName?: string;
 
   @IsString()
   @IsOptional()

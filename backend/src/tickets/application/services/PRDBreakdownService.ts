@@ -95,8 +95,11 @@ export class PRDBreakdownService implements OnModuleInit {
    * Execute the PRD breakdown workflow
    */
   async breakdown(command: PRDBreakdownCommand): Promise<PRDBreakdownResult> {
+    const repoContext = command.repositoryOwner && command.repositoryName
+      ? `repo ${command.repositoryOwner}/${command.repositoryName}`
+      : 'no repository context';
     this.logger.log(
-      `📋 Starting PRD breakdown for repo ${command.repositoryOwner}/${command.repositoryName}`,
+      `📋 Starting PRD breakdown for ${repoContext}`,
     );
 
     // Validate PRD text

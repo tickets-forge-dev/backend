@@ -79,8 +79,8 @@ export interface PRDBreakdownResult {
  */
 export interface PRDBreakdownCommand {
   prdText: string;
-  repositoryOwner: string;
-  repositoryName: string;
+  repositoryOwner?: string; // Optional - not needed for content-only PRD analysis
+  repositoryName?: string; // Optional - not needed for content-only PRD analysis
   projectName?: string;
   workspaceId: string;
   onProgress?: (step: string, message: string) => void;

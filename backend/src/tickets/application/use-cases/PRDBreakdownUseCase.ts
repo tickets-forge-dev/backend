@@ -57,8 +57,11 @@ export class PRDBreakdownUseCase {
     const startTime = Date.now();
 
     try {
+      const repoContext = command.repositoryOwner && command.repositoryName
+        ? `${command.repositoryOwner}/${command.repositoryName}`
+        : 'no repository';
       this.logger.log(
-        `🔍 Starting PRD breakdown for ${command.repositoryOwner}/${command.repositoryName}`,
+        `🔍 Starting PRD breakdown for ${repoContext}`,
       );
 
       // Validate command
@@ -107,10 +110,6 @@ export class PRDBreakdownUseCase {
   private validateCommand(command: PRDBreakdownExecuteCommand): void {
     if (!command.prdText || command.prdText.trim().length === 0) {
       throw new BadRequestException('PRD text is required');
-    }
-
-    if (!command.repositoryOwner || !command.repositoryName) {
-      throw new BadRequestException('Repository owner and name are required');
     }
 
     if (!command.workspaceId) {

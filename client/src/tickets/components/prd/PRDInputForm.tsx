@@ -4,19 +4,16 @@ import { useState } from 'react';
 import { Button } from '@/core/components/ui/button';
 import { usePRDBreakdownStore } from '@/tickets/stores/prd-breakdown.store';
 import { usePRDService } from '@/services/prd.service';
-import { useTicketsStore } from '@/stores/tickets.store';
-import { RepositorySelector } from '../RepositorySelector';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 /**
- * PRDInputForm - Step 1: Input PRD text and select repository
+ * PRDInputForm - Step 1: Input PRD text
  *
- * User pastes PRD text and selects a repository for context.
- * Then clicks "Analyze PRD" to trigger the LLM breakdown workflow.
+ * User pastes PRD text and clicks "Analyze PRD" to trigger the LLM breakdown workflow.
+ * Repository selection is optional - it's only needed when deep analysis is required.
  */
 export function PRDInputForm() {
   const prdService = usePRDService();
-  const { selectedRepository } = useTicketsStore();
   const {
     prdText,
     projectName,
@@ -49,22 +46,12 @@ export function PRDInputForm() {
       return;
     }
 
-    if (!selectedRepository) {
-      setValidationError('Repository selection is required');
-      return;
-    }
-
-    // Parse repository from "owner/name" format
-    const [repositoryOwner, repositoryName] = selectedRepository.split('/');
-
-    // Analyze
+    // Analyze (repository is optional)
     setAnalyzing(true);
     setAnalysisProgress('Starting PRD analysis...');
     try {
       const result = await prdService.breakdownPRDWithProgress({
         prdText,
-        repositoryOwner,
-        repositoryName,
         projectName,
       }, (event) => {
         // Update progress display
@@ -155,14 +142,11 @@ export function PRDInputForm() {
         </p>
       </div>
 
-      {/* Repository selection */}
-      <RepositorySelector />
-
       {/* Analyze button */}
       <div className="flex justify-end">
         <Button
           onClick={handleAnalyze}
-          disabled={isAnalyzing || !prdText.trim() || !selectedRepository}
+          disabled={isAnalyzing || !prdText.trim()}
           className="flex items-center gap-2"
         >
           {isAnalyzing && <Loader2 className="w-4 h-4 animate-spin" />}
