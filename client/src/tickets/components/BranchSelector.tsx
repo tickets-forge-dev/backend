@@ -127,19 +127,23 @@ export function BranchSelector({ hideLabel = false }: Props) {
                 </div>
               )}
             </SelectValue>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
+            <div
               onClick={(e) => {
                 e.stopPropagation();
-                refreshBranches();
+                if (!isBranchesLoading) {
+                  refreshBranches();
+                }
               }}
-              disabled={isBranchesLoading}
-              className="h-4 w-4 p-0 ml-2 text-[var(--text-tertiary)] hover:text-[var(--text)] flex-shrink-0"
+              className={`h-4 w-4 p-0 ml-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${
+                isBranchesLoading
+                  ? 'text-[var(--text-tertiary)] cursor-not-allowed'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text)]'
+              }`}
+              role="button"
+              tabIndex={0}
             >
               <RefreshCw className={`h-3 w-3 ${isBranchesLoading ? 'animate-spin' : ''}`} />
-            </Button>
+            </div>
           </div>
         </SelectTrigger>
         <SelectContent>

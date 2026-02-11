@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useServices } from '@/hooks/useServices';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/core/components/ui/button';
-import { ChevronDown, Plus, Upload, FileText } from 'lucide-react';
+import { Plus, Upload, FileText } from 'lucide-react';
 
 /**
  * CreationMenu - Unified entry point for all ticket creation workflows
@@ -58,11 +58,10 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
       <Button
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2"
+        className="flex items-center justify-center"
+        size="icon"
       >
         <Plus className="w-4 h-4" />
-        Create
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
 
       {/* Floating Menu */}
