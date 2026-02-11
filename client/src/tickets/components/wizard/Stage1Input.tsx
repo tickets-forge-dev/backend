@@ -8,6 +8,7 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import { Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import { RepositorySelector } from '../RepositorySelector';
 import { BranchSelector } from '../BranchSelector';
@@ -49,6 +50,9 @@ export function Stage1Input() {
 
   // Validation state
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'context' | 'materials'>('context');
 
   // Elapsed time counter
   const [elapsed, setElapsed] = useState(0);
@@ -223,56 +227,74 @@ export function Stage1Input() {
         }}
         className="space-y-4"
       >
-        {/* UNIFIED TICKET CARD - Type/Priority removed (now at top) */}
-        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-5 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
+        {/* TABBED CONTEXT SECTION - Codebase + Attachments */}
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-50/50 dark:bg-gray-900/30 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'context' | 'materials')}>
+            <TabsList className="w-full rounded-none border-b border-gray-200 dark:border-gray-800 bg-transparent px-0 py-0">
+              <TabsTrigger
+                value="context"
+                className="flex-1 rounded-none border-b-2 border-transparent py-3 text-xs font-medium uppercase tracking-wide data-[state=active]:border-blue-500 data-[state=active]:text-gray-900 data-[state=active]:dark:text-gray-100"
+              >
+                Codebase to Scan
+              </TabsTrigger>
+              <TabsTrigger
+                value="materials"
+                className="flex-1 rounded-none border-b-2 border-transparent py-3 text-xs font-medium uppercase tracking-wide data-[state=active]:border-blue-500 data-[state=active]:text-gray-900 data-[state=active]:dark:text-gray-100"
+              >
+                Reference Materials
+              </TabsTrigger>
+            </TabsList>
 
-          {/* File Upload */}
-          <WizardFileUpload
-            files={pendingFiles}
-            onAdd={addPendingFile}
-            onRemove={removePendingFile}
-          />
-        </div>
+            {/* Context Tab - Repository & Branch */}
+            <TabsContent value="context" className="p-5 space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Codebase to Scan
+                </h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Select the repository we&apos;ll analyze to understand your codebase structure, technology stack, and generate implementation-ready tickets based on the actual code.
+                </p>
+              </div>
 
-        {/* CODE SELECTION CARD */}
-        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-5 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Codebase to Scan
-            </h3>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Select the repository we&apos;ll analyze to understand your codebase structure, technology stack, and generate implementation-ready tickets based on the actual code.
-            </p>
-          </div>
+              {/* Repository Selection */}
+              <RepositorySelector />
+              {repoError && (
+                <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md border border-red-200 dark:border-red-800">
+                  <span>⚠️</span>
+                  <span>{repoError}</span>
+                </div>
+              )}
 
-          {/* Repository Selection */}
-          <RepositorySelector />
-          {repoError && (
-            <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md border border-red-200 dark:border-red-800">
-              <span>⚠️</span>
-              <span>{repoError}</span>
-            </div>
-          )}
+              {/* Branch Selection */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-400">
+                  Branch to Analyze
+                </p>
+                <BranchSelector />
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  We&apos;ll read code from this branch to provide context for your ticket.
+                </p>
+              </div>
 
-          {/* Branch Selection */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-400">
-              Branch to Analyze
-            </p>
-            <BranchSelector />
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              We&apos;ll read code from this branch to provide context for your ticket.
-            </p>
-          </div>
+              {/* Future multi-repo placeholder */}
+              <button
+                type="button"
+                disabled
+                className="w-full text-center py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                + Add another repository (coming soon)
+              </button>
+            </TabsContent>
 
-          {/* Future multi-repo placeholder */}
-          <button
-            type="button"
-            disabled
-            className="w-full text-center py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            + Add another repository (coming soon)
-          </button>
+            {/* Materials Tab - File Upload */}
+            <TabsContent value="materials" className="p-5">
+              <WizardFileUpload
+                files={pendingFiles}
+                onAdd={addPendingFile}
+                onRemove={removePendingFile}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Submit Button */}
