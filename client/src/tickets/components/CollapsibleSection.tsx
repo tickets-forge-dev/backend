@@ -10,6 +10,7 @@ interface CollapsibleSectionProps {
   defaultExpanded?: boolean;
   children: ReactNode;
   className?: string;
+  previewMode?: boolean; // Show 30% of content with fade effect
 }
 
 export function CollapsibleSection({
@@ -19,6 +20,7 @@ export function CollapsibleSection({
   defaultExpanded = false,
   children,
   className = '',
+  previewMode = false,
 }: CollapsibleSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -48,9 +50,32 @@ export function CollapsibleSection({
         />
       </button>
 
-      {isExpanded && (
-        <div className="border-t border-[var(--border)] px-5 py-4">
-          {children}
+      {/* Content - full or preview mode */}
+      <div className={`border-t border-[var(--border)] px-5 py-4 ${
+        previewMode && !isExpanded ? 'relative' : ''
+      }`}
+      style={previewMode && !isExpanded ? {
+        maxHeight: '200px',
+        overflow: 'hidden',
+      } : {}}
+      >
+        {children}
+
+        {/* Fade effect overlay */}
+        {previewMode && !isExpanded && (
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[var(--bg-subtle)] to-transparent pointer-events-none" />
+        )}
+      </div>
+
+      {/* Show More button */}
+      {previewMode && !isExpanded && (
+        <div className="border-t border-[var(--border)] px-5 py-3">
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+          >
+            Show More
+          </button>
         </div>
       )}
     </div>

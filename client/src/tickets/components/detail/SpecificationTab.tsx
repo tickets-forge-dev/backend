@@ -161,7 +161,7 @@ export function SpecificationTab({
 
       {/* Ticket Acceptance Criteria */}
       {ticket.acceptanceCriteria && ticket.acceptanceCriteria.length > 0 && (
-        <CollapsibleSection title="Ticket Acceptance Criteria" id="ticket-acceptance">
+        <CollapsibleSection title="Ticket Acceptance Criteria" id="ticket-acceptance" previewMode={true}>
           <InlineEditableList
             items={ticket.acceptanceCriteria}
             type="numbered"
@@ -173,7 +173,7 @@ export function SpecificationTab({
 
       {/* Assumptions */}
       {ticket.assumptions && ticket.assumptions.length > 0 && (
-        <CollapsibleSection title="Assumptions" id="assumptions">
+        <CollapsibleSection title="Assumptions" id="assumptions" previewMode={true}>
           <InlineEditableList
             items={ticket.assumptions}
             type="bulleted"
