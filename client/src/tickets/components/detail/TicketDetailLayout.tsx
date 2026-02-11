@@ -27,6 +27,10 @@ interface TicketDetailLayoutProps {
   onDeleteItem: (section: string, index: number) => void;
   onSaveAcceptanceCriteria: (items: string[]) => Promise<void>;
   onSaveAssumptions: (items: string[]) => Promise<void>;
+  // Reproduction steps (bug tickets)
+  onEditReproductionStep?: (index: number) => void;
+  onDeleteReproductionStep?: (index: number) => void;
+  onAddReproductionStep?: () => void;
   // API
   onAddApiEndpoint: () => void;
   onSaveApiEndpoints: (endpoints: ApiEndpointSpec[]) => Promise<void>;
@@ -54,6 +58,9 @@ export function TicketDetailLayout({
   onDeleteItem,
   onSaveAcceptanceCriteria,
   onSaveAssumptions,
+  onEditReproductionStep,
+  onDeleteReproductionStep,
+  onAddReproductionStep,
   onAddApiEndpoint,
   onSaveApiEndpoints,
   onScanApis,
@@ -172,6 +179,9 @@ export function TicketDetailLayout({
             onDeleteItem={onDeleteItem}
             onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
             onSaveAssumptions={onSaveAssumptions}
+            onEditReproductionStep={onEditReproductionStep}
+            onDeleteReproductionStep={onDeleteReproductionStep}
+            onAddReproductionStep={onAddReproductionStep}
           />
         </TabsContent>
       </Tabs>

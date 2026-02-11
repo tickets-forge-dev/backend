@@ -4,6 +4,7 @@ import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection'
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
 import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpectationsSection';
+import { ReproductionStepsSection } from './ReproductionStepsSection';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
 import type { AECResponse } from '@/services/ticket.service';
 
@@ -13,6 +14,9 @@ interface SpecificationTabProps {
   onDeleteItem: (section: string, index: number) => void;
   onSaveAcceptanceCriteria: (items: string[]) => Promise<void>;
   onSaveAssumptions: (items: string[]) => Promise<void>;
+  onEditReproductionStep?: (index: number) => void;
+  onDeleteReproductionStep?: (index: number) => void;
+  onAddReproductionStep?: () => void;
 }
 
 export function SpecificationTab({
@@ -21,6 +25,9 @@ export function SpecificationTab({
   onDeleteItem,
   onSaveAcceptanceCriteria,
   onSaveAssumptions,
+  onEditReproductionStep,
+  onDeleteReproductionStep,
+  onAddReproductionStep,
 }: SpecificationTabProps) {
   const techSpec = ticket.techSpec;
 
@@ -84,6 +91,17 @@ export function SpecificationTab({
           </div>
         ) : null;
       })()}
+
+      {/* Reproduction Steps — only for bug tickets */}
+      {ticket.type === 'bug' && techSpec?.bugDetails && (
+        <ReproductionStepsSection
+          bugDetails={techSpec.bugDetails}
+          onEdit={onEditReproductionStep || (() => {})}
+          onDelete={onDeleteReproductionStep || (() => {})}
+          onAdd={onAddReproductionStep || (() => {})}
+          readOnly={false}
+        />
+      )}
 
       {/* Visual QA Expectations */}
       {techSpec?.visualExpectations && (

@@ -36,7 +36,8 @@ export function PRDInputForm() {
   const [showResumeBanner, setShowResumeBanner] = useState(true);
 
   // Check for saved drafts on mount
-  // prdService is a singleton hook, so we don't need it in dependencies
+  // prdService is a stable singleton - safe to omit from dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     (async () => {
       try {

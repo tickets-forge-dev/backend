@@ -112,53 +112,38 @@ export function Stage1Input() {
   const repoError = touchedFields.has('submit') && !isRepoValid ? 'Please select a repository' : '';
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center sm:text-left">
-        <h2 className="text-xl font-medium text-gray-900 dark:text-gray-50 mb-2">
-          Create Executable Ticket
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Describe your ticket idea and select a repository for code-aware analysis.
-        </p>
-      </div>
-
-      {/* Form */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          setTouchedFields((prev) => new Set([...prev, 'submit']));
-          if (isFormValid) {
-            analyzeRepository();
-          }
-        }}
-        className="space-y-6"
-      >
-        {/* Title Input */}
+    <div className="space-y-5">
+      {/* Title Section - Prominent with subtle glow */}
+      <div className="space-y-3">
         <div className="space-y-2">
           <label
             htmlFor="title"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"
           >
             Ticket Title
-            <span className="text-gray-500 dark:text-gray-500 font-normal">
-              {' '}
-              (required)
-            </span>
           </label>
-          <Input
-            id="title"
-            type="text"
-            placeholder="Add user authentication with Zustand"
-            value={input.title}
-            onChange={handleTitleChange}
-            onBlur={handleTitleBlur}
-            maxLength={100}
-            autoFocus
-            aria-invalid={titleError ? 'true' : 'false'}
-            aria-describedby={titleError ? 'title-error' : undefined}
-            className="w-full"
-          />
+          <div className="relative">
+            <Input
+              id="title"
+              type="text"
+              placeholder="Add user authentication with Zustand"
+              value={input.title}
+              onChange={handleTitleChange}
+              onBlur={handleTitleBlur}
+              maxLength={100}
+              autoFocus
+              aria-invalid={titleError ? 'true' : 'false'}
+              aria-describedby={titleError ? 'title-error' : undefined}
+              className="w-full text-lg font-medium border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:border-blue-500 transition-all"
+              style={{
+                boxShadow: titleError
+                  ? 'inset 0 0 0 1px rgb(239, 68, 68, 0.3)'
+                  : input.title.length > 0
+                    ? 'inset 0 0 0 1px rgba(59, 130, 246, 0.2), 0 0 12px rgba(59, 130, 246, 0.08)'
+                    : 'inset 0 0 0 1px rgba(229, 231, 235, 0.5)',
+              }}
+            />
+          </div>
           <div className="flex items-center justify-between">
             {titleError && (
               <span
@@ -174,15 +159,25 @@ export function Stage1Input() {
             </span>
           </div>
         </div>
+      </div>
 
-        {/* TICKET DETAILS CARD */}
-        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Ticket Details</h3>
-
-          {/* Type & Priority Selectors */}
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      {/* Form */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setTouchedFields((prev) => new Set([...prev, 'submit']));
+          if (isFormValid) {
+            analyzeRepository();
+          }
+        }}
+        className="space-y-4"
+      >
+        {/* UNIFIED TICKET CARD - Details + Description combined */}
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-5 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
+          {/* Type & Priority - Compact inline row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
                 Type
               </label>
               <Select value={type} onValueChange={setType}>
@@ -212,8 +207,8 @@ export function Stage1Input() {
               </Select>
             </div>
 
-            <div className="flex-1 space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
                 Priority
               </label>
               <Select value={priority} onValueChange={setPriority}>
@@ -249,19 +244,16 @@ export function Stage1Input() {
               </Select>
             </div>
           </div>
-        </div>
 
-        {/* CONTEXT & DETAILS CARD */}
-        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 space-y-6 bg-gray-50/50 dark:bg-gray-900/30">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Context & Details</h3>
+          {/* Divider */}
+          <div className="border-t border-gray-200 dark:border-gray-700/50" />
 
           {/* Description Input (markdown) */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
               Description
-              <span className="text-gray-500 dark:text-gray-500 font-normal">
-                {' '}
-                (optional — helps AI understand context)
+              <span className="text-gray-500 dark:text-gray-500 font-normal text-xs ml-1">
+                (optional)
               </span>
             </label>
             <MarkdownInput
@@ -269,7 +261,7 @@ export function Stage1Input() {
               onChange={setDescription}
               placeholder="Describe what you want to build or change. Supports **markdown** formatting."
               maxLength={2000}
-              rows={4}
+              rows={3}
             />
           </div>
 
@@ -282,8 +274,8 @@ export function Stage1Input() {
         </div>
 
         {/* CODE SELECTION CARD */}
-        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Code Selection</h3>
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-5 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-gray-700 dark:text-gray-400">Repository</h3>
 
           {/* Repository Selection */}
           <RepositorySelector />
@@ -308,7 +300,7 @@ export function Stage1Input() {
         </div>
 
         {/* Submit Button */}
-        <div className="pt-1 space-y-3 flex flex-col items-end">
+        <div className="pt-2 space-y-3 flex flex-col items-end">
           <Button
             type="submit"
             disabled={!isFormValid || loading}
@@ -319,7 +311,7 @@ export function Stage1Input() {
 
           {/* Progress bar + phase message + elapsed timer */}
           {loading && (
-            <div className="space-y-2">
+            <div className="w-full space-y-2">
               {/* Progress bar track */}
               <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                 <div
