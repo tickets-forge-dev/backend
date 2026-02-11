@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -62,9 +64,9 @@ export default function ReproductionSteps() {
           <div className="border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
             <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Good Bug Reports</h3>
             <ul className="space-y-1 list-disc list-inside text-xs text-green-700 dark:text-green-200">
-              <li>&quot;File upload fails with 413 error&quot;</li>
-              <li>&quot;Dashboard is blank for admin users&quot;</li>
-              <li>&quot;Search returns wrong results&quot;</li>
+              <li>"File upload fails with 413 error"</li>
+              <li>"Dashboard is blank for admin users"</li>
+              <li>"Search returns wrong results"</li>
               <li>Include screenshot</li>
             </ul>
           </div>
@@ -72,9 +74,9 @@ export default function ReproductionSteps() {
           <div className="border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
             <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Vague Bug Reports</h3>
             <ul className="space-y-1 list-disc list-inside text-xs text-red-700 dark:text-red-200">
-              <li>&quot;Stuff doesn&apos;t work&quot;</li>
-              <li>&quot;It&apos;s broken&quot;</li>
-              <li>&quot;Fix the UI&quot;</li>
+              <li>"Stuff doesn't work"</li>
+              <li>"It's broken"</li>
+              <li>"Fix the UI"</li>
               <li>No context or screenshots</li>
             </ul>
           </div>

@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -10,7 +12,7 @@ export default function Roadmap() {
     <article className="space-y-8">
       <div>
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">Limitations & Roadmap</h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400">Understand current limitations and see what&apos;s coming next.</p>
+        <p className="text-xl text-gray-600 dark:text-gray-400">Understand current limitations and see what's coming next.</p>
       </div>
 
       <section className="space-y-4">

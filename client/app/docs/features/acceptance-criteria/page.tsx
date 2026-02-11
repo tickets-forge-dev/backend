@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -107,9 +109,9 @@ Then a CSV file is downloaded`}
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4 mt-4">
           <ol className="space-y-2 list-decimal list-inside text-sm text-blue-900 dark:text-blue-200">
-            <li>Click the &quot;Acceptance Criteria&quot; section</li>
+            <li>Click the "Acceptance Criteria" section</li>
             <li>Click edit to modify existing criteria</li>
-            <li>Click &quot;Add&quot; to add new criteria</li>
+            <li>Click "Add" to add new criteria</li>
             <li>Use Given/When/Then format</li>
             <li>Changes auto-save</li>
           </ol>

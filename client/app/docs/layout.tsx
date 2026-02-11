@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import { DocsSidebar } from './components/DocsSidebar';
 import Link from 'next/link';
 import { Home } from 'lucide-react';

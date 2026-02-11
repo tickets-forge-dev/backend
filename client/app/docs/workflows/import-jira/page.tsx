@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 import { RefreshCw, FileText, CheckCircle2 } from 'lucide-react';
 
@@ -204,7 +206,7 @@ export default function ImportJira() {
             <li>Go to Tools → Bulk Enrichment</li>
             <li>Enter Jira issue keys (one per line)</li>
             <li>Select answers to pre-set clarification questions</li>
-            <li>Click &quot;Start Enrichment&quot;</li>
+            <li>Click "Start Enrichment"</li>
             <li>Forge imports and enriches all issues in parallel</li>
             <li>Download results as CSV or create all tickets at once</li>
           </ol>

@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 import { CheckCircle2, XCircle } from 'lucide-react';
 

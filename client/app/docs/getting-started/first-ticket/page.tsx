@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 import { Lightbulb } from 'lucide-react';
 
@@ -54,16 +56,16 @@ export default function FirstTicket() {
                 Start by telling Forge what you want to build:
               </p>
               <ul className="space-y-2 list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
-                <li><strong>Title:</strong> &quot;Add user authentication&quot;</li>
+                <li><strong>Title:</strong> "Add user authentication"</li>
                 <li><strong>Description:</strong> Explain the feature or bug in 1-2 sentences</li>
                 <li><strong>Type:</strong> Feature, Bug, Refactor, or Task</li>
                 <li><strong>Priority:</strong> Low, Medium, High, or Urgent</li>
                 <li><strong>Repository:</strong> Select which repo to analyze</li>
-                <li><strong>Branch:</strong> The branch to scan (usually &quot;main&quot; or &quot;master&quot;)</li>
+                <li><strong>Branch:</strong> The branch to scan (usually "main" or "master")</li>
               </ul>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3 mt-3">
                 <p className="text-xs text-blue-900 dark:text-blue-200">
-                  <strong>Pro Tip:</strong> Be specific but concise. Say &quot;Add OAuth2 login with GitHub&quot; instead of just &quot;Add login.&quot;
+                  <strong>Pro Tip:</strong> Be specific but concise. Say "Add OAuth2 login with GitHub" instead of just "Add login."
                 </p>
               </div>
             </div>
@@ -123,14 +125,14 @@ export default function FirstTicket() {
               <div className="bg-gray-50 dark:bg-gray-900/30 rounded p-3 mt-3 space-y-2">
                 <p className="text-xs text-gray-900 dark:text-gray-100 font-medium">Example Questions:</p>
                 <ul className="space-y-1 list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
-                  <li>&quot;Should login be required for all routes or only specific ones?&quot;</li>
-                  <li>&quot;Do you need password reset functionality?&quot;</li>
-                  <li>&quot;Should users be able to log out?&quot;</li>
+                  <li>"Should login be required for all routes or only specific ones?"</li>
+                  <li>"Do you need password reset functionality?"</li>
+                  <li>"Should users be able to log out?"</li>
                 </ul>
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded p-3 mt-3">
                 <p className="text-xs text-emerald-900 dark:text-emerald-200">
-                  <strong>Why These Questions Matter:</strong> These aren&apos;t generic questions. They&apos;re generated based on your specific code, tech stack, and requirements. Your answers directly impact the accuracy and completeness of the final specification.
+                  <strong>Why These Questions Matter:</strong> These aren't generic questions. They're generated based on your specific code, tech stack, and requirements. Your answers directly impact the accuracy and completeness of the final specification.
                 </p>
               </div>
               <p className="text-gray-700 dark:text-gray-300 text-sm mt-3">
@@ -138,7 +140,7 @@ export default function FirstTicket() {
               </p>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3 mt-3">
                 <p className="text-xs text-blue-900 dark:text-blue-200">
-                  <strong>Note:</strong> If Forge doesn&apos;t need clarification, it will skip straight to spec generation. The better your answers, the better your spec.
+                  <strong>Note:</strong> If Forge doesn't need clarification, it will skip straight to spec generation. The better your answers, the better your spec.
                 </p>
               </div>
             </div>
@@ -199,7 +201,7 @@ export default function FirstTicket() {
               Forge discovers:
             </p>
             <ul className="space-y-1 list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
-              <li>You&apos;re using Next.js with Firebase authentication</li>
+              <li>You're using Next.js with Firebase authentication</li>
               <li>You have a database schema with User and Session tables</li>
               <li>You already have Google OAuth2 configured</li>
               <li>Related files: /app/auth, /lib/firebase.ts, /pages/api/auth</li>

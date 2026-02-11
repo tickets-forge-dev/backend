@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -108,7 +110,7 @@ export default function Phase5Finalize() {
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4 mt-4">
           <p className="text-sm text-blue-900 dark:text-blue-200">
-            <strong>Pro Tip:</strong> Don&apos;t spend too much time perfecting the spec. You can edit anytime. Just make sure the quality score is 70+.
+            <strong>Pro Tip:</strong> Don't spend too much time perfecting the spec. You can edit anytime. Just make sure the quality score is 70+.
           </p>
         </div>
       </section>
@@ -126,7 +128,7 @@ export default function Phase5Finalize() {
             <ol className="space-y-2 list-decimal list-inside text-sm text-gray-700 dark:text-gray-300">
               <li>Review all sections one final time</li>
               <li>Check quality score (aim for 80+)</li>
-              <li>Click &quot;Mark as Complete&quot;</li>
+              <li>Click "Mark as Complete"</li>
               <li>Add any final notes for your team</li>
               <li>Confirm finalization</li>
             </ol>
@@ -136,7 +138,7 @@ export default function Phase5Finalize() {
             <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2 text-sm">After Marking Complete</h3>
             <ul className="space-y-1 list-disc list-inside text-xs text-green-700 dark:text-green-200">
               <li>Ticket is ready for your team to implement</li>
-              <li>You can still edit it (it&apos;s not locked)</li>
+              <li>You can still edit it (it's not locked)</li>
               <li>Team can view, comment, and collaborate</li>
               <li>Version history is preserved</li>
             </ul>
@@ -203,7 +205,7 @@ export default function Phase5Finalize() {
       </section>
 
       <section className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-green-900 dark:text-green-100 mb-3">You&apos;re Done!</h2>
+        <h2 className="text-xl font-semibold text-green-900 dark:text-green-100 mb-3">You're Done!</h2>
         <p className="text-green-900 dark:text-green-200 mb-4">
           You&apos;ve successfully created an implementation-ready ticket with Forge. Your engineering team now has everything they need to build this feature.
         </p>

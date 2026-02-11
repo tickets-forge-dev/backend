@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -287,7 +289,7 @@ Response:
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4 mt-4">
           <p className="text-sm text-blue-900 dark:text-blue-200">
-            <strong>Tip:</strong> Mark a ticket as &quot;Complete&quot; when the spec is ready to be implemented. Your team can still view and edit it.
+            <strong>Tip:</strong> Mark a ticket as "Complete" when the spec is ready to be implemented. Your team can still view and edit it.
           </p>
         </div>
       </section>
@@ -319,7 +321,7 @@ Response:
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-2">To View History:</h3>
           <ol className="space-y-1 list-decimal list-inside text-xs text-gray-700 dark:text-gray-300">
             <li>Open a ticket</li>
-            <li>Click &quot;History&quot; in the header</li>
+            <li>Click "History" in the header</li>
             <li>See all changes with timestamps and editors</li>
             <li>Click any version to preview or restore</li>
           </ol>

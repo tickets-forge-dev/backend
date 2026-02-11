@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 import { Github, AlertCircle } from 'lucide-react';
 
@@ -83,12 +85,12 @@ export default function Setup() {
           <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Steps to Connect GitHub</h3>
           <ol className="space-y-3 list-decimal list-inside text-sm text-gray-700 dark:text-gray-300">
             <li>Click your profile icon in the top right</li>
-            <li>Select &quot;Settings&quot;</li>
-            <li>Click &quot;Connect GitHub&quot; under Integrations</li>
-            <li>You&apos;ll be redirected to GitHub to authorize Forge</li>
+            <li>Select "Settings"</li>
+            <li>Click "Connect GitHub" under Integrations</li>
+            <li>You'll be redirected to GitHub to authorize Forge</li>
             <li>Select which repositories Forge can access (or select all)</li>
-            <li>Click &quot;Authorize&quot;</li>
-            <li>You&apos;re done! Forge can now analyze your code</li>
+            <li>Click "Authorize"</li>
+            <li>You're done! Forge can now analyze your code</li>
           </ol>
         </div>
       </section>
@@ -200,7 +202,7 @@ export default function Setup() {
 
       {/* Next Steps */}
       <section className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-blue-900 dark:text-blue-100 mb-3">You&apos;re All Set!</h2>
+        <h2 className="text-xl font-semibold text-blue-900 dark:text-blue-100 mb-3">You're All Set!</h2>
         <p className="text-blue-900 dark:text-blue-200 mb-4">
           Now that Forge is connected to your repositories, you&apos;re ready to create your first ticket.
         </p>

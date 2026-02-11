@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 import { Plus, Copy, Upload, Zap } from 'lucide-react';
 
@@ -119,20 +121,20 @@ export default function TicketCreation() {
           <div className="border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
             <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3">Good Examples</h3>
             <ul className="space-y-2 list-disc list-inside text-sm text-green-700 dark:text-green-200">
-              <li>&quot;Add email authentication with Magic Links&quot;</li>
-              <li>&quot;Fix bug: users can&apos;t upload files larger than 5MB&quot;</li>
-              <li>&quot;Refactor database queries to use connection pooling&quot;</li>
-              <li>&quot;Add two-factor authentication via SMS&quot;</li>
+              <li>"Add email authentication with Magic Links"</li>
+              <li>"Fix bug: users can't upload files larger than 5MB"</li>
+              <li>"Refactor database queries to use connection pooling"</li>
+              <li>"Add two-factor authentication via SMS"</li>
             </ul>
           </div>
 
           <div className="border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
             <h3 className="font-semibold text-red-900 dark:text-red-100 mb-3">Vague Examples (Avoid)</h3>
             <ul className="space-y-2 list-disc list-inside text-sm text-red-700 dark:text-red-200">
-              <li>&quot;Add authentication&quot; (which kind?)</li>
-              <li>&quot;Fix file upload issue&quot; (what issue?)</li>
-              <li>&quot;Improve database&quot; (how?)</li>
-              <li>&quot;Add security&quot; (what security measure?)</li>
+              <li>"Add authentication" (which kind?)</li>
+              <li>"Fix file upload issue" (what issue?)</li>
+              <li>"Improve database" (how?)</li>
+              <li>"Add security" (what security measure?)</li>
             </ul>
           </div>
         </div>

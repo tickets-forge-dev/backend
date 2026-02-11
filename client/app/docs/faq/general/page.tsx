@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -38,7 +40,7 @@ export default function FAQ() {
         <div className="space-y-4 mt-4">
           {[
             { q: 'Is Forge free?', a: 'We offer a free trial with limited tickets. Paid plans start at $12/month.' },
-            { q: 'What&apos;s included in each plan?', a: 'Check our pricing page for details on tickets per month, team size, and features.' },
+            { q: "What's included in each plan?", a: "Check our pricing page for details on tickets per month, team size, and features." },
             { q: 'Can I cancel anytime?', a: 'Yes. Cancel your subscription anytime with no penalties.' },
           ].map((item, i) => (
             <div key={i} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">

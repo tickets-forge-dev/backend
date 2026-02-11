@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -25,7 +27,7 @@ export default function BulkEnrichment() {
           <div className="border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
             <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Perfect For:</h3>
             <ul className="space-y-2 list-disc list-inside text-sm text-green-700 dark:text-green-200">
-              <li>Enriching an entire sprint&apos;s worth of issues</li>
+              <li>Enriching an entire sprint's worth of issues</li>
               <li>Migrating from Jira/Linear to Forge specs</li>
               <li>Batch generating specs for a team or project</li>
               <li>Creating implementation specs for backlog items</li>
@@ -232,11 +234,11 @@ FOR-4`}
           </p>
           <ol className="space-y-2 list-decimal list-inside text-sm text-gray-700 dark:text-gray-300">
             <li>Copy all 15 issue keys from Jira</li>
-            <li>Paste them into Forge&apos;s bulk enrichment</li>
+            <li>Paste them into Forge's bulk enrichment</li>
             <li>Set repository to your main project</li>
             <li>Set pre-filled answers (backend + tests needed)</li>
             <li>Wait 5 minutes for all 15 specs to generate</li>
-            <li>Review, deselect any you don&apos;t like</li>
+            <li>Review, deselect any you don't like</li>
             <li>Create all 15 tickets at once</li>
           </ol>
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-4 font-semibold">

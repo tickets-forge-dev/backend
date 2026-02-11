@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -190,8 +192,8 @@ export default function ImportLinear() {
           <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">In Linear:</h3>
           <ol className="space-y-2 list-decimal list-inside text-sm text-blue-900 dark:text-blue-200">
             <li>Open the issue you want to import</li>
-            <li>Look at the URL: &quot;linear.app/issue/FOR-123&quot;</li>
-            <li>The identifier is &quot;FOR-123&quot; (project code + number)</li>
+            <li>Look at the URL: "linear.app/issue/FOR-123"</li>
+            <li>The identifier is "FOR-123" (project code + number)</li>
             <li>Or click the issue ID in the top left to copy the UUID</li>
           </ol>
         </div>
@@ -210,7 +212,7 @@ export default function ImportLinear() {
             <li>Go to Tools → Bulk Enrichment</li>
             <li>Paste Linear issue IDs (FOR-123 format, one per line)</li>
             <li>Set repository and answers to pre-fill questions</li>
-            <li>Click &quot;Start Enrichment&quot;</li>
+            <li>Click "Start Enrichment"</li>
             <li>Forge imports all issues and generates specs in parallel</li>
             <li>Review results and create all tickets at once</li>
           </ol>

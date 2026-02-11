@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -115,7 +117,7 @@ export default function Phase2Analysis() {
 
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4 mt-4">
           <p className="text-sm text-amber-900 dark:text-amber-200">
-            <strong>What&apos;s NOT read:</strong> node_modules, test files, build output, large data files, minified code, binary files
+            <strong>What's NOT read:</strong> node_modules, test files, build output, large data files, minified code, binary files
           </p>
         </div>
       </section>

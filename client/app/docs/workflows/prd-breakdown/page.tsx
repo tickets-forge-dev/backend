@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -36,9 +38,9 @@ export default function PRDBreakdown() {
           <div className="border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
             <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Example Use Cases:</h3>
             <ul className="space-y-2 list-disc list-inside text-sm text-blue-700 dark:text-blue-200">
-              <li>&quot;Build a payment system&quot; → Breaks into: stripe integration, payment modal, order confirmation, etc.</li>
-              <li>&quot;Redesign dashboard&quot; → Breaks into: new layout, analytics widgets, export feature, etc.</li>
-              <li>&quot;Add reporting features&quot; → Breaks into: report generation, PDF export, scheduling, etc.</li>
+              <li>"Build a payment system" → Breaks into: stripe integration, payment modal, order confirmation, etc.</li>
+              <li>"Redesign dashboard" → Breaks into: new layout, analytics widgets, export feature, etc.</li>
+              <li>"Add reporting features" → Breaks into: report generation, PDF export, scheduling, etc.</li>
             </ul>
           </div>
         </div>
@@ -114,7 +116,7 @@ export default function PRDBreakdown() {
           <div className="border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
             <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Good PRDs Have:</h3>
             <ul className="space-y-2 list-disc list-inside text-xs text-green-700 dark:text-green-200">
-              <li>Clear user stories (&quot;As a..., I want..., So that...&quot;)</li>
+              <li>Clear user stories ("As a..., I want..., So that...")</li>
               <li>Acceptance criteria for each feature</li>
               <li>Wireframes or design mockups</li>
               <li>Success metrics or KPIs</li>

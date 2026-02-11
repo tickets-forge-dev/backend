@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 import Link from 'next/link';
 
 export const metadata = {
@@ -208,7 +210,7 @@ export default function Phase1Context() {
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4 mt-4">
           <p className="text-sm text-blue-900 dark:text-blue-200 mb-3">
-            <strong>Yes!</strong> Phase 1 is automatic and quick. But you don&apos;t have to wait for it to finish.
+            <strong>Yes!</strong> Phase 1 is automatic and quick. But you don't have to wait for it to finish.
           </p>
           <p className="text-sm text-blue-900 dark:text-blue-200">
             As soon as Phase 1 completes and shows you the detected tech stack, you can click &quot;Continue to Phase 2&quot; or skip directly to &quot;Answer Questions&quot;.
