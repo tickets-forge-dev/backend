@@ -55,28 +55,47 @@ export function EpicGroup({ epic }: { epic: BreakdownEpic }) {
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden">
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{ borderColor: 'var(--border)', borderWidth: '1px' }}
+    >
       {/* Epic header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-start gap-4 p-4 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-150 border-b border-slate-200 transition-colors"
+        className="w-full flex items-start gap-4 p-4 hover:transition-colors"
+        style={{
+          backgroundColor: 'var(--bg-hover)',
+          borderBottomColor: 'var(--border)',
+          borderBottomWidth: '1px',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--bg-active)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+        }}
       >
         <ChevronDown
-          className={`w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5 transition-transform ${
+          className={`w-5 h-5 flex-shrink-0 mt-0.5 transition-transform ${
             isExpanded ? 'rotate-0' : '-rotate-90'
           }`}
+          style={{ color: 'var(--text-secondary)' }}
         />
         <div className="flex-1 text-left min-w-0">
-          <h3 className="text-sm font-bold text-slate-900">
+          <h3 className="text-sm font-bold" style={{ color: 'var(--text)' }}>
             Epic {epic.index}: {epic.name}
           </h3>
-          <p className="text-xs text-slate-600 mt-1">{epic.goal}</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{epic.goal}</p>
           {epic.functionalRequirements.length > 0 && (
             <div className="flex gap-1 flex-wrap mt-2">
               {epic.functionalRequirements.map((fr) => (
                 <span
                   key={fr}
-                  className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded"
+                  className="px-2 py-0.5 text-xs rounded"
+                  style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    color: 'var(--blue)',
+                  }}
                 >
                   {fr}
                 </span>
@@ -85,7 +104,15 @@ export function EpicGroup({ epic }: { epic: BreakdownEpic }) {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-1 rounded border border-slate-200">
+          <span
+            className="text-xs font-semibold px-2 py-1 rounded"
+            style={{
+              backgroundColor: 'var(--bg)',
+              color: 'var(--text-secondary)',
+              borderColor: 'var(--border)',
+              borderWidth: '1px',
+            }}
+          >
             {epic.stories.length} stories
           </span>
           <AddTicketDialog epicIndex={epic.index} epicName={epic.name} />
@@ -94,16 +121,20 @@ export function EpicGroup({ epic }: { epic: BreakdownEpic }) {
 
       {/* Epic stories */}
       {isExpanded && (
-        <div className="divide-y divide-slate-100">
+        <div style={{ borderColor: 'var(--border)' }}>
           {epic.stories.map((ticket, index) => (
             <div
               key={`drop-zone-${ticket.id}`}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, index)}
-              className={`${
-                dropIndex === index ? 'bg-blue-100 border-l-2 border-blue-400' : ''
-              }`}
+              style={{
+                backgroundColor: dropIndex === index ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                borderLeftColor: dropIndex === index ? 'var(--blue)' : 'transparent',
+                borderLeftWidth: dropIndex === index ? '2px' : '0px',
+                borderBottomColor: 'var(--border)',
+                borderBottomWidth: index < epic.stories.length - 1 ? '1px' : '0px',
+              }}
             >
               <TicketCard
                 ticket={ticket}

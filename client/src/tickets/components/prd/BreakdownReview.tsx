@@ -36,8 +36,14 @@ export function BreakdownReview() {
 
   if (!breakdown) {
     return (
-      <div className="p-6 bg-slate-50 rounded-lg border border-slate-200">
-        <p className="text-slate-600">No breakdown data available</p>
+      <div
+        className="p-6 rounded-lg border"
+        style={{
+          backgroundColor: 'var(--bg-subtle)',
+          borderColor: 'var(--border)',
+        }}
+      >
+        <p style={{ color: 'var(--text-secondary)' }}>No breakdown data available</p>
       </div>
     );
   }
@@ -80,21 +86,39 @@ export function BreakdownReview() {
     <div className="space-y-6">
       {/* Summary stats */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="p-4 bg-white border border-slate-200 rounded-lg">
-          <p className="text-xs text-slate-600 font-medium">TICKETS</p>
-          <p className="text-2xl font-bold text-slate-900">
+        <div
+          className="p-4 rounded-lg border"
+          style={{
+            backgroundColor: 'var(--bg)',
+            borderColor: 'var(--border)',
+          }}
+        >
+          <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>TICKETS</p>
+          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
             {breakdown.tickets.length}
           </p>
         </div>
-        <div className="p-4 bg-white border border-slate-200 rounded-lg">
-          <p className="text-xs text-slate-600 font-medium">EPICS</p>
-          <p className="text-2xl font-bold text-slate-900">
+        <div
+          className="p-4 rounded-lg border"
+          style={{
+            backgroundColor: 'var(--bg)',
+            borderColor: 'var(--border)',
+          }}
+        >
+          <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>EPICS</p>
+          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
             {breakdown.summary.epicCount}
           </p>
         </div>
-        <div className="p-4 bg-white border border-slate-200 rounded-lg">
-          <p className="text-xs text-slate-600 font-medium">ANALYSIS TIME</p>
-          <p className="text-2xl font-bold text-slate-900">
+        <div
+          className="p-4 rounded-lg border"
+          style={{
+            backgroundColor: 'var(--bg)',
+            borderColor: 'var(--border)',
+          }}
+        >
+          <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>ANALYSIS TIME</p>
+          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
             {analysisTime ? `${analysisTime}ms` : '—'}
           </p>
         </div>
@@ -102,23 +126,35 @@ export function BreakdownReview() {
 
       {/* Error alert */}
       {(creationError || error) && (
-        <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-900">{creationError || error}</p>
+        <div
+          className="flex gap-3 p-4 rounded-lg border"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderColor: 'var(--red)',
+          }}
+        >
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--red)' }} />
+          <p className="text-sm" style={{ color: 'var(--red)' }}>{creationError || error}</p>
         </div>
       )}
 
       {/* FR Coverage info */}
       {Object.keys(breakdown.summary.frCoverage).length > 0 && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-900 font-medium mb-2">
+        <div
+          className="p-4 rounded-lg border"
+          style={{
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: 'var(--blue)',
+          }}
+        >
+          <p className="text-xs font-medium mb-2" style={{ color: 'var(--blue)' }}>
             FUNCTIONAL REQUIREMENTS COVERAGE
           </p>
           <div className="flex flex-wrap gap-2">
             {breakdown.summary.frInventory.map((fr) => (
               <div key={fr.id} className="text-xs">
-                <span className="font-medium text-blue-900">{fr.id}</span>
-                <span className="text-blue-700">
+                <span className="font-medium" style={{ color: 'var(--blue)' }}>{fr.id}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>
                   {' '}
                   covered by {breakdown.summary.frCoverage[fr.id]?.length || 0}{' '}
                   stories
@@ -137,7 +173,7 @@ export function BreakdownReview() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex justify-between pt-6 border-t border-slate-200">
+      <div className="flex justify-between pt-6" style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}>
         <Button variant="outline">← Back to Input</Button>
         <Button
           onClick={handleCreateTickets}

@@ -96,24 +96,43 @@ export function TicketCard({
 
   if (isEditing) {
     return (
-      <div className="p-4 bg-blue-50 border-l-4 border-blue-500 space-y-4">
+      <div
+        className="p-4 space-y-4"
+        style={{
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderLeftWidth: '4px',
+          borderLeftColor: 'var(--blue)',
+        }}
+      >
         <div>
-          <label className="text-xs font-medium text-slate-600">Title</label>
+          <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Title</label>
           <input
             type="text"
             value={editedTitle}
             onChange={(e) => setEditedTitle(e.target.value)}
-            className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+            style={{
+              backgroundColor: 'var(--bg)',
+              color: 'var(--text)',
+              borderColor: 'var(--border)',
+              borderWidth: '1px',
+            }}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-medium text-slate-600">Type</label>
+            <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Type</label>
             <select
               value={editedType}
               onChange={(e) => setEditedType(e.target.value as any)}
-              className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
+              className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+              style={{
+                backgroundColor: 'var(--bg)',
+                color: 'var(--text)',
+                borderColor: 'var(--border)',
+                borderWidth: '1px',
+              }}
             >
               <option value="feature">Feature</option>
               <option value="bug">Bug</option>
@@ -121,13 +140,19 @@ export function TicketCard({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-600">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
               Priority
             </label>
             <select
               value={editedPriority}
               onChange={(e) => setEditedPriority(e.target.value as any)}
-              className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
+              className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+              style={{
+                backgroundColor: 'var(--bg)',
+                color: 'var(--text)',
+                borderColor: 'var(--border)',
+                borderWidth: '1px',
+              }}
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -154,14 +179,29 @@ export function TicketCard({
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      className={`p-4 hover:bg-slate-50 transition-colors border-l-4 border-transparent hover:border-blue-300 cursor-grab active:cursor-grabbing ${
-        isDragging ? 'opacity-50 bg-blue-50' : ''
-      }`}
+      className="p-4 transition-colors border-l-4 cursor-grab active:cursor-grabbing"
+      style={{
+        backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+        borderLeftColor: isDragging ? 'var(--blue)' : 'transparent',
+        opacity: isDragging ? 0.5 : 1,
+      }}
+      onMouseEnter={(e) => {
+        if (!isDragging) {
+          e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+          e.currentTarget.style.borderLeftColor = 'var(--blue)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isDragging) {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.borderLeftColor = 'transparent';
+        }
+      }}
     >
       {/* Header */}
       <div className="flex items-start gap-3">
         {/* Drag handle */}
-        <div className="text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing mt-1">
+        <div className="cursor-grab active:cursor-grabbing mt-1" style={{ color: 'var(--text-tertiary)' }}>
           <GripVertical className="w-4 h-4" />
         </div>
 
@@ -170,19 +210,20 @@ export function TicketCard({
           className="mt-1"
         >
           <ChevronDown
-            className={`w-4 h-4 text-slate-400 transition-transform ${
+            className={`w-4 h-4 transition-transform ${
               isExpanded ? 'rotate-0' : '-rotate-90'
             }`}
+            style={{ color: 'var(--text-tertiary)' }}
           />
         </button>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h4 className="text-sm font-semibold text-slate-900 break-words">
+              <h4 className="text-sm font-semibold break-words" style={{ color: 'var(--text)' }}>
                 {ticket.epicIndex}.{ticket.storyIndex}: {ticket.title}
               </h4>
-              <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+              <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
                 {ticket.description}
               </p>
             </div>
@@ -215,7 +256,13 @@ export function TicketCard({
               {ticket.priority}
             </span>
             {ticket.functionalRequirements.length > 0 && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
+              <span
+                className="px-2 py-0.5 text-xs font-medium rounded"
+                style={{
+                  backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                  color: 'var(--purple)',
+                }}
+              >
                 {ticket.functionalRequirements.join(', ')}
               </span>
             )}
@@ -225,19 +272,29 @@ export function TicketCard({
 
       {/* Expanded details */}
       {isExpanded && (
-        <div className="mt-4 ml-7 space-y-3 border-t border-slate-100 pt-3">
+        <div
+          className="mt-4 ml-7 space-y-3 pt-3"
+          style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}
+        >
           {/* Acceptance criteria */}
           {ticket.acceptanceCriteria.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-2">
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
                 ACCEPTANCE CRITERIA
               </p>
               <div className="space-y-2">
                 {ticket.acceptanceCriteria.map((criterion, i) => (
-                  <div key={i} className="text-xs text-slate-700 space-y-1 bg-slate-50 p-2 rounded">
-                    <p><strong className="text-blue-600">Given</strong> {criterion.given}</p>
-                    <p><strong className="text-amber-600">When</strong> {criterion.when}</p>
-                    <p><strong className="text-green-600">Then</strong> {criterion.then}</p>
+                  <div
+                    key={i}
+                    className="text-xs space-y-1 p-2 rounded"
+                    style={{
+                      backgroundColor: 'var(--bg-hover)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <p><strong style={{ color: 'var(--blue)' }}>Given</strong> {criterion.given}</p>
+                    <p><strong style={{ color: 'var(--amber)' }}>When</strong> {criterion.when}</p>
+                    <p><strong style={{ color: 'var(--green)' }}>Then</strong> {criterion.then}</p>
                   </div>
                 ))}
               </div>
@@ -247,10 +304,16 @@ export function TicketCard({
           {/* Technical notes */}
           {ticket.technicalNotes && (
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-2">
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
                 TECHNICAL NOTES
               </p>
-              <p className="text-xs text-slate-700 bg-slate-50 p-2 rounded">
+              <p
+                className="text-xs p-2 rounded"
+                style={{
+                  backgroundColor: 'var(--bg-hover)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 {ticket.technicalNotes}
               </p>
             </div>
@@ -259,10 +322,10 @@ export function TicketCard({
           {/* Dependencies */}
           {ticket.blockedBy.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-1">
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
                 BLOCKED BY
               </p>
-              <p className="text-xs text-slate-700">
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Story {ticket.blockedBy.join(', ')}
               </p>
             </div>

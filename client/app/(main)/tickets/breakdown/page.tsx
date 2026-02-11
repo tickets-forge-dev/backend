@@ -18,14 +18,14 @@ export default function BreakdownPage() {
   const currentStep = usePRDBreakdownStore((s) => s.currentStep);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text)' }}>
             PRD Breakdown
           </h1>
-          <p className="text-slate-600">
+          <p style={{ color: 'var(--text-secondary)' }}>
             {currentStep === 'input' &&
               'Analyze your PRD and automatically create executable tickets'}
             {currentStep === 'review' &&
@@ -38,11 +38,12 @@ export default function BreakdownPage() {
         {/* Progress indicator */}
         <div className="flex items-center gap-2 mb-8">
           <div
-            className={`h-2 w-24 rounded-full ${
-              currentStep !== 'input' ? 'bg-emerald-500' : 'bg-blue-500'
-            }`}
+            className="h-2 w-24 rounded-full"
+            style={{
+              backgroundColor: currentStep !== 'input' ? '#10b981' : 'var(--blue)',
+            }}
           />
-          <span className="text-sm font-medium text-slate-600">
+          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
             {currentStep === 'input' && 'Step 1: Analyze PRD'}
             {currentStep === 'review' && 'Step 2: Review Breakdown'}
             {currentStep === 'success' && 'Step 3: Complete'}

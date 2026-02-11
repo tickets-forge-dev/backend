@@ -81,14 +81,20 @@ export function PRDInputForm() {
     <div className="space-y-6">
       {/* Error alert */}
       {(error || validationError) && (
-        <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+        <div
+          className="flex gap-3 p-4 rounded-lg border"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderColor: 'var(--red)',
+          }}
+        >
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--red)' }} />
           <div>
-            <p className="text-sm font-medium text-red-900">
+            <p className="text-sm font-medium" style={{ color: 'var(--red)' }}>
               {error || validationError}
             </p>
             {error && (
-              <p className="text-xs text-red-700 mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                 Try pasting a clearer PRD with specific requirements
               </p>
             )}
@@ -98,20 +104,33 @@ export function PRDInputForm() {
 
       {/* PRD text input */}
       <div>
-        <label className="block text-sm font-medium text-slate-900 mb-2">
+        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
           Paste your PRD
         </label>
         <textarea
           value={prdText}
           onChange={(e) => setPRDText(e.target.value)}
           placeholder="Paste your Product Requirements Document here. Include functional requirements, user stories, and success criteria..."
-          className="w-full h-64 p-4 border border-slate-200 rounded-lg font-mono text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full h-64 p-4 rounded-lg font-mono text-sm"
+          style={{
+            backgroundColor: 'var(--bg)',
+            color: 'var(--text)',
+            borderColor: 'var(--border)',
+            borderWidth: '1px',
+            outline: 'none',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 0 2px var(--blue)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
+          }}
           disabled={isAnalyzing}
         />
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
           {prdText.length} characters
           {prdText.length < 100 && (
-            <span className="text-red-600 font-medium">
+            <span className="font-medium" style={{ color: 'var(--red)' }}>
               {' '}
               (minimum 100 required)
             </span>
@@ -123,7 +142,7 @@ export function PRDInputForm() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Repository owner */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
             Repository Owner
           </label>
           <input
@@ -131,14 +150,20 @@ export function PRDInputForm() {
             value={repositoryOwner}
             onChange={(e) => setRepository(e.target.value, repositoryName)}
             placeholder="e.g., facebook"
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: 'var(--bg)',
+              color: 'var(--text)',
+              borderColor: 'var(--border)',
+              borderWidth: '1px',
+            }}
             disabled={isAnalyzing}
           />
         </div>
 
         {/* Repository name */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
             Repository Name
           </label>
           <input
@@ -146,17 +171,23 @@ export function PRDInputForm() {
             value={repositoryName}
             onChange={(e) => setRepository(repositoryOwner, e.target.value)}
             placeholder="e.g., react"
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: 'var(--bg)',
+              color: 'var(--text)',
+              borderColor: 'var(--border)',
+              borderWidth: '1px',
+            }}
             disabled={isAnalyzing}
           />
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
             Used for tech stack detection and code-aware analysis
           </p>
         </div>
 
         {/* Project name */}
         <div>
-          <label className="block text-sm font-medium text-slate-900 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
             Project Name (optional)
           </label>
           <input
@@ -164,7 +195,13 @@ export function PRDInputForm() {
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
             placeholder="e.g., Authentication System"
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: 'var(--bg)',
+              color: 'var(--text)',
+              borderColor: 'var(--border)',
+              borderWidth: '1px',
+            }}
             disabled={isAnalyzing}
           />
         </div>
@@ -183,8 +220,14 @@ export function PRDInputForm() {
       </div>
 
       {/* Info box */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-900">
+      <div
+        className="p-4 rounded-lg border"
+        style={{
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderColor: 'var(--blue)',
+        }}
+      >
+        <p className="text-sm" style={{ color: 'var(--blue)' }}>
           <strong>Tip:</strong> The PRD should include clear functional requirements,
           user stories, and success criteria. The more detailed your PRD, the better the
           breakdown.
