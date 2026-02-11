@@ -638,7 +638,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     setIsExporting(true);
     try {
       if (!selectedProjectKey) return;
-      const result = await exportToJira(ticketId, selectedProjectKey);
+      const result = await exportToJira(ticketId, selectedProjectKey, Array.from(exportSections));
       if (result) {
         toast.success(
           <span>

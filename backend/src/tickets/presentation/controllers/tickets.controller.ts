@@ -716,7 +716,7 @@ export class TicketsController {
   async exportToJira(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
-    @Body() body: { projectKey: string },
+    @Body() body: { projectKey: string; sections?: string[] },
     @Req() req: any,
   ) {
     const userId = req.user?.uid;
@@ -728,6 +728,7 @@ export class TicketsController {
         workspaceId,
         userId,
         projectKey: body.projectKey,
+        sections: body.sections,
       });
       return result;
     } catch (error: any) {

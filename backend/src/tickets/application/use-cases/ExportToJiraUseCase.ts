@@ -13,6 +13,7 @@ interface ExportToJiraCommand {
   workspaceId: string;
   userId: string;
   projectKey: string;
+  sections?: string[];
 }
 
 // Map Forge priority to Jira priority names
@@ -58,7 +59,7 @@ export class ExportToJiraUseCase {
     const apiToken = await this.tokenService.decryptToken(integration.apiToken);
 
     // Generate markdown description from tech spec
-    const description = this.markdownGenerator.generate(aec);
+    const description = this.markdownGenerator.generate(aec, command.sections);
 
     const priority = aec.priority ? PRIORITY_MAP[aec.priority] : undefined;
 

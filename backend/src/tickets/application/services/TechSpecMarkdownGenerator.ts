@@ -22,20 +22,36 @@ import {
  */
 @Injectable()
 export class TechSpecMarkdownGenerator {
-  generate(aec: AEC): string {
+  generate(aec: AEC, sections?: string[]): string {
     const spec = aec.techSpec;
     if (!spec) return '';
 
     const lines: string[] = [];
+    const includedSections = sections && sections.length > 0 ? new Set(sections) : null;
 
     this.renderHeader(lines, aec, spec);
-    this.renderProblemStatement(lines, spec.problemStatement);
-    this.renderSolution(lines, spec.solution);
-    this.renderAcceptanceCriteria(lines, spec.acceptanceCriteria);
-    this.renderFileChanges(lines, spec.fileChanges, spec.layeredFileChanges);
-    this.renderApiEndpoints(lines, spec.apiChanges);
-    this.renderTestPlan(lines, spec.testPlan);
-    this.renderScope(lines, spec.inScope, spec.outOfScope);
+
+    if (!includedSections || includedSections.has('problem')) {
+      this.renderProblemStatement(lines, spec.problemStatement);
+    }
+    if (!includedSections || includedSections.has('solution')) {
+      this.renderSolution(lines, spec.solution);
+    }
+    if (!includedSections || includedSections.has('criteria')) {
+      this.renderAcceptanceCriteria(lines, spec.acceptanceCriteria);
+    }
+    if (!includedSections || includedSections.has('files')) {
+      this.renderFileChanges(lines, spec.fileChanges, spec.layeredFileChanges);
+    }
+    if (!includedSections || includedSections.has('api')) {
+      this.renderApiEndpoints(lines, spec.apiChanges);
+    }
+    if (!includedSections || includedSections.has('tests')) {
+      this.renderTestPlan(lines, spec.testPlan);
+    }
+    if (!includedSections || includedSections.has('scope')) {
+      this.renderScope(lines, spec.inScope, spec.outOfScope);
+    }
 
     return lines.join('\n');
   }
