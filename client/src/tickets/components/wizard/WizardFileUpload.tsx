@@ -64,10 +64,14 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-[var(--text-secondary)]">
-        Attachments
-        <span className="text-[var(--text-tertiary)] font-normal"> (optional, max {MAX_FILES} files, 5MB each)</span>
-      </label>
+      <div className="space-y-1.5">
+        <label className="block text-xs font-medium uppercase tracking-wide text-gray-700 dark:text-gray-400">
+          Reference Materials
+        </label>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          Add screenshots, wireframes, documentation, or reference files to help inform the ticket (max {MAX_FILES} files, 5MB each)
+        </p>
+      </div>
 
       {/* Drop zone */}
       <div
@@ -75,7 +79,7 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={`
-          rounded-lg border-2 border-dashed p-4 text-center transition-colors cursor-pointer
+          rounded-lg border-2 border-dashed p-6 text-center transition-colors cursor-pointer
           ${dragOver
             ? 'border-[var(--purple)] bg-[var(--purple)]/5'
             : 'border-[var(--border)] hover:border-[var(--text-tertiary)]'
@@ -84,7 +88,7 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
         `}
         onClick={() => files.length < MAX_FILES && inputRef.current?.click()}
       >
-        <Upload className="mx-auto h-5 w-5 text-[var(--text-tertiary)] mb-1" />
+        <Upload className="mx-auto h-5 w-5 text-[var(--text-tertiary)] mb-2" />
         <p className="text-xs text-[var(--text-tertiary)]">
           Drop files here or <span className="text-[var(--purple)] font-medium">browse</span>
         </p>
