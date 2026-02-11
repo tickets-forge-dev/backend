@@ -80,7 +80,7 @@ export function OverviewCard({
       )}
 
       {/* Collapsible Notes */}
-      <div className="border-t border-[var(--border)]/40 pt-3">
+      <div className="border-t border-[var(--border)]/20 pt-3">
         <button
           onClick={() => setNotesExpanded((v) => !v)}
           className="flex items-center justify-between w-full group"
