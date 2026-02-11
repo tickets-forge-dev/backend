@@ -98,9 +98,27 @@ export function BreakdownReview() {
 
       const result = await prdService.bulkCreateFromBreakdown(request);
 
-      // Step 2: Store created ticket IDs and show enrichment wizard
-      setDraftTicketIds(result.ticketIds);
-      setShowEnrichmentWizard(true);
+      // Step 2: Extract created ticket IDs (preserving order)
+      const createdIds = result.results
+        .filter((r) => r.ticketId)
+        .map((r) => r.ticketId!);
+
+      // Check for errors
+      const errors = result.results.filter((r) => r.error);
+      if (errors.length > 0) {
+        const errorMessages = errors
+          .map((e) => `"${e.title}": ${e.error}`)
+          .join('\n');
+        setCreationError(`Some tickets failed to create:\n${errorMessages}`);
+      }
+
+      // Step 3: Show enrichment wizard only if we have tickets
+      if (createdIds.length > 0) {
+        setDraftTicketIds(createdIds);
+        setShowEnrichmentWizard(true);
+      } else if (errors.length === result.results.length) {
+        setCreationError('All tickets failed to create. Please check the errors above.');
+      }
       setCreating(false);
     } catch (err) {
       const message =

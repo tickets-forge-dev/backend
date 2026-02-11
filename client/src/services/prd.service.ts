@@ -32,11 +32,11 @@ export interface BulkCreateRequest {
 }
 
 export interface BulkCreateResponse {
-  createdCount: number;
-  ticketIds: string[];
-  errors?: Array<{
-    ticketTitle: string;
-    error: string;
+  results: Array<{
+    originalIndex: number;
+    title: string;
+    ticketId?: string;
+    error?: string;
   }>;
 }
 

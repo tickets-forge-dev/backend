@@ -935,15 +935,16 @@ export class TicketsController {
         tickets: dto.tickets,
       });
 
+      const createdCount = result.results.filter((r) => r.ticketId).length;
+      const errorCount = result.results.filter((r) => r.error).length;
+
       this.logger.log(
-        `✅ Bulk creation complete: ${result.createdCount}/${dto.tickets.length} tickets created`,
+        `✅ Bulk creation complete: ${createdCount}/${dto.tickets.length} tickets created${
+          errorCount > 0 ? `, ${errorCount} errors` : ''
+        }`,
       );
 
-      return {
-        createdCount: result.createdCount,
-        ticketIds: result.ticketIds,
-        errors: result.errors,
-      };
+      return result;
     } catch (error: any) {
       this.logger.error(`Bulk creation failed: ${error.message}`);
 

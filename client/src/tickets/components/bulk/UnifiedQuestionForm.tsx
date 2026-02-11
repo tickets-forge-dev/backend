@@ -203,7 +203,7 @@ function QuestionInput({ question, answer, onAnswerChange }: QuestionInputProps)
         {question.type === 'textarea' ? (
           <textarea
             value={answer}
-            onChange={(e) => onAnswerChange(e.target.value)}
+            onChange={(e) => onAnswerChange(e.target.value.slice(0, 5000))}
             className="w-full px-3 py-2 rounded border text-sm"
             style={{
               backgroundColor: 'var(--bg)',
@@ -212,12 +212,13 @@ function QuestionInput({ question, answer, onAnswerChange }: QuestionInputProps)
             }}
             placeholder="Your answer..."
             rows={4}
+            maxLength={5000}
           />
         ) : question.type === 'text' ? (
           <input
             type="text"
             value={answer}
-            onChange={(e) => onAnswerChange(e.target.value)}
+            onChange={(e) => onAnswerChange(e.target.value.slice(0, 1000))}
             className="w-full px-3 py-2 rounded border text-sm"
             style={{
               backgroundColor: 'var(--bg)',
@@ -225,6 +226,7 @@ function QuestionInput({ question, answer, onAnswerChange }: QuestionInputProps)
               color: 'var(--text)',
             }}
             placeholder="Your answer..."
+            maxLength={1000}
           />
         ) : question.type === 'radio' && question.options ? (
           <div className="space-y-2">

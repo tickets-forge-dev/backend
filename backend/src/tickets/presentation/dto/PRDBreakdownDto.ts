@@ -111,12 +111,15 @@ export interface BulkCreateFromBreakdownRequestDto {
 
 /**
  * Bulk create response DTO
+ *
+ * Uses originalIndex to preserve order even when tickets fail.
+ * This prevents confusion when early tickets fail creation.
  */
 export interface BulkCreateFromBreakdownResponseDto {
-  createdCount: number;
-  ticketIds: string[];
-  errors?: Array<{
-    ticketTitle: string;
-    error: string;
+  results: Array<{
+    originalIndex: number;  // Position in original request (0, 1, 2...)
+    title: string;          // Ticket title for reference
+    ticketId?: string;      // Created ticket ID (if successful)
+    error?: string;         // Error message (if failed)
   }>;
 }

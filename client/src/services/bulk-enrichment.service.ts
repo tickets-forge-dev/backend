@@ -53,16 +53,19 @@ export class BulkEnrichmentService {
    * Enrich multiple tickets in parallel
    *
    * Streams SSE progress events including real-time agent progress.
+   * Includes 60-second timeout to prevent hanging connections.
    *
    * @param ticketIds IDs of tickets to enrich
    * @param onProgress Callback for each progress event
    * @returns Promise that resolves when enrichment completes
+   * @throws Error if timeout or connection failure
    */
   async enrichTickets(
     ticketIds: string[],
     onProgress?: (event: EnrichmentProgressEvent) => void,
   ): Promise<void> {
     const url = `${this.apiUrl}/tickets/bulk/enrich`;
+    const TIMEOUT_MS = 60000; // 60 second timeout
 
     const body: BulkEnrichDto = {
       ticketIds,
@@ -72,12 +75,28 @@ export class BulkEnrichmentService {
     };
 
     return new Promise((resolve, reject) => {
+      let timeout: NodeJS.Timeout | null = null;
+      let isCompleted = false;
+
+      const resetTimeout = () => {
+        if (timeout) clearTimeout(timeout);
+        if (!isCompleted) {
+          timeout = setTimeout(() => {
+            eventSource.close();
+            isCompleted = true;
+            reject(new Error('Enrichment timeout: No response for 60 seconds. Check your network connection.'));
+          }, TIMEOUT_MS);
+        }
+      };
+
       const eventSource = new EventSource(
         `${url}?${new URLSearchParams(Object.entries(body)).toString()}`,
       );
 
       eventSource.onmessage = (event) => {
         try {
+          resetTimeout(); // Reset timeout on each message
+
           const data = JSON.parse(event.data) as EnrichmentProgressEvent;
 
           if (onProgress) {
@@ -86,6 +105,9 @@ export class BulkEnrichmentService {
 
           if (data.type === 'complete' || data.type === 'error') {
             eventSource.close();
+            isCompleted = true;
+            if (timeout) clearTimeout(timeout);
+
             if (data.type === 'error') {
               reject(new Error(data.message || 'Enrichment failed'));
             } else {
@@ -94,14 +116,21 @@ export class BulkEnrichmentService {
           }
         } catch (error) {
           eventSource.close();
+          isCompleted = true;
+          if (timeout) clearTimeout(timeout);
           reject(error);
         }
       };
 
       eventSource.onerror = (error) => {
         eventSource.close();
-        reject(error);
+        isCompleted = true;
+        if (timeout) clearTimeout(timeout);
+        reject(new Error('Connection error. Check your internet connection.'));
       };
+
+      // Start initial timeout
+      resetTimeout();
     });
   }
 
@@ -109,26 +138,34 @@ export class BulkEnrichmentService {
    * Finalize multiple enriched tickets in parallel
    *
    * Streams SSE progress events including real-time finalization progress.
+   * Includes 60-second timeout to prevent hanging connections.
    *
    * @param answers Question answers from user (questionId -> answer)
-   * @param ticketIds IDs of tickets to finalize
    * @param onProgress Callback for each progress event
    * @returns Promise that resolves when finalization completes
+   * @throws Error if timeout or connection failure
    */
   async finalizeTickets(
     answers: Array<{ ticketId: string; questionId: string; answer: string }>,
     onProgress?: (event: EnrichmentProgressEvent) => void,
   ): Promise<void> {
     const url = `${this.apiUrl}/tickets/bulk/finalize`;
+    const TIMEOUT_MS = 60000; // 60 second timeout
 
     return new Promise((resolve, reject) => {
-      const eventSource = new EventSource(url, {
-        // Note: EventSource doesn't directly support request body,
-        // so we'll use a POST endpoint that also accepts GET with query params
-        // For now, we'll need to handle this differently (fetch with response stream)
-      });
+      let timeout: NodeJS.Timeout | null = null;
+      let isCompleted = false;
 
-      // Actually, EventSource can't do POST with body, so we need to use fetch instead
+      const resetTimeout = () => {
+        if (timeout) clearTimeout(timeout);
+        if (!isCompleted) {
+          timeout = setTimeout(() => {
+            isCompleted = true;
+            reject(new Error('Finalization timeout: No response for 60 seconds. Check your network connection.'));
+          }, TIMEOUT_MS);
+        }
+      };
+
       fetch(url, {
         method: 'POST',
         headers: {
@@ -154,9 +191,13 @@ export class BulkEnrichmentService {
             const { done, value } = await reader.read();
 
             if (done) {
+              isCompleted = true;
+              if (timeout) clearTimeout(timeout);
               resolve();
               return;
             }
+
+            resetTimeout(); // Reset timeout on each chunk received
 
             buffer += decoder.decode(value, { stream: true });
 
@@ -175,6 +216,8 @@ export class BulkEnrichmentService {
 
                   if (data.type === 'error') {
                     reader.cancel();
+                    isCompleted = true;
+                    if (timeout) clearTimeout(timeout);
                     reject(new Error(data.message || 'Finalization failed'));
                     return;
                   }
@@ -189,7 +232,14 @@ export class BulkEnrichmentService {
 
           return read();
         })
-        .catch(reject);
+        .catch((error) => {
+          isCompleted = true;
+          if (timeout) clearTimeout(timeout);
+          reject(error);
+        });
+
+      // Start initial timeout
+      resetTimeout();
     });
   }
 }

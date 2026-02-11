@@ -94,8 +94,13 @@ export function BulkEnrichmentWizard({
     }
   }, [ticketIds, bulkService, updateAgentProgress, setEnrichmentComplete]);
 
-  // Start finalization process
+  // Start finalization process (with double-submit prevention)
   const handleFinalize = useCallback(async () => {
+    // Prevent double-submit: if already finalizing or complete, ignore
+    if (phase === 'finalizing' || phase === 'complete') {
+      return;
+    }
+
     startFinalization();
 
     // Convert answers to API format
@@ -131,7 +136,7 @@ export function BulkEnrichmentWizard({
     } catch (error) {
       console.error('Finalization failed:', error);
     }
-  }, [questions, answers, startFinalization, updateFinalizationProgress, setFinalizationComplete, bulkService, ticketIds, onComplete]);
+  }, [phase, questions, answers, startFinalization, updateFinalizationProgress, setFinalizationComplete, bulkService, ticketIds, onComplete]);
 
   // Render Stage 1: Enriching
   if (phase === 'enriching') {

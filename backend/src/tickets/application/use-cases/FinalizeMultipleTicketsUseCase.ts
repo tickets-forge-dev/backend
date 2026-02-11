@@ -16,23 +16,7 @@
 import { Injectable, BadRequestException, Logger, Inject } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { SubmitQuestionAnswersUseCase } from './SubmitQuestionAnswersUseCase';
-
-/**
- * Progress event emitted during finalization
- */
-export interface FinalizationProgressEvent {
-  type: 'progress' | 'complete' | 'error';
-  ticketId: string;
-  ticketTitle: string;
-  agentId: number; // 1, 2, or 3
-  phase: 'generating_spec' | 'saving' | 'complete' | 'error';
-  status: 'started' | 'in_progress' | 'completed' | 'failed';
-  message: string;
-  metadata?: {
-    currentStep?: string;
-    error?: string;
-  };
-}
+import { EnrichmentProgressEvent } from './EnrichMultipleTicketsUseCase';
 
 /**
  * Single answer from user
@@ -58,7 +42,7 @@ interface TicketFinalizationResult {
  */
 export interface FinalizeMultipleCommand {
   answers: QuestionAnswer[];
-  onProgress?: (event: FinalizationProgressEvent) => void;
+  onProgress?: (event: EnrichmentProgressEvent) => void;
 }
 
 /**
@@ -183,7 +167,7 @@ export class FinalizeMultipleTicketsUseCase {
     ticket: any,
     agentId: number,
     answers: QuestionAnswer[],
-    onProgress?: (event: FinalizationProgressEvent) => void,
+    onProgress?: (event: EnrichmentProgressEvent) => void,
   ): Promise<TicketFinalizationResult> {
     const ticketId = ticket.id;
     const ticketTitle = ticket.title;
@@ -279,8 +263,8 @@ export class FinalizeMultipleTicketsUseCase {
    * Emit progress event if callback provided
    */
   private emitProgress(
-    callback: ((event: FinalizationProgressEvent) => void) | undefined,
-    event: FinalizationProgressEvent,
+    callback: ((event: EnrichmentProgressEvent) => void) | undefined,
+    event: EnrichmentProgressEvent,
   ) {
     if (callback) {
       callback(event);

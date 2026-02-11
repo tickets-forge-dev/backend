@@ -36,8 +36,23 @@ export interface BulkCreateCommand {
 
 /**
  * Result of bulk creation
+ *
+ * Uses originalIndex to maintain mapping even when tickets fail.
+ * This prevents order shifting when early tickets fail creation.
  */
 export interface BulkCreateResult {
+  results: Array<{
+    originalIndex: number;  // Position in original request (0, 1, 2)
+    title: string;          // Ticket title for reference
+    ticketId?: string;      // Created ticket ID (if successful)
+    error?: string;         // Error message (if failed)
+  }>;
+}
+
+/**
+ * Legacy format (deprecated, kept for backward compatibility)
+ */
+export interface BulkCreateResultLegacy {
   createdCount: number;
   ticketIds: string[];
   errors: Array<{
@@ -94,8 +109,7 @@ export class BulkCreateFromBreakdownUseCase {
       );
     }
 
-    const createdTickets: Array<{ id: string; title: string }> = [];
-    const errors: Array<{ ticketTitle: string; error: string }> = [];
+    const results: BulkCreateResult['results'] = [];
 
     // Create tickets sequentially (could be parallelized if needed)
     for (let i = 0; i < command.tickets.length; i++) {
@@ -161,14 +175,21 @@ export class BulkCreateFromBreakdownUseCase {
         // Save updated AEC
         await this.aecRepository.save(aec);
 
-        createdTickets.push({ id: aec.id, title: ticket.title });
+        // Track success with original index
+        results.push({
+          originalIndex: i,
+          title: ticket.title,
+          ticketId: aec.id,
+        });
         this.logger.log(
           `✅ Created ticket ${i + 1}/${command.tickets.length}: ${ticket.title} (${aec.id})`,
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        errors.push({
-          ticketTitle: ticket.title,
+        // Track failure with original index
+        results.push({
+          originalIndex: i,
+          title: ticket.title,
           error: message,
         });
         this.logger.error(
@@ -178,15 +199,14 @@ export class BulkCreateFromBreakdownUseCase {
       }
     }
 
-    const result: BulkCreateResult = {
-      createdCount: createdTickets.length,
-      ticketIds: createdTickets.map((t) => t.id),
-      errors,
-    };
+    const createdCount = results.filter((r) => r.ticketId).length;
+    const errorCount = results.filter((r) => r.error).length;
+
+    const result: BulkCreateResult = { results };
 
     this.logger.log(
-      `📦 Bulk creation complete: ${result.createdCount}/${command.tickets.length} tickets created${
-        errors.length > 0 ? `, ${errors.length} errors` : ''
+      `📦 Bulk creation complete: ${createdCount}/${command.tickets.length} tickets created${
+        errorCount > 0 ? `, ${errorCount} errors` : ''
       }`,
     );
 

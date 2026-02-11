@@ -16,19 +16,21 @@
  * in the controller. This use case orchestrates parallel question generation.
  */
 
-import { Injectable, BadRequestException, Logger, Inject } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, Logger, Inject } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { GenerateQuestionsUseCase } from './GenerateQuestionsUseCase';
 
 /**
- * Progress event emitted during enrichment
+ * Progress event emitted during enrichment or finalization
+ * Unified type that handles both enrichment phases (deep_analysis, question_generation)
+ * and finalization phases (generating_spec, saving)
  */
 export interface EnrichmentProgressEvent {
   type: 'progress' | 'complete' | 'error';
   ticketId: string;
   ticketTitle: string;
   agentId: number; // 1, 2, or 3
-  phase: 'deep_analysis' | 'question_generation' | 'complete' | 'error';
+  phase: 'deep_analysis' | 'question_generation' | 'generating_spec' | 'saving' | 'complete' | 'error';
   status: 'started' | 'in_progress' | 'completed' | 'failed';
   message: string;
   metadata?: {
@@ -98,7 +100,7 @@ export class EnrichMultipleTicketsUseCase {
       `⚙️ Starting parallel enrichment of ${command.ticketIds.length} tickets`,
     );
 
-    // Validate tickets exist and are drafts
+    // Validate tickets exist, are drafts, and belong to the workspace
     const tickets = await Promise.all(
       command.ticketIds.map(async (id) => {
         const ticket = await this.aecRepository.findById(id);
@@ -108,6 +110,12 @@ export class EnrichMultipleTicketsUseCase {
         if (ticket.status !== 'draft') {
           throw new BadRequestException(
             `Ticket "${ticket.title}" is not in draft state (status: ${ticket.status})`,
+          );
+        }
+        // Verify ticket belongs to the workspace
+        if (ticket.workspaceId !== command.workspaceId) {
+          throw new ForbiddenException(
+            `Ticket "${ticket.title}" does not belong to your workspace`,
           );
         }
         return { id, ticket };
