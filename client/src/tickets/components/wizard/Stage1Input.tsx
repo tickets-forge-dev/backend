@@ -265,7 +265,7 @@ export function Stage1Input() {
                 <p className="text-xs font-medium text-gray-700 dark:text-gray-400">
                   Branch to Analyze
                 </p>
-                <BranchSelector />
+                <BranchSelector hideLabel={true} />
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   We&apos;ll read code from this branch to provide context for your ticket.
                 </p>
