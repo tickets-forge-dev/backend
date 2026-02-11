@@ -86,7 +86,7 @@ export function Stage1Input() {
 
   // Form validation
   const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
-  const isTitleValid = wordCount >= 2 && input.title.length <= 100;
+  const isTitleValid = wordCount >= 2 && input.title.length <= 500;
   const isRepoValid = (input.repoOwner.length > 0 && input.repoName.length > 0) || !!selectedRepository;
   const isFormValid = isTitleValid && isRepoValid;
 
@@ -96,13 +96,13 @@ export function Stage1Input() {
       ? 'Title is required'
       : input.title.length < 3
         ? 'Title must be at least 3 characters'
-        : input.title.length > 100
-          ? 'Title must be 100 characters or less'
+        : input.title.length > 500
+          ? 'Title must be 500 characters or less'
           : ''
     : '';
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
   };
 
   const handleTitleBlur = () => {
@@ -113,51 +113,102 @@ export function Stage1Input() {
 
   return (
     <div className="space-y-5">
-      {/* Title Section - Prominent with subtle glow */}
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <label
-            htmlFor="title"
-            className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"
-          >
-            Ticket Title
+      {/* Type & Priority - At the top */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
+            Type
           </label>
-          <div className="relative">
-            <Input
-              id="title"
-              type="text"
-              placeholder="Add user authentication with Zustand"
-              value={input.title}
-              onChange={handleTitleChange}
-              onBlur={handleTitleBlur}
-              maxLength={100}
-              autoFocus
-              aria-invalid={titleError ? 'true' : 'false'}
-              aria-describedby={titleError ? 'title-error' : undefined}
-              className="w-full text-lg font-medium border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:border-blue-500 transition-all"
-              style={{
-                boxShadow: titleError
-                  ? 'inset 0 0 0 1px rgb(239, 68, 68, 0.3)'
-                  : input.title.length > 0
-                    ? 'inset 0 0 0 1px rgba(59, 130, 246, 0.2), 0 0 12px rgba(59, 130, 246, 0.08)'
-                    : 'inset 0 0 0 1px rgba(229, 231, 235, 0.5)',
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            {titleError && (
-              <span
-                id="title-error"
-                role="alert"
-                className="text-xs text-red-600 dark:text-red-400"
-              >
-                {titleError}
-              </span>
-            )}
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-              {input.title.length}/100
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="feature">
+                <span className="inline-flex items-center gap-2">
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                  Feature
+                </span>
+              </SelectItem>
+              <SelectItem value="bug">
+                <span className="inline-flex items-center gap-2">
+                  <Bug className="h-3.5 w-3.5 text-red-500" />
+                  Bug
+                </span>
+              </SelectItem>
+              <SelectItem value="task">
+                <span className="inline-flex items-center gap-2">
+                  <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
+                  Task
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
+            Priority
+          </label>
+          <Select value={priority} onValueChange={setPriority}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Low
+                </span>
+              </SelectItem>
+              <SelectItem value="medium">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                  Medium
+                </span>
+              </SelectItem>
+              <SelectItem value="high">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-orange-500" />
+                  High
+                </span>
+              </SelectItem>
+              <SelectItem value="urgent">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  Urgent
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Title Section - Prominent with markdown support */}
+      <div className="space-y-2">
+        <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Ticket Title
+        </label>
+        <MarkdownInput
+          value={input.title}
+          onChange={handleTitleChange}
+          placeholder="Add user authentication with Zustand (supports **bold**, *italic*, `code`)"
+          maxLength={500}
+          rows={3}
+        />
+        <div className="flex items-center justify-between">
+          {titleError && (
+            <span
+              id="title-error"
+              role="alert"
+              className="text-xs text-red-600 dark:text-red-400"
+            >
+              {titleError}
             </span>
-          </div>
+          )}
+          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+            {input.title.length}/500
+          </span>
         </div>
       </div>
 
@@ -172,98 +223,8 @@ export function Stage1Input() {
         }}
         className="space-y-4"
       >
-        {/* UNIFIED TICKET CARD - Details + Description combined */}
+        {/* UNIFIED TICKET CARD - Type/Priority removed (now at top) */}
         <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-5 space-y-4 bg-gray-50/50 dark:bg-gray-900/30">
-          {/* Type & Priority - Compact inline row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
-                Type
-              </label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="feature">
-                    <span className="inline-flex items-center gap-2">
-                      <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
-                      Feature
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="bug">
-                    <span className="inline-flex items-center gap-2">
-                      <Bug className="h-3.5 w-3.5 text-red-500" />
-                      Bug
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="task">
-                    <span className="inline-flex items-center gap-2">
-                      <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
-                      Task
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
-                Priority
-              </label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-green-500" />
-                      Low
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="medium">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-yellow-500" />
-                      Medium
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="high">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-orange-500" />
-                      High
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="urgent">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-red-500" />
-                      Urgent
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-gray-200 dark:border-gray-700/50" />
-
-          {/* Description Input (markdown) */}
-          <div className="space-y-2">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
-              Description
-              <span className="text-gray-500 dark:text-gray-500 font-normal text-xs ml-1">
-                (optional)
-              </span>
-            </label>
-            <MarkdownInput
-              value={input.description || ''}
-              onChange={setDescription}
-              placeholder="Describe what you want to build or change. Supports **markdown** formatting."
-              maxLength={2000}
-              rows={3}
-            />
-          </div>
 
           {/* File Upload */}
           <WizardFileUpload
