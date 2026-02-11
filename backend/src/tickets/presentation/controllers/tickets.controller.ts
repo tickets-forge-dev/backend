@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import { memoryStorage } from 'multer';
 import {
   CreateTicketUseCase,
   TICKET_LIMITS,
@@ -593,7 +594,7 @@ export class TicketsController {
   @Post(':id(aec_[a-f0-9\\-]+)/attachments')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file', {
-    storage: require('multer').memoryStorage(),
+    storage: memoryStorage(),
     limits: { fileSize: MAX_FILE_SIZE },
   }))
   async uploadAttachment(
@@ -1110,7 +1111,7 @@ export class TicketsController {
   async saveBreakdownDraft(
     @WorkspaceId() workspaceId: string,
     @UserId() userId: string,
-    @Body() dto: any, // SaveBreakdownDraftDto
+    @Body() _dto: any, // SaveBreakdownDraftDto
   ) {
     if (!workspaceId || !userId) {
       throw new BadRequestException('Workspace and user IDs are required');

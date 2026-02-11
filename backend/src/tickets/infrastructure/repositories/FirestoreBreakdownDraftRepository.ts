@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Firestore, Timestamp } from 'firebase-admin/firestore';
+import { Firestore } from 'firebase-admin/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
