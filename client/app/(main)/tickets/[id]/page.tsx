@@ -58,6 +58,12 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [linearConnected, setLinearConnected] = useState<boolean | null>(null);
   const [jiraConnected, setJiraConnected] = useState<boolean | null>(null);
 
+  // Export section selection and preview
+  const [exportSections, setExportSections] = useState<Set<string>>(
+    new Set(['problem', 'solution', 'criteria', 'files', 'api', 'tests', 'scope']),
+  );
+  const [exportPreviewLoading, setExportPreviewLoading] = useState(false);
+
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
     params.then(({ id }) => setTicketId(id));
@@ -1050,6 +1056,40 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                 Connect Jira in Settings to export tickets.
               </p>
             )}
+
+            {/* Section Selection */}
+            <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+              <label className="text-sm font-medium text-[var(--text)]">Sections to Export</label>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {[
+                  { id: 'problem', label: 'Problem Statement' },
+                  { id: 'solution', label: 'Solution' },
+                  { id: 'criteria', label: 'Acceptance Criteria' },
+                  { id: 'files', label: 'File Changes' },
+                  { id: 'api', label: 'API Endpoints' },
+                  { id: 'tests', label: 'Test Plan' },
+                  { id: 'scope', label: 'Scope' },
+                ].map((section) => (
+                  <label key={section.id} className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text)]">
+                    <input
+                      type="checkbox"
+                      checked={exportSections.has(section.id)}
+                      onChange={(e) => {
+                        const newSections = new Set(exportSections);
+                        if (e.target.checked) {
+                          newSections.add(section.id);
+                        } else {
+                          newSections.delete(section.id);
+                        }
+                        setExportSections(newSections);
+                      }}
+                      className="rounded border-[var(--border)]"
+                    />
+                    {section.label}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowExportDialog(false)} disabled={isExporting}>
