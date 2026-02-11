@@ -52,31 +52,24 @@ export default function DocsHome() {
               title: 'Ticket Creation',
               description: 'Learn how to create tickets from scratch, import from Jira/Linear, or break down PRDs.',
               href: '/docs/workflows/ticket-creation',
-              disabled: true,
             },
             {
               icon: <Shield className="h-6 w-6" />,
               title: 'Security & Privacy',
               description: 'Your code is safe. Learn how we scan code without cloning or storing it.',
               href: '/docs/security/code-scanning',
-              disabled: true,
             },
             {
               icon: <Search className="h-6 w-6" />,
               title: 'FAQ & Help',
               description: 'Find answers to common questions and troubleshooting tips.',
               href: '/docs/faq/general',
-              disabled: true,
             },
           ].map((item, i) => (
             <Link
               key={i}
-              href={item.disabled ? '#' : item.href}
-              className={`block p-6 border border-gray-200 dark:border-gray-800 rounded-lg transition-all ${
-                item.disabled
-                  ? 'opacity-60 cursor-not-allowed pointer-events-none'
-                  : 'hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md dark:hover:shadow-blue-900/20'
-              }`}
+              href={item.href}
+              className="block p-6 border border-gray-200 dark:border-gray-800 rounded-lg transition-all hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md dark:hover:shadow-blue-900/20"
             >
               <div className="text-blue-600 dark:text-blue-400 mb-3">{item.icon}</div>
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h3>
@@ -100,8 +93,8 @@ export default function DocsHome() {
           ].map((item, i) => (
             <Link
               key={i}
-              href="#"
-              className="px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white opacity-60 cursor-not-allowed pointer-events-none"
+              href={item.href}
+              className="px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               {item.title}
             </Link>
@@ -123,8 +116,8 @@ export default function DocsHome() {
           ].map((item, i) => (
             <Link
               key={i}
-              href="#"
-              className="px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white opacity-60 cursor-not-allowed pointer-events-none"
+              href={item.href}
+              className="px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               {item.title}
             </Link>
@@ -136,7 +129,7 @@ export default function DocsHome() {
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Understanding the Phases</h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Forge generates tickets through 4 phases. Learn what happens at each step:
+          Forge generates tickets through 5 phases. Learn what happens at each step:
         </p>
         <div className="space-y-2">
           {[
@@ -144,10 +137,12 @@ export default function DocsHome() {
             { num: 2, title: 'Deep Analysis', time: '5-10s' },
             { num: 3, title: 'Clarification Questions', time: 'Variable' },
             { num: 4, title: 'Specification Generation', time: '2-3s' },
+            { num: 5, title: 'Finalization', time: 'Manual' },
           ].map((item, i) => (
-            <div
+            <Link
               key={i}
-              className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-800 opacity-60 cursor-not-allowed pointer-events-none"
+              href={`/docs/phases/phase-${item.num}-${item.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`}
+              className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <div className="flex items-center gap-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
@@ -156,7 +151,7 @@ export default function DocsHome() {
                 <h3 className="font-semibold text-gray-900 dark:text-white">{item.title}</h3>
               </div>
               <span className="text-sm text-gray-500">{item.time}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
