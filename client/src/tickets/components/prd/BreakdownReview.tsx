@@ -8,6 +8,20 @@ import { EpicGroup } from './EpicGroup';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 /**
+ * Format milliseconds to hh:mm:ss format
+ */
+function formatAnalysisTime(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return [hours, minutes, seconds]
+    .map((val) => String(val).padStart(2, '0'))
+    .join(':');
+}
+
+/**
  * BreakdownReview - Step 2: Review and edit breakdown
  *
  * Shows all epics and tickets from the breakdown.
@@ -119,7 +133,7 @@ export function BreakdownReview() {
         >
           <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>ANALYSIS TIME</p>
           <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
-            {analysisTime ? `${analysisTime}ms` : '—'}
+            {analysisTime ? formatAnalysisTime(analysisTime) : '—'}
           </p>
         </div>
       </div>
@@ -135,33 +149,6 @@ export function BreakdownReview() {
         >
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--red)' }} />
           <p className="text-sm" style={{ color: 'var(--red)' }}>{creationError || error}</p>
-        </div>
-      )}
-
-      {/* FR Coverage info */}
-      {Object.keys(breakdown.summary.frCoverage).length > 0 && (
-        <div
-          className="p-4 rounded-lg border"
-          style={{
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderColor: 'var(--blue)',
-          }}
-        >
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--blue)' }}>
-            FUNCTIONAL REQUIREMENTS COVERAGE
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {breakdown.summary.frInventory.map((fr) => (
-              <div key={fr.id} className="text-xs">
-                <span className="font-medium" style={{ color: 'var(--blue)' }}>{fr.id}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  {' '}
-                  covered by {breakdown.summary.frCoverage[fr.id]?.length || 0}{' '}
-                  stories
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
