@@ -68,8 +68,12 @@ import { ImportFromJiraUseCase } from '../../application/use-cases/ImportFromJir
 import { ImportFromLinearUseCase } from '../../application/use-cases/ImportFromLinearUseCase';
 import { PRDBreakdownUseCase } from '../../application/use-cases/PRDBreakdownUseCase';
 import { BulkCreateFromBreakdownUseCase } from '../../application/use-cases/BulkCreateFromBreakdownUseCase';
+import { EnrichMultipleTicketsUseCase } from '../../application/use-cases/EnrichMultipleTicketsUseCase';
+import { FinalizeMultipleTicketsUseCase } from '../../application/use-cases/FinalizeMultipleTicketsUseCase';
 import { ImportFromJiraDto } from '../dto/ImportFromJiraDto';
 import { ImportFromLinearDto } from '../dto/ImportFromLinearDto';
+import { BulkEnrichDto } from '../dto/BulkEnrichDto';
+import { BulkFinalizeDto } from '../dto/BulkFinalizeDto';
 import {
   PRDBreakdownRequestDto,
   PRDBreakdownResponseDto,
@@ -117,6 +121,8 @@ export class TicketsController {
     private readonly importFromLinearUseCase: ImportFromLinearUseCase,
     private readonly prdBreakdownUseCase: PRDBreakdownUseCase,
     private readonly bulkCreateFromBreakdownUseCase: BulkCreateFromBreakdownUseCase,
+    private readonly enrichMultipleTicketsUseCase: EnrichMultipleTicketsUseCase,
+    private readonly finalizeMultipleTicketsUseCase: FinalizeMultipleTicketsUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -950,6 +956,114 @@ export class TicketsController {
       throw new BadRequestException(
         error.message || 'Failed to create tickets from breakdown',
       );
+    }
+  }
+
+  /**
+   * Enrich multiple tickets in parallel
+   *
+   * Runs deep analysis + question generation for all tickets simultaneously.
+   * Streams SSE progress events so frontend can show real-time agent progress.
+   *
+   * Request body: ticketIds, repositoryOwner, repositoryName, branch
+   * Response: SSE stream with progress events, final event contains questions grouped by ticketId
+   */
+  @Post('bulk/enrich')
+  async enrichMultipleTickets(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: BulkEnrichDto,
+    @Res() res: Response,
+  ) {
+    this.logger.log(
+      `⚙️ Starting parallel enrichment of ${dto.ticketIds.length} tickets`,
+    );
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    try {
+      const result = await this.enrichMultipleTicketsUseCase.execute({
+        workspaceId,
+        ticketIds: dto.ticketIds,
+        onProgress: (event) => {
+          // Send progress event via SSE
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+        },
+      });
+
+      // Send final completion event
+      const completeEvent = {
+        type: 'complete',
+        questions: Object.fromEntries(result.questions),
+        errors: Object.fromEntries(result.errors),
+        completedCount: result.completedCount,
+        failedCount: result.failedCount,
+      };
+      res.write(`data: ${JSON.stringify(completeEvent)}\n\n`);
+      res.end();
+    } catch (error: any) {
+      this.logger.error(`Enrichment failed: ${error.message}`);
+      const errorEvent = {
+        type: 'error',
+        message: error.message || 'Failed to enrich tickets',
+      };
+      res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
+      res.end();
+    }
+  }
+
+  /**
+   * Finalize multiple enriched tickets in parallel
+   *
+   * Submits question answers for all tickets and generates specs simultaneously.
+   * Streams SSE progress events so frontend can show real-time finalization progress.
+   *
+   * Request body: answers array with ticketId, questionId, answer
+   * Response: SSE stream with progress events, final event contains results for each ticket
+   */
+  @Post('bulk/finalize')
+  async finalizeMultipleTickets(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: BulkFinalizeDto,
+    @Res() res: Response,
+  ) {
+    this.logger.log(
+      `⚙️ Starting parallel finalization of ${new Set(dto.answers.map((a) => a.ticketId)).size} tickets`,
+    );
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    try {
+      const result = await this.finalizeMultipleTicketsUseCase.execute({
+        answers: dto.answers,
+        onProgress: (event) => {
+          // Send progress event via SSE
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+        },
+      });
+
+      // Send final completion event
+      const completeEvent = {
+        type: 'complete',
+        results: result.results,
+        completedCount: result.completedCount,
+        failedCount: result.failedCount,
+      };
+      res.write(`data: ${JSON.stringify(completeEvent)}\n\n`);
+      res.end();
+    } catch (error: any) {
+      this.logger.error(`Finalization failed: ${error.message}`);
+      const errorEvent = {
+        type: 'error',
+        message: error.message || 'Failed to finalize tickets',
+      };
+      res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
+      res.end();
     }
   }
 }

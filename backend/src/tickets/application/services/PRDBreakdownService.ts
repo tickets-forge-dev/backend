@@ -255,10 +255,11 @@ Respond with ONLY valid JSON array with no text before or after:
 ]
 
 Guidelines:
-- Propose 3-6 epics for typical projects
-- Each epic should have 3-8 related stories
-- Each epic must deliver meaningful user value
-- Exceptions: Foundation epic (setup) at the start is acceptable for greenfield
+- Propose 2-3 epics MAXIMUM (focus on core user value, skip nice-to-haves)
+- Each epic should have 1-3 related stories (2-4 tickets total)
+- Each epic must deliver essential user value
+- Skip: Foundation epic, setup, tooling, deployment (can be done manually)
+- Prioritize: Feature epics with direct user impact
 - Order epics logically (dependencies first)
 - Map each FR to at least one epic`;
 

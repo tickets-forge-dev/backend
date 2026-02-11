@@ -51,6 +51,8 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
 import { PRDBreakdownUseCase } from './application/use-cases/PRDBreakdownUseCase';
 import { PRDBreakdownService } from './application/services/PRDBreakdownService';
 import { BulkCreateFromBreakdownUseCase } from './application/use-cases/BulkCreateFromBreakdownUseCase';
+import { EnrichMultipleTicketsUseCase } from './application/use-cases/EnrichMultipleTicketsUseCase';
+import { FinalizeMultipleTicketsUseCase } from './application/use-cases/FinalizeMultipleTicketsUseCase';
 
 @Module({
   imports: [GitHubModule, LinearModule, JiraModule, PostHogModule, WorkspacesModule],
@@ -72,6 +74,8 @@ import { BulkCreateFromBreakdownUseCase } from './application/use-cases/BulkCrea
     ImportFromLinearUseCase,
     PRDBreakdownUseCase,
     BulkCreateFromBreakdownUseCase,
+    EnrichMultipleTicketsUseCase,
+    FinalizeMultipleTicketsUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,

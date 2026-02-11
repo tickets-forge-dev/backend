@@ -152,6 +152,19 @@ export function BreakdownReview() {
         </div>
       )}
 
+      {/* Enrichment notice */}
+      <div
+        className="p-4 rounded-lg border"
+        style={{
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          borderColor: 'var(--green)',
+        }}
+      >
+        <p className="text-sm" style={{ color: 'var(--green)' }}>
+          ✨ <strong>These tickets will be fully enriched:</strong> When you click &ldquo;Enrich &amp; Create&rdquo;, each ticket will go through deep analysis, generate clarification questions, and create a complete technical specification with file changes, APIs, and test plans.
+        </p>
+      </div>
+
       {/* Epic groups */}
       <div className="space-y-8">
         {breakdown.summary.epics.map((epic) => (
@@ -169,8 +182,8 @@ export function BreakdownReview() {
         >
           {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
           {isCreating
-            ? `Creating ${breakdown.tickets.length} tickets...`
-            : `Create ${breakdown.tickets.length} Tickets`}
+            ? `Enriching ${breakdown.tickets.length} tickets...`
+            : `Enrich & Create ${breakdown.tickets.length} Tickets`}
         </Button>
       </div>
     </div>
