@@ -310,7 +310,7 @@ export class TicketsController {
     return { used, limit, canCreate: used < limit };
   }
 
-  @Get(':id')
+  @Get(':id(aec_[a-f0-9\\-]+)')
   async getTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.aecRepository.findById(id);
     if (!aec) {
@@ -361,7 +361,7 @@ export class TicketsController {
   /**
    * Generate clarification questions (simplified single-call flow)
    */
-  @Post(':id/generate-questions')
+  @Post(':id(aec_[a-f0-9\\-]+)/generate-questions')
   async generateQuestions(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -380,7 +380,7 @@ export class TicketsController {
   /**
    * Submit question answers and finalize technical specification
    */
-  @Post(':id/submit-answers')
+  @Post(':id(aec_[a-f0-9\\-]+)/submit-answers')
   async submitQuestionAnswers(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -416,7 +416,7 @@ export class TicketsController {
   /**
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
-  @Post(':id/finalize')
+  @Post(':id(aec_[a-f0-9\\-]+)/finalize')
   async finalizeSpec(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.finalizeSpecUseCase.execute({
       aecId: id,
@@ -430,7 +430,7 @@ export class TicketsController {
    * Export ticket as Markdown tech spec document.
    * Uses @Res() for custom Content-Type, so we manually handle errors.
    */
-  @Get(':id/export/markdown')
+  @Get(':id(aec_[a-f0-9\\-]+)/export/markdown')
   async exportMarkdown(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -463,7 +463,7 @@ export class TicketsController {
    * Export ticket as AEC XML contract.
    * Uses @Res() for custom Content-Type, so we manually handle errors.
    */
-  @Get(':id/export/xml')
+  @Get(':id(aec_[a-f0-9\\-]+)/export/xml')
   async exportXml(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -496,7 +496,7 @@ export class TicketsController {
    * Detect APIs from the ticket's repository by scanning controller files.
    * Resolves per-user GitHub token (same pattern as analyzeRepository).
    */
-  @Post(':id/detect-apis')
+  @Post(':id(aec_[a-f0-9\\-]+)/detect-apis')
   async detectApis(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.aecRepository.findById(id);
     if (!aec || aec.workspaceId !== workspaceId) {
@@ -594,7 +594,7 @@ export class TicketsController {
   /**
    * Upload a file attachment to a ticket.
    */
-  @Post(':id/attachments')
+  @Post(':id(aec_[a-f0-9\\-]+)/attachments')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file', {
     storage: require('multer').memoryStorage(),
@@ -675,7 +675,7 @@ export class TicketsController {
   /**
    * List attachments for a ticket.
    */
-  @Get(':id/attachments')
+  @Get(':id(aec_[a-f0-9\\-]+)/attachments')
   async listAttachments(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -691,7 +691,7 @@ export class TicketsController {
   /**
    * Export ticket to Linear as an issue.
    */
-  @Post(':id/export/linear')
+  @Post(':id(aec_[a-f0-9\\-]+)/export/linear')
   async exportToLinear(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -712,7 +712,7 @@ export class TicketsController {
   /**
    * Export ticket to Jira as an issue.
    */
-  @Post(':id/export/jira')
+  @Post(':id(aec_[a-f0-9\\-]+)/export/jira')
   async exportToJira(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
