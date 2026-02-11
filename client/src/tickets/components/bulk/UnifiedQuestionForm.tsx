@@ -194,13 +194,10 @@ function QuestionInput({ question, answer, onAnswerChange }: QuestionInputProps)
           className="text-sm font-medium mb-2"
           style={{ color: 'var(--text)' }}
         >
-          {question.text}
-          {question.required && (
-            <span style={{ color: 'var(--red)' }}>*</span>
-          )}
+          {question.question}
         </p>
 
-        {question.type === 'textarea' ? (
+        {question.type === 'multiline' ? (
           <textarea
             value={answer}
             onChange={(e) => onAnswerChange(e.target.value.slice(0, 5000))}

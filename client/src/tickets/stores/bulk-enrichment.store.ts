@@ -12,10 +12,11 @@ import { create } from 'zustand';
  */
 export interface EnrichedQuestion {
   id: string;
-  text: string;
-  type: 'radio' | 'checkbox' | 'text' | 'textarea' | 'select';
+  question: string;
+  type: 'radio' | 'checkbox' | 'text' | 'multiline' | 'select';
   options?: string[];
-  required: boolean;
+  context?: string;
+  impact?: string;
 }
 
 /**
