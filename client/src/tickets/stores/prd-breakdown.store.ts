@@ -77,6 +77,9 @@ interface PRDBreakdownState {
   error: string | null;
   createdTicketIds: string[];
 
+  // Progress tracking
+  analysisProgress: string | null; // Current analysis step message
+
   // Actions
   setPRDText: (text: string) => void;
   setRepository: (owner: string, name: string) => void;
@@ -90,6 +93,7 @@ interface PRDBreakdownState {
   ) => void;
   setAnalyzing: (analyzing: boolean) => void;
   setError: (error: string | null) => void;
+  setAnalysisProgress: (progress: string | null) => void;
 
   // Editing actions
   updateTicket: (ticketId: number, updates: Partial<BreakdownTicket>) => void;
@@ -120,6 +124,7 @@ const initialState = {
   isCreating: false,
   error: null,
   createdTicketIds: [],
+  analysisProgress: null,
 };
 
 export const usePRDBreakdownStore = create<PRDBreakdownState>()(
@@ -140,6 +145,8 @@ export const usePRDBreakdownStore = create<PRDBreakdownState>()(
       setAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
 
       setError: (error) => set({ error }),
+
+      setAnalysisProgress: (progress) => set({ analysisProgress: progress }),
 
       updateTicket: (ticketId, updates) =>
         set((state) => {

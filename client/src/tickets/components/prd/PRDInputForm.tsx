@@ -22,11 +22,13 @@ export function PRDInputForm() {
     projectName,
     isAnalyzing,
     error,
+    analysisProgress,
     setPRDText,
     setProjectName,
     setBreakdown,
     setAnalyzing,
     setError,
+    setAnalysisProgress,
     moveToReview,
   } = usePRDBreakdownStore();
 
@@ -57,12 +59,22 @@ export function PRDInputForm() {
 
     // Analyze
     setAnalyzing(true);
+    setAnalysisProgress('Starting PRD analysis...');
     try {
-      const result = await prdService.breakdownPRD({
+      const result = await prdService.breakdownPRDWithProgress({
         prdText,
         repositoryOwner,
         repositoryName,
         projectName,
+      }, (event) => {
+        // Update progress display
+        if (event.type === 'progress' && event.message) {
+          setAnalysisProgress(event.message);
+        } else if (event.type === 'complete') {
+          setAnalysisProgress('Analysis complete!');
+        } else if (event.type === 'error') {
+          setAnalysisProgress(null);
+        }
       });
 
       setBreakdown(
@@ -70,11 +82,13 @@ export function PRDInputForm() {
         result.analysisTime,
         result.estimatedTicketsCount,
       );
+      setAnalysisProgress(null);
       moveToReview();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to analyze PRD';
       setError(message);
+      setAnalysisProgress(null);
     } finally {
       setAnalyzing(false);
     }
@@ -155,6 +169,24 @@ export function PRDInputForm() {
           {isAnalyzing ? 'Analyzing PRD...' : 'Analyze PRD'}
         </Button>
       </div>
+
+      {/* Progress message */}
+      {analysisProgress && (
+        <div
+          className="p-3 rounded-lg text-sm"
+          style={{
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            color: 'var(--blue)',
+            borderLeft: '3px solid var(--blue)',
+            paddingLeft: '12px',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+            <span>{analysisProgress}</span>
+          </div>
+        </div>
+      )}
 
       {/* Info box */}
       <div
