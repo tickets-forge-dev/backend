@@ -266,9 +266,6 @@ export function Stage1Input() {
                   Branch to Analyze
                 </p>
                 <BranchSelector hideLabel={true} />
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  We&apos;ll read code from this branch to provide context for your ticket.
-                </p>
               </div>
 
               {/* Future multi-repo placeholder */}
