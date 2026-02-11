@@ -74,13 +74,13 @@ export function ImplementationTab({
         />
       )}
 
-      {/* Acceptance Criteria — non-collapsible for features, collapsible for bugs */}
-      {techSpec?.acceptanceCriteria?.length > 0 && isBugTicket ? (
+      {/* Acceptance Criteria — collapsible for all */}
+      {techSpec?.acceptanceCriteria?.length > 0 && (
         <CollapsibleSection
           id="acceptance-criteria"
           title="Acceptance Criteria"
           badge={`${techSpec.acceptanceCriteria.length}`}
-          defaultExpanded={false}
+          defaultExpanded={isBugTicket ? false : true}
         >
           <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
             {techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
@@ -105,35 +105,7 @@ export function ImplementationTab({
             ))}
           </ul>
         </CollapsibleSection>
-      ) : techSpec?.acceptanceCriteria?.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
-            Acceptance Criteria
-          </h3>
-          <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            {techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
-              <li key={idx}>
-                <EditableItem onEdit={() => onEditItem('acceptanceCriteria', idx)} onDelete={() => onDeleteItem('acceptanceCriteria', idx)}>
-                  {typeof ac === 'string' ? (
-                    <span><span className="text-[var(--text-tertiary)] mr-2">-</span>{ac}</span>
-                  ) : (
-                    <div className="space-y-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-4 py-3">
-                      <p><span className="font-medium text-blue-500 mr-1">Given</span> {ac.given}</p>
-                      <p><span className="font-medium text-amber-500 mr-1">When</span> {ac.when}</p>
-                      <p><span className="font-medium text-green-500 mr-1">Then</span> {ac.then}</p>
-                      {ac.implementationNotes && (
-                        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic mt-1.5">
-                          {ac.implementationNotes}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </EditableItem>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      )}
 
       {/* File Changes */}
       {techSpec?.fileChanges?.length > 0 && (
@@ -190,14 +162,15 @@ export function ImplementationTab({
         </CollapsibleSection>
       )}
 
-      {/* Solution Steps — non-collapsible */}
+      {/* Solution Steps — collapsible */}
       {techSpec?.solution && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
-              Solution
-            </h3>
-            {hasFilePaths && (
+        <CollapsibleSection
+          id="solution"
+          title="Solution"
+          defaultExpanded={true}
+        >
+          {hasFilePaths && (
+            <div className="mb-3">
               <button
                 onClick={() => setShowFilePaths(v => !v)}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
@@ -209,8 +182,8 @@ export function ImplementationTab({
                 <Code className="h-3 w-3" />
                 {showFilePaths ? 'Hide files' : 'Show files'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
           <div className="space-y-3">
             {typeof techSpec.solution === 'string' ? (
               <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
@@ -264,7 +237,7 @@ export function ImplementationTab({
               </div>
             ) : null}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Backend / Frontend Changes (Layered) */}
