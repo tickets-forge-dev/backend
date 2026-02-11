@@ -41,6 +41,7 @@ interface TicketFinalizationResult {
  * Command for finalization
  */
 export interface FinalizeMultipleCommand {
+  workspaceId: string;
   answers: QuestionAnswer[];
   onProgress?: (event: EnrichmentProgressEvent) => void;
 }
@@ -76,7 +77,11 @@ export class FinalizeMultipleTicketsUseCase {
    * @returns Array of results (success/error) per ticket + counts
    */
   async execute(command: FinalizeMultipleCommand): Promise<FinalizeMultipleResult> {
-    this.logger.log(`⚙️ Starting parallel finalization`);
+    this.logger.log(`⚙️ Starting parallel finalization of ${command.answers.length} answers`);
+
+    if (!command.workspaceId) {
+      throw new BadRequestException('Workspace ID is required');
+    }
 
     if (!command.answers || command.answers.length === 0) {
       throw new BadRequestException('No answers provided for finalization');
@@ -97,6 +102,9 @@ export class FinalizeMultipleTicketsUseCase {
         const ticket = await this.aecRepository.findById(id);
         if (!ticket) {
           throw new BadRequestException(`Ticket "${id}" not found`);
+        }
+        if (ticket.workspaceId !== command.workspaceId) {
+          throw new BadRequestException(`Ticket "${id}" does not belong to workspace "${command.workspaceId}"`);
         }
         return { id, ticket };
       }),

@@ -1075,6 +1075,7 @@ export class TicketsController {
 
     try {
       const result = await this.finalizeMultipleTicketsUseCase.execute({
+        workspaceId,
         answers: dto.answers,
         onProgress: (event) => {
           // Send progress event via SSE
