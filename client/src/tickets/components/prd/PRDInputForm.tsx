@@ -36,6 +36,7 @@ export function PRDInputForm() {
   const [showResumeBanner, setShowResumeBanner] = useState(true);
 
   // Check for saved drafts on mount
+  // prdService is a singleton hook, so we don't need it in dependencies
   useEffect(() => {
     (async () => {
       try {
@@ -48,7 +49,7 @@ export function PRDInputForm() {
         console.debug('No saved draft found');
       }
     })();
-  }, [prdService]);
+  }, []);
 
   const handleResumeDraft = () => {
     if (savedDraft) {

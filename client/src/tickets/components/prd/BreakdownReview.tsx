@@ -49,10 +49,13 @@ export function BreakdownReview() {
     estimatedTicketsCount,
     isCreating,
     error,
+    prdText,
+    projectName,
     setCreating,
     setError,
     setCreatedTicketIds,
     moveToSuccess,
+    moveToInput,
     selectAllTickets,
     deselectAllTickets,
   } = usePRDBreakdownStore();
@@ -62,6 +65,7 @@ export function BreakdownReview() {
   const [showEnrichmentWizard, setShowEnrichmentWizard] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-save draft on edits (debounced 2 seconds)
@@ -75,7 +79,8 @@ export function BreakdownReview() {
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         setIsSaving(true);
-        await prdService.saveDraft(breakdown, '', breakdown?.summary?.epics?.[0]?.goal);
+        // Save with actual prdText and projectName from store
+        await prdService.saveDraft(breakdown, prdText, projectName);
         setLastSavedAt(new Date());
       } catch (error) {
         console.error('Failed to auto-save draft:', error);
@@ -83,7 +88,7 @@ export function BreakdownReview() {
         setIsSaving(false);
       }
     }, 2000);
-  }, [breakdown, prdService]);
+  }, [breakdown, prdText, projectName]);
 
   // Set up auto-save when breakdown changes
   useEffect(() => {
@@ -97,6 +102,19 @@ export function BreakdownReview() {
       }
     };
   }, [breakdown, handleAutoSave]);
+
+  // Update elapsed time display every second
+  useEffect(() => {
+    if (!lastSavedAt) return;
+
+    setElapsedSeconds(Math.floor((Date.now() - lastSavedAt.getTime()) / 1000));
+
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - lastSavedAt.getTime()) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lastSavedAt]);
 
   if (!breakdown) {
     return (
@@ -292,7 +310,7 @@ export function BreakdownReview() {
       {/* Action buttons */}
       <div className="flex justify-between items-center pt-6" style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}>
         <div className="flex items-center gap-2">
-          <Button variant="outline">← Back to Input</Button>
+          <Button variant="outline" onClick={() => moveToInput()}>← Back to Input</Button>
           {(isSaving || lastSavedAt) && (
             <div className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
               {isSaving ? (
@@ -303,7 +321,7 @@ export function BreakdownReview() {
               ) : lastSavedAt ? (
                 <>
                   <Check className="w-3 h-3 text-green-500" />
-                  Saved {Math.floor((Date.now() - lastSavedAt.getTime()) / 1000)}s ago
+                  Saved {elapsedSeconds}s ago
                 </>
               ) : null}
             </div>

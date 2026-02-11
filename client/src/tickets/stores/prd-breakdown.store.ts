@@ -118,6 +118,7 @@ interface PRDBreakdownState {
   setCreatedTicketIds: (ids: string[]) => void;
 
   // Navigation
+  moveToInput: () => void;
   moveToReview: () => void;
   moveToSuccess: () => void;
   reset: () => void;
@@ -397,6 +398,8 @@ export const usePRDBreakdownStore = create<PRDBreakdownState>()(
 
       setCreatedTicketIds: (ids) => set({ createdTicketIds: ids }),
 
+      moveToInput: () => set({ currentStep: 'input' }),
+
       moveToReview: () => set({ currentStep: 'review' }),
 
       moveToSuccess: () => set({ currentStep: 'success' }),
@@ -404,25 +407,14 @@ export const usePRDBreakdownStore = create<PRDBreakdownState>()(
       reset: () => set(initialState),
 
       // Draft actions
+      // Note: Actual draft saving is handled by BreakdownReview component via prdService.saveDraft()
+      // This action only updates UI state, not persisting data
       saveDraft: async () => {
-        set({ draftIsSaving: true });
-        try {
-          const state = (usePRDBreakdownStore as any).getState?.();
-          if (!state?.breakdown) {
-            set({ draftIsSaving: false });
-            return;
-          }
-
-          // Note: Actual draft saving is handled by PRDInputForm component
-          // This action is a placeholder for future async save operations
-          set({
-            draftIsSaving: false,
-            lastSavedAt: new Date(),
-            hasSavedDraft: true,
-          });
-        } catch (error) {
-          set({ draftIsSaving: false });
-        }
+        // This is a placeholder action - actual saving happens in component
+        // via prdService.saveDraft(breakdown, prdText, projectName)
+        set({
+          hasSavedDraft: true,
+        });
       },
 
       resumeDraft: (draft: any) => {
