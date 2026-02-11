@@ -27,14 +27,20 @@ export default function LandingPage() {
             <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link 
-              href="/login" 
+            <Link
+              href="/docs"
+              className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
+            >
+              Docs
+            </Link>
+            <Link
+              href="/login"
               className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
             >
               Log in
             </Link>
-            <Link 
-              href="/tickets" 
+            <Link
+              href="/tickets"
               className="hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-[var(--text)] px-4 text-sm font-medium text-[var(--bg)] transition-colors hover:opacity-90"
             >
               Go to App
@@ -330,6 +336,15 @@ export default function LandingPage() {
               <Image src="/forge-icon.png" alt="Forge" width={24} height={24} />
               <span className="font-bold text-base bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
             </div>
+          </div>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Link href="/docs" className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
+              Documentation
+            </Link>
+            <span className="text-[var(--border)]">•</span>
+            <Link href="/pricing" className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
+              Pricing
+            </Link>
           </div>
           <p>&copy; {new Date().getFullYear()} Forge. All rights reserved.</p>
         </div>
