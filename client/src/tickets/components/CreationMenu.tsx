@@ -66,19 +66,19 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
 
       {/* Floating Menu */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+        <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-xl z-50">
           {/* Create New Ticket */}
           <button
             onClick={() => {
               router.push('/tickets/create?mode=new');
               setIsOpen(false);
             }}
-            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors first:rounded-t-lg border-b border-slate-100 last:border-b-0"
+            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors first:rounded-t-lg border-b border-slate-100 dark:border-slate-700 last:border-b-0"
           >
-            <Plus className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="text-left">
-              <p className="font-medium text-sm text-slate-900">Create New Ticket</p>
-              <p className="text-xs text-slate-600">Single ticket with deep analysis</p>
+              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create New Ticket</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Single ticket with deep analysis</p>
             </div>
           </button>
 
@@ -89,12 +89,12 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
                 router.push('/tickets/create?mode=import');
                 setIsOpen(false);
               }}
-              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
+              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
             >
-              <Upload className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <Upload className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
               <div className="text-left">
-                <p className="font-medium text-sm text-slate-900">Import Ticket</p>
-                <p className="text-xs text-slate-600">From Jira or Linear issue</p>
+                <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Import Ticket</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">From Jira or Linear issue</p>
               </div>
             </button>
           )}
@@ -105,12 +105,12 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
               router.push('/tickets/breakdown');
               setIsOpen(false);
             }}
-            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors rounded-b-lg"
+            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-lg"
           >
-            <FileText className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+            <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
             <div className="text-left">
-              <p className="font-medium text-sm text-slate-900">PRD Breakdown</p>
-              <p className="text-xs text-slate-600">Bulk create from PRD analysis</p>
+              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">PRD Breakdown</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Bulk create from PRD analysis</p>
             </div>
           </button>
         </div>
