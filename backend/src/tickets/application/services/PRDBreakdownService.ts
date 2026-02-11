@@ -321,7 +321,7 @@ Guidelines:
     prdText: string,
     epic: EpicProposal,
     allFRs: ExtractedFR[],
-    epicIndex: number,
+    _epicIndex: number,
   ): Promise<GeneratedStory[]> {
     if (!this.llmModel) {
       throw new Error('LLM model not initialized. Check ANTHROPIC_API_KEY or Ollama connection.');

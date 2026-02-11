@@ -76,14 +76,10 @@ import { BulkEnrichDto } from '../dto/BulkEnrichDto';
 import { BulkFinalizeDto } from '../dto/BulkFinalizeDto';
 import {
   PRDBreakdownRequestDto,
-  PRDBreakdownResponseDto,
   BulkCreateFromBreakdownRequestDto,
   BulkCreateFromBreakdownResponseDto,
 } from '../dto/PRDBreakdownDto';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import type { ImportAvailabilityResult } from '../../application/use-cases/GetImportAvailabilityUseCase';
-import type { ImportFromJiraResult } from '../../application/use-cases/ImportFromJiraUseCase';
-import type { ImportFromLinearResult } from '../../application/use-cases/ImportFromLinearUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)

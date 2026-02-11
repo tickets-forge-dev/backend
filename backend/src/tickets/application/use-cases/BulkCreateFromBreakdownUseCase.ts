@@ -9,7 +9,6 @@
 import { Injectable, BadRequestException, Logger, Inject, ForbiddenException } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { CreateTicketUseCase } from './CreateTicketUseCase';
-import { AEC } from '../../domain/aec/AEC';
 import { WORKSPACE_REPOSITORY, WorkspaceRepository } from '../../../workspaces/application/ports/WorkspaceRepository';
 
 /**

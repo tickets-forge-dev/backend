@@ -16,7 +16,7 @@ export class FirestoreBreakdownDraftRepository {
   /**
    * Save a new breakdown draft or update existing
    */
-  async save(command: any): Promise<string> {
+  async save(_command: any): Promise<string> {
     // Placeholder for future implementation
     const draftId = uuidv4();
     return draftId;
@@ -25,7 +25,7 @@ export class FirestoreBreakdownDraftRepository {
   /**
    * Get a specific draft by ID
    */
-  async getById(workspaceId: string, userId: string, draftId: string): Promise<any | null> {
+  async getById(_workspaceId: string, _userId: string, _draftId: string): Promise<any | null> {
     // Placeholder for future implementation
     return null;
   }
@@ -33,7 +33,7 @@ export class FirestoreBreakdownDraftRepository {
   /**
    * Get the most recent draft for a user/workspace
    */
-  async getLatest(workspaceId: string, userId: string): Promise<any | null> {
+  async getLatest(_workspaceId: string, _userId: string): Promise<any | null> {
     // Placeholder for future implementation
     return null;
   }
@@ -41,14 +41,14 @@ export class FirestoreBreakdownDraftRepository {
   /**
    * Delete a specific draft
    */
-  async delete(workspaceId: string, userId: string, draftId: string): Promise<void> {
+  async delete(_workspaceId: string, _userId: string, _draftId: string): Promise<void> {
     // Placeholder for future implementation
   }
 
   /**
    * Update an existing draft
    */
-  async update(workspaceId: string, userId: string, draftId: string, updates: any): Promise<void> {
+  async update(_workspaceId: string, _userId: string, _draftId: string, _updates: any): Promise<void> {
     // Placeholder for future implementation
   }
 }

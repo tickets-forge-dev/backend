@@ -2,12 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import {
   TechSpec,
-  ProblemStatement,
   SolutionSection,
   SolutionStep,
   AcceptanceCriterion,
   FileChange,
-  ApiEndpoint,
   ApiChanges,
   LayeredFileChanges,
   TestCase,

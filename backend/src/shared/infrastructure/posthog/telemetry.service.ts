@@ -4,7 +4,6 @@ import type {
   AgentExecutionProperties,
   DeepAnalysisProperties,
   CostTrackingProperties,
-  TicketCreationProperties,
 } from '@repo/shared-types';
 
 /**

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Firestore, Timestamp } from 'firebase-admin/firestore';
-import { LinearIntegration, LinearIntegrationProps } from '../../domain/LinearIntegration';
+import { LinearIntegration } from '../../domain/LinearIntegration';
 import { LinearIntegrationRepository } from '../../domain/LinearIntegrationRepository';
 
 interface LinearIntegrationDocument {

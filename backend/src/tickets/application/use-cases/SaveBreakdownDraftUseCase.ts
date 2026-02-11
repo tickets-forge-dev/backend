@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class SaveBreakdownDraftUseCase {
-  async execute(command: any): Promise<string> {
+  async execute(_command: any): Promise<string> {
     // Placeholder for future implementation
     return 'draft-' + Date.now();
   }

@@ -9,7 +9,7 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class DeleteBreakdownDraftUseCase {
-  async execute(command: any): Promise<void> {
+  async execute(_command: any): Promise<void> {
     // Placeholder for future implementation
   }
 }

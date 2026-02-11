@@ -9,12 +9,12 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class LoadBreakdownDraftUseCase {
-  async execute(command: any): Promise<any> {
+  async execute(_command: any): Promise<any> {
     // Placeholder for future implementation
     return null;
   }
 
-  async getLatest(workspaceId: string, userId: string): Promise<any | null> {
+  async getLatest(_workspaceId: string, _userId: string): Promise<any | null> {
     // Placeholder for future implementation
     return null;
   }

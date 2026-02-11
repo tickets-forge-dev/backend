@@ -218,7 +218,6 @@ export class JiraApiClient {
     });
 
     if (!response.ok) {
-      const text = await response.text();
       throw new Error(`Jira connection failed: ${response.status}. Check your URL, username, and API token.`);
     }
 
