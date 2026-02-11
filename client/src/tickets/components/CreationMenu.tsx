@@ -58,9 +58,9 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
       <Button
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 border border-green-200 dark:border-green-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 hover:bg-green-50 dark:hover:bg-slate-900 hover:border-green-300 dark:hover:border-green-700"
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="w-4 h-4 text-green-600 dark:text-green-400" />
         Create
       </Button>
 
