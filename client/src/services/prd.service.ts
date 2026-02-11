@@ -234,6 +234,107 @@ class PRDService {
 
     return response.json();
   }
+
+  /**
+   * Save a breakdown draft to browser localStorage
+   * Phase 2: Uses client-side storage for MVP, can be upgraded to Firestore later
+   */
+  async saveDraft(breakdown: BreakdownResult, prdText: string, projectName?: string): Promise<string> {
+    if (typeof window === 'undefined') {
+      throw new Error('Draft saving only available in browser');
+    }
+
+    const draftId = `draft-${Date.now()}`;
+    const draft = {
+      id: draftId,
+      prdText,
+      projectName,
+      breakdown,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(`prd-breakdown-${draftId}`, JSON.stringify(draft));
+      // Also update the latest draft pointer
+      localStorage.setItem('prd-breakdown-latest', draftId);
+      return draftId;
+    } catch (error) {
+      throw new Error('Failed to save draft to local storage');
+    }
+  }
+
+  /**
+   * Load a specific draft from browser localStorage
+   */
+  async loadDraft(draftId: string): Promise<any> {
+    if (typeof window === 'undefined') {
+      throw new Error('Draft loading only available in browser');
+    }
+
+    try {
+      const draft = localStorage.getItem(`prd-breakdown-${draftId}`);
+      if (!draft) {
+        throw new Error(`Draft not found: ${draftId}`);
+      }
+      return JSON.parse(draft);
+    } catch (error) {
+      throw new Error(`Failed to load draft: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get the most recent draft from browser localStorage
+   */
+  async getLatestDraft(): Promise<any | null> {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      const draftId = localStorage.getItem('prd-breakdown-latest');
+      if (!draftId) {
+        return null;
+      }
+
+      const draft = localStorage.getItem(`prd-breakdown-${draftId}`);
+      if (!draft) {
+        return null;
+      }
+
+      const parsed = JSON.parse(draft);
+      // Only return if it was created in the last 24 hours
+      const createdAt = new Date(parsed.createdAt);
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      if (createdAt < oneDayAgo) {
+        return null;
+      }
+
+      return parsed;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Delete a draft from browser localStorage
+   */
+  async deleteDraft(draftId: string): Promise<void> {
+    if (typeof window === 'undefined') {
+      throw new Error('Draft deletion only available in browser');
+    }
+
+    try {
+      localStorage.removeItem(`prd-breakdown-${draftId}`);
+      // Clear the latest draft pointer if this was the latest
+      const latestId = localStorage.getItem('prd-breakdown-latest');
+      if (latestId === draftId) {
+        localStorage.removeItem('prd-breakdown-latest');
+      }
+    } catch (error) {
+      throw new Error('Failed to delete draft from local storage');
+    }
+  }
 }
 
 // Singleton instance

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { usePRDBreakdownStore } from '@/tickets/stores/prd-breakdown.store';
 import { usePRDService } from '@/services/prd.service';
 import { BulkEnrichmentWizard } from '@/tickets/components/bulk';
 import { EpicGroup } from './EpicGroup';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Check } from 'lucide-react';
 
 /**
  * Format milliseconds to hh:mm:ss format
@@ -60,6 +60,43 @@ export function BreakdownReview() {
   const [creationError, setCreationError] = useState<string | null>(null);
   const [draftTicketIds, setDraftTicketIds] = useState<string[]>([]);
   const [showEnrichmentWizard, setShowEnrichmentWizard] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-save draft on edits (debounced 2 seconds)
+  const handleAutoSave = useCallback(() => {
+    if (!breakdown) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsSaving(true);
+        await prdService.saveDraft(breakdown, '', breakdown?.summary?.epics?.[0]?.goal);
+        setLastSavedAt(new Date());
+      } catch (error) {
+        console.error('Failed to auto-save draft:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 2000);
+  }, [breakdown, prdService]);
+
+  // Set up auto-save when breakdown changes
+  useEffect(() => {
+    if (breakdown) {
+      handleAutoSave();
+    }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [breakdown, handleAutoSave]);
 
   if (!breakdown) {
     return (
@@ -253,8 +290,25 @@ export function BreakdownReview() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex justify-between pt-6" style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}>
-        <Button variant="outline">← Back to Input</Button>
+      <div className="flex justify-between items-center pt-6" style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">← Back to Input</Button>
+          {(isSaving || lastSavedAt) && (
+            <div className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Saving draft...
+                </>
+              ) : lastSavedAt ? (
+                <>
+                  <Check className="w-3 h-3 text-green-500" />
+                  Saved {Math.floor((Date.now() - lastSavedAt.getTime()) / 1000)}s ago
+                </>
+              ) : null}
+            </div>
+          )}
+        </div>
         <Button
           onClick={handleCreateTickets}
           disabled={isCreating || selectedCount === 0}

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/core/components/ui/button';
 import { usePRDBreakdownStore } from '@/tickets/stores/prd-breakdown.store';
 import { usePRDService } from '@/services/prd.service';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, X, Clock } from 'lucide-react';
 
 /**
  * PRDInputForm - Step 1: Input PRD text
@@ -27,9 +27,48 @@ export function PRDInputForm() {
     setError,
     setAnalysisProgress,
     moveToReview,
+    resumeDraft,
+    deleteDraft,
   } = usePRDBreakdownStore();
 
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [savedDraft, setSavedDraft] = useState<any | null>(null);
+  const [showResumeBanner, setShowResumeBanner] = useState(true);
+
+  // Check for saved drafts on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const draft = await prdService.getLatestDraft();
+        if (draft) {
+          setSavedDraft(draft);
+        }
+      } catch (error) {
+        // Silently fail if draft loading fails
+        console.debug('No saved draft found');
+      }
+    })();
+  }, [prdService]);
+
+  const handleResumeDraft = () => {
+    if (savedDraft) {
+      resumeDraft(savedDraft);
+      setShowResumeBanner(false);
+    }
+  };
+
+  const handleDismissDraft = async () => {
+    if (savedDraft) {
+      try {
+        await prdService.deleteDraft(savedDraft.id);
+        deleteDraft();
+      } catch (error) {
+        console.error('Failed to delete draft:', error);
+      }
+    }
+    setShowResumeBanner(false);
+    setSavedDraft(null);
+  };
 
   const handleAnalyze = async () => {
     // Validate inputs
@@ -83,6 +122,49 @@ export function PRDInputForm() {
 
   return (
     <div className="space-y-6">
+      {/* Resume draft banner */}
+      {savedDraft && showResumeBanner && (
+        <div
+          className="flex gap-3 p-4 rounded-lg border"
+          style={{
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderColor: 'var(--green)',
+          }}
+        >
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4" style={{ color: 'var(--green)' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--green)' }}>
+                Resume Previous Breakdown?
+              </p>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Found a saved breakdown from {new Date(savedDraft.updatedAt).toLocaleDateString()} with{' '}
+              {savedDraft.breakdown?.totalTickets || 0} tickets. Click Resume to pick up where you left off.
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              size="sm"
+              onClick={handleResumeDraft}
+              style={{
+                backgroundColor: 'var(--green)',
+                color: 'white',
+              }}
+            >
+              Resume
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleDismissDraft}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Error alert */}
       {(error || validationError) && (
         <div

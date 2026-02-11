@@ -81,6 +81,12 @@ interface PRDBreakdownState {
   // Progress tracking
   analysisProgress: string | null; // Current analysis step message
 
+  // Draft persistence
+  currentDraftId: string | null;
+  draftIsSaving: boolean;
+  lastSavedAt: Date | null;
+  hasSavedDraft: boolean;
+
   // Actions
   setPRDText: (text: string) => void;
   setRepository: (owner: string, name: string) => void;
@@ -115,6 +121,13 @@ interface PRDBreakdownState {
   moveToReview: () => void;
   moveToSuccess: () => void;
   reset: () => void;
+
+  // Draft actions
+  saveDraft: () => Promise<void>;
+  resumeDraft: (draft: any) => void;
+  deleteDraft: () => void;
+  setDraftIsSaving: (saving: boolean) => void;
+  setHasSavedDraft: (hasSaved: boolean) => void;
 }
 
 const initialState = {
@@ -131,6 +144,10 @@ const initialState = {
   error: null,
   createdTicketIds: [],
   analysisProgress: null,
+  currentDraftId: null,
+  draftIsSaving: false,
+  lastSavedAt: null,
+  hasSavedDraft: false,
 };
 
 export const usePRDBreakdownStore = create<PRDBreakdownState>()(
@@ -385,6 +402,55 @@ export const usePRDBreakdownStore = create<PRDBreakdownState>()(
       moveToSuccess: () => set({ currentStep: 'success' }),
 
       reset: () => set(initialState),
+
+      // Draft actions
+      saveDraft: async () => {
+        set({ draftIsSaving: true });
+        try {
+          const state = (usePRDBreakdownStore as any).getState?.();
+          if (!state?.breakdown) {
+            set({ draftIsSaving: false });
+            return;
+          }
+
+          // Note: Actual draft saving is handled by PRDInputForm component
+          // This action is a placeholder for future async save operations
+          set({
+            draftIsSaving: false,
+            lastSavedAt: new Date(),
+            hasSavedDraft: true,
+          });
+        } catch (error) {
+          set({ draftIsSaving: false });
+        }
+      },
+
+      resumeDraft: (draft: any) => {
+        if (!draft) return;
+
+        set({
+          prdText: draft.prdText || '',
+          projectName: draft.projectName || '',
+          breakdown: draft.breakdown || null,
+          analysisTime: draft.breakdown?.analysisTime || null,
+          estimatedTicketsCount: draft.breakdown?.totalTickets || null,
+          currentStep: 'review',
+          currentDraftId: draft.id,
+          hasSavedDraft: true,
+        });
+      },
+
+      deleteDraft: () => {
+        set({
+          currentDraftId: null,
+          hasSavedDraft: false,
+          lastSavedAt: null,
+        });
+      },
+
+      setDraftIsSaving: (saving: boolean) => set({ draftIsSaving: saving }),
+
+      setHasSavedDraft: (hasSaved: boolean) => set({ hasSavedDraft: hasSaved }),
     }),
     { name: 'prd-breakdown-store' },
   ),

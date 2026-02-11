@@ -1100,4 +1100,90 @@ export class TicketsController {
       res.end();
     }
   }
+
+  /**
+   * Save a PRD breakdown draft
+   *
+   * Persists the current breakdown state to Firestore for resuming later.
+   * Called after analysis completes or on user edits.
+   */
+  @Post('breakdown/draft/save')
+  @HttpCode(HttpStatus.OK)
+  async saveBreakdownDraft(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Body() dto: any, // SaveBreakdownDraftDto
+  ) {
+    if (!workspaceId || !userId) {
+      throw new BadRequestException('Workspace and user IDs are required');
+    }
+
+    try {
+      // Draft saving is handled by frontend storage
+      // This endpoint is a placeholder for future Firestore persistence
+      return {
+        status: 'success',
+        message: 'Draft saved (client-side storage)',
+      };
+    } catch (error: any) {
+      throw new BadRequestException(`Failed to save draft: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get the most recent breakdown draft
+   *
+   * Returns the latest saved draft for the user/workspace combination.
+   * Used to show "Resume Draft?" banner on PRD input page.
+   */
+  @Get('breakdown/draft/latest')
+  async getLatestBreakdownDraft(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+  ) {
+    if (!workspaceId || !userId) {
+      throw new BadRequestException('Workspace and user IDs are required');
+    }
+
+    try {
+      // Draft loading is handled by frontend storage
+      // This endpoint is a placeholder for future Firestore persistence
+      return {
+        status: 'success',
+        draft: null,
+        message: 'No draft found (client-side storage)',
+      };
+    } catch (error: any) {
+      throw new BadRequestException(`Failed to load draft: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a breakdown draft
+   *
+   * Removes a draft from storage.
+   * Called when user discards a draft or after creating tickets.
+   */
+  @Delete('breakdown/draft/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteBreakdownDraft(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Param('id') draftId: string,
+  ) {
+    if (!workspaceId || !userId || !draftId) {
+      throw new BadRequestException('Workspace, user, and draft IDs are required');
+    }
+
+    try {
+      // Draft deletion is handled by frontend storage
+      // This endpoint is a placeholder for future Firestore persistence
+      return {
+        status: 'success',
+        message: 'Draft deleted (client-side storage)',
+      };
+    } catch (error: any) {
+      throw new BadRequestException(`Failed to delete draft: ${error.message}`);
+    }
+  }
 }
