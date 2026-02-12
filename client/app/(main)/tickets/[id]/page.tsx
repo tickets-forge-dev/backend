@@ -699,7 +699,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           Back to Tickets
         </Button>
         {currentTicket?.techSpec && (
-          <>
+          <div className="ml-auto flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -716,7 +716,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               <Upload className="h-3.5 w-3.5 mr-2" />
               Export
             </Button>
-          </>
+          </div>
         )}
       </div>
 
