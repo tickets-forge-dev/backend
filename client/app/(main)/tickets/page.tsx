@@ -182,47 +182,97 @@ export default function TicketsListPage() {
         )}
       </div>
 
-      {/* Status Tabs - Scrollable on mobile */}
-      <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
-        <div className="w-full overflow-x-auto -mx-4 sm:mx-0">
-          <div className="px-4 sm:px-0 inline-block w-full sm:w-auto">
-            <TabsList className="inline-flex !w-max gap-0 min-w-min">
-            <TabsTrigger value="all" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
-              All
-              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
-                {statusCounts.all}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="needs-input" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
-              <span className="hidden sm:inline">Answer Questions</span>
-              <span className="sm:hidden">Q&A</span>
-              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
-                {statusCounts['needs-input']}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="needs-resume" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
-              <span className="hidden sm:inline">Needs Resume</span>
-              <span className="sm:hidden">Resume</span>
-              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-red-500">
-                {statusCounts['needs-resume']}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="complete" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
-              Complete
-              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
-                {statusCounts.complete}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="draft" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
-              Draft
-              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
-                {statusCounts.draft}
-              </span>
-            </TabsTrigger>
-          </TabsList>
+      {/* Status Tabs - Desktop & Mobile Menu */}
+      {/* Desktop: Tab bar */}
+      <div className="hidden md:block">
+        <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
+          <div className="w-full overflow-x-auto">
+            <div className="inline-block w-full md:w-auto">
+              <TabsList className="inline-flex !w-max gap-0 min-w-min">
+                <TabsTrigger value="all" className="relative text-sm whitespace-nowrap px-4 py-2">
+                  All
+                  <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                    {statusCounts.all}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="needs-input" className="relative text-sm whitespace-nowrap px-4 py-2">
+                  Answer Questions
+                  <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                    {statusCounts['needs-input']}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="needs-resume" className="relative text-sm whitespace-nowrap px-4 py-2">
+                  Needs Resume
+                  <span className="ml-1.5 text-[11px] font-medium text-red-500">
+                    {statusCounts['needs-resume']}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="complete" className="relative text-sm whitespace-nowrap px-4 py-2">
+                  Complete
+                  <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                    {statusCounts.complete}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="draft" className="relative text-sm whitespace-nowrap px-4 py-2">
+                  Draft
+                  <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                    {statusCounts.draft}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
-        </div>
-      </Tabs>
+        </Tabs>
+      </div>
+
+      {/* Mobile: Dropdown menu */}
+      <div className="md:hidden relative">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFilter((v) => !v)}
+          className="w-full justify-between text-xs"
+        >
+          <span>
+            {statusTab === 'all' && `All (${statusCounts.all})`}
+            {statusTab === 'needs-input' && `Q&A (${statusCounts['needs-input']})`}
+            {statusTab === 'needs-resume' && `Resume (${statusCounts['needs-resume']})`}
+            {statusTab === 'complete' && `Complete (${statusCounts.complete})`}
+            {statusTab === 'draft' && `Draft (${statusCounts.draft})`}
+          </span>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+        {showFilter && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
+            <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 shadow-lg overflow-hidden">
+              {[
+                { value: 'all' as const, label: `All`, count: statusCounts.all },
+                { value: 'needs-input' as const, label: 'Q&A', count: statusCounts['needs-input'] },
+                { value: 'needs-resume' as const, label: 'Resume', count: statusCounts['needs-resume'] },
+                { value: 'complete' as const, label: 'Complete', count: statusCounts.complete },
+                { value: 'draft' as const, label: 'Draft', count: statusCounts.draft },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setStatusTab(opt.value);
+                    setShowFilter(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${
+                    statusTab === opt.value
+                      ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                  }`}
+                >
+                  {opt.label}
+                  <span className="text-[var(--text-tertiary)]">{opt.count}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Filter & Sort bar - Responsive */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
