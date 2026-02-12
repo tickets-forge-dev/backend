@@ -346,14 +346,8 @@ export function TicketDetailLayout({
                 onSaveApiEndpoints={onSaveApiEndpoints}
                 onScanApis={onScanApis}
                 isScanningApis={isScanningApis}
-                onUploadAttachment={onUploadAttachment}
-                onDeleteAttachment={onDeleteAttachment}
-                isUploadingAttachment={isUploadingAttachment}
                 saveTechSpecPatch={saveTechSpecPatch}
                 fetchTicket={fetchTicket}
-                onEditReproductionStep={onEditReproductionStep}
-                onDeleteReproductionStep={onDeleteReproductionStep}
-                onAddReproductionStep={onAddReproductionStep}
               />
             </div>
           </div>
