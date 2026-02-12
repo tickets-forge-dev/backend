@@ -288,6 +288,7 @@ export function TicketDetailLayout({
             <div className="flex-1 min-w-0">
               <SpecificationTab
                 ticket={ticket}
+                ticketId={ticketId}
                 onEditItem={onEditItem}
                 onDeleteItem={onDeleteItem}
                 onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
@@ -295,6 +296,11 @@ export function TicketDetailLayout({
                 onEditReproductionStep={onEditReproductionStep}
                 onDeleteReproductionStep={onDeleteReproductionStep}
                 onAddReproductionStep={onAddReproductionStep}
+                onUploadAttachment={onUploadAttachment}
+                onDeleteAttachment={onDeleteAttachment}
+                isUploadingAttachment={isUploadingAttachment}
+                saveTechSpecPatch={saveTechSpecPatch}
+                fetchTicket={fetchTicket}
               />
             </div>
           </div>
