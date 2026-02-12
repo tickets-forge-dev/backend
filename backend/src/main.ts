@@ -86,8 +86,14 @@ async function bootstrap() {
         return;
       }
 
-      // For production, be more permissive if FRONTEND_URL is set
-      if (isProduction && process.env.FRONTEND_URL) {
+      // Allow Render deployments (onrender.com) in production
+      if (isProduction && requestOrigin.includes('onrender.com')) {
+        callback(null, true);
+        return;
+      }
+
+      // For production, be more permissive and allow HTTPS origins
+      if (isProduction && requestOrigin.startsWith('https://')) {
         callback(null, true);
         return;
       }
