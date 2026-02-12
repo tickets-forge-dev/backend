@@ -182,7 +182,7 @@ export default function TicketsListPage() {
 
       {/* Status Tabs */}
       <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
-        <div className="w-full overflow-x-auto">
+        <div className="w-full overflow-x-auto pb-[17px]">
           <div className="inline-block w-full md:w-auto">
             <TabsList className="inline-flex !w-max gap-0 min-w-min">
               <TabsTrigger value="all" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
