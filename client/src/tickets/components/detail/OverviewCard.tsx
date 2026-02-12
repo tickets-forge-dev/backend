@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Layers, Clock, FileCode, FlaskConical, ChevronDown, FileText, Save, Expand, Loader2 } from 'lucide-react';
+import { ChevronDown, FileText, Save, Expand, Loader2 } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
-import { MetricCell } from './MetricCell';
 import type { AECResponse } from '@/services/ticket.service';
 
 interface OverviewCardProps {
@@ -26,36 +25,6 @@ export function OverviewCard({
   onDescriptionExpand,
 }: OverviewCardProps) {
   const [notesExpanded, setNotesExpanded] = useState(false);
-  const techSpec = ticket.techSpec;
-
-  // Build tech stack string
-  const stackParts: string[] = [];
-  if (techSpec?.stack?.language) stackParts.push(techSpec.stack.language);
-  if (techSpec?.stack?.framework) stackParts.push(techSpec.stack.framework);
-  if (techSpec?.stack?.packageManager) stackParts.push(techSpec.stack.packageManager);
-  const stackLabel = stackParts.join(' / ') || 'N/A';
-
-  // Estimate string
-  const estimate = ticket.estimate;
-  const estimateLabel = estimate
-    ? `${estimate.min}-${estimate.max}h, ${estimate.confidence}`
-    : 'N/A';
-
-  // Count file changes
-  const fileCount = techSpec?.fileChanges?.length || 0;
-
-  // Count API endpoints
-  const apiCount = techSpec?.apiChanges?.endpoints?.length || 0;
-
-  // Count tests
-  const testCount = techSpec?.testPlan
-    ? (techSpec.testPlan.unitTests?.length || 0) +
-      (techSpec.testPlan.integrationTests?.length || 0) +
-      (techSpec.testPlan.edgeCases?.length || 0)
-    : 0;
-
-  // Quality score
-  const qualityScore = techSpec?.qualityScore;
 
   const notesPreview = descriptionDraft
     ? descriptionDraft.length > 80
@@ -65,20 +34,6 @@ export function OverviewCard({
 
   return (
     <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
-      {/* Metrics grid */}
-      {techSpec && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <MetricCell icon={Layers} label="Stack" value={stackLabel} />
-          <MetricCell icon={Clock} label="Estimate" value={estimateLabel} />
-          <MetricCell
-            icon={FileCode}
-            label="Scope"
-            value={`${fileCount} files${apiCount > 0 ? `, ${apiCount} APIs` : ''}`}
-          />
-          <MetricCell icon={FlaskConical} label="Tests" value={`${testCount} tests`} />
-        </div>
-      )}
-
       {/* Collapsible Notes */}
       <div className="border-t border-[var(--border)]/20 pt-3">
         <button

@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/core/components/ui/badge';
-import { FileCode, FilePlus, FileX } from 'lucide-react';
+import { FileCode, FilePlus, FileX, Layers, Clock, FlaskConical } from 'lucide-react';
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { ApiReviewSection } from '@/src/tickets/components/ApiReviewSection';
@@ -38,8 +38,77 @@ export function ImplementationTab({
 }: ImplementationTabProps) {
   const techSpec = ticket.techSpec;
 
+  // Build tech stack string
+  const stackParts: string[] = [];
+  if (techSpec?.stack?.language) stackParts.push(techSpec.stack.language);
+  if (techSpec?.stack?.framework) stackParts.push(techSpec.stack.framework);
+  if (techSpec?.stack?.packageManager) stackParts.push(techSpec.stack.packageManager);
+  const stackLabel = stackParts.join(' / ') || 'N/A';
+
+  // Estimate string
+  const estimate = ticket.estimate;
+  const estimateLabel = estimate
+    ? `${estimate.min}-${estimate.max}h, ${estimate.confidence}`
+    : 'N/A';
+
+  // Count file changes and API endpoints
+  const fileCount = techSpec?.fileChanges?.length || 0;
+  const apiCount = techSpec?.apiChanges?.endpoints?.length || 0;
+
+  // Count tests
+  const testCount = techSpec?.testPlan
+    ? (techSpec.testPlan.unitTests?.length || 0) +
+      (techSpec.testPlan.integrationTests?.length || 0) +
+      (techSpec.testPlan.edgeCases?.length || 0)
+    : 0;
+
   return (
     <div className="space-y-8">
+      {/* Technical Summary */}
+      {techSpec && (
+        <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Stack */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Layers className="h-4 w-4 text-[var(--text-tertiary)]" />
+                <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase">Stack</span>
+              </div>
+              <p className="text-sm font-medium text-[var(--text)]">{stackLabel}</p>
+            </div>
+
+            {/* Estimate */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-[var(--text-tertiary)]" />
+                <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase">Estimate</span>
+              </div>
+              <p className="text-sm font-medium text-[var(--text)]">{estimateLabel}</p>
+            </div>
+
+            {/* Scope (Files + APIs) */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <FileCode className="h-4 w-4 text-[var(--text-tertiary)]" />
+                <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase">Scope</span>
+              </div>
+              <p className="text-sm font-medium text-[var(--text)]">
+                {fileCount} files{apiCount > 0 ? `, ${apiCount} APIs` : ''}
+              </p>
+            </div>
+
+            {/* Tests */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <FlaskConical className="h-4 w-4 text-[var(--text-tertiary)]" />
+                <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase">Tests</span>
+              </div>
+              <p className="text-sm font-medium text-[var(--text)]">{testCount} tests</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* File Changes */}
       {techSpec?.fileChanges?.length > 0 && (
         <div id="technical-file-changes">
