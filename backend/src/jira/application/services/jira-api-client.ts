@@ -446,4 +446,39 @@ export class JiraApiClient {
       return [];
     }
   }
+
+  /**
+   * Upload a file attachment to a Jira issue
+   */
+  async uploadAttachment(
+    jiraUrl: string,
+    username: string,
+    apiToken: string,
+    issueIdOrKey: string,
+    fileName: string,
+    fileContent: Buffer,
+  ): Promise<void> {
+    const url = this.buildApiUrl(jiraUrl, `issue/${issueIdOrKey}/attachments`);
+
+    const formData = new FormData();
+    const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+    formData.append('file', blob, fileName);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: this.buildAuth(username, apiToken),
+        'X-Atlassian-Token': 'no-check',
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      this.logger.error(`Jira attachment upload failed: ${response.status} ${text}`);
+      throw new Error(`Failed to upload attachment to Jira: ${response.status} ${text}`);
+    }
+
+    this.logger.log(`Successfully uploaded attachment '${fileName}' to Jira issue ${issueIdOrKey}`);
+  }
 }

@@ -78,6 +78,24 @@ export class ExportToJiraUseCase {
 
     const issueUrl = `${integration.jiraUrl}/browse/${issue.key}`;
 
+    // Upload tech spec as markdown file attachment
+    try {
+      const techSpecFileName = `${aec.id}_tech-spec.md`;
+      const techSpecContent = Buffer.from(description, 'utf-8');
+      await this.apiClient.uploadAttachment(
+        integration.jiraUrl,
+        integration.username,
+        apiToken,
+        issue.key,
+        techSpecFileName,
+        techSpecContent,
+      );
+      this.logger.log(`Uploaded tech spec file to Jira issue ${issue.key}`);
+    } catch (error: any) {
+      // Log but don't fail if attachment upload fails
+      this.logger.error(`Failed to upload tech spec file: ${error.message}`);
+    }
+
     // Save external issue reference
     aec.setExternalIssue({
       platform: 'jira',
