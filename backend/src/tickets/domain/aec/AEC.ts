@@ -260,6 +260,8 @@ export class AEC {
       );
     }
     this._status = AECStatus.DRAFT;
+    // Clear tech spec when reverting to draft so user can modify and regenerate
+    this._techSpec = null;
     this._updatedAt = new Date();
   }
 
