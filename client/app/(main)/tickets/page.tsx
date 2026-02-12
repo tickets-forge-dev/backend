@@ -33,7 +33,7 @@ export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
   const { activeDemoTickets, dismissDemoTicket } = useDemoTickets();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusTab, setStatusTab] = useState<'all' | 'needs-input' | 'complete' | 'draft' | 'needs-resume'>(
+  const [statusTab, setStatusTab] = useState<'all' | 'complete' | 'draft' | 'needs-resume'>(
     (listPreferences?.statusTab as any) || 'all'
   );
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
@@ -91,7 +91,6 @@ export default function TicketsListPage() {
         const ticketStatus = getTicketStatus(ticket);
         const matchesStatus =
           statusTab === 'all' ||
-          (statusTab === 'needs-input' && ticketStatus === 'needs-input') ||
           (statusTab === 'needs-resume' && ticketStatus === 'needs-resume') ||
           (statusTab === 'complete' && ticketStatus === 'complete') ||
           (statusTab === 'draft' && (ticketStatus === 'draft' || ticketStatus === 'in-progress'));
@@ -153,7 +152,6 @@ export default function TicketsListPage() {
   // Calculate status counts
   const statusCounts = {
     all: allTickets.length,
-    'needs-input': allTickets.filter(t => getTicketStatus(t) === 'needs-input').length,
     'needs-resume': allTickets.filter(t => getTicketStatus(t) === 'needs-resume').length,
     complete: allTickets.filter(t => getTicketStatus(t) === 'complete').length,
     draft: allTickets.filter(t => getTicketStatus(t) === 'draft' || getTicketStatus(t) === 'in-progress').length,
@@ -191,13 +189,6 @@ export default function TicketsListPage() {
                 All
                 <span className="ml-0.5 md:ml-1.5 text-[9px] md:text-[11px] font-medium text-[var(--text-tertiary)]">
                   {statusCounts.all}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="needs-input" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
-                <span className="hidden md:inline">Answer Questions</span>
-                <span className="md:hidden">Q&A</span>
-                <span className="ml-0.5 md:ml-1.5 text-[9px] md:text-[11px] font-medium text-[var(--text-tertiary)]">
-                  {statusCounts['needs-input']}
                 </span>
               </TabsTrigger>
               <TabsTrigger value="needs-resume" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
