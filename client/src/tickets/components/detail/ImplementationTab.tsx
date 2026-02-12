@@ -139,6 +139,34 @@ export function ImplementationTab({
         </div>
       )}
 
+      {/* Technology Stack */}
+      {techSpec?.stack && (
+        <div id="technical-stack">
+          <CollapsibleSection id="stack" title="Technology Stack" defaultExpanded={true}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {techSpec.stack.language && (
+                <div className="p-3 rounded-lg bg-[var(--bg-hover)]">
+                  <p className="text-xs font-medium text-[var(--text-tertiary)] uppercase mb-1">Language</p>
+                  <p className="text-sm font-medium text-[var(--text)]">{techSpec.stack.language}</p>
+                </div>
+              )}
+              {techSpec.stack.framework && (
+                <div className="p-3 rounded-lg bg-[var(--bg-hover)]">
+                  <p className="text-xs font-medium text-[var(--text-tertiary)] uppercase mb-1">Framework</p>
+                  <p className="text-sm font-medium text-[var(--text)]">{techSpec.stack.framework}</p>
+                </div>
+              )}
+              {techSpec.stack.packageManager && (
+                <div className="p-3 rounded-lg bg-[var(--bg-hover)]">
+                  <p className="text-xs font-medium text-[var(--text-tertiary)] uppercase mb-1">Package Manager</p>
+                  <p className="text-sm font-medium text-[var(--text)]">{techSpec.stack.packageManager}</p>
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+        </div>
+      )}
+
       {/* Affected Code */}
       {ticket.repoPaths && ticket.repoPaths.length > 0 && (
         <CollapsibleSection title="Affected Code" id="affected-code">
