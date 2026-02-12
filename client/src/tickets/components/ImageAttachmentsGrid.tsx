@@ -266,7 +266,7 @@ export function ImageAttachmentsGrid({
           {canUpload && !isActivelyUploading && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 hover:border-[var(--primary)]/40 transition-all overflow-hidden cursor-pointer group"
+              className="rounded-lg border border-dashed border-[var(--text-tertiary)]/25 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 hover:border-[var(--text-tertiary)]/35 transition-all overflow-hidden cursor-pointer group"
             >
               <div className="aspect-square flex flex-col items-center justify-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-[var(--primary)]/15 group-hover:bg-[var(--primary)]/25 flex items-center justify-center transition-colors">
