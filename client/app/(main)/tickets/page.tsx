@@ -167,13 +167,13 @@ export default function TicketsListPage() {
     }[sortBy];
 
     return (
-      <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-end">
+      <div className="space-y-4 sm:space-y-6">
+      {/* Header - Responsive */}
+      <div className="flex items-start justify-end px-2 sm:px-0">
         {quota && !quota.canCreate ? (
           <div className="relative group">
             <CreationMenu disabled={true} />
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[11px] text-[var(--text-secondary)] shadow-lg">
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
               Ticket limit reached ({quota.used}/{quota.limit})
             </div>
           </div>
@@ -182,50 +182,54 @@ export default function TicketsListPage() {
         )}
       </div>
 
-      {/* Status Tabs */}
+      {/* Status Tabs - Scrollable on mobile */}
       <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all" className="relative">
-            All
-            <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-              {statusCounts.all}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="needs-input" className="relative">
-            Answer Questions
-            <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-              {statusCounts['needs-input']}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="needs-resume" className="relative">
-            Needs Resume
-            <span className="ml-1.5 text-[11px] font-medium text-red-500">
-              {statusCounts['needs-resume']}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="complete" className="relative">
-            Complete
-            <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-              {statusCounts.complete}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="draft" className="relative">
-            Draft
-            <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-              {statusCounts.draft}
-            </span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <TabsList className="grid w-full grid-cols-5 px-4 sm:px-0 inline-flex">
+            <TabsTrigger value="all" className="relative text-xs sm:text-sm whitespace-nowrap">
+              All
+              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+                {statusCounts.all}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="needs-input" className="relative text-xs sm:text-sm whitespace-nowrap">
+              <span className="hidden sm:inline">Answer Questions</span>
+              <span className="sm:hidden">Q&A</span>
+              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+                {statusCounts['needs-input']}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="needs-resume" className="relative text-xs sm:text-sm whitespace-nowrap">
+              <span className="hidden sm:inline">Needs Resume</span>
+              <span className="sm:hidden">Resume</span>
+              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-red-500">
+                {statusCounts['needs-resume']}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="complete" className="relative text-xs sm:text-sm whitespace-nowrap">
+              Complete
+              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+                {statusCounts.complete}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="draft" className="relative text-xs sm:text-sm whitespace-nowrap">
+              Draft
+              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+                {statusCounts.draft}
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
-      {/* Filter & Sort bar */}
-      <div className="flex items-center gap-2">
+      {/* Filter & Sort bar - Responsive */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
           <Input
             placeholder="Search tickets..."
-            className="pl-9 pr-8"
+            className="pl-9 pr-8 text-xs sm:text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -245,15 +249,16 @@ export default function TicketsListPage() {
             variant="ghost"
             size="sm"
             onClick={() => setShowSortMenu(!showSortMenu)}
-            className="text-[var(--text-secondary)] hover:text-[var(--text)]"
+            className="w-full sm:w-auto text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text)] justify-start sm:justify-center"
           >
-            {sortLabel}
+            <span className="hidden sm:inline">{sortLabel}</span>
+            <span className="sm:hidden">Sort</span>
             <ChevronDown className="h-4 w-4 ml-1" />
           </Button>
           {showSortMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg">
+              <div className="absolute left-0 sm:right-0 right-0 top-full mt-1 z-50 min-w-[180px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg">
                 {[
                   { value: 'updated' as SortBy, label: 'Recently updated' },
                   { value: 'created' as SortBy, label: 'Recently created' },
@@ -266,7 +271,7 @@ export default function TicketsListPage() {
                       setSortBy(opt.value);
                       setShowSortMenu(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 rounded-md text-[var(--text-sm)] transition-colors ${sortBy === opt.value ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
+                    className={`w-full text-left px-3 py-1.5 rounded-md text-xs sm:text-[var(--text-sm)] transition-colors ${sortBy === opt.value ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
                   >
                     {opt.label}
                   </button>
@@ -282,14 +287,14 @@ export default function TicketsListPage() {
             variant="ghost"
             size="icon"
             onClick={() => setShowFilter((v) => !v)}
-            className={priorityFilter !== 'all' || typeFilter !== 'all' ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}
+            className={`${priorityFilter !== 'all' || typeFilter !== 'all' ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
           {showFilter && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
+              <div className="absolute left-0 sm:right-0 right-0 top-full mt-1 z-50 w-screen sm:w-auto sm:min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
                 {/* Priority */}
                 <div>
                   <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Priority</p>
@@ -353,12 +358,12 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isInitialLoad && !loadError && filteredTickets.length === 0 && (
-        <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)]/40 bg-[var(--bg-subtle)]">
-          <div className="text-center">
-            <p className="text-[var(--text-base)] text-[var(--text-secondary)]">
+        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)]/40 bg-[var(--bg-subtle)] mx-2 sm:mx-0">
+          <div className="text-center px-4">
+            <p className="text-xs sm:text-[var(--text-base)] text-[var(--text-secondary)]">
               {searchQuery || statusTab !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' ? 'No tickets found' : 'No tickets yet'}
             </p>
-            <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
+            <p className="mt-1 text-[10px] sm:text-[var(--text-sm)] text-[var(--text-tertiary)]">
               {searchQuery || statusTab !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all'
                 ? 'Try adjusting your filters'
                 : 'Create your first executable ticket to get started'}
@@ -383,7 +388,7 @@ export default function TicketsListPage() {
                       onToggle={() => toggleGroup(group.key)}
                     />
                     {!isCollapsed && (
-                      <div className="space-y-1.5 px-0">
+                      <div className="space-y-1">
                         {group.tickets.map((ticket) => (
                           <TicketRow key={ticket.id} ticket={ticket} isDemoTicket={ticket.id.startsWith('demo-')} />
                         ))}
@@ -395,7 +400,7 @@ export default function TicketsListPage() {
             </div>
           ) : (
             // Flat view (if only one group or no groups)
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {filteredTickets.map((ticket) => (
                 <TicketRow key={ticket.id} ticket={ticket} isDemoTicket={ticket.id.startsWith('demo-')} />
               ))}
@@ -520,7 +525,7 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
   const isNeedsInput = ticketStatus === 'needs-input';
 
   return (
-    <div className={`group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center justify-between gap-4 mx-4 ${
+    <div className={`group rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mx-2 sm:mx-4 ${
       isNeedsInput
         ? 'border-l-2 border-amber-500'
         : ticketStatus === 'needs-resume'
@@ -528,30 +533,40 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
         : ''
     }`}>
       <Link href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`} className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           {/* Left: Title row */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5">
-              {getTypeIcon(ticket.type)}
-              <h3 className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
+            <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
+              <div className="flex-shrink-0">
+                {getTypeIcon(ticket.type)}
+              </div>
+              <h3 className={`text-xs sm:text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors flex-1 min-w-0 ${
                 ticketStatus === 'needs-input' || ticketStatus === 'needs-resume' ? 'font-semibold text-[var(--text)]' : 'font-medium text-[var(--text-secondary)]'
               }`}>
-                {isDemoTicket && <span className="text-[var(--text-tertiary)]">Demo Ticket • </span>}
+                {isDemoTicket && <span className="text-[var(--text-tertiary)] hidden sm:inline">Demo Ticket • </span>}
+                {isDemoTicket && <span className="text-[var(--text-tertiary)] sm:hidden">📋 </span>}
                 {ticket.title}
-                {ticketStatus === 'needs-resume' && <span className="ml-2 text-red-500 font-normal">❌</span>}
+                {ticketStatus === 'needs-resume' && <span className="ml-1 sm:ml-2 text-red-500 font-normal">❌</span>}
               </h3>
-              {getPriorityIndicator(ticket.priority)}
-              {!ticket.questions || ticket.questions.length === 0 ? getStatusBadge(ticket) : null}
             </div>
-            <div className="flex items-center gap-3 mt-1 ml-6">
-              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+            <div className="flex items-center gap-2 sm:gap-3 mt-1 ml-5 sm:ml-6">
+              <span className="text-[10px] sm:text-[var(--text-xs)] text-[var(--text-tertiary)]">
                 {getRelativeTime(ticket.updatedAt)}
               </span>
+              <div className="hidden sm:contents">
+                {getPriorityIndicator(ticket.priority)}
+                {!ticket.questions || ticket.questions.length === 0 ? getStatusBadge(ticket) : null}
+              </div>
             </div>
           </div>
 
-          {/* Right: Progress ring with tooltip */}
-          <ProgressRing ticket={ticket} />
+          {/* Right: Progress ring - Responsive */}
+          <div className="flex items-center gap-2 sm:gap-0">
+            <div className="flex items-center gap-2 sm:hidden">
+              {getPriorityIndicator(ticket.priority)}
+            </div>
+            <ProgressRing ticket={ticket} />
+          </div>
         </div>
       </Link>
 
@@ -562,10 +577,10 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
             e.preventDefault();
             dismissDemoTicket(ticket.id);
           }}
-          className="flex-shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+          className="flex-shrink-0 p-1 sm:p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
           title="Delete demo ticket"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3 w-3 sm:h-4 sm:w-4" />
         </button>
       )}
     </div>
@@ -596,8 +611,8 @@ function ProgressRing({ ticket }: { ticket: any }) {
   };
 
   return (
-    <div className="flex-shrink-0 relative h-8 w-8 group/progress" title={getProgressTooltip()}>
-      <svg className="h-8 w-8 -rotate-90" viewBox="0 0 32 32">
+    <div className="flex-shrink-0 relative h-6 w-6 sm:h-8 sm:w-8 group/progress" title={getProgressTooltip()}>
+      <svg className="h-6 w-6 sm:h-8 sm:w-8 -rotate-90" viewBox="0 0 32 32">
         <circle
           cx="16" cy="16" r="13"
           fill="none"
@@ -615,13 +630,13 @@ function ProgressRing({ ticket }: { ticket: any }) {
           opacity={readinessScore > 0 ? 1 : 0.2}
         />
       </svg>
-      <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-medium ${
+      <span className={`absolute inset-0 flex items-center justify-center text-[7px] sm:text-[9px] font-medium ${
         readinessScore === 0 ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'
       }`}>
         {readinessScore}
       </span>
       {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/progress:block whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-2 py-1 text-[11px] text-[var(--text-secondary)] shadow-lg z-50">
+      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/progress:block whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-2 py-1 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg z-50">
         {getProgressTooltip()}
       </div>
     </div>
