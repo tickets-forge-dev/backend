@@ -184,37 +184,37 @@ export default function TicketsListPage() {
 
       {/* Status Tabs - Scrollable on mobile */}
       <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <TabsList className="grid w-full grid-cols-5 px-4 sm:px-0 inline-flex">
-            <TabsTrigger value="all" className="relative text-xs sm:text-sm whitespace-nowrap">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <TabsList className="inline-flex w-max gap-0">
+            <TabsTrigger value="all" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
               All
-              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
                 {statusCounts.all}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="needs-input" className="relative text-xs sm:text-sm whitespace-nowrap">
+            <TabsTrigger value="needs-input" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
               <span className="hidden sm:inline">Answer Questions</span>
               <span className="sm:hidden">Q&A</span>
-              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
                 {statusCounts['needs-input']}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="needs-resume" className="relative text-xs sm:text-sm whitespace-nowrap">
+            <TabsTrigger value="needs-resume" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
               <span className="hidden sm:inline">Needs Resume</span>
               <span className="sm:hidden">Resume</span>
-              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-red-500">
+              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-red-500">
                 {statusCounts['needs-resume']}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="complete" className="relative text-xs sm:text-sm whitespace-nowrap">
+            <TabsTrigger value="complete" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
               Complete
-              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
                 {statusCounts.complete}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="draft" className="relative text-xs sm:text-sm whitespace-nowrap">
+            <TabsTrigger value="draft" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
               Draft
-              <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
+              <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
                 {statusCounts.draft}
               </span>
             </TabsTrigger>
