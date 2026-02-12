@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsNotEmpty, ValidateNested, ArrayMaxSize, ArrayMinSize, MaxLength } from 'class-validator';
+import { IsArray, IsString, IsNotEmpty, ValidateNested, ArrayMaxSize, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class QuestionAnswerDto {
