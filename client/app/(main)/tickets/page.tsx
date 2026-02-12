@@ -33,9 +33,11 @@ export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
   const { activeDemoTickets, dismissDemoTicket } = useDemoTickets();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusTab, setStatusTab] = useState<'all' | 'complete' | 'draft' | 'needs-resume'>(
-    (listPreferences?.statusTab as any) || 'all'
-  );
+  const [statusTab, setStatusTab] = useState<'all' | 'complete' | 'draft' | 'needs-resume'>(() => {
+    const saved = listPreferences?.statusTab as any;
+    const validTabs = ['all', 'complete', 'draft', 'needs-resume'];
+    return saved && validTabs.includes(saved) ? saved : 'all';
+  });
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(listPreferences?.typeFilter || 'all');
   const [showFilter, setShowFilter] = useState(false);
