@@ -1163,11 +1163,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               {/* Main content sections */}
               <div className="space-y-6">
                 {/* Problem Statement */}
-                {currentTicket?.techSpec?.problemStatement && (
+                {currentTicket?.techSpec?.problemStatement?.narrative && (
                   <div>
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Problem Statement</h3>
                     <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
-                      {currentTicket.techSpec.problemStatement}
+                      {currentTicket.techSpec.problemStatement.narrative}
                     </p>
                   </div>
                 )}
