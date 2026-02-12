@@ -31,9 +31,8 @@ export function UnifiedQuestionForm({
   onSubmit,
   isSubmitting = false,
 }: UnifiedQuestionFormProps) {
-  const [expandedTickets, setExpandedTickets] = useState<Set<string>>(
-    new Set(Array.from(questionsByTicket.keys())),
-  );
+  // Start with all sections collapsed (empty set)
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
   const [answers, setAnswers] = useState<AnswerState>({});
 
   // Track total questions
@@ -43,17 +42,15 @@ export function UnifiedQuestionForm({
   );
   const answeredQuestions = Object.keys(answers).filter((id) => answers[id]?.trim()).length;
 
-  // Toggle ticket expansion
+  // Toggle ticket expansion - accordion behavior (only one at a time)
   const toggleTicket = (ticketId: string) => {
-    setExpandedTickets((prev) => {
-      const next = new Set(prev);
-      if (next.has(ticketId)) {
-        next.delete(ticketId);
-      } else {
-        next.add(ticketId);
-      }
-      return next;
-    });
+    setExpandedTicket((prev) => (prev === ticketId ? null : ticketId));
+  };
+
+  // Count answered questions per ticket
+  const getAnsweredCount = (ticketId: string) => {
+    const ticketQuestions = questionsByTicket.get(ticketId) || [];
+    return ticketQuestions.filter((q) => answers[q.id]?.trim()).length;
   };
 
   // Handle answer change
@@ -106,63 +103,91 @@ export function UnifiedQuestionForm({
 
       {/* Questions grouped by ticket */}
       <div className="space-y-4">
-        {Array.from(questionsByTicket.entries()).map(([ticketId, questions]) => (
-          <div key={ticketId}>
-            {/* Ticket header (collapsible) */}
-            <button
-              onClick={() => toggleTicket(ticketId)}
-              className="w-full flex items-center gap-2 p-3 rounded-lg border mb-3"
-              style={{
-                backgroundColor: 'var(--bg)',
-                borderColor: 'var(--border)',
-              }}
-            >
-              <ChevronDown
-                className="w-4 h-4 transition-transform flex-shrink-0"
-                style={{
-                  color: 'var(--text-secondary)',
-                  transform: expandedTickets.has(ticketId) ? 'rotate(0)' : 'rotate(-90deg)',
-                }}
-              />
-              <div className="flex-1 text-left min-w-0">
-                <p
-                  className="text-sm font-medium truncate"
-                  style={{ color: 'var(--text)' }}
-                >
-                  {ticketTitles.get(ticketId) || ticketId}
-                </p>
-              </div>
-              <p
-                className="text-xs flex-shrink-0"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {questions.length} {questions.length === 1 ? 'question' : 'questions'}
-              </p>
-            </button>
+        {Array.from(questionsByTicket.entries()).map(([ticketId, questions]) => {
+          const answeredCount = getAnsweredCount(ticketId);
+          const isExpanded = expandedTicket === ticketId;
 
-            {/* Questions (shown when expanded) */}
-            {expandedTickets.has(ticketId) && (
-              <div className="space-y-4 ml-4 mb-6">
-                {questions.map((question) => (
-                  <QuestionInput
-                    key={question.id}
-                    question={question}
-                    answer={answers[question.id] || ''}
-                    onAnswerChange={(value) => handleAnswerChange(question.id, value)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+          return (
+            <div key={ticketId}>
+              {/* Ticket header (collapsible) */}
+              <button
+                onClick={() => toggleTicket(ticketId)}
+                className="w-full flex items-center gap-2 p-3 rounded-lg border mb-3 hover:border-[var(--text-secondary)]/50 transition-colors"
+                style={{
+                  backgroundColor: isExpanded ? 'var(--bg-subtle)' : 'var(--bg)',
+                  borderColor: isExpanded ? 'var(--blue)' : 'var(--border)',
+                }}
+              >
+                <ChevronDown
+                  className="w-4 h-4 transition-transform flex-shrink-0"
+                  style={{
+                    color: 'var(--text-secondary)',
+                    transform: isExpanded ? 'rotate(0)' : 'rotate(-90deg)',
+                  }}
+                />
+                <div className="flex-1 text-left min-w-0">
+                  <p
+                    className="text-sm font-medium truncate"
+                    style={{ color: 'var(--text)' }}
+                  >
+                    {ticketTitles.get(ticketId) || ticketId}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <p
+                    className="text-xs"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    <span style={{ color: answeredCount > 0 ? 'var(--green)' : 'var(--text-tertiary)' }}>
+                      {answeredCount}
+                    </span>
+                    /{questions.length}
+                  </p>
+                  <p
+                    className="text-xs flex-shrink-0"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {questions.length === 1 ? 'question' : 'questions'}
+                  </p>
+                </div>
+              </button>
+
+              {/* Questions (shown when expanded) */}
+              {isExpanded && (
+                <div className="space-y-4 ml-4 mb-6">
+                  {questions.map((question) => (
+                    <QuestionInput
+                      key={question.id}
+                      question={question}
+                      answer={answers[question.id] || ''}
+                      onAnswerChange={(value) => handleAnswerChange(question.id, value)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Submit button */}
-      <div className="flex gap-3 pt-6" style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}>
+      <div className="space-y-3 pt-6" style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}>
+        {answeredQuestions < totalQuestions && (
+          <div
+            className="p-3 rounded-lg border text-sm"
+            style={{
+              backgroundColor: 'rgba(251, 146, 60, 0.1)',
+              borderColor: 'var(--amber-600)',
+              color: 'var(--amber-600)',
+            }}
+          >
+            ⚠️ {totalQuestions - answeredQuestions} of {totalQuestions} questions not answered. You can continue anyway.
+          </div>
+        )}
         <Button
           onClick={onSubmit}
-          disabled={answeredQuestions < totalQuestions || isSubmitting}
-          className="flex-1 flex items-center gap-2"
+          disabled={isSubmitting}
+          className="w-full flex items-center gap-2"
         >
           {isSubmitting && (
             <div

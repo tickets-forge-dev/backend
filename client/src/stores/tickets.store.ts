@@ -10,6 +10,14 @@ interface QuotaInfo {
   canCreate: boolean;
 }
 
+interface TicketListPreferences {
+  statusTab?: 'all' | 'needs-input' | 'complete' | 'draft' | 'needs-resume';
+  sortBy?: 'updated' | 'created' | 'priority' | 'progress';
+  collapsedGroups?: string[];
+  priorityFilter?: string;
+  typeFilter?: string;
+}
+
 interface TicketsState {
   tickets: AECResponse[];
   currentTicket: AECResponse | null;
@@ -31,6 +39,9 @@ interface TicketsState {
   // Quota
   quota: QuotaInfo | null;
 
+  // Ticket list preferences
+  listPreferences: TicketListPreferences;
+
   // Branch selection state (AC#5, Task 9)
   selectedRepository: string | null; // "owner/repo"
   selectedBranch: string | null;
@@ -51,6 +62,9 @@ interface TicketsState {
   deleteTicket: (id: string) => Promise<boolean>;
   clearCreateError: () => void;
 
+  // List preferences
+  setListPreferences: (preferences: TicketListPreferences) => void;
+
   // Export actions
   exportToLinear: (ticketId: string, teamId: string) => Promise<{ issueUrl: string; identifier: string } | null>;
   exportToJira: (ticketId: string, projectKey: string, sections?: string[]) => Promise<{ issueKey: string; issueUrl: string } | null>;
@@ -66,34 +80,49 @@ interface TicketsState {
   clearBranchSelection: () => void;
 }
 
-export const useTicketsStore = create<TicketsState>((set, get) => ({
-  tickets: [],
-  currentTicket: null,
-  isCreating: false,
-  createError: null,
-  isLoading: false,
-  isInitialLoad: true, // Show skeletons only on first load
-  loadError: null,
-  fetchError: null,
-  isUpdating: false,
-  updateError: null,
-  isDeleting: false,
-  deleteError: null,
+export const useTicketsStore = create<TicketsState>((set, get) => {
+  // Load preferences from localStorage on init
+  const loadPreferences = (): TicketListPreferences => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem('tickets-list-preferences');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  };
 
-  // Attachments
-  isUploadingAttachment: false,
-  uploadAttachmentError: null,
+  return {
+    tickets: [],
+    currentTicket: null,
+    isCreating: false,
+    createError: null,
+    isLoading: false,
+    isInitialLoad: true, // Show skeletons only on first load
+    loadError: null,
+    fetchError: null,
+    isUpdating: false,
+    updateError: null,
+    isDeleting: false,
+    deleteError: null,
 
-  // Quota
-  quota: null,
+    // Attachments
+    isUploadingAttachment: false,
+    uploadAttachmentError: null,
 
-  // Branch selection state (AC#5, Task 9)
-  selectedRepository: null,
-  selectedBranch: null,
-  availableBranches: [],
-  defaultBranch: null,
-  isBranchesLoading: false,
-  branchesError: null,
+    // Quota
+    quota: null,
+
+    // Ticket list preferences
+    listPreferences: loadPreferences(),
+
+    // Branch selection state (AC#5, Task 9)
+    selectedRepository: null,
+    selectedBranch: null,
+    availableBranches: [],
+    defaultBranch: null,
+    isBranchesLoading: false,
+    branchesError: null,
 
   createTicket: async (title: string, description?: string) => {
     set({ isCreating: true, createError: null });
@@ -413,4 +442,17 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
       branchesError: null,
     });
   },
-}));
+
+  setListPreferences: (preferences: TicketListPreferences) => {
+    set({ listPreferences: preferences });
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('tickets-list-preferences', JSON.stringify(preferences));
+      } catch {
+        // Silently fail if localStorage is unavailable
+      }
+    }
+  },
+};
+});

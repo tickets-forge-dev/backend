@@ -235,6 +235,10 @@ export function ImplementationTab({
                   </ol>
                 )}
               </div>
+            ) : typeof techSpec.solution === 'object' && techSpec.solution ? (
+              <div className="text-[var(--text-secondary)] text-sm">
+                [Unable to render solution - unexpected format]
+              </div>
             ) : null}
           </div>
         </CollapsibleSection>

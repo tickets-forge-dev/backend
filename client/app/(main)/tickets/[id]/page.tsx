@@ -48,6 +48,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [exportPlatform, setExportPlatform] = useState<'linear' | 'jira'>('jira');
   const [exportTeams, setExportTeams] = useState<Array<{ id: string; name: string; key: string }>>([]);
   const [exportProjects, setExportProjects] = useState<Array<{ id: string; key: string; name: string }>>([]);
@@ -698,14 +699,24 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           Back to Tickets
         </Button>
         {currentTicket?.techSpec && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleOpenExport}
-          >
-            <Upload className="h-3.5 w-3.5 mr-2" />
-            Export
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreviewDialog(true)}
+            >
+              <Eye className="h-3.5 w-3.5 mr-2" />
+              Preview
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenExport}
+            >
+              <Upload className="h-3.5 w-3.5 mr-2" />
+              Export
+            </Button>
+          </div>
         )}
       </div>
 
@@ -1117,6 +1128,167 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                   Export to Jira
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Ticket Preview</DialogTitle>
+            <DialogDescription>
+              This is how your ticket will appear when exported to Jira
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Jira-style ticket preview */}
+            <div className="border border-[var(--border)] rounded-lg p-6 bg-[var(--bg-subtle)]">
+              {/* Header with title and key */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wide">
+                      {currentTicket?.type || 'Task'}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {currentTicket?.priority || 'Medium'}
+                    </Badge>
+                  </div>
+                  <h2 className="text-xl font-semibold text-[var(--text)]">{currentTicket?.title}</h2>
+                </div>
+              </div>
+
+              {/* Main content sections */}
+              <div className="space-y-6">
+                {/* Problem Statement */}
+                {currentTicket?.techSpec?.problemStatement?.narrative && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Problem Statement</h3>
+                    <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
+                      {currentTicket.techSpec.problemStatement.narrative}
+                    </p>
+                  </div>
+                )}
+
+                {/* Solution */}
+                {currentTicket?.techSpec?.solution && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Solution</h3>
+                    {typeof currentTicket.techSpec.solution === 'string' ? (
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
+                        {currentTicket.techSpec.solution}
+                      </p>
+                    ) : Array.isArray(currentTicket.techSpec.solution) ? (
+                      <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                        {currentTicket.techSpec.solution.map((step: any, idx: number) => (
+                          <li key={idx} className="ml-4">
+                            <span className="font-medium">{idx + 1}.</span> {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
+                          </li>
+                        ))}
+                      </ol>
+                    ) : typeof currentTicket.techSpec.solution === 'object' && currentTicket.techSpec.solution.overview ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-[var(--text-secondary)]">{currentTicket.techSpec.solution.overview}</p>
+                        {Array.isArray(currentTicket.techSpec.solution.steps) && currentTicket.techSpec.solution.steps.length > 0 && (
+                          <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                            {currentTicket.techSpec.solution.steps.map((step: any, idx: number) => (
+                              <li key={idx} className="ml-4">
+                                <span className="font-medium">{idx + 1}.</span> {step.description || JSON.stringify(step)}
+                              </li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* Acceptance Criteria */}
+                {currentTicket?.techSpec?.acceptanceCriteria && currentTicket.techSpec.acceptanceCriteria.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Acceptance Criteria</h3>
+                    <ul className="space-y-2">
+                      {currentTicket.techSpec.acceptanceCriteria.map((criterion: any, i: number) => (
+                        <li key={i} className="text-sm text-[var(--text-secondary)] flex gap-2">
+                          <span className="text-[var(--text-tertiary)]">•</span>
+                          <span>
+                            {typeof criterion === 'string'
+                              ? criterion
+                              : criterion.given ? `Given ${criterion.given}, When ${criterion.when}, Then ${criterion.then}`
+                              : JSON.stringify(criterion)
+                            }
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* File Changes */}
+                {currentTicket?.techSpec?.fileChanges && currentTicket.techSpec.fileChanges.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">File Changes</h3>
+                    <ul className="space-y-2">
+                      {currentTicket.techSpec.fileChanges.slice(0, 5).map((file: any, i: number) => (
+                        <li key={i} className="text-sm text-[var(--text-secondary)] flex gap-2">
+                          <span className="text-[var(--text-tertiary)]">📄</span>
+                          <span className="font-mono text-xs">{file.path}</span>
+                        </li>
+                      ))}
+                      {currentTicket.techSpec.fileChanges.length > 5 && (
+                        <li className="text-sm text-[var(--text-tertiary)]">
+                          +{currentTicket.techSpec.fileChanges.length - 5} more files
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Tech Stack */}
+                {currentTicket?.techSpec?.stack && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Technology Stack</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(currentTicket.techSpec.stack).map(([key, value]: [string, any]) => (
+                        value && (
+                          <Badge key={key} variant="outline" className="text-xs">
+                            {value}
+                          </Badge>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quality Score */}
+                <div className="border-t border-[var(--border)] pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[var(--text-secondary)]">Quality Score</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-[var(--text)]">
+                        {currentTicket?.techSpec?.qualityScore || 0}%
+                      </span>
+                      <div className="h-1.5 w-24 bg-[var(--border)] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500"
+                          style={{ width: `${currentTicket?.techSpec?.qualityScore || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-[var(--text-tertiary)]">
+              ℹ️ This is a preview of the essential ticket information. When exported, it will be formatted for your project management tool.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

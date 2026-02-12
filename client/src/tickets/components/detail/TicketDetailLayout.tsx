@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { ImageAttachmentsGrid } from '@/src/tickets/components/ImageAttachmentsGrid';
@@ -9,6 +10,7 @@ import { OverviewCard } from './OverviewCard';
 import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { Button } from '@/core/components/ui/button';
+import { HelpCircle, MessageSquare } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 
@@ -91,6 +93,8 @@ export function TicketDetailLayout({
 
   // Pre-tech-spec state: show simple layout with questions + attachments
   if (!hasTechSpec) {
+    const hasQuestions = ticket.questions && ticket.questions.length > 0;
+
     return (
       <div className="space-y-6">
         {/* Overview Card (notes only, no metrics) */}
@@ -104,6 +108,76 @@ export function TicketDetailLayout({
           onDescriptionExpand={onDescriptionExpand}
         />
 
+        {/* Pending Questions */}
+        {hasQuestions && (
+          <CollapsibleSection
+            id="pending-questions"
+            title="Questions to Answer"
+            badge={`${ticket.questions.length} question${ticket.questions.length !== 1 ? 's' : ''}`}
+            defaultExpanded={true}
+          >
+            <div className="space-y-6">
+              {ticket.questions.map((question: any, idx: number) => (
+                <div key={idx} className="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)]">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-[var(--text)] mb-1">
+                        Question {idx + 1} of {ticket.questions.length}
+                      </p>
+                      <p className="text-sm text-[var(--text-secondary)]">
+                        {question.question || question.text || 'No question text'}
+                      </p>
+                      {question.context && (
+                        <p className="text-xs text-[var(--text-tertiary)] mt-2 italic">
+                          Context: {question.context}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-xs font-medium px-2 py-1 bg-[var(--bg-hover)] text-[var(--text-tertiary)] rounded">
+                      {question.type === 'multiline' ? 'Text' : question.type === 'checkbox' ? 'Multiple' : question.type === 'radio' ? 'Single' : 'Input'}
+                    </div>
+                  </div>
+
+                  {/* Answer preview */}
+                  {question.type === 'radio' || question.type === 'checkbox' ? (
+                    <div className="space-y-2">
+                      {question.options?.map((option: string, optIdx: number) => (
+                        <div key={optIdx} className="flex items-center gap-2 text-sm">
+                          <input
+                            type={question.type}
+                            disabled
+                            className="text-[var(--primary)] cursor-not-allowed opacity-50"
+                          />
+                          <span className="text-[var(--text-secondary)]">{option}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border)]/50 font-mono text-xs text-[var(--text-tertiary)] min-h-[60px] flex items-center justify-center">
+                      Your answer will appear here
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg space-y-3">
+                <p className="text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                  <MessageSquare className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span><strong>Answer these questions</strong> to generate the technical specification</span>
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  The system will guide you through each question one by one, and then automatically create the full technical specification based on your answers.
+                </p>
+                <Link href={`/tickets/create?resume=${ticketId}`}>
+                  <Button className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Answer Questions Now
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CollapsibleSection>
+        )}
 
         {/* Attachments */}
         <CollapsibleSection
