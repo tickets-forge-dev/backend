@@ -24,13 +24,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   signInWithGoogle: async () => {
-    console.log('📦 [AuthStore] signInWithGoogle called');
     set({ isLoading: true, error: null });
 
     try {
       const { authService } = useServices();
       const signInUseCase = new SignInUseCase(authService);
       await signInUseCase.signInWithGoogle();
+      set({ isLoading: false });
     } catch (error: any) {
       console.error('❌ [AuthStore] signInWithGoogle error:', error);
       set({ isLoading: false, error: error.message });
@@ -38,13 +38,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signInWithGitHub: async () => {
-    console.log('📦 [AuthStore] signInWithGitHub called');
     set({ isLoading: true, error: null });
 
     try {
       const { authService } = useServices();
       const signInUseCase = new SignInUseCase(authService);
       await signInUseCase.signInWithGitHub();
+      set({ isLoading: false });
     } catch (error: any) {
       console.error('❌ [AuthStore] signInWithGitHub error:', error);
       set({ isLoading: false, error: error.message });

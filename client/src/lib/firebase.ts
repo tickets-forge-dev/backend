@@ -111,6 +111,9 @@ export { auth };
 
 // OAuth providers
 export const googleProvider = new GoogleAuthProvider();
+
+// GitHub provider with repo scope to fetch user's repositories
 export const githubProvider = new GithubAuthProvider();
+githubProvider.addScope('repo'); // Access to private repos
 
 export default app;
