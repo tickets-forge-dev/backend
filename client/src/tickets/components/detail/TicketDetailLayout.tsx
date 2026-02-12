@@ -259,13 +259,16 @@ export function TicketDetailLayout({
             <div className="hidden lg:block w-48 flex-shrink-0">
               <nav className="sticky top-6 space-y-2">
                 {[
+                  { id: 'reproduction-steps', label: 'Reproduction Steps', bugOnly: true },
                   { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
                   { id: 'problem-statement', label: 'Problem Statement' },
                   { id: 'visual-qa', label: 'Visual QA Expectations' },
                   { id: 'scope', label: 'Scope' },
                   { id: 'solution', label: 'Solution' },
                   { id: 'assets', label: 'Assets' },
-                ].map((section) => (
+                ]
+                .filter(section => !section.bugOnly || ticket.type === 'bug')
+                .map((section) => (
                   <button
                     key={section.id}
                     onClick={() => {
