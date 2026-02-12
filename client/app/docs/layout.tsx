@@ -4,9 +4,6 @@ import { DocsSidebar } from './components/DocsSidebar';
 import Link from 'next/link';
 import { Home } from 'lucide-react';
 
-// Skip static generation for docs to avoid Firebase initialization errors during build
-export const dynamic = 'force-dynamic';
-
 export const metadata = {
   title: 'Documentation | Forge',
   description: 'Learn how to use Forge effectively - guides, tutorials, and knowledge base.',

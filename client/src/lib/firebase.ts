@@ -51,15 +51,31 @@ function getFirebaseConfigSync() {
   };
 }
 
-// Initialize Firebase with sync config (uses fallback if needed)
-const config = getFirebaseConfigSync();
-const app = initializeApp(config);
+// Initialize Firebase only on client side to avoid build-time errors
+let app: any = null;
+let auth: any = null;
+let firestore: any = null;
 
-// Initialize services
-export const auth = getAuth(app);
-const firestore = getFirestore(app);
+function initializeFirebase() {
+  if (app) return; // Already initialized
 
-// OAuth providers
+  const config = getFirebaseConfigSync();
+  app = initializeApp(config);
+
+  // Initialize services
+  auth = getAuth(app);
+  firestore = getFirestore(app);
+}
+
+// Initialize on client side
+if (typeof window !== 'undefined') {
+  initializeFirebase();
+}
+
+// Export auth (will be null during SSR, but that's OK since AuthInitializer is a client component)
+export { auth };
+
+// OAuth providers - create after Firebase is initialized
 export const googleProvider = new GoogleAuthProvider();
 export const githubProvider = new GithubAuthProvider();
 
@@ -74,13 +90,15 @@ if (typeof window !== 'undefined') {
     // Silently fail - fallback config is already in use
   });
 
-  import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
-    enableIndexedDbPersistence(firestore).catch((err) => {
-      // Silently fail - offline persistence is optional
-      // err.code === 'failed-precondition' means multiple tabs open
-      // err.code === 'unimplemented' means browser doesn't support IndexedDB
+  if (firestore) {
+    import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
+      enableIndexedDbPersistence(firestore).catch((err) => {
+        // Silently fail - offline persistence is optional
+        // err.code === 'failed-precondition' means multiple tabs open
+        // err.code === 'unimplemented' means browser doesn't support IndexedDB
+      });
     });
-  });
+  }
 }
 
 export default app;
