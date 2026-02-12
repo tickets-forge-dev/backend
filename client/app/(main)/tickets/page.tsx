@@ -184,8 +184,9 @@ export default function TicketsListPage() {
 
       {/* Status Tabs - Scrollable on mobile */}
       <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
-        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-          <TabsList className="inline-flex w-max gap-0">
+        <div className="w-full overflow-x-auto -mx-4 sm:mx-0">
+          <div className="px-4 sm:px-0 inline-block w-full sm:w-auto">
+            <TabsList className="inline-flex w-max gap-0">
             <TabsTrigger value="all" className="relative text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 py-2">
               All
               <span className="ml-0.5 sm:ml-1.5 text-[9px] sm:text-[11px] font-medium text-[var(--text-tertiary)]">
@@ -219,6 +220,7 @@ export default function TicketsListPage() {
               </span>
             </TabsTrigger>
           </TabsList>
+          </div>
         </div>
       </Tabs>
 
