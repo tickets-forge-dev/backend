@@ -192,7 +192,7 @@ export default function TicketsListPage() {
             </span>
           </TabsTrigger>
           <TabsTrigger value="needs-input" className="relative">
-            Needs Input
+            Answer Questions
             <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
               {statusCounts['needs-input']}
             </span>
@@ -491,7 +491,7 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
       return (
         <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--amber)]">
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--amber)]" />
-          Needs Input
+          Answer Questions
         </span>
       );
     }
