@@ -1,0 +1,343 @@
+# BMM Sprint Status - Forge Project
+# Generated: 2026-02-09
+# Project: forge
+# Project Key: FORGE
+# Tracking System: file-system
+# Story Location: docs/sprint-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder by *create-story
+#   - ready-for-dev: Draft approved and story context created by *story-ready
+#   - in-progress: Developer actively working on implementation by *dev-story
+#   - review: Implementation complete, ready for review by *code-review
+#   - done: Story completed by *story-done
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done by *retrospective
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: "2026-02-09"
+project: forge
+project_key: FORGE
+tracking_system: file-system
+story_location: docs/sprint-artifacts
+
+development_status:
+  # ============================================================================
+  # EPIC: ONBOARDING-GAPS (Close the Onboarding Promise Gap)
+  # Status: In Progress — Stories 1-3 done, 3b/6/6b done, 4/5/7/8 remaining
+  # Priority: High (Core user value - fulfill onboarding promises)
+  # ============================================================================
+
+  epic-onboarding-gaps: contexted
+
+  # Sprint 1: Spec Quality (Stories 1-3) — COMPLETED
+  1-1-explicit-api-endpoint-detection: done
+  1-2-explicit-backend-client-split-in-output: done
+  1-3-test-plan-generation: done
+
+  # Sprint 2: API Editor + Exports
+  1-3b-interactive-api-editor-mini-postman: done      # Session 6: API review, scan, edit
+  1-4-linear-integration: backlog
+  1-5-jira-integration: backlog
+
+  # Sprint 2-3: File Upload + Attachments
+  1-6b-rich-input-with-file-uploads: backlog           # Markdown rendering exists, PDF extraction not started
+  1-6-design-and-asset-attachments: done               # Session 10: Firebase Storage, upload progress, delete, lightbox
+
+  # Sprint 3: Notifications
+  1-7-in-app-notifications: backlog
+  1-8-email-notifications: backlog
+
+  epic-onboarding-gaps-retrospective: optional
+
+  # ============================================================================
+  # SUPER-SPRINT: Tech Spec Export (Epic 3 from Sprint Doc)
+  # Status: COMPLETE
+  # Note: .md + .xml export, preview, download, copy-to-clipboard
+  # ============================================================================
+
+  epic-3-tech-spec-export: done                        # Session 10: Full export pipeline
+
+  1-epic3-01-tech-spec-markdown-generator: done
+  1-epic3-02-aec-xml-serializer: done
+  1-epic3-03-artifact-storage-service: done
+  1-epic3-04-finalize-spec-enhancement: done
+  1-epic3-05-artifacts-api-endpoint: done
+  1-epic3-06-assets-section-component: done
+  1-epic3-07-document-card-component: done
+  1-epic3-08-xml-preview-modal: done
+  1-epic3-09-download-preview-integration: done
+  1-epic3-10-integration-testing: done
+
+  epic-3-tech-spec-export-retrospective: optional
+
+  # ============================================================================
+  # EPIC 21: CACHING OPTIMIZATION (Repository Analysis Caching)
+  # Status: Backlog
+  # Priority: High (Easy ROI - 10-20x speed improvement)
+  # Effort: 4 days
+  # ============================================================================
+
+  epic-21: backlog
+
+  21-1-create-hybrid-fingerprint-cache-service: backlog
+  21-2-integrate-cache-into-deep-analysis-service: backlog
+  21-3-setup-firestore-ttl-policy: backlog
+  21-4-performance-testing-and-validation: backlog
+
+  epic-21-retrospective: optional
+
+  # ============================================================================
+  # EPIC 22: WIREFRAME GENERATION (AI Wireframe Generation from Tickets)
+  # Status: Backlog
+  # Priority: P2 (High perceived value - visual output)
+  # Effort: ~1 week
+  # ============================================================================
+
+  epic-22: backlog
+
+  22-1-wireframe-generation-service-backend: backlog
+  22-2-wireframe-api-endpoint-backend: backlog
+  22-3-wireframe-viewer-and-download-frontend: backlog
+  22-4-smart-screen-detection-from-specs: backlog
+
+  epic-22-retrospective: optional
+
+  # ============================================================================
+  # EPIC 23: MULTI-REPO SUPPORT (P0 Blocker for Phase 4)
+  # Status: Backlog
+  # Priority: P0 (Features spanning multiple repos)
+  # Effort: ~8-10 weeks
+  # ============================================================================
+
+  epic-23: backlog
+
+  23-1-multi-repo-aec-domain-model: backlog
+  23-2-multi-repo-deep-analysis: backlog
+  23-3-update-api-endpoint-and-dtos: backlog
+  23-4-multi-repo-repository-selector-ui: backlog
+  23-5-wizard-update-and-validation: backlog
+  23-6-ticket-detail-display-per-repo: backlog
+  23-7-backend-tests-and-validation: backlog
+  23-8-frontend-tests-and-e2e: backlog
+
+  epic-23-retrospective: optional
+
+  # ============================================================================
+  # EPIC 24: BIDIRECTIONAL JIRA/LINEAR INTEGRATION (Holy Grail)
+  # Status: CONTEXTED → Ready for Development (2026-02-09)
+  # Priority: P1 (High value - makes Forge the enrichment layer)
+  # Effort: ~2 weeks
+  #
+  # COMPLETION STATUS:
+  #   ✅ Full specification: docs/epics/EPIC-24-BIDIRECTIONAL-JIRA-LINEAR.md
+  #   ✅ 7 Wireframes complete: docs/wireframes/EPIC-24-*.excalidraw
+  #   ✅ Implementation guide: docs/wireframes/EPIC-24-WIREFRAME-GUIDE.md
+  #   ✅ All 8 stories drafted with acceptance criteria
+  #   ✅ Jira OAuth connected (production verified)
+  #   ✅ Linear OAuth connected (production verified)
+  #   ✅ Smart update vs create logic documented
+  #   ✅ Data structures & API contracts specified
+  #
+  # D-DAY READINESS: 100% - All architectural decisions locked, ready for sprint
+  # ============================================================================
+
+  epic-24: contexted                                         # READY FOR DEVELOPMENT
+
+  24-1-jira-linear-import-apis: backlog
+  24-2-separate-import-flow-and-ui: backlog
+  24-3-create-ticket-from-imported-data: backlog
+  24-4-enhanced-export-with-smart-logic: backlog
+  24-5-export-dialog-with-sprint-cycle-selection: backlog
+  24-6-imported-issue-display-and-sync-badge: backlog
+  24-7-backend-tests-and-validation: backlog
+  24-8-frontend-tests-and-e2e: backlog
+
+  epic-24-retrospective: optional
+
+  # ============================================================================
+  # EPIC 25: PRD BREAKDOWN WORKFLOW (Team Planning - PRD → Multiple Tickets)
+  # Status: Backlog
+  # Priority: P1 (Strategic pivot to team planning tool)
+  # Effort: ~2-3 weeks
+  #
+  # STRATEGIC CONTEXT:
+  #   - Moves Forge upstream from single-ticket enrichment to project planning
+  #   - Bigger time save: PRD breakdown (2-4h) + ticket specs (1h each) = 7-14h per project
+  #   - Different buyer: Appeals to PMs and tech leads, not just individual devs
+  #   - Waves approach: Create simplified tickets → User enriches individually
+  #
+  # SCOPE DECISIONS:
+  #   ✅ Waves approach: Fast breakdown (2-3s) → Bulk create drafts → Enrich one-by-one
+  #   ✅ Reuse existing question engine for individual ticket enrichment
+  #   ✅ No spec feedback loop (keep it simple)
+  #   ✅ Just paste PRD text (no Notion/Confluence connectors for MVP)
+  #
+  # BMAD INTEGRATION:
+  #   - Adapts logic from .bmad/bmm/workflows/2-plan-workflows/create-epics-and-stories/
+  #   - Mastra agent uses proven BMAD prompts for epic grouping & story breakdown
+  #   - Output: Forge tickets instead of markdown files
+  # ============================================================================
+
+  epic-25: backlog
+
+  25-1-prd-breakdown-mastra-agent: backlog           # Adapt BMAD prompts, extract FRs, group by user value
+  25-2-prd-breakdown-backend-api: backlog            # PRDBreakdownUseCase, API endpoint, DTOs
+  25-3-prd-input-page-frontend: backlog              # Input form: paste PRD, select repo, analyze button
+  25-4-ticket-breakdown-review-ui: backlog           # Show grouped tickets, inline editing, drag & drop
+  25-5-bulk-ticket-creation-flow: backlog            # Create draft AECs in bulk, progress indicators
+  25-6-integration-and-testing: backlog              # End-to-end flow, edge cases, user acceptance
+
+  epic-25-retrospective: optional
+
+  # ============================================================================
+  # EPIC 10: REVENUE INFRASTRUCTURE (Stripe + Subscription Tiers)
+  # Status: Backlog (Pricing UI done)
+  # Priority: P0 (Revenue unlock - business critical)
+  # ============================================================================
+
+  epic-10: backlog
+
+  10-1-subscription-domain-model: backlog
+  10-2-stripe-checkout-integration: backlog
+  10-3-subscription-guard: backlog
+  10-4-usage-metering: backlog
+  10-5-stripe-customer-portal: backlog
+  10-6-pricing-page-ui: done                           # Completed in Story 0-4
+
+  epic-10-retrospective: optional
+
+  # ============================================================================
+  # EPIC: DEPLOYMENT (Production Deployment)
+  # Status: Reference/Documentation
+  # Priority: Infrastructure (ongoing)
+  # ============================================================================
+
+  epic-deployment: backlog
+  epic-deployment-retrospective: optional
+
+  # ============================================================================
+  # FUTURE FEATURES: High-Level Epics (To be detailed in later phases)
+  # ============================================================================
+
+  # Future Epic 1: Enhanced Ticket Context (Images + Text)
+  future-epic-1: backlog
+  1-1-enhanced-ticket-context-stage-1-ui: backlog
+  1-2-storage-service-wrapper: backlog
+  1-3-wire-uploads-into-wizard-flow: backlog
+  1-4-extend-aec-domain-with-context-images: backlog
+  1-5-pass-multimodal-context-to-llm: backlog
+  future-epic-1-retrospective: optional
+
+  # Future Epic 2: Code Guardrails Detection
+  future-epic-2: backlog
+  2-1-define-guardrails-value-object: backlog
+  2-2-detect-guardrails-during-analysis: backlog
+  2-3-inject-guardrails-into-prompts: backlog
+  2-4-display-guardrails-on-stage-2: backlog
+  2-5-show-guardrails-on-ticket-detail: backlog
+  future-epic-2-retrospective: optional
+
+  # Future Epic 3: Tech Spec Document + Artifacts — SUPERSEDED by Epic 3 above
+  future-epic-3: done                                  # Implemented as epic-3-tech-spec-export
+  future-epic-3-retrospective: optional
+
+  # Future Epic 4: Markdown Preview Page
+  future-epic-4: backlog
+  4-1-install-markdown-dependencies: backlog
+  4-2-create-markdown-renderer-component: backlog
+  4-3-create-preview-route: backlog
+  4-4-create-markdown-preview-drawer: backlog
+  4-5-syntax-highlighting-theme: backlog
+  future-epic-4-retrospective: optional
+
+  # Future Epic 5: Jira & Linear Integration (Full Export Bundle)
+  future-epic-5: backlog
+  5-1-linear-oauth: backlog
+  5-2-jira-oauth: backlog
+  5-3-linear-api-client-and-field-mapper: backlog
+  5-4-jira-api-client-and-field-mapper: backlog
+  5-5-aec-xml-serializer: done                         # Completed as part of Epic 3
+  5-6-artifact-bundle-assembler: backlog
+  5-7-platform-attachment-upload: backlog
+  5-8-export-use-case-and-ui: backlog
+  future-epic-5-retrospective: optional
+
+# ============================================================================
+# EXECUTION ROADMAP (Updated 2026-02-09)
+# ============================================================================
+# Phase 1 (COMPLETE): Tech-Spec Planning + Core Implementation
+#   └─ Stories 1-3 done (API detection, BE/FE split, test plans)
+#   └─ Story 3b done (Interactive API editor)
+#   └─ Story 6 done (Design & asset attachments, Firebase Storage)
+#   └─ Epic 3 done (Tech Spec .md + AEC .xml export)
+#   └─ Tabbed ticket detail page (Specification | Implementation)
+#   └─ Single-set question flow (replaced multi-round)
+#   └─ 2-pass repo fingerprinting (performance)
+#
+# Phase 2 (NEXT): Integrations + Rich Input
+#   Sprint 1: Story 1-6b (Rich Input / PDF extraction)
+#   Sprint 2: Stories 1-4, 1-5 (Linear + Jira integration - basic export)
+#   Sprint 3: Epic 21 (Caching optimization)
+#   Sprint 4: Epic 24 (Bidirectional Import + Smart Export) — THE HOLY GRAIL
+#
+# Phase 3: Expansion
+#   └─ Epic 23 (Multi-repo support) — P0 blocker for Phase 4
+#   └─ Epic 22 (Wireframe generation)
+#   └─ Future Epics 1-2, 4 (Enhanced context, Guardrails, Markdown)
+#
+# Phase 4: Revenue
+#   └─ Epic 10 (Subscription + Stripe)
+#
+# ============================================================================
+# KEY METRICS (Updated 2026-02-09)
+# ============================================================================
+# Total Epics: 12 (Epic 24: Bidirectional Integration added & CONTEXTED)
+# Total Stories: 76 (8 stories for Epic 24 drafted)
+# Stories Completed: 16 (1-1, 1-2, 1-3, 1-3b, 1-6, 10-6, epic-3 x10)
+# Stories in Backlog: 60
+# Completion: 21%
+#
+# Epics Ready for Development: 1 (Epic 24)
+#
+# EPIC 24 COMPLETION (Session 11):
+#   ✅ Full specification: docs/epics/EPIC-24-BIDIRECTIONAL-JIRA-LINEAR.md (2,500+ lines)
+#   ✅ Complete wireframe set: 7 screens in 2 Excalidraw files
+#   ✅ Implementation guide: docs/wireframes/EPIC-24-WIREFRAME-GUIDE.md
+#   ✅ All 8 stories drafted with detailed acceptance criteria
+#   ✅ Data structures defined (ImportWizardStore, AEC domain updates)
+#   ✅ API contracts specified (backend endpoints with DTOs)
+#   ✅ Smart update vs create logic documented & diagrammed
+#   ✅ Jira OAuth integrated (production verified, ticketsforge.atlassian.net)
+#   ✅ Linear OAuth integrated (production verified, connected as Dan)
+#   ✅ GitHub integration verified (2 repos enabled)
+#
+# D-DAY READINESS: 100% COMPLETE
+#   - All architectural decisions locked
+#   - Wireframes finalized & detailed
+#   - Workflows tested end-to-end
+#   - Production integrations working
+#   - No ambiguity on acceptance criteria
+#   - Ready for immediate sprint execution (Monday)
+#
+# Roadmap:
+#   Phase 2 Sprint 4: Epic 24 (Bidirectional Import/Export) ← NEXT AFTER Sprint 3
+#   Phase 3: Epic 23 (Multi-Repo Support, P0 blocker)
+#
+# Next Scheduled: Story 1-6b (Rich Input) → Story 1-4/1-5 (Basic Export) → Sprint 4: Epic 24
+# ============================================================================

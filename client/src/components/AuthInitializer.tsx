@@ -14,7 +14,30 @@ export function AuthInitializer() {
 
   useEffect(() => {
     console.log('🟢 [AuthInitializer] Mounting and subscribing to auth state changes');
-    
+
+    if (!auth) {
+      console.warn('⚠️ [AuthInitializer] Firebase auth not available, will retry...');
+      // Retry after a delay to allow Firebase to initialize
+      const timer = setTimeout(() => {
+        import('@/lib/firebase').then(({ auth: firebaseAuth }) => {
+          if (firebaseAuth) {
+            const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+              console.log('🔐 [AuthInitializer] Auth state changed:', {
+                email: user?.email || 'logged out',
+                uid: user?.uid || 'none'
+              });
+              setUser(user);
+            });
+            return () => {
+              console.log('🔴 [AuthInitializer] Unmounting and unsubscribing');
+              unsubscribe();
+            };
+          }
+        });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log('🔐 [AuthInitializer] Auth state changed:', {
         email: user?.email || 'logged out',

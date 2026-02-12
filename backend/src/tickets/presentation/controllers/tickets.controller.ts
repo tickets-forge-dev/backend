@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import { memoryStorage } from 'multer';
 import {
   CreateTicketUseCase,
   TICKET_LIMITS,
@@ -66,12 +67,20 @@ import { ExportToJiraUseCase } from '../../application/use-cases/ExportToJiraUse
 import { GetImportAvailabilityUseCase } from '../../application/use-cases/GetImportAvailabilityUseCase';
 import { ImportFromJiraUseCase } from '../../application/use-cases/ImportFromJiraUseCase';
 import { ImportFromLinearUseCase } from '../../application/use-cases/ImportFromLinearUseCase';
+import { PRDBreakdownUseCase } from '../../application/use-cases/PRDBreakdownUseCase';
+import { BulkCreateFromBreakdownUseCase } from '../../application/use-cases/BulkCreateFromBreakdownUseCase';
+import { EnrichMultipleTicketsUseCase } from '../../application/use-cases/EnrichMultipleTicketsUseCase';
+import { FinalizeMultipleTicketsUseCase } from '../../application/use-cases/FinalizeMultipleTicketsUseCase';
 import { ImportFromJiraDto } from '../dto/ImportFromJiraDto';
 import { ImportFromLinearDto } from '../dto/ImportFromLinearDto';
+import { BulkEnrichDto } from '../dto/BulkEnrichDto';
+import { BulkFinalizeDto } from '../dto/BulkFinalizeDto';
+import {
+  PRDBreakdownRequestDto,
+  BulkCreateFromBreakdownRequestDto,
+  BulkCreateFromBreakdownResponseDto,
+} from '../dto/PRDBreakdownDto';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import type { ImportAvailabilityResult } from '../../application/use-cases/GetImportAvailabilityUseCase';
-import type { ImportFromJiraResult } from '../../application/use-cases/ImportFromJiraUseCase';
-import type { ImportFromLinearResult } from '../../application/use-cases/ImportFromLinearUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -107,6 +116,10 @@ export class TicketsController {
     private readonly getImportAvailabilityUseCase: GetImportAvailabilityUseCase,
     private readonly importFromJiraUseCase: ImportFromJiraUseCase,
     private readonly importFromLinearUseCase: ImportFromLinearUseCase,
+    private readonly prdBreakdownUseCase: PRDBreakdownUseCase,
+    private readonly bulkCreateFromBreakdownUseCase: BulkCreateFromBreakdownUseCase,
+    private readonly enrichMultipleTicketsUseCase: EnrichMultipleTicketsUseCase,
+    private readonly finalizeMultipleTicketsUseCase: FinalizeMultipleTicketsUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -294,7 +307,7 @@ export class TicketsController {
     return { used, limit, canCreate: used < limit };
   }
 
-  @Get(':id')
+  @Get(':id(aec_[a-f0-9\\-]+)')
   async getTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.aecRepository.findById(id);
     if (!aec) {
@@ -345,7 +358,7 @@ export class TicketsController {
   /**
    * Generate clarification questions (simplified single-call flow)
    */
-  @Post(':id/generate-questions')
+  @Post(':id(aec_[a-f0-9\\-]+)/generate-questions')
   async generateQuestions(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -364,7 +377,7 @@ export class TicketsController {
   /**
    * Submit question answers and finalize technical specification
    */
-  @Post(':id/submit-answers')
+  @Post(':id(aec_[a-f0-9\\-]+)/submit-answers')
   async submitQuestionAnswers(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -400,7 +413,7 @@ export class TicketsController {
   /**
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
-  @Post(':id/finalize')
+  @Post(':id(aec_[a-f0-9\\-]+)/finalize')
   async finalizeSpec(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.finalizeSpecUseCase.execute({
       aecId: id,
@@ -414,7 +427,7 @@ export class TicketsController {
    * Export ticket as Markdown tech spec document.
    * Uses @Res() for custom Content-Type, so we manually handle errors.
    */
-  @Get(':id/export/markdown')
+  @Get(':id(aec_[a-f0-9\\-]+)/export/markdown')
   async exportMarkdown(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -447,7 +460,7 @@ export class TicketsController {
    * Export ticket as AEC XML contract.
    * Uses @Res() for custom Content-Type, so we manually handle errors.
    */
-  @Get(':id/export/xml')
+  @Get(':id(aec_[a-f0-9\\-]+)/export/xml')
   async exportXml(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -480,7 +493,7 @@ export class TicketsController {
    * Detect APIs from the ticket's repository by scanning controller files.
    * Resolves per-user GitHub token (same pattern as analyzeRepository).
    */
-  @Post(':id/detect-apis')
+  @Post(':id(aec_[a-f0-9\\-]+)/detect-apis')
   async detectApis(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.aecRepository.findById(id);
     if (!aec || aec.workspaceId !== workspaceId) {
@@ -578,10 +591,10 @@ export class TicketsController {
   /**
    * Upload a file attachment to a ticket.
    */
-  @Post(':id/attachments')
+  @Post(':id(aec_[a-f0-9\\-]+)/attachments')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file', {
-    storage: require('multer').memoryStorage(),
+    storage: memoryStorage(),
     limits: { fileSize: MAX_FILE_SIZE },
   }))
   async uploadAttachment(
@@ -659,7 +672,7 @@ export class TicketsController {
   /**
    * List attachments for a ticket.
    */
-  @Get(':id/attachments')
+  @Get(':id(aec_[a-f0-9\\-]+)/attachments')
   async listAttachments(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -675,7 +688,7 @@ export class TicketsController {
   /**
    * Export ticket to Linear as an issue.
    */
-  @Post(':id/export/linear')
+  @Post(':id(aec_[a-f0-9\\-]+)/export/linear')
   async exportToLinear(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -696,11 +709,11 @@ export class TicketsController {
   /**
    * Export ticket to Jira as an issue.
    */
-  @Post(':id/export/jira')
+  @Post(':id(aec_[a-f0-9\\-]+)/export/jira')
   async exportToJira(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
-    @Body() body: { projectKey: string },
+    @Body() body: { projectKey: string; sections?: string[] },
     @Req() req: any,
   ) {
     const userId = req.user?.uid;
@@ -712,6 +725,7 @@ export class TicketsController {
         workspaceId,
         userId,
         projectKey: body.projectKey,
+        sections: body.sections,
       });
       return result;
     } catch (error: any) {
@@ -842,6 +856,333 @@ export class TicketsController {
       }
       this.logger.error(`Linear import failed: ${error.message}`);
       throw new InternalServerErrorException('Failed to import from Linear');
+    }
+  }
+
+  /**
+   * POST /tickets/breakdown/prd
+   * Analyze a PRD and return a breakdown into epics and stories
+   *
+   * Streams progress events via SSE so frontend can show real-time feedback:
+   * - "Extracting functional requirements..."
+   * - "Proposing epics..."
+   * - "Generating stories..."
+   * - Final completion event with breakdown result
+   *
+   * Request body:
+   * {
+   *   "prdText": "...",
+   *   "repositoryOwner": "user",
+   *   "repositoryName": "repo",
+   *   "projectName": "My Project" (optional)
+   * }
+   *
+   * Response: SSE stream with progress events, final event contains breakdown
+   */
+  @Post('breakdown/prd')
+  async breakdownPRD(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Body() dto: PRDBreakdownRequestDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    // Set up SSE headers for streaming response
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    try {
+      this.logger.log(`🔍 PRD breakdown requested for ${dto.repositoryOwner}/${dto.repositoryName}`);
+
+      // Send progress: Starting analysis
+      res.write(`data: ${JSON.stringify({
+        type: 'progress',
+        step: 'extracting',
+        message: 'Extracting functional requirements from PRD...',
+      })}\n\n`);
+
+      const result = await this.prdBreakdownUseCase.execute({
+        prdText: dto.prdText,
+        repositoryOwner: dto.repositoryOwner,
+        repositoryName: dto.repositoryName,
+        projectName: dto.projectName,
+        workspaceId,
+        onProgress: (step: string, message: string) => {
+          // Stream progress events as analysis proceeds
+          res.write(`data: ${JSON.stringify({
+            type: 'progress',
+            step,
+            message,
+          })}\n\n`);
+        },
+      });
+
+      this.logger.log(
+        `✅ PRD breakdown complete: ${result.estimatedTicketsCount} tickets in ${result.analysisTime}ms`,
+      );
+
+      // Send final completion event with breakdown result
+      res.write(`data: ${JSON.stringify({
+        type: 'complete',
+        breakdown: result.breakdown,
+        analysisTime: result.analysisTime,
+        estimatedTicketsCount: result.estimatedTicketsCount,
+      })}\n\n`);
+
+      res.end();
+    } catch (error: any) {
+      this.logger.error(`PRD breakdown failed: ${error.message}`);
+      const errorEvent = {
+        type: 'error',
+        message: error.message || 'Failed to analyze PRD. Please ensure it contains clear requirements.',
+      };
+      res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
+      res.end();
+    }
+  }
+
+  /**
+   * POST /tickets/breakdown/bulk-create
+   * Bulk create draft tickets from a PRD breakdown result
+   *
+   * Request body: List of breakdown tickets to create
+   * Response: Created ticket IDs and any errors
+   */
+  @Post('breakdown/bulk-create')
+  @HttpCode(HttpStatus.CREATED)
+  async bulkCreateFromBreakdown(
+    @WorkspaceId() workspaceId: string,
+    @UserEmail() userEmail: string,
+    @UserId() userId: string,
+    @Body() dto: BulkCreateFromBreakdownRequestDto,
+  ): Promise<BulkCreateFromBreakdownResponseDto> {
+    try {
+      this.logger.log(`📦 Bulk creating ${dto.tickets.length} tickets from PRD breakdown`);
+
+      const result = await this.bulkCreateFromBreakdownUseCase.execute({
+        workspaceId,
+        userEmail,
+        userId,
+        tickets: dto.tickets,
+      });
+
+      const createdCount = result.results.filter((r) => r.ticketId).length;
+      const errorCount = result.results.filter((r) => r.error).length;
+
+      this.logger.log(
+        `✅ Bulk creation complete: ${createdCount}/${dto.tickets.length} tickets created${
+          errorCount > 0 ? `, ${errorCount} errors` : ''
+        }`,
+      );
+
+      return result;
+    } catch (error: any) {
+      this.logger.error(`Bulk creation failed: ${error.message}`);
+
+      // Return proper error format (not wrapped in BadRequestException)
+      // NestJS will handle the error response format
+      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+        throw error;
+      }
+
+      throw new BadRequestException(
+        error.message || 'Failed to create tickets from breakdown',
+      );
+    }
+  }
+
+  /**
+   * Enrich multiple tickets in parallel
+   *
+   * Runs deep analysis + question generation for all tickets simultaneously.
+   * Streams SSE progress events so frontend can show real-time agent progress.
+   *
+   * Request body: ticketIds, repositoryOwner, repositoryName, branch
+   * Response: SSE stream with progress events, final event contains questions grouped by ticketId
+   */
+  @Post('bulk/enrich')
+  async enrichMultipleTickets(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: BulkEnrichDto,
+    @Res() res: Response,
+  ) {
+    this.logger.log(
+      `⚙️ Starting parallel enrichment of ${dto.ticketIds.length} tickets`,
+    );
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    try {
+      const result = await this.enrichMultipleTicketsUseCase.execute({
+        workspaceId,
+        ticketIds: dto.ticketIds,
+        onProgress: (event) => {
+          // Send progress event via SSE
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+        },
+      });
+
+      // Send final completion event
+      const completeEvent = {
+        type: 'complete',
+        questions: Object.fromEntries(result.questions),
+        errors: Object.fromEntries(result.errors),
+        completedCount: result.completedCount,
+        failedCount: result.failedCount,
+      };
+      res.write(`data: ${JSON.stringify(completeEvent)}\n\n`);
+      res.end();
+    } catch (error: any) {
+      this.logger.error(`Enrichment failed: ${error.message}`);
+      const errorEvent = {
+        type: 'error',
+        message: error.message || 'Failed to enrich tickets',
+      };
+      res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
+      res.end();
+    }
+  }
+
+  /**
+   * Finalize multiple enriched tickets in parallel
+   *
+   * Submits question answers for all tickets and generates specs simultaneously.
+   * Streams SSE progress events so frontend can show real-time finalization progress.
+   *
+   * Request body: answers array with ticketId, questionId, answer
+   * Response: SSE stream with progress events, final event contains results for each ticket
+   */
+  @Post('bulk/finalize')
+  async finalizeMultipleTickets(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: BulkFinalizeDto,
+    @Res() res: Response,
+  ) {
+    this.logger.log(
+      `⚙️ Starting parallel finalization of ${new Set(dto.answers.map((a) => a.ticketId)).size} tickets`,
+    );
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    try {
+      const result = await this.finalizeMultipleTicketsUseCase.execute({
+        workspaceId,
+        answers: dto.answers,
+        onProgress: (event) => {
+          // Send progress event via SSE
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+        },
+      });
+
+      // Send final completion event
+      const completeEvent = {
+        type: 'complete',
+        results: result.results,
+        completedCount: result.completedCount,
+        failedCount: result.failedCount,
+      };
+      res.write(`data: ${JSON.stringify(completeEvent)}\n\n`);
+      res.end();
+    } catch (error: any) {
+      this.logger.error(`Finalization failed: ${error.message}`);
+      const errorEvent = {
+        type: 'error',
+        message: error.message || 'Failed to finalize tickets',
+      };
+      res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
+      res.end();
+    }
+  }
+
+  /**
+   * Save a PRD breakdown draft
+   *
+   * Persists the current breakdown state to Firestore for resuming later.
+   * Called after analysis completes or on user edits.
+   */
+  @Post('breakdown/draft/save')
+  @HttpCode(HttpStatus.OK)
+  async saveBreakdownDraft(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Body() _dto: any, // SaveBreakdownDraftDto
+  ) {
+    if (!workspaceId || !userId) {
+      throw new BadRequestException('Workspace and user IDs are required');
+    }
+
+    try {
+      // Draft saving is handled by frontend storage
+      // This endpoint is a placeholder for future Firestore persistence
+      return {
+        status: 'success',
+        message: 'Draft saved (client-side storage)',
+      };
+    } catch (error: any) {
+      throw new BadRequestException(`Failed to save draft: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get the most recent breakdown draft
+   *
+   * Returns the latest saved draft for the user/workspace combination.
+   * Used to show "Resume Draft?" banner on PRD input page.
+   */
+  @Get('breakdown/draft/latest')
+  async getLatestBreakdownDraft(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+  ) {
+    if (!workspaceId || !userId) {
+      throw new BadRequestException('Workspace and user IDs are required');
+    }
+
+    try {
+      // Draft loading is handled by frontend storage
+      // This endpoint is a placeholder for future Firestore persistence
+      return {
+        status: 'success',
+        draft: null,
+        message: 'No draft found (client-side storage)',
+      };
+    } catch (error: any) {
+      throw new BadRequestException(`Failed to load draft: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a breakdown draft
+   *
+   * Removes a draft from storage.
+   * Called when user discards a draft or after creating tickets.
+   */
+  @Delete('breakdown/draft/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteBreakdownDraft(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Param('id') draftId: string,
+  ) {
+    if (!workspaceId || !userId || !draftId) {
+      throw new BadRequestException('Workspace, user, and draft IDs are required');
+    }
+
+    try {
+      // Draft deletion is handled by frontend storage
+      // This endpoint is a placeholder for future Firestore persistence
+      return {
+        status: 'success',
+        message: 'Draft deleted (client-side storage)',
+      };
+    } catch (error: any) {
+      throw new BadRequestException(`Failed to delete draft: ${error.message}`);
     }
   }
 }

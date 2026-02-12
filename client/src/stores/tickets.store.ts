@@ -53,7 +53,7 @@ interface TicketsState {
 
   // Export actions
   exportToLinear: (ticketId: string, teamId: string) => Promise<{ issueUrl: string; identifier: string } | null>;
-  exportToJira: (ticketId: string, projectKey: string) => Promise<{ issueKey: string; issueUrl: string } | null>;
+  exportToJira: (ticketId: string, projectKey: string, sections?: string[]) => Promise<{ issueKey: string; issueUrl: string } | null>;
 
   // Attachment actions
   uploadAttachment: (ticketId: string, file: File, onProgress?: (percent: number) => void) => Promise<boolean>;
@@ -230,10 +230,10 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
     }
   },
 
-  exportToJira: async (ticketId: string, projectKey: string) => {
+  exportToJira: async (ticketId: string, projectKey: string, sections?: string[]) => {
     try {
       const { ticketService } = useServices();
-      const result = await ticketService.exportToJira(ticketId, projectKey);
+      const result = await ticketService.exportToJira(ticketId, projectKey, sections);
 
       // Refresh the ticket to get the external issue link
       await get().fetchTicket(ticketId);

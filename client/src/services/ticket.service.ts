@@ -143,10 +143,10 @@ export class TicketService {
     return response.data;
   }
 
-  async exportToJira(ticketId: string, projectKey: string): Promise<{ issueId: string; issueKey: string; issueUrl: string }> {
+  async exportToJira(ticketId: string, projectKey: string, sections?: string[]): Promise<{ issueId: string; issueKey: string; issueUrl: string }> {
     const response = await this.client.post<{ issueId: string; issueKey: string; issueUrl: string }>(
       `/tickets/${ticketId}/export/jira`,
-      { projectKey },
+      { projectKey, sections },
     );
     return response.data;
   }

@@ -4,9 +4,7 @@ import {
   TechSpec,
   AcceptanceCriterion,
   FileChange,
-  ApiEndpoint,
   TestCase,
-  SolutionStep,
 } from '../../domain/tech-spec/TechSpecGenerator';
 
 /**

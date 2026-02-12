@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Firestore, Timestamp } from 'firebase-admin/firestore';
-import { JiraIntegration, JiraIntegrationProps } from '../../domain/JiraIntegration';
+import { JiraIntegration } from '../../domain/JiraIntegration';
 import { JiraIntegrationRepository } from '../../domain/JiraIntegrationRepository';
 
 interface JiraIntegrationDocument {

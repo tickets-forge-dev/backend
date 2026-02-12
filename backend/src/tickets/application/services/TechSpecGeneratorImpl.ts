@@ -340,6 +340,67 @@ IMPORTANT:
 - pattern: Reference to existing code pattern (e.g., "Follow UserStore pattern in src/stores/UserStore.ts")
 - Valid JSON array only`;
   }
+
+  static bugAnalysisPrompt(
+    reproductionSteps: any[],
+    codebaseApis: any[],
+    detectedFiles: string[],
+    directoryStructure: string,
+  ): string {
+    const stepsText = reproductionSteps
+      .map(
+        (step, i) => `
+Step ${step.order || i + 1}: ${step.action}
+Expected: ${step.expectedBehavior || 'N/A'}
+Actual: ${step.actualBehavior || 'N/A'}
+${step.apiCall ? `API: ${step.apiCall.method} ${step.apiCall.url} → ${step.apiCall.actualStatus || step.apiCall.expectedStatus || 'unknown'}` : ''}
+${step.consoleLog ? `Console: ${step.consoleLog.substring(0, 200)}` : ''}
+${step.codeSnippet ? `Code: ${step.codeSnippet.substring(0, 200)}` : ''}`,
+      )
+      .join('\n');
+
+    const apisText =
+      codebaseApis.length > 0
+        ? codebaseApis
+            .slice(0, 15)
+            .map((api: any) => `  - ${api.method} ${api.route}${api.controller ? ` (${api.controller})` : ''}`)
+            .join('\n')
+        : 'None detected';
+
+    return `You are analyzing a bug report to identify the root cause and suggest a fix.
+
+REPRODUCTION STEPS:
+${stepsText}
+
+CODEBASE CONTEXT:
+Tech Stack: ${directoryStructure.split('\n').slice(0, 3).join(', ')}
+Key Directories: ${directoryStructure.split('\n').slice(0, 5).join(', ')}
+
+EXISTING CODEBASE APIs (detected from controllers):
+${apisText}
+
+LIKELY AFFECTED FILES (from codebase analysis):
+${detectedFiles.slice(0, 10).map((f) => `  - ${f}`).join('\n')}
+
+Your task:
+1. Identify 1-3 files most likely to contain the bug (relatedFiles) - use paths from codebase
+2. Generate a root cause hypothesis (suspectedCause) - 1-2 sentences, be specific
+3. Suggest a high-level fix approach (suggestedFix) - strategic guidance, NOT specific code
+
+Focus on:
+- API calls with unexpected status codes (4xx, 5xx)
+- Console errors or warnings indicating null/undefined access, missing properties
+- Mismatches between expected and actual behavior
+- Code snippets that trigger the bug
+- Controller files corresponding to failing API endpoints
+
+Return ONLY valid JSON:
+{
+  "relatedFiles": ["path/to/file1.ts", "path/to/file2.ts"],
+  "suspectedCause": "Brief hypothesis about root cause (1-2 sentences, be specific)",
+  "suggestedFix": "High-level guidance on how to approach the fix"
+}`;
+  }
 }
 
 /**
@@ -399,6 +460,9 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
    *
    * Orchestrates the full pipeline: problem → solution → AC → questions → file changes
    * Then applies ambiguity detection, validation, and quality scoring.
+   *
+   * For bug-type tickets with reproduction steps, automatically triggers bug analysis
+   * to populate relatedFiles, suspectedCause, and suggestedFix.
    */
   async generate(input: TechSpecInput): Promise<TechSpec> {
     const context: CodebaseContext = {
@@ -466,6 +530,17 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       testPlan,
       visualExpectations,
     };
+
+    // Bug-specific analysis: runs in parallel with other sections, non-blocking
+    if (input.ticketType === 'bug' && input.reproductionSteps && input.reproductionSteps.length > 0) {
+      const bugAnalysis = await this.generateBugAnalysis(input.reproductionSteps, context);
+      techSpec.bugDetails = {
+        reproductionSteps: input.reproductionSteps,
+        relatedFiles: bugAnalysis.relatedFiles,
+        suspectedCause: bugAnalysis.suspectedCause,
+        suggestedFix: bugAnalysis.suggestedFix,
+      };
+    }
 
     // Detect and remove ambiguities
     techSpec.ambiguityFlags = this.detectAmbiguities(techSpec);
@@ -969,6 +1044,79 @@ Return ONLY valid JSON.`;
     } catch (error) {
       this.logger.warn(`Test plan generation failed: ${String(error)}`);
       return undefined;
+    }
+  }
+
+  /**
+   * Generates bug analysis for bug tickets
+   *
+   * Analyzes reproduction steps to identify likely affected files,
+   * root cause hypothesis, and suggested fix approach.
+   *
+   * Only called for bug-type tickets with reproduction steps.
+   */
+  private async generateBugAnalysis(
+    reproductionSteps: any[],
+    context: CodebaseContext,
+  ): Promise<{ relatedFiles?: string[]; suspectedCause?: string; suggestedFix?: string }> {
+    try {
+      // Extract API information from deep analysis
+      const codebaseApis =
+        (context as any)?.taskAnalysis?.apiChanges?.codebaseApis || [];
+
+      // Extract potential file list from deep analysis or use file tree
+      const detectedFiles =
+        (context as any)?.taskAnalysis?.filesToModify ||
+        Array.from(context.files.keys())
+          .filter(
+            (f) =>
+              f.endsWith('.controller.ts') ||
+              f.endsWith('.service.ts') ||
+              f.includes('/api/') ||
+              f.includes('/services/'),
+          )
+          .slice(0, 20);
+
+      const directoryStructure = this.buildDirectoryStructure(context);
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+      const userPrompt = PromptTemplates.bugAnalysisPrompt(
+        reproductionSteps,
+        codebaseApis,
+        detectedFiles,
+        directoryStructure,
+      );
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<{
+        relatedFiles?: string[];
+        suspectedCause?: string;
+        suggestedFix?: string;
+      }>(response);
+
+      // Validate structure
+      if (!parsed.relatedFiles || !parsed.suspectedCause || !parsed.suggestedFix) {
+        throw new Error('Invalid bug analysis structure');
+      }
+
+      // Ensure relatedFiles are valid file paths
+      const relatedFiles = Array.isArray(parsed.relatedFiles)
+        ? parsed.relatedFiles
+            .filter((f) => typeof f === 'string' && f.length > 0)
+            .slice(0, 5)
+        : [];
+
+      const suspectedCause = String(parsed.suspectedCause || '').trim();
+      const suggestedFix = String(parsed.suggestedFix || '').trim();
+
+      return {
+        relatedFiles: relatedFiles.length > 0 ? relatedFiles : undefined,
+        suspectedCause: suspectedCause || undefined,
+        suggestedFix: suggestedFix || undefined,
+      };
+    } catch (error) {
+      this.logger.warn(`Bug analysis generation failed: ${String(error)}`);
+      // Return empty analysis on error - don't block spec generation
+      return {};
     }
   }
 
@@ -1761,12 +1909,16 @@ Rewritten text (definitive, unambiguous):`;
    *
    * More definitive than initial generate() because it incorporates
    * answers to clarification questions from all rounds.
+   *
+   * Also handles bug analysis for bug-type tickets with reproduction steps.
    */
   async generateWithAnswers(input: {
     title: string;
     description?: string;
     context: CodebaseContext;
     answers: Array<{ questionId: string; answer: string | string[] }>;
+    ticketType?: 'feature' | 'bug' | 'task';
+    reproductionSteps?: any[];
   }): Promise<TechSpec> {
     try {
       const context: CodebaseContext = input.context;
@@ -1822,6 +1974,17 @@ Rewritten text (definitive, unambiguous):`;
         testPlan,
         visualExpectations,
       };
+
+      // Bug-specific analysis: runs in parallel with other sections, non-blocking
+      if (input.ticketType === 'bug' && input.reproductionSteps && input.reproductionSteps.length > 0) {
+        const bugAnalysis = await this.generateBugAnalysis(input.reproductionSteps, context);
+        techSpec.bugDetails = {
+          reproductionSteps: input.reproductionSteps,
+          relatedFiles: bugAnalysis.relatedFiles,
+          suspectedCause: bugAnalysis.suspectedCause,
+          suggestedFix: bugAnalysis.suggestedFix,
+        };
+      }
 
       // Detect and remove remaining ambiguities
       techSpec.ambiguityFlags = this.detectAmbiguities(techSpec);

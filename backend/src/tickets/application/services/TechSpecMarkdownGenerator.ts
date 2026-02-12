@@ -2,18 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import {
   TechSpec,
-  ProblemStatement,
   SolutionSection,
   SolutionStep,
   AcceptanceCriterion,
   FileChange,
-  ApiEndpoint,
   ApiChanges,
   LayeredFileChanges,
   TestCase,
   TestPlan,
-  VisualExpectation,
-  VisualExpectations,
 } from '../../domain/tech-spec/TechSpecGenerator';
 
 /**
@@ -24,21 +20,36 @@ import {
  */
 @Injectable()
 export class TechSpecMarkdownGenerator {
-  generate(aec: AEC): string {
+  generate(aec: AEC, sections?: string[]): string {
     const spec = aec.techSpec;
     if (!spec) return '';
 
     const lines: string[] = [];
+    const includedSections = sections && sections.length > 0 ? new Set(sections) : null;
 
     this.renderHeader(lines, aec, spec);
-    this.renderProblemStatement(lines, spec.problemStatement);
-    this.renderSolution(lines, spec.solution);
-    this.renderAcceptanceCriteria(lines, spec.acceptanceCriteria);
-    this.renderFileChanges(lines, spec.fileChanges, spec.layeredFileChanges);
-    this.renderApiEndpoints(lines, spec.apiChanges);
-    this.renderTestPlan(lines, spec.testPlan);
-    this.renderScope(lines, spec.inScope, spec.outOfScope);
-    this.renderVisualExpectations(lines, spec.visualExpectations);
+
+    if (!includedSections || includedSections.has('problem')) {
+      this.renderProblemStatement(lines, spec.problemStatement);
+    }
+    if (!includedSections || includedSections.has('solution')) {
+      this.renderSolution(lines, spec.solution);
+    }
+    if (!includedSections || includedSections.has('criteria')) {
+      this.renderAcceptanceCriteria(lines, spec.acceptanceCriteria);
+    }
+    if (!includedSections || includedSections.has('files')) {
+      this.renderFileChanges(lines, spec.fileChanges, spec.layeredFileChanges);
+    }
+    if (!includedSections || includedSections.has('api')) {
+      this.renderApiEndpoints(lines, spec.apiChanges);
+    }
+    if (!includedSections || includedSections.has('tests')) {
+      this.renderTestPlan(lines, spec.testPlan);
+    }
+    if (!includedSections || includedSections.has('scope')) {
+      this.renderScope(lines, spec.inScope, spec.outOfScope);
+    }
 
     return lines.join('\n');
   }
@@ -51,20 +62,6 @@ export class TechSpecMarkdownGenerator {
 
     const meta: string[] = [];
     meta.push(`**Date:** ${spec.createdAt ? toSafeISODate(spec.createdAt) : 'N/A'}`);
-    meta.push(`**Quality Score:** ${spec.qualityScore ?? 'N/A'}/100`);
-
-    if (spec.stack) {
-      const parts: string[] = [];
-      if (spec.stack.language) parts.push(spec.stack.language);
-      if (spec.stack.framework) parts.push(spec.stack.framework);
-      if (spec.stack.packageManager) parts.push(spec.stack.packageManager);
-      if (parts.length > 0) meta.push(`**Stack:** ${parts.join(' / ')}`);
-    }
-
-    if (aec.repositoryContext) {
-      meta.push(`**Repository:** ${aec.repositoryContext.repositoryFullName}`);
-      meta.push(`**Branch:** ${aec.repositoryContext.branchName}`);
-    }
 
     lines.push(meta.join('  \n'));
     lines.push('');
@@ -269,19 +266,6 @@ export class TechSpecMarkdownGenerator {
       );
     }
     lines.push('');
-
-    // DTOs
-    const withDtos = apiChanges.endpoints.filter((ep) => ep.dto?.request || ep.dto?.response);
-    if (withDtos.length > 0) {
-      lines.push('### DTOs');
-      lines.push('');
-      for (const ep of withDtos) {
-        lines.push(`**${ep.method} ${ep.route}**`);
-        if (ep.dto?.request) lines.push(`- Request: \`${ep.dto.request}\``);
-        if (ep.dto?.response) lines.push(`- Response: \`${ep.dto.response}\``);
-        lines.push('');
-      }
-    }
   }
 
   // ── Test Plan ───────────────────────────────────────────────────────
@@ -349,49 +333,6 @@ export class TechSpecMarkdownGenerator {
       for (const item of outOfScope) {
         lines.push(`- ${item}`);
       }
-      lines.push('');
-    }
-  }
-
-  // ── Visual Expectations ─────────────────────────────────────────────
-
-  private renderVisualExpectations(lines: string[], visual?: VisualExpectations): void {
-    if (!visual?.expectations || visual.expectations.length === 0) return;
-
-    lines.push('## Visual Expectations');
-    lines.push('');
-
-    if (visual.summary) {
-      lines.push(visual.summary);
-      lines.push('');
-    }
-
-    for (const exp of visual.expectations) {
-      lines.push(`### ${exp.screen} (${exp.state})`);
-      lines.push('');
-      lines.push(exp.description);
-      lines.push('');
-      if (exp.wireframe) {
-        lines.push('```');
-        lines.push(exp.wireframe);
-        lines.push('```');
-        lines.push('');
-      }
-      if (exp.steps?.length > 0) {
-        lines.push('**Steps to reach this state:**');
-        for (let si = 0; si < exp.steps.length; si++) {
-          lines.push(`${si + 1}. ${exp.steps[si]}`);
-        }
-        lines.push('');
-      }
-    }
-
-    if (visual.flowDiagram) {
-      lines.push('### Flow Diagram');
-      lines.push('');
-      lines.push('```');
-      lines.push(visual.flowDiagram);
-      lines.push('```');
       lines.push('');
     }
   }

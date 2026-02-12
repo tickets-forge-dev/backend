@@ -27,6 +27,7 @@ import { GitHubModule } from '../github/github.module';
 import { LinearModule } from '../linear/linear.module';
 import { JiraModule } from '../jira/jira.module';
 import { PostHogModule } from '../shared/infrastructure/posthog/posthog.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { ExportToLinearUseCase } from './application/use-cases/ExportToLinearUseCase';
 import { ExportToJiraUseCase } from './application/use-cases/ExportToJiraUseCase';
 import { GetImportAvailabilityUseCase } from './application/use-cases/GetImportAvailabilityUseCase';
@@ -47,9 +48,14 @@ import { TechSpecMarkdownGenerator } from './application/services/TechSpecMarkdo
 import { AecXmlSerializer } from './application/services/AecXmlSerializer';
 import { AttachmentStorageService } from './infrastructure/storage/AttachmentStorageService';
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
+import { PRDBreakdownUseCase } from './application/use-cases/PRDBreakdownUseCase';
+import { PRDBreakdownService } from './application/services/PRDBreakdownService';
+import { BulkCreateFromBreakdownUseCase } from './application/use-cases/BulkCreateFromBreakdownUseCase';
+import { EnrichMultipleTicketsUseCase } from './application/use-cases/EnrichMultipleTicketsUseCase';
+import { FinalizeMultipleTicketsUseCase } from './application/use-cases/FinalizeMultipleTicketsUseCase';
 
 @Module({
-  imports: [GitHubModule, LinearModule, JiraModule, PostHogModule],
+  imports: [GitHubModule, LinearModule, JiraModule, PostHogModule, WorkspacesModule],
   controllers: [TicketsController],
   providers: [
     CreateTicketUseCase,
@@ -66,6 +72,10 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     GetImportAvailabilityUseCase,
     ImportFromJiraUseCase,
     ImportFromLinearUseCase,
+    PRDBreakdownUseCase,
+    BulkCreateFromBreakdownUseCase,
+    EnrichMultipleTicketsUseCase,
+    FinalizeMultipleTicketsUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,
@@ -132,6 +142,7 @@ import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePo
     TechSpecMarkdownGenerator,
     AecXmlSerializer,
     AttachmentStorageService,
+    PRDBreakdownService,
     DeepAnalysisServiceImpl,
     {
       provide: DEEP_ANALYSIS_SERVICE,

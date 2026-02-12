@@ -102,6 +102,58 @@ export interface VisualExpectationsSpec {
 }
 
 /**
+ * Structured API call details for bug reproduction steps (frontend)
+ */
+export interface ApiCallDetailsSpec {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  url: string;
+  headers?: Record<string, string>;
+  body?: string;
+  expectedStatus?: number;
+  actualStatus?: number;
+  responseBody?: string;
+  timing?: number;
+}
+
+/**
+ * Single reproduction step in a bug report (frontend)
+ */
+export interface ReproductionStepSpec {
+  order: number;
+  action: string;
+  expectedBehavior?: string;
+  actualBehavior?: string;
+  apiCall?: ApiCallDetailsSpec;
+  screenshot?: {
+    attachmentId: string;
+    caption?: string;
+  };
+  consoleLog?: string;
+  codeSnippet?: string;
+  notes?: string;
+}
+
+/**
+ * Bug-specific details section for bug tickets (frontend)
+ *
+ * Only present in TechSpec when ticket.type === 'bug'
+ */
+export interface BugDetailsSpec {
+  reproductionSteps: ReproductionStepSpec[];
+  environment?: {
+    browser?: string;
+    os?: string;
+    viewport?: string;
+    userRole?: string;
+  };
+  frequency?: 'always' | 'sometimes' | 'rarely';
+  impact?: 'critical' | 'high' | 'medium' | 'low';
+  relatedFiles?: string[];
+  suspectedCause?: string;
+  suggestedFix?: string;
+}
+
+/**
  * Technical specification generated from questions
  */
 export interface TechSpec {
@@ -147,6 +199,7 @@ export interface TechSpec {
     coverageGoal?: number;
   };
   visualExpectations?: VisualExpectationsSpec;
+  bugDetails?: BugDetailsSpec;
 }
 
 /**

@@ -26,15 +26,21 @@ export default function LandingPage() {
             />
             <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/login" 
+          <div className="flex items-center gap-6">
+            <Link
+              href="/docs"
+              className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
+            >
+              Docs
+            </Link>
+            <Link
+              href="/login"
               className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
             >
               Log in
             </Link>
-            <Link 
-              href="/tickets" 
+            <Link
+              href="/tickets"
               className="hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-[var(--text)] px-4 text-sm font-medium text-[var(--bg)] transition-colors hover:opacity-90"
             >
               Go to App
@@ -46,10 +52,6 @@ export default function LandingPage() {
       {/* Hero */}
       <main className="flex-1">
         <section className="flex flex-col items-center justify-center text-center px-4 py-24 sm:py-32 border-b border-[var(--border)]">
-          <div className="inline-block mb-4 px-4 py-2 rounded-full border border-[var(--border)] bg-[var(--primary)]/5">
-            <span className="text-sm font-medium text-[var(--primary)]">✨ Bidirectional Jira & Linear Sync</span>
-          </div>
-
           <h1 className="text-4xl sm:text-7xl font-bold tracking-tight mb-6 max-w-4xl text-[var(--text)]">
             Ship features, not PRDs. <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-[var(--primary)] via-blue-500 to-purple-500 text-transparent bg-clip-text">
@@ -63,14 +65,14 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
-            <Link 
-              href="/tickets" 
+            <Link
+              href="/tickets"
               className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--text)] px-8 text-base font-medium text-[var(--bg)] transition-all hover:scale-105 hover:shadow-lg active:scale-95"
             >
               Start Building for Free
             </Link>
-            <Link 
-              href="#how-it-works" 
+            <Link
+              href="#how-it-works"
               className="inline-flex h-12 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg)] px-8 text-base font-medium text-[var(--text)] transition-colors hover:bg-[var(--bg-hover)]"
             >
               How it Works
@@ -330,6 +332,15 @@ export default function LandingPage() {
               <Image src="/forge-icon.png" alt="Forge" width={24} height={24} />
               <span className="font-bold text-base bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
             </div>
+          </div>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Link href="/docs" className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
+              Documentation
+            </Link>
+            <span className="text-[var(--border)]">•</span>
+            <Link href="/pricing" className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
+              Pricing
+            </Link>
           </div>
           <p>&copy; {new Date().getFullYear()} Forge. All rights reserved.</p>
         </div>

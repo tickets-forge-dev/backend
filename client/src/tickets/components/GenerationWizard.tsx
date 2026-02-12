@@ -7,7 +7,7 @@ import { Stage1Input } from './wizard/Stage1Input';
 import { Stage3Draft } from './wizard/Stage3Draft';
 import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
-import { WizardOverlay } from './wizard/WizardOverlay';
+import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
 
 /**
  * GenerationWizard Container Component
@@ -26,7 +26,7 @@ import { WizardOverlay } from './wizard/WizardOverlay';
  * - Recovery detection on mount (resume after refresh/navigation)
  * - Overall wizard flow
  */
-export function GenerationWizard({ resumeId }: { resumeId?: string }) {
+export function GenerationWizard({ resumeId, initialType }: { resumeId?: string; initialType?: 'feature' | 'bug' | 'task' }) {
   const router = useRouter();
   const {
     currentStage,
@@ -37,10 +37,21 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
     tryRecover,
     applyRecovery,
     resumeDraft,
+    currentPhase,
+    loadingMessage,
+    progressPercent,
+    setType,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
+
+  // On mount: set initial type if provided
+  useEffect(() => {
+    if (initialType) {
+      setType(initialType);
+    }
+  }, [initialType, setType]);
 
   // On mount: handle resume param or detect recoverable state
   // tryRecover only reads — it does NOT mutate store state
@@ -132,8 +143,14 @@ export function GenerationWizard({ resumeId }: { resumeId?: string }) {
         {currentStage === 4 && <Stage4Review />}
       </div>
 
-      {/* Loading Overlay */}
-      {loading && <WizardOverlay />}
+      {/* Analysis Progress Dialog */}
+      {loading && (
+        <AnalysisProgressDialog
+          currentPhase={currentPhase}
+          message={loadingMessage}
+          percent={progressPercent}
+        />
+      )}
 
       {/* Error Display */}
       {error && (

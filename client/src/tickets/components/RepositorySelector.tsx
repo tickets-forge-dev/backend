@@ -146,7 +146,7 @@ export function RepositorySelector() {
         </SelectContent>
       </Select>
       <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-        The code context helps generate accurate, implementation-ready tickets.
+        We&apos;ll scan this repository to understand your code structure and generate contextual tickets.
       </p>
     </div>
   );

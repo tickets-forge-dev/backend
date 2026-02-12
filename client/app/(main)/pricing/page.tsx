@@ -75,60 +75,60 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       {/* Header */}
-      <div className="border-b border-[var(--border)]/30">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-[var(--text)] mb-4">
-            Simple, Transparent Pricing
+      <div className="border-b border-[var(--border)]/20">
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <h1 className="text-3xl font-bold text-[var(--text)] mb-2">
+            Transparent Pricing
           </h1>
-          <p className="text-lg text-[var(--text-secondary)] max-w-2xl">
-            Choose the plan that works best for your team. Upgrade anytime.
+          <p className="text-sm text-[var(--text-secondary)]">
+            Choose the plan that works for you. Upgrade anytime.
           </p>
         </div>
       </div>
 
       {/* Pricing Tiers */}
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`rounded-lg border transition-all ${
+              className={`rounded-xl border transition-all flex flex-col ${
                 tier.highlighted
-                  ? 'border-[var(--primary)] bg-[var(--primary)]/5 ring-2 ring-[var(--primary)]/20 shadow-lg scale-105 md:scale-100'
-                  : 'border-[var(--border)]/30 bg-[var(--bg-subtle)]'
-              } p-8 flex flex-col`}
+                  ? 'border-[var(--primary)] bg-gradient-to-br from-[var(--primary)]/5 via-[var(--bg)] to-[var(--bg)] ring-2 ring-[var(--primary)]/30 shadow-md scale-100'
+                  : 'border-[var(--border)]/20 hover:border-[var(--border)]/40'
+              } overflow-hidden`}
             >
-              {tier.highlighted && (
-                <div className="mb-4">
-                  <span className="inline-block px-3 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-xs font-semibold uppercase tracking-wider">
-                    Recommended
-                  </span>
-                </div>
-              )}
+              {/* Card Header */}
+              <div className="p-6 pb-4">
+                {tier.highlighted && (
+                  <div className="mb-3">
+                    <span className="inline-block px-2.5 py-1 rounded-full bg-[var(--primary)]/15 text-[var(--primary)] text-xs font-semibold">
+                      RECOMMENDED
+                    </span>
+                  </div>
+                )}
 
-              {/* Tier Header */}
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-[var(--text)] mb-2">
+                <h3 className="text-xl font-bold text-[var(--text)] mb-1">
                   {tier.name}
                 </h3>
-                <p className="text-sm text-[var(--text-tertiary)] mb-4">
+                <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
                   {tier.description}
                 </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-[var(--text)]">
+              </div>
+
+              {/* Pricing */}
+              <div className="px-6 py-3 border-t border-[var(--border)]/10">
+                <div className="flex items-baseline gap-0.5 mb-1">
+                  <span className="text-3xl font-bold text-[var(--text)]">
                     ${tier.price}
                   </span>
                   {tier.price > 0 && (
-                    <span className="text-[var(--text-secondary)]">
+                    <span className="text-xs text-[var(--text-secondary)]">
                       /{tier.period}
                     </span>
                   )}
                 </div>
-              </div>
-
-              {/* Tickets Info */}
-              <div className="mb-8 pb-8 border-b border-[var(--border)]/20">
-                <p className="text-sm text-[var(--text-secondary)]">
+                <p className="text-xs text-[var(--text-tertiary)]">
                   {tier.ticketsPerMonth === -1
                     ? 'Unlimited tickets/month'
                     : `${tier.ticketsPerMonth} tickets/month`}
@@ -136,71 +136,74 @@ export default function PricingPage() {
               </div>
 
               {/* Features */}
-              <div className="space-y-3 mb-8 flex-1">
-                {tier.features.map((feature) => (
-                  <div key={feature.name} className="flex items-start gap-3">
-                    {feature.included ? (
-                      <CheckCircle2 className="h-5 w-5 text-[var(--primary)] flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full border border-[var(--border)]/30 flex-shrink-0 mt-0.5" />
-                    )}
-                    <span
-                      className={`text-sm ${
-                        feature.included
-                          ? 'text-[var(--text-secondary)]'
-                          : 'text-[var(--text-tertiary)]'
-                      }`}
-                    >
-                      {feature.name}
-                    </span>
-                  </div>
-                ))}
+              <div className="px-6 py-4 flex-1">
+                <div className="space-y-2.5">
+                  {tier.features.map((feature) => (
+                    <div key={feature.name} className="flex items-center gap-2.5">
+                      {feature.included ? (
+                        <CheckCircle2 className="h-4 w-4 text-[var(--primary)] flex-shrink-0" />
+                      ) : (
+                        <div className="h-4 w-4 rounded-full border border-[var(--border)]/30 flex-shrink-0" />
+                      )}
+                      <span
+                        className={`text-xs leading-tight ${
+                          feature.included
+                            ? 'text-[var(--text-secondary)]'
+                            : 'text-[var(--text-tertiary)]'
+                        }`}
+                      >
+                        {feature.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* CTA Button */}
-              <Button
-                className="w-full"
-                variant={tier.highlighted ? 'default' : 'outline'}
-                size="lg"
-              >
-                {tier.cta}
-              </Button>
+              <div className="px-6 py-4 border-t border-[var(--border)]/10">
+                <Button
+                  className="w-full h-9 text-sm"
+                  variant={tier.highlighted ? 'default' : 'outline'}
+                >
+                  {tier.cta}
+                </Button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* FAQ Section */}
-      <div className="border-t border-[var(--border)]/30 bg-[var(--bg-subtle)]">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="text-2xl font-bold text-[var(--text)] mb-12">
-            Frequently Asked Questions
+      <div className="border-t border-[var(--border)]/20">
+        <div className="max-w-6xl mx-auto px-6 py-10">
+          <h2 className="text-xl font-bold text-[var(--text)] mb-6">
+            FAQ
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
                 q: 'Can I change plans anytime?',
-                a: 'Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.',
+                a: 'Yes, upgrade or downgrade anytime. Changes take effect immediately.',
               },
               {
-                q: 'Do you offer annual billing discounts?',
+                q: 'Do you offer annual discounts?',
                 a: 'Contact us for enterprise pricing and annual billing options.',
               },
               {
-                q: 'What happens if I exceed my monthly tickets?',
-                a: 'We\'ll notify you when you\'re approaching your limit. You can upgrade anytime to increase capacity.',
+                q: 'What if I exceed my limit?',
+                a: 'We\'ll notify you and you can upgrade anytime to increase capacity.',
               },
               {
                 q: 'Is there a free trial?',
-                a: 'Yes! The Free tier includes 3 tickets/month with full feature access. No credit card required.',
+                a: 'Yes! Free tier includes 3 tickets/month with full access. No card required.',
               },
             ].map((item, idx) => (
               <div key={idx}>
-                <h3 className="font-semibold text-[var(--text)] mb-2">
+                <h3 className="font-medium text-[var(--text)] text-sm mb-1">
                   {item.q}
                 </h3>
-                <p className="text-sm text-[var(--text-secondary)]">{item.a}</p>
+                <p className="text-xs text-[var(--text-secondary)]">{item.a}</p>
               </div>
             ))}
           </div>
@@ -208,15 +211,15 @@ export default function PricingPage() {
       </div>
 
       {/* CTA Section */}
-      <div className="border-t border-[var(--border)]/30">
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <h2 className="text-2xl font-bold text-[var(--text)] mb-4">
+      <div className="border-t border-[var(--border)]/20 bg-gradient-to-b from-transparent to-[var(--bg-subtle)]">
+        <div className="max-w-2xl mx-auto px-6 py-10 text-center">
+          <h2 className="text-xl font-bold text-[var(--text)] mb-2">
             Ready to get started?
           </h2>
-          <p className="text-[var(--text-secondary)] mb-8">
-            Join hundreds of teams using Forge to generate better technical specifications.
+          <p className="text-xs text-[var(--text-secondary)] mb-6">
+            Join teams using Forge to generate better technical specifications.
           </p>
-          <Button size="lg">Start Free</Button>
+          <Button size="sm" className="h-9">Start Free</Button>
         </div>
       </div>
     </div>

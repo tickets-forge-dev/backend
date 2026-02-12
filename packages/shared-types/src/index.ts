@@ -9,3 +9,6 @@ export * from './types';
 
 // Analytics
 export * from './analytics';
+
+// Bulk Enrichment
+export * from './bulk-enrichment';

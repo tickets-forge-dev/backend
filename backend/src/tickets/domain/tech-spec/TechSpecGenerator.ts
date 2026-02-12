@@ -45,6 +45,8 @@ export interface TechSpecInput {
   };
   stack: ProjectStack; // Project technology stack
   analysis: CodebaseAnalysis; // Codebase analysis results
+  ticketType?: 'feature' | 'bug' | 'task'; // Optional: ticket type
+  reproductionSteps?: ReproductionStep[]; // Optional: bug reproduction steps
 }
 
 /**
@@ -223,10 +225,74 @@ export interface VisualExpectations {
 }
 
 /**
+ * Structured API call details for bug reproduction steps
+ *
+ * Enables rich documentation of API interactions without plain text
+ */
+export interface ApiCallDetails {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  url: string; // Full URL or relative path
+  headers?: Record<string, string>; // Request headers
+  body?: string; // Request body (JSON string)
+  expectedStatus?: number; // Expected HTTP status (e.g., 200)
+  actualStatus?: number; // Actual status received (e.g., 500)
+  responseBody?: string; // Actual response received
+  timing?: number; // Request duration in ms
+}
+
+/**
+ * Single reproduction step in a bug report
+ *
+ * Ordered, rich-content step with action, expected vs actual behavior,
+ * and optional API details, console logs, screenshots
+ */
+export interface ReproductionStep {
+  order: number; // Step sequence (1-based)
+  action: string; // User action description (required)
+  expectedBehavior?: string; // What should happen
+  actualBehavior?: string; // What actually happens (bug behavior)
+
+  // Rich content (all optional)
+  apiCall?: ApiCallDetails; // Structured API call
+  screenshot?: {
+    attachmentId: string; // Reference to uploaded attachment
+    caption?: string;
+  };
+  consoleLog?: string; // Console error/warning logs (max 10k chars)
+  codeSnippet?: string; // Code that triggers the bug
+  notes?: string; // Additional context
+}
+
+/**
+ * Bug-specific details section for bug tickets
+ *
+ * Contains reproduction steps, environment context, frequency/impact,
+ * and AI analysis (suspected cause, related files, suggested fix)
+ *
+ * Only present in TechSpec when ticket.type === 'bug'
+ */
+export interface BugDetails {
+  reproductionSteps: ReproductionStep[]; // Ordered steps to reproduce (3-7 typical)
+  environment?: {
+    browser?: string; // Chrome 120, Firefox 115, Safari 17, etc.
+    os?: string; // macOS 14.2, Windows 11, Ubuntu 22.04, etc.
+    viewport?: string; // Desktop 1920x1080, Mobile 375x667, etc.
+    userRole?: string; // Admin, User, Guest, etc.
+  };
+  frequency?: 'always' | 'sometimes' | 'rarely'; // How often bug occurs
+  impact?: 'critical' | 'high' | 'medium' | 'low'; // Business impact
+
+  // AI-detected analysis
+  relatedFiles?: string[]; // Files likely involved in bug
+  suspectedCause?: string; // AI's hypothesis about root cause
+  suggestedFix?: string; // AI's initial fix suggestion
+}
+
+/**
  * Complete technical specification
  *
  * Contains all sections: problem, solution, acceptance criteria, questions, file changes,
- * quality score, and any ambiguity flags
+ * quality score, and any ambiguity flags. Includes optional bug-specific details.
  */
 export interface TechSpec {
   id: string; // Unique specification identifier
@@ -250,6 +316,7 @@ export interface TechSpec {
   layeredFileChanges?: LayeredFileChanges; // File changes organized by layer
   testPlan?: TestPlan; // Comprehensive test plan
   visualExpectations?: VisualExpectations; // Visual QA expectations with wireframes
+  bugDetails?: BugDetails; // Bug-specific reproduction steps (only for type === 'bug')
 }
 
 /**

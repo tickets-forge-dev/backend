@@ -51,36 +51,66 @@ function getFirebaseConfigSync() {
   };
 }
 
-// Initialize Firebase with sync config (uses fallback if needed)
-const config = getFirebaseConfigSync();
-const app = initializeApp(config);
+// Initialize Firebase only with valid credentials and on client side
+let app: any = null;
+let auth: any = null;
+let firestore: any = null;
 
-// Initialize services
-export const auth = getAuth(app);
-const firestore = getFirestore(app);
+function initializeFirebaseIfValid() {
+  if (app || typeof window === 'undefined') {
+    return; // Already initialized or not on client
+  }
 
-// OAuth providers
-export const googleProvider = new GoogleAuthProvider();
-export const githubProvider = new GithubAuthProvider();
+  const config = getFirebaseConfigSync();
 
-// Fetch fresh config from backend on first page load to ensure we have latest values
+  // Skip initialization if we don't have a valid API key
+  // (prevents auth/invalid-api-key errors during static generation)
+  if (!config.apiKey) {
+    console.warn('⚠️ Firebase API key not available, skipping initialization');
+    return;
+  }
+
+  try {
+    app = initializeApp(config);
+    auth = getAuth(app);
+    firestore = getFirestore(app);
+    firebaseInitialized = true;
+  } catch (error) {
+    console.error('❌ Failed to initialize Firebase:', error);
+  }
+}
+
+// Initialize on client side
 if (typeof window !== 'undefined') {
+  // Initialize immediately if we have valid credentials
+  initializeFirebaseIfValid();
+
+  // Also try to fetch fresh config from backend
   getFirebaseConfig().then((freshConfig) => {
-    if (freshConfig.apiKey && !firebaseConfig?.apiKey) {
-      // Config was fetched successfully, can re-initialize if needed
+    if (freshConfig?.apiKey && !firebaseInitialized) {
+      // Config was fetched successfully and we haven't initialized yet, try again
       firebaseConfig = freshConfig;
+      initializeFirebaseIfValid();
     }
   }).catch(() => {
     // Silently fail - fallback config is already in use
   });
 
-  import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
-    enableIndexedDbPersistence(firestore).catch((err) => {
-      // Silently fail - offline persistence is optional
-      // err.code === 'failed-precondition' means multiple tabs open
-      // err.code === 'unimplemented' means browser doesn't support IndexedDB
+  // Enable offline persistence when Firebase is ready
+  if (firestore) {
+    import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
+      enableIndexedDbPersistence(firestore).catch((err) => {
+        // Silently fail - offline persistence is optional
+      });
     });
-  });
+  }
 }
+
+// Export auth (will be null during SSR/build, but that's OK)
+export { auth };
+
+// OAuth providers
+export const googleProvider = new GoogleAuthProvider();
+export const githubProvider = new GithubAuthProvider();
 
 export default app;

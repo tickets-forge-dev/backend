@@ -188,11 +188,11 @@ export function ImportStage1Selector({ onError, availability }: Props) {
         id: issue.importedFrom.issueId,
         key: platform === 'jira' ? option.key : undefined,
         identifier: platform === 'linear' ? option.identifier : undefined,
-        title: option.title,
-        description: '',
+        title: issue.title,
+        description: issue.description || '',
         url: issue.importedFrom.issueUrl,
-        mappedType: 'task',
-        mappedPriority: 'medium',
+        mappedType: issue.type || 'task',
+        mappedPriority: issue.priority || 'medium',
       });
 
       goToStage(2);
@@ -221,29 +221,20 @@ export function ImportStage1Selector({ onError, availability }: Props) {
 
     setIsLoading(true);
     try {
-      // Fetch full issue details
+      // Import issue and get full details from backend
       const issue = platform === 'jira'
         ? await jiraService.importIssue(normalizedKey)
         : await linearService.importIssue(normalizedKey);
 
-      // The API response has { ticketId, importedFrom }
-      // We need to extract the issue data. For MVP, we'll store minimal data.
-      // The backend creates the ticket, so we just transition to the next stage.
-      // Actually, let me re-read the plan...
-
-      // The plan says fetch via jiraService.getIssue() for preview.
-      // But we don't have that endpoint yet. Let's use a simplified approach:
-      // Store the imported data and go to preview stage.
-
       setSelectedIssue({
         id: issue.importedFrom.issueId,
-        key: platform === 'jira' ? issueKey.trim() : undefined,
-        identifier: platform === 'linear' ? issueKey.trim() : undefined,
-        title: '', // Will be fetched in next stage
-        description: '',
+        key: platform === 'jira' ? normalizedKey : undefined,
+        identifier: platform === 'linear' ? normalizedKey : undefined,
+        title: issue.title,
+        description: issue.description || '',
         url: issue.importedFrom.issueUrl,
-        mappedType: 'task',
-        mappedPriority: 'medium',
+        mappedType: issue.type || 'task',
+        mappedPriority: issue.priority || 'medium',
       });
 
       goToStage(2);
@@ -275,54 +266,29 @@ export function ImportStage1Selector({ onError, availability }: Props) {
         </p>
       </div>
 
-      {/* Platform selector */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Platform selector - Jira only */}
+      <div>
         <button
           onClick={() => {
             setPlatform('jira');
             setValidationError(null);
           }}
-          className={`px-4 py-4 rounded-lg border-2 transition-colors ${
+          className={`w-full px-4 py-6 rounded-lg border-2 transition-colors ${
             platform === 'jira'
               ? 'border-blue-500 bg-blue-500/10'
               : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-blue-500/50'
           } ${!availability?.jira && platform !== 'jira' ? 'opacity-60' : ''}`}
         >
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-3xl">🔵</div>
-            <div className="text-sm font-semibold text-blue-600">Jira</div>
+          <div className="flex flex-col items-center gap-3">
+            {/* Jira Logo */}
+            <img src="/assets/jira_logo.png" alt="Jira" className="h-12 w-auto" />
+            <div className="text-lg font-semibold text-[var(--text)]">Import from Jira</div>
             {availability?.jira ? (
-              <div className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-700 font-medium">
+              <div className="text-xs px-3 py-1.5 rounded bg-green-500/20 text-green-700 font-medium">
                 ✓ Connected
               </div>
             ) : (
-              <div className="text-xs px-2 py-1 rounded bg-gray-500/20 text-gray-600">
-                Connect in Settings
-              </div>
-            )}
-          </div>
-        </button>
-
-        <button
-          onClick={() => {
-            setPlatform('linear');
-            setValidationError(null);
-          }}
-          className={`px-4 py-4 rounded-lg border-2 transition-colors ${
-            platform === 'linear'
-              ? 'border-purple-500 bg-purple-500/10'
-              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-purple-500/50'
-          } ${!availability?.linear && platform !== 'linear' ? 'opacity-60' : ''}`}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-3xl">🟣</div>
-            <div className="text-sm font-semibold text-purple-600">Linear</div>
-            {availability?.linear ? (
-              <div className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-700 font-medium">
-                ✓ Connected
-              </div>
-            ) : (
-              <div className="text-xs px-2 py-1 rounded bg-gray-500/20 text-gray-600">
+              <div className="text-xs px-3 py-1.5 rounded bg-gray-500/20 text-gray-600">
                 Connect in Settings
               </div>
             )}

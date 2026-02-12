@@ -17,10 +17,11 @@ function CreateTicketContent() {
   const searchParams = useSearchParams();
   const resumeId = searchParams.get('resume') || undefined;
   const mode = (searchParams.get('mode') as 'new' | 'import' | undefined) || undefined;
+  const type = (searchParams.get('type') as 'feature' | 'bug' | 'task' | undefined) || undefined;
 
   return (
     <div className="w-full h-full">
-      <CreationRouter resumeId={resumeId} mode={mode} />
+      <CreationRouter resumeId={resumeId} mode={mode} type={type} />
     </div>
   );
 }

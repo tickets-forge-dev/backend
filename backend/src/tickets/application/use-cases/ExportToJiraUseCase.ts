@@ -13,6 +13,7 @@ interface ExportToJiraCommand {
   workspaceId: string;
   userId: string;
   projectKey: string;
+  sections?: string[];
 }
 
 // Map Forge priority to Jira priority names
@@ -58,34 +59,11 @@ export class ExportToJiraUseCase {
     const apiToken = await this.tokenService.decryptToken(integration.apiToken);
 
     // Generate markdown description from tech spec
-    const description = this.markdownGenerator.generate(aec);
+    const description = this.markdownGenerator.generate(aec, command.sections);
 
     const priority = aec.priority ? PRIORITY_MAP[aec.priority] : undefined;
 
-    // Check if already exported to Jira (update instead of create)
-    const existingIssue = aec.externalIssue;
-    if (existingIssue?.platform === 'jira' && existingIssue.issueId) {
-      this.logger.log(`Updating existing Jira issue ${existingIssue.issueId}`);
-      await this.apiClient.updateIssue(
-        integration.jiraUrl,
-        integration.username,
-        apiToken,
-        existingIssue.issueId,
-        {
-          summary: aec.title,
-          description,
-          priority,
-        },
-      );
-
-      return {
-        issueId: existingIssue.issueId,
-        issueKey: existingIssue.issueId,
-        issueUrl: existingIssue.issueUrl,
-      };
-    }
-
-    // Create new issue
+    // Always create a new Jira issue (don't update existing ones)
     const issue = await this.apiClient.createIssue(
       integration.jiraUrl,
       integration.username,

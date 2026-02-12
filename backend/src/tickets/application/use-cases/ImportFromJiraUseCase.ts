@@ -17,6 +17,10 @@ interface ImportFromJiraCommand {
 
 export interface ImportFromJiraResult {
   ticketId: string;
+  title: string;
+  description?: string;
+  type: TicketType;
+  priority: TicketPriority;
   importedFrom: {
     platform: 'jira';
     issueId: string;
@@ -191,6 +195,10 @@ export class ImportFromJiraUseCase {
 
     return {
       ticketId: aec.id,
+      title,
+      description,
+      type: type ?? 'task',
+      priority: priority ?? 'medium',
       importedFrom: {
         platform: 'jira',
         issueId: jiraIssue.key,
