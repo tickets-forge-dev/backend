@@ -98,7 +98,7 @@ export function TicketDetailLayout({
     const handleScroll = () => {
       const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
       const sections = activeTab === 'spec'
-        ? ['acceptance-criteria', 'problem-statement', 'visual-qa', 'scope', 'solution', 'assets']
+        ? ['reproduction-steps', 'acceptance-criteria', 'problem-statement', 'visual-qa', 'scope', 'solution', 'assets']
         : ['file-changes', 'api-endpoints', 'test-plan', 'stack'];
 
       for (const sectionId of sections) {
