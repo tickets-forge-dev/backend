@@ -33,7 +33,7 @@ export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
   const { activeDemoTickets, dismissDemoTicket } = useDemoTickets();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusTab, setStatusTab] = useState<'all' | 'needs-input' | 'complete' | 'draft'>(
+  const [statusTab, setStatusTab] = useState<'all' | 'needs-input' | 'complete' | 'draft' | 'needs-resume'>(
     (listPreferences?.statusTab as any) || 'all'
   );
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
@@ -59,12 +59,20 @@ export default function TicketsListPage() {
   const allTickets = [...activeDemoTickets, ...tickets];
 
   // Helper to determine ticket status
-  const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' => {
+  const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' => {
     if (ticket.status === 'complete') return 'complete';
+
+    // Detect partial/incomplete tickets (need resume)
+    const isPartial =
+      ticket.status === 'draft' &&
+      ticket.techSpec &&
+      (ticket.techSpec.qualityScore === 0 || ticket.techSpec.qualityScore === undefined);
+    if (isPartial) return 'needs-resume';
+
     if (ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined) {
       return 'in-progress';
     }
-    if (ticket.status === 'draft') return 'draft';
+    if (ticket.status === 'draft' && !ticket.techSpec) return 'draft';
     if (ticket.questions && ticket.questions.length > 0) return 'needs-input';
     return 'draft';
   };
@@ -84,6 +92,7 @@ export default function TicketsListPage() {
         const matchesStatus =
           statusTab === 'all' ||
           (statusTab === 'needs-input' && ticketStatus === 'needs-input') ||
+          (statusTab === 'needs-resume' && ticketStatus === 'needs-resume') ||
           (statusTab === 'complete' && ticketStatus === 'complete') ||
           (statusTab === 'draft' && (ticketStatus === 'draft' || ticketStatus === 'in-progress'));
 
@@ -142,12 +151,13 @@ export default function TicketsListPage() {
   }, [statusTab, sortBy, priorityFilter, typeFilter, collapsedGroups, setListPreferences]);
 
   // Calculate status counts
-    const statusCounts = {
-      all: allTickets.length,
-      'needs-input': allTickets.filter(t => getTicketStatus(t) === 'needs-input').length,
-      complete: allTickets.filter(t => getTicketStatus(t) === 'complete').length,
-      draft: allTickets.filter(t => getTicketStatus(t) === 'draft' || getTicketStatus(t) === 'in-progress').length,
-    };
+  const statusCounts = {
+    all: allTickets.length,
+    'needs-input': allTickets.filter(t => getTicketStatus(t) === 'needs-input').length,
+    'needs-resume': allTickets.filter(t => getTicketStatus(t) === 'needs-resume').length,
+    complete: allTickets.filter(t => getTicketStatus(t) === 'complete').length,
+    draft: allTickets.filter(t => getTicketStatus(t) === 'draft' || getTicketStatus(t) === 'in-progress').length,
+  };
 
     const sortLabel = {
       updated: 'Recently updated',
@@ -174,7 +184,7 @@ export default function TicketsListPage() {
 
       {/* Status Tabs */}
       <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="all" className="relative">
             All
             <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
@@ -185,6 +195,12 @@ export default function TicketsListPage() {
             Needs Input
             <span className="ml-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
               {statusCounts['needs-input']}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="needs-resume" className="relative">
+            Needs Resume
+            <span className="ml-1.5 text-[11px] font-medium text-red-500">
+              {statusCounts['needs-resume']}
             </span>
           </TabsTrigger>
           <TabsTrigger value="complete" className="relative">
@@ -396,12 +412,20 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
   const { dismissDemoTicket } = useDemoTickets();
 
   // Helper to determine ticket status
-  const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' => {
+  const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' => {
     if (ticket.status === 'complete') return 'complete';
+
+    // Detect partial/incomplete tickets (need resume)
+    const isPartial =
+      ticket.status === 'draft' &&
+      ticket.techSpec &&
+      (ticket.techSpec.qualityScore === 0 || ticket.techSpec.qualityScore === undefined);
+    if (isPartial) return 'needs-resume';
+
     if (ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined) {
       return 'in-progress';
     }
-    if (ticket.status === 'draft') return 'draft';
+    if (ticket.status === 'draft' && !ticket.techSpec) return 'draft';
     if (ticket.questions && ticket.questions.length > 0) return 'needs-input';
     return 'draft';
   };
@@ -429,6 +453,16 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
   };
 
   const getStatusBadge = (ticket: any) => {
+    const ticketStatus = getTicketStatus(ticket);
+
+    if (ticketStatus === 'needs-resume') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-red-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+          Needs Resume
+        </span>
+      );
+    }
     if (isInProgress(ticket)) {
       return (
         <span className="inline-flex items-center gap-1.5 text-[11px] text-blue-500">
@@ -487,8 +521,17 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
     return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const ticketStatus = getTicketStatus(ticket);
+  const isNeedsInput = ticketStatus === 'needs-input';
+
   return (
-    <div className="group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center justify-between gap-4 mx-4">
+    <div className={`group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center justify-between gap-4 mx-4 ${
+      isNeedsInput
+        ? 'border-l-2 border-amber-500 bg-amber-500/5'
+        : ticketStatus === 'needs-resume'
+        ? 'border-l-2 border-red-500 bg-red-500/5'
+        : ''
+    }`}>
       <Link href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`} className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-4">
           {/* Left: Title row */}
@@ -496,11 +539,12 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
             <div className="flex items-center gap-2.5">
               {getTypeIcon(ticket.type)}
               <h3 className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
-                getTicketStatus(ticket) === 'needs-input' ? 'font-semibold text-[var(--text)]' : 'font-medium text-[var(--text-secondary)]'
+                ticketStatus === 'needs-input' || ticketStatus === 'needs-resume' ? 'font-semibold text-[var(--text)]' : 'font-medium text-[var(--text-secondary)]'
               }`}>
                 {isDemoTicket && <span className="text-[var(--text-tertiary)]">Demo Ticket • </span>}
                 {ticket.title}
-                {getTicketStatus(ticket) === 'needs-input' && <span className="ml-2 text-amber-500 font-normal">⚠️</span>}
+                {ticketStatus === 'needs-input' && <span className="ml-2 text-amber-500 font-normal">⚠️</span>}
+                {ticketStatus === 'needs-resume' && <span className="ml-2 text-red-500 font-normal">❌</span>}
               </h3>
               {getPriorityIndicator(ticket.priority)}
               {getStatusBadge(ticket)}

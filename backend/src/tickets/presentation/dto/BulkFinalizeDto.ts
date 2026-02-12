@@ -20,7 +20,6 @@ export class BulkFinalizeDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => QuestionAnswerDto)
-  @ArrayMinSize(1, { message: 'At least one answer is required' })
   @ArrayMaxSize(500, { message: 'Cannot finalize more than 500 answers at a time' })
   answers!: QuestionAnswerDto[];
 }

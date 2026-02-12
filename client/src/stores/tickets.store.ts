@@ -11,7 +11,7 @@ interface QuotaInfo {
 }
 
 interface TicketListPreferences {
-  statusTab?: 'all' | 'needs-input' | 'complete' | 'draft';
+  statusTab?: 'all' | 'needs-input' | 'complete' | 'draft' | 'needs-resume';
   sortBy?: 'updated' | 'created' | 'priority' | 'progress';
   collapsedGroups?: string[];
   priorityFilter?: string;
