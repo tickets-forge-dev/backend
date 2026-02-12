@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { ImageAttachmentsGrid } from '@/src/tickets/components/ImageAttachmentsGrid';
@@ -167,6 +168,12 @@ export function TicketDetailLayout({
                 <p className="text-xs text-amber-600 dark:text-amber-500">
                   The system will guide you through each question one by one, and then automatically create the full technical specification based on your answers.
                 </p>
+                <Link href={`/tickets/create?resume=${ticketId}`}>
+                  <Button className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Answer Questions Now
+                  </Button>
+                </Link>
               </div>
             </div>
           </CollapsibleSection>
