@@ -57,6 +57,7 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:3001',
     'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
     process.env.FRONTEND_URL,
     // Production domains
     'https://forge-ai.dev',
@@ -67,11 +68,38 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (requestOrigin, callback) => {
-      if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+      // Allow requests without origin (e.g., same-origin requests)
+      if (!requestOrigin) {
         callback(null, true);
-      } else {
-        callback(new Error('CORS not allowed'), false);
+        return;
       }
+
+      // Allow requests from localhost/127.0.0.1 (development)
+      if (requestOrigin.includes('localhost') || requestOrigin.includes('127.0.0.1')) {
+        callback(null, true);
+        return;
+      }
+
+      // Allow whitelisted production origins
+      if (allowedOrigins.includes(requestOrigin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Allow Render deployments (onrender.com) in production
+      if (isProduction && requestOrigin.includes('onrender.com')) {
+        callback(null, true);
+        return;
+      }
+
+      // For production, be more permissive and allow HTTPS origins
+      if (isProduction && requestOrigin.startsWith('https://')) {
+        callback(null, true);
+        return;
+      }
+
+      // Reject other origins
+      callback(new Error(`CORS not allowed for origin: ${requestOrigin}`), false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
