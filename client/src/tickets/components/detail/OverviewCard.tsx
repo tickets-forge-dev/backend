@@ -35,7 +35,7 @@ export function OverviewCard({
   return (
     <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
       {/* Collapsible Notes */}
-      <div className="border-t border-[var(--border)]/20 pt-3">
+      <div className="border-t border-dashed border-[var(--border)]/40 pt-3 mt-1">
         <button
           onClick={() => setNotesExpanded((v) => !v)}
           className="flex items-center justify-between w-full group"
