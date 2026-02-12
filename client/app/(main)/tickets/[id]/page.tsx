@@ -1176,9 +1176,32 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                 {currentTicket?.techSpec?.solution && (
                   <div>
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Solution</h3>
-                    <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
-                      {currentTicket.techSpec.solution}
-                    </p>
+                    {typeof currentTicket.techSpec.solution === 'string' ? (
+                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
+                        {currentTicket.techSpec.solution}
+                      </p>
+                    ) : Array.isArray(currentTicket.techSpec.solution) ? (
+                      <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                        {currentTicket.techSpec.solution.map((step: any, idx: number) => (
+                          <li key={idx} className="ml-4">
+                            <span className="font-medium">{idx + 1}.</span> {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
+                          </li>
+                        ))}
+                      </ol>
+                    ) : typeof currentTicket.techSpec.solution === 'object' && currentTicket.techSpec.solution.overview ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-[var(--text-secondary)]">{currentTicket.techSpec.solution.overview}</p>
+                        {Array.isArray(currentTicket.techSpec.solution.steps) && currentTicket.techSpec.solution.steps.length > 0 && (
+                          <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                            {currentTicket.techSpec.solution.steps.map((step: any, idx: number) => (
+                              <li key={idx} className="ml-4">
+                                <span className="font-medium">{idx + 1}.</span> {step.description || JSON.stringify(step)}
+                              </li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
@@ -1190,7 +1213,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                       {currentTicket.techSpec.acceptanceCriteria.map((criterion: any, i: number) => (
                         <li key={i} className="text-sm text-[var(--text-secondary)] flex gap-2">
                           <span className="text-[var(--text-tertiary)]">•</span>
-                          <span>{criterion}</span>
+                          <span>
+                            {typeof criterion === 'string'
+                              ? criterion
+                              : criterion.given ? `Given ${criterion.given}, When ${criterion.when}, Then ${criterion.then}`
+                              : JSON.stringify(criterion)
+                            }
+                          </span>
                         </li>
                       ))}
                     </ul>
