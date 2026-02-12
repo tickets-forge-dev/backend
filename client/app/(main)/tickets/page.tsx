@@ -529,10 +529,8 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
 
   return (
     <div className={`group rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mx-2 sm:mx-4 ${
-      isNeedsInput
-        ? 'border-l-2 border-amber-500'
-        : ticketStatus === 'needs-resume'
-        ? 'border-l-2 border-red-500 bg-red-500/5'
+      ticketStatus === 'needs-resume'
+        ? 'bg-red-500/5'
         : ''
     }`}>
       <Link href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`} className="flex-1 min-w-0">
