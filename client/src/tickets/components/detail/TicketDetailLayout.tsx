@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
@@ -77,19 +77,44 @@ export function TicketDetailLayout({
   const router = useRouter();
   const hasTechSpec = !!ticket.techSpec;
 
-  const initialTab = searchParams.get('tab') === 'specification' ? 'specification' : 'implementation';
+  const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    setActiveSection(null); // Reset scroll spy when switching tabs
     const url = new URL(window.location.href);
-    if (value === 'specification') {
+    if (value === 'spec') {
       url.searchParams.delete('tab');
     } else {
       url.searchParams.set('tab', value);
     }
     window.history.replaceState({}, '', url.toString());
   };
+
+  // Track scroll position for scroll spy
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
+      const sections = activeTab === 'spec'
+        ? ['acceptance-criteria', 'problem-statement', 'visual-qa', 'scope', 'solution', 'assets']
+        : ['file-changes', 'api-endpoints', 'test-plan', 'stack'];
+
+      for (const sectionId of sections) {
+        const element = document.getElementById(`${currentTab}-${sectionId}`);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= 100) {
+            setActiveSection(`${currentTab}-${sectionId}`);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeTab]);
 
   // Pre-tech-spec state: show simple layout with questions + attachments
   if (!hasTechSpec) {
@@ -215,51 +240,117 @@ export function TicketDetailLayout({
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="w-full grid grid-cols-2 bg-transparent h-auto p-0 border-b border-gray-200 dark:border-gray-800">
           <TabsTrigger
-            value="implementation"
+            value="spec"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
           >
-            Implementation
+            Spec
           </TabsTrigger>
           <TabsTrigger
-            value="specification"
+            value="technical"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
           >
-            Specification
+            Technical
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="implementation" className="mt-6">
-          <ImplementationTab
-            ticket={ticket}
-            ticketId={ticketId}
-            onEditItem={onEditItem}
-            onDeleteItem={onDeleteItem}
-            onAddApiEndpoint={onAddApiEndpoint}
-            onSaveApiEndpoints={onSaveApiEndpoints}
-            onScanApis={onScanApis}
-            isScanningApis={isScanningApis}
-            onUploadAttachment={onUploadAttachment}
-            onDeleteAttachment={onDeleteAttachment}
-            isUploadingAttachment={isUploadingAttachment}
-            saveTechSpecPatch={saveTechSpecPatch}
-            fetchTicket={fetchTicket}
-            onEditReproductionStep={onEditReproductionStep}
-            onDeleteReproductionStep={onDeleteReproductionStep}
-            onAddReproductionStep={onAddReproductionStep}
-          />
+        <TabsContent value="spec" className="mt-6">
+          <div className="flex gap-6">
+            {/* Scroll spy navigator */}
+            <div className="hidden lg:block w-48 flex-shrink-0">
+              <nav className="sticky top-6 space-y-2">
+                {[
+                  { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
+                  { id: 'problem-statement', label: 'Problem Statement' },
+                  { id: 'visual-qa', label: 'Visual QA Expectations' },
+                  { id: 'scope', label: 'Scope' },
+                  { id: 'solution', label: 'Solution' },
+                  { id: 'assets', label: 'Assets' },
+                ].map((section) => (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      const element = document.getElementById(`spec-${section.id}`);
+                      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className={`block text-sm py-1.5 px-3 rounded transition-colors ${
+                      activeSection === `spec-${section.id}`
+                        ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <SpecificationTab
+                ticket={ticket}
+                onEditItem={onEditItem}
+                onDeleteItem={onDeleteItem}
+                onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
+                onSaveAssumptions={onSaveAssumptions}
+                onEditReproductionStep={onEditReproductionStep}
+                onDeleteReproductionStep={onDeleteReproductionStep}
+                onAddReproductionStep={onAddReproductionStep}
+              />
+            </div>
+          </div>
         </TabsContent>
 
-        <TabsContent value="specification" className="mt-6">
-          <SpecificationTab
-            ticket={ticket}
-            onEditItem={onEditItem}
-            onDeleteItem={onDeleteItem}
-            onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
-            onSaveAssumptions={onSaveAssumptions}
-            onEditReproductionStep={onEditReproductionStep}
-            onDeleteReproductionStep={onDeleteReproductionStep}
-            onAddReproductionStep={onAddReproductionStep}
-          />
+        <TabsContent value="technical" className="mt-6">
+          <div className="flex gap-6">
+            {/* Scroll spy navigator */}
+            <div className="hidden lg:block w-48 flex-shrink-0">
+              <nav className="sticky top-6 space-y-2">
+                {[
+                  { id: 'file-changes', label: 'File Changes' },
+                  { id: 'api-endpoints', label: 'API Endpoints' },
+                  { id: 'test-plan', label: 'Test Plan' },
+                  { id: 'stack', label: 'Stack' },
+                ].map((section) => (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      const element = document.getElementById(`technical-${section.id}`);
+                      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className={`block text-sm py-1.5 px-3 rounded transition-colors ${
+                      activeSection === `technical-${section.id}`
+                        ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <ImplementationTab
+                ticket={ticket}
+                ticketId={ticketId}
+                onEditItem={onEditItem}
+                onDeleteItem={onDeleteItem}
+                onAddApiEndpoint={onAddApiEndpoint}
+                onSaveApiEndpoints={onSaveApiEndpoints}
+                onScanApis={onScanApis}
+                isScanningApis={isScanningApis}
+                onUploadAttachment={onUploadAttachment}
+                onDeleteAttachment={onDeleteAttachment}
+                isUploadingAttachment={isUploadingAttachment}
+                saveTechSpecPatch={saveTechSpecPatch}
+                fetchTicket={fetchTicket}
+                onEditReproductionStep={onEditReproductionStep}
+                onDeleteReproductionStep={onDeleteReproductionStep}
+                onAddReproductionStep={onAddReproductionStep}
+              />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
