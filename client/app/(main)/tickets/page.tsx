@@ -435,7 +435,7 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
     ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined;
 
   const getPriorityIndicator = (priority: string | null) => {
-    if (!priority) return null;
+    if (!priority) return "";
     const config: Record<string, { color: string; label: string }> = {
       low: { color: 'bg-green-500', label: 'Low' },
       medium: { color: 'bg-yellow-500', label: 'Medium' },
@@ -443,7 +443,7 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
       urgent: { color: 'bg-red-500', label: 'Urgent' },
     };
     const c = config[priority];
-    if (!c) return null;
+    if (!c) return "";
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
         <span className={`h-1.5 w-1.5 rounded-full ${c.color}`} />
@@ -488,12 +488,7 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
       );
     }
     if (ticket.questions && ticket.questions.length > 0) {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--amber)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--amber)]" />
-          Answer Questions
-        </span>
-      );
+      return "";
     }
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
@@ -527,7 +522,7 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
   return (
     <div className={`group rounded-lg px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center justify-between gap-4 mx-4 ${
       isNeedsInput
-        ? 'border-l-2 border-amber-500 bg-amber-500/5'
+        ? 'border-l-2 border-amber-500'
         : ticketStatus === 'needs-resume'
         ? 'border-l-2 border-red-500 bg-red-500/5'
         : ''
@@ -543,11 +538,10 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
               }`}>
                 {isDemoTicket && <span className="text-[var(--text-tertiary)]">Demo Ticket • </span>}
                 {ticket.title}
-                {ticketStatus === 'needs-input' && <span className="ml-2 text-amber-500 font-normal">⚠️</span>}
                 {ticketStatus === 'needs-resume' && <span className="ml-2 text-red-500 font-normal">❌</span>}
               </h3>
               {getPriorityIndicator(ticket.priority)}
-              {getStatusBadge(ticket)}
+              {!ticket.questions || ticket.questions.length === 0 ? getStatusBadge(ticket) : null}
             </div>
             <div className="flex items-center gap-3 mt-1 ml-6">
               <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
@@ -596,7 +590,7 @@ function ProgressRing({ ticket }: { ticket: any }) {
   const getProgressTooltip = () => {
     if (readinessScore === 0) return 'Not started';
     if (ticket.questions && ticket.questions.length > 0) {
-      return `${ticket.questions.length} questions to answer`;
+      return "";
     }
     return `${readinessScore}% complete`;
   };
