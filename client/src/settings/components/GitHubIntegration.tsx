@@ -52,10 +52,17 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Load connection status on mount
+  // Load connection status on mount and fetch repos if connected
   useEffect(() => {
     loadGitHubStatus(gitHubService);
   }, []);
+
+  // Auto-load repositories when connected
+  useEffect(() => {
+    if (githubConnected && githubRepositories.length === 0 && !isLoadingRepositories) {
+      loadRepositories(gitHubService);
+    }
+  }, [githubConnected, isLoadingRepositories, gitHubService, loadRepositories, githubRepositories.length]);
 
   // Sync selected repos from store
   useEffect(() => {
@@ -70,6 +77,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
     if (connected === 'true') {
       loadGitHubStatus(gitHubService);
+      loadRepositories(gitHubService);
       window.history.replaceState({}, '', window.location.pathname);
     }
 
@@ -77,7 +85,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
       clearErrors();
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [loadGitHubStatus, clearErrors]);
+  }, [loadGitHubStatus, loadRepositories, clearErrors, gitHubService]);
 
   const handleConnect = async () => {
     onBeforeConnect?.();
