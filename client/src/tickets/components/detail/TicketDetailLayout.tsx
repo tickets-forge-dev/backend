@@ -328,6 +328,7 @@ export function TicketDetailLayout({
               references={ticket.designReferences || []}
               onAddDesignReference={onAddDesignReference}
               onRemoveDesignReference={onRemoveDesignReference}
+              onRefresh={() => fetchTicket(ticketId)}
             />
           ) : (
             <div className="max-w-4xl">
