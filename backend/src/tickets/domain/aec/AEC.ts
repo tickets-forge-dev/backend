@@ -7,7 +7,13 @@ import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
 import { Attachment, MAX_ATTACHMENTS } from '../value-objects/Attachment';
-import { DesignReference, MAX_DESIGN_LINKS, validateDesignReferenceUrl, detectPlatform } from '../value-objects/DesignReference';
+import {
+  DesignReference,
+  DesignMetadata,
+  MAX_DESIGN_LINKS,
+  validateDesignReferenceUrl,
+  detectPlatform,
+} from '../value-objects/DesignReference';
 import { TechSpec, ClarificationQuestion } from '../tech-spec/TechSpecGenerator';
 import {
   InvalidStateTransitionError,
@@ -559,9 +565,12 @@ export class AEC {
    * Phase 2: Metadata Enrichment
    *
    * @param referenceId - The design reference ID
-   * @param metadata - The metadata to set
+   * @param metadata - The metadata to set (Figma or Loom metadata)
    */
-  updateDesignReferenceMetadata(referenceId: string, metadata: any): void {
+  updateDesignReferenceMetadata(
+    referenceId: string,
+    metadata: DesignMetadata,
+  ): void {
     const reference = this._designReferences.find((r) => r.id === referenceId);
     if (reference) {
       reference.metadata = metadata;

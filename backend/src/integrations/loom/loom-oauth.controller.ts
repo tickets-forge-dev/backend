@@ -1,0 +1,187 @@
+import { Controller, Get, Query, Res, Logger } from '@nestjs/common';
+import { Response } from 'express';
+import { LoomService } from './loom.service';
+import { LoomIntegrationRepository } from './loom-integration.repository';
+import { LoomOAuthToken } from './loom.types';
+
+/**
+ * Loom OAuth Controller
+ * Handles OAuth flow for connecting Loom to workspaces
+ *
+ * Flow:
+ * 1. Frontend redirects to /loom/oauth/start?workspaceId=...&returnUrl=...
+ * 2. Controller redirects to Loom OAuth endpoint
+ * 3. User authorizes in Loom
+ * 4. Loom redirects to /loom/oauth/callback?code=...&state=...
+ * 5. Controller exchanges code for token
+ * 6. Controller stores token and redirects back to frontend
+ */
+@Controller('integrations/loom/oauth')
+export class LoomOAuthController {
+  private readonly logger = new Logger(LoomOAuthController.name);
+
+  // These would come from environment variables
+  private readonly LOOM_CLIENT_ID = process.env.LOOM_CLIENT_ID || '';
+  private readonly LOOM_CLIENT_SECRET = process.env.LOOM_CLIENT_SECRET || '';
+  private readonly LOOM_REDIRECT_URI =
+    process.env.LOOM_OAUTH_REDIRECT_URI || 'http://localhost:3000/api/integrations/loom/oauth/callback';
+  private readonly LOOM_AUTH_URL = 'https://www.loom.com/oauth2/authorize';
+  private readonly LOOM_TOKEN_URL = 'https://www.loom.com/oauth2/token';
+
+  constructor(
+    private readonly loomService: LoomService,
+    private readonly loomIntegrationRepository: LoomIntegrationRepository,
+  ) {}
+
+  /**
+   * Start Loom OAuth flow
+   * Redirects to Loom authorization endpoint
+   */
+  @Get('start')
+  async startOAuth(
+    @Query('workspaceId') workspaceId: string,
+    @Query('returnUrl') returnUrl: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (!workspaceId || !returnUrl) {
+      res.status(400).json({
+        error: 'Missing required parameters: workspaceId, returnUrl',
+      });
+      return;
+    }
+
+    // Store state for callback validation (in production, use secure session storage)
+    const state = Buffer.from(
+      JSON.stringify({ workspaceId, returnUrl, timestamp: Date.now() }),
+    ).toString('base64');
+
+    const authUrl = new URL(this.LOOM_AUTH_URL);
+    authUrl.searchParams.set('client_id', this.LOOM_CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', this.LOOM_REDIRECT_URI);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('scope', 'campaigns:read');
+
+    this.logger.debug(`Starting Loom OAuth flow for workspace ${workspaceId}`);
+    res.redirect(authUrl.toString());
+  }
+
+  /**
+   * Loom OAuth callback
+   * Exchanges authorization code for access token
+   */
+  @Get('callback')
+  async handleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (!code || !state) {
+      res.status(400).json({
+        error: 'Missing authorization code or state',
+      });
+      return;
+    }
+
+    try {
+      // Decode state
+      const decodedState = JSON.parse(
+        Buffer.from(state, 'base64').toString('utf-8'),
+      );
+      const { workspaceId, returnUrl } = decodedState;
+
+      // Exchange code for token
+      const tokenResponse = await this.exchangeCodeForToken(code);
+      if (!tokenResponse) {
+        res.status(400).json({
+          error: 'Failed to exchange code for token',
+        });
+        return;
+      }
+
+      // Verify token is valid
+      const isValid = await this.loomService.verifyToken(
+        tokenResponse.access_token,
+      );
+      if (!isValid) {
+        res.status(400).json({
+          error: 'Invalid access token received from Loom',
+        });
+        return;
+      }
+
+      // Store token
+      await this.loomIntegrationRepository.saveToken(workspaceId, tokenResponse);
+
+      this.logger.debug(`Successfully connected Loom for workspace ${workspaceId}`);
+
+      // Redirect back to frontend with success
+      const callbackUrl = new URL(returnUrl);
+      callbackUrl.searchParams.set('status', 'success');
+      callbackUrl.searchParams.set('provider', 'loom');
+      res.redirect(callbackUrl.toString());
+    } catch (error) {
+      this.logger.error(
+        `Loom OAuth callback error: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      // Try to redirect to returnUrl with error
+      try {
+        const errorUrl = new URL(state);
+        errorUrl.searchParams.set('status', 'error');
+        errorUrl.searchParams.set('provider', 'loom');
+        errorUrl.searchParams.set(
+          'error',
+          error instanceof Error ? error.message : 'Unknown error',
+        );
+        res.redirect(errorUrl.toString());
+      } catch {
+        res.status(500).json({
+          error: 'OAuth callback processing failed',
+        });
+      }
+    }
+  }
+
+  /**
+   * Exchange Loom authorization code for access token
+   * @private
+   */
+  private async exchangeCodeForToken(code: string): Promise<LoomOAuthToken | null> {
+    try {
+      const response = await fetch(this.LOOM_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: this.LOOM_CLIENT_ID,
+          client_secret: this.LOOM_CLIENT_SECRET,
+          redirect_uri: this.LOOM_REDIRECT_URI,
+          code,
+          grant_type: 'authorization_code',
+        }).toString(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        this.logger.error(
+          `Loom token exchange failed: ${response.status} - ${error}`,
+        );
+        return null;
+      }
+
+      const data = (await response.json()) as LoomOAuthToken;
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `Loom token exchange error: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+  }
+}

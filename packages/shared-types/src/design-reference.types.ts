@@ -21,8 +21,9 @@ export interface LoomMetadata {
   videoTitle: string;
   duration: number;
   thumbnailUrl: string;
-  transcript?: string;
   sharedId: string;
+  lastModified?: Date; // Last modified timestamp from Loom API
+  transcript?: string; // For LLM context (Phase 3)
 }
 
 export interface DesignMetadata {
@@ -102,4 +103,22 @@ export function validateDesignReferenceUrl(url: string): { valid: boolean; error
   } catch {
     return { valid: false, error: 'Invalid URL format' };
   }
+}
+
+/**
+ * Extract Figma file key from URL
+ * Example: https://www.figma.com/file/abc123/Project-Name → abc123
+ */
+export function extractFigmaFileKey(url: string): string | null {
+  const match = url.match(/figma\.com\/file\/([a-zA-Z0-9]+)/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Extract Loom shared ID from URL
+ * Example: https://www.loom.com/share/abc123def456 → abc123def456
+ */
+export function extractLoomSharedId(url: string): string | null {
+  const match = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/i);
+  return match ? match[1] : null;
 }
