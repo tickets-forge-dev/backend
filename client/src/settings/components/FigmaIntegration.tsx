@@ -47,8 +47,9 @@ export function FigmaIntegration() {
       return;
     }
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
     const returnUrl = `${window.location.origin}/settings?tab=integrations`;
-    const startUrl = `/api/integrations/figma/oauth/start?workspaceId=${
+    const startUrl = `${apiUrl}/integrations/figma/oauth/start?workspaceId=${
       workspaceId
     }&returnUrl=${encodeURIComponent(returnUrl)}`;
 
