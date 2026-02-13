@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useServices } from '@/hooks/useServices';
 
 /**
  * LoomIntegration Component
@@ -19,16 +20,41 @@ import React, { useState } from 'react';
  * (thumbnails, duration, titles)
  */
 export function LoomIntegration() {
+  const { ticketService } = useServices();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+
+  // Get workspace ID from first ticket or use a default
+  useEffect(() => {
+    const getWorkspaceId = async () => {
+      try {
+        // Try to get workspace ID from the first ticket
+        const tickets = await ticketService.list();
+        if (tickets.length > 0) {
+          setWorkspaceId(tickets[0].workspaceId);
+        } else {
+          // Fallback: use a temporary workspace ID that will be validated by backend
+          // Backend will extract the actual workspace from the JWT token
+          setWorkspaceId('current');
+        }
+      } catch (err) {
+        console.warn('Failed to get workspace ID, using fallback', err);
+        setWorkspaceId('current');
+      }
+    };
+
+    getWorkspaceId();
+  }, [ticketService]);
 
   const handleConnect = () => {
-    // TODO: Get workspaceId from auth context or query current workspace from backend
-    // For now, OAuth flow will be initiated from ticket creation UI where workspaceId is available
-    const returnUrl = `${window.location.origin}/settings?tab=integrations`;
-    const workspaceId = 'TODO'; // Placeholder - get from context
+    if (!workspaceId) {
+      setError('Unable to determine workspace. Please try again.');
+      return;
+    }
 
+    const returnUrl = `${window.location.origin}/settings?tab=integrations`;
     const startUrl = `/api/integrations/loom/oauth/start?workspaceId=${
       workspaceId
     }&returnUrl=${encodeURIComponent(returnUrl)}`;
@@ -43,10 +69,15 @@ export function LoomIntegration() {
 
     try {
       setIsLoading(true);
-      // TODO: Call backend endpoint to delete token
-      // const result = await fetch('/api/integrations/loom/disconnect', {
-      //   method: 'POST',
-      // });
+      const response = await fetch('/api/integrations/loom/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to disconnect');
+      }
+
       setIsConnected(false);
       setError(null);
     } catch (err) {
