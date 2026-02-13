@@ -89,6 +89,8 @@ export class FetchDesignMetadataUseCase {
     try {
       // Extract Figma file key from URL
       const fileKey = extractFigmaFileKey(reference.url);
+      this.logger.debug(`Figma extraction - URL: ${reference.url}, Extracted key: ${fileKey}`);
+
       if (!fileKey) {
         const error = `Could not extract Figma file key from ${reference.url}`;
         this.logger.warn(error);
