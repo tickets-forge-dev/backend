@@ -168,25 +168,13 @@ export default function TicketsListPage() {
 
     return (
       <div className="space-y-4 sm:space-y-6">
-      {/* Header - Responsive */}
-      <div className="flex items-start justify-end px-2 sm:px-0">
-        {quota && !quota.canCreate ? (
-          <div className="relative group">
-            <CreationMenu disabled={true} />
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
-              Ticket limit reached ({quota.used}/{quota.limit})
-            </div>
-          </div>
-        ) : (
-          <CreationMenu disabled={false} />
-        )}
-      </div>
-
-      {/* Status Tabs */}
-      <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)}>
-        <div className="w-full overflow-x-auto pb-[17px]">
-          <div className="inline-block w-full md:w-auto">
-            <TabsList className="inline-flex !w-max gap-0 min-w-min">
+      {/* Header with Status Tabs and Create Button */}
+      <div className="flex items-center justify-between gap-2 px-2 sm:px-0">
+        {/* Status Tabs - on mobile, takes available space */}
+        <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)} className="flex-1">
+          <div className="w-full overflow-x-auto pb-[17px]">
+            <div className="inline-block w-full md:w-auto">
+              <TabsList className="inline-flex !w-max gap-0 min-w-min">
               <TabsTrigger value="all" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
                 All
                 <span className="ml-0.5 md:ml-1.5 text-[9px] md:text-[11px] font-medium text-[var(--text-tertiary)]">
@@ -215,8 +203,22 @@ export default function TicketsListPage() {
             </TabsList>
           </div>
         </div>
-      </Tabs>
+        </Tabs>
 
+        {/* Create Button - aligned on right */}
+        <div className="flex-shrink-0">
+          {quota && !quota.canCreate ? (
+            <div className="relative group">
+              <CreationMenu disabled={true} />
+              <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
+                Ticket limit reached ({quota.used}/{quota.limit})
+              </div>
+            </div>
+          ) : (
+            <CreationMenu disabled={false} />
+          )}
+        </div>
+      </div>
 
       {/* Filter & Sort bar - Responsive */}
       <div className="flex items-center gap-2">
