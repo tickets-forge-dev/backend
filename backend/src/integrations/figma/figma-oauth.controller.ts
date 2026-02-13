@@ -432,6 +432,7 @@ export class FigmaOAuthController {
       }
 
       const data = (await response.json()) as FigmaOAuthToken;
+      this.logger.debug(`Figma token exchange response: ${JSON.stringify(data)}`);
       this.logger.debug(`Figma token exchange successful, token type: ${data.tokenType}`);
       return data;
     } catch (error) {
