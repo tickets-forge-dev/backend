@@ -5,6 +5,7 @@ import { FigmaIntegrationRepository } from './figma-integration.repository';
 import { FigmaOAuthToken } from './figma.types';
 import { FirebaseAuthGuard } from '../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../shared/presentation/guards/WorkspaceGuard';
+import { RateLimitGuard } from '../../shared/presentation/guards/RateLimitGuard';
 import { WorkspaceId } from '../../shared/presentation/decorators/WorkspaceId.decorator';
 
 /**
@@ -57,13 +58,14 @@ export class FigmaOAuthController {
    * Validates inputs and redirects to Figma authorization endpoint
    *
    * Security checks:
+   * - Rate limiting (5 requests per minute per IP)
    * - User must be authenticated (FirebaseAuthGuard)
    * - workspaceId must match user's workspace (WorkspaceGuard + permission check)
    * - workspaceId must not be empty
    * - returnUrl must be from whitelisted domain
    * - State parameter includes timestamp (prevents replay attacks)
    */
-  @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
+  @UseGuards(RateLimitGuard, FirebaseAuthGuard, WorkspaceGuard)
   @Get('start')
   async startOAuth(
     @Query('workspaceId') requestedWorkspaceId: string,
@@ -166,11 +168,13 @@ export class FigmaOAuthController {
    * Exchanges authorization code for access token, validates state, stores token
    *
    * Security checks:
+   * - Rate limiting (5 requests per minute per IP)
    * - State parameter validated (CSRF protection)
    * - State timestamp checked (prevents replay attacks)
    * - Token verified before storage
    * - Return URL validated (prevents open redirect)
    */
+  @UseGuards(RateLimitGuard)
   @Get('callback')
   async handleCallback(
     @Query('code') code: string,
