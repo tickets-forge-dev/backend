@@ -71,7 +71,10 @@ import { PRDBreakdownUseCase } from '../../application/use-cases/PRDBreakdownUse
 import { BulkCreateFromBreakdownUseCase } from '../../application/use-cases/BulkCreateFromBreakdownUseCase';
 import { EnrichMultipleTicketsUseCase } from '../../application/use-cases/EnrichMultipleTicketsUseCase';
 import { FinalizeMultipleTicketsUseCase } from '../../application/use-cases/FinalizeMultipleTicketsUseCase';
+import { AddDesignReferenceUseCase } from '../../application/use-cases/AddDesignReferenceUseCase';
+import { RemoveDesignReferenceUseCase } from '../../application/use-cases/RemoveDesignReferenceUseCase';
 import { ImportFromJiraDto } from '../dto/ImportFromJiraDto';
+import { AddDesignReferenceDto } from '../dto/AddDesignReferenceDto';
 import { ImportFromLinearDto } from '../dto/ImportFromLinearDto';
 import { BulkEnrichDto } from '../dto/BulkEnrichDto';
 import { BulkFinalizeDto } from '../dto/BulkFinalizeDto';
@@ -120,6 +123,8 @@ export class TicketsController {
     private readonly bulkCreateFromBreakdownUseCase: BulkCreateFromBreakdownUseCase,
     private readonly enrichMultipleTicketsUseCase: EnrichMultipleTicketsUseCase,
     private readonly finalizeMultipleTicketsUseCase: FinalizeMultipleTicketsUseCase,
+    private readonly addDesignReferenceUseCase: AddDesignReferenceUseCase,
+    private readonly removeDesignReferenceUseCase: RemoveDesignReferenceUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -683,6 +688,50 @@ export class TicketsController {
     }
 
     return aec.attachments;
+  }
+
+  /**
+   * Add a design reference (Figma, Loom, etc.) to a ticket.
+   *
+   * Validates URL, auto-detects platform, stores reference.
+   * Phase 2: Metadata fetching happens asynchronously.
+   */
+  @Post(':id(aec_[a-f0-9\\-]+)/design-references')
+  @HttpCode(HttpStatus.CREATED)
+  async addDesignReference(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @UserEmail() userEmail: string,
+    @Param('id') id: string,
+    @Body() dto: AddDesignReferenceDto,
+  ) {
+    const result = await this.addDesignReferenceUseCase.execute({
+      ticketId: id,
+      workspaceId,
+      userId,
+      userEmail,
+      url: dto.url,
+      title: dto.title,
+    });
+
+    return result;
+  }
+
+  /**
+   * Remove a design reference from a ticket.
+   */
+  @Delete(':id/design-references/:referenceId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeDesignReference(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('referenceId') referenceId: string,
+  ) {
+    await this.removeDesignReferenceUseCase.execute({
+      ticketId: id,
+      referenceId,
+      workspaceId,
+    });
   }
 
   /**

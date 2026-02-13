@@ -55,6 +55,8 @@ import { PRDBreakdownService } from './application/services/PRDBreakdownService'
 import { BulkCreateFromBreakdownUseCase } from './application/use-cases/BulkCreateFromBreakdownUseCase';
 import { EnrichMultipleTicketsUseCase } from './application/use-cases/EnrichMultipleTicketsUseCase';
 import { FinalizeMultipleTicketsUseCase } from './application/use-cases/FinalizeMultipleTicketsUseCase';
+import { AddDesignReferenceUseCase } from './application/use-cases/AddDesignReferenceUseCase';
+import { RemoveDesignReferenceUseCase } from './application/use-cases/RemoveDesignReferenceUseCase';
 
 @Module({
   imports: [GitHubModule, LinearModule, JiraModule, PostHogModule, WorkspacesModule],
@@ -78,6 +80,8 @@ import { FinalizeMultipleTicketsUseCase } from './application/use-cases/Finalize
     BulkCreateFromBreakdownUseCase,
     EnrichMultipleTicketsUseCase,
     FinalizeMultipleTicketsUseCase,
+    AddDesignReferenceUseCase,
+    RemoveDesignReferenceUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,
