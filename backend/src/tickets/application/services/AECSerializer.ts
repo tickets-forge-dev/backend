@@ -28,6 +28,14 @@ export class AECSerializer {
       });
 
       const xml = builder.buildObject(ticketData);
+      if (!xml || xml.length === 0) {
+        this.logger.error(`✗ XML builder returned empty string`);
+        throw new Error('XML builder produced empty output');
+      }
+      if (!xml.includes('<?xml')) {
+        this.logger.error(`✗ XML builder returned invalid XML (missing declaration)`);
+        throw new Error('Invalid XML: missing XML declaration');
+      }
       this.logger.log(`✓ Generated comprehensive AEC.xml (${xml.length} bytes)`);
       return xml;
     } catch (error: any) {
