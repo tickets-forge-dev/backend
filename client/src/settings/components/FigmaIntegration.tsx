@@ -54,16 +54,22 @@ export function FigmaIntegration() {
         }
 
         // Check if Figma is already connected
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-        const response = await fetch(`${apiUrl}/integrations/figma/oauth/status`, {
-          credentials: 'include',
-        });
+        const user = auth.currentUser;
+        if (user) {
+          const idToken = await user.getIdToken();
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+          const response = await fetch(`${apiUrl}/integrations/figma/oauth/status`, {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.connected) {
-            setIsConnected(true);
-            setError(null);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.connected) {
+              setIsConnected(true);
+              setError(null);
+            }
           }
         }
       } catch (err) {
