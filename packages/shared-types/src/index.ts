@@ -12,3 +12,6 @@ export * from './analytics';
 
 // Bulk Enrichment
 export * from './bulk-enrichment';
+
+// Design Reference
+export * from './design-reference.types';
