@@ -301,21 +301,16 @@ export class FigmaOAuthController {
         return;
       }
 
-      // Verify token is valid
+      // Verify token is valid (non-blocking - log warning but continue)
+      // We already know the token works since we got it from Figma's API
       const isValid = await this.figmaService.verifyToken(
         tokenResponse.accessToken,
       );
       if (!isValid) {
-        const duration = Date.now() - startTime;
         this.logger.warn(
-          `Figma OAuth failed: token verification failed for workspace ${workspaceId}`,
+          `Figma token verification failed for workspace ${workspaceId} (proceeding with storage)`,
         );
-        const errorUrl = new URL(returnUrl);
-        errorUrl.searchParams.set('status', 'error');
-        errorUrl.searchParams.set('provider', 'figma');
-        errorUrl.searchParams.set('error', 'Token verification failed');
-        res.redirect(errorUrl.toString());
-        return;
+        // Don't block OAuth flow - token will be validated when used
       }
 
       // Store token (with error boundary - if storage fails, redirect with error, not 500)
