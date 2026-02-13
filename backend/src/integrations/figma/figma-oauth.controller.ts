@@ -356,6 +356,16 @@ export class FigmaOAuthController {
    */
   private async exchangeCodeForToken(code: string): Promise<FigmaOAuthToken | null> {
     try {
+      // Validate environment variables
+      if (!this.FIGMA_CLIENT_ID) {
+        this.logger.error('Figma token exchange: FIGMA_CLIENT_ID is not set in environment variables');
+        return null;
+      }
+      if (!this.FIGMA_CLIENT_SECRET) {
+        this.logger.error('Figma token exchange: FIGMA_CLIENT_SECRET is not set in environment variables');
+        return null;
+      }
+
       const response = await fetch(this.FIGMA_TOKEN_URL, {
         method: 'POST',
         headers: {
