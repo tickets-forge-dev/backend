@@ -238,12 +238,18 @@ export function TicketDetailLayout({
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="w-full grid grid-cols-2 bg-transparent h-auto p-0 border-b border-gray-200 dark:border-gray-800">
+        <TabsList className="w-full grid grid-cols-3 bg-transparent h-auto p-0 border-b border-gray-200 dark:border-gray-800">
           <TabsTrigger
             value="spec"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
           >
             Spec
+          </TabsTrigger>
+          <TabsTrigger
+            value="design"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
+          >
+            Design
           </TabsTrigger>
           <TabsTrigger
             value="technical"
