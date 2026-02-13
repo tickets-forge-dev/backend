@@ -3,6 +3,7 @@ import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-obj
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { Attachment } from '../../../domain/value-objects/Attachment';
+import { DesignReference } from '../../../domain/value-objects/DesignReference';
 import { TechSpec } from '../../../domain/tech-spec/TechSpecGenerator';
 import { Timestamp } from 'firebase-admin/firestore';
 
@@ -74,6 +75,7 @@ export interface AECDocument {
   techSpec?: TechSpec | null;
   taskAnalysis?: any;
   attachments?: any[];
+  designReferences?: any[];
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -150,6 +152,12 @@ export class AECMapper {
       })
       .filter((vr): vr is ValidationResult => vr !== null);
 
+    // Map design references, converting timestamps to dates
+    const designReferences = (doc.designReferences || []).map((ref: any) => ({
+      ...ref,
+      addedAt: toDate(ref.addedAt),
+    })) as DesignReference[];
+
     return AEC.reconstitute(
       doc.id,
       doc.workspaceId,
@@ -183,6 +191,7 @@ export class AECMapper {
         ...a,
         uploadedAt: toDate(a.uploadedAt),
       })) as Attachment[],
+      designReferences,
     );
   }
 
@@ -232,6 +241,10 @@ export class AECMapper {
       attachments: aec.attachments.map((a) => ({
         ...a,
         uploadedAt: Timestamp.fromDate(a.uploadedAt),
+      })),
+      designReferences: aec.designReferences.map((ref) => ({
+        ...ref,
+        addedAt: Timestamp.fromDate(ref.addedAt),
       })),
     };
   }
