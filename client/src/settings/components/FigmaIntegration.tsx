@@ -55,7 +55,7 @@ export function FigmaIntegration() {
 
         // Check if Figma is already connected
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-        const response = await fetch(`${apiUrl}/integrations/figma/status`, {
+        const response = await fetch(`${apiUrl}/integrations/figma/oauth/status`, {
           credentials: 'include',
         });
 
