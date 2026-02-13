@@ -1,44 +1,52 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
+import { Builder } from 'xml2js';
 
 /**
- * Serializes an AEC domain object to JSON format
+ * Serializes an AEC domain object to XML format
  * Suitable for machine consumption by agents and external systems
  */
 @Injectable()
 export class AECSerializer {
   private readonly logger = new Logger(AECSerializer.name);
+  private readonly xmlBuilder: Builder;
+
+  constructor() {
+    this.xmlBuilder = new Builder({
+      xmldec: { version: '1.0', encoding: 'UTF-8' },
+      rootName: 'aec',
+      cdata: false,
+      headless: false,
+    });
+  }
 
   serialize(aec: AEC): string {
     try {
       const aecObject = this.buildAECObject(aec);
-      return JSON.stringify(aecObject, null, 2);
+      return this.xmlBuilder.buildObject(aecObject);
     } catch (error: any) {
-      this.logger.error(`Failed to serialize AEC to JSON: ${error.message}`);
+      this.logger.error(`Failed to serialize AEC to XML: ${error.message}`);
       throw error;
     }
   }
 
   private buildAECObject(aec: AEC): any {
     return {
-      '@': {
-        id: aec.id,
-        workspaceId: aec.workspaceId,
-        status: aec.status,
-        createdAt: aec.createdAt.toISOString(),
-        updatedAt: aec.updatedAt.toISOString(),
-      },
+      id: aec.id,
+      workspaceId: aec.workspaceId,
+      status: aec.status,
+      createdAt: aec.createdAt.toISOString(),
+      updatedAt: aec.updatedAt.toISOString(),
       metadata: {
         title: aec.title,
         type: aec.type || 'task',
         priority: aec.priority || 'medium',
-        status: aec.status,
         readinessScore: aec.readinessScore,
       },
       content: {
         description: aec.description || '',
-        acceptanceCriteria: this.serializeArray(aec.acceptanceCriteria, 'criterion'),
-        assumptions: this.serializeArray(aec.assumptions, 'assumption'),
+        acceptanceCriteria: this.serializeArrayForXml(aec.acceptanceCriteria, 'criterion'),
+        assumptions: this.serializeArrayForXml(aec.assumptions, 'assumption'),
       },
       technicalDetails: {
         repositoryContext: this.serializeRepositoryContext(aec.repositoryContext),
@@ -46,7 +54,7 @@ export class AECSerializer {
         apiSnapshot: this.serializeApiSnapshot(aec.apiSnapshot),
       },
       analysis: {
-        repoPaths: this.serializeArray(aec.repoPaths, 'path'),
+        repoPaths: this.serializeArrayForXml(aec.repoPaths, 'path'),
         questions: this.serializeQuestions(aec.questions),
         validationResults: this.serializeValidationResults(aec.validationResults),
       },
@@ -54,14 +62,25 @@ export class AECSerializer {
       tracking: {
         externalIssue: this.serializeExternalIssue(aec.externalIssue),
         driftDetected: {
-          '@': { detected: !!aec.driftDetectedAt },
+          detected: !!aec.driftDetectedAt ? 'true' : 'false',
           reason: aec.driftReason || '',
           detectedAt: aec.driftDetectedAt?.toISOString() || '',
         },
       },
       estimate: this.serializeEstimate(aec.estimate),
-      taskAnalysis: aec.taskAnalysis || {},
+      taskAnalysis: aec.taskAnalysis ? JSON.stringify(aec.taskAnalysis) : '',
       attachments: this.serializeAttachments(aec.attachments),
+    };
+  }
+
+  private serializeArrayForXml(items: any[], itemName: string): any {
+    if (!items || items.length === 0) {
+      return {};
+    }
+    return {
+      [itemName]: items.map((item) => ({
+        value: typeof item === 'string' ? item : JSON.stringify(item),
+      })),
     };
   }
 
@@ -70,9 +89,8 @@ export class AECSerializer {
       return {};
     }
     return {
-      [itemName]: items.map((item, idx) => ({
-        '@': { index: idx },
-        '#text': typeof item === 'string' ? item : JSON.stringify(item),
+      [itemName]: items.map((item) => ({
+        value: typeof item === 'string' ? item : JSON.stringify(item),
       })),
     };
   }
@@ -138,14 +156,12 @@ export class AECSerializer {
     if (!questions || questions.length === 0) return {};
     return {
       question: questions.map((q) => ({
-        '@': {
-          id: q.id || '',
-          type: q.type || 'text',
-        },
+        id: q.id || '',
+        type: q.type || 'text',
         text: q.question || q.text || '',
         context: q.context || '',
         impact: q.impact || '',
-        options: this.serializeArray(q.options || [], 'option'),
+        options: this.serializeArrayForXml(q.options || [], 'option'),
       })),
     };
   }
@@ -154,11 +170,9 @@ export class AECSerializer {
     if (!results || results.length === 0) return {};
     return {
       result: results.map((r) => ({
-        '@': {
-          id: r.id || '',
-          status: r.status || 'pending',
-          timestamp: r.timestamp?.toISOString() || new Date().toISOString(),
-        },
+        id: r.id || '',
+        status: r.status || 'pending',
+        timestamp: r.timestamp?.toISOString() || new Date().toISOString(),
         type: r.type || '',
         message: r.message || '',
         details: r.details || '',

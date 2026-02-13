@@ -1460,9 +1460,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
             <p className="text-xs text-[var(--text-tertiary)]">
               ℹ️ This preview includes all ticket sections. When exported to Jira, you will receive three files:
-              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec.md</code> (markdown)
-              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec.json</code> (structured data)
-              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_aec.json</code> (full AEC object)
+              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec.md</code> (markdown description)
+              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_aec.xml</code> (full AEC domain object)
+              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec</code> (structured specification)
             </p>
           </div>
           <DialogFooter>
