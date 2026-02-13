@@ -41,6 +41,7 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
     loadingMessage,
     progressPercent,
     setType,
+    draftAecId,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -99,12 +100,14 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
 
   return (
     <div className="relative w-full h-full bg-white dark:bg-gray-950">
-      {/* Stage Indicator */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
-          <StageIndicator currentStage={currentStage} />
+      {/* Stage Indicator - Hide after ticket is created */}
+      {!draftAecId && (
+        <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+          <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
+            <StageIndicator currentStage={currentStage} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Recovery Banner */}
       {showRecoveryBanner && recoveryInfo && (
