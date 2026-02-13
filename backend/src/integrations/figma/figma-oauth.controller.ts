@@ -389,17 +389,30 @@ export class FigmaOAuthController {
       // Create Basic Auth header with client_id:client_secret
       const credentials = Buffer.from(`${this.FIGMA_CLIENT_ID}:${this.FIGMA_CLIENT_SECRET}`).toString('base64');
 
+      // Log request details for debugging
+      const requestBody = new URLSearchParams({
+        redirect_uri: this.FIGMA_REDIRECT_URI,
+        code,
+        grant_type: 'authorization_code',
+      }).toString();
+
+      this.logger.debug(`Figma token exchange request:
+        - URL: ${this.FIGMA_TOKEN_URL}
+        - Auth header present: ${credentials ? 'yes' : 'no'}
+        - Auth header length: ${credentials ? credentials.length : 0}
+        - Client ID length: ${this.FIGMA_CLIENT_ID.length}
+        - Client Secret length: ${this.FIGMA_CLIENT_SECRET.length}
+        - Code: ${code}
+        - Grant type: authorization_code
+        - Redirect URI: ${this.FIGMA_REDIRECT_URI}`);
+
       const response = await fetch(this.FIGMA_TOKEN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${credentials}`,
         },
-        body: new URLSearchParams({
-          redirect_uri: this.FIGMA_REDIRECT_URI,
-          code,
-          grant_type: 'authorization_code',
-        }).toString(),
+        body: requestBody,
       });
 
       if (!response.ok) {
@@ -412,7 +425,9 @@ export class FigmaOAuthController {
           - Client ID: ${this.FIGMA_CLIENT_ID.substring(0, 5)}...
           - Redirect URI: ${this.FIGMA_REDIRECT_URI}
           - Code length: ${code.length}
-          - Response: ${error}`);
+          - Response status: ${response.status}
+          - Response body: ${error}
+          - Response headers: ${JSON.stringify(Array.from(response.headers.entries()))}`);
         return null;
       }
 
