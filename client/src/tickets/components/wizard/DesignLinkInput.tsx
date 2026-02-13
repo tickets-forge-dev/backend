@@ -8,7 +8,7 @@ interface DesignLink {
   url: string;
   title?: string;
   platform: DesignPlatform;
-  tempId?: string; // For local tracking before server persistence
+  tempId: string; // For local tracking before server persistence
 }
 
 interface DesignLinkInputProps {
@@ -73,8 +73,11 @@ export function DesignLinkInput({
   const handleAddLink = () => {
     setError(null);
 
+    const trimmedUrl = url.trim();
+    const trimmedTitle = title.trim();
+
     // Validate
-    if (!validateUrl(url)) {
+    if (!validateUrl(trimmedUrl)) {
       return;
     }
 
@@ -84,10 +87,16 @@ export function DesignLinkInput({
       return;
     }
 
+    // Check for duplicates
+    if (links.some((link) => link.url === trimmedUrl)) {
+      setError('This URL has already been added');
+      return;
+    }
+
     // Add link
     onAdd({
-      url: url.trim(),
-      title: title.trim() || undefined,
+      url: trimmedUrl,
+      title: trimmedTitle || undefined,
     });
 
     // Reset form

@@ -152,11 +152,15 @@ export class AECMapper {
       })
       .filter((vr): vr is ValidationResult => vr !== null);
 
-    // Map design references, converting timestamps to dates
-    const designReferences = (doc.designReferences || []).map((ref: any) => ({
-      ...ref,
-      addedAt: toDate(ref.addedAt),
-    })) as DesignReference[];
+    // Map design references, converting timestamps to dates and handling null/undefined safely
+    const designReferences = (doc.designReferences || [])
+      .filter((ref: any) => ref && typeof ref === 'object')
+      .map((ref: any) => ({
+        ...ref,
+        addedAt: toDate(ref.addedAt),
+        // Safely handle metadata that might be null/undefined
+        metadata: ref.metadata ? { ...ref.metadata } : undefined,
+      })) as DesignReference[];
 
     return AEC.reconstitute(
       doc.id,

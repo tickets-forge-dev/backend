@@ -89,19 +89,25 @@ export function DesignReferencesSection({
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {ref.title || PLATFORM_NAMES[ref.platform]}
+                  {ref.title || PLATFORM_NAMES[ref.platform] || PLATFORM_NAMES.other}
                 </p>
                 <a
                   href={ref.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  title={ref.url}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block"
                 >
-                  {ref.url}
+                  {ref.url || 'Unknown URL'}
                 </a>
                 {ref.addedBy && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Added by {ref.addedBy}
+                  </p>
+                )}
+                {ref.addedAt && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    {new Date(ref.addedAt).toLocaleDateString()}
                   </p>
                 )}
               </div>

@@ -52,8 +52,13 @@ const PLATFORM_PATTERNS = {
 } as const;
 
 export function detectPlatform(url: string): DesignPlatform {
+  if (!url || typeof url !== 'string') return 'other';
+
+  // Normalize URL (lowercase for case-insensitive matching)
+  const normalizedUrl = url.toLowerCase();
+
   for (const [platform, pattern] of Object.entries(PLATFORM_PATTERNS)) {
-    if (pattern.test(url)) {
+    if (pattern.test(normalizedUrl)) {
       return platform as DesignPlatform;
     }
   }
@@ -68,16 +73,31 @@ export function validateDesignReferenceUrl(url: string): { valid: boolean; error
     return { valid: false, error: 'URL is required' };
   }
 
-  if (!url.startsWith('https://')) {
-    return { valid: false, error: 'URL must use HTTPS' };
+  // Trim whitespace
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return { valid: false, error: 'URL cannot be empty or whitespace' };
   }
 
-  if (url.length > 2048) {
+  if (!trimmedUrl.startsWith('https://')) {
+    return { valid: false, error: 'URL must use HTTPS (https://)' };
+  }
+
+  if (trimmedUrl.length > 2048) {
     return { valid: false, error: 'URL is too long (max 2048 characters)' };
   }
 
+  // Check for invalid characters
+  if (/[\s<>"{}|\\^`]/.test(trimmedUrl)) {
+    return { valid: false, error: 'URL contains invalid characters' };
+  }
+
   try {
-    new URL(url);
+    const urlObj = new URL(trimmedUrl);
+    // Verify hostname exists
+    if (!urlObj.hostname) {
+      return { valid: false, error: 'Invalid URL format' };
+    }
     return { valid: true };
   } catch {
     return { valid: false, error: 'Invalid URL format' };

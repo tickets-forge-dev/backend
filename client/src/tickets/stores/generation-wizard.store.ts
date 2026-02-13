@@ -318,16 +318,30 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
   // Design link actions
   addPendingDesignLink: (url: string, title?: string) =>
-    set((state) => ({
-      pendingDesignLinks: [
-        ...state.pendingDesignLinks,
-        {
-          url,
-          title,
-          tempId: `design_${Date.now()}_${Math.random()}`,
-        },
-      ],
-    })),
+    set((state) => {
+      // Validate URL before adding
+      if (!url || !url.startsWith('https://')) {
+        console.warn('Invalid design link URL:', url);
+        return state;
+      }
+
+      // Check for duplicates
+      if (state.pendingDesignLinks.some((link) => link.url === url)) {
+        console.warn('Design link already exists:', url);
+        return state;
+      }
+
+      return {
+        pendingDesignLinks: [
+          ...state.pendingDesignLinks,
+          {
+            url,
+            title,
+            tempId: `design_${crypto.randomUUID()}`,
+          },
+        ],
+      };
+    }),
 
   removePendingDesignLink: (tempId: string) =>
     set((state) => ({
@@ -732,19 +746,40 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       // Upload pending design references in background (best-effort, don't block wizard)
       const linksToUpload = get().pendingDesignLinks;
       if (linksToUpload.length > 0) {
-        set({ pendingDesignLinks: [] });
+        const failedLinks: typeof linksToUpload = [];
+
         for (const link of linksToUpload) {
           try {
-            await authFetch(`/tickets/${aec.id}/design-references`, {
+            const response = await authFetch(`/tickets/${aec.id}/design-references`, {
               method: 'POST',
               body: JSON.stringify({
                 url: link.url,
                 title: link.title,
               }),
             });
+
+            if (!response.ok) {
+              console.warn(`Failed to upload design link (${response.status}):`, link.url);
+              failedLinks.push(link);
+            }
           } catch (uploadError) {
             console.warn('Failed to upload design link:', link.url, uploadError);
+            failedLinks.push(link);
           }
+        }
+
+        // Clear successfully uploaded links, keep failed ones for retry
+        if (failedLinks.length < linksToUpload.length) {
+          set({ pendingDesignLinks: failedLinks });
+        } else {
+          // All failed or all succeeded - only clear if all succeeded
+          if (failedLinks.length === 0) {
+            set({ pendingDesignLinks: [] });
+          }
+        }
+
+        if (failedLinks.length > 0) {
+          console.warn(`${failedLinks.length} design links failed to upload, kept for retry`);
         }
       }
 
