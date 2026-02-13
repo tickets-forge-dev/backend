@@ -135,7 +135,7 @@ export class AECSerializer {
       status: 'generated',
       id: spec.id,
       title: spec.title,
-      createdAt: spec.createdAt?.toISOString(),
+      createdAt: spec.createdAt ? (typeof spec.createdAt === 'string' ? spec.createdAt : spec.createdAt.toISOString()) : null,
       qualityScore: spec.qualityScore || 0,
     };
 

@@ -35,7 +35,7 @@ export class TechSpecSerializer {
       metadata: {
         id: techSpec.id,
         title: techSpec.title,
-        createdAt: techSpec.createdAt?.toISOString(),
+        createdAt: techSpec.createdAt ? (typeof techSpec.createdAt === 'string' ? techSpec.createdAt : techSpec.createdAt.toISOString()) : null,
         qualityScore: techSpec.qualityScore,
         status: 'generated',
       },
