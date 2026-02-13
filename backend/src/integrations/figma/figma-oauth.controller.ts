@@ -165,6 +165,29 @@ export class FigmaOAuthController {
   }
 
   /**
+   * Check Figma connection status
+   * Returns whether Figma is connected for the current workspace
+   *
+   * Security checks:
+   * - User must be authenticated (FirebaseAuthGuard)
+   * - workspaceId must match user's workspace (WorkspaceGuard)
+   */
+  @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
+  @Get('status')
+  async getConnectionStatus(
+    @WorkspaceId() workspaceId: string,
+  ): Promise<{ connected: boolean }> {
+    try {
+      // Check if a token is stored for this workspace
+      const token = await this.figmaIntegrationRepository.getToken(workspaceId);
+      return { connected: !!token };
+    } catch (error) {
+      this.logger.warn(`Failed to check Figma connection status for workspace ${workspaceId}`);
+      return { connected: false };
+    }
+  }
+
+  /**
    * Figma OAuth callback
    * Exchanges authorization code for access token, validates state, stores token
    *

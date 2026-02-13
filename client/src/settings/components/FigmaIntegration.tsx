@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { auth } from '@/lib/firebase';
+import { useSearchParams } from 'next/navigation';
 
 /**
  * FigmaIntegration Component
@@ -14,14 +15,15 @@ import { auth } from '@/lib/firebase';
  */
 export function FigmaIntegration() {
   const { ticketService } = useServices();
+  const searchParams = useSearchParams();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
 
-  // Get workspace ID from first ticket or use a default
+  // Get workspace ID and check if Figma is already connected
   useEffect(() => {
-    const getWorkspaceId = async () => {
+    const initialize = async () => {
       try {
         // Try to get workspace ID from the first ticket
         const tickets = await ticketService.list();
@@ -33,14 +35,45 @@ export function FigmaIntegration() {
           // For now, use a placeholder that the backend will override
           setWorkspaceId('current');
         }
+
+        // Check if we're returning from OAuth callback
+        const status = searchParams.get('status');
+        const provider = searchParams.get('provider');
+
+        if (provider === 'figma') {
+          if (status === 'success') {
+            setIsConnected(true);
+            setError(null);
+            return;
+          } else if (status === 'error') {
+            const errorMsg = searchParams.get('error') || 'Unknown error during OAuth';
+            setError(`Failed to connect Figma: ${errorMsg}`);
+            setIsConnected(false);
+            return;
+          }
+        }
+
+        // Check if Figma is already connected
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${apiUrl}/integrations/figma/status`, {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.connected) {
+            setIsConnected(true);
+            setError(null);
+          }
+        }
       } catch (err) {
-        console.warn('Failed to get workspace ID, using fallback', err);
-        setWorkspaceId('current');
+        console.warn('Failed to check Figma connection status', err);
+        // Don't show error - connection check is optional
       }
     };
 
-    getWorkspaceId();
-  }, [ticketService]);
+    initialize();
+  }, [ticketService, searchParams]);
 
   const handleConnect = async () => {
     if (!workspaceId) {
