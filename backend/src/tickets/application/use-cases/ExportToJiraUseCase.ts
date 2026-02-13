@@ -102,10 +102,12 @@ export class ExportToJiraUseCase {
       this.logger.error(`Failed to upload tech spec markdown file: ${error.message}`);
     }
 
-    // Upload AEC.xml serialization
+    // Upload AEC.xml serialization (full domain object)
+    let aecXmlUploaded = false;
     try {
       const aecXmlFileName = `${aec.id}_aec.xml`;
       const aecXmlContent = this.aecSerializer.serialize(aec);
+      this.logger.debug(`Generated AEC.xml (${aecXmlContent.length} bytes)`);
       const aecXmlBuffer = Buffer.from(aecXmlContent, 'utf-8');
       await this.apiClient.uploadAttachment(
         integration.jiraUrl,
@@ -115,16 +117,19 @@ export class ExportToJiraUseCase {
         aecXmlFileName,
         aecXmlBuffer,
       );
-      this.logger.log(`Uploaded AEC.xml to Jira issue ${issue.key}`);
+      aecXmlUploaded = true;
+      this.logger.log(`✓ Uploaded ${aecXmlFileName} to Jira issue ${issue.key}`);
     } catch (error: any) {
       // Log but don't fail if attachment upload fails
-      this.logger.error(`Failed to upload AEC.xml: ${error.message}`);
+      this.logger.error(`✗ Failed to upload AEC.xml: ${error.message}`, error.stack);
     }
 
-    // Upload tech-spec file (JSON format)
+    // Upload tech-spec file (JSON format with structured data)
+    let techSpecUploaded = false;
     try {
-      const techSpecFileName = `${aec.id}_tech-spec`;
+      const techSpecFileName = `${aec.id}_tech-spec.json`;
       const techSpecContent = this.techSpecSerializer.serialize(aec.techSpec);
+      this.logger.debug(`Generated tech-spec.json (${techSpecContent.length} bytes)`);
       const techSpecBuffer = Buffer.from(techSpecContent, 'utf-8');
       await this.apiClient.uploadAttachment(
         integration.jiraUrl,
@@ -134,11 +139,15 @@ export class ExportToJiraUseCase {
         techSpecFileName,
         techSpecBuffer,
       );
-      this.logger.log(`Uploaded tech-spec to Jira issue ${issue.key}`);
+      techSpecUploaded = true;
+      this.logger.log(`✓ Uploaded ${techSpecFileName} to Jira issue ${issue.key}`);
     } catch (error: any) {
       // Log but don't fail if attachment upload fails
-      this.logger.error(`Failed to upload tech-spec: ${error.message}`);
+      this.logger.error(`✗ Failed to upload tech-spec.json: ${error.message}`, error.stack);
     }
+
+    // Log summary
+    this.logger.log(`Export complete: ${aecXmlUploaded ? '✓' : '✗'} AEC.xml, ${techSpecUploaded ? '✓' : '✗'} tech-spec.json, ✓ tech-spec.md`);
 
     // Save external issue reference
     aec.setExternalIssue({
