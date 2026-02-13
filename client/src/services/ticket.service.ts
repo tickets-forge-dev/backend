@@ -193,9 +193,14 @@ export class TicketService {
     ticketId: string,
     request: { url: string; title?: string },
   ): Promise<{ designReference: any }> {
+    // Trim URL and title to remove whitespace
+    const trimmedRequest = {
+      url: request.url.trim(),
+      title: request.title?.trim(),
+    };
     const response = await this.client.post(
       `/tickets/${ticketId}/design-references`,
-      request,
+      trimmedRequest,
     );
     return response.data;
   }

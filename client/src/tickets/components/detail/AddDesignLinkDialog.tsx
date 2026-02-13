@@ -38,8 +38,15 @@ export function AddDesignLinkDialog({ onAdd, onClose }: AddDesignLinkDialogProps
     setLoading(true);
     try {
       await onAdd(url, title || undefined);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add design link');
+    } catch (err: any) {
+      // Extract error message from axios error
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to add design link';
+      setError(errorMessage);
+      console.error('Add design link error:', err);
     } finally {
       setLoading(false);
     }
