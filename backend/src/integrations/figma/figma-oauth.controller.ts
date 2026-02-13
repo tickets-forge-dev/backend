@@ -120,9 +120,8 @@ export class FigmaOAuthController {
     authUrl.searchParams.set('redirect_uri', this.FIGMA_REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('state', state);
-    // Try 'files:read' scope - this is the standard Figma scope
-    // If it fails, check your Figma app settings for available scopes
-    authUrl.searchParams.set('scope', 'files:read');
+    // Request scopes enabled in Figma app settings (space-separated)
+    authUrl.searchParams.set('scope', 'file_content:read file_metadata:read');
 
     this.logger.debug(`Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
 
