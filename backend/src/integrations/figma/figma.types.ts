@@ -23,4 +23,5 @@ export interface FigmaOAuthToken {
   tokenType: string;
   expiresIn?: number;
   scope?: string;
+  savedAt?: number; // Timestamp when token was saved (milliseconds)
 }

@@ -69,6 +69,9 @@ export function FigmaIntegration() {
             if (data.connected) {
               setIsConnected(true);
               setError(null);
+            } else if (data.expired) {
+              setIsConnected(false);
+              setError('Figma connection expired. Please reconnect.');
             }
           }
         }

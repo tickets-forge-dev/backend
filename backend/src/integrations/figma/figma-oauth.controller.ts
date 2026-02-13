@@ -166,7 +166,7 @@ export class FigmaOAuthController {
 
   /**
    * Check Figma connection status
-   * Returns whether Figma is connected for the current workspace
+   * Returns whether Figma is connected and if token is still valid
    *
    * Security checks:
    * - User must be authenticated (FirebaseAuthGuard)
@@ -176,11 +176,29 @@ export class FigmaOAuthController {
   @Get('status')
   async getConnectionStatus(
     @WorkspaceId() workspaceId: string,
-  ): Promise<{ connected: boolean }> {
+  ): Promise<{ connected: boolean; expired?: boolean }> {
     try {
       // Check if a token is stored for this workspace
       const token = await this.figmaIntegrationRepository.getToken(workspaceId);
-      return { connected: !!token };
+      if (!token) {
+        return { connected: false };
+      }
+
+      // Check if token is expired
+      // Figma tokens expire after expiresIn seconds
+      if (token.savedAt && token.expiresIn) {
+        const ageInSeconds = (Date.now() - token.savedAt) / 1000;
+        const isExpired = ageInSeconds > token.expiresIn;
+
+        if (isExpired) {
+          this.logger.warn(
+            `Figma token expired for workspace ${workspaceId} (${ageInSeconds}s old, expires in ${token.expiresIn}s)`,
+          );
+          return { connected: false, expired: true };
+        }
+      }
+
+      return { connected: true };
     } catch (error) {
       this.logger.warn(`Failed to check Figma connection status for workspace ${workspaceId}`);
       return { connected: false };
@@ -306,6 +324,7 @@ export class FigmaOAuthController {
           tokenType: tokenResponse.tokenType,
           expiresIn: tokenResponse.expiresIn,
           scope: tokenResponse.scope,
+          savedAt: Date.now(),
         });
       } catch (storageError) {
         const duration = Date.now() - startTime;
