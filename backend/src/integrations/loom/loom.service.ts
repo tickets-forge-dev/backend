@@ -24,14 +24,22 @@ export class LoomService {
     accessToken: string,
   ): Promise<LoomMetadata> {
     try {
-      // Loom API endpoint for getting video details
-      const response = await fetch(`${this.API_BASE_URL}/${videoId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json',
-        },
-      });
+      // Set 10-second timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        // Loom API endpoint for getting video details
+        const response = await fetch(`${this.API_BASE_URL}/${videoId}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
 
       // Handle rate limiting
       if (response.status === 429) {
@@ -66,16 +74,40 @@ export class LoomService {
         throw new Error(`Loom API error: ${response.status}`);
       }
 
-      const data = (await response.json()) as LoomVideo;
+        const data = (await response.json()) as LoomVideo;
 
-      return {
-        videoId,
-        videoTitle: data.name,
-        duration: data.duration,
-        thumbnailUrl: data.thumbnail_url,
-        lastModified: new Date(data.updated_at),
-      };
+        // Validate response has required fields
+        if (
+          !data.name ||
+          !data.thumbnail_url ||
+          typeof data.duration !== 'number' ||
+          !data.updated_at
+        ) {
+          throw new Error(
+            `Invalid Loom API response: missing required fields (name: ${!!data.name}, thumbnail_url: ${!!data.thumbnail_url}, duration: ${typeof data.duration === 'number'}, updated_at: ${!!data.updated_at})`,
+          );
+        }
+
+        return {
+          videoId,
+          videoTitle: data.name,
+          duration: data.duration,
+          thumbnailUrl: data.thumbnail_url,
+          lastModified: new Date(data.updated_at),
+        };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
     } catch (error) {
+      // Distinguish between timeout and other errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        this.logger.error(
+          `Loom API timeout for videoId ${videoId} (10s exceeded)`,
+        );
+        throw new Error('Loom API request timeout');
+      }
+
       // Log and re-throw with context
       this.logger.error(
         `Failed to fetch Loom metadata for ${videoId}: ${

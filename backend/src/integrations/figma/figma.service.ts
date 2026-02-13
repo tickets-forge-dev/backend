@@ -24,12 +24,20 @@ export class FigmaService {
     accessToken: string,
   ): Promise<FigmaMetadata> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/files/${fileKey}`, {
-        method: 'GET',
-        headers: {
-          'X-Figma-Token': accessToken,
-        },
-      });
+      // Set 10-second timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        const response = await fetch(`${this.API_BASE_URL}/files/${fileKey}`, {
+          method: 'GET',
+          headers: {
+            'X-Figma-Token': accessToken,
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
 
       // Handle rate limiting
       if (response.status === 429) {
@@ -64,15 +72,34 @@ export class FigmaService {
         throw new Error(`Figma API error: ${response.status}`);
       }
 
-      const data = (await response.json()) as FigmaFile;
+        const data = (await response.json()) as FigmaFile;
 
-      return {
-        fileKey,
-        fileName: data.name,
-        thumbnailUrl: data.thumbnailUrl,
-        lastModified: new Date(data.lastModified),
-      };
+        // Validate response has required fields
+        if (!data.name || !data.thumbnailUrl || !data.lastModified) {
+          throw new Error(
+            `Invalid Figma API response: missing required fields (name: ${!!data.name}, thumbnailUrl: ${!!data.thumbnailUrl}, lastModified: ${!!data.lastModified})`,
+          );
+        }
+
+        return {
+          fileKey,
+          fileName: data.name,
+          thumbnailUrl: data.thumbnailUrl,
+          lastModified: new Date(data.lastModified),
+        };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
     } catch (error) {
+      // Distinguish between timeout and other errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        this.logger.error(
+          `Figma API timeout for fileKey ${fileKey} (10s exceeded)`,
+        );
+        throw new Error('Figma API request timeout');
+      }
+
       // Log and re-throw with context
       this.logger.error(
         `Failed to fetch Figma metadata for ${fileKey}: ${
@@ -88,24 +115,40 @@ export class FigmaService {
    * Used during OAuth callback to test token before storing
    *
    * @param accessToken Figma OAuth access token
-   * @returns true if token is valid
+   * @returns true if token is valid, false if invalid or timeout
    */
   async verifyToken(accessToken: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/me`, {
-        method: 'GET',
-        headers: {
-          'X-Figma-Token': accessToken,
-        },
-      });
+      // Set 5-second timeout (shorter than metadata fetch)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      return response.status === 200;
+      try {
+        const response = await fetch(`${this.API_BASE_URL}/me`, {
+          method: 'GET',
+          headers: {
+            'X-Figma-Token': accessToken,
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+        return response.status === 200;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
     } catch (error) {
-      this.logger.error(
-        `Failed to verify Figma token: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+      // Timeout or network error - log but return false (don't block OAuth)
+      if (error instanceof Error && error.name === 'AbortError') {
+        this.logger.warn('Figma token verification timeout (5s exceeded)');
+      } else {
+        this.logger.warn(
+          `Failed to verify Figma token: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
       return false;
     }
   }
