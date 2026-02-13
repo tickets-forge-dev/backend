@@ -123,7 +123,8 @@ export class FigmaOAuthController {
     // Request scopes enabled in Figma app settings (space-separated)
     authUrl.searchParams.set('scope', 'file_content:read file_metadata:read');
 
-    this.logger.debug(`Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
+    this.logger.log(`✓ Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
+    this.logger.debug(`Figma OAuth URL: ${authUrl.toString()}`);
 
     // Track OAuth flow start
     this.telemetry.trackFigmaOAuthStarted(userId, userWorkspaceId);
