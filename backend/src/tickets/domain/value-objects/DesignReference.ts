@@ -109,13 +109,22 @@ export function validateDesignReferenceUrl(url: string): void {
  * @example "https://figma.com/design/abc123/project-name" → "abc123"
  */
 export function extractFigmaFileKey(url: string): string | null {
-  // Try new format first (/design/), then fall back to old format (/file/)
-  let match = url.match(/figma\.com\/design\/([a-zA-Z0-9]+)/i);
-  if (match) return match[1];
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
 
-  // Fall back to old format
-  match = url.match(/figma\.com\/file\/([a-zA-Z0-9]+)/i);
-  return match ? match[1] : null;
+    // Match /file/{fileKey} or /design/{fileKey} patterns
+    // Pathname looks like: /design/rwLSeEfU8hUmahi1qYEKYT/Core-App
+    const matches = pathname.match(/\/(file|design)\/([a-zA-Z0-9]+)/);
+    if (matches && matches[2]) {
+      return matches[2];
+    }
+
+    return null;
+  } catch {
+    // If URL parsing fails, return null
+    return null;
+  }
 }
 
 /**
