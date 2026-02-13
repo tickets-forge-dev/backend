@@ -227,6 +227,26 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     await updateTicket(ticketId, { assumptions: items });
   };
 
+  const handleAddDesignReference = async (url: string, title?: string) => {
+    if (!ticketId) return;
+    try {
+      await ticketService.addDesignReference(ticketId, { url, title });
+      await fetchTicket(ticketId);
+    } catch (error) {
+      console.error('Failed to add design reference:', error);
+    }
+  };
+
+  const handleRemoveDesignReference = async (referenceId: string) => {
+    if (!ticketId) return;
+    try {
+      await ticketService.removeDesignReference(ticketId, referenceId);
+      await fetchTicket(ticketId);
+    } catch (error) {
+      console.error('Failed to remove design reference:', error);
+    }
+  };
+
   const saveTechSpecPatch = async (patch: Record<string, any>) => {
     if (!ticketId) return false;
     return updateTicket(ticketId, { techSpec: patch });
@@ -855,6 +875,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onUploadAttachment={async (file, onProgress) => uploadAttachment(ticketId!, file, onProgress)}
         onDeleteAttachment={async (attachmentId) => deleteAttachment(ticketId!, attachmentId)}
         isUploadingAttachment={isUploadingAttachment}
+        onAddDesignReference={handleAddDesignReference}
+        onRemoveDesignReference={handleRemoveDesignReference}
         saveTechSpecPatch={saveTechSpecPatch}
         fetchTicket={fetchTicket}
       />
