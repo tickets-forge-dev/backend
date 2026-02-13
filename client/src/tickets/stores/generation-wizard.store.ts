@@ -156,6 +156,13 @@ export interface WizardState {
   // File uploads (staged before draft creation)
   pendingFiles: File[];
 
+  // Design references (staged before draft creation)
+  pendingDesignLinks: Array<{
+    url: string;
+    title?: string;
+    tempId: string; // For local tracking
+  }>;
+
   // Simplified question refinement (NEW - single set, no rounds)
   draftAecId: string | null;
   clarificationQuestions: ClarificationQuestion[];
@@ -201,6 +208,10 @@ export interface WizardActions {
   // File uploads
   addPendingFile: (file: File) => void;
   removePendingFile: (index: number) => void;
+
+  // Design references
+  addPendingDesignLink: (url: string, title?: string) => void;
+  removePendingDesignLink: (tempId: string) => void;
 
   // Draft stage
   answerQuestion: (questionId: string, answer: string | string[]) => void;
@@ -266,6 +277,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   spec: null,
   answers: {},
   pendingFiles: [],
+  pendingDesignLinks: [],
   draftAecId: null,
   clarificationQuestions: [],
   questionAnswers: {},
@@ -302,6 +314,24 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   removePendingFile: (index: number) =>
     set((state) => ({
       pendingFiles: state.pendingFiles.filter((_, i) => i !== index),
+    })),
+
+  // Design link actions
+  addPendingDesignLink: (url: string, title?: string) =>
+    set((state) => ({
+      pendingDesignLinks: [
+        ...state.pendingDesignLinks,
+        {
+          url,
+          title,
+          tempId: `design_${Date.now()}_${Math.random()}`,
+        },
+      ],
+    })),
+
+  removePendingDesignLink: (tempId: string) =>
+    set((state) => ({
+      pendingDesignLinks: state.pendingDesignLinks.filter((link) => link.tempId !== tempId),
     })),
 
   setRepository: (owner: string, name: string) =>
@@ -695,6 +725,25 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
             });
           } catch (uploadError) {
             console.warn('Failed to upload file:', file.name, uploadError);
+          }
+        }
+      }
+
+      // Upload pending design references in background (best-effort, don't block wizard)
+      const linksToUpload = get().pendingDesignLinks;
+      if (linksToUpload.length > 0) {
+        set({ pendingDesignLinks: [] });
+        for (const link of linksToUpload) {
+          try {
+            await authFetch(`/tickets/${aec.id}/design-references`, {
+              method: 'POST',
+              body: JSON.stringify({
+                url: link.url,
+                title: link.title,
+              }),
+            });
+          } catch (uploadError) {
+            console.warn('Failed to upload design link:', link.url, uploadError);
           }
         }
       }

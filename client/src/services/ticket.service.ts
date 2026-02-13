@@ -187,6 +187,21 @@ export class TicketService {
   async deleteAttachment(ticketId: string, attachmentId: string): Promise<void> {
     await this.client.delete(`/tickets/${ticketId}/attachments/${attachmentId}`);
   }
+
+  async addDesignReference(
+    ticketId: string,
+    request: { url: string; title?: string },
+  ): Promise<{ designReference: any }> {
+    const response = await this.client.post(
+      `/tickets/${ticketId}/design-references`,
+      request,
+    );
+    return response.data;
+  }
+
+  async removeDesignReference(ticketId: string, referenceId: string): Promise<void> {
+    await this.client.delete(`/tickets/${ticketId}/design-references/${referenceId}`);
+  }
 }
 
 export interface DetectedApiResponse {
