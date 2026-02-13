@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useServices } from '@/hooks/useServices';
+import { auth } from '@/lib/firebase';
 
 /**
  * LoomIntegration Component
@@ -48,19 +49,55 @@ export function LoomIntegration() {
     getWorkspaceId();
   }, [ticketService]);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!workspaceId) {
       setError('Unable to determine workspace. Please try again.');
       return;
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-    const returnUrl = `${window.location.origin}/settings?tab=integrations`;
-    const startUrl = `${apiUrl}/integrations/loom/oauth/start?workspaceId=${
-      workspaceId
-    }&returnUrl=${encodeURIComponent(returnUrl)}`;
+    try {
+      setIsLoading(true);
 
-    window.location.href = startUrl;
+      // Get Firebase ID token for authentication
+      const user = auth.currentUser;
+      if (!user) {
+        setError('Please log in first');
+        return;
+      }
+
+      const idToken = await user.getIdToken();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const returnUrl = `${window.location.origin}/settings?tab=integrations`;
+
+      // Call the OAuth start endpoint with auth header
+      const response = await fetch(
+        `${apiUrl}/integrations/loom/oauth/start?workspaceId=${workspaceId}&returnUrl=${encodeURIComponent(returnUrl)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      // The endpoint redirects, so check if we have a redirect location
+      if (response.redirected) {
+        // Fetch automatically follows redirects, so if we get here, we're at the final location
+        window.location.href = response.url;
+      } else if (response.ok) {
+        // In case the endpoint returns JSON with redirect URL
+        const data = await response.json();
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        }
+      } else {
+        setError('Failed to start Loom OAuth: ' + (await response.text()));
+      }
+    } catch (err) {
+      setError('Failed to connect to Loom: ' + (err instanceof Error ? err.message : String(err)));
+      console.error('Loom connect error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDisconnect = async () => {
