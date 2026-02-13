@@ -15,6 +15,43 @@ import { Builder } from 'xml2js';
 export class AECSerializer {
   private readonly logger = new Logger(AECSerializer.name);
 
+  /**
+   * Safely convert any timestamp type to ISO string
+   * Handles: Date objects, ISO strings, Firestore Timestamps, and other formats
+   */
+  private safeToISOString(value: any): string | null {
+    if (!value) return null;
+
+    // Already a string
+    if (typeof value === 'string') return value;
+
+    // JavaScript Date object
+    if (value instanceof Date) return value.toISOString();
+
+    // Firestore Timestamp with toDate() method
+    if (value.toDate && typeof value.toDate === 'function') {
+      return value.toDate().toISOString();
+    }
+
+    // Firestore Timestamp with toISOString() method
+    if (value.toISOString && typeof value.toISOString === 'function') {
+      return value.toISOString();
+    }
+
+    // Fallback: try to create a Date
+    try {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    } catch (e) {
+      // Ignore conversion errors
+    }
+
+    this.logger.warn(`Could not convert timestamp: ${JSON.stringify(value)}`);
+    return null;
+  }
+
   serialize(aec: AEC): string {
     try {
       this.logger.debug(`Starting AEC serialization for ticket ${aec.id}`);
@@ -93,10 +130,10 @@ export class AECSerializer {
 
   private buildTemporal(aec: AEC): any {
     return {
-      createdAt: aec.createdAt ? aec.createdAt.toISOString() : null,
-      updatedAt: aec.updatedAt ? aec.updatedAt.toISOString() : null,
+      createdAt: this.safeToISOString(aec.createdAt),
+      updatedAt: this.safeToISOString(aec.updatedAt),
       driftDetected: !!aec.driftDetectedAt,
-      driftDetectedAt: aec.driftDetectedAt?.toISOString() || null,
+      driftDetectedAt: this.safeToISOString(aec.driftDetectedAt),
       driftReason: aec.driftReason || null,
     };
   }
@@ -135,7 +172,7 @@ export class AECSerializer {
       status: 'generated',
       id: spec.id,
       title: spec.title,
-      createdAt: spec.createdAt ? (typeof spec.createdAt === 'string' ? spec.createdAt : spec.createdAt.toISOString()) : null,
+      createdAt: this.safeToISOString(spec.createdAt),
       qualityScore: spec.qualityScore || 0,
     };
 
@@ -394,7 +431,7 @@ export class AECSerializer {
         branch: aec.repositoryContext.branchName,
         commit: aec.repositoryContext.commitSha,
         isDefaultBranch: aec.repositoryContext.isDefaultBranch,
-        selectedAt: aec.repositoryContext.selectedAt ? aec.repositoryContext.selectedAt.toISOString() : null,
+        selectedAt: this.safeToISOString(aec.repositoryContext.selectedAt),
       } : null,
     };
   }

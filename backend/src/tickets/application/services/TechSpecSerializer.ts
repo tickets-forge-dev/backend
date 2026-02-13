@@ -9,6 +9,43 @@ import { TechSpec } from '../../domain/tech-spec/TechSpecGenerator';
 export class TechSpecSerializer {
   private readonly logger = new Logger(TechSpecSerializer.name);
 
+  /**
+   * Safely convert any timestamp type to ISO string
+   * Handles: Date objects, ISO strings, Firestore Timestamps, and other formats
+   */
+  private safeToISOString(value: any): string | null {
+    if (!value) return null;
+
+    // Already a string
+    if (typeof value === 'string') return value;
+
+    // JavaScript Date object
+    if (value instanceof Date) return value.toISOString();
+
+    // Firestore Timestamp with toDate() method
+    if (value.toDate && typeof value.toDate === 'function') {
+      return value.toDate().toISOString();
+    }
+
+    // Firestore Timestamp with toISOString() method
+    if (value.toISOString && typeof value.toISOString === 'function') {
+      return value.toISOString();
+    }
+
+    // Fallback: try to create a Date
+    try {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    } catch (e) {
+      // Ignore conversion errors
+    }
+
+    this.logger.warn(`Could not convert timestamp: ${JSON.stringify(value)}`);
+    return null;
+  }
+
   serialize(techSpec: TechSpec | null): string {
     if (!techSpec) {
       return JSON.stringify(
@@ -35,7 +72,7 @@ export class TechSpecSerializer {
       metadata: {
         id: techSpec.id,
         title: techSpec.title,
-        createdAt: techSpec.createdAt ? (typeof techSpec.createdAt === 'string' ? techSpec.createdAt : techSpec.createdAt.toISOString()) : null,
+        createdAt: this.safeToISOString(techSpec.createdAt),
         qualityScore: techSpec.qualityScore,
         status: 'generated',
       },
