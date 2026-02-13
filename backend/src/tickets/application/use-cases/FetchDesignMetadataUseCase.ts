@@ -28,10 +28,11 @@ export class FetchDesignMetadataUseCase {
   /**
    * Fetch and return metadata for design reference
    * Returns null/undefined metadata if API unavailable or not connected
+   * Tracks fetch status for error handling
    *
    * @param reference DesignReference with URL
    * @param workspaceId Workspace to look up OAuth token
-   * @returns Updated reference with metadata, or original if fetch fails
+   * @returns Updated reference with metadata and fetch status
    */
   async execute(
     reference: DesignReference,
@@ -45,16 +46,22 @@ export class FetchDesignMetadataUseCase {
         return await this.fetchLoomMetadata(reference, workspaceId);
       }
 
-      // No metadata available for other platforms
-      return reference;
+      // No metadata available for other platforms - mark as skipped
+      return {
+        ...reference,
+        metadataFetchStatus: 'pending', // Not attempting to fetch for unsupported platforms
+      };
     } catch (error) {
       // Log error but don't throw - design link should still be stored
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Failed to fetch metadata for design reference ${reference.id}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Failed to fetch metadata for design reference ${reference.id}: ${errorMessage}`,
       );
-      return reference;
+      return {
+        ...reference,
+        metadataFetchStatus: 'failed',
+        metadataFetchError: errorMessage,
+      };
     }
   }
 
@@ -72,17 +79,24 @@ export class FetchDesignMetadataUseCase {
       this.logger.debug(
         `Figma not connected for workspace ${workspaceId}, skipping metadata fetch`,
       );
-      return reference;
+      // Figma not connected - can retry later
+      return {
+        ...reference,
+        metadataFetchStatus: 'pending',
+      };
     }
 
     try {
       // Extract Figma file key from URL
       const fileKey = extractFigmaFileKey(reference.url);
       if (!fileKey) {
-        this.logger.warn(
-          `Could not extract Figma file key from ${reference.url}`,
-        );
-        return reference;
+        const error = `Could not extract Figma file key from ${reference.url}`;
+        this.logger.warn(error);
+        return {
+          ...reference,
+          metadataFetchStatus: 'failed',
+          metadataFetchError: error,
+        };
       }
 
       // Fetch metadata from Figma API
@@ -102,18 +116,22 @@ export class FetchDesignMetadataUseCase {
             fileKey: metadata.fileKey,
           },
         },
+        metadataFetchStatus: 'success',
       };
 
       this.logger.debug(`Fetched Figma metadata for ${reference.url}`);
       return updated;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.warn(
-        `Failed to fetch Figma metadata for ${reference.url}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Failed to fetch Figma metadata for ${reference.url}: ${errorMessage}`,
       );
-      // Return reference without metadata
-      return reference;
+      // Return reference with error status
+      return {
+        ...reference,
+        metadataFetchStatus: 'failed',
+        metadataFetchError: errorMessage,
+      };
     }
   }
 
@@ -131,17 +149,24 @@ export class FetchDesignMetadataUseCase {
       this.logger.debug(
         `Loom not connected for workspace ${workspaceId}, skipping metadata fetch`,
       );
-      return reference;
+      // Loom not connected - can retry later
+      return {
+        ...reference,
+        metadataFetchStatus: 'pending',
+      };
     }
 
     try {
       // Extract Loom shared ID from URL
       const sharedId = extractLoomSharedId(reference.url);
       if (!sharedId) {
-        this.logger.warn(
-          `Could not extract Loom shared ID from ${reference.url}`,
-        );
-        return reference;
+        const error = `Could not extract Loom shared ID from ${reference.url}`;
+        this.logger.warn(error);
+        return {
+          ...reference,
+          metadataFetchStatus: 'failed',
+          metadataFetchError: error,
+        };
       }
 
       // Fetch metadata from Loom API
@@ -161,18 +186,22 @@ export class FetchDesignMetadataUseCase {
             sharedId: metadata.videoId,
           },
         },
+        metadataFetchStatus: 'success',
       };
 
       this.logger.debug(`Fetched Loom metadata for ${reference.url}`);
       return updated;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.warn(
-        `Failed to fetch Loom metadata for ${reference.url}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Failed to fetch Loom metadata for ${reference.url}: ${errorMessage}`,
       );
-      // Return reference without metadata
-      return reference;
+      // Return reference with error status
+      return {
+        ...reference,
+        metadataFetchStatus: 'failed',
+        metadataFetchError: errorMessage,
+      };
     }
   }
 }

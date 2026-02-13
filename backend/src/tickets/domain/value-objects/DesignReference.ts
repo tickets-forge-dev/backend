@@ -41,6 +41,8 @@ export interface DesignReference {
   platform: DesignPlatform; // Auto-detected from URL
   title?: string; // User-provided or fetched from API
   metadata?: DesignMetadata; // Platform-specific (Phase 2)
+  metadataFetchStatus?: 'pending' | 'success' | 'failed'; // Track metadata fetch state
+  metadataFetchError?: string; // Error message if fetch failed
   addedAt: Date;
   addedBy: string; // User email
 }
