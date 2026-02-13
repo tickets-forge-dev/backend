@@ -386,14 +386,16 @@ export class FigmaOAuthController {
         return null;
       }
 
+      // Create Basic Auth header with client_id:client_secret
+      const credentials = Buffer.from(`${this.FIGMA_CLIENT_ID}:${this.FIGMA_CLIENT_SECRET}`).toString('base64');
+
       const response = await fetch(this.FIGMA_TOKEN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${credentials}`,
         },
         body: new URLSearchParams({
-          client_id: this.FIGMA_CLIENT_ID,
-          client_secret: this.FIGMA_CLIENT_SECRET,
           redirect_uri: this.FIGMA_REDIRECT_URI,
           code,
           grant_type: 'authorization_code',
