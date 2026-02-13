@@ -47,7 +47,7 @@ export interface DesignReference {
  * Platform detection from URL
  */
 const PLATFORM_PATTERNS = {
-  figma: /figma\.com\/(file|proto|design)\//,
+  figma: /figma\.com\/(file|proto|design)\//,  // Supports /file/, /design/, and /proto/ paths
   loom: /loom\.com\/(share|embed)\//,
   miro: /miro\.com\/app\/board\//,
   sketch: /sketch\.com\//,
@@ -109,10 +109,17 @@ export function validateDesignReferenceUrl(url: string): { valid: boolean; error
 
 /**
  * Extract Figma file key from URL
- * Example: https://www.figma.com/file/abc123/Project-Name → abc123
+ * Supports both old and new Figma URL formats:
+ * - Old: https://www.figma.com/file/abc123/Project-Name → abc123
+ * - New: https://www.figma.com/design/abc123/Project-Name → abc123
  */
 export function extractFigmaFileKey(url: string): string | null {
-  const match = url.match(/figma\.com\/file\/([a-zA-Z0-9]+)/i);
+  // Try new format first (/design/), then fall back to old format (/file/)
+  let match = url.match(/figma\.com\/design\/([a-zA-Z0-9]+)/i);
+  if (match) return match[1];
+
+  // Fall back to old format
+  match = url.match(/figma\.com\/file\/([a-zA-Z0-9]+)/i);
   return match ? match[1] : null;
 }
 
