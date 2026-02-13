@@ -9,6 +9,7 @@ import { ImageAttachmentsGrid } from '@/src/tickets/components/ImageAttachmentsG
 import { OverviewCard } from './OverviewCard';
 import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
+import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
 import { HelpCircle, MessageSquare } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
@@ -42,6 +43,9 @@ interface TicketDetailLayoutProps {
   onUploadAttachment: (file: File, onProgress?: (percent: number) => void) => Promise<boolean>;
   onDeleteAttachment: (attachmentId: string) => Promise<boolean>;
   isUploadingAttachment: boolean;
+  // Design references
+  onAddDesignReference?: (url: string, title?: string) => Promise<void>;
+  onRemoveDesignReference?: (referenceId: string) => Promise<void>;
   // Tech spec patch
   saveTechSpecPatch: (patch: Record<string, any>) => Promise<boolean | undefined>;
   fetchTicket: (id: string) => Promise<void>;
@@ -70,6 +74,8 @@ export function TicketDetailLayout({
   onUploadAttachment,
   onDeleteAttachment,
   isUploadingAttachment,
+  onAddDesignReference,
+  onRemoveDesignReference,
   saveTechSpecPatch,
   fetchTicket,
 }: TicketDetailLayoutProps) {
@@ -313,6 +319,28 @@ export function TicketDetailLayout({
               />
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="design" className="mt-6">
+          {onAddDesignReference && onRemoveDesignReference ? (
+            <DesignTab
+              ticketId={ticketId}
+              references={ticket.designReferences || []}
+              onAddDesignReference={onAddDesignReference}
+              onRemoveDesignReference={onRemoveDesignReference}
+            />
+          ) : (
+            <div className="max-w-4xl">
+              <h2 className="text-sm font-medium text-[var(--text)] mb-4">Design References</h2>
+              <div className="flex items-center justify-center min-h-[200px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-secondary)]">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">🎨</div>
+                  <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="technical" className="mt-6">

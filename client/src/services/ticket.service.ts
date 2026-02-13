@@ -53,6 +53,7 @@ export interface AECResponse {
   techSpec?: any; // TechSpec | null
   externalIssue?: { platform: 'linear' | 'jira'; issueId: string; issueUrl: string } | null;
   attachments?: AttachmentResponse[];
+  designReferences?: any[]; // DesignReference[] from @repo/shared-types
   createdAt: string;
   updatedAt: string;
 }
