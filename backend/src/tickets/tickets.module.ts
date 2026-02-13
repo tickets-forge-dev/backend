@@ -57,9 +57,20 @@ import { EnrichMultipleTicketsUseCase } from './application/use-cases/EnrichMult
 import { FinalizeMultipleTicketsUseCase } from './application/use-cases/FinalizeMultipleTicketsUseCase';
 import { AddDesignReferenceUseCase } from './application/use-cases/AddDesignReferenceUseCase';
 import { RemoveDesignReferenceUseCase } from './application/use-cases/RemoveDesignReferenceUseCase';
+import { FetchDesignMetadataUseCase } from './application/use-cases/FetchDesignMetadataUseCase';
+import { FigmaModule } from '../integrations/figma/figma.module';
+import { LoomModule } from '../integrations/loom/loom.module';
 
 @Module({
-  imports: [GitHubModule, LinearModule, JiraModule, PostHogModule, WorkspacesModule],
+  imports: [
+    GitHubModule,
+    LinearModule,
+    JiraModule,
+    PostHogModule,
+    WorkspacesModule,
+    FigmaModule,
+    LoomModule,
+  ],
   controllers: [TicketsController],
   providers: [
     CreateTicketUseCase,
@@ -82,6 +93,7 @@ import { RemoveDesignReferenceUseCase } from './application/use-cases/RemoveDesi
     FinalizeMultipleTicketsUseCase,
     AddDesignReferenceUseCase,
     RemoveDesignReferenceUseCase,
+    FetchDesignMetadataUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,
