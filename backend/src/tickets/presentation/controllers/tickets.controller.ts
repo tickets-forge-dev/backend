@@ -818,6 +818,7 @@ export class TicketsController {
       techSpec: aec.techSpec,
       maxRounds: aec.maxRounds,
       attachments: aec.attachments ?? [],
+      designReferences: aec.designReferences ?? [],
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };
