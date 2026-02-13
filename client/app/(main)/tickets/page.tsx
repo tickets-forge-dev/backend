@@ -219,7 +219,7 @@ export default function TicketsListPage() {
 
 
       {/* Filter & Sort bar - Responsive */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <div className="flex items-center gap-2">
         {/* Search */}
         <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
@@ -240,16 +240,23 @@ export default function TicketsListPage() {
         </div>
 
         {/* Sort dropdown */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowSortMenu(!showSortMenu)}
-            className="w-full sm:w-auto text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text)] justify-start sm:justify-center"
+            className="hidden sm:flex text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text)]"
           >
-            <span className="hidden sm:inline">{sortLabel}</span>
-            <span className="sm:hidden">Sort</span>
+            <span>{sortLabel}</span>
             <ChevronDown className="h-4 w-4 ml-1" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSortMenu(!showSortMenu)}
+            className="sm:hidden text-[var(--text-tertiary)]"
+          >
+            <ChevronDown className="h-4 w-4" />
           </Button>
           {showSortMenu && (
             <>
