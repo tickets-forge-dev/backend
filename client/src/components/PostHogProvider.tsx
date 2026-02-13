@@ -1,32 +1,23 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAuthStore } from '@/stores/auth.store';
-import { initPostHog, identify } from '@/lib/posthog';
+import { initPostHog } from '@/lib/posthog';
 
 /**
- * PostHog Provider Component
+ * PostHogProvider - Initialize PostHog analytics on client
  *
- * Initializes PostHog and identifies users based on auth state
- * Wrap this around your app in the root layout
+ * Initializes PostHog JS SDK with environment variables
+ * Runs once on app startup to enable client-side event tracking
+ *
+ * Configuration:
+ * - NEXT_PUBLIC_POSTHOG_KEY: PostHog project API key
+ * - NEXT_PUBLIC_POSTHOG_HOST: Custom PostHog instance (optional)
  */
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore();
-
   useEffect(() => {
     // Initialize PostHog on client mount
     initPostHog();
   }, []);
 
-  // Identify user when auth state changes
-  useEffect(() => {
-    if (user) {
-      identify({
-        email: user.email,
-        uid: user.uid,
-      });
-    }
-  }, [user]);
-
-  return children;
+  return <>{children}</>;
 }

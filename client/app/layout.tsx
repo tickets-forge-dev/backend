@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
+import { PostHogProvider } from '@/src/components/PostHogProvider';
 import './globals.css';
 
 const inter = Inter({
@@ -51,8 +52,10 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <AuthInitializer />
-        <div id="main-content">{children}</div>
+        <PostHogProvider>
+          <AuthInitializer />
+          <div id="main-content">{children}</div>
+        </PostHogProvider>
         <Script id="remove-preload" strategy="afterInteractive">
           {`
             window.addEventListener('load', function() {
