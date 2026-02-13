@@ -61,37 +61,7 @@ export function SpecificationTab({
         </div>
       )}
 
-      {/* 2. Acceptance Criteria */}
-      {techSpec?.acceptanceCriteria?.length > 0 && (
-        <div id="spec-acceptance-criteria">
-          <CollapsibleSection
-            id="acceptance-criteria"
-            title="Acceptance Criteria"
-            badge={`${techSpec.acceptanceCriteria.length}`}
-            defaultExpanded={true}
-          >
-            <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
-              {techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
-                <li key={idx}>
-                  <EditableItem onEdit={() => onEditItem('acceptanceCriteria', idx)} onDelete={() => onDeleteItem('acceptanceCriteria', idx)}>
-                    {typeof ac === 'string' ? (
-                      <span><span className="text-[var(--text-tertiary)] mr-2">-</span>{ac}</span>
-                    ) : (
-                      <div className="space-y-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-4 py-3">
-                        <p><span className="font-medium text-blue-500 mr-1">Given</span> {ac.given}</p>
-                        <p><span className="font-medium text-amber-500 mr-1">When</span> {ac.when}</p>
-                        <p><span className="font-medium text-green-500 mr-1">Then</span> {ac.then}</p>
-                      </div>
-                    )}
-                  </EditableItem>
-                </li>
-              ))}
-            </ul>
-          </CollapsibleSection>
-        </div>
-      )}
-
-      {/* 3. Problem Statement */}
+      {/* 2. Problem Statement — FIRST for features */}
       {techSpec?.problemStatement && (
         <div id="spec-problem-statement">
           {(() => {
@@ -119,6 +89,36 @@ export function SpecificationTab({
               </div>
             ) : null;
           })()}
+        </div>
+      )}
+
+      {/* 3. Acceptance Criteria — SECOND */}
+      {techSpec?.acceptanceCriteria?.length > 0 && (
+        <div id="spec-acceptance-criteria">
+          <CollapsibleSection
+            id="acceptance-criteria"
+            title="Acceptance Criteria"
+            badge={`${techSpec.acceptanceCriteria.length}`}
+            defaultExpanded={true}
+          >
+            <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
+              {techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
+                <li key={idx}>
+                  <EditableItem onEdit={() => onEditItem('acceptanceCriteria', idx)} onDelete={() => onDeleteItem('acceptanceCriteria', idx)}>
+                    {typeof ac === 'string' ? (
+                      <span><span className="text-[var(--text-tertiary)] mr-2">-</span>{ac}</span>
+                    ) : (
+                      <div className="space-y-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-4 py-3">
+                        <p><span className="font-medium text-blue-500 mr-1">Given</span> {ac.given}</p>
+                        <p><span className="font-medium text-amber-500 mr-1">When</span> {ac.when}</p>
+                        <p><span className="font-medium text-green-500 mr-1">Then</span> {ac.then}</p>
+                      </div>
+                    )}
+                  </EditableItem>
+                </li>
+              ))}
+            </ul>
+          </CollapsibleSection>
         </div>
       )}
 

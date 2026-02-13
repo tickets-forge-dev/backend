@@ -98,7 +98,7 @@ export function TicketDetailLayout({
     const handleScroll = () => {
       const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
       const sections = activeTab === 'spec'
-        ? ['reproduction-steps', 'acceptance-criteria', 'problem-statement', 'visual-qa', 'scope', 'solution', 'assets']
+        ? ['reproduction-steps', 'problem-statement', 'acceptance-criteria', 'visual-qa', 'scope', 'solution', 'assets']
         : ['file-changes', 'api-endpoints', 'test-plan', 'stack'];
 
       for (const sectionId of sections) {
@@ -260,8 +260,8 @@ export function TicketDetailLayout({
               <nav className="sticky top-6 space-y-2">
                 {[
                   { id: 'reproduction-steps', label: 'Reproduction Steps', bugOnly: true },
-                  { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
                   { id: 'problem-statement', label: 'Problem Statement' },
+                  { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
                   { id: 'visual-qa', label: 'Visual QA Expectations' },
                   { id: 'scope', label: 'Scope' },
                   { id: 'solution', label: 'Solution' },
