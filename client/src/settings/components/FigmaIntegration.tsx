@@ -63,6 +63,7 @@ export function FigmaIntegration() {
       const returnUrl = `${window.location.origin}/settings?tab=integrations`;
 
       // Call the OAuth start endpoint with auth header
+      // The endpoint returns the OAuth URL instead of redirecting (to avoid CORS issues)
       const response = await fetch(
         `${apiUrl}/integrations/figma/oauth/start?workspaceId=${workspaceId}&returnUrl=${encodeURIComponent(returnUrl)}`,
         {
@@ -72,18 +73,19 @@ export function FigmaIntegration() {
         }
       );
 
-      // The endpoint redirects, so check if we have a redirect location
-      if (response.redirected) {
-        // Fetch automatically follows redirects, so if we get here, we're at the final location
-        window.location.href = response.url;
-      } else if (response.ok) {
-        // In case the endpoint returns JSON with redirect URL
-        const data = await response.json();
-        if (data.redirectUrl) {
-          window.location.href = data.redirectUrl;
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError('Failed to start Figma OAuth: ' + errorText);
+        return;
+      }
+
+      // Backend returns the OAuth URL as JSON
+      const data = await response.json();
+      if (data.oauthUrl) {
+        // Redirect to Figma OAuth endpoint
+        window.location.href = data.oauthUrl;
       } else {
-        setError('Failed to start Figma OAuth: ' + (await response.text()));
+        setError('Invalid response from server');
       }
     } catch (err) {
       setError('Failed to connect to Figma: ' + (err instanceof Error ? err.message : String(err)));

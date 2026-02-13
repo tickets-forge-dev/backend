@@ -58,7 +58,8 @@ export class FigmaOAuthController {
 
   /**
    * Start Figma OAuth flow
-   * Validates inputs and redirects to Figma authorization endpoint
+   * Returns the Figma OAuth authorization URL (instead of redirecting)
+   * This avoids CORS issues when frontend needs to handle the redirect
    *
    * Security checks:
    * - Rate limiting (5 requests per minute per IP)
@@ -75,16 +76,11 @@ export class FigmaOAuthController {
     @Query('returnUrl') returnUrl: string,
     @WorkspaceId() userWorkspaceId: string,
     @UserId() userId: string,
-    @Res() res: Response,
-  ): Promise<void> {
-    const startTime = Date.now();
+  ): Promise<{ oauthUrl: string }> {
     // Validate inputs
     if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid workspaceId');
-      res.status(400).json({
-        error: 'Missing required parameter: workspaceId',
-      });
-      return;
+      throw new Error('Missing required parameter: workspaceId');
     }
 
     // Verify user owns requested workspace (prevent cross-workspace access)
@@ -92,18 +88,12 @@ export class FigmaOAuthController {
       this.logger.warn(
         `Figma OAuth start: User attempted unauthorized workspace access: requested=${requestedWorkspaceId}, user=${userWorkspaceId}`,
       );
-      res.status(403).json({
-        error: 'You do not have permission to connect this workspace',
-      });
-      return;
+      throw new Error('You do not have permission to connect this workspace');
     }
 
     if (!returnUrl || typeof returnUrl !== 'string' || returnUrl.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid returnUrl');
-      res.status(400).json({
-        error: 'Missing required parameter: returnUrl',
-      });
-      return;
+      throw new Error('Missing required parameter: returnUrl');
     }
 
     // Validate return URL (prevent open redirect attacks)
@@ -111,10 +101,7 @@ export class FigmaOAuthController {
       this.logger.warn(
         `Figma OAuth start: Invalid return URL (not whitelisted): ${this.getTruncatedUrlForLogging(returnUrl)}`,
       );
-      res.status(400).json({
-        error: 'Return URL must be from whitelisted domain',
-      });
-      return;
+      throw new Error('Return URL must be from whitelisted domain');
     }
 
     // Create state with timestamp (prevents replay attacks)
@@ -140,7 +127,11 @@ export class FigmaOAuthController {
     // Track OAuth flow start
     this.telemetry.trackFigmaOAuthStarted(userId, userWorkspaceId);
 
-    res.redirect(authUrl.toString());
+    // Return the OAuth URL instead of redirecting
+    // This allows frontend to handle the redirect and avoids CORS issues
+    return {
+      oauthUrl: authUrl.toString(),
+    };
   }
 
   /**
