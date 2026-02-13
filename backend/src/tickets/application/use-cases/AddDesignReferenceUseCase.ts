@@ -80,7 +80,8 @@ export class AddDesignReferenceUseCase {
 
     // Fetch metadata asynchronously (non-blocking)
     // Design reference is already stored and returned, metadata is enriched in background
-    this.fetchAndUpdateMetadata(ticketId, designReference, workspaceId);
+    // TODO: Re-enable metadata fetching in Phase 2 after fixing extraction issues
+    // this.fetchAndUpdateMetadata(ticketId, designReference, workspaceId);
 
     return {
       designReference,
