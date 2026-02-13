@@ -385,10 +385,17 @@ export class FigmaOAuthController {
         this.logger.error(
           `Figma token exchange failed: ${response.status} - ${error}`,
         );
+        this.logger.debug(`Figma token request details:
+          - URL: ${this.FIGMA_TOKEN_URL}
+          - Client ID: ${this.FIGMA_CLIENT_ID.substring(0, 5)}...
+          - Redirect URI: ${this.FIGMA_REDIRECT_URI}
+          - Code length: ${code.length}
+          - Response: ${error}`);
         return null;
       }
 
       const data = (await response.json()) as FigmaOAuthToken;
+      this.logger.debug(`Figma token exchange successful, token type: ${data.tokenType}`);
       return data;
     } catch (error) {
       this.logger.error(
