@@ -9,9 +9,13 @@ import { FigmaOAuthToken } from './figma.types';
 @Injectable()
 export class FigmaIntegrationRepository {
   private readonly logger = new Logger(FigmaIntegrationRepository.name);
-  private readonly db = getFirestore();
   private readonly collection = 'workspaces';
   private readonly subcollection = 'integrations';
+
+  /** Lazy-load Firestore to avoid initialization errors */
+  private get db() {
+    return getFirestore();
+  }
 
   /**
    * Get stored Figma OAuth token for workspace

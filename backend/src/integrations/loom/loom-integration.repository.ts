@@ -9,9 +9,13 @@ import { LoomOAuthToken } from './loom.types';
 @Injectable()
 export class LoomIntegrationRepository {
   private readonly logger = new Logger(LoomIntegrationRepository.name);
-  private readonly db = getFirestore();
   private readonly collection = 'workspaces';
   private readonly subcollection = 'integrations';
+
+  /** Lazy-load Firestore to avoid initialization errors */
+  private get db() {
+    return getFirestore();
+  }
 
   /**
    * Get stored Loom OAuth token for workspace
