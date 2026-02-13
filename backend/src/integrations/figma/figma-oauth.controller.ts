@@ -2,7 +2,7 @@ import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException, Req
 import { Response, Request } from 'express';
 import { FigmaService } from './figma.service';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
-import { FigmaOAuthToken } from './figma.types';
+import { FigmaOAuthToken, FigmaOAuthTokenResponse } from './figma.types';
 import { FirebaseAuthGuard } from '../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../shared/presentation/guards/RateLimitGuard';
@@ -324,7 +324,8 @@ export class FigmaOAuthController {
           accessToken: tokenResponse.accessToken,
           tokenType: tokenResponse.tokenType,
           expiresIn: tokenResponse.expiresIn,
-          scope: tokenResponse.scope,
+          refreshToken: tokenResponse.refreshToken,
+          userId: tokenResponse.userId,
           savedAt: Date.now(),
         });
       } catch (storageError) {
@@ -431,8 +432,18 @@ export class FigmaOAuthController {
         return null;
       }
 
-      const data = (await response.json()) as FigmaOAuthToken;
-      this.logger.debug(`Figma token exchange response: ${JSON.stringify(data)}`);
+      const rawData = (await response.json()) as FigmaOAuthTokenResponse;
+      this.logger.debug(`Figma token exchange response: ${JSON.stringify(rawData)}`);
+
+      // Transform Figma's snake_case response to camelCase
+      const data: FigmaOAuthToken = {
+        accessToken: rawData.access_token,
+        tokenType: rawData.token_type,
+        expiresIn: rawData.expires_in,
+        refreshToken: rawData.refresh_token,
+        userId: rawData.user_id_string,
+      };
+
       this.logger.debug(`Figma token exchange successful, token type: ${data.tokenType}`);
       return data;
     } catch (error) {
