@@ -186,33 +186,69 @@ export class GitHubOAuthController {
   })
   async listRepositories(@WorkspaceId() workspaceId: string, @Query('page') page?: string) {
     try {
+      this.logger.debug(`Fetching repositories for workspace ${workspaceId}`);
+
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
       if (!integration) {
-        throw new NotFoundException('GitHub not connected');
+        this.logger.warn(`GitHub not connected for workspace ${workspaceId}`);
+        throw new NotFoundException('GitHub not connected for this workspace');
       }
 
+      this.logger.debug(`Found GitHub integration for workspace ${workspaceId}, user: ${integration.accountLogin}`);
+
       // Decrypt token
-      const accessToken = await this.tokenService.decryptToken(integration.encryptedAccessToken);
+      let accessToken: string;
+      try {
+        accessToken = await this.tokenService.decryptToken(integration.encryptedAccessToken);
+        this.logger.debug(`Token decrypted successfully for workspace ${workspaceId}`);
+      } catch (decryptError: any) {
+        this.logger.error(`Token decryption failed for workspace ${workspaceId}:`, decryptError.message);
+        throw new InternalServerErrorException('GitHub token is invalid or expired. Please reconnect.');
+      }
 
       // Fetch repositories - only owned repos, sorted by updated date
       const octokit = new Octokit({ auth: accessToken });
       const pageNum = page ? parseInt(page, 10) : 1;
 
-      // List only repos owned by the authenticated user (not contributed/org repos)
-      const { data } = await octokit.rest.repos.listForAuthenticatedUser({
-        affiliation: 'owner', // Only show repos owned by the user
-        per_page: 50, // More reasonable page size
-        page: pageNum,
-        sort: 'updated',
-        direction: 'desc',
-      });
+      this.logger.debug(`Calling GitHub API to list repositories (page ${pageNum})`);
 
-      const repositories = data.map((repo) => ({
+      // List only repos owned by the authenticated user (not contributed/org repos)
+      let repoData: any;
+      try {
+        const response = await octokit.rest.repos.listForAuthenticatedUser({
+          affiliation: 'owner', // Only show repos owned by the user
+          per_page: 50, // More reasonable page size
+          page: pageNum,
+          sort: 'updated',
+          direction: 'desc',
+        });
+        repoData = response.data;
+        this.logger.debug(`GitHub API returned ${repoData.length} repositories`);
+      } catch (apiError: any) {
+        this.logger.error(
+          `GitHub API call failed for workspace ${workspaceId}:`,
+          apiError.message,
+          apiError.response?.status,
+        );
+
+        // Handle specific GitHub API errors
+        if (apiError.status === 401) {
+          throw new InternalServerErrorException('GitHub authentication failed. Token may be expired. Please reconnect.');
+        } else if (apiError.status === 403) {
+          throw new InternalServerErrorException('GitHub access denied. Check your token permissions.');
+        }
+
+        throw new InternalServerErrorException(
+          `Failed to fetch repositories from GitHub: ${apiError.message}`,
+        );
+      }
+
+      const repositories = repoData.map((repo: any) => ({
         id: repo.id,
         fullName: repo.full_name,
         name: repo.name,
-        owner: repo.owner.login,
+        owner: repo.owner?.login || 'unknown',
         private: repo.private,
         defaultBranch: repo.default_branch,
         url: repo.html_url,
@@ -230,8 +266,22 @@ export class GitHubOAuthController {
         hasMore: repositories.length === 50, // Indicates if there are more pages
       };
     } catch (error: any) {
-      this.logger.error('Failed to list repositories:', error.message);
-      throw new InternalServerErrorException('Failed to fetch repositories');
+      // Log with full context for debugging
+      this.logger.error(
+        `listRepositories failed for workspace ${workspaceId}:`,
+        error.message,
+        error.stack,
+      );
+
+      // Re-throw if already a proper exception
+      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
+        throw error;
+      }
+
+      // Otherwise wrap in InternalServerErrorException with message
+      throw new InternalServerErrorException(
+        error.message || 'Failed to fetch repositories from GitHub',
+      );
     }
   }
 
@@ -262,6 +312,10 @@ export class GitHubOAuthController {
     },
   ) {
     try {
+      this.logger.debug(
+        `Selecting ${body.repositories.length} repositories for workspace ${workspaceId}`,
+      );
+
       if (!this.integrationRepository) {
         this.logger.error('Integration repository is null - Firebase may not be configured');
         throw new InternalServerErrorException('GitHub integration repository not available');
@@ -270,7 +324,8 @@ export class GitHubOAuthController {
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
       if (!integration) {
-        throw new NotFoundException('GitHub not connected');
+        this.logger.warn(`GitHub not connected for workspace ${workspaceId}`);
+        throw new NotFoundException('GitHub not connected for this workspace');
       }
 
       // Convert to domain objects
@@ -286,18 +341,26 @@ export class GitHubOAuthController {
         }),
       );
 
+      this.logger.debug(`Updating repository selection for workspace ${workspaceId}`);
+
       // Update selection
       integration.selectRepositories(repositories);
       await this.integrationRepository.save(integration);
 
-      this.logger.log(`Selected ${repositories.length} repositories for workspace ${workspaceId}`);
+      this.logger.log(
+        `✓ Selected ${repositories.length} repositories for workspace ${workspaceId}`,
+      );
 
       return {
         success: true,
         selectedCount: repositories.length,
       };
     } catch (error: any) {
-      this.logger.error('Failed to select repositories:', error.message, error.stack);
+      this.logger.error(
+        `selectRepositories failed for workspace ${workspaceId}:`,
+        error.message,
+        error.stack,
+      );
 
       if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
@@ -319,28 +382,28 @@ export class GitHubOAuthController {
     description: 'GitHub disconnected successfully',
   })
   async disconnect(@WorkspaceId() workspaceId: string) {
-    this.logger.log(`Attempting to disconnect GitHub for workspace ${workspaceId}`);
-
     try {
+      this.logger.log(`🔌 Disconnecting GitHub for workspace ${workspaceId}`);
+
       if (!this.integrationRepository) {
         this.logger.error('Integration repository is null - Firebase may not be configured');
         throw new InternalServerErrorException('GitHub integration repository not available');
       }
 
-      this.logger.log(`Looking for integration for workspace ${workspaceId}`);
+      this.logger.debug(`Looking for GitHub integration for workspace ${workspaceId}`);
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
       if (!integration) {
-        this.logger.warn(`No integration found for workspace ${workspaceId}`);
-        throw new NotFoundException('GitHub not connected');
+        this.logger.warn(`No GitHub integration found for workspace ${workspaceId}`);
+        throw new NotFoundException('GitHub not connected for this workspace');
       }
 
-      this.logger.log(`Found integration for workspace ${workspaceId}, deleting...`);
+      this.logger.debug(`Found integration for workspace ${workspaceId}, deleting...`);
 
       // Use direct delete by workspace ID to avoid collection group query
       await this.integrationRepository.deleteByWorkspaceId(workspaceId);
 
-      this.logger.log(`Successfully disconnected GitHub for workspace ${workspaceId}`);
+      this.logger.log(`✓ GitHub disconnected successfully for workspace ${workspaceId}`);
 
       return {
         success: true,
@@ -348,16 +411,12 @@ export class GitHubOAuthController {
       };
     } catch (error: any) {
       this.logger.error(
-        `Failed to disconnect GitHub for workspace ${workspaceId}:`,
+        `disconnect failed for workspace ${workspaceId}:`,
         error.message,
         error.stack,
       );
 
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-
-      if (error instanceof InternalServerErrorException) {
+      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
       }
 
@@ -378,13 +437,20 @@ export class GitHubOAuthController {
   })
   async getConnectionStatus(@WorkspaceId() workspaceId: string) {
     try {
+      this.logger.debug(`Checking GitHub connection status for workspace ${workspaceId}`);
+
       const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
 
       if (!integration) {
+        this.logger.debug(`No GitHub integration found for workspace ${workspaceId}`);
         return {
           connected: false,
         };
       }
+
+      this.logger.debug(
+        `GitHub connected for workspace ${workspaceId}, account: ${integration.accountLogin}, repos selected: ${integration.selectedRepositoryCount}`,
+      );
 
       return {
         connected: true,
@@ -403,8 +469,12 @@ export class GitHubOAuthController {
         })),
       };
     } catch (error: any) {
-      this.logger.error('Failed to get connection status:', error.message);
-      throw new InternalServerErrorException('Failed to get connection status');
+      this.logger.error(
+        `getConnectionStatus failed for workspace ${workspaceId}:`,
+        error.message,
+        error.stack,
+      );
+      throw new InternalServerErrorException(`Failed to get connection status: ${error.message}`);
     }
   }
 }
