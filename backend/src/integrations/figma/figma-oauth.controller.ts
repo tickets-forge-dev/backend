@@ -290,7 +290,6 @@ export class FigmaOAuthController {
           accessToken: tokenResponse.accessToken,
           tokenType: tokenResponse.tokenType,
           expiresIn: tokenResponse.expiresIn,
-          scope: tokenResponse.scope,
         });
       } catch (storageError) {
         const duration = Date.now() - startTime;
