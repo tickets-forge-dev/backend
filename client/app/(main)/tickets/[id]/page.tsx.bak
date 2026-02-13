@@ -19,6 +19,7 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useServices } from '@/services/index';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
+import { StageIndicator } from '@/src/tickets/components/wizard/StageIndicator';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
 import { DEMO_TICKETS } from '@/tickets/mocks/demo-tickets';
 import { toast } from 'sonner';
@@ -750,6 +751,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Progress Stepper */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 -mx-4 sm:-mx-6 px-4 sm:px-6 py-6">
+        <div className="max-w-4xl mx-auto">
+          <StageIndicator currentStage={currentStage} />
+        </div>
       </div>
 
       {/* Hero Header — Title + Quality Badge */}
