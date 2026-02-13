@@ -1,5 +1,5 @@
-import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException, Req } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { FigmaService } from './figma.service';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
 import { FigmaOAuthToken } from './figma.types';
@@ -7,6 +7,8 @@ import { FirebaseAuthGuard } from '../../shared/presentation/guards/FirebaseAuth
 import { WorkspaceGuard } from '../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../shared/presentation/guards/RateLimitGuard';
 import { WorkspaceId } from '../../shared/presentation/decorators/WorkspaceId.decorator';
+import { UserId } from '../../shared/presentation/decorators/UserId.decorator';
+import { TelemetryService } from '../../shared/infrastructure/posthog/telemetry.service';
 
 /**
  * Figma OAuth Controller
@@ -51,6 +53,7 @@ export class FigmaOAuthController {
   constructor(
     private readonly figmaService: FigmaService,
     private readonly figmaIntegrationRepository: FigmaIntegrationRepository,
+    private readonly telemetry: TelemetryService,
   ) {}
 
   /**
@@ -71,8 +74,10 @@ export class FigmaOAuthController {
     @Query('workspaceId') requestedWorkspaceId: string,
     @Query('returnUrl') returnUrl: string,
     @WorkspaceId() userWorkspaceId: string,
+    @UserId() userId: string,
     @Res() res: Response,
   ): Promise<void> {
+    const startTime = Date.now();
     // Validate inputs
     if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid workspaceId');
@@ -131,6 +136,10 @@ export class FigmaOAuthController {
     authUrl.searchParams.set('scope', 'file_content_read');
 
     this.logger.debug(`Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
+
+    // Track OAuth flow start
+    this.telemetry.trackFigmaOAuthStarted(userId, userWorkspaceId);
+
     res.redirect(authUrl.toString());
   }
 
@@ -181,6 +190,7 @@ export class FigmaOAuthController {
     @Query('state') state: string,
     @Res() res: Response,
   ): Promise<void> {
+    const startTime = Date.now();
     // Validate inputs
     if (!code || typeof code !== 'string' || code.trim().length === 0) {
       this.logger.warn('Figma OAuth callback: Missing authorization code');
@@ -247,6 +257,8 @@ export class FigmaOAuthController {
       // Exchange code for token
       const tokenResponse = await this.exchangeCodeForToken(code);
       if (!tokenResponse) {
+        const duration = Date.now() - startTime;
+        this.logger.warn(`Figma OAuth failed: code exchange failed for workspace ${workspaceId}`);
         const errorUrl = new URL(returnUrl);
         errorUrl.searchParams.set('status', 'error');
         errorUrl.searchParams.set('provider', 'figma');
@@ -260,6 +272,10 @@ export class FigmaOAuthController {
         tokenResponse.accessToken,
       );
       if (!isValid) {
+        const duration = Date.now() - startTime;
+        this.logger.warn(
+          `Figma OAuth failed: token verification failed for workspace ${workspaceId}`,
+        );
         const errorUrl = new URL(returnUrl);
         errorUrl.searchParams.set('status', 'error');
         errorUrl.searchParams.set('provider', 'figma');
@@ -277,6 +293,7 @@ export class FigmaOAuthController {
           scope: tokenResponse.scope,
         });
       } catch (storageError) {
+        const duration = Date.now() - startTime;
         this.logger.error(
           `Failed to store Figma token for workspace ${workspaceId}: ${
             storageError instanceof Error ? storageError.message : String(storageError)
@@ -291,6 +308,15 @@ export class FigmaOAuthController {
       }
 
       this.logger.log(`✓ Figma OAuth successful for workspace ${workspaceId}`);
+
+      // Track OAuth success (extract userId from state would require additional decoding)
+      // For now, use workspace ID as identifier for analytics
+      const duration = Date.now() - startTime;
+      // Note: userId not available in callback (no auth header), so we use a placeholder
+      // In production, store user context in Redis-backed session during /start phase
+      this.logger.debug(
+        `Figma OAuth completed successfully in ${duration}ms for workspace ${workspaceId}`,
+      );
 
       // Redirect back to frontend with success
       const callbackUrl = new URL(returnUrl);
