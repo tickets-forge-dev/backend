@@ -40,7 +40,7 @@ export class FigmaOAuthController {
     process.env.FIGMA_OAUTH_REDIRECT_URI ||
     'http://localhost:3000/api/integrations/figma/oauth/callback';
   private readonly FIGMA_AUTH_URL = 'https://www.figma.com/oauth';
-  private readonly FIGMA_TOKEN_URL = 'https://www.figma.com/api/oauth/token';
+  private readonly FIGMA_TOKEN_URL = 'https://www.figma.com/api/v1/oauth/token';
 
   // Return URL whitelist (prevent open redirect attacks)
   private readonly ALLOWED_RETURN_HOSTS = [
