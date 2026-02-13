@@ -17,7 +17,9 @@ export class AECSerializer {
 
   serialize(aec: AEC): string {
     try {
+      this.logger.debug(`Starting AEC serialization for ticket ${aec.id}`);
       const ticketData = this.buildComprehensiveTicketData(aec);
+      this.logger.debug(`Built comprehensive ticket data, converting to XML`);
       const builder = new Builder({
         xmldec: { version: '1.0', encoding: 'UTF-8' },
         rootName: 'ticket',
@@ -30,7 +32,7 @@ export class AECSerializer {
       return xml;
     } catch (error: any) {
       this.logger.error(`✗ Failed to serialize AEC to XML: ${error.message}`, error.stack);
-      throw new Error(`XML serialization failed: ${error.message}`);
+      throw new Error(`XML serialization failed for ticket ${aec.id}: ${error.message}`);
     }
   }
 
@@ -83,8 +85,8 @@ export class AECSerializer {
 
   private buildTemporal(aec: AEC): any {
     return {
-      createdAt: aec.createdAt.toISOString(),
-      updatedAt: aec.updatedAt.toISOString(),
+      createdAt: aec.createdAt ? aec.createdAt.toISOString() : null,
+      updatedAt: aec.updatedAt ? aec.updatedAt.toISOString() : null,
       driftDetected: !!aec.driftDetectedAt,
       driftDetectedAt: aec.driftDetectedAt?.toISOString() || null,
       driftReason: aec.driftReason || null,
@@ -384,7 +386,7 @@ export class AECSerializer {
         branch: aec.repositoryContext.branchName,
         commit: aec.repositoryContext.commitSha,
         isDefaultBranch: aec.repositoryContext.isDefaultBranch,
-        selectedAt: aec.repositoryContext.selectedAt.toISOString(),
+        selectedAt: aec.repositoryContext.selectedAt ? aec.repositoryContext.selectedAt.toISOString() : null,
       } : null,
     };
   }

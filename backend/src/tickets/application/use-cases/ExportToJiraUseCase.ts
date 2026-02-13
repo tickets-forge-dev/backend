@@ -106,7 +106,13 @@ export class ExportToJiraUseCase {
     let aecXmlUploaded = false;
     try {
       const aecXmlFileName = `${aec.id}_aec.xml`;
-      const aecXmlContent = this.aecSerializer.serialize(aec);
+      let aecXmlContent: string;
+      try {
+        aecXmlContent = this.aecSerializer.serialize(aec);
+      } catch (serializeError: any) {
+        this.logger.error(`✗ AEC serialization failed: ${serializeError.message}`);
+        throw serializeError;
+      }
       this.logger.debug(`Generated AEC.xml (${aecXmlContent.length} bytes)`);
       const aecXmlBuffer = Buffer.from(aecXmlContent, 'utf-8');
       await this.apiClient.uploadAttachment(
