@@ -540,7 +540,8 @@ export class AEC {
       url,
       platform,
       title: title,
-      metadataFetchStatus: 'pending', // Track that metadata hasn't been fetched yet
+      // Note: metadataFetchStatus not set here because metadata fetching is disabled in Phase 2
+      // When Phase 2 is implemented, this will be set to 'pending' and fetched asynchronously
       addedAt: new Date(),
       addedBy: userEmail,
     };
