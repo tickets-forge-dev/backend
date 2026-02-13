@@ -81,6 +81,13 @@ development_status:
   # 📋 BACKLOG - P0/P1 PRIORITIES (Not Started)
   # ============================================================================
 
+  # Epic 26: Design Link Integration with LLM Leverage (NEW - 2026-02-13)
+  epic-26-design-link-integration: backlog            # 30-35 hours, 3 phases
+                                                      # Phase 1: Store & Display (10-12h)
+                                                      # Phase 2: Metadata Enrichment (10-12h)
+                                                      # Phase 3: LLM Integration (10-12h)
+                                                      # Enables pixel-perfect specs via Figma/Loom
+
   # Epic 21: Caching Optimization (Nice-to-have)
   epic-21-caching: backlog                            # 10-20x speed improvement
 
@@ -108,22 +115,26 @@ development_status:
 #   └─ Epic 24: Bidirectional Integration (2/8 stories - Export flow remaining)
 #
 # 🎯 NEXT PRIORITIES:
-#   └─ Complete Epic 25 Story 4 (Review UI refinements + question refinement)
-#   └─ Complete Epic 24 Export Stories (3-8)
+#   └─ Complete Epic 24 Export Stories (3-8) - Jira/Linear export
+#   └─ Plan Epic 26 Phase 1 (Store & Display design links) - NEW
 #
 # 📋 BACKLOG (Future):
+#   └─ Epic 26: Design Link Integration (30-35h, 3 phases - LLM-enhanced specs from Figma/Loom)
 #   └─ Epic 21: Caching (nice-to-have performance optimization)
 #   └─ Epic 23: Multi-Repo Support (P0 for Phase 4 - infrastructure feature)
 #   └─ Epic 10: Revenue Infrastructure (Stripe, subscriptions)
 #
 # ============================================================================
-# KEY METRICS (Updated 2026-02-12)
+# KEY METRICS (Updated 2026-02-13)
 # ============================================================================
 # Active Epics: 1 (Epic 24 in-progress)
-# Completed Epics: 6+ major epics (including Epic 25 - JUST COMPLETED)
+# Completed Epics: 6+ major epics (Epic 25 COMPLETED on 2026-02-12)
+# Planned Epics: Epic 26 (Design Link Integration - PLANNED on 2026-02-13)
 # Completed Stories: 15+ major features (Sessions 6-22)
-# Recent Session Focus: PRD breakdown COMPLETE + Epic 24 export remaining
+# Recent Session Focus: PRD breakdown COMPLETE + Epic 24 export + Epic 26 planning
 #
-# Focus:
+# Upcoming Focus:
 #   1. Complete Epic 24 export flow (stories 3-8)
+#   2. Plan & approve Epic 26 Phase 1 (Store & Display)
+#   3. Determine Epic 26 start date (after Epic 24 or parallel?)
 # ============================================================================

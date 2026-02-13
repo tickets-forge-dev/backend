@@ -7,6 +7,7 @@ import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
 import { Attachment, MAX_ATTACHMENTS } from '../value-objects/Attachment';
+import { DesignReference, MAX_DESIGN_LINKS, validateDesignReferenceUrl, detectPlatform } from '../value-objects/DesignReference';
 import { TechSpec, ClarificationQuestion } from '../tech-spec/TechSpecGenerator';
 import {
   InvalidStateTransitionError,
@@ -46,6 +47,7 @@ export class AEC {
     private _techSpec: TechSpec | null = null,
     private _taskAnalysis: any = null,
     private _attachments: Attachment[] = [],
+    private _designReferences: DesignReference[] = [],
   ) {}
 
   // Factory method for creating new draft
@@ -92,6 +94,7 @@ export class AEC {
       null, // _techSpec
       null, // _taskAnalysis
       [], // _attachments
+      [], // _designReferences
     );
   }
 
@@ -126,6 +129,7 @@ export class AEC {
     techSpec?: TechSpec | null,
     taskAnalysis?: any,
     attachments?: Attachment[],
+    designReferences?: DesignReference[],
   ): AEC {
     return new AEC(
       id,
@@ -157,6 +161,7 @@ export class AEC {
       techSpec ?? null,
       taskAnalysis ?? null,
       attachments ?? [],
+      designReferences ?? [],
     );
   }
 
@@ -499,5 +504,68 @@ export class AEC {
   removeAttachment(attachmentId: string): void {
     this._attachments = this._attachments.filter((a) => a.id !== attachmentId);
     this._updatedAt = new Date();
+  }
+
+  get designReferences(): DesignReference[] {
+    return [...this._designReferences];
+  }
+
+  /**
+   * Add a design reference (Figma, Loom, etc.) to the ticket
+   *
+   * @param url - The design link URL (must be HTTPS)
+   * @param title - Optional custom title
+   * @param userEmail - Email of user adding the reference
+   * @throws Error if URL is invalid or max links reached
+   */
+  addDesignReference(url: string, userEmail: string, title?: string): DesignReference {
+    // Validate URL
+    validateDesignReferenceUrl(url);
+
+    // Check max limit
+    if (this._designReferences.length >= MAX_DESIGN_LINKS) {
+      throw new Error(`Maximum of ${MAX_DESIGN_LINKS} design links per ticket`);
+    }
+
+    // Detect platform and create reference
+    const platform = detectPlatform(url);
+    const reference: DesignReference = {
+      id: `ref_${randomUUID()}`,
+      url,
+      platform,
+      title: title,
+      addedAt: new Date(),
+      addedBy: userEmail,
+    };
+
+    this._designReferences.push(reference);
+    this._updatedAt = new Date();
+
+    return reference;
+  }
+
+  /**
+   * Remove a design reference by ID
+   *
+   * @param referenceId - The design reference ID to remove
+   */
+  removeDesignReference(referenceId: string): void {
+    this._designReferences = this._designReferences.filter((r) => r.id !== referenceId);
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Update design reference metadata (called after fetching from Figma/Loom APIs)
+   * Phase 2: Metadata Enrichment
+   *
+   * @param referenceId - The design reference ID
+   * @param metadata - The metadata to set
+   */
+  updateDesignReferenceMetadata(referenceId: string, metadata: any): void {
+    const reference = this._designReferences.find((r) => r.id === referenceId);
+    if (reference) {
+      reference.metadata = metadata;
+      this._updatedAt = new Date();
+    }
   }
 }
