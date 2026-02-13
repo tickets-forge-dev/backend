@@ -6,6 +6,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
 import { GitHubModule } from './github/github.module';
 import { LinearModule } from './linear/linear.module';
 import { JiraModule } from './jira/jira.module';
+import { FigmaModule } from './integrations/figma/figma.module';
 import { ConfigModule as ConfigApiModule } from './config/config.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { ConfigModule as ConfigApiModule } from './config/config.module';
     GitHubModule,
     LinearModule,
     JiraModule,
+    FigmaModule,
     ConfigApiModule,
   ],
   controllers: [],
