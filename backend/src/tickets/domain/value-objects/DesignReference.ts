@@ -104,18 +104,32 @@ export function validateDesignReferenceUrl(url: string): void {
 
 /**
  * Extract file key from Figma URL
+ * Supports both old and new Figma URL formats:
  * @example "https://figma.com/file/abc123/project-name" → "abc123"
+ * @example "https://figma.com/design/abc123/project-name" → "abc123"
  */
 export function extractFigmaFileKey(url: string): string | null {
-  const match = url.match(/figma\.com\/file\/([a-zA-Z0-9]+)/);
+  // Try new format first (/design/), then fall back to old format (/file/)
+  let match = url.match(/figma\.com\/design\/([a-zA-Z0-9]+)/i);
+  if (match) return match[1];
+
+  // Fall back to old format
+  match = url.match(/figma\.com\/file\/([a-zA-Z0-9]+)/i);
   return match ? match[1] : null;
 }
 
 /**
  * Extract shared ID from Loom URL
+ * Supports both share and embed paths
  * @example "https://loom.com/share/abc123" → "abc123"
+ * @example "https://loom.com/embed/abc123" → "abc123"
  */
 export function extractLoomSharedId(url: string): string | null {
-  const match = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+  // Try share path first, then fall back to embed path
+  let match = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/i);
+  if (match) return match[1];
+
+  // Fall back to embed path
+  match = url.match(/loom\.com\/embed\/([a-zA-Z0-9]+)/i);
   return match ? match[1] : null;
 }
