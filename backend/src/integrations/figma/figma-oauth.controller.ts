@@ -1,8 +1,11 @@
-import { Controller, Get, Query, Res, Logger } from '@nestjs/common';
+import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException } from '@nestjs/common';
 import { Response } from 'express';
 import { FigmaService } from './figma.service';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
 import { FigmaOAuthToken } from './figma.types';
+import { FirebaseAuthGuard } from '../../shared/presentation/guards/FirebaseAuthGuard';
+import { WorkspaceGuard } from '../../shared/presentation/guards/WorkspaceGuard';
+import { WorkspaceId } from '../../shared/presentation/decorators/WorkspaceId.decorator';
 
 /**
  * Figma OAuth Controller
@@ -54,21 +57,36 @@ export class FigmaOAuthController {
    * Validates inputs and redirects to Figma authorization endpoint
    *
    * Security checks:
+   * - User must be authenticated (FirebaseAuthGuard)
+   * - workspaceId must match user's workspace (WorkspaceGuard + permission check)
    * - workspaceId must not be empty
    * - returnUrl must be from whitelisted domain
    * - State parameter includes timestamp (prevents replay attacks)
    */
+  @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
   @Get('start')
   async startOAuth(
-    @Query('workspaceId') workspaceId: string,
+    @Query('workspaceId') requestedWorkspaceId: string,
     @Query('returnUrl') returnUrl: string,
+    @WorkspaceId() userWorkspaceId: string,
     @Res() res: Response,
   ): Promise<void> {
     // Validate inputs
-    if (!workspaceId || typeof workspaceId !== 'string' || workspaceId.trim().length === 0) {
+    if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid workspaceId');
       res.status(400).json({
         error: 'Missing required parameter: workspaceId',
+      });
+      return;
+    }
+
+    // Verify user owns requested workspace (prevent cross-workspace access)
+    if (requestedWorkspaceId.trim() !== userWorkspaceId) {
+      this.logger.warn(
+        `Figma OAuth start: User attempted unauthorized workspace access: requested=${requestedWorkspaceId}, user=${userWorkspaceId}`,
+      );
+      res.status(403).json({
+        error: 'You do not have permission to connect this workspace',
       });
       return;
     }
@@ -84,7 +102,7 @@ export class FigmaOAuthController {
     // Validate return URL (prevent open redirect attacks)
     if (!this.isValidReturnUrl(returnUrl)) {
       this.logger.warn(
-        `Figma OAuth start: Invalid return URL (not whitelisted): ${returnUrl}`,
+        `Figma OAuth start: Invalid return URL (not whitelisted): ${this.getTruncatedUrlForLogging(returnUrl)}`,
       );
       res.status(400).json({
         error: 'Return URL must be from whitelisted domain',
@@ -95,7 +113,7 @@ export class FigmaOAuthController {
     // Create state with timestamp (prevents replay attacks)
     // TODO: Store in Redis or secure session for production
     const stateData = {
-      workspaceId: workspaceId.trim(),
+      workspaceId: userWorkspaceId,
       returnUrl,
       timestamp: Date.now(),
       nonce: Math.random().toString(36).substring(7),
@@ -110,7 +128,7 @@ export class FigmaOAuthController {
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('scope', 'file_content_read');
 
-    this.logger.debug(`Starting Figma OAuth flow for workspace ${workspaceId}`);
+    this.logger.debug(`Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
     res.redirect(authUrl.toString());
   }
 
@@ -125,6 +143,21 @@ export class FigmaOAuthController {
       return this.ALLOWED_RETURN_HOSTS.some((host) => url.host === host);
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Truncate URL for logging (prevent logging sensitive query params)
+   * @private
+   */
+  private getTruncatedUrlForLogging(url: string): string {
+    try {
+      const parsed = new URL(url);
+      // Only log hostname and pathname, not query params
+      return `${parsed.hostname}${parsed.pathname}`;
+    } catch {
+      // If parsing fails, return a generic message
+      return '[invalid-url]';
     }
   }
 
@@ -231,13 +264,27 @@ export class FigmaOAuthController {
         return;
       }
 
-      // Store token
-      await this.figmaIntegrationRepository.saveToken(workspaceId, {
-        accessToken: tokenResponse.accessToken,
-        tokenType: tokenResponse.tokenType,
-        expiresIn: tokenResponse.expiresIn,
-        scope: tokenResponse.scope,
-      });
+      // Store token (with error boundary - if storage fails, redirect with error, not 500)
+      try {
+        await this.figmaIntegrationRepository.saveToken(workspaceId, {
+          accessToken: tokenResponse.accessToken,
+          tokenType: tokenResponse.tokenType,
+          expiresIn: tokenResponse.expiresIn,
+          scope: tokenResponse.scope,
+        });
+      } catch (storageError) {
+        this.logger.error(
+          `Failed to store Figma token for workspace ${workspaceId}: ${
+            storageError instanceof Error ? storageError.message : String(storageError)
+          }`,
+        );
+        const errorUrl = new URL(returnUrl);
+        errorUrl.searchParams.set('status', 'error');
+        errorUrl.searchParams.set('provider', 'figma');
+        errorUrl.searchParams.set('error', 'Failed to store authentication token');
+        res.redirect(errorUrl.toString());
+        return;
+      }
 
       this.logger.log(`✓ Figma OAuth successful for workspace ${workspaceId}`);
 
