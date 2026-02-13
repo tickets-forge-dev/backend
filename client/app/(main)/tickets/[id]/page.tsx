@@ -231,7 +231,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     if (!ticketId) return;
     try {
       await ticketService.addDesignReference(ticketId, { url, title });
-      await fetchTicket(ticketId);
+      // Fetch ticket data in the background (non-blocking)
+      // This allows the dialog to close immediately while data syncs
+      fetchTicket(ticketId).catch(error => {
+        console.error('Failed to refresh ticket after adding design reference:', error);
+      });
     } catch (error) {
       console.error('Failed to add design reference:', error);
     }
@@ -241,7 +245,10 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     if (!ticketId) return;
     try {
       await ticketService.removeDesignReference(ticketId, referenceId);
-      await fetchTicket(ticketId);
+      // Fetch ticket data in the background (non-blocking)
+      fetchTicket(ticketId).catch(error => {
+        console.error('Failed to refresh ticket after removing design reference:', error);
+      });
     } catch (error) {
       console.error('Failed to remove design reference:', error);
     }
