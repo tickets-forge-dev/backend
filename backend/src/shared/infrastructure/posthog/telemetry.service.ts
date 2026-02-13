@@ -179,6 +179,54 @@ export class TelemetryService {
   }
 
   /**
+   * Track Figma OAuth flow events
+   */
+  trackFigmaOAuthStarted(userId: string, workspaceId: string) {
+    this.posthog.capture(userId, 'oauth_figma_started', {
+      workspace_id: workspaceId,
+    });
+  }
+
+  trackFigmaOAuthSuccess(userId: string, workspaceId: string, duration_ms: number) {
+    this.posthog.capture(userId, 'oauth_figma_success', {
+      workspace_id: workspaceId,
+      duration_ms,
+    });
+  }
+
+  trackFigmaOAuthFailed(userId: string, workspaceId: string, error: string, duration_ms: number) {
+    this.posthog.capture(userId, 'oauth_figma_failed', {
+      workspace_id: workspaceId,
+      error,
+      duration_ms,
+    });
+  }
+
+  /**
+   * Track Loom OAuth flow events
+   */
+  trackLoomOAuthStarted(userId: string, workspaceId: string) {
+    this.posthog.capture(userId, 'oauth_loom_started', {
+      workspace_id: workspaceId,
+    });
+  }
+
+  trackLoomOAuthSuccess(userId: string, workspaceId: string, duration_ms: number) {
+    this.posthog.capture(userId, 'oauth_loom_success', {
+      workspace_id: workspaceId,
+      duration_ms,
+    });
+  }
+
+  trackLoomOAuthFailed(userId: string, workspaceId: string, error: string, duration_ms: number) {
+    this.posthog.capture(userId, 'oauth_loom_failed', {
+      workspace_id: workspaceId,
+      error,
+      duration_ms,
+    });
+  }
+
+  /**
    * Set user properties (traits)
    */
   setUserProperties(userId: string, properties: Record<string, any>) {

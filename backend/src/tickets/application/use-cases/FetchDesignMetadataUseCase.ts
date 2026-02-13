@@ -176,6 +176,7 @@ export class FetchDesignMetadataUseCase {
       );
 
       // Create new reference with metadata
+      // Note: LoomService returns metadata.videoId which is the same as the shared ID we extracted
       const updated: DesignReference = {
         ...reference,
         metadata: {
@@ -183,7 +184,7 @@ export class FetchDesignMetadataUseCase {
             videoTitle: metadata.videoTitle,
             duration: metadata.duration,
             thumbnailUrl: metadata.thumbnailUrl,
-            sharedId: metadata.videoId,
+            sharedId: metadata.videoId, // LoomService returns videoId as the shared ID
           },
         },
         metadataFetchStatus: 'success',

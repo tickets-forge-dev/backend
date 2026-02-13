@@ -7,6 +7,8 @@ import { FirebaseAuthGuard } from '../../shared/presentation/guards/FirebaseAuth
 import { WorkspaceGuard } from '../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../shared/presentation/guards/RateLimitGuard';
 import { WorkspaceId } from '../../shared/presentation/decorators/WorkspaceId.decorator';
+import { UserId } from '../../shared/presentation/decorators/UserId.decorator';
+import { TelemetryService } from '../../shared/infrastructure/posthog/telemetry.service';
 
 /**
  * Loom OAuth Controller
@@ -51,6 +53,7 @@ export class LoomOAuthController {
   constructor(
     private readonly loomService: LoomService,
     private readonly loomIntegrationRepository: LoomIntegrationRepository,
+    private readonly telemetry: TelemetryService,
   ) {}
 
   /**
@@ -71,8 +74,10 @@ export class LoomOAuthController {
     @Query('workspaceId') requestedWorkspaceId: string,
     @Query('returnUrl') returnUrl: string,
     @WorkspaceId() userWorkspaceId: string,
+    @UserId() userId: string,
     @Res() res: Response,
   ): Promise<void> {
+    const startTime = Date.now();
     // Validate inputs
     if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Loom OAuth start: Missing or invalid workspaceId');
@@ -131,6 +136,10 @@ export class LoomOAuthController {
     authUrl.searchParams.set('scope', 'campaigns:read');
 
     this.logger.debug(`Starting Loom OAuth flow for workspace ${userWorkspaceId}`);
+
+    // Track OAuth flow start
+    this.telemetry.trackLoomOAuthStarted(userId, userWorkspaceId);
+
     res.redirect(authUrl.toString());
   }
 
@@ -181,6 +190,7 @@ export class LoomOAuthController {
     @Query('state') state: string,
     @Res() res: Response,
   ): Promise<void> {
+    const startTime = Date.now();
     // Validate inputs
     if (!code || typeof code !== 'string' || code.trim().length === 0) {
       this.logger.warn('Loom OAuth callback: Missing authorization code');
@@ -247,6 +257,8 @@ export class LoomOAuthController {
       // Exchange code for token
       const tokenResponse = await this.exchangeCodeForToken(code);
       if (!tokenResponse) {
+        const duration = Date.now() - startTime;
+        this.logger.warn(`Loom OAuth failed: code exchange failed for workspace ${workspaceId}`);
         const errorUrl = new URL(returnUrl);
         errorUrl.searchParams.set('status', 'error');
         errorUrl.searchParams.set('provider', 'loom');
@@ -260,6 +272,10 @@ export class LoomOAuthController {
         tokenResponse.access_token,
       );
       if (!isValid) {
+        const duration = Date.now() - startTime;
+        this.logger.warn(
+          `Loom OAuth failed: token verification failed for workspace ${workspaceId}`,
+        );
         const errorUrl = new URL(returnUrl);
         errorUrl.searchParams.set('status', 'error');
         errorUrl.searchParams.set('provider', 'loom');
@@ -272,6 +288,7 @@ export class LoomOAuthController {
       try {
         await this.loomIntegrationRepository.saveToken(workspaceId, tokenResponse);
       } catch (storageError) {
+        const duration = Date.now() - startTime;
         this.logger.error(
           `Failed to store Loom token for workspace ${workspaceId}: ${
             storageError instanceof Error ? storageError.message : String(storageError)
@@ -286,6 +303,12 @@ export class LoomOAuthController {
       }
 
       this.logger.log(`✓ Loom OAuth successful for workspace ${workspaceId}`);
+
+      // Track OAuth success
+      const duration = Date.now() - startTime;
+      this.logger.debug(
+        `Loom OAuth completed successfully in ${duration}ms for workspace ${workspaceId}`,
+      );
 
       // Redirect back to frontend with success
       const callbackUrl = new URL(returnUrl);
