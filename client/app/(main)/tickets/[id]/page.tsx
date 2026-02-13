@@ -645,6 +645,12 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           <span>
             Ticket created: <a href={result.issueUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">{result.issueKey}</a>
           </span>,
+          {
+            style: {
+              backgroundColor: '#22c55e',
+              color: '#000000',
+            },
+          },
         );
         setShowExportDialog(false);
       } else {

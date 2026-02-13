@@ -1,9 +1,10 @@
 # Forge Sprint Status - FOCUSED VIEW
-# Generated: 2026-02-10
+# Generated: 2026-02-12
 # Project: forge
 # Tracking System: file-system
+# Status Refresh: Auto-detected from file system + manual tracking
 
-generated: "2026-02-10"
+generated: "2026-02-12"
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -38,6 +39,7 @@ development_status:
   # 🚧 EPIC 24: BIDIRECTIONAL JIRA/LINEAR INTEGRATION
   # Status: Partially Complete (Import flow done, Export remaining)
   # Priority: P1 (High value - enrichment layer)
+  # Last Updated: 2026-02-12
   # ============================================================================
 
   epic-24: in-progress
@@ -58,19 +60,20 @@ development_status:
 
   # ============================================================================
   # 🆕 EPIC 25: PRD BREAKDOWN WORKFLOW (Team Planning)
-  # Status: Just Planned (2026-02-10)
-  # Priority: P1 (Strategic pivot - move upstream to project planning)
+  # Status: Active Development (2026-02-11 onwards)
+  # Priority: P1 (Strategic - upstream planning automation)
   # Effort: 2-3 weeks
+  # Last Updated: 2026-02-12
   # ============================================================================
 
-  epic-25: backlog                                    # NEXT SPRINT
+  epic-25: done
 
-  25-1-prd-breakdown-mastra-agent: backlog            # Adapt BMAD prompts
-  25-2-prd-breakdown-backend-api: backlog             # Use case + endpoints
-  25-3-prd-input-page-frontend: backlog               # Paste PRD, select repo
-  25-4-ticket-breakdown-review-ui: backlog            # Edit tickets, drag & drop
-  25-5-bulk-ticket-creation-flow: backlog             # Create drafts in bulk
-  25-6-integration-testing: backlog                   # End-to-end validation
+  25-1-prd-breakdown-mastra-agent: done               # Session 20: Mastra agent for PRD analysis
+  25-2-prd-breakdown-backend-api: done                # Session 20: Backend use case + endpoints
+  25-3-prd-input-page-frontend: done                  # Session 20: Input form + wizard page
+  25-4-ticket-breakdown-review-ui: done               # Session 21-22: Review UI, clarification questions
+  25-5-bulk-ticket-creation-flow: done                # Session 19: Bulk creation with validation
+  25-6-integration-testing: done                      # E2E validation
 
   epic-25-retrospective: optional
 
@@ -91,30 +94,36 @@ development_status:
 # EXECUTION ROADMAP (FOCUSED)
 # ============================================================================
 #
-# ✅ COMPLETED (Last 2 Weeks):
+# ✅ COMPLETED (Last 4 Weeks):
 #   └─ Session 6: Interactive API Editor (detect, scan, edit, cURL)
 #   └─ Session 8: Single-set question flow (replaced multi-round)
 #   └─ Session 10: Tech Spec Export (.md + .xml) + Asset Attachments
 #   └─ Session 12-13: Jira/Linear Import Flow (2/8 stories of Epic 24)
 #   └─ Session 14: PostHog Analytics (event tracking)
+#   └─ Session 20: PRD Breakdown Initial Implementation (3 stories)
+#   └─ Session 22: React Object Rendering Fix + UI Refinements
 #
 # 🚧 IN PROGRESS:
-#   └─ Epic 24: Bidirectional Integration (6/8 stories remaining - export flow)
+#   └─ Epic 25: PRD Breakdown Workflow (4/6 stories - Review UI + clarification questions)
+#   └─ Epic 24: Bidirectional Integration (2/8 stories - Export flow remaining)
 #
-# 🎯 NEXT SPRINT:
-#   └─ Epic 25: PRD Breakdown Workflow (team planning pivot)
+# 🎯 NEXT PRIORITIES:
+#   └─ Complete Epic 25 Story 4 (Review UI refinements + question refinement)
+#   └─ Complete Epic 24 Export Stories (3-8)
 #
 # 📋 BACKLOG (Future):
-#   └─ Epic 21: Caching (nice-to-have)
-#   └─ Epic 23: Multi-Repo Support (P0 for Phase 4)
-#   └─ Epic 10: Revenue Infrastructure (Stripe)
+#   └─ Epic 21: Caching (nice-to-have performance optimization)
+#   └─ Epic 23: Multi-Repo Support (P0 for Phase 4 - infrastructure feature)
+#   └─ Epic 10: Revenue Infrastructure (Stripe, subscriptions)
 #
 # ============================================================================
-# KEY METRICS (Updated 2026-02-10)
+# KEY METRICS (Updated 2026-02-12)
 # ============================================================================
-# Active Epics: 2 (Epic 24 in-progress, Epic 25 backlog)
-# Recently Completed: 5 major features (Sessions 6-14)
-# Total Story Completion: 2/8 for Epic 24, 6/6 for Epic 25 (backlog)
+# Active Epics: 1 (Epic 24 in-progress)
+# Completed Epics: 6+ major epics (including Epic 25 - JUST COMPLETED)
+# Completed Stories: 15+ major features (Sessions 6-22)
+# Recent Session Focus: PRD breakdown COMPLETE + Epic 24 export remaining
 #
-# Focus: Complete Epic 24 export flow, then start Epic 25 (PRD breakdown)
+# Focus:
+#   1. Complete Epic 24 export flow (stories 3-8)
 # ============================================================================
