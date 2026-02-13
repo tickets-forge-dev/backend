@@ -184,12 +184,25 @@ export class GitHubService {
   /**
    * List user's accessible repositories (requires OAuth connection)
    * AC#4: Fetch repository list
+   *
+   * Throws 401 if GitHub token is invalid/expired (special case for "Bad credentials")
    */
   async listRepositories(): Promise<GitHubRepositoryItem[]> {
-    const response = await this.client.get<RepositoriesResponse>(
-      '/github/oauth/repositories'
-    );
-    return response.data.repositories;
+    try {
+      const response = await this.client.get<RepositoriesResponse>(
+        '/github/oauth/repositories'
+      );
+      return response.data.repositories;
+    } catch (error: any) {
+      // Re-throw 401 errors with a specific flag so UI can handle differently
+      if (error.response?.status === 401) {
+        const err = new Error('GitHub token is invalid or expired. Please reconnect.');
+        (err as any).isAuthError = true;
+        (err as any).status = 401;
+        throw err;
+      }
+      throw error;
+    }
   }
 
   /**

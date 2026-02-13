@@ -26,6 +26,7 @@ interface SettingsState {
   githubRepositories: GitHubRepositoryItem[];
   selectedRepositories: GitHubRepositoryItem[];
   repositoriesFetchedAt: number | null; // Timestamp for cache validation
+  githubTokenInvalid: boolean; // True if token is expired/invalid (401 error)
 
   // Indexing State (Story 4.2)
   indexingJobs: Map<string, IndexingJobState>;
@@ -69,6 +70,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   githubRepositories: [],
   selectedRepositories: [],
   repositoriesFetchedAt: null,
+  githubTokenInvalid: false,
   indexingJobs: new Map(),
   indexingQueue: [],
   maxConcurrentIndexing: 3, // Max 3 concurrent indexing jobs
@@ -86,8 +88,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    * AC#1: Check and display connection status
    */
   loadGitHubStatus: async (githubService: GitHubService) => {
-    set({ isLoadingConnection: true, connectionError: null });
-    
+    set({ isLoadingConnection: true, connectionError: null, githubTokenInvalid: false });
+
     try {
       const status = await githubService.getConnectionStatus();
       set({
@@ -95,6 +97,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         githubConnectionStatus: status,
         selectedRepositories: status.selectedRepositories || [],
         isLoadingConnection: false,
+        githubTokenInvalid: false, // Clear on status check
       });
 
       // If connected, auto-load repositories (no indexing - we use on-demand scanning)
@@ -108,6 +111,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         isLoadingConnection: false,
         githubConnected: false,
         githubConnectionStatus: null,
+        githubTokenInvalid: false,
       });
     }
   },
@@ -153,10 +157,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    *
    * Uses cache to avoid excessive API calls.
    * Refreshes if data is older than 5 minutes.
+   *
+   * Handles 401 "Bad credentials" specially - sets githubTokenInvalid flag
+   * to prevent endless retry loops.
    */
   loadRepositories: async (githubService: GitHubService) => {
     const now = Date.now();
-    const { repositoriesFetchedAt, githubRepositories } = get();
+    const { repositoriesFetchedAt, githubRepositories, githubTokenInvalid } = get();
+
+    // Don't retry if we already know the token is invalid
+    if (githubTokenInvalid) {
+      console.log('⚠️ GitHub token is invalid - skipping retry (user must reconnect)');
+      return;
+    }
 
     // Cache is valid if fetched within 5 minutes
     const CACHE_DURATION = 5 * 60 * 1000;
@@ -174,12 +187,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         githubRepositories: repositories,
         repositoriesFetchedAt: now,
         isLoadingRepositories: false,
+        githubTokenInvalid: false, // Clear token invalid flag on success
       });
     } catch (error: any) {
       console.error('Failed to load repositories:', error);
+
+      // Detect 401 "Bad credentials" errors (token invalid/expired)
+      const isAuthError = (error as any).isAuthError || error.response?.status === 401;
+
       set({
-        repositoriesError: error.response?.data?.message || 'Failed to load repositories',
+        repositoriesError: error.message || error.response?.data?.message || 'Failed to load repositories',
         isLoadingRepositories: false,
+        githubTokenInvalid: isAuthError, // Set flag to prevent retries
       });
     }
   },
@@ -303,7 +322,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    */
   disconnectGitHub: async (githubService: GitHubService) => {
     set({ isDisconnecting: true, connectionError: null });
-    
+
     try {
       await githubService.disconnect();
       set({
@@ -311,6 +330,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         githubConnectionStatus: null,
         githubRepositories: [],
         selectedRepositories: [],
+        githubTokenInvalid: false, // Clear token invalid flag
         isDisconnecting: false,
       });
     } catch (error: any) {

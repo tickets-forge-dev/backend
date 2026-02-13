@@ -38,6 +38,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
     isDisconnecting,
     connectionError,
     repositoriesError,
+    githubTokenInvalid,
     loadGitHubStatus,
     loadRepositories,
     initiateGitHubConnection,
@@ -169,8 +170,52 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
         )}
       </div>
 
+      {/* GitHub Token Invalid / Expired Error */}
+      {githubTokenInvalid && (
+        <div className="rounded-lg bg-red-500/10 p-4 flex items-start gap-3">
+          <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5 flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <p className="text-[var(--text-sm)] font-medium text-[var(--red)]">
+              GitHub token expired or revoked
+            </p>
+            <p className="text-[var(--text-xs)] text-[var(--red)] opacity-90">
+              Your GitHub connection is no longer valid. Please disconnect and reconnect to refresh your access token.
+            </p>
+            <div className="flex gap-2 mt-3">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowDisconnectDialog(true)}
+                disabled={isDisconnecting}
+                className="text-[var(--red)] hover:text-[var(--red)] hover:bg-red-500/20"
+              >
+                Disconnect
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConnect}
+                disabled={isConnecting}
+                className="bg-[var(--purple)] hover:bg-[var(--purple)]/80"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Reconnecting...
+                  </>
+                ) : (
+                  <>
+                    <Github className="mr-2 h-3 w-3" />
+                    Reconnect GitHub
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Connection Error */}
-      {connectionError && (
+      {connectionError && !githubTokenInvalid && (
         <div className="rounded-lg bg-red-500/10 p-3 flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5" />
           <p className="text-[var(--text-sm)] text-[var(--red)]">{connectionError}</p>
@@ -292,7 +337,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
               </div>
-            ) : repositoriesError ? (
+            ) : repositoriesError && !githubTokenInvalid ? (
               <div className="rounded-lg bg-red-500/10 p-3 flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5" />
                 <p className="text-[var(--text-sm)] text-[var(--red)]">{repositoriesError}</p>
