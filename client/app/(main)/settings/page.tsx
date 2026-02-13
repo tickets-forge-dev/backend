@@ -5,6 +5,7 @@ import { Button } from '@/core/components/ui/button';
 import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
 import { LinearIntegration } from '@/src/settings/components/LinearIntegration';
 import { JiraIntegration } from '@/src/settings/components/JiraIntegration';
+import { FigmaIntegration } from '@/src/settings/components/FigmaIntegration';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
 import Link from 'next/link';
 import { X, Monitor, Sun, Moon } from 'lucide-react';
@@ -46,6 +47,8 @@ export default function SettingsPage() {
         <LinearIntegration />
         <div className="border-t border-[var(--border)] my-4" />
         <JiraIntegration />
+        <div className="border-t border-[var(--border)] my-4" />
+        <FigmaIntegration />
       </section>
 
       {/* Appearance Section */}

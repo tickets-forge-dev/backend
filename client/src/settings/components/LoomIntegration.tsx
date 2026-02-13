@@ -6,6 +6,14 @@ import React, { useState } from 'react';
  * LoomIntegration Component
  * Settings panel for connecting/disconnecting Loom OAuth
  *
+ * 🚫 TEMPORARILY DISABLED (Session 2026-02-13)
+ * Loom uses SDK-based key-pair authentication instead of traditional OAuth.
+ * This component is hidden from the UI pending implementation of key-pair auth flow.
+ * Will be re-enabled in Phase 2b once Loom SDK integration is complete.
+ *
+ * @see docs/EPIC-26-design-link-integration.md for implementation roadmap
+ * @see backend/src/integrations/loom/loom.service.ts for service implementation
+ *
  * Phase 2: Metadata Enrichment
  * Allows users to connect Loom OAuth to fetch video metadata
  * (thumbnails, duration, titles)
