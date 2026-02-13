@@ -1135,11 +1135,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Ticket Preview</DialogTitle>
             <DialogDescription>
-              This is how your ticket will appear when exported to Jira
+              This is a comprehensive preview of your ticket. All sections below will be exported to Jira as markdown and JSON files.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
@@ -1262,6 +1262,182 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                   </div>
                 )}
 
+                {/* Description/Notes */}
+                {currentTicket?.description && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Description</h3>
+                    <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{currentTicket.description}</p>
+                  </div>
+                )}
+
+                {/* Reproduction Steps (Bug only) */}
+                {currentTicket?.type === 'bug' && currentTicket?.techSpec?.bugDetails?.reproductionSteps && currentTicket.techSpec.bugDetails.reproductionSteps.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Reproduction Steps</h3>
+                    <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                      {currentTicket.techSpec.bugDetails.reproductionSteps.map((step: any, idx: number) => (
+                        <li key={idx} className="ml-4">
+                          <span className="font-medium">{idx + 1}.</span> {step.action}
+                          {step.expectedBehavior && (
+                            <div className="ml-4 mt-1 text-xs text-[var(--text-tertiary)]">
+                              Expected: {step.expectedBehavior}
+                            </div>
+                          )}
+                          {step.actualBehavior && (
+                            <div className="ml-4 text-xs text-[var(--text-tertiary)]">
+                              Actual: {step.actualBehavior}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* Assumptions */}
+                {currentTicket?.techSpec?.problemStatement?.assumptions && currentTicket.techSpec.problemStatement.assumptions.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Assumptions</h3>
+                    <ul className="space-y-1 text-sm text-[var(--text-secondary)]">
+                      {currentTicket.techSpec.problemStatement.assumptions.map((assumption: string, i: number) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-[var(--text-tertiary)]">•</span>
+                          <span>{assumption}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Visual QA Expectations */}
+                {currentTicket?.techSpec?.visualExpectations && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Visual QA Expectations</h3>
+                    <p className="text-sm text-[var(--text-secondary)] mb-2">{currentTicket.techSpec.visualExpectations.summary}</p>
+                    {currentTicket.techSpec.visualExpectations.expectations && currentTicket.techSpec.visualExpectations.expectations.length > 0 && (
+                      <div className="space-y-2 text-xs text-[var(--text-secondary)]">
+                        {currentTicket.techSpec.visualExpectations.expectations.slice(0, 3).map((exp: any, idx: number) => (
+                          <div key={idx} className="p-2 bg-[var(--bg-hover)] rounded">
+                            <p className="font-medium text-[var(--text)]">{exp.screen}</p>
+                            <p>{exp.description}</p>
+                          </div>
+                        ))}
+                        {currentTicket.techSpec.visualExpectations.expectations.length > 3 && (
+                          <p className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.visualExpectations.expectations.length - 3} more visual expectations</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Scope */}
+                {(currentTicket?.techSpec?.inScope?.length > 0 || currentTicket?.techSpec?.outOfScope?.length > 0) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {currentTicket?.techSpec?.inScope?.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">In Scope</h3>
+                        <ul className="space-y-1 text-xs text-[var(--text-secondary)]">
+                          {currentTicket.techSpec.inScope.slice(0, 3).map((item: string, i: number) => (
+                            <li key={i} className="flex gap-2">
+                              <span>•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                          {currentTicket.techSpec.inScope.length > 3 && (
+                            <li className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.inScope.length - 3} more</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    {currentTicket?.techSpec?.outOfScope?.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-[var(--text-tertiary)] mb-2">Out of Scope</h3>
+                        <ul className="space-y-1 text-xs text-[var(--text-secondary)]">
+                          {currentTicket.techSpec.outOfScope.slice(0, 3).map((item: string, i: number) => (
+                            <li key={i} className="flex gap-2">
+                              <span>•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                          {currentTicket.techSpec.outOfScope.length > 3 && (
+                            <li className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.outOfScope.length - 3} more</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* API Endpoints */}
+                {currentTicket?.techSpec?.apiChanges?.endpoints && currentTicket.techSpec.apiChanges.endpoints.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">API Endpoints</h3>
+                    <div className="space-y-2 text-xs text-[var(--text-secondary)]">
+                      {currentTicket.techSpec.apiChanges.endpoints.slice(0, 3).map((endpoint: any, i: number) => (
+                        <div key={i} className="p-2 bg-[var(--bg-hover)] rounded font-mono">
+                          <p className="font-medium text-[var(--text)]">
+                            <span className="text-blue-500">{endpoint.method}</span> {endpoint.route}
+                          </p>
+                          <p className="text-[var(--text-tertiary)]">{endpoint.description}</p>
+                        </div>
+                      ))}
+                      {currentTicket.techSpec.apiChanges.endpoints.length > 3 && (
+                        <p className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.apiChanges.endpoints.length - 3} more endpoints</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Test Plan */}
+                {currentTicket?.techSpec?.testPlan && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Test Plan</h3>
+                    <p className="text-sm text-[var(--text-secondary)] mb-2">{currentTicket.techSpec.testPlan.summary}</p>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="p-2 bg-[var(--bg-hover)] rounded">
+                        <p className="font-medium text-[var(--text)]">{currentTicket.techSpec.testPlan.unitTests?.length || 0}</p>
+                        <p className="text-[var(--text-tertiary)]">Unit Tests</p>
+                      </div>
+                      <div className="p-2 bg-[var(--bg-hover)] rounded">
+                        <p className="font-medium text-[var(--text)]">{currentTicket.techSpec.testPlan.integrationTests?.length || 0}</p>
+                        <p className="text-[var(--text-tertiary)]">Integration Tests</p>
+                      </div>
+                      <div className="p-2 bg-[var(--bg-hover)] rounded">
+                        <p className="font-medium text-[var(--text)]">{currentTicket.techSpec.testPlan.edgeCases?.length || 0}</p>
+                        <p className="text-[var(--text-tertiary)]">Edge Cases</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* File Changes Summary */}
+                {currentTicket?.techSpec?.fileChanges && currentTicket.techSpec.fileChanges.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">File Changes Summary</h3>
+                    <div className="text-sm text-[var(--text-secondary)] space-y-1">
+                      <p>Total files: <span className="font-medium text-[var(--text)]">{currentTicket.techSpec.fileChanges.length}</span></p>
+                      <p>Create: <span className="font-medium text-green-500">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'create').length}</span></p>
+                      <p>Modify: <span className="font-medium text-blue-500">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'modify').length}</span></p>
+                      <p>Delete: <span className="font-medium text-red-500">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'delete').length}</span></p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Estimate */}
+                {currentTicket?.estimate && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Estimate</h3>
+                    <p className="text-sm text-[var(--text)]">
+                      <span className="font-medium">{currentTicket.estimate.value}</span> {currentTicket.estimate.unit || 'points'}
+                    </p>
+                    {currentTicket.estimate.range && (
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        Range: {currentTicket.estimate.range.min} - {currentTicket.estimate.range.max}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Quality Score */}
                 <div className="border-t border-[var(--border)] pt-4">
                   <div className="flex items-center justify-between">
@@ -1283,7 +1459,10 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             </div>
 
             <p className="text-xs text-[var(--text-tertiary)]">
-              ℹ️ This is a preview of the essential ticket information. When exported, it will be formatted for your project management tool.
+              ℹ️ This preview includes all ticket sections. When exported to Jira, you will receive three files:
+              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec.md</code> (markdown)
+              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec.json</code> (structured data)
+              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_aec.json</code> (full AEC object)
             </p>
           </div>
           <DialogFooter>

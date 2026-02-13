@@ -46,6 +46,8 @@ import { RepositoryFingerprintService } from './application/services/RepositoryF
 import { ApiDetectionService } from './application/services/ApiDetectionService';
 import { TechSpecMarkdownGenerator } from './application/services/TechSpecMarkdownGenerator';
 import { AecXmlSerializer } from './application/services/AecXmlSerializer';
+import { AECSerializer } from './application/services/AECSerializer';
+import { TechSpecSerializer } from './application/services/TechSpecSerializer';
 import { AttachmentStorageService } from './infrastructure/storage/AttachmentStorageService';
 import { DEEP_ANALYSIS_SERVICE } from './application/ports/DeepAnalysisServicePort';
 import { PRDBreakdownUseCase } from './application/use-cases/PRDBreakdownUseCase';
@@ -141,6 +143,8 @@ import { FinalizeMultipleTicketsUseCase } from './application/use-cases/Finalize
     ApiDetectionService,
     TechSpecMarkdownGenerator,
     AecXmlSerializer,
+    AECSerializer,
+    TechSpecSerializer,
     AttachmentStorageService,
     PRDBreakdownService,
     DeepAnalysisServiceImpl,
