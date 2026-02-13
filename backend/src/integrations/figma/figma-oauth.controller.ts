@@ -2,7 +2,7 @@ import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException, Req
 import { Response, Request } from 'express';
 import { FigmaService } from './figma.service';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
-import { FigmaOAuthToken, FigmaOAuthTokenResponse } from './figma.types';
+import { FigmaOAuthToken } from './figma.types';
 import { FirebaseAuthGuard } from '../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../shared/presentation/guards/RateLimitGuard';
@@ -40,7 +40,7 @@ export class FigmaOAuthController {
     process.env.FIGMA_OAUTH_REDIRECT_URI ||
     'http://localhost:3000/api/integrations/figma/oauth/callback';
   private readonly FIGMA_AUTH_URL = 'https://www.figma.com/oauth';
-  private readonly FIGMA_TOKEN_URL = 'https://api.figma.com/v1/oauth/token';
+  private readonly FIGMA_TOKEN_URL = 'https://www.figma.com/api/oauth/token';
 
   // Return URL whitelist (prevent open redirect attacks)
   private readonly ALLOWED_RETURN_HOSTS = [
@@ -58,8 +58,7 @@ export class FigmaOAuthController {
 
   /**
    * Start Figma OAuth flow
-   * Returns the Figma OAuth authorization URL (instead of redirecting)
-   * This avoids CORS issues when frontend needs to handle the redirect
+   * Validates inputs and redirects to Figma authorization endpoint
    *
    * Security checks:
    * - Rate limiting (5 requests per minute per IP)
@@ -76,11 +75,16 @@ export class FigmaOAuthController {
     @Query('returnUrl') returnUrl: string,
     @WorkspaceId() userWorkspaceId: string,
     @UserId() userId: string,
-  ): Promise<{ oauthUrl: string }> {
+    @Res() res: Response,
+  ): Promise<void> {
+    const startTime = Date.now();
     // Validate inputs
     if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid workspaceId');
-      throw new Error('Missing required parameter: workspaceId');
+      res.status(400).json({
+        error: 'Missing required parameter: workspaceId',
+      });
+      return;
     }
 
     // Verify user owns requested workspace (prevent cross-workspace access)
@@ -88,12 +92,18 @@ export class FigmaOAuthController {
       this.logger.warn(
         `Figma OAuth start: User attempted unauthorized workspace access: requested=${requestedWorkspaceId}, user=${userWorkspaceId}`,
       );
-      throw new Error('You do not have permission to connect this workspace');
+      res.status(403).json({
+        error: 'You do not have permission to connect this workspace',
+      });
+      return;
     }
 
     if (!returnUrl || typeof returnUrl !== 'string' || returnUrl.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid returnUrl');
-      throw new Error('Missing required parameter: returnUrl');
+      res.status(400).json({
+        error: 'Missing required parameter: returnUrl',
+      });
+      return;
     }
 
     // Validate return URL (prevent open redirect attacks)
@@ -101,7 +111,10 @@ export class FigmaOAuthController {
       this.logger.warn(
         `Figma OAuth start: Invalid return URL (not whitelisted): ${this.getTruncatedUrlForLogging(returnUrl)}`,
       );
-      throw new Error('Return URL must be from whitelisted domain');
+      res.status(400).json({
+        error: 'Return URL must be from whitelisted domain',
+      });
+      return;
     }
 
     // Create state with timestamp (prevents replay attacks)
@@ -120,20 +133,14 @@ export class FigmaOAuthController {
     authUrl.searchParams.set('redirect_uri', this.FIGMA_REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('state', state);
-    // Request scopes enabled in Figma app settings (space-separated)
-    authUrl.searchParams.set('scope', 'file_content:read file_metadata:read');
+    authUrl.searchParams.set('scope', 'file_content_read');
 
-    this.logger.log(`✓ Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
-    this.logger.debug(`Figma OAuth URL: ${authUrl.toString()}`);
+    this.logger.debug(`Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
 
     // Track OAuth flow start
     this.telemetry.trackFigmaOAuthStarted(userId, userWorkspaceId);
 
-    // Return the OAuth URL instead of redirecting
-    // This allows frontend to handle the redirect and avoids CORS issues
-    return {
-      oauthUrl: authUrl.toString(),
-    };
+    res.redirect(authUrl.toString());
   }
 
   /**
@@ -162,47 +169,6 @@ export class FigmaOAuthController {
     } catch {
       // If parsing fails, return a generic message
       return '[invalid-url]';
-    }
-  }
-
-  /**
-   * Check Figma connection status
-   * Returns whether Figma is connected and if token is still valid
-   *
-   * Security checks:
-   * - User must be authenticated (FirebaseAuthGuard)
-   * - workspaceId must match user's workspace (WorkspaceGuard)
-   */
-  @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
-  @Get('status')
-  async getConnectionStatus(
-    @WorkspaceId() workspaceId: string,
-  ): Promise<{ connected: boolean; expired?: boolean }> {
-    try {
-      // Check if a token is stored for this workspace
-      const token = await this.figmaIntegrationRepository.getToken(workspaceId);
-      if (!token) {
-        return { connected: false };
-      }
-
-      // Check if token is expired
-      // Figma tokens expire after expiresIn seconds
-      if (token.savedAt && token.expiresIn) {
-        const ageInSeconds = (Date.now() - token.savedAt) / 1000;
-        const isExpired = ageInSeconds > token.expiresIn;
-
-        if (isExpired) {
-          this.logger.warn(
-            `Figma token expired for workspace ${workspaceId} (${ageInSeconds}s old, expires in ${token.expiresIn}s)`,
-          );
-          return { connected: false, expired: true };
-        }
-      }
-
-      return { connected: true };
-    } catch (error) {
-      this.logger.warn(`Failed to check Figma connection status for workspace ${workspaceId}`);
-      return { connected: false };
     }
   }
 
@@ -301,16 +267,21 @@ export class FigmaOAuthController {
         return;
       }
 
-      // Verify token is valid (non-blocking - log warning but continue)
-      // We already know the token works since we got it from Figma's API
+      // Verify token is valid
       const isValid = await this.figmaService.verifyToken(
         tokenResponse.accessToken,
       );
       if (!isValid) {
+        const duration = Date.now() - startTime;
         this.logger.warn(
-          `Figma token verification failed for workspace ${workspaceId} (proceeding with storage)`,
+          `Figma OAuth failed: token verification failed for workspace ${workspaceId}`,
         );
-        // Don't block OAuth flow - token will be validated when used
+        const errorUrl = new URL(returnUrl);
+        errorUrl.searchParams.set('status', 'error');
+        errorUrl.searchParams.set('provider', 'figma');
+        errorUrl.searchParams.set('error', 'Token verification failed');
+        res.redirect(errorUrl.toString());
+        return;
       }
 
       // Store token (with error boundary - if storage fails, redirect with error, not 500)
@@ -319,9 +290,7 @@ export class FigmaOAuthController {
           accessToken: tokenResponse.accessToken,
           tokenType: tokenResponse.tokenType,
           expiresIn: tokenResponse.expiresIn,
-          refreshToken: tokenResponse.refreshToken,
-          userId: tokenResponse.userId,
-          savedAt: Date.now(),
+          scope: tokenResponse.scope,
         });
       } catch (storageError) {
         const duration = Date.now() - startTime;
@@ -372,43 +341,18 @@ export class FigmaOAuthController {
    */
   private async exchangeCodeForToken(code: string): Promise<FigmaOAuthToken | null> {
     try {
-      // Validate environment variables
-      if (!this.FIGMA_CLIENT_ID) {
-        this.logger.error('Figma token exchange: FIGMA_CLIENT_ID is not set in environment variables');
-        return null;
-      }
-      if (!this.FIGMA_CLIENT_SECRET) {
-        this.logger.error('Figma token exchange: FIGMA_CLIENT_SECRET is not set in environment variables');
-        return null;
-      }
-
-      // Create Basic Auth header with client_id:client_secret
-      const credentials = Buffer.from(`${this.FIGMA_CLIENT_ID}:${this.FIGMA_CLIENT_SECRET}`).toString('base64');
-
-      // Log request details for debugging
-      const requestBody = new URLSearchParams({
-        redirect_uri: this.FIGMA_REDIRECT_URI,
-        code,
-        grant_type: 'authorization_code',
-      }).toString();
-
-      this.logger.debug(`Figma token exchange request:
-        - URL: ${this.FIGMA_TOKEN_URL}
-        - Auth header present: ${credentials ? 'yes' : 'no'}
-        - Auth header length: ${credentials ? credentials.length : 0}
-        - Client ID length: ${this.FIGMA_CLIENT_ID.length}
-        - Client Secret length: ${this.FIGMA_CLIENT_SECRET.length}
-        - Code: ${code}
-        - Grant type: authorization_code
-        - Redirect URI: ${this.FIGMA_REDIRECT_URI}`);
-
       const response = await fetch(this.FIGMA_TOKEN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${credentials}`,
         },
-        body: requestBody,
+        body: new URLSearchParams({
+          client_id: this.FIGMA_CLIENT_ID,
+          client_secret: this.FIGMA_CLIENT_SECRET,
+          redirect_uri: this.FIGMA_REDIRECT_URI,
+          code,
+          grant_type: 'authorization_code',
+        }).toString(),
       });
 
       if (!response.ok) {
@@ -416,30 +360,10 @@ export class FigmaOAuthController {
         this.logger.error(
           `Figma token exchange failed: ${response.status} - ${error}`,
         );
-        this.logger.debug(`Figma token request details:
-          - URL: ${this.FIGMA_TOKEN_URL}
-          - Client ID: ${this.FIGMA_CLIENT_ID.substring(0, 5)}...
-          - Redirect URI: ${this.FIGMA_REDIRECT_URI}
-          - Code length: ${code.length}
-          - Response status: ${response.status}
-          - Response body: ${error}
-          - Response headers: ${JSON.stringify(Array.from(response.headers.entries()))}`);
         return null;
       }
 
-      const rawData = (await response.json()) as FigmaOAuthTokenResponse;
-      this.logger.debug(`Figma token exchange response: ${JSON.stringify(rawData)}`);
-
-      // Transform Figma's snake_case response to camelCase
-      const data: FigmaOAuthToken = {
-        accessToken: rawData.access_token,
-        tokenType: rawData.token_type,
-        expiresIn: rawData.expires_in,
-        refreshToken: rawData.refresh_token,
-        userId: rawData.user_id_string,
-      };
-
-      this.logger.debug(`Figma token exchange successful, token type: ${data.tokenType}`);
+      const data = (await response.json()) as FigmaOAuthToken;
       return data;
     } catch (error) {
       this.logger.error(

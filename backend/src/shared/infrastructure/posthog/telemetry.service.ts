@@ -21,10 +21,8 @@ export class TelemetryService {
    */
   trackTicketCreationStarted(userId: string, workspaceId: string, mode: 'create_new' | 'import') {
     this.posthog.capture(userId, 'ticket_creation_started', {
-      source: 'backend',
       workspace_id: workspaceId,
       mode,
-      timestamp: new Date().toISOString(),
     });
   }
 
@@ -58,11 +56,7 @@ export class TelemetryService {
     userId: string,
     props: DeepAnalysisProperties,
   ) {
-    this.posthog.capture(userId, 'deep_analysis_completed', {
-      source: 'backend',
-      ...props,
-      timestamp: new Date().toISOString(),
-    });
+    this.posthog.capture(userId, 'deep_analysis_completed', props);
   }
 
   /**
@@ -136,63 +130,10 @@ export class TelemetryService {
   }
 
   /**
-   * Track LLM API call (token usage, cost, latency)
-   * Used for: Claude API calls, deep analysis, spec generation, question generation
-   */
-  trackLLMCall(
-    userId: string,
-    ticketId: string,
-    model: string,
-    inputTokens: number,
-    outputTokens: number,
-    costUsd: number,
-    durationMs: number,
-    purpose: 'deep_analysis' | 'spec_generation' | 'question_generation' | 'answer_refinement' | 'other',
-  ) {
-    this.posthog.capture(userId, 'llm_api_call', {
-      source: 'backend',
-      ticket_id: ticketId,
-      model,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      total_tokens: inputTokens + outputTokens,
-      cost_usd: costUsd,
-      duration_ms: durationMs,
-      purpose,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Track LLM error
-   */
-  trackLLMError(
-    userId: string,
-    ticketId: string,
-    model: string,
-    error: string,
-    durationMs: number,
-    purpose: 'deep_analysis' | 'spec_generation' | 'question_generation' | 'answer_refinement' | 'other',
-  ) {
-    this.posthog.capture(userId, 'llm_api_error', {
-      source: 'backend',
-      ticket_id: ticketId,
-      model,
-      error,
-      duration_ms: durationMs,
-      purpose,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Track cost (aggregated LLM tokens, API calls)
+   * Track cost (LLM tokens, API calls)
    */
   trackCost(userId: string, props: CostTrackingProperties) {
-    this.posthog.capture(userId, 'cost_tracked', {
-      source: 'backend',
-      ...props,
-    });
+    this.posthog.capture(userId, 'cost_tracked', props);
   }
 
   /**
@@ -282,127 +223,6 @@ export class TelemetryService {
       workspace_id: workspaceId,
       error,
       duration_ms,
-    });
-  }
-
-  /**
-   * Track design link operations (Phase 2 - Epic 26)
-   */
-  trackDesignLinkAdded(userId: string, ticketId: string, platform: string) {
-    this.posthog.capture(userId, 'design_link_added', {
-      source: 'backend',
-      ticket_id: ticketId,
-      platform, // 'figma', 'loom', 'miro', etc.
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  trackDesignLinkRemoved(userId: string, ticketId: string, platform: string) {
-    this.posthog.capture(userId, 'design_link_removed', {
-      source: 'backend',
-      ticket_id: ticketId,
-      platform,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  trackDesignMetadataFetched(userId: string, ticketId: string, platform: string, durationMs: number, success: boolean) {
-    this.posthog.capture(userId, 'design_metadata_fetched', {
-      source: 'backend',
-      ticket_id: ticketId,
-      platform,
-      duration_ms: durationMs,
-      success,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Track PRD breakdown operations
-   */
-  trackPRDBreakdownStarted(userId: string, workspaceId: string) {
-    this.posthog.capture(userId, 'prd_breakdown_started', {
-      source: 'backend',
-      workspace_id: workspaceId,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  trackPRDBreakdownCompleted(userId: string, workspaceId: string, ticketCount: number, durationMs: number) {
-    this.posthog.capture(userId, 'prd_breakdown_completed', {
-      source: 'backend',
-      workspace_id: workspaceId,
-      ticket_count: ticketCount,
-      duration_ms: durationMs,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  trackBulkEnrichmentStarted(userId: string, workspaceId: string, ticketCount: number) {
-    this.posthog.capture(userId, 'bulk_enrichment_started', {
-      source: 'backend',
-      workspace_id: workspaceId,
-      ticket_count: ticketCount,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  trackBulkEnrichmentCompleted(userId: string, workspaceId: string, successCount: number, failureCount: number, durationMs: number) {
-    this.posthog.capture(userId, 'bulk_enrichment_completed', {
-      source: 'backend',
-      workspace_id: workspaceId,
-      success_count: successCount,
-      failure_count: failureCount,
-      total_count: successCount + failureCount,
-      success_rate: successCount / (successCount + failureCount),
-      duration_ms: durationMs,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Track export operations
-   */
-  trackExportStarted(userId: string, ticketId: string, format: 'markdown' | 'json' | 'xml') {
-    this.posthog.capture(userId, 'export_started', {
-      source: 'backend',
-      ticket_id: ticketId,
-      format,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  trackExportCompleted(userId: string, ticketId: string, format: 'markdown' | 'json' | 'xml', durationMs: number) {
-    this.posthog.capture(userId, 'export_completed', {
-      source: 'backend',
-      ticket_id: ticketId,
-      format,
-      duration_ms: durationMs,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Track API performance and errors
-   */
-  trackAPIError(userId: string, endpoint: string, statusCode: number, error: string, durationMs: number) {
-    this.posthog.capture(userId, 'api_error', {
-      source: 'backend',
-      endpoint,
-      status_code: statusCode,
-      error,
-      duration_ms: durationMs,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  trackAPISuccess(userId: string, endpoint: string, statusCode: number, durationMs: number) {
-    this.posthog.capture(userId, 'api_success', {
-      source: 'backend',
-      endpoint,
-      status_code: statusCode,
-      duration_ms: durationMs,
-      timestamp: new Date().toISOString(),
     });
   }
 
