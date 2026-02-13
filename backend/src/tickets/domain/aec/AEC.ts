@@ -540,6 +540,7 @@ export class AEC {
       url,
       platform,
       title: title,
+      metadataFetchStatus: 'pending', // Track that metadata hasn't been fetched yet
       addedAt: new Date(),
       addedBy: userEmail,
     };
@@ -574,6 +575,36 @@ export class AEC {
     const reference = this._designReferences.find((r) => r.id === referenceId);
     if (reference) {
       reference.metadata = metadata;
+      this._updatedAt = new Date();
+    }
+  }
+
+  /**
+   * Update design reference metadata fetch status and error
+   * Called after metadata fetch completes (success, pending, or failed)
+   *
+   * @param referenceId - The design reference ID
+   * @param status - Object with metadataFetchStatus, metadataFetchError, and optional metadata
+   */
+  updateDesignReferenceStatus(
+    referenceId: string,
+    status: {
+      metadataFetchStatus?: 'pending' | 'success' | 'failed';
+      metadataFetchError?: string;
+      metadata?: DesignMetadata;
+    },
+  ): void {
+    const reference = this._designReferences.find((r) => r.id === referenceId);
+    if (reference) {
+      if (status.metadataFetchStatus !== undefined) {
+        reference.metadataFetchStatus = status.metadataFetchStatus;
+      }
+      if (status.metadataFetchError !== undefined) {
+        reference.metadataFetchError = status.metadataFetchError;
+      }
+      if (status.metadata !== undefined) {
+        reference.metadata = status.metadata;
+      }
       this._updatedAt = new Date();
     }
   }

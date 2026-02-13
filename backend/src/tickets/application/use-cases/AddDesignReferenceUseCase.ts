@@ -42,13 +42,12 @@ export class AddDesignReferenceUseCase {
   async execute(command: AddDesignReferenceCommand): Promise<AddDesignReferenceResult> {
     const { ticketId, workspaceId, userEmail, url, title } = command;
 
-    // Validate URL format
+    // Validate URL format (throws Error if invalid)
     try {
       validateDesignReferenceUrl(url);
     } catch (error) {
-      throw new BadRequestException(
-        `Invalid design reference URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
+      throw new BadRequestException(`Invalid design reference URL: ${errorMessage}`);
     }
 
     // Fetch ticket
@@ -91,6 +90,7 @@ export class AddDesignReferenceUseCase {
   /**
    * Fetch and update design reference metadata asynchronously
    * Runs in background without blocking the response
+   * Always updates the reference status (pending/success/failed)
    * @private
    */
   private async fetchAndUpdateMetadata(
@@ -105,25 +105,36 @@ export class AddDesignReferenceUseCase {
         workspaceId,
       );
 
-      // If metadata was fetched, update the ticket
-      if (enrichedReference.metadata) {
-        const aec = await this.aecRepository.findById(ticketId);
-        if (aec) {
-          // Update the design reference with metadata
-          aec.updateDesignReferenceMetadata(
-            designReference.id,
-            enrichedReference.metadata,
-          );
-          await this.aecRepository.save(aec);
+      if (!enrichedReference) {
+        this.logger.warn(
+          `fetchAndUpdateMetadata returned null for design reference ${designReference.id}`,
+        );
+        return;
+      }
 
+      // Always update the reference with fetch status (whether metadata succeeded or failed)
+      const aec = await this.aecRepository.findById(ticketId);
+      if (aec) {
+        aec.updateDesignReferenceStatus(designReference.id, {
+          metadataFetchStatus: enrichedReference.metadataFetchStatus,
+          metadataFetchError: enrichedReference.metadataFetchError,
+          metadata: enrichedReference.metadata,
+        });
+        await this.aecRepository.save(aec);
+
+        if (enrichedReference.metadataFetchStatus === 'success') {
           this.logger.debug(
             `Updated design reference metadata for ${designReference.platform} link in ticket ${ticketId}`,
+          );
+        } else if (enrichedReference.metadataFetchStatus === 'failed') {
+          this.logger.warn(
+            `Failed to fetch design reference metadata: ${enrichedReference.metadataFetchError}`,
           );
         }
       }
     } catch (error) {
       // Log error but don't throw - metadata enrichment is optional
-      this.logger.warn(
+      this.logger.error(
         `Failed to fetch metadata for design reference in ticket ${ticketId}: ${
           error instanceof Error ? error.message : String(error)
         }`,

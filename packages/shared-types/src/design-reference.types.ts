@@ -37,6 +37,8 @@ export interface DesignReference {
   platform: DesignPlatform;
   title?: string;
   metadata?: DesignMetadata;
+  metadataFetchStatus?: 'pending' | 'success' | 'failed'; // Track metadata fetch state
+  metadataFetchError?: string; // Error message if fetch failed
   addedAt: Date;
   addedBy: string;
 }
