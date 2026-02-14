@@ -10,6 +10,7 @@ interface DesignTabProps {
   references: DesignReference[];
   onAddDesignReference: (url: string, title?: string) => Promise<void>;
   onRemoveDesignReference: (referenceId: string) => Promise<void>;
+  onRefreshDesignReference?: (referenceId: string) => Promise<void>;
   onRefresh?: () => Promise<void>; // Callback to refresh ticket data
 }
 
@@ -18,6 +19,7 @@ export function DesignTab({
   references,
   onAddDesignReference,
   onRemoveDesignReference,
+  onRefreshDesignReference,
   onRefresh,
 }: DesignTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -51,6 +53,7 @@ export function DesignTab({
         references={references}
         onAdd={() => setShowAddDialog(true)}
         onRemove={onRemoveDesignReference}
+        onRefresh={onRefreshDesignReference}
         readOnly={false}
       />
 

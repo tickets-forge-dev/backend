@@ -244,7 +244,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     if (!ticketId) return;
     try {
       await ticketService.removeDesignReference(ticketId, referenceId);
-      
+
       // Optimistic update: remove design reference from local state immediately
       if (currentTicket?.designReferences) {
         const updated = {
@@ -253,7 +253,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         };
         useTicketsStore.setState({ currentTicket: updated });
       }
-      
+
       // Fetch ticket data in the background without blocking the UI
       // Use a setTimeout to avoid blocking during tab navigation
       setTimeout(() => {
@@ -263,6 +263,26 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       }, 0);
     } catch (error) {
       console.error('Failed to remove design reference:', error);
+    }
+  };
+
+  const handleRefreshDesignReference = async (referenceId: string) => {
+    if (!ticketId) return;
+    try {
+      const result = await ticketService.refreshDesignReference(ticketId, referenceId);
+
+      // Update design reference in local state with fresh metadata
+      if (currentTicket?.designReferences && result.designReference) {
+        const updated = {
+          ...currentTicket,
+          designReferences: currentTicket.designReferences.map(ref =>
+            ref.id === referenceId ? result.designReference : ref
+          ),
+        };
+        useTicketsStore.setState({ currentTicket: updated });
+      }
+    } catch (error) {
+      console.error('Failed to refresh design reference:', error);
     }
   };
 
@@ -890,6 +910,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         isUploadingAttachment={isUploadingAttachment}
         onAddDesignReference={handleAddDesignReference}
         onRemoveDesignReference={handleRemoveDesignReference}
+        onRefreshDesignReference={handleRefreshDesignReference}
         saveTechSpecPatch={saveTechSpecPatch}
         fetchTicket={fetchTicket}
       />

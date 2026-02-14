@@ -57,6 +57,7 @@ import { EnrichMultipleTicketsUseCase } from './application/use-cases/EnrichMult
 import { FinalizeMultipleTicketsUseCase } from './application/use-cases/FinalizeMultipleTicketsUseCase';
 import { AddDesignReferenceUseCase } from './application/use-cases/AddDesignReferenceUseCase';
 import { RemoveDesignReferenceUseCase } from './application/use-cases/RemoveDesignReferenceUseCase';
+import { RefreshDesignMetadataUseCase } from './application/use-cases/RefreshDesignMetadataUseCase';
 import { FetchDesignMetadataUseCase } from './application/use-cases/FetchDesignMetadataUseCase';
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
@@ -93,6 +94,7 @@ import { LoomModule } from '../integrations/loom/loom.module';
     FinalizeMultipleTicketsUseCase,
     AddDesignReferenceUseCase,
     RemoveDesignReferenceUseCase,
+    RefreshDesignMetadataUseCase,
     FetchDesignMetadataUseCase,
     ValidationEngine,
     // Validators

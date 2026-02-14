@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { auth } from '@/lib/firebase';
+import type { DesignReference } from '@repo/shared-types';
 
 export interface CreateTicketRequest {
   title: string;
@@ -207,6 +208,13 @@ export class TicketService {
 
   async removeDesignReference(ticketId: string, referenceId: string): Promise<void> {
     await this.client.delete(`/tickets/${ticketId}/design-references/${referenceId}`);
+  }
+
+  async refreshDesignReference(ticketId: string, referenceId: string): Promise<{ designReference: DesignReference }> {
+    const response = await this.client.post<{ designReference: DesignReference }>(
+      `/tickets/${ticketId}/design-references/${referenceId}/refresh`
+    );
+    return response.data;
   }
 }
 

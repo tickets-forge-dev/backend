@@ -7,6 +7,7 @@ interface DesignReferencesSectionProps {
   references: DesignReference[];
   onAdd?: () => void;
   onRemove: (referenceId: string) => Promise<void>;
+  onRefresh?: (referenceId: string) => Promise<void>;
   readOnly?: boolean;
 }
 
@@ -14,6 +15,7 @@ export function DesignReferencesSection({
   references,
   onAdd,
   onRemove,
+  onRefresh,
   readOnly = false,
 }: DesignReferencesSectionProps) {
   if (references.length === 0) {
@@ -43,6 +45,7 @@ export function DesignReferencesSection({
           key={reference.id}
           reference={reference}
           onRemove={onRemove}
+          onRefresh={onRefresh}
           readOnly={readOnly}
         />
       ))}

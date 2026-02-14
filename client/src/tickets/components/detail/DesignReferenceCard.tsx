@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { ExternalLink, Trash2, ChevronDown } from 'lucide-react';
+import { ExternalLink, Trash2, ChevronDown, RefreshCw } from 'lucide-react';
 import { type DesignReference, type FigmaMetadata, type LoomMetadata, type ExtractedDesignTokens } from '@repo/shared-types';
 
 interface DesignReferenceCardProps {
   reference: DesignReference;
   onRemove: (referenceId: string) => Promise<void>;
+  onRefresh?: (referenceId: string) => Promise<void>;
   readOnly?: boolean;
 }
 
@@ -40,9 +41,11 @@ const PLATFORM_NAMES: Record<string, string> = {
 export function DesignReferenceCard({
   reference,
   onRemove,
+  onRefresh,
   readOnly = false,
 }: DesignReferenceCardProps) {
   const [removing, setRemoving] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const handleRemove = async () => {
     setRemoving(true);
@@ -50,6 +53,16 @@ export function DesignReferenceCard({
       await onRemove(reference.id);
     } finally {
       setRemoving(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    try {
+      await onRefresh(reference.id);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -85,7 +98,9 @@ export function DesignReferenceCard({
         reference={reference}
         metadata={reference.metadata.figma}
         onRemove={handleRemove}
+        onRefresh={onRefresh ? handleRefresh : undefined}
         removing={removing}
+        refreshing={refreshing}
         readOnly={readOnly}
       />
     );
@@ -97,7 +112,9 @@ export function DesignReferenceCard({
         reference={reference}
         metadata={reference.metadata.loom}
         onRemove={handleRemove}
+        onRefresh={onRefresh ? handleRefresh : undefined}
         removing={removing}
+        refreshing={refreshing}
         readOnly={readOnly}
       />
     );
@@ -121,13 +138,17 @@ function FigmaPreviewCard({
   reference,
   metadata,
   onRemove,
+  onRefresh,
   removing,
+  refreshing,
   readOnly,
 }: {
   reference: DesignReference;
   metadata: FigmaMetadata;
   onRemove: () => Promise<void>;
+  onRefresh?: () => Promise<void>;
   removing: boolean;
+  refreshing: boolean;
   readOnly: boolean;
 }) {
   return (
@@ -178,6 +199,16 @@ function FigmaPreviewCard({
 
       {/* Actions */}
       <div className="flex gap-1 flex-shrink-0">
+        {onRefresh && !readOnly && (
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            title="Refresh metadata"
+            className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          </button>
+        )}
         <a
           href={reference.url}
           target="_blank"
@@ -209,13 +240,17 @@ function LoomPreviewCard({
   reference,
   metadata,
   onRemove,
+  onRefresh,
   removing,
+  refreshing,
   readOnly,
 }: {
   reference: DesignReference;
   metadata: LoomMetadata;
   onRemove: () => Promise<void>;
+  onRefresh?: () => Promise<void>;
   removing: boolean;
+  refreshing: boolean;
   readOnly: boolean;
 }) {
   const formatDuration = (seconds: number) => {
@@ -274,6 +309,16 @@ function LoomPreviewCard({
 
       {/* Actions */}
       <div className="flex gap-1 flex-shrink-0">
+        {onRefresh && !readOnly && (
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            title="Refresh metadata"
+            className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          </button>
+        )}
         <a
           href={reference.url}
           target="_blank"

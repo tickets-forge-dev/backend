@@ -73,6 +73,7 @@ import { EnrichMultipleTicketsUseCase } from '../../application/use-cases/Enrich
 import { FinalizeMultipleTicketsUseCase } from '../../application/use-cases/FinalizeMultipleTicketsUseCase';
 import { AddDesignReferenceUseCase } from '../../application/use-cases/AddDesignReferenceUseCase';
 import { RemoveDesignReferenceUseCase } from '../../application/use-cases/RemoveDesignReferenceUseCase';
+import { RefreshDesignMetadataUseCase } from '../../application/use-cases/RefreshDesignMetadataUseCase';
 import { ImportFromJiraDto } from '../dto/ImportFromJiraDto';
 import { AddDesignReferenceDto } from '../dto/AddDesignReferenceDto';
 import { ImportFromLinearDto } from '../dto/ImportFromLinearDto';
@@ -125,6 +126,7 @@ export class TicketsController {
     private readonly finalizeMultipleTicketsUseCase: FinalizeMultipleTicketsUseCase,
     private readonly addDesignReferenceUseCase: AddDesignReferenceUseCase,
     private readonly removeDesignReferenceUseCase: RemoveDesignReferenceUseCase,
+    private readonly refreshDesignMetadataUseCase: RefreshDesignMetadataUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -732,6 +734,24 @@ export class TicketsController {
       referenceId,
       workspaceId,
     });
+  }
+
+  /**
+   * Refresh design reference metadata (thumbnails, tokens, etc.)
+   * Manually triggers a re-fetch of metadata from Figma/Loom APIs
+   */
+  @Post(':id/design-references/:referenceId/refresh')
+  async refreshDesignMetadata(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('referenceId') referenceId: string,
+  ) {
+    const result = await this.refreshDesignMetadataUseCase.execute({
+      ticketId: id,
+      referenceId,
+      workspaceId,
+    });
+    return result;
   }
 
   /**

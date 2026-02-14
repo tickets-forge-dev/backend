@@ -46,6 +46,7 @@ interface TicketDetailLayoutProps {
   // Design references
   onAddDesignReference?: (url: string, title?: string) => Promise<void>;
   onRemoveDesignReference?: (referenceId: string) => Promise<void>;
+  onRefreshDesignReference?: (referenceId: string) => Promise<void>;
   // Tech spec patch
   saveTechSpecPatch: (patch: Record<string, any>) => Promise<boolean | undefined>;
   fetchTicket: (id: string) => Promise<void>;
@@ -76,6 +77,7 @@ export function TicketDetailLayout({
   isUploadingAttachment,
   onAddDesignReference,
   onRemoveDesignReference,
+  onRefreshDesignReference,
   saveTechSpecPatch,
   fetchTicket,
 }: TicketDetailLayoutProps) {
@@ -328,6 +330,7 @@ export function TicketDetailLayout({
               references={ticket.designReferences || []}
               onAddDesignReference={onAddDesignReference}
               onRemoveDesignReference={onRemoveDesignReference}
+              onRefreshDesignReference={onRefreshDesignReference}
               onRefresh={() => fetchTicket(ticketId)}
             />
           ) : (
