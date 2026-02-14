@@ -2,13 +2,7 @@
  * Design Reference Types - Shared between Backend and Frontend
  */
 
-export type DesignPlatform =
-  | 'figma'
-  | 'loom'
-  | 'miro'
-  | 'sketch'
-  | 'whimsical'
-  | 'other';
+export type DesignPlatform = 'figma' | 'loom' | 'miro' | 'sketch' | 'whimsical' | 'other';
 
 /**
  * Design Token extracted from Figma
@@ -29,7 +23,7 @@ export interface ExtractedDesignTokens {
   spacing: DesignToken[];
   radius: DesignToken[];
   shadows: DesignToken[];
-  raw?: Record<string, any>;
+  raw?: Record<string, unknown>;
 }
 
 export interface FigmaMetadata {
@@ -70,7 +64,7 @@ export interface DesignReference {
  * Platform detection from URL
  */
 const PLATFORM_PATTERNS = {
-  figma: /figma\.com\/(file|proto|design)\//,  // Supports /file/, /design/, and /proto/ paths
+  figma: /figma\.com\/(file|proto|design)\//, // Supports /file/, /design/, and /proto/ paths
   loom: /loom\.com\/(share|embed)\//,
   miro: /miro\.com\/app\/board\//,
   sketch: /sketch\.com\//,
