@@ -151,13 +151,13 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePreviewMd}
               disabled={loadingMd}
-              className="flex-1 h-8 text-xs"
+              className="flex-1 h-8 text-xs px-2.5"
             >
               {loadingMd ? (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -171,7 +171,7 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
               size="sm"
               onClick={handleDownloadMd}
               disabled={loadingMd}
-              className="flex-1 h-8 text-xs"
+              className="flex-1 h-8 text-xs px-2.5"
             >
               {loadingMd ? (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -201,13 +201,13 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePreviewXml}
               disabled={loadingXml}
-              className="flex-1 h-8 text-xs"
+              className="h-8 text-xs px-2.5"
             >
               {loadingXml ? (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -221,7 +221,7 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
               size="sm"
               onClick={handleDownloadXml}
               disabled={loadingXml}
-              className="h-8 text-xs"
+              className="h-8 text-xs px-2.5"
             >
               {loadingXml ? (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -235,7 +235,7 @@ export function AssetsSection({ ticketId, ticketTitle, ticketUpdatedAt, attachme
               size="sm"
               onClick={handleCopyXml}
               disabled={loadingXml}
-              className="h-8 text-xs"
+              className="h-8 text-xs px-2.5"
             >
               {copiedXml ? (
                 <Check className="h-3 w-3 mr-1 text-green-500" />
