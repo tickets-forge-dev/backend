@@ -229,14 +229,19 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const handleAddDesignReference = async (url: string, title?: string) => {
     if (!ticketId) return;
     try {
-      await ticketService.addDesignReference(ticketId, { url, title });
-      // Fetch ticket data in the background (non-blocking)
-      // This allows the dialog to close immediately while data syncs
-      fetchTicket(ticketId).catch(error => {
-        console.error('Failed to refresh ticket after adding design reference:', error);
-      });
+      const result = await ticketService.addDesignReference(ticketId, { url, title });
+
+      // Optimistic update: add design reference to local state immediately
+      if (currentTicket && result.designReference) {
+        const updated = {
+          ...currentTicket,
+          designReferences: [...(currentTicket.designReferences || []), result.designReference],
+        };
+        useTicketsStore.setState({ currentTicket: updated });
+      }
     } catch (error) {
       console.error('Failed to add design reference:', error);
+      toast.error('Failed to add design reference');
     }
   };
 
@@ -253,16 +258,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         };
         useTicketsStore.setState({ currentTicket: updated });
       }
-
-      // Fetch ticket data in the background without blocking the UI
-      // Use a setTimeout to avoid blocking during tab navigation
-      setTimeout(() => {
-        fetchTicket(ticketId).catch(error => {
-          console.error('Failed to refresh ticket after removing design reference:', error);
-        });
-      }, 0);
     } catch (error) {
       console.error('Failed to remove design reference:', error);
+      toast.error('Failed to remove design reference');
     }
   };
 
