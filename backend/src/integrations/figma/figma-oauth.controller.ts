@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException, BadRequestException, Req } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Query, Body, Res, Logger, UseGuards, ForbiddenException, BadRequestException, Req } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { FigmaService } from './figma.service';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
@@ -119,7 +119,7 @@ export class FigmaOAuthController {
     authUrl.searchParams.set('redirect_uri', this.FIGMA_REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('scope', 'file_content_read');
+    authUrl.searchParams.set('scope', 'file_content:read file_metadata:read');
 
     this.logger.debug(`Starting Figma OAuth flow for workspace ${userWorkspaceId}`);
 
@@ -127,7 +127,6 @@ export class FigmaOAuthController {
     this.telemetry.trackFigmaOAuthStarted(userId, userWorkspaceId);
 
     // Return OAuth URL as JSON (frontend will handle redirect)
-    // This avoids CORS issues with redirects
     return {
       authUrl: authUrl.toString(),
     };
@@ -362,5 +361,85 @@ export class FigmaOAuthController {
       );
       return null;
     }
+  }
+
+  /**
+   * Save Personal Access Token (alternative to OAuth)
+   * Allows users to connect Figma without OAuth approval
+   */
+  @UseGuards(RateLimitGuard, FirebaseAuthGuard, WorkspaceGuard)
+  @Post('token')
+  async savePersonalToken(
+    @Body('token') token: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      throw new BadRequestException('Token is required');
+    }
+
+    // Verify token is valid by making a test API call
+    const isValid = await this.figmaService.verifyToken(token);
+    if (!isValid) {
+      this.logger.warn(`Figma token verification failed for workspace ${workspaceId}`);
+      throw new BadRequestException('Invalid Figma token. Make sure you copied the full token and it has these scopes: file_content:read, file_metadata:read, current_user:read');
+    }
+
+    // Store token (same format as OAuth tokens)
+    await this.figmaIntegrationRepository.saveToken(workspaceId, {
+      accessToken: token,
+      tokenType: 'Bearer',
+      expiresIn: 0, // Personal tokens don't expire
+      savedAt: Date.now(),
+      connectionMethod: 'personal_token',
+    });
+
+    this.logger.log(`✓ Figma Personal Access Token saved for workspace ${workspaceId}`);
+
+    return {
+      success: true,
+      connectionMethod: 'personal_token',
+    };
+  }
+
+  /**
+   * Check Figma connection status
+   * Works for both OAuth and Personal Access Token
+   */
+  @UseGuards(RateLimitGuard, FirebaseAuthGuard, WorkspaceGuard)
+  @Get('status')
+  async getStatus(@WorkspaceId() workspaceId: string) {
+    const token = await this.figmaIntegrationRepository.getToken(workspaceId);
+
+    if (!token) {
+      return {
+        connected: false,
+        connectionMethod: null,
+      };
+    }
+
+    // Verify token is still valid
+    const isValid = await this.figmaService.verifyToken(token.accessToken);
+
+    return {
+      connected: isValid,
+      connectionMethod: token.connectionMethod || 'oauth',
+      expired: !isValid,
+    };
+  }
+
+  /**
+   * Disconnect Figma integration
+   * Removes stored token (works for both OAuth and PAT)
+   */
+  @UseGuards(RateLimitGuard, FirebaseAuthGuard, WorkspaceGuard)
+  @Delete('disconnect')
+  async disconnect(@WorkspaceId() workspaceId: string) {
+    await this.figmaIntegrationRepository.deleteToken(workspaceId);
+
+    this.logger.log(`✓ Figma integration disconnected for workspace ${workspaceId}`);
+
+    return {
+      success: true,
+    };
   }
 }

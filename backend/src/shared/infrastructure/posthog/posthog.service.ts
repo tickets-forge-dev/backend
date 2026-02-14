@@ -91,15 +91,22 @@ export class PostHogService {
 
   /**
    * Shutdown service and flush events
+   * Graceful shutdown - doesn't crash if PostHog API is unavailable
    */
   async shutdown() {
     if (!this.enabled || !this.posthog) return;
 
     try {
-      await this.posthog.shutdown();
+      // Set a timeout to prevent hanging on network issues
+      const shutdownPromise = this.posthog.shutdown();
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000)); // 5 second timeout
+      await Promise.race([shutdownPromise, timeoutPromise]);
       this.logger.log('[PostHog] Shutdown complete');
     } catch (error) {
-      this.logger.error('[PostHog] Error during shutdown', error);
+      // Don't crash on PostHog errors - log and continue
+      this.logger.warn('[PostHog] Error during shutdown (non-fatal)', {
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

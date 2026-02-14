@@ -20,7 +20,7 @@ export interface ExtractedDesignTokens {
   spacing: DesignToken[];
   radius: DesignToken[];
   shadows: DesignToken[];
-  raw?: Record<string, any>; // Full Figma styles response for debugging
+  // Note: raw field removed - full Figma file structure causes Firestore depth errors
 }
 
 /**
@@ -110,7 +110,8 @@ export class FigmaTokensService {
       spacing: [],
       radius: [],
       shadows: [],
-      raw: fileDetails,
+      // Note: raw field removed - the full Figma file structure is too deeply nested
+      // for Firestore (>20 levels) and should not be persisted
     };
 
     if (!fileDetails) return tokens;

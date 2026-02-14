@@ -32,6 +32,7 @@ export interface FigmaOAuthTokenResponse {
 
 /**
  * Normalized token stored in database (uses camelCase)
+ * Supports both OAuth tokens and Personal Access Tokens
  */
 export interface FigmaOAuthToken {
   accessToken: string;
@@ -40,4 +41,5 @@ export interface FigmaOAuthToken {
   refreshToken?: string;
   userId?: string;
   savedAt?: number; // Timestamp when token was saved (milliseconds)
+  connectionMethod?: 'oauth' | 'personal_token'; // How the token was obtained
 }

@@ -66,32 +66,37 @@ export function LoomIntegration() {
       }
 
       const idToken = await user.getIdToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
       const returnUrl = `${window.location.origin}/settings?tab=integrations`;
 
       // Call the OAuth start endpoint with auth header
+      // Backend will redirect to Loom OAuth page
       const response = await fetch(
         `${apiUrl}/integrations/loom/oauth/start?workspaceId=${workspaceId}&returnUrl=${encodeURIComponent(returnUrl)}`,
         {
           headers: {
             Authorization: `Bearer ${idToken}`,
           },
+          redirect: 'manual', // Don't follow redirects automatically
         }
       );
+
+      // Check if backend returned a redirect
+      if (response.type === 'opaqueredirect' || response.status === 302 || response.status === 301) {
+        // Get the redirect URL and navigate to it
+        const redirectUrl = response.headers.get('Location') || response.url;
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        } else {
+          setError('Backend redirect did not include a location');
+        }
+        return;
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
         setError('Failed to start Loom OAuth: ' + errorText);
         return;
-      }
-
-      // Backend returns the OAuth URL as JSON
-      const data = await response.json();
-      if (data.authUrl) {
-        // Redirect to Loom OAuth endpoint
-        window.location.href = data.authUrl;
-      } else {
-        setError('Invalid response from server: ' + JSON.stringify(data));
       }
     } catch (err) {
       setError('Failed to connect to Loom: ' + (err instanceof Error ? err.message : String(err)));

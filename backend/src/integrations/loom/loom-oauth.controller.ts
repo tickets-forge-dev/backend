@@ -75,12 +75,16 @@ export class LoomOAuthController {
     @Query('returnUrl') returnUrl: string,
     @WorkspaceId() userWorkspaceId: string,
     @UserId() userId: string,
-  ) {
+    @Res() res: Response,
+  ): Promise<void> {
     const startTime = Date.now();
     // Validate inputs
     if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Loom OAuth start: Missing or invalid workspaceId');
-      throw new BadRequestException('Missing required parameter: workspaceId');
+      res.status(400).json({
+        error: 'Missing required parameter: workspaceId',
+      });
+      return;
     }
 
     // Verify user owns requested workspace (prevent cross-workspace access)
@@ -88,12 +92,18 @@ export class LoomOAuthController {
       this.logger.warn(
         `Loom OAuth start: User attempted unauthorized workspace access: requested=${requestedWorkspaceId}, user=${userWorkspaceId}`,
       );
-      throw new ForbiddenException('You do not have permission to connect this workspace');
+      res.status(403).json({
+        error: 'You do not have permission to connect this workspace',
+      });
+      return;
     }
 
     if (!returnUrl || typeof returnUrl !== 'string' || returnUrl.trim().length === 0) {
       this.logger.warn('Loom OAuth start: Missing or invalid returnUrl');
-      throw new BadRequestException('Missing required parameter: returnUrl');
+      res.status(400).json({
+        error: 'Missing required parameter: returnUrl',
+      });
+      return;
     }
 
     // Validate return URL (prevent open redirect attacks)
@@ -101,7 +111,10 @@ export class LoomOAuthController {
       this.logger.warn(
         `Loom OAuth start: Invalid return URL (not whitelisted): ${this.getTruncatedUrlForLogging(returnUrl)}`,
       );
-      throw new BadRequestException('Return URL must be from whitelisted domain');
+      res.status(400).json({
+        error: 'Return URL must be from whitelisted domain',
+      });
+      return;
     }
 
     // Create state with timestamp (prevents replay attacks)
@@ -127,11 +140,7 @@ export class LoomOAuthController {
     // Track OAuth flow start
     this.telemetry.trackLoomOAuthStarted(userId, userWorkspaceId);
 
-    // Return OAuth URL as JSON (frontend will handle redirect)
-    // This avoids CORS issues with redirects
-    return {
-      authUrl: authUrl.toString(),
-    };
+    res.redirect(authUrl.toString());
   }
 
   /**

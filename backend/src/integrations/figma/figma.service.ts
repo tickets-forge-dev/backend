@@ -193,6 +193,15 @@ export class FigmaService {
         );
 
         clearTimeout(timeoutId);
+
+        // Log detailed response for debugging
+        if (response.status !== 200) {
+          const responseText = await response.text().catch(() => 'Unable to read response');
+          this.logger.warn(
+            `Figma token verification failed: status=${response.status}, response=${responseText}`,
+          );
+        }
+
         return response.status === 200;
       } catch (error) {
         clearTimeout(timeoutId);
