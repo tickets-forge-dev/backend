@@ -358,7 +358,7 @@ function LoadingCard({
   readOnly: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-800">
+    <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
       {/* Spinner */}
       <div className="text-lg flex-shrink-0">
         <span className="inline-block animate-spin">⏳</span>
@@ -369,7 +369,7 @@ function LoadingCard({
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
           {reference.title || PLATFORM_NAMES[reference.platform] || PLATFORM_NAMES.other}
         </p>
-        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
           Fetching preview...
         </p>
         <a
