@@ -30,13 +30,36 @@ export async function POST(
   try {
     const body = await request.text();
 
+    // Forward all relevant headers from the original request
+    const headers: Record<string, string> = {
+      'User-Agent': request.headers.get('user-agent') || 'forge-proxy',
+    };
+
+    // Preserve Content-Type if present
+    const contentType = request.headers.get('content-type');
+    if (contentType) {
+      headers['Content-Type'] = contentType;
+    }
+
+    // Preserve other PostHog-specific headers
+    const relevantHeaders = [
+      'authorization',
+      'x-posthog-api-key',
+      'accept',
+      'accept-encoding',
+    ];
+
+    for (const header of relevantHeaders) {
+      const value = request.headers.get(header);
+      if (value) {
+        headers[header] = value;
+      }
+    }
+
     const response = await fetch(targetUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': request.headers.get('user-agent') || 'forge-proxy',
-      },
-      body,
+      headers,
+      body: body || undefined,
     });
 
     const data = await response.text();
@@ -47,7 +70,7 @@ export async function POST(
         'Content-Type': response.headers.get('content-type') || 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     });
   } catch (error: any) {
@@ -71,11 +94,22 @@ export async function GET(
   const targetUrl = `${POSTHOG_HOST}/${pathname}${url.search}`;
 
   try {
+    // Forward relevant headers
+    const headers: Record<string, string> = {
+      'User-Agent': request.headers.get('user-agent') || 'forge-proxy',
+    };
+
+    const relevantHeaders = ['authorization', 'x-posthog-api-key', 'accept', 'accept-encoding'];
+    for (const header of relevantHeaders) {
+      const value = request.headers.get(header);
+      if (value) {
+        headers[header] = value;
+      }
+    }
+
     const response = await fetch(targetUrl, {
       method: 'GET',
-      headers: {
-        'User-Agent': request.headers.get('user-agent') || 'forge-proxy',
-      },
+      headers,
     });
 
     const data = await response.text();
@@ -86,7 +120,7 @@ export async function GET(
         'Content-Type': response.headers.get('content-type') || 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     });
   } catch (error: any) {
