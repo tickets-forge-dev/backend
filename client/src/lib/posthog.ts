@@ -27,17 +27,50 @@ export const initPostHog = () => {
     return;
   }
 
-  posthog.init(apiKey, {
-    // Use reverse proxy to avoid ad blocker issues
-    // Requests go to /api/ingest/* instead of directly to posthog.com
-    api_host: host || '/api/ingest',
-    ui_host: 'https://us.posthog.com', // PostHog UI for session replay, surveys, etc.
-    loaded: (ph) => {
-      console.log('[PostHog] Initialized with proxy at /api/ingest');
-    },
-    capture_pageview: true, // Automatically capture page views
-    disable_compression: false,
-  });
+  // Validate API key format
+  if (apiKey.startsWith('phx_')) {
+    console.error(
+      '[PostHog] Invalid API key: You are using a Personal API Key (phx_...). ' +
+      'Please use a Project API Key (phc_...) from PostHog Project Settings. ' +
+      'Analytics disabled.'
+    );
+    return;
+  }
+
+  if (!apiKey.startsWith('phc_')) {
+    console.warn(
+      '[PostHog] API key format unrecognized. Expected format: phc_... ' +
+      'Please verify you are using the Project API Key from PostHog Project Settings.'
+    );
+  }
+
+  try {
+    posthog.init(apiKey, {
+      // Use reverse proxy to avoid ad blocker issues
+      // Requests go to /api/ingest/* instead of directly to posthog.com
+      api_host: host || '/api/ingest',
+      ui_host: 'https://us.posthog.com', // PostHog UI for session replay, surveys, etc.
+      loaded: (ph) => {
+        console.log('[PostHog] Initialized successfully with proxy at /api/ingest');
+      },
+      capture_pageview: true, // Automatically capture page views
+      disable_compression: false,
+      // Silence 401 errors in console by handling them gracefully
+      on_request_error: (error: any) => {
+        if (error?.status === 401) {
+          console.error(
+            '[PostHog] Authentication failed (401). Your API key may be invalid or expired. ' +
+            'Please update NEXT_PUBLIC_POSTHOG_KEY in .env.local with a valid Project API Key. ' +
+            'Analytics disabled until resolved.'
+          );
+          // Disable PostHog to prevent repeated failed requests
+          posthog.opt_out_capturing();
+        }
+      },
+    });
+  } catch (error: any) {
+    console.error('[PostHog] Failed to initialize:', error.message);
+  }
 };
 
 /**
