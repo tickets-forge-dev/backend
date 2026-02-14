@@ -481,6 +481,8 @@ function ErrorCard({
  */
 function DesignTokensDisplay({ tokens }: { tokens: ExtractedDesignTokens }) {
   const [expanded, setExpanded] = React.useState(false);
+  const [expandedColors, setExpandedColors] = React.useState(false);
+  const [copiedColor, setCopiedColor] = React.useState<string | null>(null);
 
   // Early return if no tokens to display
   const hasTokens =
@@ -491,6 +493,15 @@ function DesignTokensDisplay({ tokens }: { tokens: ExtractedDesignTokens }) {
     (tokens.shadows && tokens.shadows.length > 0);
 
   if (!hasTokens) return null;
+
+  const copyToClipboard = (value: string) => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopiedColor(value);
+      setTimeout(() => setCopiedColor(null), 2000);
+    }).catch((err) => {
+      console.error('Failed to copy to clipboard:', err);
+    });
+  };
 
   return (
     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -512,25 +523,32 @@ function DesignTokensDisplay({ tokens }: { tokens: ExtractedDesignTokens }) {
             <div>
               <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Colors:</p>
               <div className="flex flex-wrap gap-2">
-                {tokens.colors.slice(0, 6).map((color) => (
-                  <div
+                {(expandedColors ? tokens.colors : tokens.colors.slice(0, 6)).map((color) => (
+                  <button
                     key={color.name}
-                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded"
+                    onClick={() => copyToClipboard(color.value)}
+                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                    title={`${color.description || color.name}\n\nClick to copy ${color.value}`}
                   >
                     <div
                       className="w-3 h-3 rounded border border-gray-300 dark:border-gray-500"
                       style={{ backgroundColor: color.value }}
-                      title={color.description}
                     />
                     <span className="text-gray-700 dark:text-gray-300 font-mono text-[10px]">
                       {color.value}
                     </span>
-                  </div>
+                    {copiedColor === color.value && (
+                      <span className="text-green-600 dark:text-green-400 text-[10px] ml-0.5">✓</span>
+                    )}
+                  </button>
                 ))}
                 {tokens.colors.length > 6 && (
-                  <span className="text-gray-500 dark:text-gray-400">
-                    +{tokens.colors.length - 6} more
-                  </span>
+                  <button
+                    onClick={() => setExpandedColors(!expandedColors)}
+                    className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    {expandedColors ? 'Show less' : `+${tokens.colors.length - 6} more`}
+                  </button>
                 )}
               </div>
             </div>
