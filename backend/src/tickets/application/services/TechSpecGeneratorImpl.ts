@@ -517,6 +517,9 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       ),
     ]);
 
+    // Extract design tokens from design references (for both tech spec and AEC XML)
+    const designTokens = this.extractDesignTokens(input.designReferences || []);
+
     // Assemble tech spec
     const techSpec: TechSpec = {
       id: randomUUID(),
@@ -536,6 +539,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       layeredFileChanges,
       testPlan,
       visualExpectations,
+      designTokens: designTokens.hasTokens ? designTokens : undefined, // Only include if tokens exist
     };
 
     // Bug-specific analysis: runs in parallel with other sections, non-blocking
@@ -1271,6 +1275,63 @@ IMPORTANT:
       // Default scope if generation fails
       return inScope ? ['Feature implementation'] : [];
     }
+  }
+
+  /**
+   * Extract and aggregate design tokens from all design references
+   * Combines tokens from Figma, Loom, and other design platforms
+   * Returns aggregated tokens for inclusion in tech spec and AEC XML
+   */
+  private extractDesignTokens(designReferences: any[]): {
+    colors: Array<{ name: string; value: string; description?: string }>;
+    typography: Array<{ name: string; value: string; description?: string }>;
+    spacing: Array<{ name: string; value: string; description?: string }>;
+    shadows: Array<{ name: string; value: string; description?: string }>;
+    hasTokens: boolean;
+  } {
+    const aggregated = {
+      colors: [] as Array<{ name: string; value: string; description?: string }>,
+      typography: [] as Array<{ name: string; value: string; description?: string }>,
+      spacing: [] as Array<{ name: string; value: string; description?: string }>,
+      shadows: [] as Array<{ name: string; value: string; description?: string }>,
+      hasTokens: false,
+    };
+
+    if (!designReferences || designReferences.length === 0) {
+      return aggregated;
+    }
+
+    // Aggregate tokens from all design references
+    for (const ref of designReferences) {
+      const tokens = ref.metadata?.figma?.tokens || ref.metadata?.loom?.tokens;
+      if (!tokens) continue;
+
+      // Aggregate colors (limit to top 10 per reference to avoid bloat)
+      if (tokens.colors && tokens.colors.length > 0) {
+        aggregated.colors.push(...tokens.colors.slice(0, 10));
+        aggregated.hasTokens = true;
+      }
+
+      // Aggregate typography (limit to top 5)
+      if (tokens.typography && tokens.typography.length > 0) {
+        aggregated.typography.push(...tokens.typography.slice(0, 5));
+        aggregated.hasTokens = true;
+      }
+
+      // Aggregate spacing (limit to top 8)
+      if (tokens.spacing && tokens.spacing.length > 0) {
+        aggregated.spacing.push(...tokens.spacing.slice(0, 8));
+        aggregated.hasTokens = true;
+      }
+
+      // Aggregate shadows (limit to top 3)
+      if (tokens.shadows && tokens.shadows.length > 0) {
+        aggregated.shadows.push(...tokens.shadows.slice(0, 3));
+        aggregated.hasTokens = true;
+      }
+    }
+
+    return aggregated;
   }
 
   /**

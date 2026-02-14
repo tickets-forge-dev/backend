@@ -26,6 +26,7 @@ export class AecXmlSerializer {
     this.writeMetadata(b, aec, spec);
     this.writeSpecification(b, spec);
     this.writeImplementation(b, spec);
+    this.writeDesignTokens(b, spec);
     this.writeAcceptanceCriteria(b, spec.acceptanceCriteria);
 
     b.close('ticket');
@@ -204,6 +205,70 @@ export class AecXmlSerializer {
       b.close('test');
     }
     b.close(groupName);
+  }
+
+  // ── Design Tokens ───────────────────────────────────────────────────
+
+  private writeDesignTokens(b: XmlBuilder, spec: TechSpec): void {
+    if (!spec.designTokens) return;
+
+    const { colors, typography, spacing, shadows } = spec.designTokens;
+    const hasAnyTokens =
+      colors?.length || typography?.length || spacing?.length || shadows?.length;
+
+    if (!hasAnyTokens) return;
+
+    b.open('designTokens');
+
+    // Colors
+    if (colors && colors.length > 0) {
+      b.open('colors', { count: String(colors.length) });
+      for (const color of colors) {
+        b.leaf('color', color.value, {
+          name: color.name || '',
+          description: color.description || '',
+        });
+      }
+      b.close('colors');
+    }
+
+    // Typography
+    if (typography && typography.length > 0) {
+      b.open('typography', { count: String(typography.length) });
+      for (const typo of typography) {
+        b.leaf('font', typo.value, {
+          name: typo.name || '',
+          description: typo.description || '',
+        });
+      }
+      b.close('typography');
+    }
+
+    // Spacing
+    if (spacing && spacing.length > 0) {
+      b.open('spacing', { count: String(spacing.length) });
+      for (const space of spacing) {
+        b.leaf('value', space.value, {
+          name: space.name || '',
+          description: space.description || '',
+        });
+      }
+      b.close('spacing');
+    }
+
+    // Shadows
+    if (shadows && shadows.length > 0) {
+      b.open('shadows', { count: String(shadows.length) });
+      for (const shadow of shadows) {
+        b.leaf('value', shadow.value, {
+          name: shadow.name || '',
+          description: shadow.description || '',
+        });
+      }
+      b.close('shadows');
+    }
+
+    b.close('designTokens');
   }
 
   // ── Acceptance Criteria ─────────────────────────────────────────────

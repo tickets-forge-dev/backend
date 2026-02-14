@@ -319,6 +319,12 @@ export interface TechSpec {
   testPlan?: TestPlan; // Comprehensive test plan
   visualExpectations?: VisualExpectations; // Visual QA expectations with wireframes
   bugDetails?: BugDetails; // Bug-specific reproduction steps (only for type === 'bug')
+  designTokens?: {
+    colors: Array<{ name: string; value: string; description?: string }>;
+    typography: Array<{ name: string; value: string; description?: string }>;
+    spacing: Array<{ name: string; value: string; description?: string }>;
+    shadows: Array<{ name: string; value: string; description?: string }>;
+  }; // Extracted design tokens from Figma/design files (colors, typography, etc.)
 }
 
 /**
