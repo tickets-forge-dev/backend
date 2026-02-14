@@ -786,99 +786,95 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
-      {/* Hero Header — Title + Quality Badge */}
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {ticketId?.startsWith('demo-') && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20">
-                Demo Ticket
-              </span>
-            )}
-            <h1 className="text-xl font-semibold text-[var(--text)] leading-tight">
-              {currentTicket.title}
-            </h1>
-          </div>
-          {techSpec?.qualityScore !== undefined && (
-            <div className="relative group flex-shrink-0">
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white cursor-default ${
-                techSpec.qualityScore >= 75
-                  ? 'bg-green-500'
-                  : techSpec.qualityScore >= 50
-                  ? 'bg-amber-500'
-                  : 'bg-red-500'
-              }`}>
-                {techSpec.qualityScore}/100
-              </span>
-              {qualityTips.length > 0 && (
-                <div className="absolute right-0 top-full mt-2 w-64 p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <p className="text-[11px] font-medium text-[var(--text)] mb-2">
-                    To improve your score:
-                  </p>
-                  <ul className="space-y-1">
-                    {qualityTips.slice(0, 5).map((tip, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--text-secondary)]">
-                        <span className="text-amber-500 mt-px">*</span>
-                        {tip}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      {/* Hero Header — Title + Badges + Quality + Status in single compact row */}
+      <div className="flex items-center gap-2.5 py-2">
+        {/* Title */}
+        <h1 className="text-xl font-semibold text-[var(--text)] leading-tight">
+          {currentTicket.title}
+        </h1>
 
-        {/* Type, Priority & Status row */}
-        <div className="flex items-center gap-2">
-          {currentTicket.type && (
-            <Badge variant="outline" className="capitalize gap-1.5">
-              {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
-                : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
-                : <Lightbulb className="h-3 w-3 text-amber-500" />}
-              {currentTicket.type}
-            </Badge>
-          )}
-          {currentTicket.priority && (
-            <Badge variant="outline" className="capitalize gap-1.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${
-                currentTicket.priority === 'urgent' ? 'bg-red-500'
-                  : currentTicket.priority === 'high' ? 'bg-orange-500'
-                  : currentTicket.priority === 'medium' ? 'bg-yellow-500'
-                  : 'bg-green-500'
-              }`} />
-              {currentTicket.priority}
-            </Badge>
-          )}
-          <div className="flex-1" />
-          {canToggleStatus && (
-            <button
-              onClick={() => setShowStatusConfirm(true)}
-              className={`
-                inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border
-                ${isComplete
-                  ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/20 hover:border-green-500/30'
-                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-tertiary)]'
-                }
-              `}
-            >
-              {isComplete ? (
-                <>
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  <div className="text-left">
-                    <span className="block leading-tight">Complete</span>
-                    <span className="block text-[10px] font-normal opacity-60">Click to revert</span>
-                  </div>
-                </>
-              ) : (
-                <div className="text-left">
-                  <span className="block leading-tight">Draft</span>
-                  <span className="block text-[10px] font-normal opacity-60">Click to complete</span>
-                </div>
-              )}
-            </button>
-          )}
-        </div>
+        {/* Demo badge */}
+        {ticketId?.startsWith('demo-') && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20">
+            Demo
+          </span>
+        )}
+
+        {/* Type badge */}
+        {currentTicket.type && (
+          <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
+            {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
+              : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
+              : <Lightbulb className="h-3 w-3 text-amber-500" />}
+            {currentTicket.type}
+          </Badge>
+        )}
+
+        {/* Priority badge */}
+        {currentTicket.priority && (
+          <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${
+              currentTicket.priority === 'urgent' ? 'bg-red-500'
+                : currentTicket.priority === 'high' ? 'bg-orange-500'
+                : currentTicket.priority === 'medium' ? 'bg-yellow-500'
+                : 'bg-green-500'
+            }`} />
+            {currentTicket.priority}
+          </Badge>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Quality score */}
+        {techSpec?.qualityScore !== undefined && (
+          <div className="relative group flex-shrink-0">
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-white cursor-default ${
+              techSpec.qualityScore >= 75
+                ? 'bg-green-500'
+                : techSpec.qualityScore >= 50
+                ? 'bg-amber-500'
+                : 'bg-red-500'
+            }`}>
+              {techSpec.qualityScore}/100
+            </span>
+            {qualityTips.length > 0 && (
+              <div className="absolute right-0 top-full mt-2 w-64 p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <p className="text-[11px] font-medium text-[var(--text)] mb-2">
+                  To improve your score:
+                </p>
+                <ul className="space-y-1">
+                  {qualityTips.slice(0, 5).map((tip, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                      <span className="text-amber-500 mt-px">*</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Status button */}
+        {canToggleStatus && (
+          <button
+            onClick={() => setShowStatusConfirm(true)}
+            className={`
+              inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border relative group
+              ${isComplete
+                ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/20 hover:border-green-500/30'
+                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-tertiary)]'
+              }
+            `}
+          >
+            {isComplete && <CheckCircle className="h-3.5 w-3.5" />}
+            <span>{isComplete ? 'Complete' : 'Draft'}</span>
+            <span className="absolute -bottom-5 right-0 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity whitespace-nowrap">
+              Click to {isComplete ? 'revert' : 'complete'}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Main Content — TicketDetailLayout handles tabs vs pre-spec */}
