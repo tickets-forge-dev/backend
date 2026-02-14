@@ -28,9 +28,12 @@ export const initPostHog = () => {
   }
 
   posthog.init(apiKey, {
-    api_host: host || 'https://us.posthog.com',
+    // Use reverse proxy to avoid ad blocker issues
+    // Requests go to /api/ingest/* instead of directly to posthog.com
+    api_host: host || '/api/ingest',
+    ui_host: 'https://us.posthog.com', // PostHog UI for session replay, surveys, etc.
     loaded: (ph) => {
-      console.log('[PostHog] Initialized');
+      console.log('[PostHog] Initialized with proxy at /api/ingest');
     },
     capture_pageview: true, // Automatically capture page views
     disable_compression: false,
