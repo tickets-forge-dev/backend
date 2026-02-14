@@ -15,11 +15,27 @@ export type DesignPlatform =
   | 'whimsical'
   | 'other';
 
+export interface DesignToken {
+  name: string;
+  value: string;
+  type: 'color' | 'typography' | 'spacing' | 'radius' | 'shadow';
+  description?: string;
+}
+
+export interface ExtractedDesignTokens {
+  colors: DesignToken[];
+  typography: DesignToken[];
+  spacing: DesignToken[];
+  radius: DesignToken[];
+  shadows: DesignToken[];
+}
+
 export interface FigmaMetadata {
   fileName: string;
   thumbnailUrl: string;
   lastModified: Date;
   fileKey: string; // Extracted from URL
+  tokens?: ExtractedDesignTokens; // Design tokens extracted from Figma (Phase 3)
 }
 
 export interface LoomMetadata {

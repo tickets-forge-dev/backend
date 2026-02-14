@@ -8,10 +8,12 @@ import { FigmaService } from '../../../integrations/figma/figma.service';
 import { LoomService } from '../../../integrations/loom/loom.service';
 import { FigmaIntegrationRepository } from '../../../integrations/figma/figma-integration.repository';
 import { LoomIntegrationRepository } from '../../../integrations/loom/loom-integration.repository';
+import { FigmaTokensService } from '../../../integrations/figma/figma-tokens.service';
 
 /**
  * FetchDesignMetadataUseCase - Fetch metadata for design references
  * Asynchronously enriches design references with thumbnails, titles, etc.
+ * Also extracts design tokens (colors, typography) from Figma files
  * Non-blocking: failures don't prevent design link from being stored
  */
 @Injectable()
@@ -23,6 +25,7 @@ export class FetchDesignMetadataUseCase {
     private readonly loomService: LoomService,
     private readonly figmaIntegrationRepository: FigmaIntegrationRepository,
     private readonly loomIntegrationRepository: LoomIntegrationRepository,
+    private readonly figmaTokensService: FigmaTokensService,
   ) {}
 
   /**
@@ -107,6 +110,10 @@ export class FetchDesignMetadataUseCase {
         token.accessToken,
       );
 
+      // Extract design tokens from Figma file (Phase 3 feature)
+      const tokens = await this.figmaTokensService.extractTokens(fileKey, token.accessToken);
+      const tokensFormatted = this.figmaTokensService.formatTokensForLLM(tokens);
+
       // Create new reference with metadata
       const updated: DesignReference = {
         ...reference,
@@ -116,12 +123,19 @@ export class FetchDesignMetadataUseCase {
             thumbnailUrl: metadata.thumbnailUrl,
             lastModified: metadata.lastModified,
             fileKey: metadata.fileKey,
+            tokens: tokens, // Include extracted design tokens (Phase 3)
           },
         },
         metadataFetchStatus: 'success',
       };
 
       this.logger.debug(`Fetched Figma metadata for ${reference.url}`);
+
+      // Log extracted tokens for debugging
+      if (tokensFormatted) {
+        this.logger.debug(`Extracted design tokens from Figma: ${tokens.colors.length} colors, ${tokens.typography.length} typography styles`);
+      }
+
       return updated;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

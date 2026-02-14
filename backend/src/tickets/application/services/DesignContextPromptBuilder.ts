@@ -42,20 +42,58 @@ export class DesignContextPromptBuilder {
       context += `- **Last Modified**: ${new Date(metadata.lastModified).toLocaleDateString()}\n`;
       context += `- **File Key**: ${metadata.fileKey}\n\n`;
 
+      // Include extracted design tokens if available (Phase 3)
+      if (metadata.tokens) {
+        context += '**Extracted Design Tokens**:\n';
+
+        if (metadata.tokens.colors.length > 0) {
+          context += '\n*Color Palette:*\n';
+          for (const color of metadata.tokens.colors.slice(0, 5)) {
+            context += `- ${color.name}: ${color.value}\n`;
+          }
+          if (metadata.tokens.colors.length > 5) {
+            context += `- ... and ${metadata.tokens.colors.length - 5} more colors\n`;
+          }
+        }
+
+        if (metadata.tokens.typography.length > 0) {
+          context += '\n*Typography:*\n';
+          for (const typo of metadata.tokens.typography.slice(0, 3)) {
+            context += `- ${typo.name}: ${typo.value}\n`;
+          }
+          if (metadata.tokens.typography.length > 3) {
+            context += `- ... and ${metadata.tokens.typography.length - 3} more typography styles\n`;
+          }
+        }
+
+        if (metadata.tokens.spacing.length > 0) {
+          context += '\n*Spacing Values:*\n';
+          for (const space of metadata.tokens.spacing.slice(0, 3)) {
+            context += `- ${space.name}: ${space.value}\n`;
+          }
+          if (metadata.tokens.spacing.length > 3) {
+            context += `- ... and ${metadata.tokens.spacing.length - 3} more spacing values\n`;
+          }
+        }
+
+        context += '\n';
+      }
+
       context += `**Design Expectations**:\n`;
-      context += `- Extract design tokens (colors, typography, spacing) from this Figma file\n`;
       context += `- Generate acceptance criteria matching the visual design\n`;
       context += `- Include pixel-perfect measurements in specs\n`;
       context += `- Reference component names from the design system\n`;
+      context += `- Use extracted design tokens (colors, typography, spacing) in acceptance criteria\n`;
       context += `- Ensure implementation matches design tokens exactly\n\n`;
     }
 
-    context += '**Design Token Guidelines**:\n';
-    context += '- Extract primary/secondary colors and use them in acceptance criteria\n';
-    context += '- Note typography (font family, sizes, weights) from Figma\n';
-    context += '- Include spacing/padding values from design specs\n';
-    context += '- List border radius, shadows, and other style properties\n';
-    context += '- Reference component variants and states\n\n';
+    context += '**Design Token Usage Guidelines**:\n';
+    context += '- Use the exact color codes provided in the Figma tokens\n';
+    context += '- Apply typography styles (font family, sizes, weights) from design tokens\n';
+    context += '- Use spacing/padding values from the extracted spacing tokens\n';
+    context += '- Apply border radius values from design tokens\n';
+    context += '- Use shadow definitions for box-shadow CSS\n';
+    context += '- Reference component variants and states from design\n\n';
 
     return context;
   }
