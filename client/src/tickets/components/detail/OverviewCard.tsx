@@ -110,7 +110,6 @@ export function OverviewCard({
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
