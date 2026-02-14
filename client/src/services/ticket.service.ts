@@ -62,7 +62,7 @@ export class TicketService {
   private client: AxiosInstance;
 
   constructor() {
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
     this.client = axios.create({
       baseURL,

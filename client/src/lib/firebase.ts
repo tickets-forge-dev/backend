@@ -13,7 +13,7 @@ async function getFirebaseConfig() {
   }
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
     const response = await fetch(`${apiUrl}/config/firebase`);
     if (!response.ok) {
       throw new Error(`Failed to fetch Firebase config: ${response.status}`);
