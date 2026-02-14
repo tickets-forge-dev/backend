@@ -29,6 +29,7 @@
 import { FileTree } from '@github/domain/github-file.service';
 import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
 import { CodebaseAnalysis } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
+import { DesignReference } from '../value-objects/DesignReference';
 
 /**
  * Input for tech spec generation
@@ -47,6 +48,7 @@ export interface TechSpecInput {
   analysis: CodebaseAnalysis; // Codebase analysis results
   ticketType?: 'feature' | 'bug' | 'task'; // Optional: ticket type
   reproductionSteps?: ReproductionStep[]; // Optional: bug reproduction steps
+  designReferences?: DesignReference[]; // Optional: design references (Figma, Loom, etc.) with metadata
 }
 
 /**

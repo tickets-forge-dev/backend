@@ -19,6 +19,7 @@ import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOllamaProvider } from '../../../shared/infrastructure/mastra/providers/ollama.provider';
 import { randomUUID } from 'crypto';
+import { DesignContextPromptBuilder } from './DesignContextPromptBuilder';
 import {
   TechSpecGenerator,
   TechSpecInput,
@@ -472,11 +473,17 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       files: input.githubContext.files,
     };
 
+    // Extract design context from design references (Phase 3)
+    const designContext = DesignContextPromptBuilder.buildDesignContext(
+      input.designReferences || []
+    );
+
     // Generate each section
     const problemStatement = await this.generateProblemStatement(
       input.title,
       input.description || '',
       context,
+      designContext,
     );
 
     const solution = await this.generateSolution(problemStatement, context);
@@ -489,7 +496,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       outOfScope,
       apiChanges,
     ] = await Promise.all([
-      this.generateAcceptanceCriteria(context),
+      this.generateAcceptanceCriteria(context, designContext),
       this.generateClarificationQuestions(context),
       this.generateFileChanges(solution, context),
       this.generateScope(input.title, input.description || '', true),
@@ -561,9 +568,14 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     title: string,
     description: string,
     context: CodebaseContext,
+    designContext: string = '',
   ): Promise<ProblemStatement> {
     try {
-      const systemPrompt = PromptTemplates.systemPrompt(context);
+      let systemPrompt = PromptTemplates.systemPrompt(context);
+      // Inject design context if available (Phase 3)
+      if (designContext) {
+        systemPrompt = DesignContextPromptBuilder.buildDesignAwareSystemPrompt(systemPrompt, designContext);
+      }
       const userPrompt = PromptTemplates.problemStatementPrompt(title, description);
 
       const response = await this.callLLM(systemPrompt, userPrompt);
@@ -711,9 +723,16 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   /**
    * Generates Acceptance Criteria in BDD format
    */
-  async generateAcceptanceCriteria(context: CodebaseContext): Promise<AcceptanceCriterion[]> {
+  async generateAcceptanceCriteria(
+    context: CodebaseContext,
+    designContext: string = '',
+  ): Promise<AcceptanceCriterion[]> {
     try {
-      const systemPrompt = PromptTemplates.systemPrompt(context);
+      let systemPrompt = PromptTemplates.systemPrompt(context);
+      // Inject design context if available (Phase 3)
+      if (designContext) {
+        systemPrompt = DesignContextPromptBuilder.buildDesignAwareSystemPrompt(systemPrompt, designContext);
+      }
       // Use placeholder values - in real usage these would come from input
       const userPrompt = PromptTemplates.acceptanceCriteriaPrompt(
         'Feature specification',
