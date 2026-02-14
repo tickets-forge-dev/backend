@@ -33,28 +33,27 @@ export function OverviewCard({
     : 'No notes yet';
 
   return (
-    <div className="rounded-lg bg-[var(--bg-subtle)] p-4 space-y-3">
+    <div className="rounded-lg bg-[var(--bg-subtle)] space-y-3">
       {/* Collapsible Notes */}
-      <div className="pt-3 mt-1">
-        <button
-          onClick={() => setNotesExpanded((v) => !v)}
-          className="flex items-center justify-between w-full group"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <FileText className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
-            <span className="text-xs font-medium text-[var(--text)]">Notes</span>
-            {!notesExpanded && (
-              <span className="text-[11px] text-[var(--text-tertiary)] truncate">
-                {notesPreview}
-              </span>
-            )}
-          </div>
-          <ChevronDown
-            className={`h-3.5 w-3.5 text-[var(--text-tertiary)] transition-transform flex-shrink-0 ${
-              notesExpanded ? 'rotate-180' : ''
-            }`}
-          />
-        </button>
+      <button
+        onClick={() => setNotesExpanded((v) => !v)}
+        className="flex items-center justify-between w-full p-4 group hover:bg-[var(--bg-hover)] transition-colors rounded-lg"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
+          <span className="text-xs font-medium text-[var(--text)]">Notes</span>
+          {!notesExpanded && (
+            <span className="text-[11px] text-[var(--text-tertiary)] truncate">
+              {notesPreview}
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-[var(--text-tertiary)] transition-transform flex-shrink-0 ${
+            notesExpanded ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
 
         {notesExpanded && (
           <div className="mt-3 space-y-2">
