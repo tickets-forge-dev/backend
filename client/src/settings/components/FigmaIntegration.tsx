@@ -57,7 +57,7 @@ export function FigmaIntegration() {
         const user = auth.currentUser;
         if (user) {
           const idToken = await user.getIdToken();
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
           const response = await fetch(`${apiUrl}/integrations/figma/oauth/status`, {
             headers: {
               Authorization: `Bearer ${idToken}`,
@@ -101,7 +101,7 @@ export function FigmaIntegration() {
       }
 
       const idToken = await user.getIdToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
       const returnUrl = `${window.location.origin}/settings?tab=integrations`;
 
       // Call the OAuth start endpoint with auth header

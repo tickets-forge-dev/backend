@@ -66,7 +66,7 @@ export function LoomIntegration() {
       }
 
       const idToken = await user.getIdToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
       const returnUrl = `${window.location.origin}/settings?tab=integrations`;
 
       // Call the OAuth start endpoint with auth header
