@@ -35,29 +35,38 @@ export class FigmaTokensService {
 
   /**
    * Extract design tokens from Figma file
-   * 
+   *
    * Attempts to fetch file styles (colors, typography, etc.) and parse them
    * Falls back gracefully if API doesn't support styles or tokens
-   * 
+   *
    * @param fileKey - Figma file key (extracted from URL)
    * @param accessToken - Figma API access token
    * @returns Extracted design tokens organized by type
    */
   async extractTokens(fileKey: string, accessToken: string): Promise<ExtractedDesignTokens> {
     try {
-      // Fetch file details (includes components and styles)
+      // Fetch file details (includes components and document tree)
       const fileDetails = await this.fetchFileDetails(fileKey, accessToken);
-      
-      // Extract tokens from file styles
-      const tokens = this.parseTokensFromFile(fileDetails);
-      
+
+      // Fetch styles separately (Figma requires separate endpoint for style values)
+      const styles = await this.fetchFileStyles(fileKey, accessToken);
+
+      // Merge styles into fileDetails for parsing
+      const enrichedFileDetails = {
+        ...fileDetails,
+        styleDefinitions: styles, // Use different key to avoid confusion
+      };
+
+      // Extract tokens from file styles and document tree
+      const tokens = this.parseTokensFromFile(enrichedFileDetails);
+
       this.logger.debug(`Extracted tokens from Figma file ${fileKey}: ${tokens.colors.length} colors, ${tokens.typography.length} typography`);
-      
+
       return tokens;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.warn(`Failed to extract design tokens from Figma file ${fileKey}: ${errorMessage}`);
-      
+
       // Return empty tokens structure - not a failure
       return {
         colors: [],
@@ -70,7 +79,7 @@ export class FigmaTokensService {
   }
 
   /**
-   * Fetch Figma file details including styles/variables
+   * Fetch Figma file details including document tree
    * @private
    */
   private async fetchFileDetails(fileKey: string, accessToken: string): Promise<any> {
@@ -100,6 +109,43 @@ export class FigmaTokensService {
   }
 
   /**
+   * Fetch Figma file styles (colors, text styles, etc.)
+   * Separate endpoint required for actual style values
+   * @private
+   */
+  private async fetchFileStyles(fileKey: string, accessToken: string): Promise<any> {
+    try {
+      const response = await fetch(`https://api.figma.com/v1/files/${fileKey}/styles`, {
+        headers: {
+          'X-Figma-Token': accessToken,
+        },
+      });
+
+      // Styles endpoint may not exist for all files (return empty if 404)
+      if (response.status === 404) {
+        this.logger.debug(`No styles endpoint available for Figma file ${fileKey}`);
+        return { meta: { styles: [] } };
+      }
+
+      if (response.status === 403) {
+        this.logger.warn(`Access denied to styles for Figma file ${fileKey}`);
+        return { meta: { styles: [] } };
+      }
+
+      if (!response.ok) {
+        this.logger.warn(`Figma styles API error: ${response.status}`);
+        return { meta: { styles: [] } };
+      }
+
+      return await response.json();
+    } catch (error) {
+      // Non-fatal - styles are optional
+      this.logger.debug(`Could not fetch styles for Figma file ${fileKey}: ${error instanceof Error ? error.message : String(error)}`);
+      return { meta: { styles: [] } };
+    }
+  }
+
+  /**
    * Parse design tokens from Figma file structure
    * @private
    */
@@ -116,10 +162,31 @@ export class FigmaTokensService {
 
     if (!fileDetails) return tokens;
 
-    // Extract from file-level styles (if available)
+    // Debug logging to understand Figma API structure
+    this.logger.debug(`Figma file keys: ${Object.keys(fileDetails).join(', ')}`);
+
+    // Extract from style definitions (fetched from separate endpoint)
+    if (fileDetails.styleDefinitions?.meta?.styles) {
+      this.logger.debug(`Found ${fileDetails.styleDefinitions.meta.styles.length} style definitions in Figma file`);
+      // Note: Style definitions give us names/types but not values
+      // We'll extract actual values from document tree nodes
+    }
+
+    // Extract from file-level styles metadata (if available)
     if (fileDetails.styles) {
+      this.logger.debug(`Found ${Object.keys(fileDetails.styles).length} style references in Figma file`);
       tokens.colors.push(...this.extractColorsFromStyles(fileDetails.styles));
       tokens.typography.push(...this.extractTypographyFromStyles(fileDetails.styles));
+    }
+
+    // Extract from document tree (primary source of actual color/typography values)
+    if (fileDetails.document) {
+      this.logger.debug('Extracting tokens from document tree');
+      const treeTokens = this.extractTokensFromTree(fileDetails.document);
+      tokens.colors.push(...(treeTokens.colors || []));
+      tokens.typography.push(...(treeTokens.typography || []));
+      tokens.spacing.push(...(treeTokens.spacing || []));
+      tokens.shadows.push(...(treeTokens.shadows || []));
     }
 
     // Extract from components (design system components often define tokens)
@@ -128,13 +195,6 @@ export class FigmaTokensService {
       tokens.colors.push(...(componentTokens.colors || []));
       tokens.spacing.push(...(componentTokens.spacing || []));
       tokens.radius.push(...(componentTokens.radius || []));
-    }
-
-    // Extract from document tree (frame names often contain token info)
-    if (fileDetails.document) {
-      const treeTokens = this.extractTokensFromTree(fileDetails.document);
-      tokens.spacing.push(...(treeTokens.spacing || []));
-      tokens.shadows.push(...(treeTokens.shadows || []));
     }
 
     // Deduplicate tokens (keep first occurrence)
@@ -253,32 +313,87 @@ export class FigmaTokensService {
   }
 
   /**
-   * Extract tokens from document tree (frame names, etc.)
+   * Extract tokens from document tree (actual color/typography values from nodes)
    * @private
    */
   private extractTokensFromTree(document: any): Partial<ExtractedDesignTokens> {
     const tokens: Partial<ExtractedDesignTokens> = {
+      colors: [],
+      typography: [],
       spacing: [],
       shadows: [],
     };
 
-    const traverse = (node: any) => {
-      if (!node) return;
+    const seenColors = new Set<string>();
+    const seenTypography = new Set<string>();
+
+    const traverse = (node: any, depth: number = 0) => {
+      if (!node || depth > 10) return; // Limit traversal depth to avoid performance issues
+
+      // Extract colors from fills
+      if (node.fills && Array.isArray(node.fills)) {
+        for (const fill of node.fills) {
+          if (fill.type === 'SOLID' && fill.color && fill.visible !== false) {
+            const hexColor = this.rgbToHex(fill.color);
+            if (!seenColors.has(hexColor)) {
+              seenColors.add(hexColor);
+              tokens.colors?.push({
+                name: node.name || `Color ${hexColor}`,
+                value: hexColor,
+                type: 'color',
+                description: `Extracted from ${node.type || 'node'}: ${node.name || 'unnamed'}`,
+              });
+            }
+          }
+        }
+      }
+
+      // Extract colors from strokes
+      if (node.strokes && Array.isArray(node.strokes)) {
+        for (const stroke of node.strokes) {
+          if (stroke.type === 'SOLID' && stroke.color && stroke.visible !== false) {
+            const hexColor = this.rgbToHex(stroke.color);
+            if (!seenColors.has(hexColor)) {
+              seenColors.add(hexColor);
+              tokens.colors?.push({
+                name: `Stroke ${hexColor}`,
+                value: hexColor,
+                type: 'color',
+                description: `Stroke color from ${node.name || 'unnamed'}`,
+              });
+            }
+          }
+        }
+      }
+
+      // Extract typography from text nodes
+      if (node.type === 'TEXT' && node.style) {
+        const typoKey = `${node.style.fontFamily}-${node.style.fontSize}-${node.style.fontWeight}`;
+        if (!seenTypography.has(typoKey)) {
+          seenTypography.add(typoKey);
+          tokens.typography?.push({
+            name: node.name || `Text ${node.style.fontFamily}`,
+            value: this.formatTypographyValue(node.style),
+            type: 'typography',
+            description: `Text style from ${node.name || 'text node'}`,
+          });
+        }
+      }
 
       // Look for spacing grid sizes in frame names
-      const spacingMatch = node.name?.match(/spacing[_-]grid[_-](\d+)/i);
+      const spacingMatch = node.name?.match(/spacing[_-](?:grid[_-])?(\d+)/i);
       if (spacingMatch) {
         tokens.spacing?.push({
-          name: `Spacing Grid ${spacingMatch[1]}`,
+          name: node.name || `Spacing ${spacingMatch[1]}`,
           value: `${spacingMatch[1]}px`,
           type: 'spacing',
         });
       }
 
       // Look for shadow definitions
-      if (node.effects) {
+      if (node.effects && Array.isArray(node.effects)) {
         for (const effect of node.effects) {
-          if (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') {
+          if ((effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') && effect.visible !== false) {
             tokens.shadows?.push({
               name: node.name || 'Shadow',
               value: this.formatShadowValue(effect),
@@ -291,7 +406,7 @@ export class FigmaTokensService {
       // Recursively traverse children
       if (Array.isArray(node.children)) {
         for (const child of node.children) {
-          traverse(child);
+          traverse(child, depth + 1);
         }
       }
     };
