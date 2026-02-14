@@ -4,6 +4,33 @@ import { HttpClientService } from '../../shared/integrations/http-client.service
 import { CircuitBreakerService } from '../../shared/integrations/circuit-breaker.service';
 
 /**
+ * Format seconds into human-readable duration
+ * Examples:
+ * - 30 → "30 seconds"
+ * - 90 → "1 minute"
+ * - 3600 → "1 hour"
+ * - 350860 → "4 days"
+ */
+function formatRetryAfter(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+
+  const days = Math.floor(hours / 24);
+  return `${days} day${days !== 1 ? 's' : ''}`;
+}
+
+/**
  * FigmaService - Handles Figma REST API calls
  * Fetches file metadata, thumbnails, and other design context
  *
@@ -88,11 +115,14 @@ export class FigmaService {
       // Handle rate limiting
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After') || '60';
+        const retryAfterSeconds = parseInt(retryAfter, 10);
+        const humanReadable = formatRetryAfter(retryAfterSeconds);
+
         this.logger.warn(
-          `Figma rate limit hit for fileKey ${fileKey}, retry after ${retryAfter}s`,
+          `Figma rate limit hit for fileKey ${fileKey}, retry after ${humanReadable} (${retryAfter}s)`,
         );
         throw new Error(
-          `Figma API rate limit exceeded. Retry after ${retryAfter} seconds.`,
+          `Figma API rate limit exceeded. Please try again in ${humanReadable}.`,
         );
       }
 
