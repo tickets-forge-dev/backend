@@ -123,11 +123,11 @@ export function FigmaIntegration() {
 
       // Backend returns the OAuth URL as JSON
       const data = await response.json();
-      if (data.oauthUrl) {
+      if (data.authUrl) {
         // Redirect to Figma OAuth endpoint
-        window.location.href = data.oauthUrl;
+        window.location.href = data.authUrl;
       } else {
-        setError('Invalid response from server');
+        setError('Invalid response from server: ' + JSON.stringify(data));
       }
     } catch (err) {
       setError('Failed to connect to Figma: ' + (err instanceof Error ? err.message : String(err)));

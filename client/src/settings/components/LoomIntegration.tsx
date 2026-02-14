@@ -79,18 +79,19 @@ export function LoomIntegration() {
         }
       );
 
-      // The endpoint redirects, so check if we have a redirect location
-      if (response.redirected) {
-        // Fetch automatically follows redirects, so if we get here, we're at the final location
-        window.location.href = response.url;
-      } else if (response.ok) {
-        // In case the endpoint returns JSON with redirect URL
-        const data = await response.json();
-        if (data.redirectUrl) {
-          window.location.href = data.redirectUrl;
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError('Failed to start Loom OAuth: ' + errorText);
+        return;
+      }
+
+      // Backend returns the OAuth URL as JSON
+      const data = await response.json();
+      if (data.authUrl) {
+        // Redirect to Loom OAuth endpoint
+        window.location.href = data.authUrl;
       } else {
-        setError('Failed to start Loom OAuth: ' + (await response.text()));
+        setError('Invalid response from server: ' + JSON.stringify(data));
       }
     } catch (err) {
       setError('Failed to connect to Loom: ' + (err instanceof Error ? err.message : String(err)));

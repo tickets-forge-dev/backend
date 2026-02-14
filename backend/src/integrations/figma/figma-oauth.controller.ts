@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException, Req } from '@nestjs/common';
+import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException, BadRequestException, Req } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { FigmaService } from './figma.service';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
@@ -38,7 +38,7 @@ export class FigmaOAuthController {
   private readonly FIGMA_CLIENT_SECRET = process.env.FIGMA_CLIENT_SECRET || '';
   private readonly FIGMA_REDIRECT_URI =
     process.env.FIGMA_OAUTH_REDIRECT_URI ||
-    'http://localhost:3000/api/integrations/figma/oauth/callback';
+    'http://localhost:3001/api/integrations/figma/oauth/callback';
   private readonly FIGMA_AUTH_URL = 'https://www.figma.com/oauth';
   private readonly FIGMA_TOKEN_URL = 'https://www.figma.com/api/oauth/token';
 
@@ -75,16 +75,11 @@ export class FigmaOAuthController {
     @Query('returnUrl') returnUrl: string,
     @WorkspaceId() userWorkspaceId: string,
     @UserId() userId: string,
-    @Res() res: Response,
-  ): Promise<void> {
-    const startTime = Date.now();
+  ) {
     // Validate inputs
     if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid workspaceId');
-      res.status(400).json({
-        error: 'Missing required parameter: workspaceId',
-      });
-      return;
+      throw new BadRequestException('Missing required parameter: workspaceId');
     }
 
     // Verify user owns requested workspace (prevent cross-workspace access)
@@ -92,18 +87,12 @@ export class FigmaOAuthController {
       this.logger.warn(
         `Figma OAuth start: User attempted unauthorized workspace access: requested=${requestedWorkspaceId}, user=${userWorkspaceId}`,
       );
-      res.status(403).json({
-        error: 'You do not have permission to connect this workspace',
-      });
-      return;
+      throw new ForbiddenException('You do not have permission to connect this workspace');
     }
 
     if (!returnUrl || typeof returnUrl !== 'string' || returnUrl.trim().length === 0) {
       this.logger.warn('Figma OAuth start: Missing or invalid returnUrl');
-      res.status(400).json({
-        error: 'Missing required parameter: returnUrl',
-      });
-      return;
+      throw new BadRequestException('Missing required parameter: returnUrl');
     }
 
     // Validate return URL (prevent open redirect attacks)
@@ -111,10 +100,7 @@ export class FigmaOAuthController {
       this.logger.warn(
         `Figma OAuth start: Invalid return URL (not whitelisted): ${this.getTruncatedUrlForLogging(returnUrl)}`,
       );
-      res.status(400).json({
-        error: 'Return URL must be from whitelisted domain',
-      });
-      return;
+      throw new BadRequestException('Return URL must be from whitelisted domain');
     }
 
     // Create state with timestamp (prevents replay attacks)
@@ -140,7 +126,11 @@ export class FigmaOAuthController {
     // Track OAuth flow start
     this.telemetry.trackFigmaOAuthStarted(userId, userWorkspaceId);
 
-    res.redirect(authUrl.toString());
+    // Return OAuth URL as JSON (frontend will handle redirect)
+    // This avoids CORS issues with redirects
+    return {
+      authUrl: authUrl.toString(),
+    };
   }
 
   /**
