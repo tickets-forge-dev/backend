@@ -244,14 +244,28 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     if (!ticketId) return;
     try {
       await ticketService.removeDesignReference(ticketId, referenceId);
-      // Fetch ticket data in the background (non-blocking)
-      fetchTicket(ticketId).catch(error => {
-        console.error('Failed to refresh ticket after removing design reference:', error);
-      });
+      
+      // Optimistic update: remove design reference from local state immediately
+      if (currentTicket?.designReferences) {
+        const updated = {
+          ...currentTicket,
+          designReferences: currentTicket.designReferences.filter(ref => ref.id !== referenceId),
+        };
+        useTicketsStore.setState({ currentTicket: updated });
+      }
+      
+      // Fetch ticket data in the background without blocking the UI
+      // Use a setTimeout to avoid blocking during tab navigation
+      setTimeout(() => {
+        fetchTicket(ticketId).catch(error => {
+          console.error('Failed to refresh ticket after removing design reference:', error);
+        });
+      }, 0);
     } catch (error) {
       console.error('Failed to remove design reference:', error);
     }
   };
+
 
   const saveTechSpecPatch = async (patch: Record<string, any>) => {
     if (!ticketId) return false;
