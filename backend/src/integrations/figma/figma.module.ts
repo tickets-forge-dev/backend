@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { FigmaService } from './figma.service';
+import { FigmaTokensService } from './figma-tokens.service';
 import { FigmaOAuthController } from './figma-oauth.controller';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
 import { HttpClientService } from '../../shared/integrations/http-client.service';
@@ -18,7 +19,7 @@ import { PostHogModule } from '../../shared/infrastructure/posthog/posthog.modul
 @Module({
   imports: [PostHogModule],
   controllers: [FigmaOAuthController],
-  providers: [FigmaService, FigmaIntegrationRepository, HttpClientService],
-  exports: [FigmaService, FigmaIntegrationRepository],
+  providers: [FigmaService, FigmaTokensService, FigmaIntegrationRepository, HttpClientService],
+  exports: [FigmaService, FigmaTokensService, FigmaIntegrationRepository],
 })
 export class FigmaModule {}
