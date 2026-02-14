@@ -11,7 +11,7 @@ export function TicketGroupHeader({ label, count, isCollapsed, onToggle }: Ticke
   return (
     <div
       onClick={onToggle}
-      className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border)]/30 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+      className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border)]/20 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
     >
       <ChevronDown
         className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform ${
