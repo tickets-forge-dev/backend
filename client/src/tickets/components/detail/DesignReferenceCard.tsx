@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ExternalLink, Trash2 } from 'lucide-react';
-import { type DesignReference, type FigmaMetadata, type LoomMetadata } from '@repo/shared-types';
+import { ExternalLink, Trash2, ChevronDown } from 'lucide-react';
+import { type DesignReference, type FigmaMetadata, type LoomMetadata, type ExtractedDesignTokens } from '@repo/shared-types';
 
 interface DesignReferenceCardProps {
   reference: DesignReference;
@@ -168,6 +168,11 @@ function FigmaPreviewCard({
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Added by {reference.addedBy}
           </p>
+        )}
+
+        {/* Design Tokens Display */}
+        {metadata.tokens && (
+          <DesignTokensDisplay tokens={metadata.tokens} />
         )}
       </div>
 
@@ -422,6 +427,163 @@ function ErrorCard({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Design Tokens Display - Shows extracted colors, typography, spacing, etc.
+ */
+function DesignTokensDisplay({ tokens }: { tokens: ExtractedDesignTokens }) {
+  const [expanded, setExpanded] = React.useState(false);
+
+  // Early return if no tokens to display
+  const hasTokens =
+    (tokens.colors && tokens.colors.length > 0) ||
+    (tokens.typography && tokens.typography.length > 0) ||
+    (tokens.spacing && tokens.spacing.length > 0) ||
+    (tokens.radius && tokens.radius.length > 0) ||
+    (tokens.shadows && tokens.shadows.length > 0);
+
+  if (!hasTokens) return null;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+      >
+        <ChevronDown
+          size={14}
+          className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+        />
+        Design Tokens ({tokens.colors?.length || 0} colors, {tokens.typography?.length || 0} typography)
+      </button>
+
+      {expanded && (
+        <div className="mt-2 space-y-2 text-xs">
+          {/* Colors */}
+          {tokens.colors && tokens.colors.length > 0 && (
+            <div>
+              <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Colors:</p>
+              <div className="flex flex-wrap gap-2">
+                {tokens.colors.slice(0, 6).map((color) => (
+                  <div
+                    key={color.name}
+                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded"
+                  >
+                    <div
+                      className="w-3 h-3 rounded border border-gray-300 dark:border-gray-500"
+                      style={{ backgroundColor: color.value }}
+                      title={color.description}
+                    />
+                    <span className="text-gray-700 dark:text-gray-300 font-mono text-[10px]">
+                      {color.value}
+                    </span>
+                  </div>
+                ))}
+                {tokens.colors.length > 6 && (
+                  <span className="text-gray-500 dark:text-gray-400">
+                    +{tokens.colors.length - 6} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Typography */}
+          {tokens.typography && tokens.typography.length > 0 && (
+            <div>
+              <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Typography:</p>
+              <div className="space-y-0.5">
+                {tokens.typography.slice(0, 3).map((typo) => (
+                  <div
+                    key={typo.name}
+                    className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300"
+                    title={typo.description}
+                  >
+                    <span className="font-mono text-[10px]">{typo.value}</span>
+                  </div>
+                ))}
+                {tokens.typography.length > 3 && (
+                  <span className="text-gray-500 dark:text-gray-400 text-[10px]">
+                    +{tokens.typography.length - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Spacing */}
+          {tokens.spacing && tokens.spacing.length > 0 && (
+            <div>
+              <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Spacing:</p>
+              <div className="flex flex-wrap gap-1">
+                {tokens.spacing.slice(0, 5).map((space) => (
+                  <div
+                    key={space.name}
+                    className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300 font-mono text-[10px]"
+                    title={space.description}
+                  >
+                    {space.value}
+                  </div>
+                ))}
+                {tokens.spacing.length > 5 && (
+                  <span className="text-gray-500 dark:text-gray-400 text-[10px]">
+                    +{tokens.spacing.length - 5}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Border Radius */}
+          {tokens.radius && tokens.radius.length > 0 && (
+            <div>
+              <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Border Radius:</p>
+              <div className="flex flex-wrap gap-1">
+                {tokens.radius.slice(0, 4).map((rad) => (
+                  <div
+                    key={rad.name}
+                    className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300 font-mono text-[10px]"
+                    title={rad.description}
+                  >
+                    {rad.value}
+                  </div>
+                ))}
+                {tokens.radius.length > 4 && (
+                  <span className="text-gray-500 dark:text-gray-400 text-[10px]">
+                    +{tokens.radius.length - 4}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Shadows */}
+          {tokens.shadows && tokens.shadows.length > 0 && (
+            <div>
+              <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Shadows:</p>
+              <div className="space-y-0.5">
+                {tokens.shadows.slice(0, 2).map((shadow) => (
+                  <div
+                    key={shadow.name}
+                    className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300"
+                    title={shadow.description}
+                  >
+                    <span className="font-mono text-[10px]">{shadow.value}</span>
+                  </div>
+                ))}
+                {tokens.shadows.length > 2 && (
+                  <span className="text-gray-500 dark:text-gray-400 text-[10px]">
+                    +{tokens.shadows.length - 2} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

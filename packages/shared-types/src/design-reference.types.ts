@@ -10,11 +10,34 @@ export type DesignPlatform =
   | 'whimsical'
   | 'other';
 
+/**
+ * Design Token extracted from Figma
+ */
+export interface DesignToken {
+  name: string;
+  value: string;
+  type: 'color' | 'typography' | 'spacing' | 'radius' | 'shadow';
+  description?: string;
+}
+
+/**
+ * Extracted design tokens from a Figma file
+ */
+export interface ExtractedDesignTokens {
+  colors: DesignToken[];
+  typography: DesignToken[];
+  spacing: DesignToken[];
+  radius: DesignToken[];
+  shadows: DesignToken[];
+  raw?: Record<string, any>;
+}
+
 export interface FigmaMetadata {
   fileName: string;
   thumbnailUrl: string;
   lastModified: Date;
   fileKey: string;
+  tokens?: ExtractedDesignTokens; // Design tokens extracted from Figma (Phase 3)
 }
 
 export interface LoomMetadata {
