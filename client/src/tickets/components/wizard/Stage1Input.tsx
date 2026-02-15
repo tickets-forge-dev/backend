@@ -117,7 +117,24 @@ export function Stage1Input() {
 
   return (
     <div className="space-y-5">
-      {/* Type & Priority - At the top */}
+      {/* Next Button - At the very top for visibility */}
+      <div className="flex justify-end">
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            setTouchedFields((prev) => new Set([...prev, 'submit']));
+            if (isFormValid) {
+              analyzeRepository();
+            }
+          }}
+          disabled={!isFormValid || loading}
+          className="px-8"
+        >
+          {loading ? 'Analyzing...' : 'Next'}
+        </Button>
+      </div>
+
+      {/* Type & Priority */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
@@ -188,29 +205,6 @@ export function Stage1Input() {
         </div>
       </div>
 
-      {/* Title Section - Prominent with markdown support */}
-      <div className="space-y-2">
-        <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          Ticket Title
-        </label>
-        <MarkdownInput
-          value={input.title}
-          onChange={handleTitleChange}
-          placeholder="Add user authentication with Zustand (supports **bold**, *italic*, `code`)"
-          maxLength={500}
-          rows={3}
-        />
-        {titleError && (
-          <span
-            id="title-error"
-            role="alert"
-            className="text-xs text-red-600 dark:text-red-400"
-          >
-            {titleError}
-          </span>
-        )}
-      </div>
-
       {/* Form */}
       <form
         onSubmit={(e) => {
@@ -222,6 +216,28 @@ export function Stage1Input() {
         }}
         className="space-y-4"
       >
+        {/* Title Section - Prominent with markdown support */}
+        <div className="space-y-2">
+          <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Ticket Title
+          </label>
+          <MarkdownInput
+            value={input.title}
+            onChange={handleTitleChange}
+            placeholder="Add user authentication with Zustand (supports **bold**, *italic*, `code`)"
+            maxLength={500}
+            rows={3}
+          />
+          {titleError && (
+            <span
+              id="title-error"
+              role="alert"
+              className="text-xs text-red-600 dark:text-red-400"
+            >
+              {titleError}
+            </span>
+          )}
+        </div>
         {/* TABBED CONTEXT SECTION - Codebase + Attachments */}
         <div className="border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-50/50 dark:bg-gray-900/30 overflow-hidden">
           <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'context' | 'materials')}>
@@ -287,17 +303,6 @@ export function Stage1Input() {
               />
             </TabsContent>
           </Tabs>
-        </div>
-
-        {/* Submit Button */}
-        <div className="pt-2 space-y-3 flex flex-col items-end">
-          <Button
-            type="submit"
-            disabled={!isFormValid || loading}
-            className="px-8"
-          >
-            {loading ? 'Analyzing...' : 'Next'}
-          </Button>
         </div>
       </form>
     </div>

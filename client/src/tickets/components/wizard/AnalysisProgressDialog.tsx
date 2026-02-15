@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Cloud,
   FolderTree,
@@ -78,6 +78,7 @@ export function AnalysisProgressDialog({
 }: AnalysisProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const normalizedPhase = normalizePhase(currentPhase);
+  const activePhaseRef = useRef<HTMLDivElement>(null);
 
   // Elapsed time counter
   useEffect(() => {
@@ -87,6 +88,16 @@ export function AnalysisProgressDialog({
 
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-scroll to keep active phase visible
+  useEffect(() => {
+    if (activePhaseRef.current) {
+      activePhaseRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [normalizedPhase]);
 
   // Determine which phases are complete, in-progress, and pending
   const getPhaseStatus = (phaseKey: string): 'pending' | 'in_progress' | 'complete' => {
@@ -123,6 +134,7 @@ export function AnalysisProgressDialog({
             return (
               <div
                 key={phase.key}
+                ref={isActive ? activePhaseRef : null}
                 className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-150 ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-950/30'
