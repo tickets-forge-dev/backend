@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Delete, Query, Body, Res, Logger, UseGuards, ForbiddenException, BadRequestException, Req } from '@nestjs/common';
-import { Response, Request } from 'express';
+import { Controller, Get, Post, Delete, Query, Body, Res, Logger, UseGuards, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Response } from 'express';
 import { FigmaService } from './figma.service';
 import { FigmaIntegrationRepository } from './figma-integration.repository';
 import { FigmaOAuthToken } from './figma.types';
@@ -246,7 +246,6 @@ export class FigmaOAuthController {
       // Exchange code for token
       const tokenResponse = await this.exchangeCodeForToken(code);
       if (!tokenResponse) {
-        const duration = Date.now() - startTime;
         this.logger.warn(`Figma OAuth failed: code exchange failed for workspace ${workspaceId}`);
         const errorUrl = new URL(returnUrl);
         errorUrl.searchParams.set('status', 'error');
@@ -261,7 +260,6 @@ export class FigmaOAuthController {
         tokenResponse.accessToken,
       );
       if (!isValid) {
-        const duration = Date.now() - startTime;
         this.logger.warn(
           `Figma OAuth failed: token verification failed for workspace ${workspaceId}`,
         );
@@ -281,7 +279,6 @@ export class FigmaOAuthController {
           expiresIn: tokenResponse.expiresIn,
         });
       } catch (storageError) {
-        const duration = Date.now() - startTime;
         this.logger.error(
           `Failed to store Figma token for workspace ${workspaceId}: ${
             storageError instanceof Error ? storageError.message : String(storageError)

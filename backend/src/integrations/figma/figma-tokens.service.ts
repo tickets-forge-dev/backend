@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpException, HttpStatus } from '@nestjs/common';
 
 /**
  * Design token extracted from Figma
@@ -281,7 +280,7 @@ export class FigmaTokensService {
       radius: [],
     };
 
-    for (const [id, component] of Object.entries(components)) {
+    for (const component of Object.values(components)) {
       if (!component) continue;
 
       const comp = component as any;
