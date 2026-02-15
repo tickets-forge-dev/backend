@@ -1161,8 +1161,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                     }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
                       exportSections.has(section.id)
-                        ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
-                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
+                        ? 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]'
                     }`}
                   >
                     <span className="text-base">{section.icon}</span>
