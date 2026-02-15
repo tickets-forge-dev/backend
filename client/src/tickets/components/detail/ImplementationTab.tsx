@@ -8,6 +8,7 @@ import { ApiReviewSection } from '@/src/tickets/components/ApiReviewSection';
 import { BackendClientChanges } from '@/src/tickets/components/BackendClientChanges';
 import { TestPlanSection } from '@/src/tickets/components/TestPlanSection';
 import { ValidationResults } from '@/src/tickets/components/ValidationResults';
+import { DependenciesSection } from '@/src/tickets/components/DependenciesSection';
 import type { AECResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 
@@ -164,6 +165,20 @@ export function ImplementationTab({
               onScanApis={onScanApis}
               isScanning={isScanningApis}
             />
+          </CollapsibleSection>
+        </div>
+      )}
+
+      {/* Dependencies & Packages */}
+      {techSpec?.dependencies && techSpec.dependencies.length > 0 && (
+        <div id="technical-dependencies">
+          <CollapsibleSection
+            id="dependencies"
+            title="Dependencies & Packages"
+            badge={`${techSpec.dependencies.length} new`}
+            defaultExpanded={true}
+          >
+            <DependenciesSection dependencies={techSpec.dependencies} />
           </CollapsibleSection>
         </div>
       )}

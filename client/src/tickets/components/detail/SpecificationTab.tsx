@@ -72,17 +72,21 @@ export function SpecificationTab({
                   Problem Statement
                 </h3>
                 <div className="space-y-3">
-                  <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-                    {ps.narrative}
-                  </p>
+                  <EditableItem onEdit={() => onEditItem('narrative', 0)} onDelete={() => {}}>
+                    <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                      {ps.narrative}
+                    </p>
+                  </EditableItem>
                   {ps.whyItMatters && (
                     <div className="pt-2 border-t border-[var(--border)]">
                       <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase mb-1">
                         Why it matters
                       </p>
-                      <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-                        {ps.whyItMatters}
-                      </p>
+                      <EditableItem onEdit={() => onEditItem('whyItMatters', 0)} onDelete={() => {}}>
+                        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                          {ps.whyItMatters}
+                        </p>
+                      </EditableItem>
                     </div>
                   )}
                 </div>

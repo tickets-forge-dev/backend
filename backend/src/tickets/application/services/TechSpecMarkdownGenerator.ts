@@ -10,6 +10,7 @@ import {
   LayeredFileChanges,
   TestCase,
   TestPlan,
+  PackageDependency,
 } from '../../domain/tech-spec/TechSpecGenerator';
 
 /**
@@ -43,6 +44,9 @@ export class TechSpecMarkdownGenerator {
     }
     if (!includedSections || includedSections.has('api')) {
       this.renderApiEndpoints(lines, spec.apiChanges);
+    }
+    if (!includedSections || includedSections.has('dependencies')) {
+      this.renderDependencies(lines, spec.dependencies);
     }
     if (!includedSections || includedSections.has('tests')) {
       this.renderTestPlan(lines, spec.testPlan);
@@ -266,6 +270,61 @@ export class TechSpecMarkdownGenerator {
       );
     }
     lines.push('');
+  }
+
+  // ── Dependencies & Packages ─────────────────────────────────────────
+
+  private renderDependencies(lines: string[], dependencies?: PackageDependency[]): void {
+    if (!dependencies || dependencies.length === 0) return;
+
+    lines.push('## Dependencies & Packages');
+    lines.push('');
+    lines.push('| Package | Version | Type | Purpose |');
+    lines.push('|---------|---------|------|---------|');
+    for (const dep of dependencies) {
+      const version = dep.version || 'latest';
+      const type = dep.type === 'production' ? 'prod' : 'dev';
+      lines.push(
+        `| \`${dep.name}\` | ${version} | ${type} | ${dep.purpose} |`,
+      );
+    }
+    lines.push('');
+
+    // Add install commands section
+    lines.push('### Installation');
+    lines.push('');
+    lines.push('```bash');
+    for (const dep of dependencies) {
+      if (dep.installCommand) {
+        lines.push(dep.installCommand);
+      } else {
+        lines.push(`npm install ${dep.name}${dep.version ? `@${dep.version}` : ''}`);
+      }
+    }
+    lines.push('```');
+    lines.push('');
+
+    // Add documentation links if available
+    const withDocs = dependencies.filter(d => d.documentationUrl);
+    if (withDocs.length > 0) {
+      lines.push('### Documentation');
+      lines.push('');
+      for (const dep of withDocs) {
+        lines.push(`- [${dep.name}](${dep.documentationUrl})`);
+      }
+      lines.push('');
+    }
+
+    // Add alternatives if available
+    const withAlternatives = dependencies.filter(d => d.alternativesConsidered && d.alternativesConsidered.length > 0);
+    if (withAlternatives.length > 0) {
+      lines.push('### Alternatives Considered');
+      lines.push('');
+      for (const dep of withAlternatives) {
+        lines.push(`- **${dep.name}**: ${dep.alternativesConsidered!.join(', ')}`);
+      }
+      lines.push('');
+    }
   }
 
   // ── Test Plan ───────────────────────────────────────────────────────
