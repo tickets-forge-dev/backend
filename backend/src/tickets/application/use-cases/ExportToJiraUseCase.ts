@@ -65,7 +65,8 @@ export class ExportToJiraUseCase {
     // Generate comprehensive markdown description with all ticket sections
     // Includes: Problem Statement, Solution, Acceptance Criteria, File Changes,
     // API Endpoints, Test Plan, and Scope (In/Out)
-    const description = this.markdownGenerator.generate(aec, command.sections);
+    const frontendUrl = process.env.FRONTEND_URL || 'https://forge-ai.dev';
+    const description = this.markdownGenerator.generate(aec, command.sections, frontendUrl);
 
     const priority = aec.priority ? PRIORITY_MAP[aec.priority] : undefined;
 

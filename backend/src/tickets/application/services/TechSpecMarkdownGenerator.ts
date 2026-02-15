@@ -21,14 +21,14 @@ import {
  */
 @Injectable()
 export class TechSpecMarkdownGenerator {
-  generate(aec: AEC, sections?: string[]): string {
+  generate(aec: AEC, sections?: string[], frontendUrl?: string): string {
     const spec = aec.techSpec;
     if (!spec) return '';
 
     const lines: string[] = [];
     const includedSections = sections && sections.length > 0 ? new Set(sections) : null;
 
-    this.renderHeader(lines, aec, spec);
+    this.renderHeader(lines, aec, spec, frontendUrl);
 
     if (!includedSections || includedSections.has('problem')) {
       this.renderProblemStatement(lines, spec.problemStatement);
@@ -60,9 +60,16 @@ export class TechSpecMarkdownGenerator {
 
   // ── Header ──────────────────────────────────────────────────────────
 
-  private renderHeader(lines: string[], aec: AEC, spec: TechSpec): void {
+  private renderHeader(lines: string[], aec: AEC, spec: TechSpec, frontendUrl?: string): void {
     lines.push(`# ${spec.title || aec.title}`);
     lines.push('');
+
+    // Add link back to Forge ticket if frontendUrl is provided
+    if (frontendUrl) {
+      const ticketUrl = `${frontendUrl}/tickets/${aec.id}`;
+      lines.push(`**🔗 View in Forge:** ${ticketUrl}`);
+      lines.push('');
+    }
 
     const meta: string[] = [];
     meta.push(`**Date:** ${spec.createdAt ? toSafeISODate(spec.createdAt) : 'N/A'}`);
