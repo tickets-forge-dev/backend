@@ -6,12 +6,13 @@ import { Button } from '@/core/components/ui/button';
 import { useUIStore } from '@/stores/ui.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
-import { Github, SearchCode, FileCheck2, ArrowRight, Rocket, Shield, ChevronDown } from 'lucide-react';
+import { Github, SearchCode, FileCheck2, ArrowRight, Rocket, Shield, ChevronDown, Trello, Video, Palette, Check } from 'lucide-react';
 
 const STEPS = [
   { id: 0, label: 'Welcome' },
   { id: 1, label: 'Why Connect' },
-  { id: 2, label: 'Connect' },
+  { id: 2, label: 'Integrations' },
+  { id: 3, label: 'Connect' },
 ] as const;
 
 function PrivacyNote() {
@@ -66,13 +67,13 @@ export function OnboardingDialog() {
       // Returning from GitHub OAuth — jump to Connect step
       localStorage.removeItem('forge-oauth-origin');
       window.history.replaceState({}, '', window.location.pathname);
-      setStep(2);
+      setStep(3);
       setOpen(true);
     } else if (params.get('error') && oauthOrigin === 'onboarding') {
       // OAuth failed — reopen at Connect step
       localStorage.removeItem('forge-oauth-origin');
       window.history.replaceState({}, '', window.location.pathname);
-      setStep(2);
+      setStep(3);
       setOpen(true);
     } else {
       // Normal onboarding open
@@ -97,7 +98,7 @@ export function OnboardingDialog() {
   }, []);
 
   const handleNext = useCallback(() => {
-    if (step < 2) setStep((s) => s + 1);
+    if (step < 3) setStep((s) => s + 1);
   }, [step]);
 
   const handleBack = useCallback(() => {
@@ -245,7 +246,171 @@ export function OnboardingDialog() {
               </div>
             </div>
 
-            {/* Step 3: GitHub Integration */}
+            {/* Step 3: Integrations Overview */}
+            <div className="w-full flex-shrink-0 px-8 py-10">
+              <h2 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mb-2 text-center">
+                Available Integrations
+              </h2>
+              <p className="text-[14px] text-[var(--text-secondary)] text-center mb-8 max-w-[460px] mx-auto leading-relaxed">
+                Connect the tools you use. All integrations are <span className="font-medium text-[var(--text)]">optional</span> and can be set up anytime.
+              </p>
+
+              <div className="max-w-[540px] mx-auto space-y-4">
+                {/* GitHub - Required for core functionality */}
+                <div className="rounded-lg border-2 border-[var(--purple)]/30 bg-[var(--purple)]/5 p-4">
+                  <div className="flex items-start gap-3 mb-2">
+                    <div className="h-8 w-8 rounded-lg bg-[var(--purple)]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Github className="h-4 w-4 text-[var(--purple)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-[14px] font-semibold text-[var(--text)]">GitHub</h3>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--purple)]/20 text-[var(--purple)]">RECOMMENDED</span>
+                      </div>
+                      <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed mb-2">
+                        Code analysis and repository context
+                      </p>
+                      <div className="space-y-1">
+                        <div className="flex items-start gap-1.5">
+                          <Check className="h-3 w-3 text-[var(--purple)] flex-shrink-0 mt-0.5" />
+                          <span className="text-[11px] text-[var(--text-secondary)]">Deep codebase analysis for accurate specs</span>
+                        </div>
+                        <div className="flex items-start gap-1.5">
+                          <Check className="h-3 w-3 text-[var(--purple)] flex-shrink-0 mt-0.5" />
+                          <span className="text-[11px] text-[var(--text-secondary)]">Auto-detect tech stack & patterns</span>
+                        </div>
+                        <div className="flex items-start gap-1.5">
+                          <Check className="h-3 w-3 text-[var(--purple)] flex-shrink-0 mt-0.5" />
+                          <span className="text-[11px] text-[var(--text-secondary)]">Identify files & APIs to change</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Jira & Linear - Export destinations */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] p-3">
+                    <div className="flex items-start gap-2.5 mb-2">
+                      <div className="h-7 w-7 rounded-md bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                        <Trello className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <h3 className="text-[13px] font-semibold text-[var(--text)]">Jira</h3>
+                          <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)]">OPTIONAL</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-tertiary)] leading-snug mb-1.5">
+                          Export tickets directly
+                        </p>
+                        <div className="space-y-0.5">
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Push complete specs</span>
+                          </div>
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Track in your workflow</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] p-3">
+                    <div className="flex items-start gap-2.5 mb-2">
+                      <div className="h-7 w-7 rounded-md bg-[var(--purple)]/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="h-3.5 w-3.5 text-[var(--purple)]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <h3 className="text-[13px] font-semibold text-[var(--text)]">Linear</h3>
+                          <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)]">OPTIONAL</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-tertiary)] leading-snug mb-1.5">
+                          Export & sync tickets
+                        </p>
+                        <div className="space-y-0.5">
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-[var(--purple)] flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Two-way sync</span>
+                          </div>
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-[var(--purple)] flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Auto-update status</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Figma & Loom - Asset attachments */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] p-3">
+                    <div className="flex items-start gap-2.5 mb-2">
+                      <div className="h-7 w-7 rounded-md bg-pink-500/10 flex items-center justify-center flex-shrink-0">
+                        <Palette className="h-3.5 w-3.5 text-pink-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <h3 className="text-[13px] font-semibold text-[var(--text)]">Figma</h3>
+                          <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)]">OPTIONAL</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-tertiary)] leading-snug mb-1.5">
+                          Attach design specs
+                        </p>
+                        <div className="space-y-0.5">
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-pink-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Link design files</span>
+                          </div>
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-pink-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Extract tokens</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] p-3">
+                    <div className="flex items-start gap-2.5 mb-2">
+                      <div className="h-7 w-7 rounded-md bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                        <Video className="h-3.5 w-3.5 text-orange-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <h3 className="text-[13px] font-semibold text-[var(--text)]">Loom</h3>
+                          <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)]">OPTIONAL</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-tertiary)] leading-snug mb-1.5">
+                          Video walkthroughs
+                        </p>
+                        <div className="space-y-0.5">
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-orange-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Record demos</span>
+                          </div>
+                          <div className="flex items-start gap-1">
+                            <Check className="h-2.5 w-2.5 text-orange-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-[var(--text-secondary)]">Show expected UX</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-center text-[var(--text-tertiary)] mt-6 max-w-[480px] mx-auto">
+                You can connect or disconnect any integration anytime from Settings.
+              </p>
+            </div>
+
+            {/* Step 4: GitHub Integration */}
             <div className="w-full flex-shrink-0 px-8 py-10">
               <h2 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mb-2 text-center">
                 Connect Your Repository
@@ -262,7 +427,7 @@ export function OnboardingDialog() {
         {/* Footer navigation */}
         <div className="flex items-center justify-between px-8 py-5 border-t border-[var(--border)]">
           <Button variant="ghost" onClick={handleSkip} className="text-[var(--text-tertiary)]">
-            {step === 2 && !githubConnected ? 'Skip for now' : 'Skip'}
+            {step === 3 && !githubConnected ? 'Skip for now' : 'Skip'}
           </Button>
           <div className="flex items-center gap-2">
             {step > 0 && !githubConnected && (
@@ -270,7 +435,7 @@ export function OnboardingDialog() {
                 Back
               </Button>
             )}
-            {step < 2 ? (
+            {step < 3 ? (
               <Button onClick={handleNext}>
                 Next
               </Button>

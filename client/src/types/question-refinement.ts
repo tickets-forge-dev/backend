@@ -156,6 +156,19 @@ export interface BugDetailsSpec {
 /**
  * Technical specification generated from questions
  */
+/**
+ * Package/dependency needed for this feature
+ */
+export interface PackageDependency {
+  name: string; // Package name (e.g., "@octokit/rest")
+  version?: string; // Suggested version (e.g., "^20.0.0")
+  purpose: string; // Why this package is needed
+  installCommand?: string; // How to install (e.g., "npm install @octokit/rest")
+  documentationUrl?: string; // Link to package docs
+  type: 'production' | 'development'; // Dependency type
+  alternativesConsidered?: string[]; // Other packages evaluated
+}
+
 export interface TechSpec {
   problemStatement: string | {
     narrative: string;
@@ -200,6 +213,7 @@ export interface TechSpec {
   };
   visualExpectations?: VisualExpectationsSpec;
   bugDetails?: BugDetailsSpec;
+  dependencies?: PackageDependency[]; // New packages/dependencies required for this feature
 }
 
 /**

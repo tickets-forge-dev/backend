@@ -54,7 +54,8 @@ export class ExportToLinearUseCase {
     const accessToken = await this.tokenService.decryptToken(integration.accessToken);
 
     // Generate markdown description from tech spec
-    const description = this.markdownGenerator.generate(aec);
+    const frontendUrl = process.env.FRONTEND_URL || 'https://forge-ai.dev';
+    const description = this.markdownGenerator.generate(aec, undefined, frontendUrl);
 
     const priority = aec.priority ? PRIORITY_MAP[aec.priority] ?? 0 : 0;
 

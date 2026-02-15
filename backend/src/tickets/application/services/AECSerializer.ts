@@ -99,7 +99,7 @@ export class AECSerializer {
     };
   }
 
-  private buildMetadata(aec: AEC): any {
+  private buildMetadata(_aec: AEC): any {
     return {
       generator: 'AEC Serializer v2.0',
       format: 'Comprehensive AI-Optimized Ticket XML',

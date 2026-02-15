@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, Logger, UseGuards, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Query, Res, Logger, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { LoomService } from './loom.service';
 import { LoomIntegrationRepository } from './loom-integration.repository';
@@ -77,7 +77,6 @@ export class LoomOAuthController {
     @UserId() userId: string,
     @Res() res: Response,
   ): Promise<void> {
-    const startTime = Date.now();
     // Validate inputs
     if (!requestedWorkspaceId || typeof requestedWorkspaceId !== 'string' || requestedWorkspaceId.trim().length === 0) {
       this.logger.warn('Loom OAuth start: Missing or invalid workspaceId');
@@ -257,7 +256,6 @@ export class LoomOAuthController {
       // Exchange code for token
       const tokenResponse = await this.exchangeCodeForToken(code);
       if (!tokenResponse) {
-        const duration = Date.now() - startTime;
         this.logger.warn(`Loom OAuth failed: code exchange failed for workspace ${workspaceId}`);
         const errorUrl = new URL(returnUrl);
         errorUrl.searchParams.set('status', 'error');
@@ -272,7 +270,6 @@ export class LoomOAuthController {
         tokenResponse.access_token,
       );
       if (!isValid) {
-        const duration = Date.now() - startTime;
         this.logger.warn(
           `Loom OAuth failed: token verification failed for workspace ${workspaceId}`,
         );
@@ -288,7 +285,6 @@ export class LoomOAuthController {
       try {
         await this.loomIntegrationRepository.saveToken(workspaceId, tokenResponse);
       } catch (storageError) {
-        const duration = Date.now() - startTime;
         this.logger.error(
           `Failed to store Loom token for workspace ${workspaceId}: ${
             storageError instanceof Error ? storageError.message : String(storageError)

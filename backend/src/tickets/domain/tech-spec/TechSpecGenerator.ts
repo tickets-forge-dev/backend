@@ -206,6 +206,19 @@ export interface TestPlan {
 }
 
 /**
+ * Package/dependency needed for this feature
+ */
+export interface PackageDependency {
+  name: string; // Package name (e.g., "@octokit/rest")
+  version?: string; // Suggested version (e.g., "^20.0.0")
+  purpose: string; // Why this package is needed
+  installCommand?: string; // How to install (e.g., "npm install @octokit/rest")
+  documentationUrl?: string; // Link to package docs
+  type: 'production' | 'development'; // Dependency type
+  alternativesConsidered?: string[]; // Other packages evaluated
+}
+
+/**
  * A single visual QA expectation — describes what a screen/state should look like
  */
 export interface VisualExpectation {
@@ -319,6 +332,7 @@ export interface TechSpec {
   testPlan?: TestPlan; // Comprehensive test plan
   visualExpectations?: VisualExpectations; // Visual QA expectations with wireframes
   bugDetails?: BugDetails; // Bug-specific reproduction steps (only for type === 'bug')
+  dependencies?: PackageDependency[]; // New packages/dependencies required for this feature
   designTokens?: {
     colors: Array<{ name: string; value: string; description?: string }>;
     typography: Array<{ name: string; value: string; description?: string }>;

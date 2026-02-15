@@ -107,7 +107,7 @@ export function TicketDetailLayout({
       const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
       const sections = activeTab === 'spec'
         ? ['reproduction-steps', 'problem-statement', 'acceptance-criteria', 'visual-qa', 'scope', 'solution', 'assets']
-        : ['file-changes', 'api-endpoints', 'test-plan', 'stack'];
+        : ['file-changes', 'api-endpoints', 'dependencies', 'test-plan', 'stack'];
 
       for (const sectionId of sections) {
         const element = document.getElementById(`${currentTab}-${sectionId}`);
@@ -354,6 +354,7 @@ export function TicketDetailLayout({
                 {[
                   { id: 'file-changes', label: 'File Changes' },
                   { id: 'api-endpoints', label: 'API Endpoints' },
+                  { id: 'dependencies', label: 'Dependencies' },
                   { id: 'test-plan', label: 'Test Plan' },
                   { id: 'stack', label: 'Stack' },
                 ].map((section) => (

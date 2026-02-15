@@ -60,7 +60,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
   // Export section selection and preview
   const [exportSections, setExportSections] = useState<Set<string>>(
-    new Set(['problem', 'solution', 'criteria', 'files', 'api', 'tests', 'scope']),
+    new Set(['problem', 'solution', 'criteria', 'files', 'api', 'dependencies', 'tests', 'scope']),
   );
   const [exportPreviewLoading, setExportPreviewLoading] = useState(false);
 
@@ -345,7 +345,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
     let state: EditState | null = null;
 
-    if (section === 'assumptions') {
+    if (section === 'narrative') {
+      const value = ts.problemStatement?.narrative || '';
+      if (value) state = { mode: 'string', value, label: 'Problem Statement' };
+    } else if (section === 'whyItMatters') {
+      const value = ts.problemStatement?.whyItMatters || '';
+      if (value) state = { mode: 'string', value, label: 'Why It Matters' };
+    } else if (section === 'assumptions') {
       const item = ts.problemStatement?.assumptions?.[index];
       if (item) state = { mode: 'string', value: item, label: 'Assumption' };
     } else if (section === 'constraints') {
@@ -430,7 +436,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     const ts = currentTicket.techSpec;
     const patch: Record<string, any> = {};
 
-    if (section === 'assumptions' && updated.mode === 'string') {
+    if (section === 'narrative' && updated.mode === 'string') {
+      patch.problemStatement = { ...ts.problemStatement, narrative: updated.value };
+    } else if (section === 'whyItMatters' && updated.mode === 'string') {
+      patch.problemStatement = { ...ts.problemStatement, whyItMatters: updated.value };
+    } else if (section === 'assumptions' && updated.mode === 'string') {
       const arr = [...(ts.problemStatement?.assumptions || [])];
       arr[index] = updated.value;
       patch.problemStatement = { ...ts.problemStatement, assumptions: arr };
@@ -1134,6 +1144,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                   { id: 'criteria', label: 'Criteria', icon: '✓' },
                   { id: 'files', label: 'Files', icon: '📁' },
                   { id: 'api', label: 'APIs', icon: '🔌' },
+                  { id: 'dependencies', label: 'Dependencies', icon: '📦' },
                   { id: 'tests', label: 'Tests', icon: '🧪' },
                   { id: 'scope', label: 'Scope', icon: '🎯' },
                 ].map((section) => (
@@ -1150,8 +1161,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                     }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
                       exportSections.has(section.id)
-                        ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
-                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
+                        ? 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]'
                     }`}
                   >
                     <span className="text-base">{section.icon}</span>

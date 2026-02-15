@@ -34,6 +34,7 @@ import {
   LayeredFileChanges,
   TestPlan,
   VisualExpectations,
+  PackageDependency,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
 
 /**
@@ -166,38 +167,68 @@ IMPORTANT:
   }
 
   static clarificationQuestionsPrompt(title: string, description: string): string {
-    return `Identify ANY ambiguities in this request that need clarification:
+    return `Analyze this feature request and generate clarification questions:
 
 Title: ${title}
 Description: ${description || '(No description provided)'}
 
-ONLY generate questions if ambiguities exist.
-Generate valid JSON array with questions (can be empty array [] if no ambiguities):
+**CRITICAL: API-Oriented Feature Detection**
+If this feature involves ANY of the following, it is API-oriented and you MUST ask API-specific questions:
+- Keywords: "fetch", "sync", "integrate", "API", "endpoint", "webhook", "external service", "third-party"
+- External integrations: GitHub, Jira, Linear, Stripe, OAuth, etc.
+- Data operations: CRUD, database queries, data fetching
+- Backend endpoints for frontend features
+
+**Question Priority:**
+1. **API-Oriented Features** - Ask 2-3 API-specific questions:
+   - Do they know the API details? (endpoints, authentication, rate limits)
+   - What external service/API are they integrating with?
+   - What data needs to be fetched/sent?
+   - Authentication method? (API key, OAuth, JWT)
+   - Error handling strategy? (retry, fallback)
+
+2. **General Ambiguities** - Ask about unclear requirements:
+   - UI/UX preferences (layout, interaction patterns)
+   - Edge cases (empty states, error states)
+   - Business logic clarifications
+
+**Output Format (JSON array):**
+\`\`\`json
 [
   {
     "id": "q1",
-    "question": "Specific question to ask",
-    "type": "radio|checkbox|text|select|multiline",
-    "options": ["option 1", "option 2"],
-    "defaultValue": "option 1",
-    "context": "Why we're asking this question",
-    "impact": "How the answer affects the specification"
+    "question": "Do you have the API details for this integration?",
+    "type": "radio",
+    "options": ["Yes, I have the API documentation", "No, I need help identifying the API", "Not sure yet"],
+    "defaultValue": "Yes, I have the API documentation",
+    "context": "API integration requires specific endpoint URLs, authentication methods, and rate limits",
+    "impact": "If you have API details, we can generate precise endpoint specifications and error handling"
+  },
+  {
+    "id": "q2",
+    "question": "What authentication method does the API use?",
+    "type": "select",
+    "options": ["API Key", "OAuth 2.0", "JWT", "Basic Auth", "No auth required"],
+    "defaultValue": "API Key",
+    "context": "Different auth methods require different implementation approaches",
+    "impact": "Determines the authentication middleware and token storage strategy"
   }
 ]
+\`\`\`
 
-Question type guide:
+**Question Type Guide:**
 - radio: Single choice required
 - checkbox: Multiple choices allowed
 - text: Single line text input
 - select: Dropdown selection
-- multiline: Multi-line text input
+- multiline: Multi-line text input (for API URLs, JSON examples, etc.)
 
-IMPORTANT:
-- Generate 0-4 questions (empty array [] if no ambiguities)
-- Each question MUST have all 6 fields
-- 'options' field only for radio/checkbox/select (can be empty for text/multiline)
-- Question context must explain why this is ambiguous
-- Impact must show how answer affects the specification
+**IMPORTANT:**
+- Generate 2-4 questions (prioritize API questions if API-oriented)
+- If API-oriented (even 30%), at least 1-2 API questions are MANDATORY
+- Each question MUST have all 6 fields: id, question, type, options, defaultValue, context, impact
+- 'options' field empty array [] for text/multiline types
+- Return empty array [] ONLY if zero ambiguities AND not API-oriented
 - Valid JSON array only`;
   }
 
@@ -495,6 +526,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       inScope,
       outOfScope,
       apiChanges,
+      dependencies,
     ] = await Promise.all([
       this.generateAcceptanceCriteria(context, designContext),
       this.generateClarificationQuestions(context),
@@ -502,6 +534,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       this.generateScope(input.title, input.description || '', true),
       this.generateScope(input.title, input.description || '', false),
       this.extractApiChanges(context),
+      this.detectDependencies(input.title, input.description || '', solution, context),
     ]);
 
     // Generate sections that depend on fileChanges (parallel)
@@ -539,6 +572,7 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       layeredFileChanges,
       testPlan,
       visualExpectations,
+      dependencies: dependencies && dependencies.length > 0 ? dependencies : undefined, // Only include if dependencies exist
       designTokens: designTokens.hasTokens ? designTokens : undefined, // Only include if tokens exist
     };
 
@@ -886,12 +920,33 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
             .join('\n')}\n`
         : '';
 
-    const userPrompt = `Given this task and codebase, identify ALL API endpoints that need to be created, modified, or are relevant.
+    const userPrompt = `CRITICAL: Analyze this task to determine if it is API-oriented (requires backend endpoints, external API integration, or data fetching).
+
+**Common API-Oriented Features:**
+- Data fetching/syncing from external services (GitHub, Jira, Linear, etc.)
+- CRUD operations (Create, Read, Update, Delete)
+- Backend endpoints for frontend features
+- Webhooks, integrations, third-party API calls
+- Database operations exposed via REST/GraphQL
+
+**Task Analysis:**
+Look for keywords: "fetch", "sync", "integrate", "API", "endpoint", "data", "CRUD", "webhook", "external service"
+
 ${existingApisBlock}
 Directory structure:
 ${directoryStructure}
 
-Return JSON:
+**Instructions:**
+1. If this is an API-oriented feature (even 30% API-related), identify ALL endpoints needed
+2. For external API integration (e.g., GitHub), document both:
+   - Backend proxy endpoints (e.g., GET /api/github/repos)
+   - External API calls (e.g., GET https://api.github.com/repos/:owner/:repo)
+3. Include authentication requirements, rate limiting, error handling
+4. Specify DTO shapes (request/response) clearly
+5. Mark status: "new" (doesn't exist), "modified" (update existing), "existing" (reference only)
+
+**Output Format (JSON):**
+\`\`\`json
 {
   "endpoints": [
     {
@@ -900,12 +955,20 @@ Return JSON:
       "description": "What this endpoint does",
       "authentication": "required|optional|none",
       "status": "new|modified|existing",
-      "dto": { "request": "TypeName or shape description", "response": "TypeName or shape description" }
+      "dto": {
+        "request": "TypeName or inline shape {field: type}",
+        "response": "TypeName or inline shape {field: type}"
+      }
     }
-  ]
+  ],
+  "baseUrl": "/api" (optional),
+  "middlewares": ["auth", "rate-limit"] (optional),
+  "rateLimiting": "100 req/min per user" (optional)
 }
+\`\`\`
 
-If no API endpoints are needed, return: { "endpoints": [] }
+**IMPORTANT:** If this feature is even partially API-related, return endpoints! Only return {"endpoints": []} if it's 100% frontend-only with no data fetching.
+
 Return ONLY valid JSON.`;
 
     const response = await this.callLLM(systemPrompt, userPrompt);
@@ -1067,6 +1130,125 @@ Return ONLY valid JSON.`;
     } catch (error) {
       this.logger.warn(`Test plan generation failed: ${String(error)}`);
       return undefined;
+    }
+  }
+
+  /**
+   * Detects required packages/dependencies for the feature
+   *
+   * Analyzes the title, description, and solution to identify:
+   * - New packages needed (e.g., @octokit/rest for GitHub API integration)
+   * - Why each package is needed
+   * - Installation commands
+   * - Alternative packages considered
+   *
+   * Returns empty array if no new dependencies are detected.
+   */
+  private async detectDependencies(
+    title: string,
+    description: string,
+    solution: SolutionSection,
+    context: CodebaseContext,
+  ): Promise<PackageDependency[]> {
+    try {
+      // Read existing package.json to avoid suggesting already-installed packages
+      const existingPackages = this.extractExistingPackages(context);
+
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+      const userPrompt = `
+Analyze the following feature and determine if any NEW packages/dependencies are needed.
+
+CRITICAL: Only suggest packages that are NOT already in the project's package.json.
+
+**Feature Title:** ${title}
+
+**Description:** ${description}
+
+**Solution Overview:** ${solution.overview || (Array.isArray(solution) ? solution.map((s: any) => s.description).join('\n') : '')}
+
+**Existing Packages (DO NOT suggest these):**
+${existingPackages.join(', ') || 'None detected'}
+
+**Tech Stack:**
+- Language: ${context.stack.language?.name || 'Unknown'}
+- Framework: ${context.stack.framework?.name || 'Unknown'}
+- Package Manager: ${context.stack.packageManager?.type || 'npm'}
+
+**Instructions:**
+1. Analyze if this feature requires any NEW external packages
+2. Consider if it needs GitHub API (Octokit), database clients, UI libraries, testing utilities, etc.
+3. For each package, provide:
+   - name: Package name (e.g., "@octokit/rest")
+   - version: Suggested version (e.g., "^20.0.0")
+   - purpose: Clear explanation of why it's needed
+   - type: "production" or "development"
+   - alternativesConsidered: Other packages you evaluated (optional)
+4. ONLY suggest packages if absolutely necessary (be conservative)
+5. Return empty array [] if no new packages are needed
+
+**Output Format (JSON):**
+\`\`\`json
+[
+  {
+    "name": "@octokit/rest",
+    "version": "^20.0.0",
+    "purpose": "GitHub API client for fetching repository data, issues, and pull requests",
+    "installCommand": "npm install @octokit/rest",
+    "documentationUrl": "https://github.com/octokit/rest.js",
+    "type": "production",
+    "alternativesConsidered": ["@octokit/core", "github-api"]
+  }
+]
+\`\`\`
+
+Return an empty array [] if no new dependencies are required.
+`;
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<PackageDependency[]>(response);
+
+      // Validate structure
+      if (!Array.isArray(parsed)) {
+        this.logger.warn('Dependencies detection returned non-array, defaulting to empty');
+        return [];
+      }
+
+      // Filter out any packages that are already installed
+      const newDependencies = parsed.filter(
+        (dep) => !existingPackages.includes(dep.name)
+      );
+
+      if (newDependencies.length > 0) {
+        this.logger.log(
+          `Detected ${newDependencies.length} new dependencies: ${newDependencies.map((d) => d.name).join(', ')}`,
+        );
+      }
+
+      return newDependencies;
+    } catch (error) {
+      this.logger.warn(`Dependency detection failed: ${String(error)}`);
+      return []; // Non-blocking: return empty array on error
+    }
+  }
+
+  /**
+   * Extracts existing package names from package.json in the codebase
+   */
+  private extractExistingPackages(context: CodebaseContext): string[] {
+    try {
+      const packageJsonContent = context.files.get('package.json');
+      if (!packageJsonContent) {
+        return [];
+      }
+
+      const packageJson = JSON.parse(packageJsonContent);
+      const dependencies = Object.keys(packageJson.dependencies || {});
+      const devDependencies = Object.keys(packageJson.devDependencies || {});
+
+      return [...dependencies, ...devDependencies];
+    } catch (error) {
+      this.logger.warn(`Failed to extract existing packages: ${String(error)}`);
+      return [];
     }
   }
 
@@ -2013,12 +2195,13 @@ Rewritten text (definitive, unambiguous):`;
 
       const solution = await this.generateSolution(problemStatement, context);
 
-      const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges] = await Promise.all([
+      const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all([
         this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
         this.generateFileChanges(solution, context),
         this.generateScope(input.title, input.description || '', true),
         this.generateScope(input.title, input.description || '', false),
         this.extractApiChanges(context),
+        this.detectDependencies(input.title, input.description || '', solution, context),
       ]);
 
       // Generate sections that depend on fileChanges (parallel)
@@ -2053,6 +2236,7 @@ Rewritten text (definitive, unambiguous):`;
         layeredFileChanges,
         testPlan,
         visualExpectations,
+        dependencies: dependencies && dependencies.length > 0 ? dependencies : undefined, // Only include if dependencies exist
       };
 
       // Bug-specific analysis: runs in parallel with other sections, non-blocking
