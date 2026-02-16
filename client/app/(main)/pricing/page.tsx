@@ -17,6 +17,7 @@ interface PricingTier {
   features: TierFeature[];
   cta: string;
   highlighted?: boolean;
+  comingSoon?: boolean;
 }
 
 const tiers: PricingTier[] = [
@@ -50,8 +51,9 @@ const tiers: PricingTier[] = [
       { name: 'Up to 3 team members', included: true },
       { name: 'Role-based access', included: false },
     ],
-    cta: 'Subscribe',
+    cta: 'Coming Soon',
     highlighted: true,
+    comingSoon: true,
   },
   {
     name: 'Team',
@@ -67,7 +69,8 @@ const tiers: PricingTier[] = [
       { name: 'Unlimited team members', included: true },
       { name: 'Role-based access & permissions', included: true },
     ],
-    cta: 'Subscribe',
+    cta: 'Coming Soon',
+    comingSoon: true,
   },
 ];
 
@@ -80,9 +83,14 @@ export default function PricingPage() {
           <h1 className="text-3xl font-bold text-[var(--text)] mb-2">
             Transparent Pricing
           </h1>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] mb-3">
             Choose the plan that works for you. Upgrade anytime.
           </p>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+              🧪 Beta Testing Phase - Free tier available now, paid plans coming soon!
+            </span>
+          </div>
         </div>
       </div>
 
@@ -92,12 +100,25 @@ export default function PricingPage() {
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`rounded-xl border transition-all flex flex-col ${
+              className={`rounded-xl border transition-all flex flex-col relative ${
+                tier.comingSoon
+                  ? 'opacity-60 pointer-events-none select-none'
+                  : ''
+              } ${
                 tier.highlighted
                   ? 'border-[var(--primary)] bg-gradient-to-br from-[var(--primary)]/5 via-[var(--bg)] to-[var(--bg)] ring-2 ring-[var(--primary)]/30 shadow-md scale-100'
                   : 'border-[var(--border)]/20 hover:border-[var(--border)]/40'
               } overflow-hidden`}
             >
+              {tier.comingSoon && (
+                <div className="absolute inset-0 z-10 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
+                  <div className="bg-[var(--bg)] border-2 border-[var(--primary)] rounded-lg px-4 py-2 shadow-lg">
+                    <span className="text-sm font-bold text-[var(--primary)]">
+                      Coming Soon
+                    </span>
+                  </div>
+                </div>
+              )}
               {/* Card Header */}
               <div className="p-6 pb-4">
                 {tier.highlighted && (
@@ -118,21 +139,31 @@ export default function PricingPage() {
 
               {/* Pricing */}
               <div className="px-6 py-3 border-t border-[var(--border)]/10">
-                <div className="flex items-baseline gap-0.5 mb-1">
-                  <span className="text-3xl font-bold text-[var(--text)]">
-                    ${tier.price}
-                  </span>
-                  {tier.price > 0 && (
-                    <span className="text-xs text-[var(--text-secondary)]">
-                      /{tier.period}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-[var(--text-tertiary)]">
-                  {tier.ticketsPerMonth === -1
-                    ? 'Unlimited tickets/month'
-                    : `${tier.ticketsPerMonth} tickets/month`}
-                </p>
+                {!tier.comingSoon ? (
+                  <>
+                    <div className="flex items-baseline gap-0.5 mb-1">
+                      <span className="text-3xl font-bold text-[var(--text)]">
+                        ${tier.price}
+                      </span>
+                      {tier.price > 0 && (
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          /{tier.period}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[var(--text-tertiary)]">
+                      {tier.ticketsPerMonth === -1
+                        ? 'Unlimited tickets/month'
+                        : `${tier.ticketsPerMonth} tickets/month`}
+                    </p>
+                  </>
+                ) : (
+                  <div className="py-4">
+                    <p className="text-xs text-[var(--text-tertiary)] text-center">
+                      Pricing will be announced soon
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Features */}

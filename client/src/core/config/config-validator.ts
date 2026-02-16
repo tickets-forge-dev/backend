@@ -49,7 +49,8 @@ export async function validateConfig(): Promise<ConfigValidationResult> {
     }
   }
 
-  // Validate Firebase config
+  // Validate Firebase config by checking if it's available globally
+  // (NEXT_PUBLIC_* vars are bundled at build time, not available via process.env at runtime)
   const firebaseVars = [
     'NEXT_PUBLIC_FIREBASE_API_KEY',
     'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
@@ -59,23 +60,35 @@ export async function validateConfig(): Promise<ConfigValidationResult> {
     'NEXT_PUBLIC_FIREBASE_APP_ID',
   ];
 
-  const missingFirebaseVars = firebaseVars.filter(
-    (varName) => !process.env[varName]
+  // Check if Firebase config is available via globals (set at build time)
+  // This is more reliable than checking process.env which is empty at runtime
+  const hasFirebaseFromGlobals = typeof window !== 'undefined' &&
+    (window as any).__FIREBASE_CONFIG__ !== undefined;
+
+  // Fallback: check if any Firebase vars were bundled at build time
+  const hasFirebaseVars = firebaseVars.some(
+    (varName) => {
+      // Try to access the bundled variable - if it exists, it was in the env at build time
+      try {
+        return (globalThis as any)[`__${varName}__`] !== undefined ||
+               process.env[varName] !== undefined;
+      } catch {
+        return false;
+      }
+    }
   );
 
-  if (missingFirebaseVars.length > 0) {
-    if (missingFirebaseVars.length === firebaseVars.length) {
-      errors.firebaseConfig = 'No Firebase configuration found';
-      result.status.firebaseConfig = 'missing';
-      result.isValid = false;
-    } else {
-      warnings.push(
-        `Incomplete Firebase config: missing ${missingFirebaseVars.join(', ')}`
-      );
-      result.status.firebaseConfig = 'env';
-    }
-  } else {
+  // If we have Firebase initialized or backend can provide config, it's working
+  if (result.status.backendReachable && result.status.firebaseConfig === 'backend') {
+    // Backend provided Firebase config - good!
+    result.status.firebaseConfig = 'backend';
+  } else if (hasFirebaseFromGlobals || hasFirebaseVars) {
     result.status.firebaseConfig = 'env';
+  } else {
+    // Only error if we truly have no way to get Firebase config
+    errors.firebaseConfig = 'No Firebase configuration found';
+    result.status.firebaseConfig = 'missing';
+    result.isValid = false;
   }
 
   // Validate PostHog key format (optional)

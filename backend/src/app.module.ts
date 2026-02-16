@@ -8,6 +8,7 @@ import { LinearModule } from './linear/linear.module';
 import { JiraModule } from './jira/jira.module';
 import { FigmaModule } from './integrations/figma/figma.module';
 import { ConfigModule as ConfigApiModule } from './config/config.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ConfigModule as ConfigApiModule } from './config/config.module';
     JiraModule,
     FigmaModule,
     ConfigApiModule,
+    FeedbackModule,
   ],
   controllers: [],
   providers: [],
