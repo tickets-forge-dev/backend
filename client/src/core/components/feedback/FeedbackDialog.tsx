@@ -71,12 +71,12 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/50"
+        className="fixed inset-0 z-40 bg-black/70"
         onClick={handleClose}
       />
 
       {/* Dialog */}
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-[var(--card-bg)] p-6 shadow-lg">
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-[var(--card-bg)] p-6 shadow-2xl border border-[var(--border)]">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[var(--text)]">
