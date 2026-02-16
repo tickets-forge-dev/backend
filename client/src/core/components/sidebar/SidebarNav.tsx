@@ -58,8 +58,7 @@ export function SidebarNav() {
             className={cn(
               'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
-              'bg-blue-600 dark:bg-blue-600 text-white hover:bg-blue-700 dark:hover:bg-blue-700',
-              'font-medium'
+              'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]'
             )}
           >
             <MessageCircle className="h-4 w-4 flex-shrink-0" />
