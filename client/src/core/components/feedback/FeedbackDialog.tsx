@@ -69,9 +69,9 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop with blur */}
       <div
-        className="fixed inset-0 z-40 bg-black/70"
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-md"
         onClick={handleClose}
       />
 
