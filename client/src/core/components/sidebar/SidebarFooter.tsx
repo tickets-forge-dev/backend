@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, MessageCircle } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { ThemeToggle } from '@/core/components/ThemeToggle';
 import { useUIStore } from '@/stores/ui.store';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useFeedbackStore } from '@/stores/feedback.store';
 
 export function SidebarFooter() {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
   const { quota, fetchQuota } = useTicketsStore();
+  const { openFeedback } = useFeedbackStore();
 
   useEffect(() => {
     fetchQuota();
@@ -41,8 +43,21 @@ export function SidebarFooter() {
       )}
 
       <div className="flex items-center justify-between gap-1">
-        {/* Theme toggle - bottom left */}
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          {/* Theme toggle */}
+          <ThemeToggle />
+
+          {/* Feedback button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={openFeedback}
+            title="Send feedback"
+            className="h-8 w-8 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </Button>
+        </div>
 
         {/* Collapse toggle - bottom right */}
         <Button

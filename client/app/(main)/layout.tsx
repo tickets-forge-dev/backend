@@ -3,7 +3,9 @@
 import { AuthCheck } from '@/lib/auth-check';
 import { Sidebar } from '@/core/components/sidebar/Sidebar';
 import { OnboardingDialog } from '@/core/components/onboarding/OnboardingDialog';
+import { FeedbackDialog } from '@/core/components/feedback/FeedbackDialog';
 import { useUIStore } from '@/stores/ui.store';
+import { useFeedbackStore } from '@/stores/feedback.store';
 import { cn } from '@/lib/utils';
 import { Button } from '@/core/components/ui/button';
 import { Menu } from 'lucide-react';
@@ -23,11 +25,13 @@ export default function MainLayout({
 
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
+  const { feedbackOpen, closeFeedback } = useFeedbackStore();
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Sidebar />
       <OnboardingDialog />
+      <FeedbackDialog open={feedbackOpen} onClose={closeFeedback} />
       <Toaster
         position="bottom-right"
         toastOptions={{

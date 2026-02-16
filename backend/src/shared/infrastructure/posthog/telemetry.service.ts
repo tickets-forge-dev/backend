@@ -227,6 +227,24 @@ export class TelemetryService {
   }
 
   /**
+   * Track user feedback
+   */
+  trackUserFeedback(
+    userId: string,
+    feedback: {
+      type: 'bug' | 'feature' | 'improvement' | 'other';
+      message: string;
+      url?: string;
+    },
+  ) {
+    this.posthog.capture(userId, 'user_feedback', {
+      feedback_type: feedback.type,
+      feedback_message: feedback.message,
+      feedback_url: feedback.url,
+    });
+  }
+
+  /**
    * Set user properties (traits)
    */
   setUserProperties(userId: string, properties: Record<string, any>) {

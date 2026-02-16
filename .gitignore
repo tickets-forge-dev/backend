@@ -42,3 +42,5 @@ coverage/
 .cache/
 *.tsbuildinfo
 next-env.d.ts
+client/src/core/components/dev/CLAUDE.md
+client/src/core/config/CLAUDE.md
