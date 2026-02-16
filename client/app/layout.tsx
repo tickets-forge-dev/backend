@@ -3,6 +3,7 @@ import Script from 'next/script';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import { PostHogProvider } from '@/src/components/PostHogProvider';
+import { DevStartupHealthCheck } from '@/core/components/dev/DevStartupHealthCheck';
 import './globals.css';
 
 const inter = Inter({
@@ -54,6 +55,7 @@ export default function RootLayout({
         </a>
         <PostHogProvider>
           <AuthInitializer />
+          {process.env.NODE_ENV === 'development' && <DevStartupHealthCheck />}
           <div id="main-content">{children}</div>
         </PostHogProvider>
         <Script id="remove-preload" strategy="afterInteractive">

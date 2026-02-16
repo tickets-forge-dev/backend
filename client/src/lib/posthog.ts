@@ -30,9 +30,14 @@ export const initPostHog = () => {
   // Validate API key format
   if (apiKey.startsWith('phx_')) {
     console.error(
-      '[PostHog] Invalid API key: You are using a Personal API Key (phx_...). ' +
-      'Please use a Project API Key (phc_...) from PostHog Project Settings. ' +
-      'Analytics disabled.'
+      '❌ PostHog API Key Format Error\n' +
+      'Cause: Using Personal API Key (phx_*) instead of Project API Key (phc_*)\n' +
+      'Actions:\n' +
+      '  1. Go to PostHog → Project Settings → API Keys\n' +
+      '  2. Copy the "Project API Key" (starts with phc_, NOT phx_)\n' +
+      '  3. Update NEXT_PUBLIC_POSTHOG_KEY in .env.local\n' +
+      'Fallback: Analytics disabled\n' +
+      'Docs: docs/SETUP-TROUBLESHOOTING.md#posthog-api-key'
     );
     return;
   }

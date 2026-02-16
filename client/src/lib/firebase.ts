@@ -21,7 +21,16 @@ async function getFirebaseConfig() {
     firebaseConfig = await response.json();
     return firebaseConfig;
   } catch (error) {
-    console.error('❌ Failed to fetch Firebase configuration from backend:', error);
+    console.error(
+      '❌ Firebase Config Fetch Failed\n' +
+      'Cause: Backend not responding or NEXT_PUBLIC_API_URL misconfigured\n' +
+      'Actions:\n' +
+      '  1. Start backend: cd backend && pnpm dev\n' +
+      '  2. Verify NEXT_PUBLIC_API_URL in .env.local\n' +
+      '  3. Check that backend is running on the correct port\n' +
+      'Fallback: Using environment variables (if set)\n' +
+      'Docs: docs/SETUP-TROUBLESHOOTING.md#firebase-config'
+    );
     // Fallback to environment variables if available
     firebaseConfig = {
       apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
