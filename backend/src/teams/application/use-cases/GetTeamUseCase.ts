@@ -36,17 +36,21 @@ export class GetTeamUseCase {
   ) {}
 
   async execute(command: GetTeamCommand): Promise<GetTeamResult> {
-    const teamId = TeamId.create(command.teamId);
+    // BUG FIX: Check user exists FIRST
+    const user = await this.userRepository.getById(command.userId);
+    if (!user) {
+      throw new Error(`User ${command.userId} not found`);
+    }
 
     // Load team
+    const teamId = TeamId.create(command.teamId);
     const team = await this.teamRepository.getById(teamId);
     if (!team) {
       throw new Error(`Team ${command.teamId} not found`);
     }
 
     // Verify user is member
-    const user = await this.userRepository.getById(command.userId);
-    if (!user || !user.isMemberOfTeam(teamId)) {
+    if (!user.isMemberOfTeam(teamId)) {
       throw new ForbiddenException('You are not a member of this team');
     }
 
