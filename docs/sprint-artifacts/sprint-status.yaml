@@ -57,9 +57,9 @@ development_status:
   1-3-user-domain-extension: done
   1-4-team-use-cases: done
   1-5-team-api-endpoints: done
-  1-6-team-service-frontend: backlog
-  1-7-team-store: backlog
-  1-8-team-switcher-ui: backlog
+  1-6-team-service-frontend: done
+  1-7-team-store: done
+  1-8-team-switcher-ui: done
   1-9-team-settings-page: backlog
   1-10-create-team-dialog: backlog
   epic-1-team-foundation-retrospective: optional
