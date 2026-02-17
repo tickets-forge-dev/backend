@@ -27,18 +27,17 @@ export class SwitchTeamUseCase {
   ) {}
 
   async execute(command: SwitchTeamCommand): Promise<SwitchTeamResult> {
-    const teamId = TeamId.create(command.teamId);
-
-    // Load team
-    const team = await this.teamRepository.getById(teamId);
-    if (!team) {
-      throw new Error(`Team ${command.teamId} not found`);
-    }
-
-    // Load user
+    // BUG FIX: Check user exists FIRST
     const user = await this.userRepository.getById(command.userId);
     if (!user) {
       throw new Error(`User ${command.userId} not found`);
+    }
+
+    // Load team
+    const teamId = TeamId.create(command.teamId);
+    const team = await this.teamRepository.getById(teamId);
+    if (!team) {
+      throw new Error(`Team ${command.teamId} not found`);
     }
 
     // Verify user is member
