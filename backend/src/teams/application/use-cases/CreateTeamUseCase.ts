@@ -12,9 +12,17 @@ export interface CreateTeamCommand {
 }
 
 export interface CreateTeamResult {
-  teamId: string;
-  teamName: string;
+  id: string;
+  name: string;
   slug: string;
+  ownerId: string;
+  settings: {
+    defaultWorkspaceId?: string;
+    allowMemberInvites: boolean;
+  };
+  isOwner: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -33,7 +41,13 @@ export class CreateTeamUseCase {
   ) {}
 
   async execute(command: CreateTeamCommand): Promise<CreateTeamResult> {
-    // Validate slug uniqueness
+    // BUG FIX #1: Check user exists FIRST
+    const user = await this.userRepository.getById(command.userId);
+    if (!user) {
+      throw new Error(`User ${command.userId} not found`);
+    }
+
+    // Create team
     const team = TeamFactory.createTeam(
       command.teamName,
       command.userId,
@@ -43,6 +57,7 @@ export class CreateTeamUseCase {
       ),
     );
 
+    // Validate slug uniqueness
     const isSlugUnique = await this.teamRepository.isSlugUnique(team.getSlug());
     if (!isSlugUnique) {
       throw InvalidTeamException.duplicateSlug(team.getSlug());
@@ -51,19 +66,28 @@ export class CreateTeamUseCase {
     // Save team
     await this.teamRepository.save(team);
 
-    // Add team to user and set as current
-    const user = await this.userRepository.getById(command.userId);
-    if (!user) {
-      throw new Error(`User ${command.userId} not found`);
+    // BUG FIX #3: Add team to user and explicitly switch to it
+    // addTeam() only sets as current if user has no teams, so we need switchTeam() for existing teams
+    let updatedUser = user.addTeam(team.getId());
+    if (user.getCurrentTeamId()) {
+      // User already had a team, explicitly switch to new one
+      updatedUser = updatedUser.switchTeam(team.getId());
     }
-
-    const updatedUser = user.addTeam(team.getId());
     await this.userRepository.save(updatedUser);
 
+    // BUG FIX #2: Return complete team data for frontend
     return {
-      teamId: team.getId().getValue(),
-      teamName: team.getName(),
+      id: team.getId().getValue(),
+      name: team.getName(),
       slug: team.getSlug(),
+      ownerId: team.getOwnerId(),
+      settings: {
+        defaultWorkspaceId: team.getSettings().defaultWorkspaceId,
+        allowMemberInvites: team.getSettings().allowMemberInvites,
+      },
+      isOwner: true, // Creator is always owner
+      createdAt: team.getCreatedAt().toISOString(),
+      updatedAt: team.getUpdatedAt().toISOString(),
     };
   }
 }
