@@ -65,9 +65,9 @@ development_status:
   epic-1-team-foundation-retrospective: optional
 
   # EPIC 3: Members & Roles (P0) - 8 stories, ~16 days
-  # Status: READY TO START - Epic 1 complete, unblocked
-  epic-3-members-roles: backlog
-  3-1-team-member-domain: backlog
+  # Status: IN PROGRESS - Domain model complete
+  epic-3-members-roles: in-progress
+  3-1-team-member-domain: done
   3-2-team-member-repository: backlog
   3-3-member-use-cases: backlog
   3-4-email-invitation-system: backlog
