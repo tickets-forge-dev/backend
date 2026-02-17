@@ -113,10 +113,13 @@ export class Team {
 
   updateName(newName: string): Team {
     Team.validateName(newName);
+    const trimmedName = newName.trim();
+    // BUG FIX: Regenerate slug from new name
+    const newSlug = Team.generateSlug(trimmedName);
     return new Team(
       this.id,
-      newName.trim(),
-      this.slug,
+      trimmedName,
+      newSlug,
       this.ownerId,
       this.settings,
       this.createdAt,

@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { TeamId } from '../../domain/TeamId';
 import { TeamSettings } from '../../domain/TeamSettings';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
+import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
 import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamException';
 
 export interface UpdateTeamCommand {
@@ -15,9 +16,17 @@ export interface UpdateTeamCommand {
 }
 
 export interface UpdateTeamResult {
-  teamId: string;
-  teamName: string;
+  id: string;
+  name: string;
   slug: string;
+  ownerId: string;
+  settings: {
+    defaultWorkspaceId?: string;
+    allowMemberInvites: boolean;
+  };
+  isOwner: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -31,20 +40,26 @@ export interface UpdateTeamResult {
 export class UpdateTeamUseCase {
   constructor(
     private readonly teamRepository: FirestoreTeamRepository,
+    private readonly userRepository: FirestoreUserRepository,
   ) {}
 
   async execute(command: UpdateTeamCommand): Promise<UpdateTeamResult> {
-    const teamId = TeamId.create(command.teamId);
+    // BUG FIX #1: Check user exists FIRST
+    const user = await this.userRepository.getById(command.userId);
+    if (!user) {
+      throw new Error(`User ${command.userId} not found`);
+    }
 
     // Load team
+    const teamId = TeamId.create(command.teamId);
     const team = await this.teamRepository.getById(teamId);
     if (!team) {
       throw new Error(`Team ${command.teamId} not found`);
     }
 
-    // Verify ownership
+    // BUG FIX #2: Verify ownership (consistent error message)
     if (!team.isOwnedBy(command.userId)) {
-      throw new ForbiddenException('Only team owner can update team');
+      throw new ForbiddenException('Only team owners can update team settings');
     }
 
     // Update name if provided
@@ -75,10 +90,19 @@ export class UpdateTeamUseCase {
     // Save
     await this.teamRepository.update(updatedTeam);
 
+    // BUG FIX #3: Return complete team data like CreateTeamResult
     return {
-      teamId: updatedTeam.getId().getValue(),
-      teamName: updatedTeam.getName(),
+      id: updatedTeam.getId().getValue(),
+      name: updatedTeam.getName(),
       slug: updatedTeam.getSlug(),
+      ownerId: updatedTeam.getOwnerId(),
+      settings: {
+        defaultWorkspaceId: updatedTeam.getSettings().defaultWorkspaceId,
+        allowMemberInvites: updatedTeam.getSettings().allowMemberInvites,
+      },
+      isOwner: true, // Caller is always owner (verified above)
+      createdAt: updatedTeam.getCreatedAt().toISOString(),
+      updatedAt: updatedTeam.getUpdatedAt().toISOString(),
     };
   }
 }
