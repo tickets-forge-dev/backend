@@ -1,47 +1,62 @@
-# Forge Teams + CLI + MCP Implementation - Sprint Status
-# Generated: 2026-02-17
-# Project: forge
-# Project Key: FORGE
-# Plan Version: IMPLEMENTATION-PLAN.md
-# Tracking System: file-system
-# Story Location: docs/sprint-artifacts
+# generated: 2026-02-17
+# project: forge
+# project_key: FORGE
+# tracking_system: file-system
+# story_location: docs/sprint-artifacts
 
-generated: "2026-02-17"
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#   - in-progress: Epic actively being worked on
+#   - done: Epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2026-02-17
 project: forge
 project_key: FORGE
 tracking_system: file-system
 story_location: docs/sprint-artifacts
 
-# ============================================================================
-# TEAMS + CLI + MCP IMPLEMENTATION PLAN
-# 8 Epics | 64 Stories | 8-15 weeks execution
-# ============================================================================
-# Status Definitions:
-#   Epic: backlog (not started) → contexted → in-progress → done
-#   Story: backlog → drafted → ready-for-dev → in-progress → review → done
-#
-# Critical Path (MVP):
-#   ✅ Epic 1 - Teams exist, users can switch
-#   ✅ Epic 2 - Workspaces with repos
-#   ✅ Epic 3 - Members & roles enforced
-#   ✅ Epic 5 - CLI login/list/show works
-#   ✅ Epic 6 - MCP tools available
-#   ✅ Epic 7 - New ticket states (partial)
-# ============================================================================
-
 development_status:
+
+  # ============================================================================
+  # FORGE TEAMS + CLI + MCP IMPLEMENTATION PLAN
+  # Duration: 8-15 weeks | 8 Epics | 64 Stories
+  # Goal: Multi-team collaborative platform with developer CLI + MCP
+  # ============================================================================
 
   # ──────────────────────────────────────────────────────────────────────────
   # PHASE 1 (Weeks 1-2): Team Foundation
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 1: Team Foundation (P0) - 10 stories, ~17 days
-  epic-1-team-foundation: backlog
-  1-1-team-domain-model: in-progress
-  1-2-team-repository: drafted
-  1-3-user-domain-extension: drafted
-  1-4-team-use-cases: drafted
-  1-5-team-api-endpoints: drafted
+  # Status: IN PROGRESS - Backend domain model and repository complete
+  epic-1-team-foundation: in-progress
+  1-1-team-domain-model: done
+  1-2-team-repository: done
+  1-3-user-domain-extension: done
+  1-4-team-use-cases: done
+  1-5-team-api-endpoints: done
   1-6-team-service-frontend: backlog
   1-7-team-store: backlog
   1-8-team-switcher-ui: backlog
@@ -50,9 +65,10 @@ development_status:
   epic-1-team-foundation-retrospective: optional
 
   # EPIC 2: Workspace Management (P0) - 8 stories, ~15 days
-  epic-2-workspace-management: backlog
-  2-1-workspace-domain-model: drafted
-  2-2-workspace-repository: drafted
+  # Status: IN PROGRESS - Domain model and repository complete
+  epic-2-workspace-management: in-progress
+  2-1-workspace-domain-model: done
+  2-2-workspace-repository: done
   2-3-workspace-use-cases: backlog
   2-4-workspace-api-endpoints: backlog
   2-5-workspace-service-frontend: backlog
@@ -61,11 +77,8 @@ development_status:
   2-8-workspace-management-page: backlog
   epic-2-workspace-management-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # PHASE 2 (Weeks 3-6): Infrastructure
-  # ──────────────────────────────────────────────────────────────────────────
-
   # EPIC 3: Members & Roles (P0) - 8 stories, ~16 days
+  # Status: NOT STARTED - Blocked by Epic 1 completion
   epic-3-members-roles: backlog
   3-1-team-member-domain: backlog
   3-2-team-member-repository: backlog
@@ -78,14 +91,20 @@ development_status:
   epic-3-members-roles-retrospective: optional
 
   # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
-  epic-4-enhanced-onboarding: backlog
-  4-1-state-machine: backlog
+  # Status: IN PROGRESS - State machine complete
+  epic-4-enhanced-onboarding: in-progress
+  4-1-onboarding-state-machine: done
   4-2-team-name-step: backlog
   4-3-role-selection-step: backlog
   4-4-auth-flow-integration: backlog
   epic-4-enhanced-onboarding-retrospective: optional
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 2 (Weeks 3-4): Infrastructure
+  # ──────────────────────────────────────────────────────────────────────────
+
   # EPIC 5: CLI Foundation (P0) - 8 stories, ~14 days
+  # Status: NOT STARTED - Blocked by Epic 1 completion
   epic-5-cli-foundation: backlog
   5-1-cli-project-setup: backlog
   5-2-login-command: backlog
@@ -102,6 +121,7 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 6: MCP Server (P0) - 11 stories, ~15 days
+  # Status: NOT STARTED - Blocked by Epic 5 completion
   epic-6-mcp-server: backlog
   6-1-mcp-server-setup: backlog
   6-2-ticket-context-tool: backlog
@@ -121,6 +141,7 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 7: Ticket Lifecycle (P1) - 9 stories, ~15 days
+  # Status: NOT STARTED - Blocked by Epic 6 completion
   epic-7-ticket-lifecycle: backlog
   7-1-extend-aec-status-enum: backlog
   7-2-move-tickets-to-team-scope: backlog
@@ -134,6 +155,7 @@ development_status:
   epic-7-ticket-lifecycle-retrospective: optional
 
   # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days
+  # Status: NOT STARTED - Can start anytime (parallel with other epics)
   epic-8-testing-documentation: backlog
   8-1-backend-unit-tests: backlog
   8-2-frontend-component-tests: backlog
