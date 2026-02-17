@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TeamsController } from './presentation/controllers/teams.controller';
 import { FirestoreTeamRepository } from './infrastructure/persistence/FirestoreTeamRepository';
+import { FirestoreTeamMemberRepository } from './infrastructure/persistence/FirestoreTeamMemberRepository';
 import { FirestoreUserRepository } from '../users/infrastructure/persistence/FirestoreUserRepository';
 import { CreateTeamUseCase } from './application/use-cases/CreateTeamUseCase';
 import { UpdateTeamUseCase } from './application/use-cases/UpdateTeamUseCase';
@@ -28,6 +29,14 @@ import { FirebaseService } from '../shared/infrastructure/firebase/firebase.conf
       inject: [FirebaseService],
     },
     {
+      provide: FirestoreTeamMemberRepository,
+      useFactory: (firebaseService: FirebaseService) => {
+        const firestore = firebaseService.getFirestore();
+        return new FirestoreTeamMemberRepository(firestore);
+      },
+      inject: [FirebaseService],
+    },
+    {
       provide: FirestoreUserRepository,
       useFactory: (firebaseService: FirebaseService) => {
         const firestore = firebaseService.getFirestore();
@@ -45,6 +54,7 @@ import { FirebaseService } from '../shared/infrastructure/firebase/firebase.conf
   ],
   exports: [
     FirestoreTeamRepository,
+    FirestoreTeamMemberRepository,
     FirestoreUserRepository,
   ],
 })
