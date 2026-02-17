@@ -1,11 +1,11 @@
 # Forge Sprint Status - Comprehensive Development Tracking
-# Generated: 2026-02-16
+# Generated: 2026-02-17
 # Project: forge
 # Project Key: FORGE
 # Tracking System: file-system
 # Story Location: docs/sprint-artifacts
 
-generated: "2026-02-16"
+generated: "2026-02-17"
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -41,14 +41,7 @@ story_location: docs/sprint-artifacts
 
 development_status:
 
-  # ============================================================================
-  # 🚀 SUPER-SPRINT-6: CORE PLATFORM EPICS (Feb 7 - Mar 11)
-  # ============================================================================
-
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 1: Interactive API Editor with Smart Detection ✅ COMPLETE
-  # Days: 1-5 | Completed: 2026-02-07 (Session 6)
-  # ──────────────────────────────────────────────────────────────────────────
+  # Interactive API Editor with Smart Detection
   epic-1-api-editor: done
   1-3b-01-api-detection-service: done
   1-3b-02-controller-scanner: done
@@ -57,12 +50,9 @@ development_status:
   1-3b-05-api-card-component: done
   1-3b-06-curl-generator: done
   1-3b-07-integration-testing: done
-  epic-1-retrospective: optional
+  epic-1-api-editor-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 2: Rich Input with Markdown + PDF 🟡 PARTIAL
-  # Days: 5-11 | Status: Markdown rendering done, PDF extraction not started
-  # ──────────────────────────────────────────────────────────────────────────
+  # Rich Input with Markdown + PDF
   epic-2-rich-input: in-progress
   1-6b-01-markdown-editor-component: drafted
   1-6b-02-file-upload-zone: drafted
@@ -70,12 +60,9 @@ development_status:
   1-6b-04-pdf-extraction-endpoint: backlog
   1-6b-05-wizard-integration: backlog
   1-6b-06-integration-testing: backlog
-  epic-2-retrospective: optional
+  epic-2-rich-input-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 3: Tech Spec Document + AEC XML Contract ✅ COMPLETE
-  # Days: 11-21 | Completed: 2026-02-09 (Session 10)
-  # ──────────────────────────────────────────────────────────────────────────
+  # Tech Spec Document + AEC XML Contract
   epic-3-tech-spec: done
   1-epic3-01-markdown-generator: done
   1-epic3-02-xml-serializer: done
@@ -87,137 +74,92 @@ development_status:
   1-epic3-08-xml-preview-modal: done
   1-epic3-09-download-integration: done
   1-epic3-10-integration-testing: done
-  epic-3-retrospective: optional
+  epic-3-tech-spec-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 4: Linear Integration ⬜ NOT STARTED
-  # Days: 21-27 | Effort: 6 days | Priority: MUST-HAVE
-  # ──────────────────────────────────────────────────────────────────────────
+  # Linear Integration
   epic-4-linear-integration: backlog
   1-4-01-linear-oauth-setup: backlog
   1-4-02-linear-api-client: backlog
   1-4-03-field-mapping: backlog
   1-4-04-export-to-linear-usecase: backlog
-  1-4-05-linear-integration-settings: backlog
-  1-4-06-export-dialog-integration: backlog
-  epic-4-retrospective: optional
+  1-4-05-export-to-linear-endpoint: backlog
+  1-4-06-frontend-export-button: backlog
+  epic-4-linear-integration-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 5: Jira Integration ⬜ NOT STARTED
-  # Days: 27-32 | Effort: 5 days | Priority: ENTERPRISE
-  # ──────────────────────────────────────────────────────────────────────────
+  # Jira Integration
   epic-5-jira-integration: backlog
   1-5-01-jira-oauth-setup: backlog
   1-5-02-jira-api-client: backlog
-  1-5-03-jira-field-mapping: backlog
+  1-5-03-field-mapping: backlog
   1-5-04-export-to-jira-usecase: backlog
-  1-5-05-jira-integration-frontend: backlog
-  epic-5-retrospective: optional
+  1-5-05-export-to-jira-endpoint: backlog
+  1-5-06-frontend-export-button: backlog
+  epic-5-jira-integration-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 6: Design & Asset Attachments ✅ COMPLETE
-  # Days: 32-38 | Completed: 2026-02-09 (Session 10)
-  # ──────────────────────────────────────────────────────────────────────────
-  epic-6-assets: done
-  1-6-01-asset-upload-zone: done
-  1-6-02-asset-gallery: done
-  1-6-03-asset-storage-service: done
-  1-6-04-upload-stage1-integration: done
-  1-6-05-export-assets: done
-  1-6-06-integration-testing: done
-  epic-6-retrospective: optional
+  # Design & Asset Attachments
+  epic-6-design-assets: done
+  1-7-01-firebase-storage-setup: done
+  1-7-02-attachment-upload-service: done
+  1-7-03-attachment-upload-component: done
+  1-7-04-assets-display-section: done
+  1-7-05-asset-deletion: done
+  epic-6-design-assets-retrospective: optional
 
-  # ============================================================================
-  # 🔄 ACTIVE DEVELOPMENT: EXTENDED EPICS (Feb 9 - Current)
-  # ============================================================================
+  # Spec Quality (API Detection, BE/FE Split, Test Plans)
+  epic-20-spec-quality: in-progress
+  20-01-api-endpoint-detection: done
+  20-02-backend-frontend-split: done
+  20-03-test-plan-generation: done
+  20-04-api-interactive-editor: backlog
+  epic-20-spec-quality-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 24: Bidirectional Jira/Linear Integration 🚧 IN-PROGRESS
-  # Status: Import flow complete (2/8), Export remaining
-  # Priority: P1 (High value enrichment layer)
-  # Last Updated: 2026-02-13
-  # ──────────────────────────────────────────────────────────────────────────
-  epic-24-jira-linear-sync: in-progress
-  24-1-jira-linear-import-apis: done                  # Backend import endpoints (Session 12)
-  24-2-frontend-import-flow-ui: done                  # 3-stage import wizard (Session 13)
-  24-3-create-ticket-from-imported: backlog           # Ticket auto-population
-  24-4-enhanced-export-with-logic: backlog            # Smart export decisions
-  24-5-export-dialog-sprint-cycle: backlog            # Sprint cycle management
-  24-6-imported-issue-badge: backlog                  # Badge display
-  24-7-backend-tests: backlog                         # Validation tests
-  24-8-frontend-e2e: backlog                          # E2E testing
-  epic-24-retrospective: optional
+  # Multi-Repository Support
+  epic-23-multi-repo: backlog
+  23-01-multi-repo-domain: backlog
+  23-02-parallel-analysis: backlog
+  23-03-api-updates: backlog
+  23-04-frontend-selector: backlog
+  23-05-wizard-validation: backlog
+  23-06-detail-per-repo: backlog
+  23-07-backend-tests: backlog
+  23-08-frontend-tests: backlog
+  epic-23-multi-repo-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 25: PRD Breakdown Workflow ✅ COMPLETE
-  # Status: All stories complete (6/6)
-  # Priority: P1 (Strategic upstream planning automation)
-  # Completed: 2026-02-12
-  # ──────────────────────────────────────────────────────────────────────────
-  epic-25-prd-breakdown: done
-  25-1-mastra-prd-agent: done                         # PRD analysis agent (Session 20)
-  25-2-backend-api: done                              # Use case + endpoints (Session 20)
-  25-3-input-page-frontend: done                      # Input form + wizard (Session 20)
-  25-4-breakdown-review-ui: done                      # Review UI + questions (Sessions 21-22)
-  25-5-bulk-creation: done                            # Bulk creation flow (Session 19)
-  25-6-integration-testing: done                      # E2E validation
-  epic-25-retrospective: optional
+  # Jira/Linear Import Flow
+  epic-24-jira-linear-import: in-progress
+  24-01-availability-check: done
+  24-02-jira-import-usecase: done
+  24-03-linear-import-usecase: done
+  24-1-jira-import-api: done
+  24-2-linear-import-api: done
+  24-3-create-ticket-from-imported: done
+  24-4-frontend-import-wizard: in-progress
+  24-5-integration-tests: backlog
+  epic-24-jira-linear-import-retrospective: optional
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # EPIC 26: Design Link Integration with LLM Leverage 🚧 IN-PROGRESS
-  # Status: Phase 1 partial (4/14 stories)
-  # Priority: P1 (Enables pixel-perfect specs via Figma/Loom)
-  # Effort: 30-35 hours across 3 phases
-  # Last Updated: 2026-02-16
-  # ──────────────────────────────────────────────────────────────────────────
-  epic-26-design-link-integration: in-progress       # Phase 1: Store & Display (10-12h)
-  26-01-backend-designref-valueobject: done          #                         Phase 2: Metadata (10-12h)
-  26-02-add-remove-use-cases: done                    #                         Phase 3: LLM (10-12h)
-  26-03-backend-api-endpoints: done
-  26-04-aecmapper-persistence: done
-  26-05-frontend-designlink-input: drafted            # Frontend Phase 1
-  26-06-wizard-store-integration: drafted
-  26-07-designref-section-display: drafted
-  26-08-ticket-detail-integration: drafted
-  26-09-figma-oauth-integration: backlog              # Phase 2
-  26-10-figma-api-metadata: backlog
-  26-11-loom-oauth-integration: backlog
-  26-12-loom-api-metadata: backlog
-  26-13-rich-preview-cards: backlog                   # Phase 3
-  26-14-settings-integrations-page: backlog
-  epic-26-retrospective: optional
+  # Developer Experience Improvements
+  epic-25-dev-experience: done
+  25-01-startup-configuration: done
+  25-02-integrations-overview: done
+  25-03-export-link-improvements: done
+  25-04-checkbox-styling: done
+  25-05-onboarding-improvements: done
+  epic-25-dev-experience-retrospective: optional
 
-  # ============================================================================
-  # 📋 ROADMAP & BACKLOG
-  # ============================================================================
-
-  # Planning/Optimization Epics
-  epic-21-caching-optimization: backlog               # 10-20x speed improvement
-  epic-23-multi-repo-support: backlog                 # P0 for Phase 4, 8-10 weeks
-
-  # Infrastructure/Revenue (Future)
-  epic-10-revenue-infrastructure: backlog             # Stripe + subscriptions
-
-# ============================================================================
-# QUICK REFERENCE - KEY METRICS
-# ============================================================================
-#
-# Completed Epics: 6 (Epics 1, 3, 6, 25)
-# In-Progress Epics: 3 (Epics 2, 24, 26)
-# Planned Epics: 3 (Epics 4, 5, 21, 23)
-#
-# Total Stories Completed: 30+
-# Total Stories In Progress: 8
-# Total Stories Planned: 20+
-#
-# Recent Session Focus (Feb 11-16):
-#   - Session 22: React object rendering fix + UI refinements
-#   - Session 23: AEC XML serialization for AI agents
-#   - Session 24-26: Epic 26 Phase 1 implementation
-#
-# Next Priorities:
-#   1. Complete Epic 2 (PDF extraction, wireframes)
-#   2. Continue Epic 26 Phase 1 (frontend design link display)
-#   3. Plan Epic 24 export flow (stories 3-8)
-#
-# ============================================================================
+  # Design Link Integration (Figma/Loom)
+  epic-26-design-links: in-progress
+  26-01-backend-designreference-value-object: drafted
+  26-02-backend-add-remove-design-reference-use-cases: drafted
+  26-03-backend-api-endpoints-dtos: drafted
+  26-04-backend-aecmapper-persistence: drafted
+  26-05-frontend-designlinkinput-component: drafted
+  26-06-frontend-wizard-store-service-integration: drafted
+  26-07-frontend-designreferencessection-display: drafted
+  26-08-frontend-ticket-detail-integration: drafted
+  26-09-backend-figma-oauth-integration: backlog
+  26-10-backend-figma-api-service-metadata-fetcher: backlog
+  26-11-backend-loom-oauth-integration: backlog
+  26-12-backend-loom-api-service-metadata-fetcher: backlog
+  26-13-frontend-rich-preview-cards: backlog
+  26-14-frontend-settings-page-integrations: backlog
+  epic-26-design-links-retrospective: optional
