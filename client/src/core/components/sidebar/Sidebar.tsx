@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/ui.store';
 import { SidebarHeader } from './SidebarHeader';
 import { SidebarNav } from './SidebarNav';
 import { SidebarFooter } from './SidebarFooter';
+import { TeamSwitcher } from '@/teams/components/TeamSwitcher';
 
 export function Sidebar() {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
@@ -48,6 +49,7 @@ export function Sidebar() {
         )}
       >
         <SidebarHeader />
+        <TeamSwitcher />
         <SidebarNav />
         <SidebarFooter />
 

@@ -37,7 +37,7 @@ development_status:
 
   # EPIC 1: Team Foundation (P0) - 10 stories, ~17 days
   epic-1-team-foundation: backlog
-  1-1-team-domain-model: drafted
+  1-1-team-domain-model: in-progress
   1-2-team-repository: drafted
   1-3-user-domain-extension: drafted
   1-4-team-use-cases: drafted
