@@ -16,6 +16,7 @@ import {
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { CreateTeamUseCase } from '../../application/use-cases/CreateTeamUseCase';
 import { UpdateTeamUseCase } from '../../application/use-cases/UpdateTeamUseCase';
+import { DeleteTeamUseCase } from '../../application/use-cases/DeleteTeamUseCase';
 import { GetTeamUseCase } from '../../application/use-cases/GetTeamUseCase';
 import { GetUserTeamsUseCase } from '../../application/use-cases/GetUserTeamsUseCase';
 import { SwitchTeamUseCase } from '../../application/use-cases/SwitchTeamUseCase';
@@ -35,6 +36,7 @@ export class TeamsController {
   constructor(
     private readonly createTeamUseCase: CreateTeamUseCase,
     private readonly updateTeamUseCase: UpdateTeamUseCase,
+    private readonly deleteTeamUseCase: DeleteTeamUseCase,
     private readonly getTeamUseCase: GetTeamUseCase,
     private readonly getUserTeamsUseCase: GetUserTeamsUseCase,
     private readonly switchTeamUseCase: SwitchTeamUseCase,
@@ -185,7 +187,23 @@ export class TeamsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTeam(@Request() req: any, @Param('id') teamId: string) {
-    // TODO: Implement soft delete via DeleteTeamUseCase
-    throw new BadRequestException('Delete team not yet implemented');
+    try {
+      const userId = req.user.uid;
+
+      await this.deleteTeamUseCase.execute({
+        userId,
+        teamId,
+      });
+
+      // 204 No Content - no response body
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 }

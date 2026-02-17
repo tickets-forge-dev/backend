@@ -35,7 +35,8 @@ export class FirestoreTeamRepository {
       },
       createdAt: new Date(teamObj.createdAt),
       updatedAt: new Date(teamObj.updatedAt),
-      isDeleted: false,
+      deletedAt: teamObj.deletedAt ? new Date(teamObj.deletedAt) : null,
+      isDeleted: !!teamObj.deletedAt, // Legacy field for backward compatibility
     });
   }
 
@@ -112,6 +113,8 @@ export class FirestoreTeamRepository {
           allowMemberInvites: teamObj.settings.allowMemberInvites,
         },
         updatedAt: new Date(teamObj.updatedAt),
+        deletedAt: teamObj.deletedAt ? new Date(teamObj.deletedAt) : null,
+        isDeleted: !!teamObj.deletedAt, // Legacy field for backward compatibility
       });
   }
 
@@ -165,6 +168,9 @@ export class FirestoreTeamRepository {
       const updatedAt = data.updatedAt?.toDate
         ? data.updatedAt.toDate()
         : data.updatedAt;
+      const deletedAt = data.deletedAt?.toDate
+        ? data.deletedAt.toDate()
+        : data.deletedAt;
 
       const settings = TeamSettings.create(
         data.settings?.defaultWorkspaceId,
@@ -179,6 +185,7 @@ export class FirestoreTeamRepository {
         settings: settings.toObject(),
         createdAt: createdAt,
         updatedAt: updatedAt,
+        deletedAt: deletedAt,
       });
     } catch (error) {
       throw new Error(`Failed to map Firestore data to Team: ${error}`);

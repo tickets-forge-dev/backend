@@ -35,6 +35,7 @@ export class TeamFactory {
     };
     createdAt: Date | string;
     updatedAt: Date | string;
+    deletedAt?: Date | string | null;
   }): Team {
     const teamId = TeamId.create(data.id);
     const settings = TeamSettings.create(
@@ -50,6 +51,11 @@ export class TeamFactory {
       data.updatedAt instanceof Date
         ? data.updatedAt
         : new Date(data.updatedAt);
+    const deletedAt = data.deletedAt
+      ? data.deletedAt instanceof Date
+        ? data.deletedAt
+        : new Date(data.deletedAt)
+      : undefined;
 
     return Team.reconstitute(
       teamId,
@@ -59,6 +65,7 @@ export class TeamFactory {
       settings,
       createdAt,
       updatedAt,
+      deletedAt,
     );
   }
 }

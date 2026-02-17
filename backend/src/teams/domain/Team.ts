@@ -18,6 +18,7 @@ export class Team {
   private readonly settings: TeamSettings;
   private readonly createdAt: Date;
   private readonly updatedAt: Date;
+  private readonly deletedAt?: Date;
 
   private constructor(
     id: TeamId,
@@ -27,6 +28,7 @@ export class Team {
     settings: TeamSettings,
     createdAt: Date,
     updatedAt: Date,
+    deletedAt?: Date,
   ) {
     this.id = id;
     this.name = name;
@@ -35,6 +37,7 @@ export class Team {
     this.settings = settings;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
+    this.deletedAt = deletedAt;
   }
 
   // Factory methods
@@ -73,8 +76,9 @@ export class Team {
     settings: TeamSettings,
     createdAt: Date,
     updatedAt: Date,
+    deletedAt?: Date,
   ): Team {
-    return new Team(id, name, slug, ownerId, settings, createdAt, updatedAt);
+    return new Team(id, name, slug, ownerId, settings, createdAt, updatedAt, deletedAt);
   }
 
   // Getters
@@ -106,9 +110,17 @@ export class Team {
     return new Date(this.updatedAt);
   }
 
+  getDeletedAt(): Date | undefined {
+    return this.deletedAt ? new Date(this.deletedAt) : undefined;
+  }
+
   // Business logic methods
   isOwnedBy(userId: string): boolean {
     return this.ownerId === userId;
+  }
+
+  isDeleted(): boolean {
+    return !!this.deletedAt;
   }
 
   updateName(newName: string): Team {
@@ -124,6 +136,7 @@ export class Team {
       this.settings,
       this.createdAt,
       new Date(),
+      this.deletedAt,
     );
   }
 
@@ -136,6 +149,20 @@ export class Team {
       newSettings,
       this.createdAt,
       new Date(),
+      this.deletedAt,
+    );
+  }
+
+  delete(): Team {
+    return new Team(
+      this.id,
+      this.name,
+      this.slug,
+      this.ownerId,
+      this.settings,
+      this.createdAt,
+      new Date(), // Update updatedAt
+      new Date(), // Set deletedAt
     );
   }
 
@@ -170,6 +197,7 @@ export class Team {
       settings: this.settings.toObject(),
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
+      deletedAt: this.deletedAt?.toISOString(),
     };
   }
 }

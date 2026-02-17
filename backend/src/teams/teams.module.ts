@@ -4,6 +4,7 @@ import { FirestoreTeamRepository } from './infrastructure/persistence/FirestoreT
 import { FirestoreUserRepository } from '../users/infrastructure/persistence/FirestoreUserRepository';
 import { CreateTeamUseCase } from './application/use-cases/CreateTeamUseCase';
 import { UpdateTeamUseCase } from './application/use-cases/UpdateTeamUseCase';
+import { DeleteTeamUseCase } from './application/use-cases/DeleteTeamUseCase';
 import { GetTeamUseCase } from './application/use-cases/GetTeamUseCase';
 import { GetUserTeamsUseCase } from './application/use-cases/GetUserTeamsUseCase';
 import { SwitchTeamUseCase } from './application/use-cases/SwitchTeamUseCase';
@@ -37,6 +38,7 @@ import { FirebaseService } from '../shared/infrastructure/firebase/firebase.conf
     // Use Cases
     CreateTeamUseCase,
     UpdateTeamUseCase,
+    DeleteTeamUseCase,
     GetTeamUseCase,
     GetUserTeamsUseCase,
     SwitchTeamUseCase,
