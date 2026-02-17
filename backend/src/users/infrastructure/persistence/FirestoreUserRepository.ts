@@ -117,6 +117,14 @@ export class FirestoreUserRepository {
     }
 
     try {
+      // Convert Firestore Timestamp objects to JavaScript Dates
+      const createdAt = data.createdAt?.toDate
+        ? data.createdAt.toDate()
+        : data.createdAt;
+      const updatedAt = data.updatedAt?.toDate
+        ? data.updatedAt.toDate()
+        : data.updatedAt;
+
       return UserFactory.fromPersistence({
         userId: data.userId,
         email: data.email,
@@ -124,8 +132,8 @@ export class FirestoreUserRepository {
         photoURL: data.photoURL || undefined,
         currentTeamId: data.currentTeamId || null,
         teams: data.teams || [],
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
       });
     } catch (error) {
       throw new Error(`Failed to map Firestore data to User: ${error}`);

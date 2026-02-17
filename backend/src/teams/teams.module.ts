@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { Firestore } from '@google-cloud/firestore';
 import { TeamsController } from './presentation/controllers/teams.controller';
 import { FirestoreTeamRepository } from './infrastructure/persistence/FirestoreTeamRepository';
 import { FirestoreUserRepository } from '../users/infrastructure/persistence/FirestoreUserRepository';
@@ -8,6 +7,7 @@ import { UpdateTeamUseCase } from './application/use-cases/UpdateTeamUseCase';
 import { GetTeamUseCase } from './application/use-cases/GetTeamUseCase';
 import { GetUserTeamsUseCase } from './application/use-cases/GetUserTeamsUseCase';
 import { SwitchTeamUseCase } from './application/use-cases/SwitchTeamUseCase';
+import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 
 /**
  * TeamsModule
@@ -20,17 +20,19 @@ import { SwitchTeamUseCase } from './application/use-cases/SwitchTeamUseCase';
     // Repositories
     {
       provide: FirestoreTeamRepository,
-      useFactory: () => {
-        const firestore = new Firestore();
+      useFactory: (firebaseService: FirebaseService) => {
+        const firestore = firebaseService.getFirestore();
         return new FirestoreTeamRepository(firestore);
       },
+      inject: [FirebaseService],
     },
     {
       provide: FirestoreUserRepository,
-      useFactory: () => {
-        const firestore = new Firestore();
+      useFactory: (firebaseService: FirebaseService) => {
+        const firestore = firebaseService.getFirestore();
         return new FirestoreUserRepository(firestore);
       },
+      inject: [FirebaseService],
     },
     // Use Cases
     CreateTeamUseCase,

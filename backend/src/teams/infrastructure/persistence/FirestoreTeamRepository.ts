@@ -29,7 +29,10 @@ export class FirestoreTeamRepository {
       name: teamObj.name,
       slug: teamObj.slug,
       ownerId: teamObj.ownerId,
-      settings: teamObj.settings,
+      settings: {
+        defaultWorkspaceId: teamObj.settings.defaultWorkspaceId ?? null,
+        allowMemberInvites: teamObj.settings.allowMemberInvites,
+      },
       createdAt: new Date(teamObj.createdAt),
       updatedAt: new Date(teamObj.updatedAt),
       isDeleted: false,
@@ -104,7 +107,10 @@ export class FirestoreTeamRepository {
       .update({
         name: teamObj.name,
         slug: teamObj.slug,
-        settings: teamObj.settings,
+        settings: {
+          defaultWorkspaceId: teamObj.settings.defaultWorkspaceId ?? null,
+          allowMemberInvites: teamObj.settings.allowMemberInvites,
+        },
         updatedAt: new Date(teamObj.updatedAt),
       });
   }
@@ -152,6 +158,14 @@ export class FirestoreTeamRepository {
     }
 
     try {
+      // Convert Firestore Timestamp objects to JavaScript Dates
+      const createdAt = data.createdAt?.toDate
+        ? data.createdAt.toDate()
+        : data.createdAt;
+      const updatedAt = data.updatedAt?.toDate
+        ? data.updatedAt.toDate()
+        : data.updatedAt;
+
       const settings = TeamSettings.create(
         data.settings?.defaultWorkspaceId,
         data.settings?.allowMemberInvites ?? true,
@@ -163,8 +177,8 @@ export class FirestoreTeamRepository {
         slug: data.slug,
         ownerId: data.ownerId,
         settings: settings.toObject(),
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
       });
     } catch (error) {
       throw new Error(`Failed to map Firestore data to Team: ${error}`);
