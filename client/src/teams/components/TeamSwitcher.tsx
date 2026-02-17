@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, ChevronDown, Plus, Users } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Plus, Users } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
  */
 export function TeamSwitcher() {
   const { sidebarCollapsed } = useUIStore();
-  const { teams, currentTeamId, currentTeam, isLoading, error, loadTeams, switchTeam } =
+  const { teams, currentTeamId, currentTeam, isLoading, isSwitching, error, loadTeams, switchTeam } =
     useTeamStore();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -70,6 +70,7 @@ export function TeamSwitcher() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
+            disabled={isSwitching}
             className={cn(
               'w-full gap-2 py-2 h-auto',
               sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-2'
@@ -77,14 +78,18 @@ export function TeamSwitcher() {
           >
             {/* Left: Icon + Team Name */}
             <div className="flex items-center gap-2 min-w-0">
-              <Users className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              {isSwitching && sidebarCollapsed ? (
+                <Loader2 className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
+              ) : (
+                <Users className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              )}
               {!sidebarCollapsed && (
                 <span className="text-[var(--text-sm)] font-medium text-[var(--text)] truncate">
                   {currentTeamName}
                 </span>
               )}
             </div>
-            {/* Right: Role Badge + Chevron */}
+            {/* Right: Role Badge + Chevron/Loader */}
             {!sidebarCollapsed && (
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {currentTeam && (
@@ -95,7 +100,11 @@ export function TeamSwitcher() {
                     {isOwner ? 'Owner' : 'Member'}
                   </Badge>
                 )}
-                <ChevronDown className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                {isSwitching ? (
+                  <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] animate-spin" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                )}
               </div>
             )}
           </Button>

@@ -1,167 +1,181 @@
+/**
+ * Create Team Dialog Component
+ *
+ * Modal dialog for creating a new team with name validation.
+ * - Form with single input: team name (3-50 chars)
+ * - Client-side validation with error messages
+ * - Calls teamStore.createTeam() on submit
+ * - Auto-switches to new team on success
+ * - Shows success/error toast notifications
+ *
+ * Part of: Story 1.10 - Create Team Dialog
+ * Layer: Presentation (UI Component)
+ */
+
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
-import { Label } from '@/core/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/core/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/core/components/ui/dialog';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { AlertCircle, Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface CreateTeamDialogProps {
-  /**
-   * Render prop for custom trigger button.
-   * If not provided, uses default "Create Team" button with Plus icon.
-   */
   trigger?: React.ReactNode;
-  /**
-   * Callback after successful team creation.
-   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onSuccess?: () => void;
 }
 
-/**
- * CreateTeamDialog Component
- *
- * Modal dialog for creating a new team.
- * Auto-switches to the newly created team on success.
- */
-export function CreateTeamDialog({ trigger, onSuccess }: CreateTeamDialogProps) {
+export function CreateTeamDialog({ trigger, open, onOpenChange, onSuccess }: CreateTeamDialogProps) {
   const { createTeam } = useTeamStore();
-
-  const [open, setOpen] = useState(false);
   const [teamName, setTeamName] = useState('');
-  const [allowMemberInvites, setAllowMemberInvites] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleCreate = async () => {
-    if (teamName.trim().length < 3) {
-      setError('Team name must be at least 3 characters');
+  // Use controlled open state if provided, otherwise use internal state
+  const dialogOpen = open !== undefined ? open : isDialogOpen;
+  const setDialogOpen = onOpenChange || setIsDialogOpen;
+
+  const validateName = (name: string): string | null => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return 'Team name is required';
+    }
+    if (trimmed.length < 3) {
+      return 'Team name must be at least 3 characters';
+    }
+    if (trimmed.length > 50) {
+      return 'Team name must be less than 50 characters';
+    }
+    return null;
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTeamName(value);
+    // Clear validation error on input change
+    if (validationError) {
+      setValidationError(null);
+    }
+  };
+
+  const handleNameBlur = () => {
+    // Validate on blur
+    const error = validateName(teamName);
+    setValidationError(error);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate before submit
+    const error = validateName(teamName);
+    if (error) {
+      setValidationError(error);
       return;
     }
 
-    setError(null);
     setIsCreating(true);
+    setValidationError(null);
 
     try {
-      await createTeam(teamName.trim(), allowMemberInvites);
+      await createTeam(teamName.trim());
 
-      // Success: reset and close
+      // Success!
+      toast.success('Team created! You are the Admin.');
+
+      // Reset form and close dialog
       setTeamName('');
-      setAllowMemberInvites(true);
-      setOpen(false);
+      setDialogOpen(false);
+
+      // Call onSuccess callback if provided
       onSuccess?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create team');
+    } catch (error) {
+      // Error handling
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create team';
+      toast.error(errorMessage);
+      setValidationError(errorMessage);
     } finally {
       setIsCreating(false);
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!isCreating) {
-      setOpen(newOpen);
-      if (!newOpen) {
-        // Reset form on close
-        setTeamName('');
-        setAllowMemberInvites(true);
-        setError(null);
-      }
+  const handleOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    // Reset form when dialog closes
+    if (!open) {
+      setTeamName('');
+      setValidationError(null);
     }
   };
 
-  const canCreate = teamName.trim().length >= 3;
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Team
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Create Team</DialogTitle>
-          <DialogDescription>
-            Create a new team to collaborate with others. You&apos;ll be the owner.
-          </DialogDescription>
-        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Create Team</DialogTitle>
+            <DialogDescription>
+              Create a new team to collaborate with others. You will be the team admin.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Team Name */}
-          <div className="space-y-2">
-            <Label htmlFor="create-team-name">Team Name</Label>
-            <Input
-              id="create-team-name"
-              value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
-              placeholder="e.g., Acme Engineering"
-              minLength={3}
-              maxLength={50}
-              disabled={isCreating}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && canCreate) {
-                  handleCreate();
-                }
-              }}
-            />
-            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-              3-50 characters. A URL-friendly slug will be auto-generated.
-            </p>
-          </div>
-
-          {/* Allow Member Invites */}
-          <div className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              id="create-allow-invites"
-              checked={allowMemberInvites}
-              onChange={(e) => setAllowMemberInvites(e.target.checked)}
-              disabled={isCreating}
-              className="mt-1 h-4 w-4 rounded border-[var(--border)]"
-            />
-            <div className="space-y-0.5">
-              <Label htmlFor="create-allow-invites">Allow members to invite others</Label>
+          <div className="py-4">
+            <div className="space-y-2">
+              <label htmlFor="teamName" className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+                Team Name
+              </label>
+              <Input
+                id="teamName"
+                placeholder="e.g., Engineering Team"
+                value={teamName}
+                onChange={handleNameChange}
+                onBlur={handleNameBlur}
+                disabled={isCreating}
+                className={validationError ? 'border-red-500' : ''}
+                autoFocus
+              />
+              {validationError && (
+                <p className="text-[var(--text-xs)] text-red-500 mt-1">{validationError}</p>
+              )}
               <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                When enabled, any team member can invite new members. Otherwise, only you (the
-                owner) can invite.
+                Must be 3-50 characters
               </p>
             </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-center gap-2 rounded-md bg-red-50 dark:bg-red-950/20 p-3 text-[var(--text-sm)] text-red-600 dark:text-red-400">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="ghost"
-            onClick={() => handleOpenChange(false)}
-            disabled={isCreating}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleCreate} disabled={!canCreate || isCreating}>
-            {isCreating ? 'Creating...' : 'Create Team'}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isCreating}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isCreating || !!validationError || !teamName.trim()}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Team
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
