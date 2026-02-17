@@ -1,7 +1,8 @@
-# Forge Sprint Status - Comprehensive Development Tracking
+# Forge Teams + CLI + MCP Implementation - Sprint Status
 # Generated: 2026-02-17
 # Project: forge
 # Project Key: FORGE
+# Plan Version: IMPLEMENTATION-PLAN.md
 # Tracking System: file-system
 # Story Location: docs/sprint-artifacts
 
@@ -12,154 +13,132 @@ tracking_system: file-system
 story_location: docs/sprint-artifacts
 
 # ============================================================================
-# STATUS DEFINITIONS:
+# TEAMS + CLI + MCP IMPLEMENTATION PLAN
+# 8 Epics | 64 Stories | 8-15 weeks execution
 # ============================================================================
-# Epic Status:
-#   - backlog: Epic exists but not contexted
-#   - contexted: Epic tech context created (required before story drafting)
-#   - in-progress: Epic is actively being worked
-#   - done: All stories complete
+# Status Definitions:
+#   Epic: backlog (not started) → contexted → in-progress → done
+#   Story: backlog → drafted → ready-for-dev → in-progress → review → done
 #
-# Story Status:
-#   - backlog: Story only exists in epic file
-#   - drafted: Story file created in stories folder
-#   - ready-for-dev: Draft approved and story context created
-#   - in-progress: Developer actively working
-#   - review: Under code review
-#   - done: Completed
-#
-# Retrospective Status:
-#   - optional: Can be completed but not required
-#   - completed: Retrospective has been done
-#
+# Critical Path (MVP):
+#   ✅ Epic 1 - Teams exist, users can switch
+#   ✅ Epic 2 - Workspaces with repos
+#   ✅ Epic 3 - Members & roles enforced
+#   ✅ Epic 5 - CLI login/list/show works
+#   ✅ Epic 6 - MCP tools available
+#   ✅ Epic 7 - New ticket states (partial)
 # ============================================================================
-# WORKFLOW NOTES:
-# ============================================================================
-# - Epics should be 'contexted' before stories can be 'drafted'
-# - SM typically drafts next story after previous one is 'done' to incorporate learnings
-# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
 development_status:
 
-  # Interactive API Editor with Smart Detection
-  epic-1-api-editor: done
-  1-3b-01-api-detection-service: done
-  1-3b-02-controller-scanner: done
-  1-3b-03-deep-analysis-enhancement: done
-  1-3b-04-api-review-section: done
-  1-3b-05-api-card-component: done
-  1-3b-06-curl-generator: done
-  1-3b-07-integration-testing: done
-  epic-1-api-editor-retrospective: optional
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 1 (Weeks 1-2): Team Foundation
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # Rich Input with Markdown + PDF
-  epic-2-rich-input: in-progress
-  1-6b-01-markdown-editor-component: drafted
-  1-6b-02-file-upload-zone: drafted
-  1-6b-03-pdf-extractor-service: backlog
-  1-6b-04-pdf-extraction-endpoint: backlog
-  1-6b-05-wizard-integration: backlog
-  1-6b-06-integration-testing: backlog
-  epic-2-rich-input-retrospective: optional
+  # EPIC 1: Team Foundation (P0) - 10 stories, ~17 days
+  epic-1-team-foundation: backlog
+  1-1-team-domain-model: backlog
+  1-2-team-repository: backlog
+  1-3-user-domain-extension: backlog
+  1-4-team-use-cases: backlog
+  1-5-team-api-endpoints: backlog
+  1-6-team-service-frontend: backlog
+  1-7-team-store: backlog
+  1-8-team-switcher-ui: backlog
+  1-9-team-settings-page: backlog
+  1-10-create-team-dialog: backlog
+  epic-1-team-foundation-retrospective: optional
 
-  # Tech Spec Document + AEC XML Contract
-  epic-3-tech-spec: done
-  1-epic3-01-markdown-generator: done
-  1-epic3-02-xml-serializer: done
-  1-epic3-03-artifact-storage: done
-  1-epic3-04-finalize-spec-enhancement: done
-  1-epic3-05-artifacts-endpoint: done
-  1-epic3-06-assets-section: done
-  1-epic3-07-document-card: done
-  1-epic3-08-xml-preview-modal: done
-  1-epic3-09-download-integration: done
-  1-epic3-10-integration-testing: done
-  epic-3-tech-spec-retrospective: optional
+  # EPIC 2: Workspace Management (P0) - 8 stories, ~15 days
+  epic-2-workspace-management: backlog
+  2-1-workspace-domain-model: backlog
+  2-2-workspace-repository: backlog
+  2-3-workspace-use-cases: backlog
+  2-4-workspace-api-endpoints: backlog
+  2-5-workspace-service-frontend: backlog
+  2-6-workspace-store: backlog
+  2-7-workspace-selector: backlog
+  2-8-workspace-management-page: backlog
+  epic-2-workspace-management-retrospective: optional
 
-  # Linear Integration
-  epic-4-linear-integration: backlog
-  1-4-01-linear-oauth-setup: backlog
-  1-4-02-linear-api-client: backlog
-  1-4-03-field-mapping: backlog
-  1-4-04-export-to-linear-usecase: backlog
-  1-4-05-export-to-linear-endpoint: backlog
-  1-4-06-frontend-export-button: backlog
-  epic-4-linear-integration-retrospective: optional
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 2 (Weeks 3-6): Infrastructure
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # Jira Integration
-  epic-5-jira-integration: backlog
-  1-5-01-jira-oauth-setup: backlog
-  1-5-02-jira-api-client: backlog
-  1-5-03-field-mapping: backlog
-  1-5-04-export-to-jira-usecase: backlog
-  1-5-05-export-to-jira-endpoint: backlog
-  1-5-06-frontend-export-button: backlog
-  epic-5-jira-integration-retrospective: optional
+  # EPIC 3: Members & Roles (P0) - 8 stories, ~16 days
+  epic-3-members-roles: backlog
+  3-1-team-member-domain: backlog
+  3-2-team-member-repository: backlog
+  3-3-member-use-cases: backlog
+  3-4-email-invitation-system: backlog
+  3-5-member-api-endpoints: backlog
+  3-6-role-guards: backlog
+  3-7-team-members-list-ui: backlog
+  3-8-invite-member-dialog: backlog
+  epic-3-members-roles-retrospective: optional
 
-  # Design & Asset Attachments
-  epic-6-design-assets: done
-  1-7-01-firebase-storage-setup: done
-  1-7-02-attachment-upload-service: done
-  1-7-03-attachment-upload-component: done
-  1-7-04-assets-display-section: done
-  1-7-05-asset-deletion: done
-  epic-6-design-assets-retrospective: optional
+  # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
+  epic-4-enhanced-onboarding: backlog
+  4-1-state-machine: backlog
+  4-2-team-name-step: backlog
+  4-3-role-selection-step: backlog
+  4-4-auth-flow-integration: backlog
+  epic-4-enhanced-onboarding-retrospective: optional
 
-  # Spec Quality (API Detection, BE/FE Split, Test Plans)
-  epic-20-spec-quality: in-progress
-  20-01-api-endpoint-detection: done
-  20-02-backend-frontend-split: done
-  20-03-test-plan-generation: done
-  20-04-api-interactive-editor: backlog
-  epic-20-spec-quality-retrospective: optional
+  # EPIC 5: CLI Foundation (P0) - 8 stories, ~14 days
+  epic-5-cli-foundation: backlog
+  5-1-cli-project-setup: backlog
+  5-2-login-command: backlog
+  5-3-logout-command: backlog
+  5-4-status-command: backlog
+  5-5-list-command: backlog
+  5-6-show-command: backlog
+  5-7-config-management: backlog
+  5-8-error-handling: backlog
+  epic-5-cli-foundation-retrospective: optional
 
-  # Multi-Repository Support
-  epic-23-multi-repo: backlog
-  23-01-multi-repo-domain: backlog
-  23-02-parallel-analysis: backlog
-  23-03-api-updates: backlog
-  23-04-frontend-selector: backlog
-  23-05-wizard-validation: backlog
-  23-06-detail-per-repo: backlog
-  23-07-backend-tests: backlog
-  23-08-frontend-tests: backlog
-  epic-23-multi-repo-retrospective: optional
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 3 (Weeks 5-6): CLI + MCP
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # Jira/Linear Import Flow
-  epic-24-jira-linear-import: in-progress
-  24-01-availability-check: done
-  24-02-jira-import-usecase: done
-  24-03-linear-import-usecase: done
-  24-1-jira-import-api: done
-  24-2-linear-import-api: done
-  24-3-create-ticket-from-imported: done
-  24-4-frontend-import-wizard: in-progress
-  24-5-integration-tests: backlog
-  epic-24-jira-linear-import-retrospective: optional
+  # EPIC 6: MCP Server (P0) - 11 stories, ~15 days
+  epic-6-mcp-server: backlog
+  6-1-mcp-server-setup: backlog
+  6-2-ticket-context-tool: backlog
+  6-3-file-changes-tool: backlog
+  6-4-repository-context-tool: backlog
+  6-5-status-update-tool: backlog
+  6-6-execute-prompt: backlog
+  6-7-review-prompt: backlog
+  6-8-agent-guide-executor: backlog
+  6-9-agent-guide-reviewer: backlog
+  6-10-mcp-integration-tests: backlog
+  6-11-cli-mcp-plumbing: backlog
+  epic-6-mcp-server-retrospective: optional
 
-  # Developer Experience Improvements
-  epic-25-dev-experience: done
-  25-01-startup-configuration: done
-  25-02-integrations-overview: done
-  25-03-export-link-improvements: done
-  25-04-checkbox-styling: done
-  25-05-onboarding-improvements: done
-  epic-25-dev-experience-retrospective: optional
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 4 (Weeks 7-8): Integration & Launch
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # Design Link Integration (Figma/Loom)
-  epic-26-design-links: in-progress
-  26-01-backend-designreference-value-object: drafted
-  26-02-backend-add-remove-design-reference-use-cases: drafted
-  26-03-backend-api-endpoints-dtos: drafted
-  26-04-backend-aecmapper-persistence: drafted
-  26-05-frontend-designlinkinput-component: drafted
-  26-06-frontend-wizard-store-service-integration: drafted
-  26-07-frontend-designreferencessection-display: drafted
-  26-08-frontend-ticket-detail-integration: drafted
-  26-09-backend-figma-oauth-integration: backlog
-  26-10-backend-figma-api-service-metadata-fetcher: backlog
-  26-11-backend-loom-oauth-integration: backlog
-  26-12-backend-loom-api-service-metadata-fetcher: backlog
-  26-13-frontend-rich-preview-cards: backlog
-  26-14-frontend-settings-page-integrations: backlog
-  epic-26-design-links-retrospective: optional
+  # EPIC 7: Ticket Lifecycle (P1) - 9 stories, ~15 days
+  epic-7-ticket-lifecycle: backlog
+  7-1-extend-aec-status-enum: backlog
+  7-2-move-tickets-to-team-scope: backlog
+  7-3-add-questions-to-aec: backlog
+  7-4-questions-api: backlog
+  7-5-update-ticket-filters: backlog
+  7-6-questions-section-ui: backlog
+  7-7-approve-button: backlog
+  7-8-status-sync-web-cli: backlog
+  7-9-ticket-creation-updates: backlog
+  epic-7-ticket-lifecycle-retrospective: optional
+
+  # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days
+  epic-8-testing-documentation: backlog
+  8-1-backend-unit-tests: backlog
+  8-2-frontend-component-tests: backlog
+  8-3-cli-integration-tests: backlog
+  8-4-user-documentation: backlog
+  8-5-api-documentation: backlog
+  8-6-architecture-update: backlog
+  epic-8-testing-documentation-retrospective: optional
