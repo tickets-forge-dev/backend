@@ -127,7 +127,11 @@ export class InviteMemberUseCase {
       if (existingMember.isPending()) {
         throw new ConflictException('User already has a pending invitation');
       }
-      // If removed, allow re-inviting (will create new invite)
+      // If removed, delete old record before creating new invite
+      if (existingMember.isRemoved()) {
+        this.logger.log(`Deleting old REMOVED member record for ${email} before re-inviting`);
+        await this.memberRepository.delete(teamId, existingMember.userId);
+      }
     }
 
     // 6. Create TeamMember invite
