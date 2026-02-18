@@ -38,7 +38,7 @@ export class GetUserTeamsUseCase {
 
     if (isTestUser) {
       // Test user: Load teams directly from team ownership
-      const allTeams = await this.teamRepository.findByOwnerId(command.userId);
+      const allTeams = await this.teamRepository.getByOwnerId(command.userId);
 
       return {
         teams: allTeams.map((team) => ({
