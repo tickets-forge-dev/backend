@@ -94,9 +94,10 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
       if (event.data?.type === 'github-oauth-callback') {
         console.log('[GitHubIntegration] OAuth callback received:', event.data.status);
         if (event.data.status === 'success') {
-          console.log('[GitHubIntegration] Loading GitHub status and repositories...');
+          console.log('[GitHubIntegration] Loading GitHub status (will auto-load repositories)...');
+          // loadGitHubStatus already calls loadRepositories internally (settings.store.ts:105)
+          // so we don't need to call it again here to avoid race conditions
           loadGitHubStatus(gitHubService);
-          loadRepositories(gitHubService);
         } else {
           console.error('[GitHubIntegration] OAuth failed:', event.data.message);
           clearErrors();
