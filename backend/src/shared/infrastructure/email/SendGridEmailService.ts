@@ -67,7 +67,7 @@ export class SendGridEmailService extends EmailService {
     this.fromEmail = fromEmail;
     this.appUrl = appUrl.replace(/\/$/, ''); // Remove trailing slash
 
-    this.logger.log('SendGridEmailService initialized');
+    this.logger.log(`SendGridEmailService initialized with sender: ${this.fromEmail}`);
   }
 
   /**
@@ -114,6 +114,7 @@ export class SendGridEmailService extends EmailService {
         html,
       };
 
+      this.logger.log(`Sending invite from ${this.fromEmail} to ${to}`);
       await sgMail.send(msg);
 
       this.logger.log(`Invite email sent successfully to ${to}`);

@@ -27,7 +27,7 @@ export class FirestoreTeamMemberRepository extends TeamMemberRepository {
    */
   private getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
-      return this.getErrorMessage(error);
+      return error.message;
     }
     return String(error);
   }

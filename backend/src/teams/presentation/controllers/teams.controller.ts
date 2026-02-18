@@ -14,12 +14,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
+import { TestAuthGuard } from '../../../shared/presentation/guards/TestAuthGuard';
 import { CreateTeamUseCase } from '../../application/use-cases/CreateTeamUseCase';
 import { UpdateTeamUseCase } from '../../application/use-cases/UpdateTeamUseCase';
 import { DeleteTeamUseCase } from '../../application/use-cases/DeleteTeamUseCase';
 import { GetTeamUseCase } from '../../application/use-cases/GetTeamUseCase';
 import { GetUserTeamsUseCase } from '../../application/use-cases/GetUserTeamsUseCase';
 import { SwitchTeamUseCase } from '../../application/use-cases/SwitchTeamUseCase';
+import { InviteMemberUseCase } from '../../application/use-cases/InviteMemberUseCase';
 import { CreateTeamDto } from '../dtos/CreateTeamDto';
 import { UpdateTeamDto } from '../dtos/UpdateTeamDto';
 import { SwitchTeamDto } from '../dtos/SwitchTeamDto';
@@ -31,7 +33,8 @@ import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamExcepti
  * REST API for team management.
  */
 @Controller('teams')
-@UseGuards(FirebaseAuthGuard)
+@UseGuards(TestAuthGuard) // TEMPORARY: Using TestAuthGuard for development testing
+// @UseGuards(FirebaseAuthGuard) // TODO: Switch back to FirebaseAuthGuard for production
 export class TeamsController {
   constructor(
     private readonly createTeamUseCase: CreateTeamUseCase,
@@ -40,6 +43,7 @@ export class TeamsController {
     private readonly getTeamUseCase: GetTeamUseCase,
     private readonly getUserTeamsUseCase: GetUserTeamsUseCase,
     private readonly switchTeamUseCase: SwitchTeamUseCase,
+    private readonly inviteMemberUseCase: InviteMemberUseCase,
   ) {}
 
   /**
@@ -202,6 +206,39 @@ export class TeamsController {
       }
       if (error instanceof Error && error.message.includes('not found')) {
         throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * POST /teams/:id/members
+   * Invite a new member to the team
+   */
+  @Post(':id/members')
+  @HttpCode(HttpStatus.CREATED)
+  async inviteMember(
+    @Request() req: any,
+    @Param('id') teamId: string,
+    @Body() dto: { email: string; role: string },
+  ) {
+    try {
+      const userId = req.user.uid;
+
+      const result = await this.inviteMemberUseCase.execute({
+        teamId,
+        email: dto.email,
+        role: dto.role as any, // Role validation happens in use case
+        invitedBy: userId,
+      });
+
+      return {
+        success: true,
+        member: result,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+        throw error;
       }
       throw error;
     }

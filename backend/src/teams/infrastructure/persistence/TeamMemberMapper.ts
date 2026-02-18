@@ -33,25 +33,32 @@ export interface FirestoreTeamMemberDoc {
 export class TeamMemberMapper {
   /**
    * Convert domain entity to Firestore document
+   * Excludes undefined values (Firestore doesn't allow undefined)
    */
   static toPersistence(member: TeamMember): FirestoreTeamMemberDoc {
-    return {
+    const doc: any = {
       id: member.id,
       userId: member.userId,
       teamId: member.teamId,
       email: member.email,
-      displayName: member.displayName,
       role: RoleHelper.toString(member.role),
       status: MemberStatusHelper.toString(member.status),
       invitedBy: member.invitedBy,
       invitedAt: Timestamp.fromDate(member.invitedAt),
-      joinedAt: member.joinedAt
-        ? Timestamp.fromDate(member.joinedAt)
-        : undefined,
-      removedAt: member.removedAt
-        ? Timestamp.fromDate(member.removedAt)
-        : undefined,
     };
+
+    // Only include optional fields if they're defined
+    if (member.displayName !== undefined) {
+      doc.displayName = member.displayName;
+    }
+    if (member.joinedAt !== undefined) {
+      doc.joinedAt = Timestamp.fromDate(member.joinedAt);
+    }
+    if (member.removedAt !== undefined) {
+      doc.removedAt = Timestamp.fromDate(member.removedAt);
+    }
+
+    return doc;
   }
 
   /**
