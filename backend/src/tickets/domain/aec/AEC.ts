@@ -25,6 +25,7 @@ export class AEC {
   private constructor(
     public readonly id: string,
     public readonly workspaceId: string,
+    public readonly createdBy: string, // userId of ticket creator
     private _status: AECStatus,
     private _title: string,
     private _description: string | null,
@@ -59,6 +60,7 @@ export class AEC {
   // Factory method for creating new draft
   static createDraft(
     workspaceId: string,
+    createdBy: string,
     title: string,
     description?: string,
     repositoryContext?: RepositoryContext,
@@ -73,6 +75,7 @@ export class AEC {
     return new AEC(
       `aec_${randomUUID()}`,
       workspaceId,
+      createdBy,
       AECStatus.DRAFT,
       title,
       description ?? null,
@@ -108,6 +111,7 @@ export class AEC {
   static reconstitute(
     id: string,
     workspaceId: string,
+    createdBy: string,
     status: AECStatus,
     title: string,
     description: string | null,
@@ -140,6 +144,7 @@ export class AEC {
     return new AEC(
       id,
       workspaceId,
+      createdBy,
       status,
       title,
       description,

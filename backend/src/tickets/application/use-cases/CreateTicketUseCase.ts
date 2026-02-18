@@ -17,6 +17,7 @@ export const DEFAULT_TICKET_LIMIT = 3;
 
 export interface CreateTicketCommand {
   workspaceId: string;
+  userId: string; // Creator's Firebase UID
   userEmail: string;
   title: string;
   description?: string;
@@ -73,6 +74,7 @@ export class CreateTicketUseCase {
     // Create domain entity
     const aec = AEC.createDraft(
       command.workspaceId,
+      command.userId,
       command.title,
       command.description,
       repositoryContext,

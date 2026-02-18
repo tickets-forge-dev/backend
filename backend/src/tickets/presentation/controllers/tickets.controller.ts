@@ -288,6 +288,7 @@ export class TicketsController {
 
       const aec = await this.createTicketUseCase.execute({
         workspaceId,
+        userId,
         userEmail,
         title: dto.title,
         description: dto.description,
@@ -309,9 +310,13 @@ export class TicketsController {
   }
 
   @Get('quota')
-  async getQuota(@WorkspaceId() workspaceId: string, @UserEmail() userEmail: string) {
+  async getQuota(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @UserEmail() userEmail: string,
+  ) {
     const limit = TICKET_LIMITS[userEmail] ?? DEFAULT_TICKET_LIMIT;
-    const used = await this.aecRepository.countByWorkspace(workspaceId);
+    const used = await this.aecRepository.countByWorkspaceAndCreator(workspaceId, userId);
     return { used, limit, canCreate: used < limit };
   }
 
@@ -911,6 +916,7 @@ export class TicketsController {
     try {
       const result = await this.importFromLinearUseCase.execute({
         workspaceId,
+        userId,
         issueId: dto.issueId,
       });
 

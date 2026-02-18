@@ -11,6 +11,7 @@ import { TicketPriority } from '../../domain/value-objects/AECStatus';
 
 interface ImportFromLinearCommand {
   workspaceId: string;
+  userId: string;
   issueId: string;
 }
 
@@ -98,8 +99,9 @@ export class ImportFromLinearUseCase {
     // Create draft AEC (Linear issues always map to task type)
     const aec = AEC.createDraft(
       command.workspaceId,
+      command.userId,
       title,
-      description,
+      description ?? undefined,
       undefined,
       'task',
       priority ?? undefined,

@@ -47,6 +47,7 @@ export interface QuestionRoundDocument {
 export interface AECDocument {
   id: string;
   workspaceId: string;
+  createdBy: string; // userId of ticket creator
   status: string;
   title: string;
   description: string | null;
@@ -165,6 +166,7 @@ export class AECMapper {
     return AEC.reconstitute(
       doc.id,
       doc.workspaceId,
+      doc.createdBy || 'unknown', // Backward compatibility: fallback for old documents
       doc.status as AECStatus,
       doc.title,
       doc.description,
@@ -214,6 +216,7 @@ export class AECMapper {
     return {
       id: aec.id,
       workspaceId: aec.workspaceId,
+      createdBy: aec.createdBy,
       status: aec.status,
       title: aec.title,
       description: aec.description,
