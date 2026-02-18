@@ -188,6 +188,7 @@ export class GitHubOAuthController {
           <script>
             // Prevent multiple executions
             if (window.messagePosted) {
+              console.log('[OAuth Callback] Message already posted, closing...');
               window.close();
             } else {
               window.messagePosted = true;
@@ -199,10 +200,17 @@ export class GitHubOAuthController {
                   { type: 'github-oauth-callback', status: '${status}', message: '${message}' },
                   '${this.configService.get('FRONTEND_URL')}'
                 );
+                console.log('[OAuth Callback] Message posted successfully');
+              } else {
+                console.error('[OAuth Callback] No opener window found!');
               }
 
-              // Close popup immediately
-              window.close();
+              // Close popup after short delay to ensure message is sent
+              console.log('[OAuth Callback] Closing popup in 100ms...');
+              setTimeout(() => {
+                console.log('[OAuth Callback] Closing now');
+                window.close();
+              }, 100);
             }
           </script>
           <p style="text-align: center; font-family: system-ui; color: #666; margin-top: 100px;">

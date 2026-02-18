@@ -55,12 +55,20 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
   // Load connection status on mount and fetch repos if connected
   useEffect(() => {
+    console.log('[GitHubIntegration] Component mounted, loading GitHub status...');
     loadGitHubStatus(gitHubService);
   }, []);
 
   // Auto-load repositories when connected
   useEffect(() => {
+    console.log('[GitHubIntegration] State changed:', {
+      githubConnected,
+      repositoriesCount: githubRepositories.length,
+      isLoadingRepositories,
+    });
+
     if (githubConnected && githubRepositories.length === 0 && !isLoadingRepositories) {
+      console.log('[GitHubIntegration] Auto-loading repositories...');
       loadRepositories(gitHubService);
     }
   }, [githubConnected, isLoadingRepositories, gitHubService, loadRepositories, githubRepositories.length]);
