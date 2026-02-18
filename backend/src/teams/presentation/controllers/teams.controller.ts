@@ -24,9 +24,12 @@ import { InviteMemberUseCase } from '../../application/use-cases/InviteMemberUse
 import { ListTeamMembersUseCase } from '../../application/use-cases/ListTeamMembersUseCase';
 import { ChangeMemberRoleUseCase } from '../../application/use-cases/ChangeMemberRoleUseCase';
 import { RemoveMemberUseCase } from '../../application/use-cases/RemoveMemberUseCase';
+import { AcceptInviteUseCase } from '../../application/use-cases/AcceptInviteUseCase';
+import { InviteTokenService } from '../../application/services/InviteTokenService';
 import { CreateTeamDto } from '../dtos/CreateTeamDto';
 import { UpdateTeamDto } from '../dtos/UpdateTeamDto';
 import { SwitchTeamDto } from '../dtos/SwitchTeamDto';
+import { AcceptInviteDto } from '../dtos/AcceptInviteDto';
 import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamException';
 
 /**
@@ -48,6 +51,8 @@ export class TeamsController {
     private readonly listTeamMembersUseCase: ListTeamMembersUseCase,
     private readonly changeMemberRoleUseCase: ChangeMemberRoleUseCase,
     private readonly removeMemberUseCase: RemoveMemberUseCase,
+    private readonly acceptInviteUseCase: AcceptInviteUseCase,
+    private readonly inviteTokenService: InviteTokenService,
   ) {}
 
   /**
@@ -339,6 +344,56 @@ export class TeamsController {
       }
       if (error instanceof Error && error.message.includes('not found')) {
         throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * POST /teams/accept-invite
+   * Accept a team invitation (authenticated user)
+   */
+  @Post('accept-invite')
+  @HttpCode(HttpStatus.OK)
+  async acceptInvite(@Request() req: any, @Body() dto: AcceptInviteDto) {
+    try {
+      const userId = req.user.uid;
+      const userEmail = req.user.email;
+
+      // 1. Verify and decode invite token
+      let tokenPayload;
+      try {
+        tokenPayload = this.inviteTokenService.verifyInviteToken(dto.token);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Invalid invite token';
+        throw new BadRequestException(message);
+      }
+
+      // 2. Verify user's email matches the invited email
+      if (userEmail.toLowerCase() !== tokenPayload.email.toLowerCase()) {
+        throw new BadRequestException(
+          `This invitation was sent to ${tokenPayload.email}. Please sign in with that email address.`
+        );
+      }
+
+      // 3. Accept the invite
+      await this.acceptInviteUseCase.execute({
+        userId,
+        teamId: tokenPayload.teamId,
+        displayName: dto.displayName,
+      });
+
+      return {
+        success: true,
+        teamId: tokenPayload.teamId,
+        message: 'Successfully joined the team',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new BadRequestException('Invitation not found or expired');
       }
       throw error;
     }
