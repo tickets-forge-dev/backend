@@ -180,18 +180,30 @@ export class GitHubOAuthController {
       <html>
         <head>
           <title>GitHub OAuth</title>
+          <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+          <meta http-equiv="Pragma" content="no-cache">
+          <meta http-equiv="Expires" content="0">
         </head>
         <body>
           <script>
-            // Post message to parent window
-            if (window.opener) {
-              window.opener.postMessage(
-                { type: 'github-oauth-callback', status: '${status}', message: '${message}' },
-                '${this.configService.get('FRONTEND_URL')}'
-              );
+            // Prevent multiple executions
+            if (window.messagePosted) {
+              window.close();
+            } else {
+              window.messagePosted = true;
+
+              // Post message to parent window
+              if (window.opener && !window.opener.closed) {
+                console.log('[OAuth Callback] Posting message to opener:', '${status}');
+                window.opener.postMessage(
+                  { type: 'github-oauth-callback', status: '${status}', message: '${message}' },
+                  '${this.configService.get('FRONTEND_URL')}'
+                );
+              }
+
+              // Close popup immediately
+              window.close();
             }
-            // Close popup after short delay
-            setTimeout(() => window.close(), 500);
           </script>
           <p style="text-align: center; font-family: system-ui; color: #666; margin-top: 100px;">
             ${status === 'success' ? '✅ GitHub connected! Closing...' : '❌ Connection failed. Closing...'}

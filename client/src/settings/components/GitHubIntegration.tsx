@@ -73,18 +73,24 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
   // Handle OAuth callback from popup window
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      console.log('[GitHubIntegration] Received message:', event.data, 'from origin:', event.origin);
+
       // Verify message origin for security
       const expectedOrigin = window.location.origin;
       if (event.origin !== expectedOrigin) {
+        console.warn('[GitHubIntegration] Message origin mismatch. Expected:', expectedOrigin, 'Got:', event.origin);
         return;
       }
 
       // Check for GitHub OAuth callback message
       if (event.data?.type === 'github-oauth-callback') {
+        console.log('[GitHubIntegration] OAuth callback received:', event.data.status);
         if (event.data.status === 'success') {
+          console.log('[GitHubIntegration] Loading GitHub status and repositories...');
           loadGitHubStatus(gitHubService);
           loadRepositories(gitHubService);
         } else {
+          console.error('[GitHubIntegration] OAuth failed:', event.data.message);
           clearErrors();
         }
       }
