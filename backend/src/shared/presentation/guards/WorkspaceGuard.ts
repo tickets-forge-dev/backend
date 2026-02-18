@@ -35,8 +35,10 @@ export class WorkspaceGuard implements CanActivate {
             // Team has a configured workspace - use it
             workspaceId = team.getSettings().defaultWorkspaceId!;
           } else {
-            // Team exists but no workspace set - use team owner's workspace
-            workspaceId = `ws_${team.getOwnerId().substring(0, 12)}`;
+            // Team exists but no workspace set - use team-specific workspace
+            // This ensures team workspace is SEPARATE from owner's personal workspace
+            const teamIdStr = team.getId().getValue();
+            workspaceId = `ws_team_${teamIdStr.substring(5, 17)}`; // Extract 12 chars from team ID
           }
         } else {
           // Team not found - fallback to personal workspace
