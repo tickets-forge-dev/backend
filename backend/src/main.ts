@@ -86,17 +86,14 @@ async function bootstrap() {
         return;
       }
 
-      // Allow Render deployments (onrender.com) in production
+      // Allow Render deployments (onrender.com) for backend-to-backend communication
       if (isProduction && requestOrigin.includes('onrender.com')) {
         callback(null, true);
         return;
       }
 
-      // For production, be more permissive and allow HTTPS origins
-      if (isProduction && requestOrigin.startsWith('https://')) {
-        callback(null, true);
-        return;
-      }
+      // SECURITY: Only allow explicitly whitelisted origins in production
+      // If you need to add a new origin, add it to the allowedOrigins array above
 
       // Reject other origins
       callback(new Error(`CORS not allowed for origin: ${requestOrigin}`), false);

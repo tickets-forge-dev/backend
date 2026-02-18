@@ -43,6 +43,7 @@ import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectSta
 import { Inject, BadRequestException, ForbiddenException, Req } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
+import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
@@ -138,6 +139,7 @@ export class TicketsController {
    * before this handler executes. Using @Res() bypasses NestJS interceptors
    * for the response only — that's fine because we're writing SSE directly.
    */
+  @UseGuards(RateLimitGuard)
   @Post('analyze-repo')
   async analyzeRepository(
     @WorkspaceId() workspaceId: string,
@@ -274,6 +276,7 @@ export class TicketsController {
     }
   }
 
+  @UseGuards(RateLimitGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createTicket(
@@ -957,6 +960,7 @@ export class TicketsController {
    *
    * Response: SSE stream with progress events, final event contains breakdown
    */
+  @UseGuards(RateLimitGuard)
   @Post('breakdown/prd')
   async breakdownPRD(
     @WorkspaceId() workspaceId: string,
@@ -1026,6 +1030,7 @@ export class TicketsController {
    * Request body: List of breakdown tickets to create
    * Response: Created ticket IDs and any errors
    */
+  @UseGuards(RateLimitGuard)
   @Post('breakdown/bulk-create')
   @HttpCode(HttpStatus.CREATED)
   async bulkCreateFromBreakdown(
@@ -1078,6 +1083,7 @@ export class TicketsController {
    * Request body: ticketIds, repositoryOwner, repositoryName, branch
    * Response: SSE stream with progress events, final event contains questions grouped by ticketId
    */
+  @UseGuards(RateLimitGuard)
   @Post('bulk/enrich')
   async enrichMultipleTickets(
     @WorkspaceId() workspaceId: string,
@@ -1133,6 +1139,7 @@ export class TicketsController {
    * Request body: answers array with ticketId, questionId, answer
    * Response: SSE stream with progress events, final event contains results for each ticket
    */
+  @UseGuards(RateLimitGuard)
   @Post('bulk/finalize')
   async finalizeMultipleTickets(
     @WorkspaceId() workspaceId: string,
