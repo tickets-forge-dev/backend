@@ -24,8 +24,8 @@ export interface FirestoreTeamMemberDoc {
   displayName?: string;
   role: string;
   status: string;
-  invitedBy: string;
-  invitedAt: Timestamp;
+  invitedBy?: string; // Optional for active members (team owners)
+  invitedAt?: Timestamp; // Optional for active members (team owners)
   joinedAt?: Timestamp;
   removedAt?: Timestamp;
 }
@@ -43,13 +43,17 @@ export class TeamMemberMapper {
       email: member.email,
       role: RoleHelper.toString(member.role),
       status: MemberStatusHelper.toString(member.status),
-      invitedBy: member.invitedBy,
-      invitedAt: Timestamp.fromDate(member.invitedAt),
     };
 
     // Only include optional fields if they're defined
     if (member.displayName !== undefined) {
       doc.displayName = member.displayName;
+    }
+    if (member.invitedBy !== undefined) {
+      doc.invitedBy = member.invitedBy;
+    }
+    if (member.invitedAt !== undefined) {
+      doc.invitedAt = Timestamp.fromDate(member.invitedAt);
     }
     if (member.joinedAt !== undefined) {
       doc.joinedAt = Timestamp.fromDate(member.joinedAt);
@@ -74,7 +78,7 @@ export class TeamMemberMapper {
       role: RoleHelper.fromString(doc.role),
       status: MemberStatusHelper.fromString(doc.status),
       invitedBy: doc.invitedBy,
-      invitedAt: doc.invitedAt.toDate(),
+      invitedAt: doc.invitedAt?.toDate(),
       joinedAt: doc.joinedAt?.toDate(),
       removedAt: doc.removedAt?.toDate(),
     });

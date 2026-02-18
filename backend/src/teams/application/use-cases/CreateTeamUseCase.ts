@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { TeamFactory } from '../../domain/TeamFactory';
 import { TeamSettings } from '../../domain/TeamSettings';
+import { TeamMember } from '../../domain/TeamMember';
+import { Role } from '../../domain/Role';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
 import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
+import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamException';
 
 export interface CreateTeamCommand {
@@ -30,7 +33,7 @@ export interface CreateTeamResult {
  *
  * Business logic for creating a new team.
  * - Creates team with user as owner
- * - Adds user to team
+ * - Adds user to team as Admin member
  * - Sets team as user's current team
  */
 @Injectable()
@@ -38,6 +41,8 @@ export class CreateTeamUseCase {
   constructor(
     private readonly teamRepository: FirestoreTeamRepository,
     private readonly userRepository: FirestoreUserRepository,
+    @Inject('TeamMemberRepository')
+    private readonly memberRepository: TeamMemberRepository,
   ) {}
 
   async execute(command: CreateTeamCommand): Promise<CreateTeamResult> {
@@ -65,6 +70,16 @@ export class CreateTeamUseCase {
 
     // Save team
     await this.teamRepository.save(team);
+
+    // Add owner as active Admin member
+    const ownerMember = TeamMember.createActive(
+      command.userId,
+      team.getId().getValue(),
+      user.getEmail(),
+      Role.ADMIN,
+      user.getDisplayName() || user.getEmail().split('@')[0],
+    );
+    await this.memberRepository.save(ownerMember);
 
     // Update user
     let updatedUser = user.addTeam(team.getId());

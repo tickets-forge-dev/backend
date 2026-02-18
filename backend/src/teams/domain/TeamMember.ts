@@ -24,8 +24,8 @@ export interface TeamMemberProps {
   displayName?: string;
   role: Role;
   status: MemberStatus;
-  invitedBy: string;
-  invitedAt: Date;
+  invitedBy?: string; // Optional - not set for active members (team owners)
+  invitedAt?: Date; // Optional - not set for active members (team owners)
   joinedAt?: Date;
   removedAt?: Date;
 }
@@ -80,6 +80,45 @@ export class TeamMember {
       status: MemberStatus.INVITED,
       invitedBy,
       invitedAt: new Date(),
+    });
+  }
+
+  /**
+   * Create an active team member (for team owners)
+   * Initial state: ACTIVE
+   */
+  static createActive(
+    userId: string,
+    teamId: string,
+    email: string,
+    role: Role,
+    displayName: string
+  ): TeamMember {
+    if (!userId || !userId.trim()) {
+      throw new Error('User ID is required');
+    }
+    if (!teamId || !teamId.trim()) {
+      throw new Error('Team ID is required');
+    }
+    if (!email || !email.trim()) {
+      throw new Error('Email is required');
+    }
+    if (!this.isValidEmail(email)) {
+      throw new Error('Invalid email format');
+    }
+    if (!displayName || !displayName.trim()) {
+      throw new Error('Display name is required');
+    }
+
+    return new TeamMember({
+      id: `${teamId}_${userId}`, // Composite key
+      userId,
+      teamId,
+      email: email.toLowerCase().trim(),
+      role,
+      displayName: displayName.trim(),
+      status: MemberStatus.ACTIVE,
+      joinedAt: new Date(),
     });
   }
 
@@ -226,11 +265,11 @@ export class TeamMember {
     return this.props.status;
   }
 
-  get invitedBy(): string {
+  get invitedBy(): string | undefined {
     return this.props.invitedBy;
   }
 
-  get invitedAt(): Date {
+  get invitedAt(): Date | undefined {
     return this.props.invitedAt;
   }
 
