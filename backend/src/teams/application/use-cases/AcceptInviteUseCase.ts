@@ -14,8 +14,8 @@ import { Injectable, NotFoundException, BadRequestException, Inject } from '@nes
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 
 export interface AcceptInviteCommand {
+  memberId: string;
   userId: string;
-  teamId: string;
   displayName: string;
 }
 
@@ -27,15 +27,15 @@ export class AcceptInviteUseCase {
   ) {}
 
   async execute(command: AcceptInviteCommand): Promise<void> {
-    const { userId, teamId, displayName } = command;
+    const { memberId, userId, displayName } = command;
 
     // 1. Validate displayName
     if (!displayName || !displayName.trim()) {
       throw new BadRequestException('Display name is required');
     }
 
-    // 2. Find member
-    const member = await this.memberRepository.findByUserAndTeam(userId, teamId);
+    // 2. Find member by memberId (from invite token)
+    const member = await this.memberRepository.findById(memberId);
 
     if (!member) {
       throw new NotFoundException('Invitation not found');
@@ -52,8 +52,8 @@ export class AcceptInviteUseCase {
       throw new BadRequestException('Invalid invitation status');
     }
 
-    // 4. Activate member
-    const activatedMember = member.activate(displayName.trim());
+    // 4. Activate member (update userId from temporary to real Firebase UID)
+    const activatedMember = member.activate(displayName.trim(), userId);
 
     // 5. Update repository
     await this.memberRepository.update(activatedMember);

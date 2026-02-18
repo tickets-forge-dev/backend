@@ -34,6 +34,12 @@ export abstract class TeamMemberRepository {
   abstract findByUser(userId: string): Promise<TeamMember[]>;
 
   /**
+   * Find a team member by ID
+   * @returns TeamMember or null if not found
+   */
+  abstract findById(memberId: string): Promise<TeamMember | null>;
+
+  /**
    * Find a specific team membership
    * @returns TeamMember or null if not found
    */

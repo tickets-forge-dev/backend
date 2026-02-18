@@ -144,6 +144,51 @@ export class FirestoreTeamMemberRepository extends TeamMemberRepository {
   }
 
   /**
+   * Find a team member by ID
+   * MemberId format: {teamId}_{userId}
+   */
+  async findById(memberId: string): Promise<TeamMember | null> {
+    try {
+      // Parse memberId to extract teamId and userId
+      // Format: team_zp6xwj1ps3rh879k3ru8zp_invite_bar_idan_gmail_com
+      // We need to find where teamId ends and userId begins
+      // teamId starts with "team_" and userId is everything after the second underscore
+
+      const firstUnderscoreIndex = memberId.indexOf('_');
+      if (firstUnderscoreIndex === -1) {
+        return null;
+      }
+
+      // Find the second underscore (end of teamId)
+      const secondUnderscoreIndex = memberId.indexOf('_', firstUnderscoreIndex + 1);
+      if (secondUnderscoreIndex === -1) {
+        return null;
+      }
+
+      const teamId = memberId.substring(0, secondUnderscoreIndex);
+      const userId = memberId.substring(secondUnderscoreIndex + 1);
+
+      const docRef = this.firestore
+        .collection('teams')
+        .doc(teamId)
+        .collection('members')
+        .doc(userId);
+
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      const data = doc.data() as FirestoreTeamMemberDoc;
+      return TeamMemberMapper.toDomain(data);
+    } catch (error) {
+      this.logger.error(`Failed to find member by ID: ${memberId}`, error);
+      throw new Error(`Failed to find team member: ${this.getErrorMessage(error)}`);
+    }
+  }
+
+  /**
    * Find a specific team membership
    */
   async findByUserAndTeam(

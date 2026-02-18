@@ -378,8 +378,8 @@ export class TeamsController {
 
       // 3. Accept the invite
       await this.acceptInviteUseCase.execute({
+        memberId: tokenPayload.memberId,
         userId,
-        teamId: tokenPayload.teamId,
         displayName: dto.displayName,
       });
 

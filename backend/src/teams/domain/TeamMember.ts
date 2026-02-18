@@ -87,7 +87,7 @@ export class TeamMember {
    * Activate member (accept invite)
    * Transition: INVITED → ACTIVE
    */
-  activate(displayName: string): TeamMember {
+  activate(displayName: string, userId?: string): TeamMember {
     if (this.props.status !== MemberStatus.INVITED) {
       throw new Error('Can only activate invited members');
     }
@@ -96,8 +96,12 @@ export class TeamMember {
       throw new Error('Display name is required for activation');
     }
 
+    // When accepting an invite, update the temporary userId to the real Firebase UID
+    const actualUserId = userId && userId.trim() ? userId.trim() : this.props.userId;
+
     return new TeamMember({
       ...this.props,
+      userId: actualUserId,
       displayName: displayName.trim(),
       status: MemberStatus.ACTIVE,
       joinedAt: new Date(),
