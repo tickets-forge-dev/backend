@@ -146,7 +146,15 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
 
       // Determine which team should be marked as current
       const storedTeamId = loadCurrentTeamIdFromStorage();
-      const teamIdToUse = currentTeamId || storedTeamId;
+      let teamIdToUse = currentTeamId || storedTeamId;
+
+      // Validate that teamIdToUse is actually in the user's teams list
+      const teamExists = teams.some((team) => team.id === teamIdToUse);
+      if (teamIdToUse && !teamExists) {
+        console.warn('[TeamStore] Stored team ID not in user teams, clearing:', teamIdToUse);
+        saveCurrentTeamIdToStorage(null);
+        teamIdToUse = null;
+      }
 
       // Update isCurrent flag on all teams based on actual current team
       const teamsWithCurrentFlag = teams.map((team) => ({
@@ -161,7 +169,7 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         lastTeamsFetch: Date.now(),
       });
 
-      // Load full current team details if we have a currentTeamId
+      // Load full current team details if we have a valid teamIdToUse
       if (teamIdToUse) {
         // Load full team details in background
         get().loadCurrentTeam();
@@ -231,10 +239,19 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         lastCurrentTeamFetch: Date.now(),
       });
     } catch (error) {
+      // Don't set global error for loadCurrentTeam failures - this is a secondary operation
+      // Common case: stale team ID in localStorage (user left team or was removed)
+      console.warn('[TeamStore] Failed to load current team from localStorage, clearing:', storedTeamId);
+      console.warn('[TeamStore] Error:', error);
+
+      // Clear stale team from localStorage
+      saveCurrentTeamIdToStorage(null);
+
       set({
-        error: error instanceof Error ? error.message : 'Failed to load current team',
+        currentTeam: null,
         isLoading: false,
         isCurrentTeamLoading: false,
+        // Don't set global error - teams may have loaded successfully
       });
     }
   },
