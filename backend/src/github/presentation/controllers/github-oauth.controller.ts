@@ -23,7 +23,8 @@ import {
   Logger,
   InternalServerErrorException,
   NotFoundException,
-  Redirect,
+  Header,
+  Res,
   Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -113,11 +114,12 @@ export class GitHubOAuthController {
   @ApiOperation({ summary: 'Handle GitHub OAuth callback' })
   @ApiQuery({ name: 'code', required: true })
   @ApiQuery({ name: 'state', required: true })
-  @Redirect()
+  @Header('Content-Type', 'text/html')
   async callback(
     @Query('code') code: string,
     @Query('state') state: string,
-  ): Promise<{ url: string }> {
+    @Res() res: any,
+  ): Promise<void> {
     try {
       this.logger.log(`🔍 Callback received - State from GitHub: ${state.substring(0, 8)}...`);
 
@@ -125,7 +127,7 @@ export class GitHubOAuthController {
       const parsed = this.tokenService.parseSignedState(state);
       if (!parsed) {
         this.logger.error(`❌ OAuth state validation failed - HMAC verification failed`);
-        return { url: `${this.configService.get('FRONTEND_URL')}/settings?error=invalid_state` };
+        return res.send(this.getPopupClosePage('error', 'invalid_state'));
       }
 
       const { workspaceId } = parsed;
@@ -162,11 +164,41 @@ export class GitHubOAuthController {
 
       this.logger.log(`GitHub connected successfully for workspace ${workspaceId}`);
 
-      return { url: `${this.configService.get('FRONTEND_URL')}/settings?connected=true` };
+      return res.send(this.getPopupClosePage('success', 'connected'));
     } catch (error: any) {
       this.logger.error('OAuth callback failed:', error.message);
-      return { url: `${this.configService.get('FRONTEND_URL')}/settings?error=connection_failed` };
+      return res.send(this.getPopupClosePage('error', 'connection_failed'));
     }
+  }
+
+  /**
+   * Generate HTML page that posts message to opener and closes popup
+   */
+  private getPopupClosePage(status: 'success' | 'error', message: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>GitHub OAuth</title>
+        </head>
+        <body>
+          <script>
+            // Post message to parent window
+            if (window.opener) {
+              window.opener.postMessage(
+                { type: 'github-oauth-callback', status: '${status}', message: '${message}' },
+                '${this.configService.get('FRONTEND_URL')}'
+              );
+            }
+            // Close popup after short delay
+            setTimeout(() => window.close(), 500);
+          </script>
+          <p style="text-align: center; font-family: system-ui; color: #666; margin-top: 100px;">
+            ${status === 'success' ? '✅ GitHub connected! Closing...' : '❌ Connection failed. Closing...'}
+          </p>
+        </body>
+      </html>
+    `;
   }
 
   /**

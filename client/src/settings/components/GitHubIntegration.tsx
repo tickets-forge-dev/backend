@@ -70,22 +70,28 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
     setLocalSelectedRepos(new Set(selectedRepositories.map((r) => r.id)));
   }, [selectedRepositories]);
 
-  // Handle OAuth callback
+  // Handle OAuth callback from popup window
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const connected = params.get('connected');
-    const error = params.get('error');
+    const handleMessage = (event: MessageEvent) => {
+      // Verify message origin for security
+      const expectedOrigin = window.location.origin;
+      if (event.origin !== expectedOrigin) {
+        return;
+      }
 
-    if (connected === 'true') {
-      loadGitHubStatus(gitHubService);
-      loadRepositories(gitHubService);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
+      // Check for GitHub OAuth callback message
+      if (event.data?.type === 'github-oauth-callback') {
+        if (event.data.status === 'success') {
+          loadGitHubStatus(gitHubService);
+          loadRepositories(gitHubService);
+        } else {
+          clearErrors();
+        }
+      }
+    };
 
-    if (error) {
-      clearErrors();
-      window.history.replaceState({}, '', window.location.pathname);
-    }
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [loadGitHubStatus, loadRepositories, clearErrors, gitHubService]);
 
   const handleConnect = async () => {

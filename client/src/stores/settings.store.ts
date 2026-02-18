@@ -209,12 +209,33 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    */
   initiateGitHubConnection: async (githubService: GitHubService) => {
     set({ isConnecting: true, connectionError: null });
-    
+
     try {
       const oauthUrl = await githubService.getOAuthUrl();
-      
-      // Redirect to GitHub OAuth
-      window.location.href = oauthUrl;
+
+      // Open OAuth in popup window (prevents session loss)
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      const popup = window.open(
+        oauthUrl,
+        'GitHub OAuth',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+
+      if (!popup) {
+        throw new Error('Popup blocked. Please allow popups for this site.');
+      }
+
+      // Poll for popup close (OAuth callback will trigger loadGitHubStatus via useEffect)
+      const pollTimer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(pollTimer);
+          set({ isConnecting: false });
+        }
+      }, 500);
     } catch (error: any) {
       console.error('Failed to initiate GitHub connection:', error);
       set({
