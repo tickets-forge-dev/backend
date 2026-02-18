@@ -172,6 +172,13 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         saveCurrentTeamIdToStorage(currentTeamId);
       }
     } catch (error) {
+      // Log detailed error for debugging
+      console.error('[TeamStore] Failed to fetch teams:', error);
+      if (error instanceof Error) {
+        console.error('[TeamStore] Error message:', error.message);
+        console.error('[TeamStore] Error stack:', error.stack);
+      }
+
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch teams',
         isLoading: false,
