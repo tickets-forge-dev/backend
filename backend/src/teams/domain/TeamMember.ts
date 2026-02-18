@@ -327,11 +327,16 @@ export class TeamMember {
     if (!this.props.status) {
       throw new Error('Status is required');
     }
-    if (!this.props.invitedBy) {
-      throw new Error('InvitedBy is required');
-    }
-    if (!this.props.invitedAt) {
-      throw new Error('InvitedAt is required');
+
+    // InvitedBy and InvitedAt are only required for INVITED status
+    // Active members (team owners) don't have these fields
+    if (this.props.status === MemberStatus.INVITED) {
+      if (!this.props.invitedBy) {
+        throw new Error('InvitedBy is required for invited members');
+      }
+      if (!this.props.invitedAt) {
+        throw new Error('InvitedAt is required for invited members');
+      }
     }
   }
 
