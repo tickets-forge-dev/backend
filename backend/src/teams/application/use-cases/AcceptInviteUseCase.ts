@@ -12,6 +12,8 @@
 
 import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
+import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
+import { TeamId } from '../../domain/TeamId';
 
 export interface AcceptInviteCommand {
   memberId: string;
@@ -23,7 +25,8 @@ export interface AcceptInviteCommand {
 export class AcceptInviteUseCase {
   constructor(
     @Inject('TeamMemberRepository')
-    private readonly memberRepository: TeamMemberRepository
+    private readonly memberRepository: TeamMemberRepository,
+    private readonly userRepository: FirestoreUserRepository,
   ) {}
 
   async execute(command: AcceptInviteCommand): Promise<void> {
@@ -65,5 +68,12 @@ export class AcceptInviteUseCase {
 
     // Save the new document at /teams/{teamId}/members/{newUserId}
     await this.memberRepository.save(activatedMember);
+
+    // Add team to user's teamIds array (so GET /teams returns this team)
+    const user = await this.userRepository.getById(userId);
+    if (user) {
+      const updatedUser = user.addTeam(TeamId.create(teamId));
+      await this.userRepository.save(updatedUser);
+    }
   }
 }

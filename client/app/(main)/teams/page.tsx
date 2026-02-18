@@ -18,29 +18,43 @@ export default function TeamsIndexPage() {
 
   useEffect(() => {
     const initialize = async () => {
-      // Load teams if not already loaded
-      if (teams.length === 0) {
-        await loadTeams();
-      }
+      console.log('[TeamsIndexPage] Starting initialization...');
+
+      // Always load fresh teams
+      console.log('[TeamsIndexPage] Loading teams...');
+      await loadTeams();
 
       // Small delay to ensure store has updated
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const state = useTeamStore.getState();
+      console.log('[TeamsIndexPage] Current state:', {
+        currentTeamId: state.currentTeamId,
+        teamsCount: state.teams.length,
+        teams: state.teams,
+      });
+
       const teamId = state.currentTeamId || (state.teams.length > 0 ? state.teams[0].id : null);
+      console.log('[TeamsIndexPage] Team ID to redirect to:', teamId);
 
       setIsLoading(false);
 
       if (teamId) {
+        console.log('[TeamsIndexPage] Redirecting to team:', teamId);
         router.replace(`/teams/${teamId}`);
       } else {
-        // No teams found, redirect to tickets
+        console.log('[TeamsIndexPage] No teams found, redirecting to tickets');
         router.replace('/tickets');
       }
     };
 
-    initialize();
-  }, []); // Only run once on mount
+    initialize().catch((error) => {
+      console.error('[TeamsIndexPage] Initialization error:', error);
+      setIsLoading(false);
+      // Fallback to tickets on error
+      router.replace('/tickets');
+    });
+  }, []); // Only run once on mount - router and loadTeams are stable
 
   return (
     <div className="flex h-screen items-center justify-center">
