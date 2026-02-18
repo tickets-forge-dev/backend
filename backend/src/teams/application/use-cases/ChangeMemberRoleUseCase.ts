@@ -11,7 +11,7 @@
  * Layer: Application (Use Case)
  */
 
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject } from '@nestjs/common';
 import { Role } from '../../domain/Role';
 import { TeamId } from '../../domain/TeamId';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
@@ -28,6 +28,7 @@ export interface ChangeMemberRoleCommand {
 export class ChangeMemberRoleUseCase {
   constructor(
     private readonly teamRepository: FirestoreTeamRepository,
+    @Inject('TeamMemberRepository')
     private readonly memberRepository: TeamMemberRepository
   ) {}
 

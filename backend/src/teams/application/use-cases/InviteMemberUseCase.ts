@@ -5,18 +5,20 @@
  * - Validates inviter permissions (owner or member with allowMemberInvites)
  * - Validates email format and role
  * - Creates TeamMember in INVITED status
- * - Returns memberId for invite token generation (Story 3.4)
+ * - Generates invite token and sends email invitation
  *
- * Part of: Story 3.3 - Member Management Use Cases
+ * Part of: Story 3.4 - Email Invitation System
  * Layer: Application (Use Case)
  */
 
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException, Logger, Inject } from '@nestjs/common';
 import { TeamMember } from '../../domain/TeamMember';
 import { Role, RoleHelper } from '../../domain/Role';
 import { TeamId } from '../../domain/TeamId';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
+import { EmailService } from '../../../shared/infrastructure/email/EmailService';
+import { InviteTokenService } from '../services/InviteTokenService';
 
 export interface InviteMemberCommand {
   teamId: string;
@@ -30,22 +32,51 @@ export interface InviteMemberResult {
   teamId: string;
   email: string;
   role: Role;
+  // SECURITY: inviteToken removed - tokens should only be sent via email, not API response
 }
 
 @Injectable()
 export class InviteMemberUseCase {
+  private readonly logger = new Logger(InviteMemberUseCase.name);
+
   constructor(
     private readonly teamRepository: FirestoreTeamRepository,
-    private readonly memberRepository: TeamMemberRepository
+    @Inject('TeamMemberRepository')
+    private readonly memberRepository: TeamMemberRepository,
+    private readonly emailService: EmailService,
+    private readonly inviteTokenService: InviteTokenService
   ) {}
 
   async execute(command: InviteMemberCommand): Promise<InviteMemberResult> {
     const { teamId, email, role, invitedBy } = command;
 
+    // 0. Validate inputs
+    if (!teamId || !teamId.trim()) {
+      throw new BadRequestException('Team ID is required');
+    }
+    if (!email || !email.trim()) {
+      throw new BadRequestException('Email is required');
+    }
+    if (!invitedBy || !invitedBy.trim()) {
+      throw new BadRequestException('Inviter ID is required');
+    }
+
     // 1. Validate team exists
     const team = await this.teamRepository.getById(TeamId.create(teamId));
     if (!team) {
       throw new NotFoundException(`Team not found: ${teamId}`);
+    }
+
+    // 1.5. Rate limiting check - prevent DOS via excessive invites
+    const pendingInvites = await this.memberRepository.findByTeam(teamId);
+    const pendingCount = pendingInvites.filter((m) => m.isPending()).length;
+    const MAX_PENDING_INVITES = 50; // Configurable limit
+
+    if (pendingCount >= MAX_PENDING_INVITES) {
+      throw new BadRequestException(
+        `Team has reached maximum pending invitations (${MAX_PENDING_INVITES}). ` +
+        'Please wait for existing invitations to be accepted or cancel them.'
+      );
     }
 
     // 2. Validate inviter permissions
@@ -115,7 +146,33 @@ export class InviteMemberUseCase {
     // 7. Save to repository
     await this.memberRepository.save(member);
 
-    // 8. Return result for invite token generation
+    // 8. Generate invite token
+    const inviteToken = this.inviteTokenService.generateInviteToken({
+      memberId: member.id,
+      teamId: member.teamId,
+      email: member.email,
+    });
+
+    // 9. Send invite email (non-blocking - log errors but don't fail)
+    try {
+      await this.emailService.sendInviteEmail(
+        member.email,
+        team.getName(),
+        inviteToken
+      );
+      this.logger.log(`Invite email sent to ${member.email} for team ${teamId}`);
+    } catch (error) {
+      // Log error but don't fail the invite creation
+      // The invite is still valid, user can be manually notified
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(
+        `Failed to send invite email to ${member.email}: ${errorMessage}`,
+        errorStack
+      );
+    }
+
+    // 10. Return result (WITHOUT invite token for security)
     return {
       memberId: member.id,
       teamId: member.teamId,
@@ -124,8 +181,15 @@ export class InviteMemberUseCase {
     };
   }
 
+  /**
+   * Validate email format (RFC 5322 compliant, simplified)
+   */
   private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || email.length > 254) {
+      return false; // Max email length per RFC 5321
+    }
+
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     return emailRegex.test(email);
   }
 }

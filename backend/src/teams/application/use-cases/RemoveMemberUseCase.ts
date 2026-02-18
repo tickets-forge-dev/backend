@@ -10,7 +10,7 @@
  * Layer: Application (Use Case)
  */
 
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
 import { TeamId } from '../../domain/TeamId';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
@@ -25,6 +25,7 @@ export interface RemoveMemberCommand {
 export class RemoveMemberUseCase {
   constructor(
     private readonly teamRepository: FirestoreTeamRepository,
+    @Inject('TeamMemberRepository')
     private readonly memberRepository: TeamMemberRepository
   ) {}
 

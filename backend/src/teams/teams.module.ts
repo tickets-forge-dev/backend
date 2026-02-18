@@ -15,6 +15,7 @@ import { RemoveMemberUseCase } from './application/use-cases/RemoveMemberUseCase
 import { ChangeMemberRoleUseCase } from './application/use-cases/ChangeMemberRoleUseCase';
 import { ListTeamMembersUseCase } from './application/use-cases/ListTeamMembersUseCase';
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
+import { InviteTokenService } from './application/services/InviteTokenService';
 
 /**
  * TeamsModule
@@ -42,6 +43,10 @@ import { FirebaseService } from '../shared/infrastructure/firebase/firebase.conf
       inject: [FirebaseService],
     },
     {
+      provide: 'TeamMemberRepository',
+      useExisting: FirestoreTeamMemberRepository,
+    },
+    {
       provide: FirestoreUserRepository,
       useFactory: (firebaseService: FirebaseService) => {
         const firestore = firebaseService.getFirestore();
@@ -62,6 +67,8 @@ import { FirebaseService } from '../shared/infrastructure/firebase/firebase.conf
     RemoveMemberUseCase,
     ChangeMemberRoleUseCase,
     ListTeamMembersUseCase,
+    // Services
+    InviteTokenService,
   ],
   exports: [
     FirestoreTeamRepository,

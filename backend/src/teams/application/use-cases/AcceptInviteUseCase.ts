@@ -10,7 +10,7 @@
  * Layer: Application (Use Case)
  */
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 
 export interface AcceptInviteCommand {
@@ -21,7 +21,10 @@ export interface AcceptInviteCommand {
 
 @Injectable()
 export class AcceptInviteUseCase {
-  constructor(private readonly memberRepository: TeamMemberRepository) {}
+  constructor(
+    @Inject('TeamMemberRepository')
+    private readonly memberRepository: TeamMemberRepository
+  ) {}
 
   async execute(command: AcceptInviteCommand): Promise<void> {
     const { userId, teamId, displayName } = command;
