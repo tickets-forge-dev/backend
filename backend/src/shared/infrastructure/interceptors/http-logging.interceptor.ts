@@ -238,11 +238,18 @@ export class HttpLoggingInterceptor implements NestInterceptor {
   private truncateBody(data: any): any {
     if (!data) return data;
 
-    const str = typeof data === 'string' ? data : JSON.stringify(data);
-    if (str.length > this.maxBodyLength) {
-      return str.substring(0, this.maxBodyLength) + '... (truncated)';
+    try {
+      const str = typeof data === 'string' ? data : JSON.stringify(data);
+      if (str.length > this.maxBodyLength) {
+        return str.substring(0, this.maxBodyLength) + '... (truncated)';
+      }
+      return data;
+    } catch (error) {
+      // Handle circular references or other JSON stringify errors
+      if (error instanceof Error && error.message.includes('circular')) {
+        return '[Circular Reference Detected - Cannot Stringify]';
+      }
+      return '[Error Stringifying Response]';
     }
-
-    return data;
   }
 }
