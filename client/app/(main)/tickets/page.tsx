@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/t
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
-import { useDemoTickets } from '@/tickets/hooks/useDemoTickets';
 import { useTicketGrouping } from '@/tickets/hooks/useTicketGrouping';
 import { TicketGroupHeader } from '@/tickets/components/TicketGroupHeader';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
@@ -31,7 +30,6 @@ function getTypeIcon(type: string | null) {
 
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
-  const { activeDemoTickets, dismissDemoTicket } = useDemoTickets();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'all' | 'complete' | 'draft' | 'needs-resume'>(() => {
     const saved = listPreferences?.statusTab as any;
@@ -57,8 +55,7 @@ export default function TicketsListPage() {
     fetchQuota();
   }, [loadTickets, fetchQuota]);
 
-  // Combine real tickets and demo tickets for display
-  const allTickets = [...activeDemoTickets, ...tickets];
+  const allTickets = tickets;
 
   // Helper to determine ticket status
   const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' => {
@@ -395,7 +392,7 @@ export default function TicketsListPage() {
                     {!isCollapsed && (
                       <div className="space-y-1">
                         {group.tickets.map((ticket) => (
-                          <TicketRow key={ticket.id} ticket={ticket} isDemoTicket={ticket.id.startsWith('demo-')} />
+                          <TicketRow key={ticket.id} ticket={ticket} />
                         ))}
                       </div>
                     )}
@@ -407,7 +404,7 @@ export default function TicketsListPage() {
             // Flat view (if only one group or no groups)
             <div className="space-y-1">
               {filteredTickets.map((ticket) => (
-                <TicketRow key={ticket.id} ticket={ticket} isDemoTicket={ticket.id.startsWith('demo-')} />
+                <TicketRow key={ticket.id} ticket={ticket} />
               ))}
             </div>
           )}
@@ -418,8 +415,7 @@ export default function TicketsListPage() {
 }
 
 // Extract ticket row to a separate component for reusability
-function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolean }) {
-  const { dismissDemoTicket } = useDemoTickets();
+function TicketRow({ ticket }: { ticket: any }) {
 
   // Helper to determine ticket status
   const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' => {
@@ -546,8 +542,6 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
               <h3 className={`text-xs sm:text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors flex-1 min-w-0 ${
                 ticketStatus === 'needs-input' || ticketStatus === 'needs-resume' ? 'font-semibold text-[var(--text)]' : 'font-medium text-[var(--text-secondary)]'
               }`}>
-                {isDemoTicket && <span className="text-[var(--text-tertiary)] hidden sm:inline">Demo Ticket • </span>}
-                {isDemoTicket && <span className="text-[var(--text-tertiary)] sm:hidden">📋 </span>}
                 {ticket.title}
                 {ticketStatus === 'needs-resume' && <span className="ml-1 sm:ml-2 text-red-500 font-normal">❌</span>}
               </h3>
@@ -572,20 +566,6 @@ function TicketRow({ ticket, isDemoTicket }: { ticket: any; isDemoTicket: boolea
           </div>
         </div>
       </Link>
-
-      {/* Delete button for demo tickets */}
-      {isDemoTicket && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            dismissDemoTicket(ticket.id);
-          }}
-          className="flex-shrink-0 p-1 sm:p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-          title="Delete demo ticket"
-        >
-          <X className="h-3 w-3 sm:h-4 sm:w-4" />
-        </button>
-      )}
     </div>
   );
 }
