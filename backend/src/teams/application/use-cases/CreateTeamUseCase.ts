@@ -72,6 +72,13 @@ export class CreateTeamUseCase {
     await this.teamRepository.save(team);
 
     // Add owner as active Admin member
+    console.log('[CreateTeamUseCase] Creating owner member:', {
+      userId: command.userId,
+      teamId: team.getId().getValue(),
+      email: user.getEmail(),
+      displayName: user.getDisplayName() || user.getEmail().split('@')[0],
+    });
+
     const ownerMember = TeamMember.createActive(
       command.userId,
       team.getId().getValue(),
@@ -79,7 +86,10 @@ export class CreateTeamUseCase {
       Role.ADMIN,
       user.getDisplayName() || user.getEmail().split('@')[0],
     );
+
+    console.log('[CreateTeamUseCase] Saving owner member to repository...');
     await this.memberRepository.save(ownerMember);
+    console.log('[CreateTeamUseCase] Owner member saved successfully');
 
     // Update user
     let updatedUser = user.addTeam(team.getId());
