@@ -14,6 +14,7 @@ import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nest
 import { TeamId } from '../../domain/TeamId';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
+import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
 
 export interface RemoveMemberCommand {
   teamId: string;
@@ -26,7 +27,8 @@ export class RemoveMemberUseCase {
   constructor(
     private readonly teamRepository: FirestoreTeamRepository,
     @Inject('TeamMemberRepository')
-    private readonly memberRepository: TeamMemberRepository
+    private readonly memberRepository: TeamMemberRepository,
+    private readonly userRepository: FirestoreUserRepository,
   ) {}
 
   async execute(command: RemoveMemberCommand): Promise<void> {
@@ -68,5 +70,12 @@ export class RemoveMemberUseCase {
 
     // 7. Update repository
     await this.memberRepository.update(removedMember);
+
+    // 8. Remove team from user's teamIds array
+    const user = await this.userRepository.getById(memberUserId);
+    if (user) {
+      const updatedUser = user.removeTeam(TeamId.create(teamId));
+      await this.userRepository.save(updatedUser);
+    }
   }
 }

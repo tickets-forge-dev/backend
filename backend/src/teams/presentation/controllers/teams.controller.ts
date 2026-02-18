@@ -25,6 +25,7 @@ import { ListTeamMembersUseCase } from '../../application/use-cases/ListTeamMemb
 import { ChangeMemberRoleUseCase } from '../../application/use-cases/ChangeMemberRoleUseCase';
 import { RemoveMemberUseCase } from '../../application/use-cases/RemoveMemberUseCase';
 import { AcceptInviteUseCase } from '../../application/use-cases/AcceptInviteUseCase';
+import { SyncUserTeamsUseCase } from '../../application/use-cases/SyncUserTeamsUseCase';
 import { InviteTokenService } from '../../application/services/InviteTokenService';
 import { CreateTeamDto } from '../dtos/CreateTeamDto';
 import { UpdateTeamDto } from '../dtos/UpdateTeamDto';
@@ -47,6 +48,7 @@ export class TeamsController {
     private readonly getTeamUseCase: GetTeamUseCase,
     private readonly getUserTeamsUseCase: GetUserTeamsUseCase,
     private readonly switchTeamUseCase: SwitchTeamUseCase,
+    private readonly syncUserTeamsUseCase: SyncUserTeamsUseCase,
     private readonly inviteMemberUseCase: InviteMemberUseCase,
     private readonly listTeamMembersUseCase: ListTeamMembersUseCase,
     private readonly changeMemberRoleUseCase: ChangeMemberRoleUseCase,
@@ -394,6 +396,31 @@ export class TeamsController {
       }
       if (error instanceof Error && error.message.includes('not found')) {
         throw new BadRequestException('Invitation not found or expired');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * POST /teams/sync
+   * Sync user's teamIds array with actual teams (fixes data corruption)
+   */
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  async syncUserTeams(@Request() req: any) {
+    try {
+      const userId = req.user.uid;
+
+      const result = await this.syncUserTeamsUseCase.execute({ userId });
+
+      return {
+        success: true,
+        syncedTeams: result.syncedTeams,
+        message: `Synced ${result.syncedTeams.length} team(s)`,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new BadRequestException(error.message);
       }
       throw error;
     }

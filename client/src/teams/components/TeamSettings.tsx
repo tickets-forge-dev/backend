@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
@@ -23,7 +24,8 @@ import {
  * Only owners can edit team name or delete the team.
  */
 export function TeamSettings() {
-  const { currentTeam, isLoading, error, loadCurrentTeam, updateTeam, deleteTeam } =
+  const router = useRouter();
+  const { currentTeam, teams, isLoading, error, loadCurrentTeam, updateTeam, deleteTeam } =
     useTeamStore();
 
   const [teamName, setTeamName] = useState('');
@@ -78,7 +80,14 @@ export function TeamSettings() {
     try {
       await deleteTeam(currentTeam.id);
       setShowDeleteDialog(false);
-      // Team store will automatically switch to another team or null
+
+      // Navigate to first team or tickets page
+      const remainingTeams = teams.filter((t) => t.id !== currentTeam.id);
+      if (remainingTeams.length > 0) {
+        router.push(`/teams/${remainingTeams[0].id}`);
+      } else {
+        router.push('/tickets');
+      }
     } catch (err) {
       console.error('Failed to delete team:', err);
       setIsDeleting(false);

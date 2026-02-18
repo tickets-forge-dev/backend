@@ -47,5 +47,9 @@ export class DeleteTeamUseCase {
 
     // Save
     await this.teamRepository.update(deletedTeam);
+
+    // Remove team from user's team list
+    user.removeTeam(teamId);
+    await this.userRepository.save(user);
   }
 }

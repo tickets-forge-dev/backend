@@ -9,6 +9,7 @@ import { DeleteTeamUseCase } from './application/use-cases/DeleteTeamUseCase';
 import { GetTeamUseCase } from './application/use-cases/GetTeamUseCase';
 import { GetUserTeamsUseCase } from './application/use-cases/GetUserTeamsUseCase';
 import { SwitchTeamUseCase } from './application/use-cases/SwitchTeamUseCase';
+import { SyncUserTeamsUseCase } from './application/use-cases/SyncUserTeamsUseCase';
 import { InviteMemberUseCase } from './application/use-cases/InviteMemberUseCase';
 import { AcceptInviteUseCase } from './application/use-cases/AcceptInviteUseCase';
 import { RemoveMemberUseCase } from './application/use-cases/RemoveMemberUseCase';
@@ -61,6 +62,7 @@ import { InviteTokenService } from './application/services/InviteTokenService';
     GetTeamUseCase,
     GetUserTeamsUseCase,
     SwitchTeamUseCase,
+    SyncUserTeamsUseCase,
     // Use Cases - Member Management
     InviteMemberUseCase,
     AcceptInviteUseCase,
