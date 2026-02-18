@@ -124,7 +124,7 @@ export default function AcceptInvitePage() {
             Welcome to the team!
           </h1>
           <p style={{ marginTop: '8px', fontSize: '14px', color: '#6b7280' }}>
-            You've successfully joined the team. Redirecting...
+            You&apos;ve successfully joined the team. Redirecting...
           </p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export default function AcceptInvitePage() {
         <div style={{ marginBottom: '24px', textAlign: 'center' }}>
           <h1 style={{ fontSize: '24px', fontWeight: '600' }}>Join Team</h1>
           <p style={{ marginTop: '8px', fontSize: '14px', color: '#6b7280' }}>
-            You've been invited to join a team
+            You&apos;ve been invited to join a team
           </p>
         </div>
 
@@ -201,7 +201,7 @@ export default function AcceptInvitePage() {
           <div style={{ marginTop: '16px', display: 'flex', alignItems: 'flex-start', gap: '8px', borderRadius: '6px', border: '1px solid #e5e7eb', padding: '12px' }}>
             <span style={{ color: '#3b82f6' }}>ℹ</span>
             <p style={{ fontSize: '12px', color: '#6b7280' }}>
-              By accepting, you'll join this team and have access to shared resources.
+              By accepting, you&apos;ll join this team and have access to shared resources.
             </p>
           </div>
         )}

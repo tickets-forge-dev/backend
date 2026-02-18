@@ -302,6 +302,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         teams: [...updatedTeams, teamSummary],
         currentTeam: newTeam,
         isLoading: false,
+        // Invalidate cache to force fresh fetch on next load
+        lastTeamsFetch: null,
+        lastCurrentTeamFetch: Date.now(), // Set current team cache since we just loaded it
       });
 
       // Persist to localStorage
@@ -337,6 +340,10 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         teams: teams.map((t) => (t.id === teamId ? updatedSummary : t)),
         currentTeam: currentTeam?.id === teamId ? updatedTeam : currentTeam,
         isLoading: false,
+        // Invalidate teams cache to force fresh fetch on next load
+        lastTeamsFetch: null,
+        // Update current team cache if this was the current team
+        lastCurrentTeamFetch: currentTeam?.id === teamId ? Date.now() : get().lastCurrentTeamFetch,
       });
     } catch (error) {
       set({
@@ -366,6 +373,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         teams: updatedTeams,
         currentTeam: newCurrentTeam,
         isLoading: false,
+        // Invalidate cache to force fresh fetch on next load
+        lastTeamsFetch: null,
+        lastCurrentTeamFetch: null,
       });
 
       // Clear localStorage if current team was deleted
