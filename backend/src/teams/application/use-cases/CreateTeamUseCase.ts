@@ -52,12 +52,14 @@ export class CreateTeamUseCase {
       throw new Error(`User ${command.userId} not found`);
     }
 
-    // Create team
+    // Create team with owner's workspace as default
+    // This ensures team members share the same workspace and can see each other's tickets
+    const ownerWorkspaceId = `ws_${command.userId.substring(0, 12)}`;
     const team = TeamFactory.createTeam(
       command.teamName,
       command.userId,
       TeamSettings.create(
-        undefined,
+        ownerWorkspaceId,
         command.allowMemberInvites ?? true,
       ),
     );
