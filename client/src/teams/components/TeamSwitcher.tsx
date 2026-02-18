@@ -56,8 +56,20 @@ export function TeamSwitcher() {
 
   const handleSwitchToPersonal = () => {
     // Switch to personal workspace by clearing current team
-    const { setCurrentTeam } = useTeamStore.getState();
-    setCurrentTeam(null);
+    const store = useTeamStore.getState();
+
+    // Update teams array to mark all as not current
+    const updatedTeams = store.teams.map((t) => ({ ...t, isCurrent: false }));
+
+    // Clear current team and update teams list
+    useTeamStore.setState({
+      currentTeam: null,
+      teams: updatedTeams,
+    });
+
+    // Clear from localStorage
+    localStorage.removeItem('forge_currentTeamId');
+
     setDropdownOpen(false);
     // Navigate to tickets page
     router.push('/tickets');
