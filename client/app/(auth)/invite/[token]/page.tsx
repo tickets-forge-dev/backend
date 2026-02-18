@@ -172,7 +172,7 @@ export default function AcceptInvitePage() {
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Enter your display name"
               disabled={isAccepting}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb', backgroundColor: '#ffffff' }}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb', backgroundColor: '#ffffff', color: '#000000' }}
             />
             <p style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
               This is how your name will appear to other team members
