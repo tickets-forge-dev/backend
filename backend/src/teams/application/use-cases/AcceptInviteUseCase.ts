@@ -55,7 +55,15 @@ export class AcceptInviteUseCase {
     // 4. Activate member (update userId from temporary to real Firebase UID)
     const activatedMember = member.activate(displayName.trim(), userId);
 
-    // 5. Update repository
-    await this.memberRepository.update(activatedMember);
+    // 5. Delete old member document (with temporary userId) and save new one (with real userId)
+    // This is necessary because the userId changed, so the document path changed
+    const oldUserId = member.userId; // temporary userId like "invite_bar_idan_gmail_com"
+    const teamId = member.teamId;
+
+    // Delete the old document at /teams/{teamId}/members/{oldUserId}
+    await this.memberRepository.delete(teamId, oldUserId);
+
+    // Save the new document at /teams/{teamId}/members/{newUserId}
+    await this.memberRepository.save(activatedMember);
   }
 }
