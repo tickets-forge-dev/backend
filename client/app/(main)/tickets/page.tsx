@@ -10,6 +10,7 @@ import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { useTicketGrouping } from '@/tickets/hooks/useTicketGrouping';
 import { TicketGroupHeader } from '@/tickets/components/TicketGroupHeader';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
+import { useTeamStore } from '@/teams/stores/team.store';
 import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search } from 'lucide-react';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
@@ -30,6 +31,7 @@ function getTypeIcon(type: string | null) {
 
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
+  const { currentTeam } = useTeamStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'all' | 'complete' | 'draft' | 'needs-resume'>(() => {
     const saved = listPreferences?.statusTab as any;
@@ -50,10 +52,11 @@ export default function TicketsListPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Reload tickets when workspace changes
   useEffect(() => {
     loadTickets();
     fetchQuota();
-  }, [loadTickets, fetchQuota]);
+  }, [loadTickets, fetchQuota, currentTeam?.id]);
 
   const allTickets = tickets;
 
