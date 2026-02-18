@@ -23,18 +23,20 @@ function TeamPage() {
   const teamId = params.teamId as string;
   const tab = (searchParams.get('tab') as 'overview' | 'members' | 'settings') || 'overview';
 
-  const { currentTeam, isLoading, loadTeams, loadCurrentTeam, loadTeamMembers } = useTeamStore();
+  const { teams, isLoading, loadTeams, loadTeamMembers } = useTeamStore();
+
+  // Get the specific team from URL, not the user's current team
+  const team = teams.find((t) => t.id === teamId);
 
   useEffect(() => {
-    // Load teams list and current team on mount
+    // Load teams list and members on mount
     loadTeams();
     if (teamId) {
-      loadCurrentTeam();
       loadTeamMembers(teamId);
     }
-  }, [teamId, loadTeams, loadCurrentTeam, loadTeamMembers]);
+  }, [teamId, loadTeams, loadTeamMembers]);
 
-  if (isLoading || !currentTeam) {
+  if (isLoading || !team) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
@@ -46,7 +48,7 @@ function TeamPage() {
     <div className="container mx-auto max-w-6xl px-4 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-[var(--text)]">{currentTeam.name}</h1>
+        <h1 className="text-3xl font-semibold text-[var(--text)]">{team.name}</h1>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
           Manage your team members, settings, and permissions
         </p>
@@ -61,7 +63,7 @@ function TeamPage() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab team={currentTeam} />
+          <OverviewTab team={team} />
         </TabsContent>
 
         <TabsContent value="members">
@@ -69,7 +71,7 @@ function TeamPage() {
         </TabsContent>
 
         <TabsContent value="settings">
-          <SettingsTab team={currentTeam} />
+          <SettingsTab team={team} />
         </TabsContent>
       </Tabs>
     </div>

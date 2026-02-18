@@ -31,15 +31,10 @@ export class WorkspaceGuard implements CanActivate {
         const team = await this.teamRepository.getById(teamId!);
 
         if (team) {
-          if (team.getSettings().defaultWorkspaceId) {
-            // Team has a configured workspace - use it
-            workspaceId = team.getSettings().defaultWorkspaceId!;
-          } else {
-            // Team exists but no workspace set - use team-specific workspace
-            // This ensures team workspace is SEPARATE from owner's personal workspace
-            const teamIdStr = team.getId().getValue();
-            workspaceId = `ws_team_${teamIdStr.substring(5, 17)}`; // Extract 12 chars from team ID
-          }
+          // ALWAYS use team-specific workspace (ignore defaultWorkspaceId to prevent sharing owner's workspace)
+          // This ensures each team has its own isolated workspace
+          const teamIdStr = team.getId().getValue();
+          workspaceId = `ws_team_${teamIdStr.substring(5, 17)}`; // Extract 12 chars from team ID
         } else {
           // Team not found - fallback to personal workspace
           workspaceId = `ws_${firebaseUser.uid.substring(0, 12)}`;

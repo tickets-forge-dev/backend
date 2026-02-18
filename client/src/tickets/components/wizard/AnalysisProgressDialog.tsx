@@ -124,7 +124,7 @@ export function AnalysisProgressDialog({
         </div>
 
         {/* Phase Checklist */}
-        <div className="px-6 py-6 space-y-3 max-h-96 overflow-y-auto">
+        <div className="px-6 py-6 space-y-3">
           {ANALYSIS_PHASES.map((phase) => {
             const status = getPhaseStatus(phase.key);
             const Icon = phase.icon;
