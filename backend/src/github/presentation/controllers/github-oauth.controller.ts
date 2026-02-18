@@ -46,6 +46,12 @@ import { GitHubRepository } from '../../domain/GitHubRepository';
 export class GitHubOAuthController {
   private readonly logger = new Logger(GitHubOAuthController.name);
 
+  // Track recently processed codes to prevent duplicate exchanges
+  // Authorization codes are single-use, so if we see the same code twice within
+  // a short window, it's a duplicate callback (browser cache, redirect, etc.)
+  private readonly processedCodes = new Map<string, { timestamp: number; workspaceId: string }>();
+  private readonly CODE_CACHE_TTL = 60000; // 60 seconds
+
   constructor(
     private readonly configService: ConfigService,
     private readonly tokenService: GitHubTokenService,
@@ -133,6 +139,19 @@ export class GitHubOAuthController {
       const { workspaceId } = parsed;
       this.logger.log(`✅ State verified for workspace ${workspaceId}`);
 
+      // Check if we've already processed this code (duplicate callback detection)
+      const cached = this.processedCodes.get(code);
+      if (cached && cached.workspaceId === workspaceId) {
+        const age = Date.now() - cached.timestamp;
+        this.logger.log(
+          `⚠️  Duplicate callback detected - code already processed ${age}ms ago. Returning success.`,
+        );
+        return res.send(this.getPopupClosePage('success', 'connected'));
+      }
+
+      // Clean up expired codes from cache (older than TTL)
+      this.cleanupExpiredCodes();
+
       // Exchange code for token
       const tokenResponse = await this.tokenService.exchangeCodeForToken(code);
 
@@ -163,6 +182,9 @@ export class GitHubOAuthController {
       }
 
       this.logger.log(`GitHub connected successfully for workspace ${workspaceId}`);
+
+      // Cache this code to prevent duplicate processing
+      this.processedCodes.set(code, { timestamp: Date.now(), workspaceId });
 
       return res.send(this.getPopupClosePage('success', 'connected'));
     } catch (error: any) {
@@ -219,6 +241,29 @@ export class GitHubOAuthController {
         </body>
       </html>
     `;
+  }
+
+  /**
+   * Clean up expired codes from cache
+   * Removes codes older than CODE_CACHE_TTL to prevent memory leaks
+   */
+  private cleanupExpiredCodes(): void {
+    const now = Date.now();
+    const expiredCodes: string[] = [];
+
+    for (const [code, data] of this.processedCodes.entries()) {
+      if (now - data.timestamp > this.CODE_CACHE_TTL) {
+        expiredCodes.push(code);
+      }
+    }
+
+    for (const code of expiredCodes) {
+      this.processedCodes.delete(code);
+    }
+
+    if (expiredCodes.length > 0) {
+      this.logger.debug(`Cleaned up ${expiredCodes.length} expired OAuth codes from cache`);
+    }
   }
 
   /**
