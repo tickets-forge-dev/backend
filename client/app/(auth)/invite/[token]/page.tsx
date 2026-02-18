@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
-import { Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { Button } from '@/core/components/ui/button';
-import { Input } from '@/core/components/ui/input';
 
 /**
  * Team Invite Acceptance Page
@@ -29,7 +26,6 @@ export default function AcceptInvitePage() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [teamId, setTeamId] = useState<string | null>(null);
 
   // Check authentication status
   useEffect(() => {
@@ -51,10 +47,9 @@ export default function AcceptInvitePage() {
   // Redirect to sign-in if not authenticated
   useEffect(() => {
     if (authChecked && !isAuthenticated) {
-      // Redirect to sign-in page with return URL
-      router.push(`/sign-in?returnUrl=/invite/${token}`);
+      router.push(`/login`);
     }
-  }, [authChecked, isAuthenticated, router, token]);
+  }, [authChecked, isAuthenticated, router]);
 
   const handleAcceptInvite = async () => {
     if (!displayName.trim()) {
@@ -74,8 +69,9 @@ export default function AcceptInvitePage() {
       }
 
       const idToken = await user.getIdToken();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/accept-invite`, {
+      const response = await fetch(`${apiUrl}/teams/accept-invite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +89,6 @@ export default function AcceptInvitePage() {
       }
 
       const data = await response.json();
-      setTeamId(data.teamId);
       setSuccess(true);
 
       // Redirect to team page after 2 seconds
@@ -110,10 +105,10 @@ export default function AcceptInvitePage() {
   // Loading state while checking auth
   if (!authChecked) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--primary)]" />
-          <p className="mt-4 text-sm text-[var(--text-muted)]">Loading...</p>
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ margin: '0 auto', width: '32px', height: '32px', border: '3px solid #e5e7eb', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <p style={{ marginTop: '16px', fontSize: '14px', color: '#6b7280' }}>Loading...</p>
         </div>
       </div>
     );
@@ -122,16 +117,15 @@ export default function AcceptInvitePage() {
   // Success state
   if (success) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[var(--bg)]">
-        <div className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-8 text-center shadow-sm">
-          <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
-          <h1 className="mt-4 text-2xl font-semibold text-[var(--text)]">
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+        <div style={{ width: '100%', maxWidth: '448px', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '32px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div style={{ margin: '0 auto', width: '64px', height: '64px', color: '#10b981' }}>✓</div>
+          <h1 style={{ marginTop: '16px', fontSize: '24px', fontWeight: '600' }}>
             Welcome to the team!
           </h1>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
+          <p style={{ marginTop: '8px', fontSize: '14px', color: '#6b7280' }}>
             You've successfully joined the team. Redirecting...
           </p>
-          <Loader2 className="mx-auto mt-4 h-6 w-6 animate-spin text-[var(--primary)]" />
         </div>
       </div>
     );
@@ -139,77 +133,84 @@ export default function AcceptInvitePage() {
 
   // Invite acceptance form
   return (
-    <div className="flex h-screen items-center justify-center bg-[var(--bg)] p-4">
-      <div className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-8 shadow-sm">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold text-[var(--text)]">Join Team</h1>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
+    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div style={{ width: '100%', maxWidth: '448px', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '600' }}>Join Team</h1>
+          <p style={{ marginTop: '8px', fontSize: '14px', color: '#6b7280' }}>
             You've been invited to join a team
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 flex items-start gap-3 rounded-md border border-red-500/50 bg-red-500/10 p-3">
-            <XCircle className="h-5 w-5 shrink-0 text-red-500" />
-            <p className="text-sm text-red-500">{error}</p>
+          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '12px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '12px' }}>
+            <span style={{ color: '#ef4444' }}>✗</span>
+            <p style={{ fontSize: '14px', color: '#ef4444' }}>{error}</p>
           </div>
         )}
 
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--text)]">
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
               Email
             </label>
-            <Input
+            <input
               type="email"
               value={userEmail}
               disabled
-              className="bg-[var(--input-bg)] text-[var(--text-muted)]"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb', backgroundColor: '#f9fafb', color: '#6b7280' }}
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--text)]">
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
               Display Name
             </label>
-            <Input
+            <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Enter your display name"
               disabled={isAccepting}
-              className="bg-[var(--input-bg)] text-[var(--text)]"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb', backgroundColor: '#ffffff' }}
             />
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
+            <p style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
               This is how your name will appear to other team members
             </p>
           </div>
 
-          <Button
+          <button
             onClick={handleAcceptInvite}
             disabled={isAccepting || !displayName.trim()}
-            className="w-full"
+            style={{
+              width: '100%',
+              padding: '10px 16px',
+              borderRadius: '6px',
+              border: 'none',
+              backgroundColor: isAccepting || !displayName.trim() ? '#9ca3af' : '#3b82f6',
+              color: '#ffffff',
+              fontWeight: '500',
+              cursor: isAccepting || !displayName.trim() ? 'not-allowed' : 'pointer'
+            }}
           >
-            {isAccepting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Joining team...
-              </>
-            ) : (
-              'Accept Invitation'
-            )}
-          </Button>
+            {isAccepting ? 'Joining team...' : 'Accept Invitation'}
+          </button>
         </div>
 
         {!error && (
-          <div className="mt-4 flex items-start gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] p-3">
-            <AlertCircle className="h-5 w-5 shrink-0 text-[var(--primary)]" />
-            <p className="text-xs text-[var(--text-muted)]">
+          <div style={{ marginTop: '16px', display: 'flex', alignItems: 'flex-start', gap: '8px', borderRadius: '6px', border: '1px solid #e5e7eb', padding: '12px' }}>
+            <span style={{ color: '#3b82f6' }}>ℹ</span>
+            <p style={{ fontSize: '12px', color: '#6b7280' }}>
               By accepting, you'll join this team and have access to shared resources.
             </p>
           </div>
         )}
       </div>
+      <style jsx>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
