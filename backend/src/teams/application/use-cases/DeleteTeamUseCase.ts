@@ -24,16 +24,10 @@ export class DeleteTeamUseCase {
   ) {}
 
   async execute(command: DeleteTeamCommand): Promise<void> {
-    const isTestUser =
-      command.userId.startsWith('test-') &&
-      process.env.NODE_ENV !== 'production';
-
-    if (!isTestUser) {
-      // Real user: Check user exists
-      const user = await this.userRepository.getById(command.userId);
-      if (!user) {
-        throw new Error(`User ${command.userId} not found`);
-      }
+    // Verify user exists
+    const user = await this.userRepository.getById(command.userId);
+    if (!user) {
+      throw new Error(`User ${command.userId} not found`);
     }
 
     // Load team
@@ -43,7 +37,7 @@ export class DeleteTeamUseCase {
       throw new Error(`Team ${command.teamId} not found`);
     }
 
-    // Verify ownership (both test and real users)
+    // Verify ownership
     if (!team.isOwnedBy(command.userId)) {
       throw new ForbiddenException('Only team owners can delete teams');
     }

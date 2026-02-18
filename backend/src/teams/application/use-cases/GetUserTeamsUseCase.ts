@@ -32,27 +32,7 @@ export class GetUserTeamsUseCase {
   ) {}
 
   async execute(command: GetUserTeamsCommand): Promise<GetUserTeamsResult> {
-    const isTestUser =
-      command.userId.startsWith('test-') &&
-      process.env.NODE_ENV !== 'production';
-
-    if (isTestUser) {
-      // Test user: Load teams directly from team ownership
-      const allTeams = await this.teamRepository.getByOwnerId(command.userId);
-
-      return {
-        teams: allTeams.map((team) => ({
-          id: team.getId().getValue(),
-          name: team.getName(),
-          slug: team.getSlug(),
-          isOwner: true, // Test user only sees teams they own
-          isCurrent: false, // Test users don't have current team
-        })),
-        currentTeamId: null,
-      };
-    }
-
-    // Real user: Load user entity and follow user's team list
+    // Load user
     const user = await this.userRepository.getById(command.userId);
     if (!user) {
       throw new Error(`User ${command.userId} not found`);

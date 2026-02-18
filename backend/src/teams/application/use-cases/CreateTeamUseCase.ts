@@ -41,14 +41,10 @@ export class CreateTeamUseCase {
   ) {}
 
   async execute(command: CreateTeamCommand): Promise<CreateTeamResult> {
-    // Check if user exists (skip for test users in development)
-    const isTestUser = command.userId.startsWith('test-') && process.env.NODE_ENV !== 'production';
-
-    if (!isTestUser) {
-      const user = await this.userRepository.getById(command.userId);
-      if (!user) {
-        throw new Error(`User ${command.userId} not found`);
-      }
+    // Verify user exists
+    const user = await this.userRepository.getById(command.userId);
+    if (!user) {
+      throw new Error(`User ${command.userId} not found`);
     }
 
     // Create team
@@ -70,17 +66,12 @@ export class CreateTeamUseCase {
     // Save team
     await this.teamRepository.save(team);
 
-    // Update user (skip for test users)
-    if (!isTestUser) {
-      const user = await this.userRepository.getById(command.userId);
-      if (user) {
-        let updatedUser = user.addTeam(team.getId());
-        if (user.getCurrentTeamId()) {
-          updatedUser = updatedUser.switchTeam(team.getId());
-        }
-        await this.userRepository.save(updatedUser);
-      }
+    // Update user
+    let updatedUser = user.addTeam(team.getId());
+    if (user.getCurrentTeamId()) {
+      updatedUser = updatedUser.switchTeam(team.getId());
     }
+    await this.userRepository.save(updatedUser);
 
     // Return complete team data
     return {

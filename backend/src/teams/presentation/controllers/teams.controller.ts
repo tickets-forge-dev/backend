@@ -14,7 +14,6 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
-import { TestAuthGuard } from '../../../shared/presentation/guards/TestAuthGuard';
 import { CreateTeamUseCase } from '../../application/use-cases/CreateTeamUseCase';
 import { UpdateTeamUseCase } from '../../application/use-cases/UpdateTeamUseCase';
 import { DeleteTeamUseCase } from '../../application/use-cases/DeleteTeamUseCase';
@@ -33,8 +32,7 @@ import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamExcepti
  * REST API for team management.
  */
 @Controller('teams')
-@UseGuards(TestAuthGuard) // TEMPORARY: Using TestAuthGuard for development testing
-// @UseGuards(FirebaseAuthGuard) // TODO: Switch back to FirebaseAuthGuard for production
+@UseGuards(FirebaseAuthGuard)
 export class TeamsController {
   constructor(
     private readonly createTeamUseCase: CreateTeamUseCase,
