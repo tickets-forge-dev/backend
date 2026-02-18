@@ -345,8 +345,8 @@ export default function TicketsListPage() {
         </div>
       </div>
 
-      {/* Loading state: Show skeletons only on initial load */}
-      {isInitialLoad && isLoading && (
+      {/* Loading state: Show skeletons when loading (including team switches) */}
+      {isLoading && (
         <div className="space-y-1.5">
           {[...Array(5)].map((_, i) => (
             <TicketSkeletonRow key={i} />
@@ -362,7 +362,7 @@ export default function TicketsListPage() {
       )}
 
       {/* Tickets list */}
-      {!isInitialLoad && !loadError && filteredTickets.length === 0 && (
+      {!isLoading && !loadError && filteredTickets.length === 0 && (
         <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)]/40 bg-[var(--bg-subtle)] mx-2 sm:mx-0">
           <div className="text-center px-4">
             <p className="text-xs sm:text-[var(--text-base)] text-[var(--text-secondary)]">
@@ -377,7 +377,7 @@ export default function TicketsListPage() {
         </div>
       )}
 
-      {!isInitialLoad && !loadError && filteredTickets.length > 0 && (
+      {!isLoading && !loadError && filteredTickets.length > 0 && (
         <div>
           {groups.length > 1 ? (
             // Grouped view
