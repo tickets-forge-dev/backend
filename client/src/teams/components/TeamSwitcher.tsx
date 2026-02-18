@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Check, ChevronDown, Loader2, Plus, Users } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import {
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils';
  * Shows current team name, role badge, and list of available teams.
  */
 export function TeamSwitcher() {
+  const router = useRouter();
   const { sidebarCollapsed } = useUIStore();
   const { teams, currentTeamId, currentTeam, isLoading, isSwitching, error, loadTeams, switchTeam } =
     useTeamStore();
@@ -36,10 +38,17 @@ export function TeamSwitcher() {
   }, [loadTeams]);
 
   const handleSwitchTeam = async (teamId: string) => {
-    if (teamId === currentTeamId) return;
+    if (teamId === currentTeamId) {
+      // Same team clicked - navigate to team page
+      router.push(`/teams/${teamId}`);
+      setDropdownOpen(false);
+      return;
+    }
     try {
       await switchTeam(teamId);
       setDropdownOpen(false);
+      // Navigate to the team page after successful switch
+      router.push(`/teams/${teamId}`);
     } catch (err) {
       console.error('Failed to switch team:', err);
     }

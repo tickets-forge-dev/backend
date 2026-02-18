@@ -21,6 +21,9 @@ import { GetTeamUseCase } from '../../application/use-cases/GetTeamUseCase';
 import { GetUserTeamsUseCase } from '../../application/use-cases/GetUserTeamsUseCase';
 import { SwitchTeamUseCase } from '../../application/use-cases/SwitchTeamUseCase';
 import { InviteMemberUseCase } from '../../application/use-cases/InviteMemberUseCase';
+import { ListTeamMembersUseCase } from '../../application/use-cases/ListTeamMembersUseCase';
+import { ChangeMemberRoleUseCase } from '../../application/use-cases/ChangeMemberRoleUseCase';
+import { RemoveMemberUseCase } from '../../application/use-cases/RemoveMemberUseCase';
 import { CreateTeamDto } from '../dtos/CreateTeamDto';
 import { UpdateTeamDto } from '../dtos/UpdateTeamDto';
 import { SwitchTeamDto } from '../dtos/SwitchTeamDto';
@@ -42,6 +45,9 @@ export class TeamsController {
     private readonly getUserTeamsUseCase: GetUserTeamsUseCase,
     private readonly switchTeamUseCase: SwitchTeamUseCase,
     private readonly inviteMemberUseCase: InviteMemberUseCase,
+    private readonly listTeamMembersUseCase: ListTeamMembersUseCase,
+    private readonly changeMemberRoleUseCase: ChangeMemberRoleUseCase,
+    private readonly removeMemberUseCase: RemoveMemberUseCase,
   ) {}
 
   /**
@@ -237,6 +243,102 @@ export class TeamsController {
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof ForbiddenException) {
         throw error;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * GET /teams/:id/members
+   * List all team members
+   */
+  @Get(':id/members')
+  async listTeamMembers(@Request() req: any, @Param('id') teamId: string) {
+    try {
+      const userId = req.user.uid;
+
+      const members = await this.listTeamMembersUseCase.execute({
+        teamId,
+        requesterId: userId,
+      });
+
+      return {
+        success: true,
+        members: members.map((m) => m.toObject()),
+      };
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * PATCH /teams/:id/members/:userId
+   * Change member role (owner only)
+   */
+  @Patch(':id/members/:userId')
+  async changeMemberRole(
+    @Request() req: any,
+    @Param('id') teamId: string,
+    @Param('userId') memberUserId: string,
+    @Body() dto: { role: string },
+  ) {
+    try {
+      const userId = req.user.uid;
+
+      await this.changeMemberRoleUseCase.execute({
+        teamId,
+        memberUserId,
+        newRole: dto.role as any, // Role validation happens in use case
+        requesterId: userId,
+      });
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * DELETE /teams/:id/members/:userId
+   * Remove member from team (owner only)
+   */
+  @Delete(':id/members/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeMember(
+    @Request() req: any,
+    @Param('id') teamId: string,
+    @Param('userId') memberUserId: string,
+  ) {
+    try {
+      const userId = req.user.uid;
+
+      await this.removeMemberUseCase.execute({
+        teamId,
+        memberUserId,
+        requesterId: userId,
+      });
+
+      // 204 No Content - no response body
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new BadRequestException(error.message);
       }
       throw error;
     }

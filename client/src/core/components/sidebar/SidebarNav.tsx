@@ -2,21 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Ticket, Settings, CreditCard, MessageCircle } from 'lucide-react';
+import { Ticket, Settings, CreditCard, MessageCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
-
-const navigationItems = [
-  { label: 'Tickets', href: '/tickets', icon: Ticket },
-  { label: 'Pricing', href: '/pricing', icon: CreditCard },
-  { label: 'Settings', href: '/settings', icon: Settings },
-];
+import { useTeamStore } from '@/teams/stores/team.store';
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { sidebarCollapsed } = useUIStore();
   const { openFeedback } = useFeedbackStore();
+  const { currentTeamId } = useTeamStore();
+
+  const navigationItems = [
+    { label: 'Tickets', href: '/tickets', icon: Ticket },
+    { label: 'Teams', href: currentTeamId ? `/teams/${currentTeamId}` : '/teams', icon: Users },
+    { label: 'Pricing', href: '/pricing', icon: CreditCard },
+    { label: 'Settings', href: '/settings', icon: Settings },
+  ];
 
   return (
     <nav className="flex-1 px-2 py-4">

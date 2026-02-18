@@ -46,6 +46,29 @@ export interface SwitchTeamRequest {
   teamId: string;
 }
 
+export interface TeamMember {
+  id: string;
+  userId: string;
+  teamId: string;
+  email: string;
+  displayName?: string;
+  role: 'admin' | 'developer' | 'pm' | 'qa';
+  status: 'active' | 'invited' | 'removed';
+  invitedBy: string;
+  invitedAt: string;
+  joinedAt?: string;
+  removedAt?: string;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  role: 'developer' | 'pm' | 'qa';
+}
+
+export interface ChangeMemberRoleRequest {
+  role: 'developer' | 'pm' | 'qa';
+}
+
 class TeamService {
   private baseUrl: string;
 
@@ -199,6 +222,93 @@ class TeamService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to delete team');
+    }
+  }
+
+  /**
+   * Get team members
+   */
+  async getTeamMembers(teamId: string): Promise<TeamMember[]> {
+    const token = await this.getAuthToken();
+
+    const response = await fetch(`${this.baseUrl}/${teamId}/members`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch team members');
+    }
+
+    const data = await response.json();
+    return data.members;
+  }
+
+  /**
+   * Invite a new member to the team
+   */
+  async inviteMember(teamId: string, request: InviteMemberRequest): Promise<void> {
+    const token = await this.getAuthToken();
+
+    const response = await fetch(`${this.baseUrl}/${teamId}/members`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to invite member');
+    }
+  }
+
+  /**
+   * Change member role
+   */
+  async changeMemberRole(
+    teamId: string,
+    userId: string,
+    request: ChangeMemberRoleRequest,
+  ): Promise<void> {
+    const token = await this.getAuthToken();
+
+    const response = await fetch(`${this.baseUrl}/${teamId}/members/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to change member role');
+    }
+  }
+
+  /**
+   * Remove member from team
+   */
+  async removeMember(teamId: string, userId: string): Promise<void> {
+    const token = await this.getAuthToken();
+
+    const response = await fetch(`${this.baseUrl}/${teamId}/members/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to remove member');
     }
   }
 }

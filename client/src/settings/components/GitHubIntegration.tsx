@@ -298,26 +298,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
           {/* Repository Selection */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[var(--text-sm)] font-medium text-[var(--text)]">Select Repositories</h4>
-              {localSelectedRepos.size > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSaveSelection}
-                  disabled={isSaving || isLoadingRepositories}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>Save Selection ({localSelectedRepos.size})</>
-                  )}
-                </Button>
-              )}
-            </div>
+            <h4 className="text-[var(--text-sm)] font-medium text-[var(--text)]">Select Repositories</h4>
 
             {/* Search */}
             {githubRepositories.length > 5 && (
@@ -372,6 +353,27 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
                     </div>
                   </label>
                 ))}
+              </div>
+            )}
+
+            {/* Save Selection Button */}
+            {localSelectedRepos.size > 0 && (
+              <div className="flex justify-end mt-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSaveSelection}
+                  disabled={isSaving || isLoadingRepositories}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>Save Selection ({localSelectedRepos.size})</>
+                  )}
+                </Button>
               </div>
             )}
           </div>

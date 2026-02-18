@@ -7,6 +7,9 @@ import type {
   CreateTeamRequest,
   UpdateTeamRequest,
   SwitchTeamRequest,
+  TeamMember,
+  InviteMemberRequest,
+  ChangeMemberRoleRequest,
 } from '../services/team.service';
 
 const STORAGE_KEY = 'forge_currentTeamId';
@@ -18,7 +21,17 @@ interface TeamState {
   currentTeam: Team | null;
   teams: TeamSummary[];
   isLoading: boolean;
+  isSwitching: boolean;
   error: string | null;
+  // Member management
+  teamMembers: TeamMember[];
+  isLoadingMembers: boolean;
+  membersError: string | null;
+  // Caching & deduplication
+  lastTeamsFetch: number | null;
+  lastCurrentTeamFetch: number | null;
+  isTeamsLoading: boolean;
+  isCurrentTeamLoading: boolean;
 }
 
 /**
@@ -35,6 +48,12 @@ interface TeamActions {
   deleteTeam: (teamId: string) => Promise<void>;
   setCurrentTeam: (team: Team | null) => void;
   clearError: () => void;
+  // Member management actions
+  loadTeamMembers: (teamId: string) => Promise<void>;
+  inviteMember: (teamId: string, request: InviteMemberRequest) => Promise<void>;
+  changeMemberRole: (teamId: string, userId: string, request: ChangeMemberRoleRequest) => Promise<void>;
+  removeMember: (teamId: string, userId: string) => Promise<void>;
+  clearMembersError: () => void;
 }
 
 /**
@@ -85,7 +104,17 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
   currentTeam: null,
   teams: [],
   isLoading: false,
+  isSwitching: false,
   error: null,
+  // Member management state
+  teamMembers: [],
+  isLoadingMembers: false,
+  membersError: null,
+  // Caching & deduplication
+  lastTeamsFetch: null,
+  lastCurrentTeamFetch: null,
+  isTeamsLoading: false,
+  isCurrentTeamLoading: false,
 
   // Computed property for currentTeamId
   get currentTeamId() {
@@ -96,7 +125,21 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    * Fetch user's teams list (lightweight)
    */
   fetchTeams: async () => {
-    set({ isLoading: true, error: null });
+    const state = get();
+
+    // Deduplication: prevent multiple simultaneous calls
+    if (state.isTeamsLoading) {
+      return;
+    }
+
+    // Cache check: skip if fetched within last 30 seconds
+    const CACHE_DURATION = 30000; // 30 seconds
+    const now = Date.now();
+    if (state.lastTeamsFetch && now - state.lastTeamsFetch < CACHE_DURATION) {
+      return;
+    }
+
+    set({ isLoading: true, isTeamsLoading: true, error: null });
     try {
       const { teamService } = useServices();
       const { teams, currentTeamId } = await teamService.getUserTeams();
@@ -114,6 +157,8 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       set({
         teams: teamsWithCurrentFlag,
         isLoading: false,
+        isTeamsLoading: false,
+        lastTeamsFetch: Date.now(),
       });
 
       // Load full current team details if we have a currentTeamId
@@ -130,6 +175,7 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch teams',
         isLoading: false,
+        isTeamsLoading: false,
       });
     }
   },
@@ -148,7 +194,25 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
     const storedTeamId = loadCurrentTeamIdFromStorage();
     if (!storedTeamId) return;
 
-    set({ isLoading: true, error: null });
+    const state = get();
+
+    // Deduplication: prevent multiple simultaneous calls
+    if (state.isCurrentTeamLoading) {
+      return;
+    }
+
+    // Cache check: skip if current team is already loaded and fetched recently (within 30 seconds)
+    const CACHE_DURATION = 30000; // 30 seconds
+    const now = Date.now();
+    if (
+      state.currentTeam?.id === storedTeamId &&
+      state.lastCurrentTeamFetch &&
+      now - state.lastCurrentTeamFetch < CACHE_DURATION
+    ) {
+      return;
+    }
+
+    set({ isLoading: true, isCurrentTeamLoading: true, error: null });
     try {
       const { teamService } = useServices();
       const team = await teamService.getTeam(storedTeamId);
@@ -156,11 +220,14 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       set({
         currentTeam: team,
         isLoading: false,
+        isCurrentTeamLoading: false,
+        lastCurrentTeamFetch: Date.now(),
       });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to load current team',
         isLoading: false,
+        isCurrentTeamLoading: false,
       });
     }
   },
@@ -169,7 +236,13 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    * Switch to a different team
    */
   switchTeam: async (teamId: string) => {
-    set({ isLoading: true, error: null });
+    // Invalidate cache when switching teams to force fresh data
+    set({
+      isLoading: true,
+      isSwitching: true,
+      error: null,
+      lastCurrentTeamFetch: null, // Invalidate cache
+    });
     try {
       const { teamService } = useServices();
       await teamService.switchTeam({ teamId });
@@ -188,6 +261,8 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         currentTeam: team,
         teams: updatedTeams,
         isLoading: false,
+        isSwitching: false,
+        lastCurrentTeamFetch: Date.now(), // Update cache timestamp
       });
 
       // Persist to localStorage
@@ -196,6 +271,7 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       set({
         error: error instanceof Error ? error.message : 'Failed to switch team',
         isLoading: false,
+        isSwitching: false,
       });
     }
   },
@@ -317,5 +393,111 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    */
   clearError: () => {
     set({ error: null });
+  },
+
+  /**
+   * Load team members
+   */
+  loadTeamMembers: async (teamId: string) => {
+    set({ isLoadingMembers: true, membersError: null });
+    try {
+      const { teamService } = useServices();
+      const members = await teamService.getTeamMembers(teamId);
+
+      set({
+        teamMembers: members,
+        isLoadingMembers: false,
+      });
+    } catch (error) {
+      set({
+        membersError: error instanceof Error ? error.message : 'Failed to load team members',
+        isLoadingMembers: false,
+      });
+    }
+  },
+
+  /**
+   * Invite a new member
+   */
+  inviteMember: async (teamId: string, request: InviteMemberRequest) => {
+    set({ isLoadingMembers: true, membersError: null });
+    try {
+      const { teamService } = useServices();
+      await teamService.inviteMember(teamId, request);
+
+      // Reload members list after successful invite
+      await get().loadTeamMembers(teamId);
+    } catch (error) {
+      set({
+        membersError: error instanceof Error ? error.message : 'Failed to invite member',
+        isLoadingMembers: false,
+      });
+      throw error; // Re-throw so UI can show error
+    }
+  },
+
+  /**
+   * Change member role
+   */
+  changeMemberRole: async (
+    teamId: string,
+    userId: string,
+    request: ChangeMemberRoleRequest,
+  ) => {
+    set({ isLoadingMembers: true, membersError: null });
+    try {
+      const { teamService } = useServices();
+      await teamService.changeMemberRole(teamId, userId, request);
+
+      // Update local state
+      const { teamMembers } = get();
+      const updatedMembers = teamMembers.map((m) =>
+        m.userId === userId ? { ...m, role: request.role } : m,
+      );
+
+      set({
+        teamMembers: updatedMembers,
+        isLoadingMembers: false,
+      });
+    } catch (error) {
+      set({
+        membersError: error instanceof Error ? error.message : 'Failed to change member role',
+        isLoadingMembers: false,
+      });
+      throw error; // Re-throw so UI can show error
+    }
+  },
+
+  /**
+   * Remove member from team
+   */
+  removeMember: async (teamId: string, userId: string) => {
+    set({ isLoadingMembers: true, membersError: null });
+    try {
+      const { teamService } = useServices();
+      await teamService.removeMember(teamId, userId);
+
+      // Remove from local state
+      const { teamMembers } = get();
+      const updatedMembers = teamMembers.filter((m) => m.userId !== userId);
+
+      set({
+        teamMembers: updatedMembers,
+        isLoadingMembers: false,
+      });
+    } catch (error) {
+      set({
+        membersError: error instanceof Error ? error.message : 'Failed to remove member',
+        isLoadingMembers: false,
+      });
+      throw error; // Re-throw so UI can show error
+    }
+  },
+
+  /**
+   * Clear members error state
+   */
+  clearMembersError: () => {
+    set({ membersError: null });
   },
 }));
