@@ -117,7 +117,7 @@ export function LinearIntegration() {
 
       {/* Not connected */}
       {!isLoading && !status?.connected && (
-        <div className="rounded-lg border border-dashed border-[var(--border)] p-6 text-center">
+        <div className="rounded-lg bg-[var(--bg-hover)] p-6 text-center">
           <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] mb-1">Connect Linear</h3>
           <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">
             Export tickets directly to your Linear workspace

@@ -363,7 +363,7 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isLoading && !loadError && filteredTickets.length === 0 && (
-        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center rounded-lg border border-[var(--border)]/40 bg-[var(--bg-subtle)] mx-2 sm:mx-0">
+        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center rounded-lg bg-[var(--bg-hover)] mx-2 sm:mx-0">
           <div className="text-center px-4">
             <p className="text-xs sm:text-[var(--text-base)] text-[var(--text-secondary)]">
               {searchQuery || statusTab !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' ? 'No tickets found' : 'No tickets yet'}

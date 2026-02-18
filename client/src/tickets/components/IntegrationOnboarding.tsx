@@ -94,7 +94,7 @@ export function IntegrationOnboarding({ onClose }: Props) {
       </div>
 
       {/* How It Works */}
-      <div className="p-6 rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] space-y-4">
+      <div className="p-6 rounded-lg bg-[var(--bg-hover)] space-y-4">
         <h3 className="font-semibold flex items-center gap-2">
           <LinkIcon className="h-5 w-5" />
           How to Get Started

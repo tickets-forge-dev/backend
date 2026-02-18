@@ -66,7 +66,7 @@ export function CreationChoiceModal() {
         {/* Create New Option */}
         <button
           onClick={handleCreateNew}
-          className="w-full p-6 rounded-lg border-2 border-[var(--border)] hover:border-[var(--primary)] transition-colors text-left hover:bg-[var(--bg-hover)]"
+          className="w-full p-6 rounded-lg bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] hover:ring-2 hover:ring-[var(--primary)]/30 transition-all text-left"
         >
           <div className="flex items-start gap-4">
             <div className="text-3xl">📝</div>
@@ -84,7 +84,7 @@ export function CreationChoiceModal() {
           (hasImportOptions ? (
             <button
               onClick={handleImport}
-              className="w-full p-6 rounded-lg border-2 border-[var(--border)] hover:border-[var(--primary)] transition-colors text-left hover:bg-[var(--bg-hover)]"
+              className="w-full p-6 rounded-lg bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] hover:ring-2 hover:ring-[var(--primary)]/30 transition-all text-left"
             >
               <div className="flex items-start gap-4">
                 <div className="text-3xl">🔗</div>
@@ -110,7 +110,7 @@ export function CreationChoiceModal() {
               </div>
             </button>
           ) : (
-            <div className="w-full p-6 rounded-lg border-2 border-[var(--border)]/50 bg-[var(--bg-subtle)] text-left">
+            <div className="w-full p-6 rounded-lg bg-[var(--bg-subtle)] text-left opacity-60">
               <div className="flex items-start gap-4">
                 <div className="text-3xl opacity-50">🔗</div>
                 <div className="flex-1 min-w-0">

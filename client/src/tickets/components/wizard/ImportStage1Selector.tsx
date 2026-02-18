@@ -299,7 +299,7 @@ export function ImportStage1Selector({ onError, availability }: Props) {
       {platform && (
         <div className="space-y-4">
           {/* Instructions */}
-          <div className="p-4 bg-[var(--bg-subtle)] rounded-lg border border-[var(--border)]">
+          <div className="p-4 bg-[var(--bg-hover)] rounded-lg">
             <p className="text-sm text-[var(--text-secondary)]">
               {platform === 'jira'
                 ? 'Enter the Jira issue key (e.g., PROJ-123 or PROJ123 - both formats accepted)'
@@ -337,7 +337,7 @@ export function ImportStage1Selector({ onError, availability }: Props) {
 
               {/* Autocomplete dropdown with enhanced styling */}
               {showDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg)] border border-[var(--border)]/40 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-subtle)] rounded-lg shadow-xl ring-1 ring-black/5 dark:ring-white/5 z-50 max-h-80 overflow-y-auto">
                   {isSearching && (
                     <div className="px-4 py-8 flex items-center justify-center">
                       <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />

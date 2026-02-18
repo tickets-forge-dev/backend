@@ -44,7 +44,7 @@ export function ImportStage2Preview({ onError }: Props) {
       </div>
 
       {/* Issue preview card */}
-      <div className="border border-[var(--border)] rounded-lg p-6 space-y-4">
+      <div className="bg-[var(--bg-hover)] rounded-lg p-6 space-y-4">
         {/* Header */}
         <div>
           <div className="text-xl font-semibold">{selectedIssue.title}</div>

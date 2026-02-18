@@ -79,10 +79,10 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={`
-          rounded-lg border-2 border-dashed p-6 text-center transition-colors cursor-pointer
+          rounded-lg p-6 text-center transition-all cursor-pointer
           ${dragOver
-            ? 'border-[var(--purple)] bg-[var(--purple)]/5'
-            : 'border-[var(--border)] hover:border-[var(--text-tertiary)]'
+            ? 'ring-2 ring-[var(--purple)] bg-[var(--purple)]/5'
+            : 'bg-[var(--bg-hover)] hover:bg-[var(--bg-active)]'
           }
           ${files.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}
         `}

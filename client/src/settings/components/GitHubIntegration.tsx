@@ -252,7 +252,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
       {/* Not Connected State */}
       {!isLoadingConnection && !githubConnected && (
-        <div className="rounded-lg border border-dashed border-[var(--border)] p-8 text-center">
+        <div className="rounded-lg bg-[var(--bg-hover)] p-8 text-center">
           <Github className="mx-auto h-10 w-10 text-[var(--text-tertiary)] mb-3" />
           <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] mb-1">Connect GitHub</h3>
           <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">
