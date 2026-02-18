@@ -39,19 +39,28 @@ export function TeamSwitcher() {
 
   const handleSwitchTeam = async (teamId: string) => {
     if (teamId === currentTeamId) {
-      // Same team clicked - navigate to team page
-      router.push(`/teams/${teamId}`);
+      // Same team clicked - navigate to tickets page
+      router.push('/tickets');
       setDropdownOpen(false);
       return;
     }
     try {
       await switchTeam(teamId);
       setDropdownOpen(false);
-      // Navigate to the team page after successful switch
-      router.push(`/teams/${teamId}`);
+      // Navigate to tickets page after successful switch
+      router.push('/tickets');
     } catch (err) {
       console.error('Failed to switch team:', err);
     }
+  };
+
+  const handleSwitchToPersonal = () => {
+    // Switch to personal workspace by clearing current team
+    const { setCurrentTeam } = useTeamStore.getState();
+    setCurrentTeam(null);
+    setDropdownOpen(false);
+    // Navigate to tickets page
+    router.push('/tickets');
   };
 
   // Don't render if no teams loaded yet
@@ -70,7 +79,7 @@ export function TeamSwitcher() {
     );
   }
 
-  const currentTeamName = currentTeam?.name || 'Select Team';
+  const currentTeamName = currentTeam?.name || 'Personal Workspace';
   const isOwner = currentTeam?.isOwner ?? false;
 
   return (
@@ -101,14 +110,12 @@ export function TeamSwitcher() {
             {/* Right: Role Badge + Chevron/Loader */}
             {!sidebarCollapsed && (
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                {currentTeam && (
-                  <Badge
-                    variant={isOwner ? 'default' : 'secondary'}
-                    className="text-[10px] px-1.5 py-0"
-                  >
-                    {isOwner ? 'Owner' : 'Member'}
-                  </Badge>
-                )}
+                <Badge
+                  variant={currentTeam ? (isOwner ? 'default' : 'secondary') : 'outline'}
+                  className="text-[10px] px-1.5 py-0"
+                >
+                  {currentTeam ? (isOwner ? 'Owner' : 'Member') : 'Private'}
+                </Badge>
                 {isSwitching ? (
                   <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] animate-spin" />
                 ) : (
@@ -128,6 +135,23 @@ export function TeamSwitcher() {
           <DropdownMenuLabel className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-normal">
             Switch Team
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {/* Personal Workspace Option */}
+          <DropdownMenuItem
+            onClick={handleSwitchToPersonal}
+            className="cursor-pointer flex items-center justify-between gap-2"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {!currentTeamId && <Check className="h-4 w-4 text-[var(--primary)]" />}
+              <span className="text-[var(--text-sm)] truncate">Personal Workspace</span>
+            </div>
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1.5 py-0 flex-shrink-0"
+            >
+              Private
+            </Badge>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* Team List */}
           {teams.length === 0 ? (
