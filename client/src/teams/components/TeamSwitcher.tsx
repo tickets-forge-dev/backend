@@ -27,8 +27,10 @@ import { cn } from '@/lib/utils';
 export function TeamSwitcher() {
   const router = useRouter();
   const { sidebarCollapsed } = useUIStore();
-  const { teams, currentTeamId, currentTeam, isLoading, isSwitching, error, loadTeams, switchTeam } =
-    useTeamStore();
+  const { teams, currentTeam, isLoading, isSwitching, error, loadTeams, switchTeam } = useTeamStore();
+
+  // Get currentTeamId from currentTeam (ensures reactivity)
+  const currentTeamId = currentTeam?.id || null;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
