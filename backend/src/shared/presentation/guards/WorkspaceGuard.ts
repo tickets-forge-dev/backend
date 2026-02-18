@@ -18,10 +18,12 @@ export class WorkspaceGuard implements CanActivate {
     }
 
     let workspaceId: string;
+    let currentTeamId: string | null = null;
 
     try {
       // Get user document from Firestore to check current team
       const user = await this.userRepository.getById(firebaseUser.uid);
+      currentTeamId = user?.getCurrentTeamId()?.getValue() || null;
 
       if (user && user.getCurrentTeamId()) {
         // User has a current team - use team's workspace
@@ -52,6 +54,9 @@ export class WorkspaceGuard implements CanActivate {
 
     // Attach workspaceId to request for controllers
     request.workspaceId = workspaceId;
+
+    // DIAGNOSTIC: Log workspace determination for debugging
+    console.log(`[WorkspaceGuard] userId: ${firebaseUser.uid}, currentTeamId: ${currentTeamId || 'none'}, workspaceId: ${workspaceId}`);
 
     return true;
   }

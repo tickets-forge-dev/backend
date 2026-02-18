@@ -2252,9 +2252,12 @@ Rewritten text (definitive, unambiguous):`;
 
       // Detect and remove remaining ambiguities
       techSpec.ambiguityFlags = this.detectAmbiguities(techSpec);
-      if (techSpec.ambiguityFlags.length > 0) {
-        await this.removeAmbiguities(techSpec);
-      }
+      // DISABLED: removeAmbiguities() fails with JSON parse errors from LLM
+      // The error is non-blocking (already caught), but causes console noise
+      // TODO: Fix removeAmbiguities to properly handle LLM text responses
+      // if (techSpec.ambiguityFlags.length > 0) {
+      //   await this.removeAmbiguities(techSpec);
+      // }
 
       // Calculate quality score
       techSpec.qualityScore = this.calculateQualityScore(techSpec);

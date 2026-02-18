@@ -283,6 +283,7 @@ export class TicketsController {
     @Body() dto: CreateTicketDto,
   ) {
     try {
+      this.logger.log(`[createTicket] userId: ${userId}, workspaceId: ${workspaceId}, title: ${dto.title}`);
       this.telemetry.trackTicketCreationStarted(userId, workspaceId, 'create_new');
 
       const aec = await this.createTicketUseCase.execute({
@@ -332,6 +333,7 @@ export class TicketsController {
   @Get()
   async listTickets(@WorkspaceId() workspaceId: string) {
     const aecs = await this.aecRepository.findByWorkspace(workspaceId);
+    this.logger.log(`[listTickets] workspaceId: ${workspaceId}, found ${aecs.length} tickets`);
     return aecs.map((aec) => this.mapToResponse(aec));
   }
 
