@@ -24,20 +24,43 @@ export class FirebaseService implements OnModuleInit {
   private initializeFirebase() {
     console.log('🔍 [FirebaseService] Initializing Firebase Admin SDK...');
 
-    const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
-    const privateKey = this.configService
-      .get<string>('FIREBASE_PRIVATE_KEY')
-      ?.replace(/\\n/g, '\n');
-    const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
+    // Option 1: Try loading from JSON service account (more reliable for Render)
+    const serviceAccountJson = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_JSON');
+
+    let projectId: string | undefined;
+    let privateKey: string | undefined;
+    let clientEmail: string | undefined;
+
+    if (serviceAccountJson) {
+      try {
+        const serviceAccount = JSON.parse(serviceAccountJson);
+        projectId = serviceAccount.project_id;
+        privateKey = serviceAccount.private_key;
+        clientEmail = serviceAccount.client_email;
+        console.log('✓ Using FIREBASE_SERVICE_ACCOUNT_JSON');
+      } catch (error) {
+        console.warn('⚠️  Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON, falling back to individual vars');
+      }
+    }
+
+    // Option 2: Fall back to individual environment variables
+    if (!projectId || !privateKey || !clientEmail) {
+      projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
+      privateKey = this.configService
+        .get<string>('FIREBASE_PRIVATE_KEY')
+        ?.replace(/\\n/g, '\n');
+      clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
+      console.log('✓ Using individual FIREBASE_* environment variables');
+    }
 
     console.log('🔍 [FirebaseService] Config values:');
     console.log('   - projectId:', projectId ? '✓' : '✗');
-    console.log('   - privateKey:', privateKey ? `✓ (${privateKey.substring(0, 50)}...)` : '✗');
+    console.log('   - privateKey:', privateKey ? `✓ (length: ${privateKey?.length} bytes)` : '✗');
     console.log('   - clientEmail:', clientEmail ? '✓' : '✗');
 
     if (!projectId || !privateKey || !clientEmail) {
       console.warn(
-        '⚠️  Firebase Admin SDK not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env',
+        '⚠️  Firebase Admin SDK not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON or individual FIREBASE_* vars',
       );
       console.warn(
         '   Backend will run without Firebase (API endpoints available, but persistence disabled)',
