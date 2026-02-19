@@ -74,10 +74,17 @@ class TeamService {
 
   constructor() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
+    // Allow undefined during SSG/build time - will validate on first use
+    this.baseUrl = apiUrl ? `${apiUrl}/teams` : '';
+  }
+
+  /**
+   * Validate API URL is configured (lazy validation for SSG compatibility)
+   */
+  private validateApiUrl(): void {
+    if (!this.baseUrl) {
       throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
     }
-    this.baseUrl = `${apiUrl}/teams`;
   }
 
   /**
@@ -96,6 +103,7 @@ class TeamService {
    * Create a new team
    */
   async createTeam(request: CreateTeamRequest): Promise<Team> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(this.baseUrl, {
@@ -120,6 +128,7 @@ class TeamService {
    * Get all teams for current user
    */
   async getUserTeams(): Promise<{ teams: TeamSummary[]; currentTeamId: string | null }> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(this.baseUrl, {
@@ -140,6 +149,7 @@ class TeamService {
    * Get team by ID
    */
   async getTeam(teamId: string): Promise<Team> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/${teamId}`, {
@@ -162,6 +172,7 @@ class TeamService {
    * Update team
    */
   async updateTeam(teamId: string, request: UpdateTeamRequest): Promise<Team> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/${teamId}`, {
@@ -186,6 +197,7 @@ class TeamService {
    * Switch current team
    */
   async switchTeam(request: SwitchTeamRequest): Promise<{ currentTeamId: string; teamName: string }> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/switch`, {
@@ -210,6 +222,7 @@ class TeamService {
    * Delete team (soft delete)
    */
   async deleteTeam(teamId: string): Promise<void> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/${teamId}`, {
@@ -229,6 +242,7 @@ class TeamService {
    * Get team members
    */
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/${teamId}/members`, {
@@ -251,6 +265,7 @@ class TeamService {
    * Invite a new member to the team
    */
   async inviteMember(teamId: string, request: InviteMemberRequest): Promise<void> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/${teamId}/members`, {
@@ -276,6 +291,7 @@ class TeamService {
     userId: string,
     request: ChangeMemberRoleRequest,
   ): Promise<void> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/${teamId}/members/${userId}`, {
@@ -297,6 +313,7 @@ class TeamService {
    * Remove member from team
    */
   async removeMember(teamId: string, userId: string): Promise<void> {
+    this.validateApiUrl();
     const token = await this.getAuthToken();
 
     const response = await fetch(`${this.baseUrl}/${teamId}/members/${userId}`, {
