@@ -56,13 +56,13 @@ export async function POST(
       }
     }
 
-    // Debug logging
-    console.log('[PostHog Proxy] POST request:', {
-      targetUrl,
-      headers,
-      bodyLength: body?.length || 0,
-      bodyPreview: body ? body.substring(0, 100) : 'empty',
-    });
+    // Debug logging (disabled to reduce noise)
+    // console.log('[PostHog Proxy] POST request:', {
+    //   targetUrl,
+    //   headers,
+    //   bodyLength: body?.length || 0,
+    //   bodyPreview: body ? body.substring(0, 100) : 'empty',
+    // });
 
     const response = await fetch(targetUrl, {
       method: 'POST',
@@ -72,11 +72,11 @@ export async function POST(
 
     const data = await response.text();
 
-    // Log response status
-    console.log('[PostHog Proxy] Response:', {
-      status: response.status,
-      statusText: response.statusText,
-    });
+    // Log response status (disabled to reduce noise)
+    // console.log('[PostHog Proxy] Response:', {
+    //   status: response.status,
+    //   statusText: response.statusText,
+    // });
 
     return new NextResponse(data, {
       status: response.status,

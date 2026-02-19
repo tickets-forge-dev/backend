@@ -107,7 +107,7 @@ export function ImportStage3Repository({ onError }: Props) {
       )}
 
       {/* Handoff info */}
-      <div className="p-4 bg-[var(--bg-subtle)] rounded-lg border border-[var(--border)]">
+      <div className="p-4 bg-[var(--bg-hover)] rounded-lg">
         <p className="text-sm text-[var(--text-secondary)]">
           After you select a repository, we&apos;ll analyze the code and show you up to 5 clarification
           questions to refine the specification.

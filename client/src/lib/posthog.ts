@@ -17,6 +17,7 @@ import posthog from 'posthog-js';
  */
 
 export const initPostHog = () => {
+  return; // PostHog disabled
   if (typeof window === 'undefined') return;
 
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -28,16 +29,21 @@ export const initPostHog = () => {
   }
 
   // Validate API key format
-  if (apiKey.startsWith('phx_')) {
+  if (apiKey?.startsWith('phx_')) {
     console.error(
-      '[PostHog] Invalid API key: You are using a Personal API Key (phx_...). ' +
-      'Please use a Project API Key (phc_...) from PostHog Project Settings. ' +
-      'Analytics disabled.'
+      '❌ PostHog API Key Format Error\n' +
+      'Cause: Using Personal API Key (phx_*) instead of Project API Key (phc_*)\n' +
+      'Actions:\n' +
+      '  1. Go to PostHog → Project Settings → API Keys\n' +
+      '  2. Copy the "Project API Key" (starts with phc_, NOT phx_)\n' +
+      '  3. Update NEXT_PUBLIC_POSTHOG_KEY in .env.local\n' +
+      'Fallback: Analytics disabled\n' +
+      'Docs: docs/SETUP-TROUBLESHOOTING.md#posthog-api-key'
     );
     return;
   }
 
-  if (!apiKey.startsWith('phc_')) {
+  if (!apiKey?.startsWith('phc_')) {
     console.warn(
       '[PostHog] API key format unrecognized. Expected format: phc_... ' +
       'Please verify you are using the Project API Key from PostHog Project Settings.'
@@ -45,7 +51,7 @@ export const initPostHog = () => {
   }
 
   try {
-    posthog.init(apiKey, {
+    posthog.init(apiKey!, {
       // Use reverse proxy to avoid ad blocker issues
       // Requests go to /api/ingest/* instead of directly to posthog.com
       api_host: host || '/api/ingest',

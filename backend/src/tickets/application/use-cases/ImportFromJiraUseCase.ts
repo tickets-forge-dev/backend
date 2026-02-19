@@ -173,8 +173,9 @@ export class ImportFromJiraUseCase {
     // Create draft AEC
     const aec = AEC.createDraft(
       command.workspaceId,
+      command.userId,
       title,
-      description,
+      description ?? undefined,
       undefined,
       type ?? undefined,
       priority ?? undefined,

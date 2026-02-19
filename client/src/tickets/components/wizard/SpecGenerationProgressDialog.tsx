@@ -127,7 +127,7 @@ export function SpecGenerationProgressDialog({
         </div>
 
         {/* Phase Checklist */}
-        <div className="px-6 py-6 space-y-3 max-h-96 overflow-y-auto">
+        <div className="px-6 py-6 space-y-3">
           {phases.map((phase, index) => {
             const status = getPhaseStatus(index);
             const Icon = phase.icon;

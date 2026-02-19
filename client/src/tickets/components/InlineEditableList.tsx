@@ -93,7 +93,7 @@ export function InlineEditableList({
   if (!isEditing) {
     if (items.length === 0) {
       return (
-        <div className="flex items-center justify-between p-4 border border-dashed border-[var(--border)] rounded-lg">
+        <div className="flex items-center justify-between p-4 bg-[var(--bg-hover)] rounded-lg">
           <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] italic">
             {emptyMessage}
           </p>

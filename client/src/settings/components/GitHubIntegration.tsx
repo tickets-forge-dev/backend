@@ -55,12 +55,20 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
   // Load connection status on mount and fetch repos if connected
   useEffect(() => {
+    console.log('[GitHubIntegration] Component mounted, loading GitHub status...');
     loadGitHubStatus(gitHubService);
   }, []);
 
   // Auto-load repositories when connected
   useEffect(() => {
+    console.log('[GitHubIntegration] State changed:', {
+      githubConnected,
+      repositoriesCount: githubRepositories.length,
+      isLoadingRepositories,
+    });
+
     if (githubConnected && githubRepositories.length === 0 && !isLoadingRepositories) {
+      console.log('[GitHubIntegration] Auto-loading repositories...');
       loadRepositories(gitHubService);
     }
   }, [githubConnected, isLoadingRepositories, gitHubService, loadRepositories, githubRepositories.length]);
@@ -70,22 +78,35 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
     setLocalSelectedRepos(new Set(selectedRepositories.map((r) => r.id)));
   }, [selectedRepositories]);
 
-  // Handle OAuth callback
+  // Handle OAuth callback from popup window
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const connected = params.get('connected');
-    const error = params.get('error');
+    const handleMessage = (event: MessageEvent) => {
+      console.log('[GitHubIntegration] Received message:', event.data, 'from origin:', event.origin);
 
-    if (connected === 'true') {
-      loadGitHubStatus(gitHubService);
-      loadRepositories(gitHubService);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
+      // Verify message origin for security
+      const expectedOrigin = window.location.origin;
+      if (event.origin !== expectedOrigin) {
+        console.warn('[GitHubIntegration] Message origin mismatch. Expected:', expectedOrigin, 'Got:', event.origin);
+        return;
+      }
 
-    if (error) {
-      clearErrors();
-      window.history.replaceState({}, '', window.location.pathname);
-    }
+      // Check for GitHub OAuth callback message
+      if (event.data?.type === 'github-oauth-callback') {
+        console.log('[GitHubIntegration] OAuth callback received:', event.data.status);
+        if (event.data.status === 'success') {
+          console.log('[GitHubIntegration] Loading GitHub status (will auto-load repositories)...');
+          // loadGitHubStatus already calls loadRepositories internally (settings.store.ts:105)
+          // so we don't need to call it again here to avoid race conditions
+          loadGitHubStatus(gitHubService);
+        } else {
+          console.error('[GitHubIntegration] OAuth failed:', event.data.message);
+          clearErrors();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [loadGitHubStatus, loadRepositories, clearErrors, gitHubService]);
 
   const handleConnect = async () => {
@@ -231,7 +252,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
       {/* Not Connected State */}
       {!isLoadingConnection && !githubConnected && (
-        <div className="rounded-lg border border-dashed border-[var(--border)] p-8 text-center">
+        <div className="rounded-lg bg-[var(--bg-hover)] p-8 text-center">
           <Github className="mx-auto h-10 w-10 text-[var(--text-tertiary)] mb-3" />
           <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] mb-1">Connect GitHub</h3>
           <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">
@@ -298,26 +319,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
           {/* Repository Selection */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[var(--text-sm)] font-medium text-[var(--text)]">Select Repositories</h4>
-              {localSelectedRepos.size > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSaveSelection}
-                  disabled={isSaving || isLoadingRepositories}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>Save Selection ({localSelectedRepos.size})</>
-                  )}
-                </Button>
-              )}
-            </div>
+            <h4 className="text-[var(--text-sm)] font-medium text-[var(--text)]">Select Repositories</h4>
 
             {/* Search */}
             {githubRepositories.length > 5 && (
@@ -372,6 +374,27 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
                     </div>
                   </label>
                 ))}
+              </div>
+            )}
+
+            {/* Save Selection Button */}
+            {localSelectedRepos.size > 0 && (
+              <div className="flex justify-end mt-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSaveSelection}
+                  disabled={isSaving || isLoadingRepositories}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>Save Selection ({localSelectedRepos.size})</>
+                  )}
+                </Button>
               </div>
             )}
           </div>

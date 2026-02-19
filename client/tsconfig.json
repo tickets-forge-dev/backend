@@ -23,6 +23,7 @@
       "@/*": ["./*"],
       "@/core/*": ["./src/core/*"],
       "@/tickets/*": ["./src/tickets/*"],
+      "@/teams/*": ["./src/teams/*"],
       "@/stores/*": ["./src/stores/*"],
       "@/services/*": ["./src/services/*"],
       "@/hooks/*": ["./src/hooks/*"],

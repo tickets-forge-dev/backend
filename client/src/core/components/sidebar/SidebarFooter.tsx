@@ -41,7 +41,7 @@ export function SidebarFooter() {
       )}
 
       <div className="flex items-center justify-between gap-1">
-        {/* Theme toggle - bottom left */}
+        {/* Theme toggle */}
         <ThemeToggle />
 
         {/* Collapse toggle - bottom right */}

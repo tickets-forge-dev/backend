@@ -116,6 +116,7 @@ export class BulkCreateFromBreakdownUseCase {
       try {
         const aec = await this.createTicketUseCase.execute({
           workspaceId: command.workspaceId,
+          userId: command.userId,
           userEmail: command.userEmail,
           title: ticket.title,
           description: this.buildDescription(ticket),

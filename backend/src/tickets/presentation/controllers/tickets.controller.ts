@@ -43,6 +43,7 @@ import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectSta
 import { Inject, BadRequestException, ForbiddenException, Req } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
+import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
@@ -138,6 +139,7 @@ export class TicketsController {
    * before this handler executes. Using @Res() bypasses NestJS interceptors
    * for the response only — that's fine because we're writing SSE directly.
    */
+  @UseGuards(RateLimitGuard)
   @Post('analyze-repo')
   async analyzeRepository(
     @WorkspaceId() workspaceId: string,
@@ -274,6 +276,7 @@ export class TicketsController {
     }
   }
 
+  @UseGuards(RateLimitGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createTicket(
@@ -283,10 +286,12 @@ export class TicketsController {
     @Body() dto: CreateTicketDto,
   ) {
     try {
+      this.logger.log(`[createTicket] userId: ${userId}, workspaceId: ${workspaceId}, title: ${dto.title}`);
       this.telemetry.trackTicketCreationStarted(userId, workspaceId, 'create_new');
 
       const aec = await this.createTicketUseCase.execute({
         workspaceId,
+        userId,
         userEmail,
         title: dto.title,
         description: dto.description,
@@ -308,9 +313,13 @@ export class TicketsController {
   }
 
   @Get('quota')
-  async getQuota(@WorkspaceId() workspaceId: string, @UserEmail() userEmail: string) {
+  async getQuota(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @UserEmail() userEmail: string,
+  ) {
     const limit = TICKET_LIMITS[userEmail] ?? DEFAULT_TICKET_LIMIT;
-    const used = await this.aecRepository.countByWorkspace(workspaceId);
+    const used = await this.aecRepository.countByWorkspaceAndCreator(workspaceId, userId);
     return { used, limit, canCreate: used < limit };
   }
 
@@ -332,6 +341,7 @@ export class TicketsController {
   @Get()
   async listTickets(@WorkspaceId() workspaceId: string) {
     const aecs = await this.aecRepository.findByWorkspace(workspaceId);
+    this.logger.log(`[listTickets] workspaceId: ${workspaceId}, found ${aecs.length} tickets`);
     return aecs.map((aec) => this.mapToResponse(aec));
   }
 
@@ -909,6 +919,7 @@ export class TicketsController {
     try {
       const result = await this.importFromLinearUseCase.execute({
         workspaceId,
+        userId,
         issueId: dto.issueId,
       });
 
@@ -949,6 +960,7 @@ export class TicketsController {
    *
    * Response: SSE stream with progress events, final event contains breakdown
    */
+  @UseGuards(RateLimitGuard)
   @Post('breakdown/prd')
   async breakdownPRD(
     @WorkspaceId() workspaceId: string,
@@ -1018,6 +1030,7 @@ export class TicketsController {
    * Request body: List of breakdown tickets to create
    * Response: Created ticket IDs and any errors
    */
+  @UseGuards(RateLimitGuard)
   @Post('breakdown/bulk-create')
   @HttpCode(HttpStatus.CREATED)
   async bulkCreateFromBreakdown(
@@ -1070,6 +1083,7 @@ export class TicketsController {
    * Request body: ticketIds, repositoryOwner, repositoryName, branch
    * Response: SSE stream with progress events, final event contains questions grouped by ticketId
    */
+  @UseGuards(RateLimitGuard)
   @Post('bulk/enrich')
   async enrichMultipleTickets(
     @WorkspaceId() workspaceId: string,
@@ -1125,6 +1139,7 @@ export class TicketsController {
    * Request body: answers array with ticketId, questionId, answer
    * Response: SSE stream with progress events, final event contains results for each ticket
    */
+  @UseGuards(RateLimitGuard)
   @Post('bulk/finalize')
   async finalizeMultipleTickets(
     @WorkspaceId() workspaceId: string,

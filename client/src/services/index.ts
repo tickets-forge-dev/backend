@@ -4,6 +4,7 @@ import { GitHubService } from './github.service';
 import { QuestionRoundService } from './question-round.service';
 import { LinearService } from './linear.service';
 import { JiraService } from './jira.service';
+import { teamService } from '../teams/services/team.service';
 
 /**
  * Dependency Injection Hook (MANDATORY per CLAUDE.md)
@@ -52,5 +53,6 @@ export function useServices() {
     questionRoundService: questionRoundServiceInstance,
     linearService: linearServiceInstance,
     jiraService: jiraServiceInstance,
+    teamService: teamService, // Singleton from teams module
   };
 }

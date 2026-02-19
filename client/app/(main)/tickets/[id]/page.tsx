@@ -20,7 +20,6 @@ import { useServices } from '@/services/index';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
-import { DEMO_TICKETS } from '@/tickets/mocks/demo-tickets';
 import { toast } from 'sonner';
 
 interface TicketDetailPageProps {
@@ -72,18 +71,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   // Fetch ticket when ID is available
   useEffect(() => {
     if (ticketId) {
-      // Handle demo tickets locally without API call
-      if (ticketId.startsWith('demo-')) {
-        const demoTicket = DEMO_TICKETS.find((t) => t.id === ticketId);
-        if (demoTicket) {
-          // Manually set currentTicket for demo tickets
-          // This simulates what fetchTicket would do
-          useTicketsStore.setState({ currentTicket: demoTicket });
-        }
-      } else {
-        // Regular ticket - fetch from API
-        fetchTicket(ticketId);
-      }
+      fetchTicket(ticketId);
     }
   }, [ticketId, fetchTicket]);
 
@@ -800,13 +788,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         <h1 className="text-xl font-semibold text-[var(--text)] leading-tight">
           {currentTicket.title}
         </h1>
-
-        {/* Demo badge */}
-        {ticketId?.startsWith('demo-') && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20">
-            Demo
-          </span>
-        )}
 
         {/* Type badge */}
         {currentTicket.type && (

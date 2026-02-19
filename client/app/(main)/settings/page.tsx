@@ -6,6 +6,7 @@ import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
 import { LinearIntegration } from '@/src/settings/components/LinearIntegration';
 import { JiraIntegration } from '@/src/settings/components/JiraIntegration';
 import { FigmaIntegration } from '@/src/settings/components/FigmaIntegration';
+import { TeamSettings } from '@/teams/components/TeamSettings';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
 import Link from 'next/link';
 import { X, Monitor, Sun, Moon } from 'lucide-react';
@@ -49,6 +50,20 @@ export default function SettingsPage() {
         <JiraIntegration />
         <div className="border-t border-[var(--border)] my-4" />
         <FigmaIntegration />
+      </section>
+
+      {/* Team Section */}
+      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
+        <div>
+          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
+            Team
+          </h2>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Manage your team settings
+          </p>
+        </div>
+
+        <TeamSettings />
       </section>
 
       {/* Appearance Section */}

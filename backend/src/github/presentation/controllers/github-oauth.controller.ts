@@ -23,7 +23,8 @@ import {
   Logger,
   InternalServerErrorException,
   NotFoundException,
-  Redirect,
+  Header,
+  Res,
   Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -44,6 +45,12 @@ import { GitHubRepository } from '../../domain/GitHubRepository';
 @Controller('github/oauth')
 export class GitHubOAuthController {
   private readonly logger = new Logger(GitHubOAuthController.name);
+
+  // Track recently processed codes to prevent duplicate exchanges
+  // Authorization codes are single-use, so if we see the same code twice within
+  // a short window, it's a duplicate callback (browser cache, redirect, etc.)
+  private readonly processedCodes = new Map<string, { timestamp: number; workspaceId: string }>();
+  private readonly CODE_CACHE_TTL = 60000; // 60 seconds
 
   constructor(
     private readonly configService: ConfigService,
@@ -113,11 +120,12 @@ export class GitHubOAuthController {
   @ApiOperation({ summary: 'Handle GitHub OAuth callback' })
   @ApiQuery({ name: 'code', required: true })
   @ApiQuery({ name: 'state', required: true })
-  @Redirect()
+  @Header('Content-Type', 'text/html')
   async callback(
     @Query('code') code: string,
     @Query('state') state: string,
-  ): Promise<{ url: string }> {
+    @Res() res: any,
+  ): Promise<void> {
     try {
       this.logger.log(`🔍 Callback received - State from GitHub: ${state.substring(0, 8)}...`);
 
@@ -125,11 +133,24 @@ export class GitHubOAuthController {
       const parsed = this.tokenService.parseSignedState(state);
       if (!parsed) {
         this.logger.error(`❌ OAuth state validation failed - HMAC verification failed`);
-        return { url: `${this.configService.get('FRONTEND_URL')}/settings?error=invalid_state` };
+        return res.send(this.getPopupClosePage('error', 'invalid_state'));
       }
 
       const { workspaceId } = parsed;
       this.logger.log(`✅ State verified for workspace ${workspaceId}`);
+
+      // Check if we've already processed this code (duplicate callback detection)
+      const cached = this.processedCodes.get(code);
+      if (cached && cached.workspaceId === workspaceId) {
+        const age = Date.now() - cached.timestamp;
+        this.logger.log(
+          `⚠️  Duplicate callback detected - code already processed ${age}ms ago. Returning success.`,
+        );
+        return res.send(this.getPopupClosePage('success', 'connected'));
+      }
+
+      // Clean up expired codes from cache (older than TTL)
+      this.cleanupExpiredCodes();
 
       // Exchange code for token
       const tokenResponse = await this.tokenService.exchangeCodeForToken(code);
@@ -162,10 +183,86 @@ export class GitHubOAuthController {
 
       this.logger.log(`GitHub connected successfully for workspace ${workspaceId}`);
 
-      return { url: `${this.configService.get('FRONTEND_URL')}/settings?connected=true` };
+      // Cache this code to prevent duplicate processing
+      this.processedCodes.set(code, { timestamp: Date.now(), workspaceId });
+
+      return res.send(this.getPopupClosePage('success', 'connected'));
     } catch (error: any) {
       this.logger.error('OAuth callback failed:', error.message);
-      return { url: `${this.configService.get('FRONTEND_URL')}/settings?error=connection_failed` };
+      return res.send(this.getPopupClosePage('error', 'connection_failed'));
+    }
+  }
+
+  /**
+   * Generate HTML page that posts message to opener and closes popup
+   */
+  private getPopupClosePage(status: 'success' | 'error', message: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>GitHub OAuth</title>
+          <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+          <meta http-equiv="Pragma" content="no-cache">
+          <meta http-equiv="Expires" content="0">
+        </head>
+        <body>
+          <script>
+            // Prevent multiple executions
+            if (window.messagePosted) {
+              console.log('[OAuth Callback] Message already posted, closing...');
+              window.close();
+            } else {
+              window.messagePosted = true;
+
+              // Post message to parent window
+              if (window.opener && !window.opener.closed) {
+                console.log('[OAuth Callback] Posting message to opener:', '${status}');
+                window.opener.postMessage(
+                  { type: 'github-oauth-callback', status: '${status}', message: '${message}' },
+                  '${this.configService.get('FRONTEND_URL')}'
+                );
+                console.log('[OAuth Callback] Message posted successfully');
+              } else {
+                console.error('[OAuth Callback] No opener window found!');
+              }
+
+              // Close popup after short delay to ensure message is sent
+              console.log('[OAuth Callback] Closing popup in 100ms...');
+              setTimeout(() => {
+                console.log('[OAuth Callback] Closing now');
+                window.close();
+              }, 100);
+            }
+          </script>
+          <p style="text-align: center; font-family: system-ui; color: #666; margin-top: 100px;">
+            ${status === 'success' ? '✅ GitHub connected! Closing...' : '❌ Connection failed. Closing...'}
+          </p>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Clean up expired codes from cache
+   * Removes codes older than CODE_CACHE_TTL to prevent memory leaks
+   */
+  private cleanupExpiredCodes(): void {
+    const now = Date.now();
+    const expiredCodes: string[] = [];
+
+    for (const [code, data] of this.processedCodes.entries()) {
+      if (now - data.timestamp > this.CODE_CACHE_TTL) {
+        expiredCodes.push(code);
+      }
+    }
+
+    for (const code of expiredCodes) {
+      this.processedCodes.delete(code);
+    }
+
+    if (expiredCodes.length > 0) {
+      this.logger.debug(`Cleaned up ${expiredCodes.length} expired OAuth codes from cache`);
     }
   }
 

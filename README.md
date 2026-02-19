@@ -91,6 +91,32 @@ cd backend && pnpm dev   # Backend on http://localhost:3000
 - **Backend API:** http://localhost:3000/api
 - **API Docs:** http://localhost:3000/api/docs (Swagger UI)
 
+### 6. Validate Configuration (Optional but Recommended)
+
+Run the setup validation script to check your configuration:
+
+```bash
+cd client
+npm run validate-setup
+```
+
+This will verify:
+- Environment variables are set correctly
+- Backend is reachable
+- Firebase configuration is complete
+- PostHog API key format (if provided)
+
+## Troubleshooting
+
+If you encounter setup issues, see the [Setup Troubleshooting Guide](docs/SETUP-TROUBLESHOOTING.md) for:
+- Common error messages and fixes
+- Firebase configuration issues
+- PostHog API key format errors
+- Backend connectivity problems
+- Environment variable setup
+
+The app also includes a development health check banner that appears when configuration issues are detected.
+
 ## Firebase Project Setup
 
 ### 1. Create Firebase Project

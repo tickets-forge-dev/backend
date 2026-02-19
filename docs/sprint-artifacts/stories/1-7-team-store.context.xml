@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.7</storyId>
+    <title>Team Store (Frontend State)</title>
+    <status>drafted</status>
+    <generatedAt>2026-02-17</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/1-7-team-store.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>frontend developer</asA>
+    <iWant>a Zustand store that manages team state</iWant>
+    <soThat>UI components can access and update team data reactively</soThat>
+    <tasks>
+      <task id="1" goal="Create TeamStore interface and state (AC: 1)">
+        <subtask>Define TeamState interface (currentTeam, teams, isLoading, error)</subtask>
+        <subtask>Define TeamActions interface (fetchTeams, switchTeam, createTeam, updateTeam, deleteTeam, setCurrentTeam)</subtask>
+        <subtask>Export TeamStore type combining state + actions</subtask>
+      </task>
+      <task id="2" goal="Implement store initialization with localStorage (AC: 7)">
+        <subtask>Create store with Zustand create&lt;TeamStore&gt;()</subtask>
+        <subtask>Load currentTeamId from localStorage on init</subtask>
+        <subtask>Hydrate currentTeam from teams list if found</subtask>
+        <subtask>Handle localStorage errors gracefully</subtask>
+      </task>
+      <task id="3" goal="Implement fetch and switch actions (AC: 2, 3)">
+        <subtask>fetchTeams(): Call teamService.getUserTeams(), update teams + currentTeam</subtask>
+        <subtask>switchTeam(teamId): Call teamService.switchTeam(), persist to localStorage, update state</subtask>
+        <subtask>Error handling with store error state</subtask>
+      </task>
+      <task id="4" goal="Implement create/update/delete actions (AC: 4, 5, 6)">
+        <subtask>createTeam(name): Call teamService.createTeam(), add to teams list, auto-switch</subtask>
+        <subtask>updateTeam(teamId, updates): Call teamService.updateTeam(), update teams list</subtask>
+        <subtask>deleteTeam(teamId): Call teamService.deleteTeam(), remove from list, clear if current</subtask>
+      </task>
+      <task id="5" goal="Service integration via useServices() (AC: 8)">
+        <subtask>Import useServices from @/services</subtask>
+        <subtask>Access teamService via useServices() in all actions</subtask>
+        <subtask>Follow lazy instantiation pattern from existing stores</subtask>
+      </task>
+      <task id="6" goal="Build verification (AC: 9, 10)">
+        <subtask>Run npm run build in client directory</subtask>
+        <subtask>Fix any TypeScript errors</subtask>
+        <subtask>Verify no new ESLint warnings</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">TeamStore manages currentTeam, teams list, loading/error states</criterion>
+    <criterion id="2">fetchTeams() calls TeamService.getUserTeams(), updates store</criterion>
+    <criterion id="3">switchTeam(teamId) calls TeamService.switchTeam(), persists to localStorage</criterion>
+    <criterion id="4">createTeam(name) calls TeamService.createTeam(), auto-switches to new team</criterion>
+    <criterion id="5">updateTeam(teamId, updates) calls TeamService.updateTeam()</criterion>
+    <criterion id="6">deleteTeam(teamId) calls TeamService.deleteTeam(), removes from list</criterion>
+    <criterion id="7">currentTeamId persisted to localStorage across sessions</criterion>
+    <criterion id="8">Store actions use useServices() hook (MANDATORY per CLAUDE.md)</criterion>
+    <criterion id="9">TypeScript strict mode, no any types, all actions typed</criterion>
+    <criterion id="10">Build passes with 0 TypeScript errors</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/IMPLEMENTATION-PLAN.md</path>
+        <title>Forge Teams + CLI + MCP - Implementation Plan</title>
+        <section>EPIC 1: Team Foundation (P0) - 2.5 weeks</section>
+        <snippet>Story 1.7: Team Store (Frontend State) (1d) - Zustand store for team state management. Goal: Users can create teams, switch between multiple teams, team switcher shows role badge, settings page allows team management, auto-switch to new team on creation.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>client/src/teams/services/team.service.ts</path>
+        <kind>service</kind>
+        <symbol>TeamService</symbol>
+        <lines>1-208</lines>
+        <reason>⚠️ REUSE THIS SERVICE - Complete implementation from Story 1.6 with all 6 CRUD methods (createTeam, getUserTeams, getTeam, updateTeam, switchTeam, deleteTeam), types (Team, TeamSummary, CreateTeamRequest, UpdateTeamRequest, SwitchTeamRequest), Firebase auth integration, error handling. DO NOT recreate - import and use via useServices() hook.</reason>
+      </file>
+      <file>
+        <path>client/src/stores/tickets.store.ts</path>
+        <kind>store</kind>
+        <symbol>useTicketsStore</symbol>
+        <lines>1-100</lines>
+        <reason>Reference pattern for Zustand store with useServices() integration. Shows: import useServices from @/services/index, eslint-disable comment for non-hook usage, state + actions interface, localStorage loading on init, service access inside actions.</reason>
+      </file>
+      <file>
+        <path>client/src/stores/ui.store.ts</path>
+        <kind>store</kind>
+        <symbol>useUIStore</symbol>
+        <lines>1-29</lines>
+        <reason>Reference pattern for simple Zustand store with persist middleware for automatic localStorage persistence. Alternative to manual localStorage handling.</reason>
+      </file>
+      <file>
+        <path>client/src/services/index.ts</path>
+        <kind>service-registry</kind>
+        <symbol>useServices</symbol>
+        <lines>1-58</lines>
+        <reason>Service registry where TeamService is registered. Use this hook to access teamService in store actions: const { teamService } = useServices()</reason>
+      </file>
+    </code>
+    <dependencies>
+      <framework name="Next.js" ecosystem="node" version="^15.5.11" />
+      <framework name="React" ecosystem="node" version="^19.0.0" />
+      <framework name="Zustand" ecosystem="node" version="^4.5.0" usage="State management library for React" />
+      <framework name="Firebase" ecosystem="node" version="^10.8.0" usage="Authentication (auth tokens)" />
+      <package name="lucide-react" ecosystem="node" version="^0.563.0" usage="Icon components" />
+      <package name="sonner" ecosystem="node" version="^2.0.7" usage="Toast notifications" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Follow Zustand store pattern - state + actions interface, create() factory, no business logic in store</constraint>
+    <constraint type="service-integration">MANDATORY: Use useServices() hook to access teamService inside store actions per CLAUDE.md</constraint>
+    <constraint type="clean-architecture">UI → Store → Service → API layering. Store delegates all API calls to TeamService (REUSE from Story 1.6)</constraint>
+    <constraint type="persistence">Use localStorage key 'forge_currentTeamId' to persist currentTeamId (not full object). Hydrate from teams list on init.</constraint>
+    <constraint type="error-handling">TeamService throws Error with user-friendly messages. Catch in store actions and set error state.</constraint>
+    <constraint type="naming">File: team.store.ts (kebab-case), Export: useTeamStore (camelCase hook), Interfaces: TeamState, TeamActions (PascalCase)</constraint>
+    <constraint type="file-location">Create at client/src/teams/stores/team.store.ts to maintain domain grouping under client/src/teams/</constraint>
+    <constraint type="typescript">Strict mode enabled, no any types, all actions and state must be fully typed</constraint>
+    <constraint type="reuse">DO NOT recreate TeamService or types - import from client/src/teams/services/team.service.ts</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>TeamService.getUserTeams()</name>
+      <kind>async method</kind>
+      <signature>async getUserTeams(): Promise&lt;{ teams: TeamSummary[]; currentTeamId: string | null }&gt;</signature>
+      <path>client/src/teams/services/team.service.ts</path>
+      <note>Returns user's teams list + currentTeamId. Call this in fetchTeams() action.</note>
+    </interface>
+    <interface>
+      <name>TeamService.createTeam()</name>
+      <kind>async method</kind>
+      <signature>async createTeam(request: CreateTeamRequest): Promise&lt;Team&gt;</signature>
+      <path>client/src/teams/services/team.service.ts</path>
+      <note>Creates new team. Call in createTeam() action, add to teams list, auto-switch to new team.</note>
+    </interface>
+    <interface>
+      <name>TeamService.switchTeam()</name>
+      <kind>async method</kind>
+      <signature>async switchTeam(request: SwitchTeamRequest): Promise&lt;{ currentTeamId: string; teamName: string }&gt;</signature>
+      <path>client/src/teams/services/team.service.ts</path>
+      <note>Switches current team on backend. Call in switchTeam() action, persist currentTeamId to localStorage.</note>
+    </interface>
+    <interface>
+      <name>TeamService.updateTeam()</name>
+      <kind>async method</kind>
+      <signature>async updateTeam(teamId: string, request: UpdateTeamRequest): Promise&lt;Team&gt;</signature>
+      <path>client/src/teams/services/team.service.ts</path>
+      <note>Updates team. Call in updateTeam() action, update teams list with returned team.</note>
+    </interface>
+    <interface>
+      <name>TeamService.deleteTeam()</name>
+      <kind>async method</kind>
+      <signature>async deleteTeam(teamId: string): Promise&lt;void&gt;</signature>
+      <path>client/src/teams/services/team.service.ts</path>
+      <note>Soft deletes team. Call in deleteTeam() action, remove from teams list, clear currentTeam if it was deleted.</note>
+    </interface>
+    <interface>
+      <name>Team</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface Team { id: string; name: string; slug: string; ownerId: string; settings: { defaultWorkspaceId?: string; allowMemberInvites: boolean }; isOwner: boolean; createdAt: string; updatedAt: string }</signature>
+      <path>client/src/teams/services/team.service.ts</path>
+      <note>Full team object with all fields. Returned by createTeam, getTeam, updateTeam.</note>
+    </interface>
+    <interface>
+      <name>TeamSummary</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface TeamSummary { id: string; name: string; slug: string; isOwner: boolean; isCurrent: boolean }</signature>
+      <path>client/src/teams/services/team.service.ts</path>
+      <note>Lightweight team object for lists. Returned by getUserTeams(). Use this for teams array in store state.</note>
+    </interface>
+    <interface>
+      <name>useServices()</name>
+      <kind>React hook (service registry)</kind>
+      <signature>function useServices(): { teamService: TeamService; ... }</signature>
+      <path>client/src/services/index.ts</path>
+      <note>MANDATORY: Access teamService via this hook inside store actions per CLAUDE.md. Returns singleton service instances.</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Manual testing required for store integration. Integration tests deferred to Epic 8 per Story 1.6 learnings. Use browser DevTools to verify localStorage persistence. Test all store actions in UI: create team, fetch teams, switch team, update team, delete team, refresh page to verify persistence. Verify error handling: disconnect network and trigger API calls to test error states. No testing framework configured yet - Phase 2 will add Jest + React Testing Library + MSW for mocking services.
+    </standards>
+    <locations>
+      client/src/teams/__tests__/ (future unit tests)
+      client/src/__tests__/integration/ (future integration tests)
+    </locations>
+    <ideas>
+      <idea ac="1">Test store state structure - verify currentTeam, teams, isLoading, error fields exist with correct types</idea>
+      <idea ac="2">Test fetchTeams() - mock teamService.getUserTeams(), verify store updated with teams + currentTeam</idea>
+      <idea ac="3">Test switchTeam() - mock teamService.switchTeam(), verify currentTeam updated, localStorage persisted</idea>
+      <idea ac="4">Test createTeam() - mock teamService.createTeam(), verify team added to list, auto-switched, localStorage updated</idea>
+      <idea ac="5,6">Test updateTeam() and deleteTeam() - mock service methods, verify list updates correctly</idea>
+      <idea ac="7">Test localStorage persistence - set currentTeamId, refresh store, verify hydration from localStorage</idea>
+      <idea ac="8">Test useServices() integration - verify teamService accessed correctly inside actions</idea>
+      <idea ac="9,10">Run TypeScript compiler - tsc --noEmit to verify strict mode compliance and no errors</idea>
+    </ideas>
+  </tests>
+</story-context>

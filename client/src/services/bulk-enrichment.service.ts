@@ -43,12 +43,19 @@ export class BulkEnrichmentService {
 
   constructor() {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!baseUrl) {
+    // Allow undefined during SSG/build time - will validate on first use
+    this.apiUrl = baseUrl || '';
+  }
+
+  /**
+   * Validate API URL is configured (lazy validation for SSG compatibility)
+   */
+  private validateApiUrl(): void {
+    if (!this.apiUrl) {
       throw new Error(
         'NEXT_PUBLIC_API_URL environment variable is not set. Cannot initialize bulk enrichment service.',
       );
     }
-    this.apiUrl = baseUrl;
   }
 
   /**
@@ -91,6 +98,7 @@ export class BulkEnrichmentService {
     ticketIds: string[],
     onProgress?: (event: EnrichmentProgressEvent) => void,
   ): Promise<void> {
+    this.validateApiUrl();
     const url = `${this.apiUrl}/tickets/bulk/enrich`;
     const TIMEOUT_MS = 60000; // 60 second timeout
 
@@ -217,6 +225,7 @@ export class BulkEnrichmentService {
     answers: Array<{ ticketId: string; questionId: string; answer: string }>,
     onProgress?: (event: EnrichmentProgressEvent) => void,
   ): Promise<void> {
+    this.validateApiUrl();
     const url = `${this.apiUrl}/tickets/bulk/finalize`;
     const TIMEOUT_MS = 60000; // 60 second timeout
 

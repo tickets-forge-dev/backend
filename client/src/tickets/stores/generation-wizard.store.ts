@@ -178,6 +178,9 @@ export interface WizardState {
   progressPercent: number;
   currentPhase: string | null; // Current analysis phase (e.g., 'connecting', 'analyzing', etc.)
   error: string | null;
+
+  // First ticket celebration
+  showCelebration: boolean;
 }
 
 /**
@@ -246,6 +249,9 @@ export interface WizardActions {
 
   // Review stage
   createTicket: () => Promise<void>;
+
+  // Celebration
+  closeCelebration: () => void;
 }
 
 /**
@@ -290,6 +296,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   progressPercent: 0,
   currentPhase: null,
   error: null,
+  showCelebration: false,
 
   // ============================================================================
   // STAGE 1: INPUT ACTIONS
@@ -1116,10 +1123,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       const aec = await response.json();
 
+      // Check if this is the user's first ticket
+      const hasCompletedFirstTicket = localStorage.getItem('forge-first-ticket-completed');
+      const shouldShowCelebration = !hasCompletedFirstTicket;
+
       set({
         spec: aec.techSpec,
         roundStatus: 'idle',
+        showCelebration: shouldShowCelebration,
       });
+
+      // Mark first ticket as completed
+      if (shouldShowCelebration) {
+        localStorage.setItem('forge-first-ticket-completed', 'true');
+      }
 
       // Clear localStorage draft
       localStorage.removeItem('wizard-draft-aec-id');
@@ -1302,6 +1319,11 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       progressPercent: 0,
       currentPhase: null,
       error: null,
+      showCelebration: false,
     });
+  },
+
+  closeCelebration: () => {
+    set({ showCelebration: false });
   },
 }));

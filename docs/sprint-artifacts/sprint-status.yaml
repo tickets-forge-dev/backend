@@ -1,140 +1,206 @@
-# Forge Sprint Status - FOCUSED VIEW
-# Generated: 2026-02-12
-# Project: forge
-# Tracking System: file-system
-# Status Refresh: Auto-detected from file system + manual tracking
+# generated: 2026-02-18
+# project: forge
+# project_key: FORGE
+# tracking_system: file-system
+# story_location: docs/sprint-artifacts
 
-generated: "2026-02-12"
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#   - in-progress: Epic actively being worked on
+#   - done: Epic completed
+#   - deferred: Epic intentionally postponed (not needed for MVP)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2026-02-18
 project: forge
 project_key: FORGE
 tracking_system: file-system
 story_location: docs/sprint-artifacts
 
-# ============================================================================
-# ACTIVE DEVELOPMENT STATUS
-# ============================================================================
-
 development_status:
 
   # ============================================================================
-  # 🎯 RECENTLY COMPLETED (Sessions 6-14: 2026-02-06 to 2026-02-09)
+  # FORGE TEAMS + CLI + MCP IMPLEMENTATION PLAN
+  # Duration: 8-15 weeks | 9 Epics | 71 Stories
+  # Goal: Multi-team collaborative platform with developer CLI + MCP
+  # Updated: 2026-02-18 - Full plan with interactive CLI & BMAD integration
   # ============================================================================
 
-  # Session 6: Interactive API Editor
-  epic-1-3b-interactive-api-editor: done
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 1 (Weeks 1-2): Team Foundation ✅ COMPLETE
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # Session 10: Tech Spec Export (.md + .xml)
-  epic-3-tech-spec-export: done
+  # EPIC 1: Team Foundation (P0) - 10 stories, ~17 days
+  # Status: ✅ DONE - All 10 stories complete, fully implemented
+  epic-1-team-foundation: done
+  1-1-team-domain-model: done
+  1-2-team-repository: done
+  1-3-user-domain-extension: done
+  1-4-team-use-cases: done
+  1-5-team-api-endpoints: done
+  1-6-team-service-frontend: done
+  1-7-team-store: done
+  1-8-team-switcher-ui: done
+  1-9-team-settings-page: done
+  1-10-create-team-dialog: done
+  epic-1-team-foundation-retrospective: optional
 
-  # Session 10: Design & Asset Attachments (Firebase Storage)
-  epic-1-6-design-and-asset-attachments: done
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 2 (Weeks 3-4): Team Collaboration (Members + Onboarding)
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # Session 8: Single-set Question Flow (replaced multi-round)
-  refactor-question-flow: done
+  # EPIC 3: Members & Roles (P0) - 8 stories, ~16 days
+  # Status: ✅ DONE - All 8 stories complete
+  # Next: 3-4-email-invitation-system
+  epic-3-members-roles: done
+  3-1-team-member-domain: done
+  3-2-team-member-repository: done
+  3-3-member-use-cases: done
+  3-4-email-invitation-system: done
+  3-5-member-api-endpoints: done
+  3-6-role-guards: done
+  3-7-team-members-list-ui: done
+  3-8-invite-member-dialog: done
+  epic-3-members-roles-retrospective: optional
 
-  # Session 14: PostHog Analytics Infrastructure
-  epic-14-posthog-analytics: done
+  # EPIC 3.5: Non-Technical PM Support (P0) - 5 stories, ~8 days
+  # Status: ⬜ BACKLOG - Building block for role-based ticket creation
+  # Goal: Support both technical and non-technical PMs with optional Git access
+  # Key: Repository optional + dynamic agent conversations + ticket assignment
+  # Next: 3.5-1-repository-optional-flag
+  epic-3-5-non-technical-pm-support: backlog
+  3-5-1-repository-optional-flag: backlog
+  3-5-2-conditional-deep-analysis: backlog
+  3-5-3-step2-loader-messages: backlog
+  3-5-4-repository-checkbox-messaging: backlog
+  3-5-5-assign-ticket-to-developer: backlog
+  epic-3-5-non-technical-pm-support-retrospective: optional
 
-  # ============================================================================
-  # 🚧 EPIC 24: BIDIRECTIONAL JIRA/LINEAR INTEGRATION
-  # Status: Partially Complete (Import flow done, Export remaining)
-  # Priority: P1 (High value - enrichment layer)
-  # Last Updated: 2026-02-12
-  # ============================================================================
+  # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
+  # Status: 🟡 IN PROGRESS - State machine complete (1/4 done)
+  # Next: 4-2-team-name-step
+  epic-4-enhanced-onboarding: in-progress
+  4-1-onboarding-state-machine: done
+  4-2-team-name-step: backlog
+  4-3-role-selection-step: backlog
+  4-4-auth-flow-integration: backlog
+  epic-4-enhanced-onboarding-retrospective: optional
 
-  epic-24: in-progress
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 3 (Weeks 5-6): CLI Foundation
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # ✅ COMPLETE - Import Flow (Sessions 12-13)
-  24-1-jira-linear-import-apis: done                  # Session 12: Backend import endpoints
-  24-2-frontend-import-flow-ui: done                  # Session 13: 3-stage import wizard
+  # EPIC 5: CLI Foundation (P0) - 8 stories, ~14 days
+  # Status: ⬜ NOT STARTED - Blocked by Epic 3 completion
+  # Dependencies: Needs completed team/workspace APIs for authentication
+  # Key: Interactive ticket list with vim-like commands [e][r][c][b][q]
+  # UX: forge list → ↑↓ navigate → Enter view → [e] execute / [r] review
+  epic-5-cli-foundation: backlog
+  5-1-cli-project-setup: backlog
+  5-2-login-command-oauth: backlog
+  5-3-logout-command: backlog
+  5-4-interactive-ticket-list: backlog
+  5-5-ticket-detail-view: backlog
+  5-6-action-handlers-stub: backlog
+  5-7-config-management: backlog
+  5-8-error-handling-offline: backlog
+  epic-5-cli-foundation-retrospective: optional
 
-  # ⬜ REMAINING - Export & Sync
-  24-3-create-ticket-from-imported-data: backlog
-  24-4-enhanced-export-with-smart-logic: backlog
-  24-5-export-dialog-with-sprint-cycle: backlog
-  24-6-imported-issue-display-badge: backlog
-  24-7-backend-tests-validation: backlog
-  24-8-frontend-e2e-tests: backlog
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 4 (Weeks 7-8): MCP Server
+  # ──────────────────────────────────────────────────────────────────────────
 
-  epic-24-retrospective: optional
+  # EPIC 6: MCP Server (P0) - 13 stories, ~20 days
+  # Status: ⬜ NOT STARTED - Blocked by Epic 5 completion
+  # Dependencies: CLI Foundation must be complete
+  # Key: BMAD agent integration for dynamic PM-Developer conversations
+  # UX: Developer presses [r] → BMAD agent asks dynamic questions → enriches ticket
+  epic-6-mcp-server: backlog
+  6-1-mcp-server-setup: backlog
+  6-2-ticket-context-tool: backlog
+  6-3-file-changes-tool: backlog
+  6-4-repository-context-tool: backlog
+  6-5-status-update-tool: backlog
+  6-6-execute-prompt: backlog
+  6-7-review-prompt: backlog
+  6-8-agent-guide-executor: backlog
+  6-9-agent-guide-reviewer: backlog
+  6-10-mcp-integration-tests: backlog
+  6-11-cli-mcp-plumbing: backlog
+  6-12-ticket-review-mcp-tools: backlog
+  6-13-bmad-review-agent: backlog
+  epic-6-mcp-server-retrospective: optional
 
-  # ============================================================================
-  # 🆕 EPIC 25: PRD BREAKDOWN WORKFLOW (Team Planning)
-  # Status: Active Development (2026-02-11 onwards)
-  # Priority: P1 (Strategic - upstream planning automation)
-  # Effort: 2-3 weeks
-  # Last Updated: 2026-02-12
-  # ============================================================================
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 5 (Weeks 9+): Integration & Launch
+  # ──────────────────────────────────────────────────────────────────────────
 
-  epic-25: done
+  # EPIC 7: Ticket Lifecycle (P1) - 9 stories, ~15 days
+  # Status: ⬜ NOT STARTED - Can start after Epic 3 complete (needs roles)
+  # Dependencies: Role-based authorization from Epic 3
+  # Key: Full PM→Dev→PM workflow with dynamic agent conversations
+  # Flow: PM creates → Dev reviews (CLI) → PM approves → Dev executes
+  epic-7-ticket-lifecycle: backlog
+  7-1-extend-aec-status-enum: backlog
+  7-2-move-tickets-to-team-scope: backlog
+  7-3-conversation-storage: backlog
+  7-4-conversation-api: backlog
+  7-5-update-ticket-filters: backlog
+  7-6-conversation-viewer-ui: backlog
+  7-7-approve-button-pm-only: backlog
+  7-8-status-sync-web-cli: backlog
+  7-9-ticket-creation-updates: backlog
+  epic-7-ticket-lifecycle-retrospective: optional
 
-  25-1-prd-breakdown-mastra-agent: done               # Session 20: Mastra agent for PRD analysis
-  25-2-prd-breakdown-backend-api: done                # Session 20: Backend use case + endpoints
-  25-3-prd-input-page-frontend: done                  # Session 20: Input form + wizard page
-  25-4-ticket-breakdown-review-ui: done               # Session 21-22: Review UI, clarification questions
-  25-5-bulk-ticket-creation-flow: done                # Session 19: Bulk creation with validation
-  25-6-integration-testing: done                      # E2E validation
+  # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days
+  # Status: ⬜ NOT STARTED - Can start anytime (parallel with other epics)
+  # Note: Can be worked on incrementally alongside feature development
+  epic-8-testing-documentation: backlog
+  8-1-backend-unit-tests: backlog
+  8-2-frontend-component-tests: backlog
+  8-3-cli-integration-tests: backlog
+  8-4-user-documentation: backlog
+  8-5-api-documentation: backlog
+  8-6-architecture-update: backlog
+  epic-8-testing-documentation-retrospective: optional
 
-  epic-25-retrospective: optional
+  # ──────────────────────────────────────────────────────────────────────────
+  # DEFERRED EPICS (Not needed for MVP)
+  # ──────────────────────────────────────────────────────────────────────────
 
-  # ============================================================================
-  # 📋 BACKLOG - P0/P1 PRIORITIES (Not Started)
-  # ============================================================================
-
-  # Epic 26: Design Link Integration with LLM Leverage (NEW - 2026-02-13)
-  epic-26-design-link-integration: backlog            # 30-35 hours, 3 phases
-                                                      # Phase 1: Store & Display (10-12h)
-                                                      # Phase 2: Metadata Enrichment (10-12h)
-                                                      # Phase 3: LLM Integration (10-12h)
-                                                      # Enables pixel-perfect specs via Figma/Loom
-
-  # Epic 21: Caching Optimization (Nice-to-have)
-  epic-21-caching: backlog                            # 10-20x speed improvement
-
-  # Epic 23: Multi-Repo Support (P0 Blocker for Phase 4)
-  epic-23-multi-repo: backlog                         # 8-10 weeks effort
-
-  # Epic 10: Revenue Infrastructure (Not Urgent)
-  epic-10-revenue: backlog                            # Stripe + subscriptions
-
-# ============================================================================
-# EXECUTION ROADMAP (FOCUSED)
-# ============================================================================
-#
-# ✅ COMPLETED (Last 4 Weeks):
-#   └─ Session 6: Interactive API Editor (detect, scan, edit, cURL)
-#   └─ Session 8: Single-set question flow (replaced multi-round)
-#   └─ Session 10: Tech Spec Export (.md + .xml) + Asset Attachments
-#   └─ Session 12-13: Jira/Linear Import Flow (2/8 stories of Epic 24)
-#   └─ Session 14: PostHog Analytics (event tracking)
-#   └─ Session 20: PRD Breakdown Initial Implementation (3 stories)
-#   └─ Session 22: React Object Rendering Fix + UI Refinements
-#
-# 🚧 IN PROGRESS:
-#   └─ Epic 25: PRD Breakdown Workflow (4/6 stories - Review UI + clarification questions)
-#   └─ Epic 24: Bidirectional Integration (2/8 stories - Export flow remaining)
-#
-# 🎯 NEXT PRIORITIES:
-#   └─ Complete Epic 24 Export Stories (3-8) - Jira/Linear export
-#   └─ Plan Epic 26 Phase 1 (Store & Display design links) - NEW
-#
-# 📋 BACKLOG (Future):
-#   └─ Epic 26: Design Link Integration (30-35h, 3 phases - LLM-enhanced specs from Figma/Loom)
-#   └─ Epic 21: Caching (nice-to-have performance optimization)
-#   └─ Epic 23: Multi-Repo Support (P0 for Phase 4 - infrastructure feature)
-#   └─ Epic 10: Revenue Infrastructure (Stripe, subscriptions)
-#
-# ============================================================================
-# KEY METRICS (Updated 2026-02-13)
-# ============================================================================
-# Active Epics: 1 (Epic 24 in-progress)
-# Completed Epics: 6+ major epics (Epic 25 COMPLETED on 2026-02-12)
-# Planned Epics: Epic 26 (Design Link Integration - PLANNED on 2026-02-13)
-# Completed Stories: 15+ major features (Sessions 6-22)
-# Recent Session Focus: PRD breakdown COMPLETE + Epic 24 export + Epic 26 planning
-#
-# Upcoming Focus:
-#   1. Complete Epic 24 export flow (stories 3-8)
-#   2. Plan & approve Epic 26 Phase 1 (Store & Display)
-#   3. Determine Epic 26 start date (after Epic 24 or parallel?)
-# ============================================================================
+  # EPIC 2: Workspace Management (Multi-Repo Support)
+  # Status: 🔵 DEFERRED - Not needed for Teams + CLI + MCP MVP
+  # Reason: Single repo per ticket is sufficient for MVP. Multi-repo support
+  #         can be added later when PMs need to work on features spanning
+  #         multiple repositories (e.g., frontend + backend + shared).
+  # Partial work complete: Domain model (2-1) and Repository (2-2) done
+  epic-2-workspace-management: deferred
+  2-1-workspace-domain-model: done
+  2-2-workspace-repository: done
+  2-3-workspace-use-cases: deferred
+  2-4-workspace-api-endpoints: deferred
+  2-5-workspace-service-frontend: deferred
+  2-6-workspace-store: deferred
+  2-7-workspace-selector: deferred
+  2-8-workspace-management-page: deferred

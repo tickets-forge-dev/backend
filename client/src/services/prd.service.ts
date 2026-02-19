@@ -59,7 +59,14 @@ class PRDService {
   private apiUrl: string;
 
   constructor() {
+    // Allow undefined during SSG/build time - will validate on first use
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  }
+
+  /**
+   * Validate API URL is configured (lazy validation for SSG compatibility)
+   */
+  private validateApiUrl(): void {
     if (!this.apiUrl) {
       throw new Error('NEXT_PUBLIC_API_URL not configured');
     }
@@ -69,6 +76,7 @@ class PRDService {
    * Analyze a PRD and return breakdown into epics and stories (legacy JSON endpoint)
    */
   async breakdownPRD(request: PRDBreakdownRequest): Promise<PRDBreakdownResponse> {
+    this.validateApiUrl();
     const token = await auth.currentUser?.getIdToken();
     const response = await fetch(`${this.apiUrl}/tickets/breakdown/prd`, {
       method: 'POST',
@@ -98,6 +106,7 @@ class PRDService {
     request: PRDBreakdownRequest,
     onProgress?: (event: PRDBreakdownProgressEvent) => void,
   ): Promise<PRDBreakdownResponse> {
+    this.validateApiUrl();
     const token = await auth.currentUser?.getIdToken();
     if (!token) {
       throw new Error('No authorization token available. Please ensure you are logged in.');
@@ -214,6 +223,7 @@ class PRDService {
    * Bulk create tickets from breakdown result
    */
   async bulkCreateFromBreakdown(request: BulkCreateRequest): Promise<BulkCreateResponse> {
+    this.validateApiUrl();
     const token = await auth.currentUser?.getIdToken();
     const response = await fetch(`${this.apiUrl}/tickets/breakdown/bulk-create`, {
       method: 'POST',

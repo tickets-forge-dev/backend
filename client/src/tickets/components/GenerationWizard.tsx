@@ -8,6 +8,7 @@ import { Stage3Draft } from './wizard/Stage3Draft';
 import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
+import { FirstTicketCelebrationDialog } from '@/core/components/celebration/FirstTicketCelebrationDialog';
 
 /**
  * GenerationWizard Container Component
@@ -42,6 +43,8 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
     progressPercent,
     setType,
     draftAecId,
+    showCelebration,
+    closeCelebration,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -172,6 +175,12 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
           </div>
         </div>
       )}
+
+      {/* First Ticket Celebration */}
+      <FirstTicketCelebrationDialog
+        open={showCelebration}
+        onClose={closeCelebration}
+      />
     </div>
   );
 }

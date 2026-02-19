@@ -97,6 +97,19 @@ export class FirestoreAECRepository implements AECRepository {
     return snapshot.data().count;
   }
 
+  async countByWorkspaceAndCreator(workspaceId: string, createdBy: string): Promise<number> {
+    const firestore = this.getFirestore();
+    const snapshot = await firestore
+      .collection('workspaces')
+      .doc(workspaceId)
+      .collection('aecs')
+      .where('createdBy', '==', createdBy)
+      .count()
+      .get();
+
+    return snapshot.data().count;
+  }
+
   async findByWorkspace(workspaceId: string): Promise<AEC[]> {
     const firestore = this.getFirestore();
     const snapshot = await firestore
