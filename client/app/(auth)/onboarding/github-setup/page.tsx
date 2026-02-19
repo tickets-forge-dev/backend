@@ -26,11 +26,11 @@ export default function GitHubSetupPage() {
   }, [setupGitHub, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="text-center">
+    <div className="space-y-10 text-center">
+      <div>
         <div className="mb-4 text-4xl">⚙️</div>
-        <h1 className="text-xl font-semibold text-gray-900">Setting up GitHub...</h1>
-        <p className="mt-2 text-sm text-gray-600">Completing onboarding</p>
+        <h2 className="text-[var(--text-xl)] font-semibold text-white">Setting up GitHub...</h2>
+        <p className="mt-2 text-[var(--text-sm)] text-[#a1a1aa]">Completing onboarding</p>
       </div>
     </div>
   );

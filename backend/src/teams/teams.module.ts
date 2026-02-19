@@ -10,6 +10,8 @@ import { GetTeamUseCase } from './application/use-cases/GetTeamUseCase';
 import { GetUserTeamsUseCase } from './application/use-cases/GetUserTeamsUseCase';
 import { SwitchTeamUseCase } from './application/use-cases/SwitchTeamUseCase';
 import { SyncUserTeamsUseCase } from './application/use-cases/SyncUserTeamsUseCase';
+import { GetCurrentMemberUseCase } from './application/use-cases/GetCurrentMemberUseCase';
+import { UpdateOwnRoleUseCase } from './application/use-cases/UpdateOwnRoleUseCase';
 import { InviteMemberUseCase } from './application/use-cases/InviteMemberUseCase';
 import { AcceptInviteUseCase } from './application/use-cases/AcceptInviteUseCase';
 import { RemoveMemberUseCase } from './application/use-cases/RemoveMemberUseCase';
@@ -69,6 +71,8 @@ import { InviteTokenService } from './application/services/InviteTokenService';
     RemoveMemberUseCase,
     ChangeMemberRoleUseCase,
     ListTeamMembersUseCase,
+    GetCurrentMemberUseCase,
+    UpdateOwnRoleUseCase,
     // Services
     InviteTokenService,
   ],

@@ -99,80 +99,80 @@ export function TeamNameStep() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md">
-        <div className="rounded-lg bg-white p-8 shadow-sm">
-          {/* Heading */}
-          <h1 className="mb-2 text-2xl font-semibold text-gray-900">
-            Name your team
-          </h1>
-          <p className="mb-8 text-sm text-gray-600">
-            This will be your workspace for managing tickets and collaborating with your team.
-          </p>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <div className="mb-6">
-              <Input
-                type="text"
-                value={teamName}
-                onChange={handleChange}
-                placeholder="e.g., Acme Corp, Sarah's Team"
-                disabled={isCreating}
-                className={validationError ? 'border-red-500' : ''}
-                autoFocus
-              />
-
-              {/* Validation error */}
-              {validationError && (
-                <p className="mt-2 text-sm text-red-600">{validationError}</p>
-              )}
-            </div>
-
-            {/* API error */}
-            {error && (
-              <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            {/* Submit button */}
-            <button
-              type="submit"
-              disabled={isCreating || !teamName.trim()}
-              className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-            >
-              {isCreating ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="mr-2 h-4 w-4 animate-spin"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Creating...
-                </span>
-              ) : (
-                'Create Team'
-              )}
-            </button>
-          </form>
-        </div>
+    <div className="space-y-10">
+      {/* Heading */}
+      <div>
+        <h2 className="text-[var(--text-xl)] font-semibold text-white">
+          Name your team
+        </h2>
+        <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-1">
+          This will be your workspace for managing tickets and collaborating with your team.
+        </p>
       </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <Input
+            type="text"
+            value={teamName}
+            onChange={handleChange}
+            placeholder="e.g., Acme Corp, Sarah's Team"
+            disabled={isCreating}
+            className={`bg-[#18181b] border-[#27272a] text-white placeholder:text-[#71717a] ${
+              validationError ? 'border-red-500' : ''
+            }`}
+            autoFocus
+          />
+
+          {/* Validation error */}
+          {validationError && (
+            <p className="mt-2 text-sm text-red-400">{validationError}</p>
+          )}
+        </div>
+
+        {/* API error */}
+        {error && (
+          <div className="rounded-md bg-red-950/20 border border-red-500/30 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
+
+        {/* Submit button */}
+        <button
+          type="submit"
+          disabled={isCreating || !teamName.trim()}
+          className="w-full h-11 rounded-md bg-[#7c3aed] px-4 text-white font-medium hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:bg-[#27272a] disabled:text-[#52525b] transition-colors"
+        >
+          {isCreating ? (
+            <span className="flex items-center justify-center">
+              <svg
+                className="mr-2 h-4 w-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Creating...
+            </span>
+          ) : (
+            'Create Team'
+          )}
+        </button>
+      </form>
     </div>
   );
 }
