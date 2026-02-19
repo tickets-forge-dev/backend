@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTeamStore } from '@/teams/stores/team.store';
+import { useServices } from '@/services/index';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import { OverviewTab } from '@/teams/components/OverviewTab';
 import { MembersTab } from '@/teams/components/MembersTab';
 import { SettingsTab } from '@/teams/components/SettingsTab';
 import { Loader2 } from 'lucide-react';
+import type { Team } from '@/teams/services/team.service';
 
 /**
  * Team Management Page
@@ -24,9 +26,14 @@ function TeamPage() {
   const tab = (searchParams.get('tab') as 'overview' | 'members' | 'settings') || 'overview';
 
   const { teams, isLoading, loadTeams, loadTeamMembers } = useTeamStore();
+  const { teamService } = useServices();
 
-  // Get the specific team from URL, not the user's current team
-  const team = teams.find((t) => t.id === teamId);
+  // State for full team details
+  const [fullTeam, setFullTeam] = useState<Team | null>(null);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false);
+
+  // Check if team exists in the user's teams list
+  const teamExists = teams.some((t) => t.id === teamId);
 
   useEffect(() => {
     // Load teams list and members on mount
@@ -36,7 +43,27 @@ function TeamPage() {
     }
   }, [teamId, loadTeams, loadTeamMembers]);
 
-  if (isLoading || !team) {
+  useEffect(() => {
+    // Fetch full team details for the specific team
+    if (teamId && teamExists && !isLoadingTeam) {
+      setIsLoadingTeam(true);
+      teamService
+        .getTeam(teamId)
+        .then((team) => {
+          setFullTeam(team);
+        })
+        .catch((error) => {
+          console.error('Failed to load team details:', error);
+          setFullTeam(null);
+        })
+        .finally(() => {
+          setIsLoadingTeam(false);
+        });
+    }
+  }, [teamId, teamExists, teamService]);
+
+  // Show loading state while fetching teams or full team details
+  if (isLoading || isLoadingTeam || !fullTeam) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
@@ -48,7 +75,7 @@ function TeamPage() {
     <div className="container mx-auto max-w-6xl px-4 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-[var(--text)]">{team.name}</h1>
+        <h1 className="text-3xl font-semibold text-[var(--text)]">{fullTeam.name}</h1>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
           Manage your team members, settings, and permissions
         </p>
@@ -63,7 +90,7 @@ function TeamPage() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab team={team} />
+          <OverviewTab team={fullTeam} />
         </TabsContent>
 
         <TabsContent value="members">
@@ -71,7 +98,7 @@ function TeamPage() {
         </TabsContent>
 
         <TabsContent value="settings">
-          <SettingsTab team={team} />
+          <SettingsTab team={fullTeam} />
         </TabsContent>
       </Tabs>
     </div>
