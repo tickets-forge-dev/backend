@@ -98,13 +98,13 @@ development_status:
   epic-3-5-non-technical-pm-support-retrospective: optional
 
   # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
-  # Status: 🟡 IN PROGRESS - State machine complete (1/4 done)
-  # Next: 4-2-team-name-step
-  epic-4-enhanced-onboarding: in-progress
-  4-1-onboarding-state-machine: done
-  4-2-team-name-step: backlog
-  4-3-role-selection-step: backlog
-  4-4-auth-flow-integration: backlog
+  # Status: ✅ REVIEW - All 4 stories complete, awaiting final review
+  # Completed: Onboarding state machine, team name step, role selection, auth flow integration
+  epic-4-enhanced-onboarding: review
+  4-1-onboarding-state-machine: review
+  4-2-team-name-step: review
+  4-3-role-selection-step: review
+  4-4-auth-flow-integration: review
   epic-4-enhanced-onboarding-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────

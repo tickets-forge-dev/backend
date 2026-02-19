@@ -39,13 +39,17 @@ function GitHubIcon({ className }: { className?: string }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
+  const { user, hasTeams, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
 
   useEffect(() => {
-    if (user) {
-      router.push('/tickets');
+    if (user && hasTeams !== null) {
+      if (hasTeams) {
+        router.push('/tickets');
+      } else {
+        router.push('/onboarding/team-name');
+      }
     }
-  }, [user, router]);
+  }, [user, hasTeams, router]);
 
   const handleGoogleSignIn = async () => {
     clearError();

@@ -76,6 +76,7 @@ import { InviteTokenService } from './application/services/InviteTokenService';
     FirestoreTeamRepository,
     FirestoreTeamMemberRepository,
     FirestoreUserRepository,
+    GetUserTeamsUseCase,
   ],
 })
 export class TeamsModule {}
