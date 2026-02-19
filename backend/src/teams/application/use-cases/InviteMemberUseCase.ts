@@ -13,7 +13,7 @@
 
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException, Logger, Inject } from '@nestjs/common';
 import { TeamMember } from '../../domain/TeamMember';
-import { Role, RoleHelper } from '../../domain/Role';
+import { Role } from '../../domain/Role';
 import { TeamId } from '../../domain/TeamId';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
@@ -193,7 +193,7 @@ export class InviteMemberUseCase {
       return false; // Max email length per RFC 5321
     }
 
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     return emailRegex.test(email);
   }
 }

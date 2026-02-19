@@ -2,7 +2,6 @@ import { CreateTeamUseCase } from './CreateTeamUseCase';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
 import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
 import { User } from '../../../users/domain/User';
-import { Team } from '../../domain/Team';
 import { TeamId } from '../../domain/TeamId';
 import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamException';
 
@@ -302,7 +301,7 @@ describe('CreateTeamUseCase', () => {
       mockTeamRepository.isSlugUnique.mockResolvedValue(true);
 
       // When
-      const result = await useCase.execute({
+      await useCase.execute({
         userId,
         teamName: 'First Team',
       });

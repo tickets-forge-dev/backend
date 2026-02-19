@@ -4,7 +4,6 @@ import { Team } from '../../domain/Team';
 import { TeamId } from '../../domain/TeamId';
 import { TeamSettings } from '../../domain/TeamSettings';
 import { TeamFactory } from '../../domain/TeamFactory';
-import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamException';
 
 /**
  * TeamRepository - Firestore Implementation

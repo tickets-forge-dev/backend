@@ -1,4 +1,4 @@
-# generated: 2026-02-17
+# generated: 2026-02-18
 # project: forge
 # project_key: FORGE
 # tracking_system: file-system
@@ -11,6 +11,7 @@
 #   - contexted: Epic tech context created (required before drafting stories)
 #   - in-progress: Epic actively being worked on
 #   - done: Epic completed
+#   - deferred: Epic intentionally postponed (not needed for MVP)
 #
 # Story Status:
 #   - backlog: Story only exists in epic file
@@ -31,7 +32,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-02-17
+generated: 2026-02-18
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -41,16 +42,17 @@ development_status:
 
   # ============================================================================
   # FORGE TEAMS + CLI + MCP IMPLEMENTATION PLAN
-  # Duration: 8-15 weeks | 8 Epics | 64 Stories
+  # Duration: 8-15 weeks | 9 Epics | 71 Stories
   # Goal: Multi-team collaborative platform with developer CLI + MCP
+  # Updated: 2026-02-18 - Full plan with interactive CLI & BMAD integration
   # ============================================================================
 
   # ──────────────────────────────────────────────────────────────────────────
-  # PHASE 1 (Weeks 1-2): Team Foundation (COMPLETE)
+  # PHASE 1 (Weeks 1-2): Team Foundation ✅ COMPLETE
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 1: Team Foundation (P0) - 10 stories, ~17 days
-  # Status: DONE - All stories complete
+  # Status: ✅ DONE - All 10 stories complete, fully implemented
   epic-1-team-foundation: done
   1-1-team-domain-model: done
   1-2-team-repository: done
@@ -64,21 +66,40 @@ development_status:
   1-10-create-team-dialog: done
   epic-1-team-foundation-retrospective: optional
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 2 (Weeks 3-4): Team Collaboration (Members + Onboarding)
+  # ──────────────────────────────────────────────────────────────────────────
+
   # EPIC 3: Members & Roles (P0) - 8 stories, ~16 days
-  # Status: IN PROGRESS - Domain + Repository + Use Cases complete
-  epic-3-members-roles: in-progress
+  # Status: ✅ DONE - All 8 stories complete
+  # Next: 3-4-email-invitation-system
+  epic-3-members-roles: done
   3-1-team-member-domain: done
   3-2-team-member-repository: done
   3-3-member-use-cases: done
-  3-4-email-invitation-system: backlog
-  3-5-member-api-endpoints: backlog
-  3-6-role-guards: backlog
-  3-7-team-members-list-ui: backlog
-  3-8-invite-member-dialog: backlog
+  3-4-email-invitation-system: done
+  3-5-member-api-endpoints: done
+  3-6-role-guards: done
+  3-7-team-members-list-ui: done
+  3-8-invite-member-dialog: done
   epic-3-members-roles-retrospective: optional
 
+  # EPIC 3.5: Non-Technical PM Support (P0) - 5 stories, ~8 days
+  # Status: ⬜ BACKLOG - Building block for role-based ticket creation
+  # Goal: Support both technical and non-technical PMs with optional Git access
+  # Key: Repository optional + dynamic agent conversations + ticket assignment
+  # Next: 3.5-1-repository-optional-flag
+  epic-3-5-non-technical-pm-support: backlog
+  3-5-1-repository-optional-flag: backlog
+  3-5-2-conditional-deep-analysis: backlog
+  3-5-3-step2-loader-messages: backlog
+  3-5-4-repository-checkbox-messaging: backlog
+  3-5-5-assign-ticket-to-developer: backlog
+  epic-3-5-non-technical-pm-support-retrospective: optional
+
   # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
-  # Status: IN PROGRESS - State machine complete
+  # Status: 🟡 IN PROGRESS - State machine complete (1/4 done)
+  # Next: 4-2-team-name-step
   epic-4-enhanced-onboarding: in-progress
   4-1-onboarding-state-machine: done
   4-2-team-name-step: backlog
@@ -87,32 +108,34 @@ development_status:
   epic-4-enhanced-onboarding-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
-  # PHASE 2 (Weeks 3-4): Team Collaboration (Members + Onboarding)
-  # ──────────────────────────────────────────────────────────────────────────
-
-  # ──────────────────────────────────────────────────────────────────────────
   # PHASE 3 (Weeks 5-6): CLI Foundation
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 5: CLI Foundation (P0) - 8 stories, ~14 days
-  # Status: NOT STARTED - Blocked by Epic 1 completion
+  # Status: ⬜ NOT STARTED - Blocked by Epic 3 completion
+  # Dependencies: Needs completed team/workspace APIs for authentication
+  # Key: Interactive ticket list with vim-like commands [e][r][c][b][q]
+  # UX: forge list → ↑↓ navigate → Enter view → [e] execute / [r] review
   epic-5-cli-foundation: backlog
   5-1-cli-project-setup: backlog
-  5-2-login-command: backlog
+  5-2-login-command-oauth: backlog
   5-3-logout-command: backlog
-  5-4-status-command: backlog
-  5-5-list-command: backlog
-  5-6-show-command: backlog
+  5-4-interactive-ticket-list: backlog
+  5-5-ticket-detail-view: backlog
+  5-6-action-handlers-stub: backlog
   5-7-config-management: backlog
-  5-8-error-handling: backlog
+  5-8-error-handling-offline: backlog
   epic-5-cli-foundation-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
   # PHASE 4 (Weeks 7-8): MCP Server
   # ──────────────────────────────────────────────────────────────────────────
 
-  # EPIC 6: MCP Server (P0) - 11 stories, ~15 days
-  # Status: NOT STARTED - Blocked by Epic 5 completion
+  # EPIC 6: MCP Server (P0) - 13 stories, ~20 days
+  # Status: ⬜ NOT STARTED - Blocked by Epic 5 completion
+  # Dependencies: CLI Foundation must be complete
+  # Key: BMAD agent integration for dynamic PM-Developer conversations
+  # UX: Developer presses [r] → BMAD agent asks dynamic questions → enriches ticket
   epic-6-mcp-server: backlog
   6-1-mcp-server-setup: backlog
   6-2-ticket-context-tool: backlog
@@ -125,6 +148,8 @@ development_status:
   6-9-agent-guide-reviewer: backlog
   6-10-mcp-integration-tests: backlog
   6-11-cli-mcp-plumbing: backlog
+  6-12-ticket-review-mcp-tools: backlog
+  6-13-bmad-review-agent: backlog
   epic-6-mcp-server-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -132,21 +157,25 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 7: Ticket Lifecycle (P1) - 9 stories, ~15 days
-  # Status: NOT STARTED - Blocked by Epic 6 completion
+  # Status: ⬜ NOT STARTED - Can start after Epic 3 complete (needs roles)
+  # Dependencies: Role-based authorization from Epic 3
+  # Key: Full PM→Dev→PM workflow with dynamic agent conversations
+  # Flow: PM creates → Dev reviews (CLI) → PM approves → Dev executes
   epic-7-ticket-lifecycle: backlog
   7-1-extend-aec-status-enum: backlog
   7-2-move-tickets-to-team-scope: backlog
-  7-3-add-questions-to-aec: backlog
-  7-4-questions-api: backlog
+  7-3-conversation-storage: backlog
+  7-4-conversation-api: backlog
   7-5-update-ticket-filters: backlog
-  7-6-questions-section-ui: backlog
-  7-7-approve-button: backlog
+  7-6-conversation-viewer-ui: backlog
+  7-7-approve-button-pm-only: backlog
   7-8-status-sync-web-cli: backlog
   7-9-ticket-creation-updates: backlog
   epic-7-ticket-lifecycle-retrospective: optional
 
   # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days
-  # Status: NOT STARTED - Can start anytime (parallel with other epics)
+  # Status: ⬜ NOT STARTED - Can start anytime (parallel with other epics)
+  # Note: Can be worked on incrementally alongside feature development
   epic-8-testing-documentation: backlog
   8-1-backend-unit-tests: backlog
   8-2-frontend-component-tests: backlog
@@ -161,7 +190,7 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 2: Workspace Management (Multi-Repo Support)
-  # Status: DEFERRED - Not needed for Teams + CLI + MCP MVP
+  # Status: 🔵 DEFERRED - Not needed for Teams + CLI + MCP MVP
   # Reason: Single repo per ticket is sufficient for MVP. Multi-repo support
   #         can be added later when PMs need to work on features spanning
   #         multiple repositories (e.g., frontend + backend + shared).

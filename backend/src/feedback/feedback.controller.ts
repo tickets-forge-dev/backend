@@ -8,7 +8,7 @@ import {
   Req,
   BadRequestException,
 } from '@nestjs/common';
-import { IsEnum, IsString, IsOptional, MaxLength, MinLength, Validate } from 'class-validator';
+import { IsEnum, IsString, IsOptional, MaxLength, MinLength } from 'class-validator';
 import { TelemetryService } from '@shared/infrastructure/posthog/telemetry.service';
 import type { Request } from 'express';
 

@@ -10,8 +10,8 @@
 
 import { Timestamp } from 'firebase-admin/firestore';
 import { TeamMember } from '../../domain/TeamMember';
-import { Role, RoleHelper } from '../../domain/Role';
-import { MemberStatus, MemberStatusHelper } from '../../domain/MemberStatus';
+import { RoleHelper } from '../../domain/Role';
+import { MemberStatusHelper } from '../../domain/MemberStatus';
 
 /**
  * Firestore document structure
