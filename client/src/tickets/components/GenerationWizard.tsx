@@ -28,7 +28,7 @@ import { Button } from '@/core/components/ui/button';
  * - Recovery detection on mount (resume after refresh/navigation)
  * - Overall wizard flow
  */
-export function GenerationWizard({ resumeId, initialType }: { resumeId?: string; initialType?: 'feature' | 'bug' | 'task' }) {
+export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId?: string; initialType?: 'feature' | 'bug' | 'task'; forceNew?: boolean }) {
   const router = useRouter();
   const {
     currentStage,
@@ -55,6 +55,13 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
 
+  // On mount: reset if forceNew is true (e.g., mode=new URL param)
+  useEffect(() => {
+    if (forceNew) {
+      reset();
+    }
+  }, [forceNew, reset]);
+
   // On mount: set initial type if provided
   useEffect(() => {
     if (initialType) {
@@ -64,7 +71,13 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
 
   // On mount: handle resume param or detect recoverable state
   // tryRecover only reads — it does NOT mutate store state
+  // Skip recovery check if forceNew is true
   useEffect(() => {
+    if (forceNew) {
+      // forceNew means start fresh, don't offer recovery
+      return;
+    }
+
     if (resumeId) {
       resumeDraft(resumeId);
       // Also show banner for resume URL param so user can start fresh if needed
@@ -83,7 +96,7 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
       setShowRecoveryBanner(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [forceNew]);
 
   const handleResume = useCallback(async () => {
     setShowRecoveryBanner(false);
