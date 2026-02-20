@@ -42,7 +42,7 @@ The CLI fits into the existing architecture as a third client alongside the Web 
 - **API layer:** Consumes the same NestJS REST endpoints used by the web client (`GET /teams`, `GET /tickets`, `GET /tickets/:id`, `PATCH /tickets/:id`). No new backend routes required for Epic 5 read commands.
 - **Config layer:** New — `~/.forge/config.json` is CLI-local. No web equivalent. Stores access/refresh tokens + current team/workspace context.
 - **MCP layer:** Empty stubs in Epic 5 (`forge review`, `forge execute` print instructions only). Full MCP integration added in Epic 6 using the `@modelcontextprotocol/sdk` package embedded inside the CLI process via stdio transport.
-- **Package location:** `packages/cli/` in monorepo, published as `@forge/cli`. Shares `packages/shared-types/` for AEC/ticket DTO types.
+- **Package location:** Standalone public GitHub repo `forge-cli` (separate from the private `forge` monorepo). Published as `@forge/cli` on npm. NOT a submodule — developed and cloned independently alongside the monorepo.
 - **Constraints:** CLI must work offline for `forge show` when a ticket was previously cached (graceful degradation); requires Node.js ≥ 20.
 
 ## Detailed Design
@@ -214,11 +214,13 @@ ApiService.get(path)
 
 ## Dependencies and Integrations
 
-**Internal dependencies (monorepo):**
+**Repo structure decision:** Standalone public repo (`github.com/your-org/forge-cli`), MIT licensed. Developed locally alongside the private `forge` monorepo — no submodule, no symlinks.
 
-| Package | Usage |
-|---------|-------|
-| `packages/shared-types` | AEC/ticket DTO types, AECStatus enum (must exist before 5-1) |
+**Shared types decision (MVP):** AEC/ticket DTO types are copied into `forge-cli/src/types/` and marked with `// TODO: replace with @forge/types when published (Epic 8)`. This avoids the need to publish a shared package before CLI development can start.
+
+**Local dev environment:** CLI reads `FORGE_API_URL` from env (default: `https://api.forge.app`). For local dev, create `.env.development` with `FORGE_API_URL=http://localhost:3000`.
+
+**Internal dependencies (monorepo):** None — standalone repo.
 
 **CLI runtime dependencies (to install):**
 
@@ -298,7 +300,7 @@ ApiService.get(path)
 - **Assumption:** `pnpm-workspace.yaml` already exists at repo root and just needs a new `packages/cli` entry.
 
 **Open Questions:**
-- **Q1:** CLI package name: `@forge/cli` (scoped) or `forge-cli` (unscoped)? → Needs decision before 5-1.
+- **Q1 RESOLVED:** CLI lives in standalone public repo `forge-cli`, published as `@forge/cli` (npm scoped). Shared types copied into CLI repo for MVP.
 - **Q2:** Should `forge list` filter to current team automatically (from config), or always show all teams? → Default: current team from config, `--all` flag expands to all.
 - **Q3:** What is the backend's expected Device Flow verification URL domain? (`forge.app/device` or local dev override?) → Needs backend contract before 5-2.
 - **Q4:** Should `forge show` attempt local caching for offline mode, or always require network? → Spec says graceful degradation with < 1h cache; confirm with product.

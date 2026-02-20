@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { FirestoreTeamMemberRepository } from '../../infrastructure/persistence/FirestoreTeamMemberRepository';
 import { GetUserTeamsUseCase } from './GetUserTeamsUseCase';
 import { Role } from '../../domain/Role';
