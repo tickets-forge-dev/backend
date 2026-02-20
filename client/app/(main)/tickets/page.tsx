@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
@@ -33,11 +32,6 @@ export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
   const { currentTeam } = useTeamStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusTab, setStatusTab] = useState<'all' | 'complete' | 'draft' | 'needs-resume'>(() => {
-    const saved = listPreferences?.statusTab as any;
-    const validTabs = ['all', 'complete', 'draft', 'needs-resume'];
-    return saved && validTabs.includes(saved) ? saved : 'all';
-  });
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(listPreferences?.typeFilter || 'all');
   const [showFilter, setShowFilter] = useState(false);
@@ -90,20 +84,13 @@ export default function TicketsListPage() {
           ticket.title.toLowerCase().includes(lowercaseSearch) ||
           ticket.description?.toLowerCase().includes(lowercaseSearch);
 
-        const ticketStatus = getTicketStatus(ticket);
-        const matchesStatus =
-          statusTab === 'all' ||
-          (statusTab === 'needs-resume' && ticketStatus === 'needs-resume') ||
-          (statusTab === 'complete' && ticketStatus === 'complete') ||
-          (statusTab === 'draft' && (ticketStatus === 'draft' || ticketStatus === 'in-progress'));
-
         const matchesPriority =
           priorityFilter === 'all' || ticket.priority === priorityFilter;
 
         const matchesType =
           typeFilter === 'all' || ticket.type === typeFilter;
 
-        return matchesSearch && matchesStatus && matchesPriority && matchesType;
+        return matchesSearch && matchesPriority && matchesType;
       })
       .sort((a, b) => {
         let comparison = 0;
@@ -132,7 +119,7 @@ export default function TicketsListPage() {
 
         return sortDirection === 'desc' ? comparison : -comparison;
       });
-  }, [allTickets, debouncedSearch, statusTab, priorityFilter, typeFilter, sortBy, sortDirection]);
+  }, [allTickets, debouncedSearch, priorityFilter, typeFilter, sortBy, sortDirection]);
 
   // Use grouping hook with saved preferences
   const { groups, collapsedGroups, toggleGroup } = useTicketGrouping(
@@ -143,23 +130,14 @@ export default function TicketsListPage() {
   // Save preferences when they change
   useEffect(() => {
     setListPreferences({
-      statusTab,
       sortBy,
       priorityFilter,
       typeFilter,
       collapsedGroups: Array.from(collapsedGroups),
     });
-  }, [statusTab, sortBy, priorityFilter, typeFilter, collapsedGroups, setListPreferences]);
+  }, [sortBy, priorityFilter, typeFilter, collapsedGroups, setListPreferences]);
 
-  // Calculate status counts
-  const statusCounts = {
-    all: allTickets.length,
-    'needs-resume': allTickets.filter(t => getTicketStatus(t) === 'needs-resume').length,
-    complete: allTickets.filter(t => getTicketStatus(t) === 'complete').length,
-    draft: allTickets.filter(t => getTicketStatus(t) === 'draft' || getTicketStatus(t) === 'in-progress').length,
-  };
-
-    const sortLabel = {
+  const sortLabel = {
       updated: 'Recently updated',
       created: 'Recently created',
       priority: 'Priority',
@@ -168,56 +146,18 @@ export default function TicketsListPage() {
 
     return (
       <div className="space-y-4 sm:space-y-6">
-      {/* Header with Status Tabs and Create Button */}
-      <div className="flex items-center justify-between gap-2 px-2 sm:px-0">
-        {/* Status Tabs - on mobile, takes available space */}
-        <Tabs value={statusTab} onValueChange={(value) => setStatusTab(value as typeof statusTab)} className="flex-1">
-          <div className="w-full overflow-x-auto pb-[17px]">
-            <div className="inline-block w-full md:w-auto">
-              <TabsList className="inline-flex !w-max gap-0 min-w-min">
-              <TabsTrigger value="all" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
-                All
-                <span className="ml-0.5 md:ml-1.5 text-[9px] md:text-[11px] font-medium text-[var(--text-tertiary)]">
-                  {statusCounts.all}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="needs-resume" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
-                <span className="hidden md:inline">Needs Resume</span>
-                <span className="md:hidden">Resume</span>
-                <span className="ml-0.5 md:ml-1.5 text-[9px] md:text-[11px] font-medium text-red-500">
-                  {statusCounts['needs-resume']}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="complete" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
-                Complete
-                <span className="ml-0.5 md:ml-1.5 text-[9px] md:text-[11px] font-medium text-[var(--text-tertiary)]">
-                  {statusCounts.complete}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="draft" className="relative text-xs md:text-sm whitespace-nowrap px-2 md:px-4 py-2">
-                Draft
-                <span className="ml-0.5 md:ml-1.5 text-[9px] md:text-[11px] font-medium text-[var(--text-tertiary)]">
-                  {statusCounts.draft}
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-        </div>
-        </Tabs>
-
-        {/* Create Button - aligned on right */}
-        <div className="flex-shrink-0">
-          {quota && !quota.canCreate ? (
-            <div className="relative group">
-              <CreationMenu disabled={true} />
-              <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
-                Ticket limit reached ({quota.used}/{quota.limit})
-              </div>
+      {/* Header with Create Button */}
+      <div className="flex items-center justify-end gap-2 px-2 sm:px-0">
+        {quota && !quota.canCreate ? (
+          <div className="relative group">
+            <CreationMenu disabled={true} />
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
+              Ticket limit reached ({quota.used}/{quota.limit})
             </div>
-          ) : (
-            <CreationMenu disabled={false} />
-          )}
-        </div>
+          </div>
+        ) : (
+          <CreationMenu disabled={false} />
+        )}
       </div>
 
       {/* Filter & Sort bar - Responsive */}
@@ -365,7 +305,7 @@ export default function TicketsListPage() {
       {!isLoading && !loadError && filteredTickets.length === 0 && (
         <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center mx-2 sm:mx-0">
           <div className="text-center px-4">
-            {searchQuery || statusTab !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' ? (
+            {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
               <>
                 <Search className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
                 <p className="text-sm text-[var(--text-secondary)]">No tickets found</p>

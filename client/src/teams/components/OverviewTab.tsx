@@ -52,7 +52,7 @@ export function OverviewTab({ team }: OverviewTabProps) {
           {/* Grid: Member Count + Created Date */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Member Count */}
-            <div className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--background-soft)] p-4">
+            <div className="flex items-start gap-3 rounded-lg border border-[var(--border)]/30 bg-[var(--background-soft)] p-4">
               <div className="rounded-full bg-[var(--primary)]/10 p-2">
                 <Users className="h-5 w-5 text-[var(--primary)]" />
               </div>
@@ -68,7 +68,7 @@ export function OverviewTab({ team }: OverviewTabProps) {
             </div>
 
             {/* Created Date */}
-            <div className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--background-soft)] p-4">
+            <div className="flex items-start gap-3 rounded-lg border border-[var(--border)]/30 bg-[var(--background-soft)] p-4">
               <div className="rounded-full bg-[var(--primary)]/10 p-2">
                 <Calendar className="h-5 w-5 text-[var(--primary)]" />
               </div>

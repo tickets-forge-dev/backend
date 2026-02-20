@@ -209,7 +209,7 @@ export function Stage1Input() {
           <MarkdownInput
             value={input.title}
             onChange={handleTitleChange}
-            placeholder="Add user authentication with Zustand (supports **bold**, *italic*, `code`)"
+            placeholder="e.g. As a user, I want to reset my password so that I can regain access to my account if I forget it."
             maxLength={500}
             rows={3}
             autoFocus={true}

@@ -40,7 +40,7 @@ import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort'
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectStackDetector';
-import { Inject, BadRequestException, ForbiddenException, Req } from '@nestjs/common';
+import { Inject, BadRequestException, ForbiddenException, Req, Query } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
@@ -358,10 +358,19 @@ export class TicketsController {
   }
 
   @Get()
-  async listTickets(@WorkspaceId() workspaceId: string) {
+  async listTickets(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Query('assignedToMe') assignedToMe?: string,
+  ) {
     const aecs = await this.aecRepository.findByWorkspace(workspaceId);
     this.logger.log(`[listTickets] workspaceId: ${workspaceId}, found ${aecs.length} tickets`);
-    return aecs.map((aec) => this.mapToResponse(aec));
+
+    const filtered = assignedToMe === 'true'
+      ? aecs.filter((aec) => aec.assignedTo === userId)
+      : aecs;
+
+    return filtered.map((aec) => this.mapToResponse(aec));
   }
 
   @Patch(':id')
@@ -890,6 +899,7 @@ export class TicketsController {
       maxRounds: aec.maxRounds,
       attachments: aec.attachments ?? [],
       designReferences: aec.designReferences ?? [],
+      assignedTo: aec.assignedTo ?? null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };
