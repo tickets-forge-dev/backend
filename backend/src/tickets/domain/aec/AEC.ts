@@ -380,6 +380,14 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  updateTitle(title: string): void {
+    if (!title || title.trim().length === 0) {
+      throw new Error('Title cannot be empty');
+    }
+    this._title = title.trim();
+    this._updatedAt = new Date();
+  }
+
   updateDescription(description: string): void {
     this._description = description;
     this._updatedAt = new Date();

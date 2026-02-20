@@ -369,6 +369,7 @@ export class TicketsController {
     try {
       const aec = await this.updateAECUseCase.execute({
         aecId: id,
+        title: dto.title,
         description: dto.description,
         acceptanceCriteria: dto.acceptanceCriteria,
         assumptions: dto.assumptions,

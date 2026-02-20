@@ -59,7 +59,7 @@ interface TicketsState {
   fetchQuota: () => Promise<void>;
   updateTicket: (
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
   ) => Promise<boolean>;
   deleteTicket: (id: string) => Promise<boolean>;
   assignTicket: (id: string, userId: string | null) => Promise<boolean>;
@@ -222,7 +222,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
 
   updateTicket: async (
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
   ) => {
     set({ isUpdating: true, updateError: null });
 

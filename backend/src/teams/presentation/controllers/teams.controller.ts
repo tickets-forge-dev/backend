@@ -177,7 +177,7 @@ export class TeamsController {
 
   /**
    * POST /teams/switch
-   * Switch current team
+   * Switch current team or to personal workspace (teamId: null)
    */
   @Post('switch')
   @HttpCode(HttpStatus.OK)
@@ -187,7 +187,7 @@ export class TeamsController {
 
       const result = await this.switchTeamUseCase.execute({
         userId,
-        teamId: dto.teamId,
+        teamId: dto.teamId ?? null,
       });
 
       return {

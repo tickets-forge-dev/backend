@@ -11,7 +11,7 @@ import { useTicketGrouping } from '@/tickets/hooks/useTicketGrouping';
 import { TicketGroupHeader } from '@/tickets/components/TicketGroupHeader';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus } from 'lucide-react';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
 type SortDirection = 'desc' | 'asc';
@@ -363,16 +363,31 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isLoading && !loadError && filteredTickets.length === 0 && (
-        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center rounded-lg bg-[var(--bg-hover)] mx-2 sm:mx-0">
+        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center mx-2 sm:mx-0">
           <div className="text-center px-4">
-            <p className="text-xs sm:text-[var(--text-base)] text-[var(--text-secondary)]">
-              {searchQuery || statusTab !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' ? 'No tickets found' : 'No tickets yet'}
-            </p>
-            <p className="mt-1 text-[10px] sm:text-[var(--text-sm)] text-[var(--text-tertiary)]">
-              {searchQuery || statusTab !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Create your first executable ticket to get started'}
-            </p>
+            {searchQuery || statusTab !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' ? (
+              <>
+                <Search className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                <p className="text-sm text-[var(--text-secondary)]">No tickets found</p>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                  Try adjusting your filters
+                </p>
+              </>
+            ) : (
+              <>
+                <FileText className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                <p className="text-base font-medium text-[var(--text)]">No tickets yet</p>
+                <p className="mt-1 text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
+                  Create your first executable ticket and let AI generate the technical spec
+                </p>
+                <Link href="/tickets/create">
+                  <Button className="mt-4" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Ticket
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

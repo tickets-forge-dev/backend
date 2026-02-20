@@ -43,7 +43,7 @@ export interface UpdateTeamRequest {
 }
 
 export interface SwitchTeamRequest {
-  teamId: string;
+  teamId: string | null;
 }
 
 export interface TeamMember {
