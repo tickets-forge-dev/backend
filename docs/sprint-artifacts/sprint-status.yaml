@@ -85,11 +85,11 @@ development_status:
   epic-3-members-roles-retrospective: optional
 
   # EPIC 3.5: Non-Technical PM Support (P0) - 5 stories, ~8 days
-  # Status: ⬜ BACKLOG - Building block for role-based ticket creation
+  # Status: 🟡 IN PROGRESS - Starting now (2026-02-19)
   # Goal: Support both technical and non-technical PMs with optional Git access
   # Key: Repository optional + dynamic agent conversations + ticket assignment
   # Next: 3.5-1-repository-optional-flag
-  epic-3-5-non-technical-pm-support: backlog
+  epic-3-5-non-technical-pm-support: in-progress
   3-5-1-repository-optional-flag: backlog
   3-5-2-conditional-deep-analysis: backlog
   3-5-3-step2-loader-messages: backlog
@@ -98,13 +98,13 @@ development_status:
   epic-3-5-non-technical-pm-support-retrospective: optional
 
   # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
-  # Status: ✅ REVIEW - All 4 stories complete, awaiting final review
-  # Completed: Onboarding state machine, team name step, role selection, auth flow integration
-  epic-4-enhanced-onboarding: review
-  4-1-onboarding-state-machine: review
-  4-2-team-name-step: review
-  4-3-role-selection-step: review
-  4-4-auth-flow-integration: review
+  # Status: ✅ DONE - All 4 stories complete (2026-02-19)
+  # Completed: Dark theme for auth/onboarding, team name step, role selection with backend save, role clarity in settings
+  epic-4-enhanced-onboarding: done
+  4-1-onboarding-state-machine: done
+  4-2-team-name-step: done
+  4-3-role-selection-step: done
+  4-4-auth-flow-integration: done
   epic-4-enhanced-onboarding-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────

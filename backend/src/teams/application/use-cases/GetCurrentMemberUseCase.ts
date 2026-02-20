@@ -10,6 +10,7 @@ export interface GetCurrentMemberResult {
   id: string;
   userId: string;
   teamId: string;
+  teamName: string;
   email: string;
   displayName?: string;
   role: string;
@@ -49,10 +50,20 @@ export class GetCurrentMemberUseCase {
       throw new NotFoundException('Team member record not found');
     }
 
+    // Get team name from the teams result
+    const currentTeam = teamsResult.teams.find(
+      (team) => team.id === teamsResult.currentTeamId,
+    );
+
+    if (!currentTeam) {
+      throw new NotFoundException('Current team not found');
+    }
+
     return {
       id: member.id,
       userId: member.userId,
       teamId: member.teamId,
+      teamName: currentTeam.name,
       email: member.email,
       displayName: member.displayName,
       role: member.role,

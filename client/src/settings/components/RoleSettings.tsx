@@ -23,6 +23,7 @@ const roleDescriptions: Record<Role, string> = {
 
 export function RoleSettings() {
   const [currentRole, setCurrentRole] = useState<Role | null>(null);
+  const [teamName, setTeamName] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +64,7 @@ export function RoleSettings() {
       console.log('Loaded member data:', data);
       setCurrentRole(data.role as Role);
       setSelectedRole(data.role as Role);
+      setTeamName(data.teamName || '');
     } catch (err: any) {
       console.error('Failed to load role:', err);
       setError(err.message || 'Failed to load role');
@@ -150,7 +152,10 @@ export function RoleSettings() {
                 {roleLabels[currentRole]}
               </div>
               <div className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-                {roleDescriptions[currentRole]}
+                {currentRole === 'admin'
+                  ? `Admin of ${teamName} — Team owner with full permissions`
+                  : roleDescriptions[currentRole]
+                }
               </div>
             </>
           ) : (
