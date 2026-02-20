@@ -149,10 +149,6 @@ export class TicketsController {
     @Body() dto: AnalyzeRepositoryDto,
     @Res() res: Response,
   ) {
-    this.logger.log(
-      `Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`,
-    );
-
     // Set SSE headers and start streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -162,6 +158,26 @@ export class TicketsController {
     const send = (data: Record<string, any>) => {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
+
+    // Story 3.5-2: Handle no-repository case (skip analysis)
+    if (!dto.owner || !dto.repo || dto.owner === '' || dto.repo === '') {
+      this.logger.log(
+        `No repository provided for ticket "${dto.title}" — skipping analysis`,
+      );
+
+      send({
+        phase: 'complete',
+        message: 'No repository selected — analysis skipped',
+        percent: 100,
+        result: { context: null },
+      });
+      res.end();
+      return;
+    }
+
+    this.logger.log(
+      `Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`,
+    );
 
     try {
       // 1. Auth: fetch integration, decrypt token, create Octokit
