@@ -812,6 +812,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           </Badge>
         )}
 
+        {/* No code analysis indicator (AC#3: shown when no repository provided) */}
+        {!currentTicket.repositoryContext && (
+          <span className="text-xs text-[var(--text-secondary)]">No code analysis</span>
+        )}
+
         {/* Spacer */}
         <div className="flex-1" />
 

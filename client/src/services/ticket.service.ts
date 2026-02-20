@@ -55,6 +55,14 @@ export interface AECResponse {
   externalIssue?: { platform: 'linear' | 'jira'; issueId: string; issueUrl: string } | null;
   attachments?: AttachmentResponse[];
   designReferences?: any[]; // DesignReference[] from @repo/shared-types
+  // Repository context (null if ticket created without repository)
+  repositoryContext?: {
+    repositoryFullName: string; // "owner/repo"
+    branchName: string;
+    commitSha: string;
+    isDefaultBranch: boolean;
+    selectedAt: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
