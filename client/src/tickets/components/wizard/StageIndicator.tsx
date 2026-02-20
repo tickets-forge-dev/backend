@@ -9,8 +9,14 @@ import React from 'react';
  * - Current stage progress (1/4, 2/4, etc.)
  * - Visual indicators (4 circles/boxes)
  * - Current stage highlighted/filled
+ * - Optional Next button inline with progress
  */
-export function StageIndicator({ currentStage }: { currentStage: number }) {
+interface StageIndicatorProps {
+  currentStage: number;
+  nextButton?: React.ReactNode;
+}
+
+export function StageIndicator({ currentStage, nextButton }: StageIndicatorProps) {
   // Map internal stage numbers (1, 3, 4) to display numbers (1, 2, 3) - Stage 2 (context) is skipped
   const stageMap: Record<number, number> = { 1: 1, 3: 2, 4: 3 };
   const displayStage = stageMap[currentStage] || 1;
@@ -24,13 +30,16 @@ export function StageIndicator({ currentStage }: { currentStage: number }) {
   return (
     <div className="space-y-3">
       {/* Progress Summary */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h3 className="text-sm font-medium text-[var(--text)]">
           Stage {displayStage} of 3
         </h3>
-        <p className="text-sm text-[var(--text-secondary)]">
-          {Math.round((displayStage / 3) * 100)}% complete
-        </p>
+        <div className="flex items-center gap-3">
+          {nextButton}
+          <p className="text-sm text-[var(--text-secondary)]">
+            {Math.round((displayStage / 3) * 100)}% complete
+          </p>
+        </div>
       </div>
 
       {/* Steps with aligned labels */}

@@ -9,6 +9,7 @@ import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
 import { FirstTicketCelebrationDialog } from '@/core/components/celebration/FirstTicketCelebrationDialog';
+import { Button } from '@/core/components/ui/button';
 
 /**
  * GenerationWizard Container Component
@@ -45,6 +46,9 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
     draftAecId,
     showCelebration,
     closeCelebration,
+    input,
+    includeRepository,
+    analyzeRepository,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -101,13 +105,41 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
     }
   }, [reset, resumeId, router]);
 
+  // Create Next button for current stage
+  const getNextButton = () => {
+    if (currentStage === 1) {
+      // Stage 1: Input validation
+      const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
+      const isTitleValid = wordCount >= 2 && input.title.length <= 500;
+      const isRepoValid = !includeRepository || (input.repoOwner.length > 0 && input.repoName.length > 0);
+      const isFormValid = isTitleValid && isRepoValid;
+
+      return (
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            if (isFormValid) {
+              analyzeRepository();
+            }
+          }}
+          disabled={!isFormValid || loading}
+          size="sm"
+        >
+          {loading ? 'Analyzing...' : 'Next'}
+        </Button>
+      );
+    }
+    // Add other stages as needed
+    return null;
+  };
+
   return (
     <div className="relative w-full h-full bg-white dark:bg-gray-950">
       {/* Stage Indicator - Hide after ticket is created */}
       {!draftAecId && (
         <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
-            <StageIndicator currentStage={currentStage} />
+            <StageIndicator currentStage={currentStage} nextButton={getNextButton()} />
           </div>
         </div>
       )}

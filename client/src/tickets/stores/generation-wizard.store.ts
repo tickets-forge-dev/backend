@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound } from '@/types/question-refinement';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { auth } from '@/lib/firebase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -17,6 +18,7 @@ interface WizardSnapshot {
   maxRounds: number;
   context: WizardState['context'];
   timestamp: number;
+  includeRepository: boolean; // AC#3: Persist repository inclusion preference
 }
 
 function saveSnapshot(state: WizardState): void {
@@ -30,6 +32,7 @@ function saveSnapshot(state: WizardState): void {
       maxRounds: state.maxRounds,
       context: state.context,
       timestamp: Date.now(),
+      includeRepository: state.includeRepository, // AC#3: Persist repository inclusion
     };
     localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
@@ -144,6 +147,10 @@ export interface WizardState {
   };
   type: string;
   priority: string;
+
+  // AC#3: Repository inclusion flag (default: true for backward compatibility)
+  includeRepository: boolean;
+
   context: {
     stack: any;
     analysis: any;
@@ -202,6 +209,7 @@ export interface WizardActions {
   setRepository: (owner: string, name: string) => void;
   setType: (type: string) => void;
   setPriority: (priority: string) => void;
+  setIncludeRepository: (include: boolean) => void; // AC#3: Toggle repository inclusion
 
   // Context stage
   analyzeRepository: () => Promise<void>;
@@ -279,6 +287,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   },
   type: 'feature',
   priority: 'low',
+  // AC#3: Default based on GitHub connection status
+  // If GitHub not connected, default to false (PMs without GitHub shouldn't see repo as default)
+  // If GitHub connected, default to true (backward compatibility for developers)
+  includeRepository: useSettingsStore.getState().githubConnected,
   context: null,
   spec: null,
   answers: {},
@@ -364,6 +376,9 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
   setPriority: (priority: string) => set({ priority }),
 
+  // AC#3: Toggle repository inclusion
+  setIncludeRepository: (include: boolean) => set({ includeRepository: include }),
+
   // ============================================================================
   // RECOVERY
   // ============================================================================
@@ -446,6 +461,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         priority: snapshot.priority,
         maxRounds: snapshot.maxRounds,
         context: snapshot.context,
+        includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference (default true)
       });
       return;
     }
@@ -456,6 +472,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         input: snapshot.input,
         type: snapshot.type,
         priority: snapshot.priority,
+        includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference
       });
     }
   },
@@ -1305,6 +1322,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       },
       type: 'feature',
       priority: 'low',
+      includeRepository: true, // AC#3: Reset to default (true)
       context: null,
       spec: null,
       answers: {},
