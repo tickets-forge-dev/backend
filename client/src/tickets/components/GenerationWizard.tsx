@@ -138,6 +138,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           }}
           disabled={!isFormValid || loading}
           size="sm"
+          className="min-w-[96px]"
         >
           {loading ? 'Analyzing...' : 'Next'}
         </Button>

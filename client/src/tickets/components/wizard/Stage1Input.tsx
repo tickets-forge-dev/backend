@@ -9,7 +9,7 @@ import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
-import { Lightbulb, Bug, ClipboardList } from 'lucide-react';
+import { Lightbulb, Bug, ClipboardList, Github, Paperclip } from 'lucide-react';
 import { RepositorySelector } from '../RepositorySelector';
 import { RepositoryToggle } from '../RepositoryToggle'; // AC#1: Import toggle component
 import { BranchSelector } from '../BranchSelector';
@@ -238,6 +238,7 @@ export function Stage1Input() {
                   value="context"
                   className="flex-1 rounded-none border-b-2 border-transparent py-3 text-xs font-medium uppercase tracking-wide data-[state=active]:border-blue-500 data-[state=active]:text-gray-900 data-[state=active]:dark:text-gray-100"
                 >
+                  <Github className="w-3.5 h-3.5 mr-1.5" />
                   Codebase to Scan
                 </TabsTrigger>
               )}
@@ -245,6 +246,7 @@ export function Stage1Input() {
                 value="materials"
                 className="flex-1 rounded-none border-b-2 border-transparent py-3 text-xs font-medium uppercase tracking-wide data-[state=active]:border-blue-500 data-[state=active]:text-gray-900 data-[state=active]:dark:text-gray-100"
               >
+                <Paperclip className="w-3.5 h-3.5 mr-1.5" />
                 Reference Materials
               </TabsTrigger>
             </TabsList>

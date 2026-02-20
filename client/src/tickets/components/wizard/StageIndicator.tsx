@@ -36,9 +36,6 @@ export function StageIndicator({ currentStage, nextButton }: StageIndicatorProps
         </h3>
         <div className="flex items-center gap-3">
           {nextButton}
-          <p className="text-sm text-[var(--text-secondary)]">
-            {Math.round((displayStage / 3) * 100)}% complete
-          </p>
         </div>
       </div>
 
