@@ -85,13 +85,13 @@ development_status:
   epic-3-members-roles-retrospective: optional
 
   # EPIC 3.5: Non-Technical PM Support (P0) - 5 stories, ~8 days
-  # Status: 🟡 IN PROGRESS - Starting now (2026-02-19)
+  # Status: 🟡 IN PROGRESS - 3 of 5 stories complete (2026-02-19)
   # Goal: Support both technical and non-technical PMs with optional Git access
   # Key: Repository optional + dynamic agent conversations + ticket assignment
-  # Next: 3.5-2-conditional-deep-analysis
+  # Next: 3.5-4-repository-checkbox-messaging
   epic-3-5-non-technical-pm-support: in-progress
   3-5-1-repository-optional-flag: done
-  3-5-2-conditional-deep-analysis: drafted
+  3-5-2-conditional-deep-analysis: done
   3-5-3-step2-loader-messages: done
   3-5-4-repository-checkbox-messaging: drafted
   3-5-5-assign-ticket-to-developer: drafted
