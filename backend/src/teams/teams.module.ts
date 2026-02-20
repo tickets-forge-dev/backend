@@ -79,6 +79,7 @@ import { InviteTokenService } from './application/services/InviteTokenService';
   exports: [
     FirestoreTeamRepository,
     FirestoreTeamMemberRepository,
+    'TeamMemberRepository', // Story 3.5-5: Export for AssignTicketUseCase
     FirestoreUserRepository,
     GetUserTeamsUseCase,
   ],

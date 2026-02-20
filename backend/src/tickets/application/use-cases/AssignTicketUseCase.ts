@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
-import { AECRepository } from '../ports/AECRepository';
+import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { TeamMemberRepository } from '../../../teams/application/ports/TeamMemberRepository';
 import { Role } from '../../../teams/domain/Role';
 
@@ -21,6 +21,7 @@ export interface AssignTicketCommand {
 @Injectable()
 export class AssignTicketUseCase {
   constructor(
+    @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
     @Inject('TeamMemberRepository')
     private readonly teamMemberRepository: TeamMemberRepository,
