@@ -67,7 +67,7 @@ export function RepositoryToggle() {
               <div className="absolute left-0 top-6 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg p-3 text-xs text-[var(--text-secondary)] leading-relaxed">
                   Repository analysis enables AI to suggest specific files and APIs to modify.
-                  Without it, you'll get a high-level spec that developers can determine implementation details for.
+                  Without it, you&apos;ll get a high-level spec that developers can determine implementation details for.
                 </div>
               </div>
             </div>

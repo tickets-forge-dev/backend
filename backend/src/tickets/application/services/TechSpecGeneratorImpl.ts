@@ -17,7 +17,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { createOllamaProvider } from '../../../shared/infrastructure/mastra/providers/ollama.provider';
 import { randomUUID } from 'crypto';
 import { DesignContextPromptBuilder } from './DesignContextPromptBuilder';
 import {
@@ -460,14 +459,12 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   private static readonly DEFINITIVE_MARKERS = ['will', 'must', 'shall', 'is', 'are'];
 
   constructor(private configService: ConfigService) {
-    const nodeEnv = this.configService.get<string>('NODE_ENV');
-    const defaultProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
-    const provider = this.configService.get<string>('LLM_PROVIDER') || defaultProvider;
+    const provider = this.configService.get<string>('LLM_PROVIDER') || 'anthropic';
 
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       const modelId =
-        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-5-haiku-20241022';
+        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
@@ -477,11 +474,9 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
         this.providerName = 'mock (ANTHROPIC_API_KEY not set)';
       }
     } else {
-      // Ollama (default) — local, free
-      const modelId = this.configService.get<string>('OLLAMA_MODEL') || 'qwen2.5-coder:latest';
-      const ollamaProvider = createOllamaProvider();
-      this.llmModel = ollamaProvider.chat(modelId);
-      this.providerName = `Ollama (${modelId})`;
+      // Fallback: require Anthropic
+      this.llmModel = null;
+      this.providerName = 'none (LLM_PROVIDER must be anthropic)';
     }
 
     this.logger.log(`LLM ready: ${this.providerName}`);

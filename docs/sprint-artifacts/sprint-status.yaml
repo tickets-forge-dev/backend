@@ -1,4 +1,4 @@
-# generated: 2026-02-18
+# generated: 2026-02-20
 # project: forge
 # project_key: FORGE
 # tracking_system: file-system
@@ -85,16 +85,15 @@ development_status:
   epic-3-members-roles-retrospective: optional
 
   # EPIC 3.5: Non-Technical PM Support (P0) - 5 stories, ~8 days
-  # Status: 🟡 IN PROGRESS - 4 of 5 stories complete (2026-02-19)
+  # Status: ✅ DONE - All 5 stories complete (2026-02-20)
   # Goal: Support both technical and non-technical PMs with optional Git access
   # Key: Repository optional + dynamic agent conversations + ticket assignment
-  # Next: 3.5-5-assign-ticket-to-developer (final story!)
-  epic-3-5-non-technical-pm-support: in-progress
+  epic-3-5-non-technical-pm-support: done
   3-5-1-repository-optional-flag: done
   3-5-2-conditional-deep-analysis: done
   3-5-3-step2-loader-messages: done
   3-5-4-repository-checkbox-messaging: done
-  3-5-5-assign-ticket-to-developer: drafted
+  3-5-5-assign-ticket-to-developer: done
   epic-3-5-non-technical-pm-support-retrospective: optional
 
   # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days

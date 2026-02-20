@@ -71,9 +71,14 @@ export class TeamsController {
   async createTeam(@Request() req: any, @Body() dto: CreateTeamDto) {
     try {
       const userId = req.user.uid;
+      // Firebase token includes email and name for auto-creating user if needed
+      const userEmail = req.user.email || '';
+      const userDisplayName = req.user.name || req.user.displayName;
 
       const result = await this.createTeamUseCase.execute({
         userId,
+        userEmail,
+        userDisplayName,
         teamName: dto.name,
         allowMemberInvites: dto.allowMemberInvites,
       });

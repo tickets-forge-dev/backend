@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebase';
 import { TeamService, type TeamMember } from '@/services/team.service';
+import { useTeamStore } from '@/teams/stores/team.store';
 import {
   Select,
   SelectContent,
@@ -12,16 +13,12 @@ import {
 } from '@/core/components/ui/select';
 
 interface AssigneeSelectorProps {
-  ticketId: string;
-  workspaceId: string;
   assignedTo: string | null;
   onAssign: (userId: string | null) => Promise<boolean>;
   disabled?: boolean;
 }
 
 export function AssigneeSelector({
-  ticketId,
-  workspaceId,
   assignedTo,
   onAssign,
   disabled = false,
@@ -29,10 +26,20 @@ export function AssigneeSelector({
   const [developers, setDevelopers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get current team ID from team store (not workspaceId which has different prefix)
+  const currentTeamId = useTeamStore((state) => state.currentTeamId);
 
   // Fetch team members on mount
   useEffect(() => {
     const fetchDevelopers = async () => {
+      // Need a valid team ID to fetch members
+      if (!currentTeamId) {
+        setIsLoading(false);
+        setError('No team selected');
+        return;
+      }
+      
       try {
         setIsLoading(true);
         setError(null);
@@ -45,8 +52,8 @@ export function AssigneeSelector({
         const idToken = await user.getIdToken();
         const teamService = new TeamService();
 
-        // Note: workspaceId = teamId (Epic 2 deferred)
-        const members = await teamService.getTeamMembers(workspaceId, idToken);
+        // Use currentTeamId (team_...) instead of workspaceId (ws_...)
+        const members = await teamService.getTeamMembers(currentTeamId, idToken);
 
         // Filter: Only ACTIVE members with DEVELOPER role (business rule)
         const activeDevelopers = members.filter(
@@ -62,7 +69,7 @@ export function AssigneeSelector({
     };
 
     fetchDevelopers();
-  }, [workspaceId]);
+  }, [currentTeamId]);
 
   const handleAssign = async (value: string) => {
     // "unassigned" special value = null

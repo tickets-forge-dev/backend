@@ -49,6 +49,7 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
     input,
     includeRepository,
     analyzeRepository,
+    hasRepository,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -187,6 +188,7 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
           currentPhase={currentPhase}
           message={loadingMessage}
           percent={progressPercent}
+          hasRepository={hasRepository}
         />
       )}
 

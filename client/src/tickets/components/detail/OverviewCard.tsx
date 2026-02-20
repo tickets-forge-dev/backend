@@ -41,8 +41,6 @@ export function OverviewCard({
       {/* Assignment Section - Story 3.5-5 */}
       <div className="p-4">
         <AssigneeSelector
-          ticketId={ticket.id}
-          workspaceId={ticket.workspaceId}
           assignedTo={ticket.assignedTo}
           onAssign={onAssignTicket}
         />
