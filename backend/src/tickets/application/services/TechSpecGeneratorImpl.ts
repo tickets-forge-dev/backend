@@ -725,11 +725,37 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
    */
   async generateSolution(
     problem: ProblemStatement,
-    context: CodebaseContext,
+    context: CodebaseContext | null,  // AC#2: Null when no repository provided
   ): Promise<SolutionSection> {
     try {
-      const systemPrompt = PromptTemplates.systemPrompt(context);
-      const userPrompt = PromptTemplates.solutionPrompt(problem, context, context.files);
+      // AC#2: Use appropriate prompts based on context availability
+      const systemPrompt = context
+        ? PromptTemplates.systemPrompt(context)
+        : 'You are a senior product manager helping to define technical solutions. Focus on high-level solution approach and implementation steps.';
+
+      const userPrompt = context
+        ? PromptTemplates.solutionPrompt(problem, context, context.files)
+        : `Based on the problem statement, generate a high-level solution.
+
+Problem: ${problem.narrative}
+
+Generate valid JSON object:
+{
+  "overview": "High-level solution approach (2-3 sentences)",
+  "steps": [
+    {
+      "description": "Implementation step description",
+      "file": "(optional) file path if known",
+      "lineNumbers": [0, 0],
+      "codeSnippet": "(optional) pseudocode or example"
+    }
+  ],
+  "fileChanges": {
+    "create": [],
+    "modify": [],
+    "delete": []
+  }
+}`;
 
       const response = await this.callLLM(systemPrompt, userPrompt);
       const parsed = this.parseJSON<SolutionSection>(response);
@@ -1620,33 +1646,57 @@ Rewritten text (definitive, unambiguous):`;
    * - API Changes (0-5): endpoint documentation completeness
    */
   calculateQualityScore(spec: TechSpec): number {
+    // AC#3: Detect if this is a spec without repository context
+    const hasRepository = spec.fileChanges.length > 0 || spec.testPlan !== null || spec.layeredFileChanges !== null;
+
     let score = 0;
+    let maxScore = 0;
 
     // Problem Statement (0-20)
-    score += this.scoreProblemStatement(spec.problemStatement);
+    const problemScore = this.scoreProblemStatement(spec.problemStatement);
+    score += problemScore;
+    maxScore += 20;
 
     // Solution (0-25)
-    score += this.scoreSolution(spec.solution);
+    const solutionScore = this.scoreSolution(spec.solution);
+    score += solutionScore;
+    maxScore += 25;
 
     // Acceptance Criteria (0-15)
-    score += this.scoreAcceptanceCriteria(spec.acceptanceCriteria);
-
-    // File Changes (0-10)
-    score += this.scoreFileChanges(spec.fileChanges);
+    const acScore = this.scoreAcceptanceCriteria(spec.acceptanceCriteria);
+    score += acScore;
+    maxScore += 15;
 
     // Ambiguity (0-10)
-    score += this.scoreAmbiguity(spec);
+    const ambiguityScore = this.scoreAmbiguity(spec);
+    score += ambiguityScore;
+    maxScore += 10;
 
-    // Epic 20: Test Plan (0-10)
-    if (spec.testPlan) score += this.scoreTestPlan(spec.testPlan);
+    // AC#3: Only score repository-dependent sections when repository provided
+    if (hasRepository) {
+      // File Changes (0-10)
+      score += this.scoreFileChanges(spec.fileChanges);
+      maxScore += 10;
 
-    // Epic 20: Layer Categorization (0-5)
-    if (spec.layeredFileChanges) score += this.scoreLayerCategorization(spec.layeredFileChanges);
+      // Epic 20: Test Plan (0-10)
+      if (spec.testPlan) score += this.scoreTestPlan(spec.testPlan);
+      maxScore += 10;
 
-    // Epic 20: API Changes (0-5)
-    if (spec.apiChanges) score += this.scoreApiChanges(spec.apiChanges);
+      // Epic 20: Layer Categorization (0-5)
+      if (spec.layeredFileChanges) score += this.scoreLayerCategorization(spec.layeredFileChanges);
+      maxScore += 5;
 
-    return Math.min(100, Math.max(0, score));
+      // Epic 20: API Changes (0-5)
+      if (spec.apiChanges) score += this.scoreApiChanges(spec.apiChanges);
+      maxScore += 5;
+    }
+
+    // AC#3: Re-normalize score to 0-100 scale based on available sections
+    // If no repository: maxScore = 70 (20+25+15+10), scale proportionally to 100
+    // If with repository: maxScore = 100, use as-is
+    const normalizedScore = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+    return Math.min(100, Math.max(0, Math.round(normalizedScore)));
   }
 
   /**
@@ -2077,16 +2127,21 @@ Rewritten text (definitive, unambiguous):`;
    *
    * Used in iterative refinement workflow for Rounds 1, 2, and 3.
    * Returns dynamic number of questions based on round and prior answers.
+   * AC#2: Accepts null context for tickets without repository.
    */
   async generateQuestionsWithContext(input: {
     title: string;
     description?: string;
-    context: CodebaseContext;
+    context: CodebaseContext | null;  // AC#2: Null when no repository provided
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>;
     roundNumber: number;
   }): Promise<ClarificationQuestion[]> {
     try {
-      const systemPrompt = PromptTemplates.systemPrompt(input.context);
+      // AC#2: Use appropriate system prompt based on context availability
+      const systemPrompt = input.context
+        ? PromptTemplates.systemPrompt(input.context)
+        : 'You are a senior product manager helping to clarify requirements for a technical specification. Focus on high-level requirements, acceptance criteria, and scope.';
+
       const userPrompt = this.buildQuestionsWithContextPrompt(
         input.title,
         input.description,
@@ -2177,15 +2232,17 @@ Rewritten text (definitive, unambiguous):`;
   async generateWithAnswers(input: {
     title: string;
     description?: string;
-    context: CodebaseContext;
+    context: CodebaseContext | null;  // AC#2: Null when no repository provided
     answers: Array<{ questionId: string; answer: string | string[] }>;
     ticketType?: 'feature' | 'bug' | 'task';
     reproductionSteps?: any[];
   }): Promise<TechSpec> {
     try {
-      const context: CodebaseContext = input.context;
+      const context = input.context;
+      const hasRepository = context !== null;
 
       // Generate each section with answer context
+      // AC#2: When no repository, pass null and skip code-specific generation
       const problemStatement = await this.generateProblemStatementWithAnswers(
         input.title,
         input.description || '',
@@ -2195,49 +2252,52 @@ Rewritten text (definitive, unambiguous):`;
 
       const solution = await this.generateSolution(problemStatement, context);
 
-      const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all([
-        this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
-        this.generateFileChanges(solution, context),
-        this.generateScope(input.title, input.description || '', true),
-        this.generateScope(input.title, input.description || '', false),
-        this.extractApiChanges(context),
-        this.detectDependencies(input.title, input.description || '', solution, context),
-      ]);
+      // AC#2: Generate code-specific sections only when repository provided
+      if (hasRepository) {
+        const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all([
+          this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
+          this.generateFileChanges(solution, context),
+          this.generateScope(input.title, input.description || '', true),
+          this.generateScope(input.title, input.description || '', false),
+          this.extractApiChanges(context),
+          this.detectDependencies(input.title, input.description || '', solution, context),
+        ]);
 
-      // Generate sections that depend on fileChanges (parallel)
-      const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
-        this.generateTestPlan(solution, acceptanceCriteria, fileChanges, input.context),
-        this.categorizeFilesByLayer(fileChanges, input.context),
-        this.generateVisualExpectations(
+        // Generate sections that depend on fileChanges (parallel)
+        // Note: We're inside hasRepository check, so context is guaranteed non-null
+        const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
+          this.generateTestPlan(solution, acceptanceCriteria, fileChanges, context),
+          this.categorizeFilesByLayer(fileChanges, context),
+          this.generateVisualExpectations(
+            solution,
+            acceptanceCriteria,
+            fileChanges,
+            apiChanges,
+            context,
+          ),
+        ]);
+
+        // Assemble final tech spec (WITH repository)
+        const techSpec: TechSpec = {
+          id: randomUUID(),
+          title: input.title,
+          createdAt: new Date(),
+          problemStatement,
           solution,
+          inScope,
+          outOfScope,
           acceptanceCriteria,
+          clarificationQuestions: [], // No more clarification needed
           fileChanges,
+          qualityScore: 0,
+          ambiguityFlags: [],
+          stack: this.resolveStack(context),
           apiChanges,
-          input.context,
-        ),
-      ]);
-
-      // Assemble final tech spec
-      const techSpec: TechSpec = {
-        id: randomUUID(),
-        title: input.title,
-        createdAt: new Date(),
-        problemStatement,
-        solution,
-        inScope,
-        outOfScope,
-        acceptanceCriteria,
-        clarificationQuestions: [], // No more clarification needed
-        fileChanges,
-        qualityScore: 0,
-        ambiguityFlags: [],
-        stack: this.resolveStack(context),
-        apiChanges,
-        layeredFileChanges,
-        testPlan,
-        visualExpectations,
-        dependencies: dependencies && dependencies.length > 0 ? dependencies : undefined, // Only include if dependencies exist
-      };
+          layeredFileChanges,
+          testPlan,
+          visualExpectations,
+          dependencies: dependencies && dependencies.length > 0 ? dependencies : undefined, // Only include if dependencies exist
+        };
 
       // Bug-specific analysis: runs in parallel with other sections, non-blocking
       if (input.ticketType === 'bug' && input.reproductionSteps && input.reproductionSteps.length > 0) {
@@ -2263,6 +2323,43 @@ Rewritten text (definitive, unambiguous):`;
       techSpec.qualityScore = this.calculateQualityScore(techSpec);
 
       return techSpec;
+    } else {
+      // AC#2: High-level spec WITHOUT repository (PM without GitHub access)
+      const [acceptanceCriteria, inScope, outOfScope] = await Promise.all([
+        this.generateAcceptanceCriteriaWithAnswers(null, input.answers),
+        this.generateScope(input.title, input.description || '', true),
+        this.generateScope(input.title, input.description || '', false),
+      ]);
+
+      const techSpec: TechSpec = {
+        id: randomUUID(),
+        title: input.title,
+        createdAt: new Date(),
+        problemStatement,
+        solution,
+        inScope,
+        outOfScope,
+        acceptanceCriteria,
+        clarificationQuestions: [],
+        fileChanges: [],  // AC#2: Empty when no repository
+        qualityScore: 0,
+        ambiguityFlags: [],
+        stack: undefined,  // AC#2: No tech stack when no repository
+        apiChanges: { endpoints: [] },  // AC#2: No API changes when no repository
+        layeredFileChanges: undefined,  // AC#2: No layered changes when no repository
+        testPlan: undefined,  // AC#2: No test plan when no repository
+        visualExpectations: undefined,  // AC#2: No visual expectations when no repository
+        dependencies: undefined,
+      };
+
+      // Detect ambiguities
+      techSpec.ambiguityFlags = this.detectAmbiguities(techSpec);
+
+      // AC#3: Quality score calculation adapts to missing repository context
+      techSpec.qualityScore = this.calculateQualityScore(techSpec);
+
+      return techSpec;
+    }
     } catch (error) {
       throw new Error(`Failed to generate spec with answers: ${String(error)}`);
     }
@@ -2270,13 +2367,14 @@ Rewritten text (definitive, unambiguous):`;
 
   /**
    * Builds prompt for generating questions with context from prior rounds
+   * AC#2: Accepts null context for tickets without repository
    */
   private buildQuestionsWithContextPrompt(
     title: string,
     description: string | undefined,
     roundNumber: number,
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>,
-    context?: CodebaseContext,
+    context?: CodebaseContext | null,  // AC#2: Can be null when no repository
   ): string {
     const priorAnswersText =
       priorAnswers.length > 0
@@ -2376,7 +2474,7 @@ Return [] if:
    * Builds a text block describing detected APIs for injection into prompts.
    * Returns empty string if no API data is available.
    */
-  private buildApiContextBlock(context?: CodebaseContext): string {
+  private buildApiContextBlock(context?: CodebaseContext | null): string {
     if (!context?.taskAnalysis?.apiChanges) return '';
 
     const apiChanges = context.taskAnalysis.apiChanges;
@@ -2471,11 +2569,15 @@ Guidelines:
   private async generateProblemStatementWithAnswers(
     title: string,
     description: string,
-    context: CodebaseContext,
+    context: CodebaseContext | null,  // AC#2: Null when no repository provided
     answers: Array<{ questionId: string; answer: string | string[] }>,
   ): Promise<ProblemStatement> {
     try {
-      const systemPrompt = PromptTemplates.systemPrompt(context);
+      // AC#2: Use appropriate system prompt based on context availability
+      const systemPrompt = context
+        ? PromptTemplates.systemPrompt(context)
+        : 'You are a senior product manager helping to define technical requirements. Focus on high-level problem definition, impact, and constraints.';
+
       const answersText = answers
         .map((a) => `- Q${a.questionId}: ${JSON.stringify(a.answer)}`)
         .join('\n');
@@ -2512,11 +2614,15 @@ Generate valid JSON object:
    * Generates acceptance criteria with answer context
    */
   private async generateAcceptanceCriteriaWithAnswers(
-    context: CodebaseContext,
+    context: CodebaseContext | null,  // AC#2: Null when no repository provided
     answers: Array<{ questionId: string; answer: string | string[] }>,
   ): Promise<AcceptanceCriterion[]> {
     try {
-      const systemPrompt = PromptTemplates.systemPrompt(context);
+      // AC#2: Use appropriate system prompt based on context availability
+      const systemPrompt = context
+        ? PromptTemplates.systemPrompt(context)
+        : 'You are a senior product manager helping to define acceptance criteria. Focus on testable, user-facing requirements.';
+
       const answersText = answers
         .map((a) => `- Q${a.questionId}: ${JSON.stringify(a.answer)}`)
         .join('\n');
