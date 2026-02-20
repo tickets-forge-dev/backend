@@ -218,7 +218,20 @@ ApiService.get(path)
 
 **Shared types decision (MVP):** AEC/ticket DTO types are copied into `forge-cli/src/types/` and marked with `// TODO: replace with @forge/types when published (Epic 8)`. This avoids the need to publish a shared package before CLI development can start.
 
-**Local dev environment:** CLI reads `FORGE_API_URL` from env (default: `https://api.forge.app`). For local dev, create `.env.development` with `FORGE_API_URL=http://localhost:3000`.
+**Local dev environment:** CLI reads API URLs from env vars (compiled-in production defaults, overridable). Create `.env.development` in the repo root:
+
+```
+FORGE_API_URL=http://localhost:3000
+FORGE_APP_URL=http://localhost:3001
+```
+
+Production defaults (compiled in):
+```
+FORGE_API_URL=https://api.forge.app
+FORGE_APP_URL=https://forge.app
+```
+
+Commit a `.env.example` with the dev values; add `.env*` to `.gitignore`.
 
 **Internal dependencies (monorepo):** None — standalone repo.
 
