@@ -42,5 +42,8 @@ coverage/
 .cache/
 *.tsbuildinfo
 next-env.d.ts
+
+# External repos (separate git repos, not part of this monorepo)
+forge-cli/
 client/src/core/components/dev/CLAUDE.md
 client/src/core/config/CLAUDE.md
