@@ -487,3 +487,21 @@ input[type="checkbox"]:checked:hover {
 .skip-link:focus {
   left: 16px;
 }
+
+/* ============================================ */
+/* ANIMATIONS */
+/* ============================================ */
+
+/* AC#4: Smooth fade transition for analysis loader messages (150ms) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 150ms ease-in-out;
+}

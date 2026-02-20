@@ -13,6 +13,7 @@ import {
   Loader2,
   Check,
 } from 'lucide-react';
+import { AnalysisLoaderMessages } from '../AnalysisLoaderMessages';
 
 /**
  * AnalysisProgressDialog - Real-time analysis progress visualization
@@ -176,11 +177,14 @@ export function AnalysisProgressDialog({
                     {phase.label}
                   </p>
 
-                  {/* Sub-message for active phase */}
-                  {isActive && message && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
-                      {message}
-                    </p>
+                  {/* AC#2, #3, #4: Phase-mapped loader messages with auto-rotation */}
+                  {isActive && (
+                    <div className="mt-1">
+                      <AnalysisLoaderMessages
+                        currentPhase={currentPhase || undefined}
+                        isActive={isActive}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
