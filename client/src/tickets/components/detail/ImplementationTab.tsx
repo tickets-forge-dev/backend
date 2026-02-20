@@ -111,7 +111,7 @@ export function ImplementationTab({
       )}
 
       {/* File Changes */}
-      {techSpec?.fileChanges?.length > 0 && (
+      {techSpec?.fileChanges?.length > 0 ? (
         <div id="technical-file-changes">
           <CollapsibleSection
             id="file-changes"
@@ -146,10 +146,22 @@ export function ImplementationTab({
             </ul>
           </CollapsibleSection>
         </div>
+      ) : !ticket.repositoryContext && (
+        <div id="technical-file-changes">
+          <CollapsibleSection
+            id="file-changes"
+            title="File Changes"
+            defaultExpanded={true}
+          >
+            <p className="text-sm text-[var(--text-secondary)]">
+              No repository provided — developer should identify files to modify
+            </p>
+          </CollapsibleSection>
+        </div>
       )}
 
       {/* API Endpoints */}
-      {techSpec && (
+      {techSpec && (techSpec.apiChanges?.endpoints || []).length > 0 ? (
         <div id="technical-api-endpoints">
           <CollapsibleSection
             id="api-endpoints"
@@ -165,6 +177,18 @@ export function ImplementationTab({
               onScanApis={onScanApis}
               isScanning={isScanningApis}
             />
+          </CollapsibleSection>
+        </div>
+      ) : !ticket.repositoryContext && techSpec && (
+        <div id="technical-api-endpoints">
+          <CollapsibleSection
+            id="api-endpoints"
+            title="API Endpoints"
+            defaultExpanded={true}
+          >
+            <p className="text-sm text-[var(--text-secondary)]">
+              No repository provided — developer should identify API changes
+            </p>
           </CollapsibleSection>
         </div>
       )}
@@ -184,7 +208,7 @@ export function ImplementationTab({
       )}
 
       {/* Backend / Frontend Changes (Layered) */}
-      {techSpec?.layeredFileChanges && (
+      {techSpec?.layeredFileChanges ? (
         <div id="technical-layered-changes">
           <CollapsibleSection id="layered-changes" title="Backend / Frontend Changes">
             <BackendClientChanges
@@ -196,6 +220,14 @@ export function ImplementationTab({
               onEdit={(layer, idx) => onEditItem('fileChanges', idx)}
               onDelete={(layer, idx) => onDeleteItem('fileChanges', idx)}
             />
+          </CollapsibleSection>
+        </div>
+      ) : !ticket.repositoryContext && techSpec && (
+        <div id="technical-layered-changes">
+          <CollapsibleSection id="layered-changes" title="Backend / Frontend Changes">
+            <p className="text-sm text-[var(--text-secondary)]">
+              No repository provided
+            </p>
           </CollapsibleSection>
         </div>
       )}

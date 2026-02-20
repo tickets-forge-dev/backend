@@ -43,7 +43,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
-  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -56,6 +56,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [isLoadingExportOptions, setIsLoadingExportOptions] = useState(false);
   const [linearConnected, setLinearConnected] = useState<boolean | null>(null);
   const [jiraConnected, setJiraConnected] = useState<boolean | null>(null);
+  
+  // Title editing state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
 
   // Export section selection and preview
   const [exportSections, setExportSections] = useState<Set<string>>(
@@ -140,6 +145,21 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     toast.success(`Added ${uniqueNew.length} API endpoint${uniqueNew.length !== 1 ? 's' : ''}`);
   }, [ticketId, currentTicket, fetchTicket]);
 
+  // Save title handler
+  const handleSaveTitle = useCallback(async () => {
+    if (!ticketId || !titleDraft.trim()) return;
+    setIsSavingTitle(true);
+    try {
+      await updateTicket(ticketId, { title: titleDraft.trim() });
+      setIsEditingTitle(false);
+      toast.success('Title updated');
+    } catch (error) {
+      toast.error('Failed to update title');
+    } finally {
+      setIsSavingTitle(false);
+    }
+  }, [ticketId, titleDraft, updateTicket]);
+
   // Loading state
   if (isLoading || !ticketId) {
     return (
@@ -212,6 +232,18 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const handleSaveAssumptions = async (items: string[]) => {
     if (!ticketId) return;
     await updateTicket(ticketId, { assumptions: items });
+  };
+
+  // Story 3.5-5: Assign ticket to developer
+  const handleAssignTicket = async (userId: string | null): Promise<boolean> => {
+    if (!ticketId) return false;
+    const success = await assignTicket(ticketId, userId);
+    if (success) {
+      toast.success(userId ? 'Ticket assigned successfully' : 'Ticket unassigned');
+    } else {
+      toast.error('Failed to assign ticket');
+    }
+    return success;
   };
 
   const handleAddDesignReference = async (url: string, title?: string) => {
@@ -756,12 +788,43 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     <div className="space-y-8">
       {/* Top bar */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => router.push('/tickets')} className="-ml-2">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tickets
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/tickets')} className="-ml-2">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Tickets
+          </Button>
+          
+          {/* Type badge */}
+          {currentTicket.type && (
+            <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
+              {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
+                : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
+                : <Lightbulb className="h-3 w-3 text-amber-500" />}
+              {currentTicket.type}
+            </Badge>
+          )}
+
+          {/* Priority badge */}
+          {currentTicket.priority && (
+            <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                currentTicket.priority === 'urgent' ? 'bg-red-500'
+                  : currentTicket.priority === 'high' ? 'bg-orange-500'
+                  : currentTicket.priority === 'medium' ? 'bg-yellow-500'
+                  : 'bg-green-500'
+              }`} />
+              {currentTicket.priority}
+            </Badge>
+          )}
+
+          {/* No code analysis indicator */}
+          {!currentTicket.repositoryContext && (
+            <span className="text-xs text-[var(--text-secondary)]">No code analysis</span>
+          )}
+        </div>
+        
         {currentTicket?.techSpec && (
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -782,38 +845,62 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
-      {/* Hero Header — Title + Badges + Quality + Status in single compact row */}
-      <div className="flex items-center gap-2.5 py-2">
-        {/* Title */}
-        <h1 className="text-xl font-semibold text-[var(--text)] leading-tight">
-          {currentTicket.title}
-        </h1>
-
-        {/* Type badge */}
-        {currentTicket.type && (
-          <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
-            {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
-              : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
-              : <Lightbulb className="h-3 w-3 text-amber-500" />}
-            {currentTicket.type}
-          </Badge>
-        )}
-
-        {/* Priority badge */}
-        {currentTicket.priority && (
-          <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
-            <span className={`h-1.5 w-1.5 rounded-full ${
-              currentTicket.priority === 'urgent' ? 'bg-red-500'
-                : currentTicket.priority === 'high' ? 'bg-orange-500'
-                : currentTicket.priority === 'medium' ? 'bg-yellow-500'
-                : 'bg-green-500'
-            }`} />
-            {currentTicket.priority}
-          </Badge>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
+      {/* Hero Header — Title + Quality + Status */}
+      <div className="flex items-start gap-4 py-2">
+        {/* Title - editable with max 2 lines, full width */}
+        <div className="flex-1 min-w-0">
+          {isEditingTitle ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveTitle();
+                  if (e.key === 'Escape') setIsEditingTitle(false);
+                }}
+                autoFocus
+                className="flex-1 text-xl font-semibold bg-transparent border-b border-[var(--border)] focus:border-[var(--blue)] outline-none text-[var(--text)] px-0 py-1"
+              />
+              <Button
+                size="sm"
+                onClick={handleSaveTitle}
+                disabled={isSavingTitle || !titleDraft.trim()}
+              >
+                {isSavingTitle ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsEditingTitle(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="group flex items-start gap-2">
+              <h1 
+                className="text-xl font-semibold text-[var(--text)] leading-tight line-clamp-2 cursor-pointer hover:text-[var(--blue)] transition-colors"
+                onClick={() => {
+                  setTitleDraft(currentTicket.title);
+                  setIsEditingTitle(true);
+                }}
+                title={currentTicket.title}
+              >
+                {currentTicket.title}
+              </h1>
+              <button
+                onClick={() => {
+                  setTitleDraft(currentTicket.title);
+                  setIsEditingTitle(true);
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-[var(--bg-hover)] rounded"
+              >
+                <Pencil className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Quality score */}
         {techSpec?.qualityScore !== undefined && (
@@ -866,6 +953,16 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
+      {/* Full title (shown when title is long and would be truncated) */}
+      {currentTicket.title.length > 80 && !isEditingTitle && (
+        <div className="px-1 pb-2">
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+            <span className="text-xs font-medium text-[var(--text-tertiary)] mr-2">Full title:</span>
+            {currentTicket.title}
+          </p>
+        </div>
+      )}
+
       {/* Main Content — TicketDetailLayout handles tabs vs pre-spec */}
       <TicketDetailLayout
         ticket={currentTicket}
@@ -879,6 +976,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         isSavingDescription={isSavingDescription}
         isDescriptionDirty={isDescriptionDirty}
         onDescriptionExpand={() => { setDescriptionExpanded(true); setDescriptionMode('edit'); }}
+        onAssignTicket={handleAssignTicket}
         onEditItem={openEdit}
         onDeleteItem={deleteTechSpecItem}
         onSaveAcceptanceCriteria={handleSaveAcceptanceCriteria}

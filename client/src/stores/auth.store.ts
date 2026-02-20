@@ -9,6 +9,9 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   error: string | null;
+  hasTeams: boolean | null;
+  teamCount: number;
+  currentTeamId: string | null;
 
   // Actions
   signInWithGoogle: () => Promise<void>;
@@ -22,6 +25,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
   error: null,
+  hasTeams: null,
+  teamCount: 0,
+  currentTeamId: null,
 
   signInWithGoogle: async () => {
     set({ isLoading: true, error: null });
@@ -29,8 +35,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { authService } = useServices();
       const signInUseCase = new SignInUseCase(authService);
-      await signInUseCase.signInWithGoogle();
-      set({ isLoading: false });
+      const result = await signInUseCase.signInWithGoogle();
+      set({
+        isLoading: false,
+        hasTeams: result.hasTeams,
+        teamCount: result.teamCount,
+        currentTeamId: result.currentTeamId
+      });
     } catch (error: any) {
       console.error('❌ [AuthStore] signInWithGoogle error:', error);
       set({ isLoading: false, error: error.message });
@@ -43,8 +54,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { authService } = useServices();
       const signInUseCase = new SignInUseCase(authService);
-      await signInUseCase.signInWithGitHub();
-      set({ isLoading: false });
+      const result = await signInUseCase.signInWithGitHub();
+      set({
+        isLoading: false,
+        hasTeams: result.hasTeams,
+        teamCount: result.teamCount,
+        currentTeamId: result.currentTeamId
+      });
     } catch (error: any) {
       console.error('❌ [AuthStore] signInWithGitHub error:', error);
       set({ isLoading: false, error: error.message });

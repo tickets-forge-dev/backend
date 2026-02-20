@@ -21,7 +21,7 @@ export class AuthService {
     }
   }
 
-  async initializeWorkspace(): Promise<void> {
+  async initializeWorkspace(): Promise<{ hasTeams: boolean; teamCount: number; currentTeamId: string | null }> {
     const token = await this.getIdToken();
     if (!token) {
       throw new Error('No auth token available');
@@ -38,11 +38,19 @@ export class AuthService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to initialize workspace');
+        throw new Error('Failed to initialize user');
       }
+
+      const data = await response.json();
 
       // Force token refresh to get custom claims
       await auth.currentUser?.getIdToken(true);
+
+      return {
+        hasTeams: data.hasTeams || false,
+        teamCount: data.teamCount || 0,
+        currentTeamId: data.currentTeamId || null,
+      };
     } catch (error: any) {
       throw error;
     }

@@ -86,6 +86,8 @@ import {
   BulkCreateFromBreakdownResponseDto,
 } from '../dto/PRDBreakdownDto';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { AssignTicketUseCase } from '../../application/use-cases/AssignTicketUseCase';
+import { AssignTicketDto } from '../dto/AssignTicketDto';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -128,6 +130,7 @@ export class TicketsController {
     private readonly addDesignReferenceUseCase: AddDesignReferenceUseCase,
     private readonly removeDesignReferenceUseCase: RemoveDesignReferenceUseCase,
     private readonly refreshDesignMetadataUseCase: RefreshDesignMetadataUseCase,
+    private readonly assignTicketUseCase: AssignTicketUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -146,10 +149,6 @@ export class TicketsController {
     @Body() dto: AnalyzeRepositoryDto,
     @Res() res: Response,
   ) {
-    this.logger.log(
-      `Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`,
-    );
-
     // Set SSE headers and start streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -159,6 +158,26 @@ export class TicketsController {
     const send = (data: Record<string, any>) => {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
+
+    // Story 3.5-2: Handle no-repository case (skip analysis)
+    if (!dto.owner || !dto.repo || dto.owner === '' || dto.repo === '') {
+      this.logger.log(
+        `No repository provided for ticket "${dto.title}" — skipping analysis`,
+      );
+
+      send({
+        phase: 'complete',
+        message: 'No repository selected — analysis skipped',
+        percent: 100,
+        result: { context: null },
+      });
+      res.end();
+      return;
+    }
+
+    this.logger.log(
+      `Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`,
+    );
 
     try {
       // 1. Auth: fetch integration, decrypt token, create Octokit
@@ -350,6 +369,7 @@ export class TicketsController {
     try {
       const aec = await this.updateAECUseCase.execute({
         aecId: id,
+        title: dto.title,
         description: dto.description,
         acceptanceCriteria: dto.acceptanceCriteria,
         assumptions: dto.assumptions,
@@ -370,6 +390,27 @@ export class TicketsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     await this.deleteAECUseCase.execute(id, workspaceId);
+  }
+
+  /**
+   * Assign or unassign a ticket to a team member (Story 3.5-5: AC#3)
+   * Authorization: PM and Admin roles only (enforced in use case)
+   */
+  @Patch(':id/assign')
+  async assignTicket(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() dto: AssignTicketDto,
+  ) {
+    await this.assignTicketUseCase.execute({
+      ticketId: id,
+      userId: dto.userId,
+      requestingUserId: userId,
+      workspaceId,
+    });
+
+    return { success: true };
   }
 
   /**

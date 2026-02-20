@@ -2,252 +2,117 @@
 
 ## Overview
 
-The backend supports **dual LLM providers** for flexibility:
-- **Ollama** - Local debugging (free, fast iteration, no API costs)
-- **Anthropic/Claude** - Production (high quality, API-based)
+The backend uses **Anthropic Claude** for all LLM operations via the Vercel AI SDK.
 
-Toggle via `LLM_PROVIDER` environment variable.
+**Model:** `claude-3-haiku-20240307` (fast, cost-effective)
 
 ---
 
 ## Quick Start
 
-### Option 1: Ollama (Local Debug) - RECOMMENDED FOR DEVELOPMENT
-
-**1. Install Ollama**
-```bash
-# macOS
-brew install ollama
-
-# Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows
-# Download from https://ollama.com/download
-```
-
-**2. Start Ollama Server**
-```bash
-ollama serve
-```
-
-**3. Pull a Model**
-```bash
-# Recommended: Qwen 2.5 Coder (fast, good for code tasks)
-ollama pull qwen2.5-coder:latest
-
-# Alternatives:
-ollama pull llama3.1        # General purpose
-ollama pull deepseek-coder  # Code-focused
-ollama pull codellama       # Meta's code model
-```
-
-**4. Configure .env**
-```bash
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434/v1
-OLLAMA_FAST_MODEL=qwen2.5-coder:latest
-OLLAMA_MAIN_MODEL=qwen2.5-coder:latest
-```
-
-**5. Start Backend**
-```bash
-npm run dev
-```
-
-You should see:
-```
-🔧 LLM Provider: Ollama (DEBUG MODE)
-   Fast model: qwen2.5-coder:latest
-   Main model: qwen2.5-coder:latest
-   Base URL: http://localhost:11434/v1
-✅ MastraContentGenerator initialized with provider: ollama
-```
-
----
-
-### Option 2: Anthropic/Claude (Production)
-
-**1. Get API Key**
+### 1. Get API Key
 - Go to https://console.anthropic.com
 - Create account / Sign in
 - Navigate to "API Keys" → Create new key
 - Copy the key (starts with `sk-ant-api03-...`)
 
-**2. Configure .env**
+### 2. Configure .env
 ```bash
 LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-ANTHROPIC_FAST_MODEL=claude-3-5-haiku-20241022
-ANTHROPIC_MAIN_MODEL=claude-3-5-sonnet-20241022
+ANTHROPIC_MODEL=claude-3-haiku-20240307
 ```
 
-**3. Start Backend**
+### 3. Start Backend
 ```bash
-npm run dev
+pnpm dev
 ```
 
 You should see:
 ```
-🚀 LLM Provider: Anthropic/Claude (PRODUCTION MODE)
-   Fast model: claude-3-5-haiku-20241022
-   Main model: claude-3-5-sonnet-20241022
-✅ MastraContentGenerator initialized with provider: anthropic
+LLM ready: Anthropic (claude-3-haiku-20240307)
 ```
 
 ---
 
-## Model Selection Strategy
+## LLM Services
 
-### Fast Model (Steps 1, 2, 7)
-Used for classification and quick tasks:
-- **Intent extraction** - Parse user input
-- **Type detection** - Classify as feature/bug/task
-- **Question generation** - Generate clarification questions
+Three services use the LLM:
 
-**Ollama:** `qwen2.5-coder:latest` (4GB, fast, good quality)
-**Anthropic:** `claude-3-5-haiku-20241022` (cheap, fast)
+| Service | Purpose |
+|---------|---------|
+| `TechSpecGeneratorImpl` | Question generation, tech spec sections |
+| `DeepAnalysisServiceImpl` | Repository analysis, task classification |
+| `PRDBreakdownService` | PRD parsing, epic/story generation |
 
-### Main Model (Step 5)
-Used for content generation requiring quality:
-- **Ticket drafting** - Generate acceptance criteria, assumptions, repo paths
-
-**Ollama:** `qwen2.5-coder:latest` (same model, or upgrade to 14B version)
-**Anthropic:** `claude-3-5-sonnet-20241022` (high quality)
+All services use direct `generateText()` calls from Vercel AI SDK.
 
 ---
 
 ## Architecture
 
-### Port/Adapter Pattern
 ```
-Application Layer (ports)
-  └── ILLMContentGenerator.ts (interface)
-          ↑
-Infrastructure Layer (adapters)
-  ├── MastraContentGenerator.ts (implementation)
-  ├── LLMConfigService.ts (provider toggle)
-  └── providers/
-      ├── ollama.provider.ts (local debug)
-      └── anthropic.provider.ts (production)
+backend/src/shared/infrastructure/llm/
+├── llm.config.ts           # LLMConfigService (model configuration)
+└── providers/
+    └── anthropic.provider.ts  # Unused stub (kept for reference)
 ```
 
-### Dependency Injection
+Each LLM service creates its own Anthropic client instance using:
 ```typescript
-// In use case
-constructor(
-  @Inject(LLM_CONTENT_GENERATOR)
-  private llmGenerator: ILLMContentGenerator,
-) {}
+import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 
-// Usage
-const intent = await this.llmGenerator.extractIntent({
-  title: 'Add user auth',
-  description: 'Users should be able to sign up',
+const anthropic = createAnthropic({ apiKey });
+const model = anthropic('claude-3-haiku-20240307');
+
+const { text } = await generateText({
+  model,
+  system: systemPrompt,
+  prompt: userPrompt,
+  maxOutputTokens: 4096,
+  temperature: 0.2,
 });
 ```
 
 ---
 
-## Switching Providers
+## Model Selection
 
-**Development → Production:**
-1. Change `.env`: `LLM_PROVIDER=ollama` → `LLM_PROVIDER=anthropic`
-2. Add `ANTHROPIC_API_KEY=sk-ant-...`
-3. Restart backend
+**Currently using:** `claude-3-haiku-20240307`
+- Fast response times
+- Cost-effective (~$0.25/MTok input, $1.25/MTok output)
+- Good quality for structured JSON generation
 
-**No code changes required!** The interface abstraction handles the switch.
-
----
-
-## Cost Comparison
-
-### Ollama (Local)
-- **Cost:** $0 (runs on your machine)
-- **Speed:** Fast (depends on your GPU/CPU)
-- **Quality:** Good (qwen2.5-coder is solid)
-- **Best for:** Development, iteration, testing
-
-### Anthropic/Claude
-- **Cost:** ~$0.02/ticket (estimate for 4 steps)
-  - Haiku: $0.25/MTok input, $1.25/MTok output
-  - Sonnet: $3/MTok input, $15/MTok output
-- **Speed:** 2-5 seconds per step
-- **Quality:** Excellent
-- **Best for:** Production, demo, stakeholder reviews
+**Note:** Claude 3.5 models (`claude-3-5-haiku-*`, `claude-3-5-sonnet-*`) may require upgraded API access.
 
 ---
 
 ## Troubleshooting
 
-### Ollama Connection Issues
+### Error: `model: claude-3-5-haiku-20241022`
+**Cause:** Model not accessible with your API key
+**Fix:** Use `claude-3-haiku-20240307` in `ANTHROPIC_MODEL`
 
-**Error:** `fetch failed` or `ECONNREFUSED`
-**Fix:** Ensure Ollama is running: `ollama serve`
+### Error: `ANTHROPIC_API_KEY not set`
+**Fix:** Add valid API key to `.env`
 
-**Error:** `model not found`
-**Fix:** Pull the model: `ollama pull qwen2.5-coder:latest`
-
-### Anthropic API Issues
-
-**Error:** `Invalid API key`
-**Fix:** Check `ANTHROPIC_API_KEY` in .env (should start with `sk-ant-api03-`)
-
-**Error:** `Rate limit exceeded`
-**Fix:** Wait 60 seconds or upgrade Anthropic plan
-
-### Developer Role Issue (Ollama)
-
-**Already handled!** The `ollamaCompatibleFetch` middleware converts 'developer' → 'system' automatically.
+### Error: `Failed to parse response`
+**Cause:** LLM returned non-JSON response
+**Fix:** Automatic retry with stricter JSON prompt (built-in)
 
 ---
 
-## Verification
+## Cost Estimate
 
-### Test Ollama Setup
-```bash
-# Check Ollama is running
-curl http://localhost:11434/v1/models
-
-# Test with qwen2.5-coder
-curl http://localhost:11434/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen2.5-coder:latest",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
-```
-
-### Test Backend Integration
-```bash
-# Start backend
-npm run dev
-
-# Look for log messages:
-# 🔧 LLM Provider: Ollama (DEBUG MODE)
-# ✅ MastraContentGenerator initialized
-```
-
----
-
-## Production Checklist
-
-Before deploying to production:
-
-- [ ] Switch `LLM_PROVIDER=anthropic` in production .env
-- [ ] Add valid `ANTHROPIC_API_KEY`
-- [ ] Set appropriate models (Haiku for fast, Sonnet for main)
-- [ ] Remove Ollama configuration from production environment
-- [ ] Test end-to-end ticket generation flow
-- [ ] Monitor API costs in Anthropic console
+Per ticket generation (all 4 steps):
+- **Input:** ~2,000 tokens × $0.25/MTok = $0.0005
+- **Output:** ~1,500 tokens × $1.25/MTok = $0.002
+- **Total:** ~$0.003/ticket ($3 per 1,000 tickets)
 
 ---
 
 **Current Status:**
-- ✅ Dual provider architecture implemented
-- ✅ Ollama provider with developer role fix
-- ✅ Anthropic provider ready
-- ✅ Environment-based toggle working
-- ⏳ Waiting for .env configuration
-
-**Next:** Configure your preferred provider in `backend/.env`
+- ✅ Anthropic integration working
+- ✅ Model: claude-3-haiku-20240307
+- ✅ All services using Vercel AI SDK

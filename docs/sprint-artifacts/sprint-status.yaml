@@ -1,4 +1,4 @@
-# generated: 2026-02-18
+# generated: 2026-02-20
 # project: forge
 # project_key: FORGE
 # tracking_system: file-system
@@ -32,7 +32,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-02-18
+generated: 2026-02-20
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -85,26 +85,25 @@ development_status:
   epic-3-members-roles-retrospective: optional
 
   # EPIC 3.5: Non-Technical PM Support (P0) - 5 stories, ~8 days
-  # Status: ⬜ BACKLOG - Building block for role-based ticket creation
+  # Status: ✅ DONE - All 5 stories complete (2026-02-20)
   # Goal: Support both technical and non-technical PMs with optional Git access
   # Key: Repository optional + dynamic agent conversations + ticket assignment
-  # Next: 3.5-1-repository-optional-flag
-  epic-3-5-non-technical-pm-support: backlog
-  3-5-1-repository-optional-flag: backlog
-  3-5-2-conditional-deep-analysis: backlog
-  3-5-3-step2-loader-messages: backlog
-  3-5-4-repository-checkbox-messaging: backlog
-  3-5-5-assign-ticket-to-developer: backlog
+  epic-3-5-non-technical-pm-support: done
+  3-5-1-repository-optional-flag: done
+  3-5-2-conditional-deep-analysis: done
+  3-5-3-step2-loader-messages: done
+  3-5-4-repository-checkbox-messaging: done
+  3-5-5-assign-ticket-to-developer: done
   epic-3-5-non-technical-pm-support-retrospective: optional
 
   # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
-  # Status: 🟡 IN PROGRESS - State machine complete (1/4 done)
-  # Next: 4-2-team-name-step
-  epic-4-enhanced-onboarding: in-progress
+  # Status: ✅ DONE - All 4 stories complete (2026-02-19)
+  # Completed: Dark theme for auth/onboarding, team name step, role selection with backend save, role clarity in settings
+  epic-4-enhanced-onboarding: done
   4-1-onboarding-state-machine: done
-  4-2-team-name-step: backlog
-  4-3-role-selection-step: backlog
-  4-4-auth-flow-integration: backlog
+  4-2-team-name-step: done
+  4-3-role-selection-step: done
+  4-4-auth-flow-integration: done
   epic-4-enhanced-onboarding-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -116,7 +115,7 @@ development_status:
   # Dependencies: Needs completed team/workspace APIs for authentication
   # Key: Interactive ticket list with vim-like commands [e][r][c][b][q]
   # UX: forge list → ↑↓ navigate → Enter view → [e] execute / [r] review
-  epic-5-cli-foundation: backlog
+  epic-5-cli-foundation: contexted
   5-1-cli-project-setup: backlog
   5-2-login-command-oauth: backlog
   5-3-logout-command: backlog

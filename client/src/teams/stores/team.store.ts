@@ -43,6 +43,7 @@ interface TeamActions {
   loadTeams: () => Promise<void>;
   loadCurrentTeam: () => Promise<void>;
   switchTeam: (teamId: string) => Promise<void>;
+  switchToPersonal: () => Promise<void>;
   createTeam: (name: string, allowMemberInvites?: boolean) => Promise<void>;
   updateTeam: (teamId: string, updates: UpdateTeamRequest) => Promise<void>;
   deleteTeam: (teamId: string) => Promise<void>;
@@ -294,6 +295,46 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to switch team',
+        isLoading: false,
+        isSwitching: false,
+      });
+    }
+  },
+
+  /**
+   * Switch to personal workspace (no team)
+   */
+  switchToPersonal: async () => {
+    set({
+      isLoading: true,
+      isSwitching: true,
+      error: null,
+      lastCurrentTeamFetch: null,
+    });
+    try {
+      const { teamService } = useServices();
+      await teamService.switchTeam({ teamId: null });
+
+      // Update all teams to not current
+      const { teams } = get();
+      const updatedTeams = teams.map((t) => ({
+        ...t,
+        isCurrent: false,
+      }));
+
+      set({
+        currentTeam: null,
+        teams: updatedTeams,
+        isLoading: false,
+        isSwitching: false,
+        lastCurrentTeamFetch: Date.now(),
+      });
+
+      // Clear from localStorage
+      saveCurrentTeamIdToStorage(null);
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to switch to personal workspace',
         isLoading: false,
         isSwitching: false,
       });

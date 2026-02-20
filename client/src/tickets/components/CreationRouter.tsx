@@ -39,5 +39,6 @@ export function CreationRouter({ resumeId, mode, type }: Props) {
   }
 
   // Default to create new (handles mode=new and no mode)
-  return <GenerationWizard initialType={type} />;
+  // forceNew=true when mode=new to ensure fresh wizard state
+  return <GenerationWizard initialType={type} forceNew={mode === 'new'} />;
 }

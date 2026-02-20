@@ -6,7 +6,7 @@ import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
 import { LinearIntegration } from '@/src/settings/components/LinearIntegration';
 import { JiraIntegration } from '@/src/settings/components/JiraIntegration';
 import { FigmaIntegration } from '@/src/settings/components/FigmaIntegration';
-import { TeamSettings } from '@/teams/components/TeamSettings';
+import { RoleSettings } from '@/src/settings/components/RoleSettings';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
 import Link from 'next/link';
 import { X, Monitor, Sun, Moon } from 'lucide-react';
@@ -14,7 +14,7 @@ import { X, Monitor, Sun, Moon } from 'lucide-react';
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -31,40 +31,6 @@ export default function SettingsPage() {
           </Button>
         </Link>
       </div>
-
-      {/* Integrations Section */}
-      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
-        <div>
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Integrations
-          </h2>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Connect external services
-          </p>
-        </div>
-
-        <GitHubIntegration />
-        <div className="border-t border-[var(--border)] my-4" />
-        <LinearIntegration />
-        <div className="border-t border-[var(--border)] my-4" />
-        <JiraIntegration />
-        <div className="border-t border-[var(--border)] my-4" />
-        <FigmaIntegration />
-      </section>
-
-      {/* Team Section */}
-      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
-        <div>
-          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-            Team
-          </h2>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Manage your team settings
-          </p>
-        </div>
-
-        <TeamSettings />
-      </section>
 
       {/* Appearance Section */}
       <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
@@ -117,9 +83,27 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-          Account settings coming soon...
-        </p>
+        <RoleSettings />
+      </section>
+
+      {/* Integrations Section */}
+      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
+        <div>
+          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
+            Integrations
+          </h2>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Connect external services
+          </p>
+        </div>
+
+        <GitHubIntegration />
+        <div className="border-t border-[var(--border)] my-4" />
+        <LinearIntegration />
+        <div className="border-t border-[var(--border)] my-4" />
+        <JiraIntegration />
+        <div className="border-t border-[var(--border)] my-4" />
+        <FigmaIntegration />
       </section>
     </div>
   );

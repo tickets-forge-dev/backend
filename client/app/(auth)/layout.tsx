@@ -77,9 +77,9 @@ export default function AuthLayout({
         `}</style>
       </div>
 
-      {/* Right Panel - Login (65%) */}
-      <div className="flex-1 lg:w-[65%] flex items-center justify-center bg-[var(--bg)] p-6">
-        <div className="w-full max-w-[400px]">
+      {/* Right Panel - Login/Onboarding (65%) - ALWAYS DARK */}
+      <div className="flex-1 lg:w-[65%] flex items-center justify-center bg-[#0a0a0a] p-6">
+        <div className="w-full max-w-[400px] text-white">
           {children}
         </div>
       </div>

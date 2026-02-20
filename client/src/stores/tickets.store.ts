@@ -31,6 +31,8 @@ interface TicketsState {
   updateError: string | null;
   isDeleting: boolean;
   deleteError: string | null;
+  isAssigning: boolean;
+  assignError: string | null;
 
   // Attachments
   isUploadingAttachment: boolean;
@@ -57,9 +59,10 @@ interface TicketsState {
   fetchQuota: () => Promise<void>;
   updateTicket: (
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
   ) => Promise<boolean>;
   deleteTicket: (id: string) => Promise<boolean>;
+  assignTicket: (id: string, userId: string | null) => Promise<boolean>;
   clearCreateError: () => void;
 
   // List preferences
@@ -105,6 +108,8 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     updateError: null,
     isDeleting: false,
     deleteError: null,
+    isAssigning: false,
+    assignError: null,
 
     // Attachments
     isUploadingAttachment: false,
@@ -217,7 +222,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
 
   updateTicket: async (
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
   ) => {
     set({ isUpdating: true, updateError: null });
 
@@ -237,6 +242,37 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to update ticket';
       set({ isUpdating: false, updateError: errorMessage });
+      return false;
+    }
+  },
+
+  // Story 3.5-5: Assign ticket to developer
+  assignTicket: async (id: string, userId: string | null) => {
+    set({ isAssigning: true, assignError: null });
+
+    try {
+      const { ticketService } = useServices();
+      await ticketService.assign(id, userId);
+
+      // Optimistic update: Update assignedTo in current ticket and tickets list
+      set((state) => {
+        const updatedTicket = state.currentTicket?.id === id
+          ? { ...state.currentTicket, assignedTo: userId }
+          : state.currentTicket;
+
+        return {
+          currentTicket: updatedTicket,
+          tickets: state.tickets.map((t) =>
+            t.id === id ? { ...t, assignedTo: userId } : t
+          ),
+          isAssigning: false,
+        };
+      });
+
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to assign ticket';
+      set({ isAssigning: false, assignError: errorMessage });
       return false;
     }
   },

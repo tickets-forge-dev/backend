@@ -39,13 +39,17 @@ function GitHubIcon({ className }: { className?: string }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
+  const { user, hasTeams, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
 
   useEffect(() => {
-    if (user) {
-      router.push('/tickets');
+    if (user && hasTeams !== null) {
+      if (hasTeams) {
+        router.push('/tickets');
+      } else {
+        router.push('/onboarding/team-name');
+      }
     }
-  }, [user, router]);
+  }, [user, hasTeams, router]);
 
   const handleGoogleSignIn = async () => {
     clearError();
@@ -70,20 +74,20 @@ export default function LoginPage() {
             className="drop-shadow-xl"
           />
         </div>
-        <h1 className="text-[var(--text-2xl)] font-semibold text-[var(--text)]">
+        <h1 className="text-[var(--text-2xl)] font-semibold text-white">
           Forge
         </h1>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-2">
+        <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-2">
           Transform product intent into execution-ready tickets
         </p>
       </div>
 
       {/* Desktop heading */}
       <div className="hidden lg:block">
-        <h2 className="text-[var(--text-xl)] font-semibold text-[var(--text)]">
+        <h2 className="text-[var(--text-xl)] font-semibold text-white">
           Get started
         </h2>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
+        <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-1">
           Sign in to your account to continue
         </p>
       </div>
@@ -94,7 +98,7 @@ export default function LoginPage() {
           onClick={handleGoogleSignIn}
           disabled={isLoading}
           variant="outline"
-          className="w-full h-11 justify-center gap-3 text-[var(--text-base)] font-medium border-[var(--border)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)]"
+          className="w-full h-11 justify-center gap-3 text-white font-medium border-[#27272a] bg-[#18181b] hover:bg-[#27272a] hover:border-[#3f3f46]"
           size="lg"
         >
           <GoogleIcon className="w-5 h-5 shrink-0" />
@@ -105,7 +109,7 @@ export default function LoginPage() {
           onClick={handleGitHubSignIn}
           disabled={isLoading}
           variant="outline"
-          className="w-full h-11 justify-center gap-3 text-[var(--text-base)] font-medium border-[var(--border)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)]"
+          className="w-full h-11 justify-center gap-3 text-white font-medium border-[#27272a] bg-[#18181b] hover:bg-[#27272a] hover:border-[#3f3f46]"
           size="lg"
         >
           <GitHubIcon className="w-5 h-5 shrink-0" />
@@ -115,8 +119,8 @@ export default function LoginPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-[var(--radius)] border border-[var(--red)]/30">
-          <p className="text-[var(--text-sm)] text-[var(--red)] text-center">
+        <div className="p-3 bg-red-950/20 rounded-[var(--radius)] border border-red-500/30">
+          <p className="text-[var(--text-sm)] text-red-400 text-center">
             {error}
           </p>
         </div>
@@ -125,18 +129,18 @@ export default function LoginPage() {
       {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[var(--border)]" />
+          <div className="w-full border-t border-[#27272a]" />
         </div>
       </div>
 
       {/* Footer / Terms */}
-      <p className="text-center text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
+      <p className="text-center text-[var(--text-xs)] text-[#71717a] leading-relaxed">
         By signing in, you agree to our{' '}
-        <span className="text-[var(--text-secondary)] hover:text-[var(--text)] cursor-pointer underline underline-offset-2">
+        <span className="text-[#a1a1aa] hover:text-white cursor-pointer underline underline-offset-2">
           Terms of Service
         </span>
         {' '}and{' '}
-        <span className="text-[var(--text-secondary)] hover:text-[var(--text)] cursor-pointer underline underline-offset-2">
+        <span className="text-[#a1a1aa] hover:text-white cursor-pointer underline underline-offset-2">
           Privacy Policy
         </span>
       </p>

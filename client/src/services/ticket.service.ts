@@ -30,6 +30,7 @@ export interface AECResponse {
   description: string | null;
   type: string | null;
   priority: string | null;
+  assignedTo: string | null; // Story 3.5-5: User ID of assigned developer (null if unassigned)
   readinessScore: number;
   generationState: {
     currentStep: number;
@@ -55,6 +56,14 @@ export interface AECResponse {
   externalIssue?: { platform: 'linear' | 'jira'; issueId: string; issueUrl: string } | null;
   attachments?: AttachmentResponse[];
   designReferences?: any[]; // DesignReference[] from @repo/shared-types
+  // Repository context (null if ticket created without repository)
+  repositoryContext?: {
+    repositoryFullName: string; // "owner/repo"
+    branchName: string;
+    commitSha: string;
+    isDefaultBranch: boolean;
+    selectedAt: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,7 +117,7 @@ export class TicketService {
 
   async update(
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> },
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> },
   ): Promise<AECResponse> {
     const response = await this.client.patch<AECResponse>(
       `/tickets/${id}`,
@@ -213,6 +222,15 @@ export class TicketService {
   async refreshDesignReference(ticketId: string, referenceId: string): Promise<{ designReference: DesignReference }> {
     const response = await this.client.post<{ designReference: DesignReference }>(
       `/tickets/${ticketId}/design-references/${referenceId}/refresh`
+    );
+    return response.data;
+  }
+
+  // Story 3.5-5: Assign ticket to developer
+  async assign(ticketId: string, userId: string | null): Promise<{ success: boolean }> {
+    const response = await this.client.patch<{ success: boolean }>(
+      `/tickets/${ticketId}/assign`,
+      { userId }
     );
     return response.data;
   }

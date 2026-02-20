@@ -27,7 +27,7 @@ forge/
 - **Auth:** Firebase Authentication
 - **Storage:** Firebase Storage
 - **Queue:** Bull (Redis-backed)
-- **AI:** Mastra (LLM orchestration)
+- **AI:** Vercel AI SDK + Anthropic Claude
 - **Monorepo:** Turborepo + pnpm
 
 ## Prerequisites

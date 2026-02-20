@@ -7,9 +7,12 @@ import { FirestoreTeamRepository } from '../../infrastructure/persistence/Firest
 import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamException';
+import { UserFactory } from '../../../users/domain/UserFactory';
 
 export interface CreateTeamCommand {
   userId: string;
+  userEmail: string;
+  userDisplayName?: string;
   teamName: string;
   allowMemberInvites?: boolean;
 }
@@ -46,10 +49,14 @@ export class CreateTeamUseCase {
   ) {}
 
   async execute(command: CreateTeamCommand): Promise<CreateTeamResult> {
-    // Verify user exists
-    const user = await this.userRepository.getById(command.userId);
+    // Get or create user (auto-sync from Firebase Auth)
+    let user = await this.userRepository.getById(command.userId);
     if (!user) {
-      throw new Error(`User ${command.userId} not found`);
+      // User exists in Firebase Auth but not in Firestore - auto-create
+      console.log(`[CreateTeamUseCase] Creating user document for ${command.userId}`);
+      const displayName = command.userDisplayName || command.userEmail.split('@')[0];
+      user = UserFactory.createUser(command.userId, command.userEmail, displayName);
+      await this.userRepository.save(user);
     }
 
     // Create team with owner's workspace as default

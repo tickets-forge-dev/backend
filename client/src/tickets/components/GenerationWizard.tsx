@@ -9,6 +9,7 @@ import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
 import { FirstTicketCelebrationDialog } from '@/core/components/celebration/FirstTicketCelebrationDialog';
+import { Button } from '@/core/components/ui/button';
 
 /**
  * GenerationWizard Container Component
@@ -27,7 +28,7 @@ import { FirstTicketCelebrationDialog } from '@/core/components/celebration/Firs
  * - Recovery detection on mount (resume after refresh/navigation)
  * - Overall wizard flow
  */
-export function GenerationWizard({ resumeId, initialType }: { resumeId?: string; initialType?: 'feature' | 'bug' | 'task' }) {
+export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId?: string; initialType?: 'feature' | 'bug' | 'task'; forceNew?: boolean }) {
   const router = useRouter();
   const {
     currentStage,
@@ -45,10 +46,21 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
     draftAecId,
     showCelebration,
     closeCelebration,
+    input,
+    includeRepository,
+    analyzeRepository,
+    hasRepository,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
+
+  // On mount: reset if forceNew is true (e.g., mode=new URL param)
+  useEffect(() => {
+    if (forceNew) {
+      reset();
+    }
+  }, [forceNew, reset]);
 
   // On mount: set initial type if provided
   useEffect(() => {
@@ -59,7 +71,13 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
 
   // On mount: handle resume param or detect recoverable state
   // tryRecover only reads — it does NOT mutate store state
+  // Skip recovery check if forceNew is true
   useEffect(() => {
+    if (forceNew) {
+      // forceNew means start fresh, don't offer recovery
+      return;
+    }
+
     if (resumeId) {
       resumeDraft(resumeId);
       // Also show banner for resume URL param so user can start fresh if needed
@@ -78,7 +96,7 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
       setShowRecoveryBanner(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [forceNew]);
 
   const handleResume = useCallback(async () => {
     setShowRecoveryBanner(false);
@@ -101,13 +119,42 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
     }
   }, [reset, resumeId, router]);
 
+  // Create Next button for current stage
+  const getNextButton = () => {
+    if (currentStage === 1) {
+      // Stage 1: Input validation
+      const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
+      const isTitleValid = wordCount >= 2 && input.title.length <= 500;
+      const isRepoValid = !includeRepository || (input.repoOwner.length > 0 && input.repoName.length > 0);
+      const isFormValid = isTitleValid && isRepoValid;
+
+      return (
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            if (isFormValid) {
+              analyzeRepository();
+            }
+          }}
+          disabled={!isFormValid || loading}
+          size="sm"
+          className="min-w-[96px]"
+        >
+          {loading ? 'Analyzing...' : 'Next'}
+        </Button>
+      );
+    }
+    // Add other stages as needed
+    return null;
+  };
+
   return (
     <div className="relative w-full h-full bg-white dark:bg-gray-950">
       {/* Stage Indicator - Hide after ticket is created */}
       {!draftAecId && (
         <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
-            <StageIndicator currentStage={currentStage} />
+            <StageIndicator currentStage={currentStage} nextButton={getNextButton()} />
           </div>
         </div>
       )}
@@ -155,6 +202,7 @@ export function GenerationWizard({ resumeId, initialType }: { resumeId?: string;
           currentPhase={currentPhase}
           message={loadingMessage}
           percent={progressPercent}
+          hasRepository={hasRepository}
         />
       )}
 

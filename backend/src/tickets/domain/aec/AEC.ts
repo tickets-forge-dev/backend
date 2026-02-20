@@ -55,6 +55,7 @@ export class AEC {
     private _taskAnalysis: any = null,
     private _attachments: Attachment[] = [],
     private _designReferences: DesignReference[] = [],
+    private _assignedTo: string | null = null, // userId of assigned team member
   ) {}
 
   // Factory method for creating new draft
@@ -66,6 +67,7 @@ export class AEC {
     repositoryContext?: RepositoryContext,
     type?: TicketType,
     priority?: TicketPriority,
+    assignedTo?: string | null,
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -104,6 +106,7 @@ export class AEC {
       null, // _taskAnalysis
       [], // _attachments
       [], // _designReferences
+      assignedTo ?? null, // _assignedTo
     );
   }
 
@@ -140,6 +143,7 @@ export class AEC {
     taskAnalysis?: any,
     attachments?: Attachment[],
     designReferences?: DesignReference[],
+    assignedTo?: string | null,
   ): AEC {
     return new AEC(
       id,
@@ -173,6 +177,7 @@ export class AEC {
       taskAnalysis ?? null,
       attachments ?? [],
       designReferences ?? [],
+      assignedTo ?? null,
     );
   }
 
@@ -281,6 +286,22 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  // Assignment methods (Story 3.5-5: AC#1)
+  assign(userId: string): void {
+    if (this._status === AECStatus.COMPLETE) {
+      throw new InvalidStateTransitionError(
+        'Cannot assign a completed ticket. Revert to draft first.',
+      );
+    }
+    this._assignedTo = userId;
+    this._updatedAt = new Date();
+  }
+
+  unassign(): void {
+    this._assignedTo = null;
+    this._updatedAt = new Date();
+  }
+
   detectDrift(_reason: string): void {
     if (![AECStatus.READY, AECStatus.CREATED].includes(this._status)) {
       return;
@@ -356,6 +377,14 @@ export class AEC {
 
   setEstimate(estimate: Estimate): void {
     this._estimate = estimate;
+    this._updatedAt = new Date();
+  }
+
+  updateTitle(title: string): void {
+    if (!title || title.trim().length === 0) {
+      throw new Error('Title cannot be empty');
+    }
+    this._title = title.trim();
     this._updatedAt = new Date();
   }
 
@@ -468,6 +497,10 @@ export class AEC {
   }
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  get assignedTo(): string | null {
+    return this._assignedTo;
   }
 
   // Getters for clarification questions (simple, single-set)

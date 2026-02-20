@@ -12,6 +12,7 @@ interface MarkdownInputProps {
   placeholder?: string;
   maxLength?: number;
   rows?: number;
+  autoFocus?: boolean;
 }
 
 export function MarkdownInput({
@@ -20,6 +21,7 @@ export function MarkdownInput({
   placeholder = 'Describe what you want to build or change...',
   maxLength = 2000,
   rows = 4,
+  autoFocus = false,
 }: MarkdownInputProps) {
   const [mode, setMode] = useState<'write' | 'preview'>('write');
 
@@ -61,6 +63,7 @@ export function MarkdownInput({
           placeholder={placeholder}
           maxLength={maxLength}
           rows={rows}
+          autoFocus={autoFocus}
           className="w-full resize-none font-mono text-sm"
         />
       ) : (

@@ -74,24 +74,18 @@
 
 ## MEDIUM (Configuration & Error Handling)
 
-### 8. ✅ FIXED: Ollama Provider Hardcoded Localhost
-**File:** `backend/src/shared/infrastructure/mastra/providers/ollama.provider.ts:37`
-**Severity:** MEDIUM
-**Issue:** `|| 'http://localhost:11434'` - Won't work in production
-- Ollama only used in dev, but still a blocker
-- **Fix:** No default, require explicit config in production
+### 8. ✅ RESOLVED: Ollama Provider Removed
+**Status:** Ollama support has been removed. All LLM calls now use Anthropic Claude only.
+**File:** `backend/src/shared/infrastructure/llm/` (renamed from `mastra/`)
 
-### 9. ✅ FIXED: Unsafe Default LLM Config
-**File:** `backend/src/shared/infrastructure/mastra/llm.config.ts`
-**Severity:** HIGH
-**Issue:** Need to check LLM provider configs for hardcoded values
-- **Fix:** Validate all LLM env vars
+### 9. ✅ FIXED: LLM Config Simplified
+**File:** `backend/src/shared/infrastructure/llm/llm.config.ts`
+**Status:** Now Anthropic-only with `claude-3-haiku-20240307` default
 
 ### 10. ✅ FIXED: Console Warns Bypassing Errors
 **Files:**
 - `backend/src/main.ts:52` - console.warn for CORS
 - `client/src/lib/firebase.ts:48, 50` - console.warn for persistence
-- `backend/src/shared/infrastructure/mastra/providers/ollama.provider.ts:22` - console.warn
 
 **Severity:** MEDIUM
 **Issue:** Using warn/log for recoverable errors instead of proper error handling

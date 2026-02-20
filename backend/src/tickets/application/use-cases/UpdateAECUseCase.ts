@@ -5,6 +5,7 @@ import { AECNotFoundError } from '../../../shared/domain/exceptions/DomainExcept
 
 export interface UpdateAECCommand {
   aecId: string;
+  title?: string;
   description?: string;
   acceptanceCriteria?: string[];
   assumptions?: string[];
@@ -27,6 +28,10 @@ export class UpdateAECUseCase {
     }
 
     // Update fields if provided
+    if (command.title !== undefined) {
+      aec.updateTitle(command.title);
+    }
+
     if (command.description !== undefined) {
       aec.updateDescription(command.description);
     }
