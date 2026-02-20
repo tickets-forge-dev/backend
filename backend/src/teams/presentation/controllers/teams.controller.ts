@@ -12,6 +12,7 @@ import {
   HttpStatus,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { CreateTeamUseCase } from '../../application/use-cases/CreateTeamUseCase';
@@ -443,8 +444,11 @@ export class TeamsController {
 
       return result;
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes('not found')) {
-        throw new BadRequestException(error.message);
+        throw new NotFoundException(error.message);
       }
       throw error;
     }

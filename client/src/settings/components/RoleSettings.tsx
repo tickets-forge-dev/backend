@@ -55,8 +55,11 @@ export function RoleSettings() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error:', errorData);
+        if (response.status === 404) {
+          // User has no active team yet — not an error, just no role assigned
+          return;
+        }
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to load role');
       }
 
