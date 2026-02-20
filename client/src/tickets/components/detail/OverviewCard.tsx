@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, FileText, Save, Expand, Loader2 } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
+import { AssigneeSelector } from './AssigneeSelector';
 import type { AECResponse } from '@/services/ticket.service';
 
 interface OverviewCardProps {
@@ -13,6 +14,8 @@ interface OverviewCardProps {
   isSavingDescription: boolean;
   isDescriptionDirty: boolean;
   onDescriptionExpand: () => void;
+  // Story 3.5-5: Assignment
+  onAssignTicket: (userId: string | null) => Promise<boolean>;
 }
 
 export function OverviewCard({
@@ -23,6 +26,7 @@ export function OverviewCard({
   isSavingDescription,
   isDescriptionDirty,
   onDescriptionExpand,
+  onAssignTicket,
 }: OverviewCardProps) {
   const [notesExpanded, setNotesExpanded] = useState(false);
 
@@ -34,6 +38,16 @@ export function OverviewCard({
 
   return (
     <div className="rounded-lg bg-[var(--bg-subtle)] space-y-3">
+      {/* Assignment Section - Story 3.5-5 */}
+      <div className="p-4">
+        <AssigneeSelector
+          ticketId={ticket.id}
+          workspaceId={ticket.workspaceId}
+          assignedTo={ticket.assignedTo}
+          onAssign={onAssignTicket}
+        />
+      </div>
+
       {/* Collapsible Notes */}
       <button
         onClick={() => setNotesExpanded((v) => !v)}

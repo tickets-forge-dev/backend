@@ -86,6 +86,8 @@ import {
   BulkCreateFromBreakdownResponseDto,
 } from '../dto/PRDBreakdownDto';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { AssignTicketUseCase } from '../../application/use-cases/AssignTicketUseCase';
+import { AssignTicketDto } from '../dto/AssignTicketDto';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -128,6 +130,7 @@ export class TicketsController {
     private readonly addDesignReferenceUseCase: AddDesignReferenceUseCase,
     private readonly removeDesignReferenceUseCase: RemoveDesignReferenceUseCase,
     private readonly refreshDesignMetadataUseCase: RefreshDesignMetadataUseCase,
+    private readonly assignTicketUseCase: AssignTicketUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -370,6 +373,27 @@ export class TicketsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     await this.deleteAECUseCase.execute(id, workspaceId);
+  }
+
+  /**
+   * Assign or unassign a ticket to a team member (Story 3.5-5: AC#3)
+   * Authorization: PM and Admin roles only (enforced in use case)
+   */
+  @Patch(':id/assign')
+  async assignTicket(
+    @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() dto: AssignTicketDto,
+  ) {
+    await this.assignTicketUseCase.execute({
+      ticketId: id,
+      userId: dto.userId,
+      requestingUserId: userId,
+      workspaceId,
+    });
+
+    return { success: true };
   }
 
   /**

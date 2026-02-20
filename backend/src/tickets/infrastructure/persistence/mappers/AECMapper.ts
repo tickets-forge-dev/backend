@@ -77,6 +77,7 @@ export interface AECDocument {
   taskAnalysis?: any;
   attachments?: any[];
   designReferences?: any[];
+  assignedTo?: string | null; // Story 3.5-5: userId of assigned team member
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -198,6 +199,7 @@ export class AECMapper {
         uploadedAt: toDate(a.uploadedAt),
       })) as Attachment[],
       designReferences,
+      doc.assignedTo ?? null, // Story 3.5-5: backward compatible (null for old tickets)
     );
   }
 
@@ -253,6 +255,7 @@ export class AECMapper {
         ...ref,
         addedAt: Timestamp.fromDate(ref.addedAt),
       })),
+      assignedTo: aec.assignedTo ?? null, // Story 3.5-5: AC#2
     };
   }
 }

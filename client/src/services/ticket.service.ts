@@ -30,6 +30,7 @@ export interface AECResponse {
   description: string | null;
   type: string | null;
   priority: string | null;
+  assignedTo: string | null; // Story 3.5-5: User ID of assigned developer (null if unassigned)
   readinessScore: number;
   generationState: {
     currentStep: number;
@@ -221,6 +222,15 @@ export class TicketService {
   async refreshDesignReference(ticketId: string, referenceId: string): Promise<{ designReference: DesignReference }> {
     const response = await this.client.post<{ designReference: DesignReference }>(
       `/tickets/${ticketId}/design-references/${referenceId}/refresh`
+    );
+    return response.data;
+  }
+
+  // Story 3.5-5: Assign ticket to developer
+  async assign(ticketId: string, userId: string | null): Promise<{ success: boolean }> {
+    const response = await this.client.patch<{ success: boolean }>(
+      `/tickets/${ticketId}/assign`,
+      { userId }
     );
     return response.data;
   }

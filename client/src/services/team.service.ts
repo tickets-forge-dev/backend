@@ -32,6 +32,20 @@ export interface CreateTeamResponse {
   team: Team;
 }
 
+export interface TeamMember {
+  id: string;
+  userId: string;
+  teamId: string;
+  email: string;
+  displayName: string | null;
+  role: 'admin' | 'pm' | 'developer' | 'qa';
+  status: 'active' | 'invited' | 'removed';
+  invitedBy: string | null;
+  invitedAt: string | null;
+  joinedAt: string | null;
+  removedAt: string | null;
+}
+
 export class TeamService {
   /**
    * Create a new team
@@ -106,5 +120,24 @@ export class TeamService {
     if (!response.ok) {
       throw new Error('Failed to switch team');
     }
+  }
+
+  /**
+   * Get all members of a team (Story 3.5-5)
+   */
+  async getTeamMembers(teamId: string, idToken: string): Promise<TeamMember[]> {
+    const response = await fetch(`${API_URL}/teams/${teamId}/members`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch team members');
+    }
+
+    const data = await response.json();
+    return data.members || [];
   }
 }

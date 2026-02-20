@@ -560,11 +560,20 @@ function TicketRow({ ticket }: { ticket: any }) {
             </div>
           </div>
 
-          {/* Right: Progress ring - Responsive */}
-          <div className="flex items-center gap-2 sm:gap-0">
+          {/* Right: Assignee + Progress ring - Responsive */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-2 sm:hidden">
               {getPriorityIndicator(ticket.priority)}
             </div>
+            {/* Story 3.5-5: Show assignee avatar if assigned */}
+            {ticket.assignedTo && (
+              <div
+                className="h-6 w-6 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[10px] font-medium text-[var(--primary)] flex-shrink-0"
+                title={`Assigned to ${ticket.assignedTo}`}
+              >
+                {ticket.assignedTo.slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <ProgressRing ticket={ticket} />
           </div>
         </div>

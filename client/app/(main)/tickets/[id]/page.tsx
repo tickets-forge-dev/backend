@@ -43,7 +43,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
-  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -212,6 +212,18 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const handleSaveAssumptions = async (items: string[]) => {
     if (!ticketId) return;
     await updateTicket(ticketId, { assumptions: items });
+  };
+
+  // Story 3.5-5: Assign ticket to developer
+  const handleAssignTicket = async (userId: string | null): Promise<boolean> => {
+    if (!ticketId) return false;
+    const success = await assignTicket(ticketId, userId);
+    if (success) {
+      toast.success(userId ? 'Ticket assigned successfully' : 'Ticket unassigned');
+    } else {
+      toast.error('Failed to assign ticket');
+    }
+    return success;
   };
 
   const handleAddDesignReference = async (url: string, title?: string) => {
@@ -884,6 +896,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         isSavingDescription={isSavingDescription}
         isDescriptionDirty={isDescriptionDirty}
         onDescriptionExpand={() => { setDescriptionExpanded(true); setDescriptionMode('edit'); }}
+        onAssignTicket={handleAssignTicket}
         onEditItem={openEdit}
         onDeleteItem={deleteTechSpecItem}
         onSaveAcceptanceCriteria={handleSaveAcceptanceCriteria}

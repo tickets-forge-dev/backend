@@ -25,6 +25,8 @@ interface TicketDetailLayoutProps {
   isSavingDescription: boolean;
   isDescriptionDirty: boolean;
   onDescriptionExpand: () => void;
+  // Story 3.5-5: Assignment
+  onAssignTicket: (userId: string | null) => Promise<boolean>;
   // Edit callbacks
   onEditItem: (section: string, index: number) => void;
   onDeleteItem: (section: string, index: number) => void;
@@ -61,6 +63,7 @@ export function TicketDetailLayout({
   isSavingDescription,
   isDescriptionDirty,
   onDescriptionExpand,
+  onAssignTicket,
   onEditItem,
   onDeleteItem,
   onSaveAcceptanceCriteria,
@@ -139,6 +142,7 @@ export function TicketDetailLayout({
           isSavingDescription={isSavingDescription}
           isDescriptionDirty={isDescriptionDirty}
           onDescriptionExpand={onDescriptionExpand}
+          onAssignTicket={onAssignTicket}
         />
 
         {/* Pending Questions */}
@@ -242,6 +246,7 @@ export function TicketDetailLayout({
         isSavingDescription={isSavingDescription}
         isDescriptionDirty={isDescriptionDirty}
         onDescriptionExpand={onDescriptionExpand}
+        onAssignTicket={onAssignTicket}
       />
 
       {/* Tabbed content */}
