@@ -88,13 +88,13 @@ development_status:
   # Status: 🟡 IN PROGRESS - Starting now (2026-02-19)
   # Goal: Support both technical and non-technical PMs with optional Git access
   # Key: Repository optional + dynamic agent conversations + ticket assignment
-  # Next: 3.5-1-repository-optional-flag
+  # Next: 3.5-2-conditional-deep-analysis
   epic-3-5-non-technical-pm-support: in-progress
-  3-5-1-repository-optional-flag: backlog
-  3-5-2-conditional-deep-analysis: backlog
-  3-5-3-step2-loader-messages: backlog
-  3-5-4-repository-checkbox-messaging: backlog
-  3-5-5-assign-ticket-to-developer: backlog
+  3-5-1-repository-optional-flag: done
+  3-5-2-conditional-deep-analysis: drafted
+  3-5-3-step2-loader-messages: done
+  3-5-4-repository-checkbox-messaging: drafted
+  3-5-5-assign-ticket-to-developer: drafted
   epic-3-5-non-technical-pm-support-retrospective: optional
 
   # EPIC 4: Enhanced Onboarding (P0) - 4 stories, ~5 days
