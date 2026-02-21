@@ -134,7 +134,7 @@ development_status:
   # Dependencies: CLI Foundation must be complete
   # Key: BMAD agent integration for dynamic PM-Developer conversations
   # UX: Developer presses [r] → BMAD agent asks dynamic questions → enriches ticket
-  epic-6-mcp-server: contexted
+  epic-6-mcp-server: in-progress
   6-1-mcp-server-setup: drafted
   6-2-ticket-context-tool: backlog
   6-3-file-changes-tool: backlog
