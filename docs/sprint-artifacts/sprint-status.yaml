@@ -142,11 +142,11 @@ development_status:
   6-5-status-update-tool: done
   6-6-execute-prompt: done
   6-7-review-prompt: done
-  6-8-agent-guide-executor: backlog
-  6-9-agent-guide-reviewer: backlog
-  6-10-mcp-integration-tests: backlog
-  6-11-cli-mcp-plumbing: backlog
-  6-12-ticket-review-mcp-tools: backlog
+  6-8-agent-guide-executor: done
+  6-9-agent-guide-reviewer: done
+  6-10-mcp-integration-tests: in-progress
+  6-11-cli-mcp-plumbing: done
+  6-12-ticket-review-mcp-tools: done
   6-13-bmad-review-agent: backlog
   epic-6-mcp-server-retrospective: optional
 
@@ -180,13 +180,13 @@ development_status:
   #   Output: updated acceptance criteria, explicit edge cases, clear tech specs
   #   Reuses existing AI enrichment service — same pipeline, richer input
   #   See: docs/sprint-artifacts/stories/7-design-notes.md
-  epic-7-ticket-lifecycle: backlog
-  7-1-extend-aec-status-enum: backlog
+  epic-7-ticket-lifecycle: in-progress
+  7-1-extend-aec-status-enum: done
   7-2-move-tickets-to-team-scope: backlog
-  7-3-conversation-storage: backlog
-  7-4-conversation-api: backlog
-  7-5-update-ticket-filters: backlog
-  7-6-conversation-viewer-ui: backlog
+  7-3-conversation-storage: done
+  7-4-conversation-api: done
+  7-5-update-ticket-filters: done
+  7-6-conversation-viewer-ui: done
   7-7-ticket-re-enrich-with-qa: backlog
   7-8-approve-button-pm-only: backlog
   7-9-status-sync-web-cli: backlog
