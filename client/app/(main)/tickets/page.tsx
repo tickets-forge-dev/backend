@@ -462,6 +462,22 @@ function TicketRow({ ticket }: { ticket: any }) {
         </span>
       );
     }
+    if (ticket.status === 'waiting-for-approval') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          Awaiting Review
+        </span>
+      );
+    }
+    if (ticket.status === 'created') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-purple-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+          Created
+        </span>
+      );
+    }
     if (ticket.questions && ticket.questions.length > 0) {
       return "";
     }

@@ -7,6 +7,7 @@ export enum AECStatus {
   VALIDATED = 'validated',
   READY = 'ready',
   CREATED = 'created',
+  WAITING_FOR_APPROVAL = 'waiting-for-approval',
   DRIFTED = 'drifted',
   COMPLETE = 'complete',
 }

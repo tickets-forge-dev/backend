@@ -60,6 +60,7 @@ import { RemoveDesignReferenceUseCase } from './application/use-cases/RemoveDesi
 import { RefreshDesignMetadataUseCase } from './application/use-cases/RefreshDesignMetadataUseCase';
 import { FetchDesignMetadataUseCase } from './application/use-cases/FetchDesignMetadataUseCase';
 import { AssignTicketUseCase } from './application/use-cases/AssignTicketUseCase';
+import { SubmitReviewSessionUseCase } from './application/use-cases/SubmitReviewSessionUseCase';
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
 import { TeamsModule } from '../teams/teams.module';
@@ -100,6 +101,7 @@ import { TeamsModule } from '../teams/teams.module';
     RefreshDesignMetadataUseCase,
     FetchDesignMetadataUseCase,
     AssignTicketUseCase,
+    SubmitReviewSessionUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,

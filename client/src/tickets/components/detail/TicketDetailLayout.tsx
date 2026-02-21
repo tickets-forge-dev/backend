@@ -14,6 +14,7 @@ import { Button } from '@/core/components/ui/button';
 import { HelpCircle, MessageSquare } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
+import { ReviewSessionSection } from './ReviewSessionSection';
 
 interface TicketDetailLayoutProps {
   ticket: AECResponse;
@@ -123,6 +124,8 @@ export function TicketDetailLayout({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeTab]);
 
+  const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
+
   // Pre-tech-spec state: show simple layout with questions + attachments
   if (!hasTechSpec) {
     const hasQuestions = ticket.questions && ticket.questions.length > 0;
@@ -210,6 +213,21 @@ export function TicketDetailLayout({
           </CollapsibleSection>
         )}
 
+        {/* Review Session Q&A (Story 6-12 / 7-6) */}
+        {hasReviewSession && (
+          <CollapsibleSection
+            id="review-session"
+            title="Developer Review Q&A"
+            badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
+            defaultExpanded={true}
+          >
+            <ReviewSessionSection
+              qaItems={ticket.reviewSession!.qaItems}
+              submittedAt={ticket.reviewSession!.submittedAt}
+            />
+          </CollapsibleSection>
+        )}
+
         {/* Attachments */}
         <CollapsibleSection
           id="assets-attachments"
@@ -240,6 +258,21 @@ export function TicketDetailLayout({
         canToggleStatus={canToggleStatus}
         onStatusClick={onStatusClick}
       />
+
+      {/* Review Session Q&A (Story 6-12 / 7-6) — shown above tabs when present */}
+      {hasReviewSession && (
+        <CollapsibleSection
+          id="review-session"
+          title="Developer Review Q&A"
+          badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
+          defaultExpanded={true}
+        >
+          <ReviewSessionSection
+            qaItems={ticket.reviewSession!.qaItems}
+            submittedAt={ticket.reviewSession!.submittedAt}
+          />
+        </CollapsibleSection>
+      )}
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>

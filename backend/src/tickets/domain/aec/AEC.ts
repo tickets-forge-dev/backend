@@ -21,6 +21,16 @@ import {
 } from '../../../shared/domain/exceptions/DomainExceptions';
 import { randomUUID } from 'crypto';
 
+export interface ReviewQAItem {
+  question: string;
+  answer: string;
+}
+
+export interface ReviewSession {
+  qaItems: ReviewQAItem[];
+  submittedAt: Date;
+}
+
 export class AEC {
   private constructor(
     public readonly id: string,
@@ -56,6 +66,7 @@ export class AEC {
     private _attachments: Attachment[] = [],
     private _designReferences: DesignReference[] = [],
     private _assignedTo: string | null = null, // userId of assigned team member
+    private _reviewSession: ReviewSession | null = null, // Story 6-12: CLI review Q&A
   ) {}
 
   // Factory method for creating new draft
@@ -144,6 +155,7 @@ export class AEC {
     attachments?: Attachment[],
     designReferences?: DesignReference[],
     assignedTo?: string | null,
+    reviewSession?: ReviewSession | null,
   ): AEC {
     return new AEC(
       id,
@@ -178,6 +190,7 @@ export class AEC {
       attachments ?? [],
       designReferences ?? [],
       assignedTo ?? null,
+      reviewSession ?? null,
     );
   }
 
@@ -299,6 +312,19 @@ export class AEC {
 
   unassign(): void {
     this._assignedTo = null;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Submit a review session with Q&A pairs from the CLI reviewer agent.
+   * Transitions the ticket to WAITING_FOR_APPROVAL so the PM can review.
+   */
+  submitReviewSession(qaItems: ReviewQAItem[]): void {
+    this._reviewSession = {
+      qaItems,
+      submittedAt: new Date(),
+    };
+    this._status = AECStatus.WAITING_FOR_APPROVAL;
     this._updatedAt = new Date();
   }
 
@@ -501,6 +527,10 @@ export class AEC {
 
   get assignedTo(): string | null {
     return this._assignedTo;
+  }
+
+  get reviewSession(): ReviewSession | null {
+    return this._reviewSession;
   }
 
   // Getters for clarification questions (simple, single-set)

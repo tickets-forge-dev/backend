@@ -1,4 +1,4 @@
-import { AEC } from '../../../domain/aec/AEC';
+import { AEC, type ReviewSession } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
@@ -78,6 +78,7 @@ export interface AECDocument {
   attachments?: any[];
   designReferences?: any[];
   assignedTo?: string | null; // Story 3.5-5: userId of assigned team member
+  reviewSession?: { qaItems: { question: string; answer: string }[]; submittedAt: Timestamp } | null; // Story 6-12
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -200,6 +201,12 @@ export class AECMapper {
       })) as Attachment[],
       designReferences,
       doc.assignedTo ?? null, // Story 3.5-5: backward compatible (null for old tickets)
+      doc.reviewSession
+        ? {
+            qaItems: doc.reviewSession.qaItems,
+            submittedAt: toDate(doc.reviewSession.submittedAt),
+          }
+        : null, // Story 6-12: backward compatible (null for old tickets)
     );
   }
 
@@ -256,6 +263,12 @@ export class AECMapper {
         addedAt: Timestamp.fromDate(ref.addedAt),
       })),
       assignedTo: aec.assignedTo ?? null, // Story 3.5-5: AC#2
+      reviewSession: aec.reviewSession
+        ? {
+            qaItems: aec.reviewSession.qaItems,
+            submittedAt: Timestamp.fromDate(aec.reviewSession.submittedAt),
+          }
+        : null, // Story 6-12
     };
   }
 }

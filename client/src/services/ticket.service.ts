@@ -64,6 +64,11 @@ export interface AECResponse {
     isDefaultBranch: boolean;
     selectedAt: string;
   } | null;
+  // Story 6-12: Review session submitted by CLI reviewer agent
+  reviewSession?: {
+    qaItems: Array<{ question: string; answer: string }>;
+    submittedAt: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

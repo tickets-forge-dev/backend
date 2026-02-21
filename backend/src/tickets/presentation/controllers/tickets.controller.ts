@@ -88,6 +88,8 @@ import {
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { AssignTicketUseCase } from '../../application/use-cases/AssignTicketUseCase';
 import { AssignTicketDto } from '../dto/AssignTicketDto';
+import { SubmitReviewSessionUseCase } from '../../application/use-cases/SubmitReviewSessionUseCase';
+import { SubmitReviewSessionDto } from '../dto/SubmitReviewSessionDto';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -131,6 +133,7 @@ export class TicketsController {
     private readonly removeDesignReferenceUseCase: RemoveDesignReferenceUseCase,
     private readonly refreshDesignMetadataUseCase: RefreshDesignMetadataUseCase,
     private readonly assignTicketUseCase: AssignTicketUseCase,
+    private readonly submitReviewSessionUseCase: SubmitReviewSessionUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -420,6 +423,23 @@ export class TicketsController {
     });
 
     return { success: true };
+  }
+
+  /**
+   * Submit a review session from the CLI reviewer agent (Story 6-12)
+   * Stores Q&A pairs and transitions ticket to WAITING_FOR_APPROVAL.
+   */
+  @Post(':id/review-session')
+  async submitReviewSession(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: SubmitReviewSessionDto,
+  ) {
+    return this.submitReviewSessionUseCase.execute({
+      ticketId: id,
+      workspaceId,
+      qaItems: dto.qaItems,
+    });
   }
 
   /**
@@ -900,6 +920,7 @@ export class TicketsController {
       attachments: aec.attachments ?? [],
       designReferences: aec.designReferences ?? [],
       assignedTo: aec.assignedTo ?? null,
+      reviewSession: aec.reviewSession ?? null, // Story 6-12
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };
