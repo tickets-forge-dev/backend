@@ -3,10 +3,10 @@ import { Type } from 'class-transformer';
 
 export class ReviewQAItemDto {
   @IsString()
-  question: string;
+  question!: string;
 
   @IsString()
-  answer: string;
+  answer!: string;
 }
 
 /**
@@ -17,5 +17,5 @@ export class SubmitReviewSessionDto {
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => ReviewQAItemDto)
-  qaItems: ReviewQAItemDto[];
+  qaItems!: ReviewQAItemDto[];
 }
