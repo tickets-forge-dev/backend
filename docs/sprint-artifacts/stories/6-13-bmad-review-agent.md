@@ -1,6 +1,6 @@
 # Story 6.13: BMAD Forge-Reviewer Agent
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -155,7 +155,7 @@ Questions must be answerable by a PM (not a developer). Avoid "how should I impl
 
 ### Context Reference
 
-<!-- Path(s) to story context XML will be added here by context workflow -->
+- docs/sprint-artifacts/stories/6-13-bmad-review-agent.context.xml
 
 ### Agent Model Used
 
