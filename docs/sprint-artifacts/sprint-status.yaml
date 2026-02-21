@@ -154,11 +154,32 @@ development_status:
   # PHASE 5 (Weeks 9+): Integration & Launch
   # ──────────────────────────────────────────────────────────────────────────
 
-  # EPIC 7: Ticket Lifecycle (P1) - 9 stories, ~15 days
+  # EPIC 7: Ticket Lifecycle (P1) - 10 stories, ~17 days
   # Status: ⬜ NOT STARTED - Can start after Epic 3 complete (needs roles)
   # Dependencies: Role-based authorization from Epic 3
-  # Key: Full PM→Dev→PM workflow with dynamic agent conversations
-  # Flow: PM creates → Dev reviews (CLI) → PM approves → Dev executes
+  # Key: Full PM→Dev→PM workflow with tech-spec agent sessions + ticket re-enrichment
+  #
+  # FULL FLOW (with re-bake):
+  #   PM creates ticket → AI enriches → READY
+  #   Dev: forge review → invokes forge_review prompt → tech-spec-reviewer agent session
+  #        (open-ended: unknown duration, not "5 generic questions")
+  #        Agent explores codebase, makes decisions, surfaces edge cases
+  #        Session ends with structured JSON output → submit_review_session MCP tool
+  #        → QUESTIONS_GENERATED
+  #   [Epic 7] Structured review session stored → PM notified → WAITING_FOR_APPROVAL
+  #   [Epic 7] PM opens ticket → sees Q&A → clicks "Re-bake Ticket"
+  #            → AI re-runs enrichment with Q&A as context → fully-baked ticket
+  #            → PM reviews diff → clicks Approve → READY (fully approved)
+  #   Dev: forge execute → Claude gets FULLY-BAKED ticket via get_ticket_context
+  #        → writes code → update_ticket_status → CREATED
+  #
+  # RE-BAKE ARCHITECTURE (7-10):
+  #   POST /api/tickets/:id/re-enrich
+  #   Input:  original ticket fields + conversationId (Q&A from 7-3)
+  #   AI:     "Given ticket + Q&A, produce complete execution-ready ticket"
+  #   Output: updated acceptance criteria, explicit edge cases, clear tech specs
+  #   Reuses existing AI enrichment service — same pipeline, richer input
+  #   See: docs/sprint-artifacts/stories/7-design-notes.md
   epic-7-ticket-lifecycle: backlog
   7-1-extend-aec-status-enum: backlog
   7-2-move-tickets-to-team-scope: backlog
@@ -166,9 +187,10 @@ development_status:
   7-4-conversation-api: backlog
   7-5-update-ticket-filters: backlog
   7-6-conversation-viewer-ui: backlog
-  7-7-approve-button-pm-only: backlog
-  7-8-status-sync-web-cli: backlog
-  7-9-ticket-creation-updates: backlog
+  7-7-ticket-re-enrich-with-qa: backlog
+  7-8-approve-button-pm-only: backlog
+  7-9-status-sync-web-cli: backlog
+  7-10-ticket-creation-updates: backlog
   epic-7-ticket-lifecycle-retrospective: optional
 
   # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days
