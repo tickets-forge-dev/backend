@@ -363,3 +363,19 @@ calls update_ticket_status    ────► PATCH /tickets/T-001 { status: CRE
 - `forge review T-001` → Claude Code invokes `forge_review` prompt → generates 5-10 questions → printed to stdout
 
 **TypeScript coverage:** `npm run typecheck` → 0 errors (enforced before every review)
+
+## Post-Review Follow-ups
+
+*From Story 6.2 code review (2026-02-20)*
+
+- Stories 6-3, 6-4, 6-5: Extract `ToolResult` and `TextContent` interfaces from `get-ticket-context.ts` into `src/mcp/types.ts` before adding new tools — avoids duplication.
+- Future SDK upgrade: Remove `Promise<any>` annotation on `CallToolRequestSchema` handler in `server.ts:32` when upgrading to `@modelcontextprotocol/sdk` version compatible with Zod v4, or when migrating the project to Zod v4.
+
+---
+
+*From Story 6.1 code review (2026-02-20)*
+
+- Story 6-5 must implement auto-assign (`PATCH /tickets/:id`) in `forge execute` — `// TODO(6-5)` at `execute.ts:61`
+- Story 6-10 (integration tests): add `forge mcp` SIGINT integration test and `forge review` instruction block content test
+- Consider `process.once` instead of `process.on` for SIGINT in `login.ts:37`
+- Consider extracting `DIVIDER` constant to `src/ui/formatters.ts` (currently duplicated in `execute.ts:14` and `review.ts:16`)

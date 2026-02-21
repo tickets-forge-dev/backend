@@ -135,11 +135,11 @@ development_status:
   # Key: BMAD agent integration for dynamic PM-Developer conversations
   # UX: Developer presses [r] → BMAD agent asks dynamic questions → enriches ticket
   epic-6-mcp-server: in-progress
-  6-1-mcp-server-setup: drafted
-  6-2-ticket-context-tool: backlog
-  6-3-file-changes-tool: backlog
-  6-4-repository-context-tool: backlog
-  6-5-status-update-tool: backlog
+  6-1-mcp-server-setup: done
+  6-2-ticket-context-tool: done
+  6-3-file-changes-tool: done
+  6-4-repository-context-tool: done
+  6-5-status-update-tool: review
   6-6-execute-prompt: backlog
   6-7-review-prompt: backlog
   6-8-agent-guide-executor: backlog

@@ -793,29 +793,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Tickets
           </Button>
-          
-          {/* Type badge */}
-          {currentTicket.type && (
-            <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
-              {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
-                : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
-                : <Lightbulb className="h-3 w-3 text-amber-500" />}
-              {currentTicket.type}
-            </Badge>
-          )}
-
-          {/* Priority badge */}
-          {currentTicket.priority && (
-            <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${
-                currentTicket.priority === 'urgent' ? 'bg-red-500'
-                  : currentTicket.priority === 'high' ? 'bg-orange-500'
-                  : currentTicket.priority === 'medium' ? 'bg-yellow-500'
-                  : 'bg-green-500'
-              }`} />
-              {currentTicket.priority}
-            </Badge>
-          )}
 
           {/* No code analysis indicator */}
           {!currentTicket.repositoryContext && (
@@ -845,7 +822,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
-      {/* Hero Header — Title + Quality + Status */}
+      {/* Hero Header — Title */}
       <div className="flex items-start gap-4 py-2">
         {/* Title - editable with max 2 lines, full width */}
         <div className="flex-1 min-w-0">
@@ -901,56 +878,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             </div>
           )}
         </div>
-
-        {/* Quality score */}
-        {techSpec?.qualityScore !== undefined && (
-          <div className="relative group flex-shrink-0">
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-white cursor-default ${
-              techSpec.qualityScore >= 75
-                ? 'bg-green-500'
-                : techSpec.qualityScore >= 50
-                ? 'bg-amber-500'
-                : 'bg-red-500'
-            }`}>
-              {techSpec.qualityScore}/100
-            </span>
-            {qualityTips.length > 0 && (
-              <div className="absolute right-0 top-full mt-2 w-64 p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <p className="text-[11px] font-medium text-[var(--text)] mb-2">
-                  To improve your score:
-                </p>
-                <ul className="space-y-1">
-                  {qualityTips.slice(0, 5).map((tip, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--text-secondary)]">
-                      <span className="text-amber-500 mt-px">*</span>
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Status button */}
-        {canToggleStatus && (
-          <button
-            onClick={() => setShowStatusConfirm(true)}
-            className={`
-              inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border relative group
-              ${isComplete
-                ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/20 hover:border-green-500/30'
-                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-tertiary)]'
-              }
-            `}
-          >
-            {isComplete && <CheckCircle className="h-3.5 w-3.5" />}
-            <span>{isComplete ? 'Complete' : 'Draft'}</span>
-            <span className="absolute -bottom-5 right-0 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity whitespace-nowrap">
-              Click to {isComplete ? 'revert' : 'complete'}
-            </span>
-          </button>
-        )}
       </div>
 
       {/* Full title (shown when title is long and would be truncated) */}
@@ -967,16 +894,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       <TicketDetailLayout
         ticket={currentTicket}
         ticketId={ticketId}
-        descriptionDraft={descriptionDraft}
-        onDescriptionChange={(value) => {
-          setDescriptionDraft(value);
-          setIsDescriptionDirty(value !== (currentTicket?.description || ''));
-        }}
-        onDescriptionSave={handleSaveDescription}
-        isSavingDescription={isSavingDescription}
-        isDescriptionDirty={isDescriptionDirty}
-        onDescriptionExpand={() => { setDescriptionExpanded(true); setDescriptionMode('edit'); }}
         onAssignTicket={handleAssignTicket}
+        qualityScore={techSpec?.qualityScore}
+        isComplete={isComplete}
+        canToggleStatus={canToggleStatus}
+        onStatusClick={() => setShowStatusConfirm(true)}
         onEditItem={openEdit}
         onDeleteItem={deleteTechSpecItem}
         onSaveAcceptanceCriteria={handleSaveAcceptanceCriteria}
@@ -997,6 +919,48 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         saveTechSpecPatch={saveTechSpecPatch}
         fetchTicket={fetchTicket}
       />
+
+      {/* Notes Section - at bottom */}
+      <div className="pt-4 border-t border-[var(--border)]">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-[var(--text)]">Notes</h3>
+          <div className="flex items-center gap-1">
+            {isDescriptionDirty && (
+              <span className="text-[10px] text-[var(--text-tertiary)] mr-2">Unsaved</span>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!isDescriptionDirty || isSavingDescription}
+              onClick={handleSaveDescription}
+              className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+            >
+              {isSavingDescription ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Save className="h-3 w-3 mr-1" />
+              )}
+              Save
+            </Button>
+          </div>
+        </div>
+        <textarea
+          value={descriptionDraft}
+          onChange={(e) => {
+            setDescriptionDraft(e.target.value);
+            setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              if (isDescriptionDirty) handleSaveDescription();
+            }
+          }}
+          placeholder="Add notes... (supports Markdown)"
+          rows={3}
+          className="w-full bg-[var(--bg-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed rounded-lg px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 transition-colors resize-y"
+        />
+      </div>
 
       {/* Footer with actions */}
       <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">

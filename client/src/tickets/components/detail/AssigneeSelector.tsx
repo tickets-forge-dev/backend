@@ -63,9 +63,9 @@ export function AssigneeSelector({
         const members = await teamService.getTeamMembers(currentTeamId, idToken);
         setAllMembers(members.filter((m) => m.status === 'active'));
 
-        // Filter: Only ACTIVE members with DEVELOPER role (business rule)
+        // Filter: Only ACTIVE members who can execute tickets (admin + developer roles)
         const activeDevelopers = members.filter(
-          (m) => m.status === 'active' && m.role === 'developer'
+          (m) => m.status === 'active' && (m.role === 'developer' || m.role === 'admin')
         );
 
         setDevelopers(activeDevelopers);
@@ -159,19 +159,19 @@ export function AssigneeSelector({
               </div>
             )}
 
-            {/* No developers message */}
+            {/* No assignable members message */}
             {!isPrivateWorkspace && !isLoading && developers.length === 0 && !error && (
               <div className="text-center py-6">
                 <UserPlus className="h-10 w-10 text-[var(--blue)] mx-auto mb-3" />
                 <p className="text-sm text-[var(--text)]">
-                  No developers in your team yet
+                  No assignable members in your team yet
                 </p>
                 <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Invite team members with the developer role to enable assignment.
+                  Invite team members with admin or developer role to enable assignment.
                 </p>
                 {allMembers.length > 0 && (
                   <p className="text-xs text-[var(--text-tertiary)] mt-2">
-                    {allMembers.length} member{allMembers.length !== 1 ? 's' : ''} without developer role
+                    {allMembers.length} member{allMembers.length !== 1 ? 's' : ''} without assignable role
                   </p>
                 )}
               </div>

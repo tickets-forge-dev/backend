@@ -18,15 +18,13 @@ import type { ApiEndpointSpec } from '@/types/question-refinement';
 interface TicketDetailLayoutProps {
   ticket: AECResponse;
   ticketId: string;
-  // Description / Notes
-  descriptionDraft: string;
-  onDescriptionChange: (value: string) => void;
-  onDescriptionSave: () => void;
-  isSavingDescription: boolean;
-  isDescriptionDirty: boolean;
-  onDescriptionExpand: () => void;
   // Story 3.5-5: Assignment
   onAssignTicket: (userId: string | null) => Promise<boolean>;
+  // Metadata display
+  qualityScore?: number;
+  isComplete?: boolean;
+  canToggleStatus?: boolean;
+  onStatusClick?: () => void;
   // Edit callbacks
   onEditItem: (section: string, index: number) => void;
   onDeleteItem: (section: string, index: number) => void;
@@ -57,13 +55,11 @@ interface TicketDetailLayoutProps {
 export function TicketDetailLayout({
   ticket,
   ticketId,
-  descriptionDraft,
-  onDescriptionChange,
-  onDescriptionSave,
-  isSavingDescription,
-  isDescriptionDirty,
-  onDescriptionExpand,
   onAssignTicket,
+  qualityScore,
+  isComplete,
+  canToggleStatus,
+  onStatusClick,
   onEditItem,
   onDeleteItem,
   onSaveAcceptanceCriteria,
@@ -133,16 +129,14 @@ export function TicketDetailLayout({
 
     return (
       <div className="space-y-6">
-        {/* Overview Card (notes only, no metrics) */}
+        {/* Overview Card (metadata bar) */}
         <OverviewCard
           ticket={ticket}
-          descriptionDraft={descriptionDraft}
-          onDescriptionChange={onDescriptionChange}
-          onDescriptionSave={onDescriptionSave}
-          isSavingDescription={isSavingDescription}
-          isDescriptionDirty={isDescriptionDirty}
-          onDescriptionExpand={onDescriptionExpand}
           onAssignTicket={onAssignTicket}
+          qualityScore={qualityScore}
+          isComplete={isComplete}
+          canToggleStatus={canToggleStatus}
+          onStatusClick={onStatusClick}
         />
 
         {/* Pending Questions */}
@@ -240,13 +234,11 @@ export function TicketDetailLayout({
       {/* Overview Card */}
       <OverviewCard
         ticket={ticket}
-        descriptionDraft={descriptionDraft}
-        onDescriptionChange={onDescriptionChange}
-        onDescriptionSave={onDescriptionSave}
-        isSavingDescription={isSavingDescription}
-        isDescriptionDirty={isDescriptionDirty}
-        onDescriptionExpand={onDescriptionExpand}
         onAssignTicket={onAssignTicket}
+        qualityScore={qualityScore}
+        isComplete={isComplete}
+        canToggleStatus={canToggleStatus}
+        onStatusClick={onStatusClick}
       />
 
       {/* Tabbed content */}
