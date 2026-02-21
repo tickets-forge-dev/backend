@@ -1,6 +1,6 @@
 # Story 6.5: Status Update MCP Tool
 
-Status: review
+Status: done
 
 ## Story
 
@@ -227,3 +227,35 @@ claude-sonnet-4-6
 - `forge-cli/src/mcp/tools/__tests__/update-ticket-status.test.ts` — new (12 tests)
 - `forge-cli/src/mcp/__tests__/server.test.ts` — updated (4 tools, 13 total)
 - `forge-cli/src/commands/__tests__/execute.test.ts` — updated (auto-assign tests, 7 total)
+
+## Senior Developer Review (AI)
+
+**Reviewer:** claude-sonnet-4-6
+**Date:** 2026-02-21
+**Outcome:** APPROVE
+
+### AC Validation
+
+| AC | Status | Evidence |
+|----|--------|----------|
+| AC1 — Tool in ListTools (name, description, required schema) | ✅ PASS | `updateTicketStatusToolDefinition` in `update-ticket-status.ts`; `server.test.ts:120-125` verifies 4 tools + `'update_ticket_status'` |
+| AC2 — Success path returns `{success, ticketId, newStatus}` | ✅ PASS | Handler returns `JSON.stringify({success:true,ticketId,newStatus:result.status})`; `update-ticket-status.test.ts:55-78` verifies shape and `patch` call args |
+| AC3 — `ApiService.patch<T>()` with full 401/5xx/network retry | ✅ PASS | `api.service.ts`: `makeRequest` refactored with optional `{method?,body?}`; `patch<T>()` duplicates retry logic from `get<T>()`; 5 patch tests at lines 153-229 cover all paths |
+| AC4 — Input validation (ticketId + status) | ✅ PASS | Validates missing/empty/whitespace ticketId and `Object.values(AECStatus)` status check; 5 validation tests |
+| AC5 — 404 → "Ticket not found", 401 after refresh → auth error | ✅ PASS | `message.includes('404')` guard in handler; 3 error-path tests covering 404, auth, and network errors |
+| AC6 — ForgeMCPServer registers 4 tools | ✅ PASS | `server.test.ts:120` asserts `toHaveLength(4)` |
+| AC7 — Auto-assign in execute.ts (non-fatal) | ✅ PASS | `execute.ts:61-65` try/catch with `ApiService.patch`; `execute.test.ts` verifies call args and failure→continues |
+| AC8 — `npm run typecheck` → 0 errors | ✅ PASS | Confirmed in completion notes |
+| AC9 — ≥137 tests (14+ new) | ✅ PASS | 145 tests, 22 new over 123 baseline |
+
+### Code Quality Notes
+
+- `patch<T>()` correctly duplicates retry logic from `get<T>()` — intentional, avoids premature abstraction per spec; backward-compatible `makeRequest` refactor has no risk to existing `get()` callers.
+- `Object.values(AECStatus)` for status validation is consistent with all other tools (no Zod).
+- Auto-assign is correctly best-effort — try/catch with stderr dim warning, does not `exit(1)`.
+- vitest v4 hoisting fix is properly applied: `vi.fn()` inline in factory, `vi.mocked()` access in tests. This is the right pattern and should be carried into all future tool tests.
+- `Promise<any>` annotation on `CallToolRequestSchema` handler in `server.ts` correctly preserved (Zod v3/v4 workaround).
+
+### Action Items
+
+None — no changes required.

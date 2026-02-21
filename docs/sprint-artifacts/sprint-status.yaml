@@ -139,9 +139,9 @@ development_status:
   6-2-ticket-context-tool: done
   6-3-file-changes-tool: done
   6-4-repository-context-tool: done
-  6-5-status-update-tool: review
-  6-6-execute-prompt: backlog
-  6-7-review-prompt: backlog
+  6-5-status-update-tool: done
+  6-6-execute-prompt: done
+  6-7-review-prompt: done
   6-8-agent-guide-executor: backlog
   6-9-agent-guide-reviewer: backlog
   6-10-mcp-integration-tests: backlog

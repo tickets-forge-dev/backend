@@ -10,7 +10,16 @@ import { useTicketGrouping } from '@/tickets/hooks/useTicketGrouping';
 import { TicketGroupHeader } from '@/tickets/components/TicketGroupHeader';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, Trash2, UserPlus } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/core/components/ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
 type SortDirection = 'desc' | 'asc';
@@ -374,6 +383,8 @@ export default function TicketsListPage() {
 
 // Extract ticket row to a separate component for reusability
 function TicketRow({ ticket }: { ticket: any }) {
+  const router = useRouter();
+  const { deleteTicket, assignTicket } = useTicketsStore();
 
   // Helper to determine ticket status
   const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' => {
@@ -483,8 +494,32 @@ function TicketRow({ ticket }: { ticket: any }) {
   const ticketStatus = getTicketStatus(ticket);
   const isNeedsInput = ticketStatus === 'needs-input';
 
+  const handleOpen = () => {
+    router.push(isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`);
+  };
+
+  const handleDelete = async () => {
+    if (confirm('Are you sure you want to delete this ticket?')) {
+      const success = await deleteTicket(ticket.id);
+      if (success) {
+        toast.success('Ticket deleted');
+      } else {
+        toast.error('Failed to delete ticket');
+      }
+    }
+  };
+
+  const handleArchive = () => {
+    toast.info('Archive feature coming soon');
+  };
+
+  const handleAssign = () => {
+    // Navigate to ticket detail page where assignment can be done
+    router.push(`/tickets/${ticket.id}`);
+  };
+
   return (
-    <div className={`group rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mx-2 sm:mx-4 ${
+    <div className={`group rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center justify-between gap-2 sm:gap-4 mx-2 sm:mx-4 ${
       ticketStatus === 'needs-resume'
         ? 'bg-red-500/5'
         : ''
@@ -533,6 +568,37 @@ function TicketRow({ ticket }: { ticket: any }) {
           </div>
         </div>
       </Link>
+
+      {/* Actions menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-subtle)] transition-all focus:opacity-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreVertical className="h-4 w-4 text-[var(--text-tertiary)]" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem onClick={handleOpen}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleAssign}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Assign
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleArchive}>
+            <Archive className="h-4 w-4 mr-2" />
+            Archive
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
