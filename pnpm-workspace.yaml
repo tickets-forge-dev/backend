@@ -2,3 +2,4 @@ packages:
   - 'backend'
   - 'client'
   - 'packages/*'
+  - 'docs/website'

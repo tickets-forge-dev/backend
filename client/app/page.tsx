@@ -28,12 +28,6 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-6">
             <Link
-              href="/docs"
-              className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
-            >
-              Docs
-            </Link>
-            <Link
               href="/login"
               className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
             >
@@ -334,10 +328,6 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center justify-center gap-4 mb-4">
-            <Link href="/docs" className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
-              Documentation
-            </Link>
-            <span className="text-[var(--border)]">•</span>
             <Link href="/pricing" className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
               Pricing
             </Link>

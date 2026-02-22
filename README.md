@@ -85,6 +85,13 @@ cd client && pnpm dev    # Frontend on http://localhost:3001
 cd backend && pnpm dev   # Backend on http://localhost:3000
 ```
 
+### Docs Site (Docusaurus)
+
+```
+pnpm --filter forge-docs start   # Runs at http://localhost:3030
+pnpm --filter forge-docs build   # Generates static site in docs/website/build
+```
+
 ### 5. Verify Setup
 
 - **Frontend:** http://localhost:3001
