@@ -1,6 +1,6 @@
 # Story 7.10: Re-bake Ticket Frontend
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -147,7 +147,7 @@ After successful re-enrich, call `fetchTicket(ticketId)` (already passed as a pr
 
 ### Context Reference
 
-<!-- Path(s) to story context XML will be added here by context workflow -->
+- docs/sprint-artifacts/stories/7-10-ticket-creation-updates.context.xml
 
 ### Agent Model Used
 

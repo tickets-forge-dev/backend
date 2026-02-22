@@ -1,0 +1,168 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>10</storyId>
+    <title>Re-bake Ticket Frontend</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2026-02-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/7-10-ticket-creation-updates.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a PM</asA>
+    <iWant>to click a "Re-bake Ticket" button on a ticket that has developer review answers</iWant>
+    <soThat>the AI regenerates the tech spec and acceptance criteria using those answers — giving me an updated, implementation-ready ticket to review before approving</soThat>
+    <tasks>
+- Task 1: Service — Add `reEnrichTicket()` to `ticket.service.ts`
+- Task 2: Store — Add `reEnrichTicket()` action to `tickets.store.ts`
+- Task 3: UI — Add "Re-bake Ticket" button to `TicketDetailLayout`
+- Task 4: TypeScript check — `tsc --noEmit` → 0 errors
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1">ticketService.reEnrichTicket(ticketId) calls POST /api/tickets/:id/re-enrich and returns AECResponse</ac>
+    <ac id="2">ticketsStore.reEnrichTicket(ticketId) updates currentTicket and tickets list on success, returns boolean</ac>
+    <ac id="3">"Re-bake Ticket" button appears in Q&amp;A section when isWaitingForApproval &amp;&amp; hasReviewSession — above the Approve button</ac>
+    <ac id="4">Button has independent loading state (isReEnriching), separate from isApproving</ac>
+    <ac id="5">On success: fetchTicket(ticketId) is called + toast "Ticket re-baked — spec updated with developer insights"</ac>
+    <ac id="6">On error: toast shows error message, button returns to default state</ac>
+    <ac id="7">Button is blue/indigo color (not green) to distinguish from the Approve action</ac>
+    <ac id="8">Button appears in BOTH pre-tech-spec and post-tech-spec layout branches</ac>
+    <ac id="9">tsc --noEmit → 0 errors in client (pre-existing workspaceId errors from 7-2 are acceptable)</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/stories/7-7-ticket-re-enrich-with-qa.md</path>
+        <title>Story 7-7: Ticket Re-Enrich with Q&amp;A</title>
+        <section>Acceptance Criteria + Dev Agent Record</section>
+        <snippet>POST /api/tickets/:id/re-enrich is the backend endpoint added in story 7-7. It returns updated ticket DTO with new techSpec and acceptanceCriteria (status stays WAITING_FOR_APPROVAL).</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/stories/7-8-approve-button-pm-only.md</path>
+        <title>Story 7-8: PM Approve Button</title>
+        <section>Implementation pattern reference</section>
+        <snippet>approveTicket() in service + store is the exact pattern to follow for reEnrichTicket(). The Approve button code in TicketDetailLayout is the template for placing the Re-bake button.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>client/src/services/ticket.service.ts</path>
+        <kind>service</kind>
+        <symbol>TicketService.approveTicket</symbol>
+        <lines>248-252</lines>
+        <reason>Direct pattern to follow: POST call to /tickets/:id/approve → copy for /tickets/:id/re-enrich</reason>
+      </file>
+      <file>
+        <path>client/src/services/ticket.service.ts</path>
+        <kind>service</kind>
+        <symbol>AECResponse</symbol>
+        <lines>26-75</lines>
+        <reason>Return type for reEnrichTicket() — includes reviewSession, techSpec, acceptanceCriteria fields</reason>
+      </file>
+      <file>
+        <path>client/src/stores/tickets.store.ts</path>
+        <kind>store</kind>
+        <symbol>approveTicket</symbol>
+        <lines>497-514</lines>
+        <reason>Exact store action pattern to replicate: useServices(), call service, set() to update state, return boolean</reason>
+      </file>
+      <file>
+        <path>client/src/stores/tickets.store.ts</path>
+        <kind>store</kind>
+        <symbol>TicketsState interface</symbol>
+        <lines>21-87</lines>
+        <reason>Add reEnrichTicket: (ticketId: string) => Promise&lt;boolean&gt; to this interface alongside approveTicket</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/detail/TicketDetailLayout.tsx</path>
+        <kind>component</kind>
+        <symbol>TicketDetailLayout</symbol>
+        <lines>152-167</lines>
+        <reason>isWaitingForApproval flag and handleApprove() pattern — create parallel handleReEnrich() + isReEnriching state</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/detail/TicketDetailLayout.tsx</path>
+        <kind>component</kind>
+        <symbol>Q&amp;A CollapsibleSection (pre-tech-spec branch)</symbol>
+        <lines>256-286</lines>
+        <reason>First location to add "Re-bake Ticket" button — inside review-session CollapsibleSection, above Approve button</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/detail/TicketDetailLayout.tsx</path>
+        <kind>component</kind>
+        <symbol>Q&amp;A CollapsibleSection (post-tech-spec branch)</symbol>
+        <lines>319-349</lines>
+        <reason>Second location to add "Re-bake Ticket" button — same as pre-tech-spec, both must be updated</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <pkg>next</pkg><version>^15.5.11</version>
+        <pkg>react</pkg><version>^19.0.0</version>
+        <pkg>zustand</pkg><version>^4.5.0</version>
+        <pkg>axios</pkg><version>^1.6.5</version>
+        <pkg>sonner</pkg><version>^2.0.7</version>
+        <pkg>lucide-react</pkg><version>^0.563.0</version>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Business logic must NOT live in React components — all service calls go through store actions</constraint>
+    <constraint>Store uses useServices() (lazy service access) — NOT direct service instantiation</constraint>
+    <constraint>Zustand store pattern: set() for state updates, try/catch returning boolean</constraint>
+    <constraint>TicketDetailLayout receives fetchTicket as a prop — call it after successful re-enrich to reload ticket data</constraint>
+    <constraint>Two layout branches (pre-tech-spec: hasTechSpec=false, post-tech-spec: hasTechSpec=true) — BOTH must get the Re-bake button</constraint>
+    <constraint>isReEnriching and isApproving are independent states — one should not block the other</constraint>
+    <constraint>The Re-bake button must be visually distinct (blue) from Approve (green) to avoid confusion</constraint>
+    <constraint>Pre-existing TypeScript errors: workspaceId on AECResponse in FigmaIntegration.tsx and LoomIntegration.tsx are from story 7-2 — do NOT fix them, just verify count stays the same</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>POST /api/tickets/:id/re-enrich</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/tickets/{ticketId}/re-enrich — Body: {} — Response: AECResponse (updated ticket with new techSpec + ACs, status stays waiting-for-approval)</signature>
+      <path>backend/src/tickets/presentation/controllers/tickets.controller.ts</path>
+    </interface>
+    <interface>
+      <name>TicketService.reEnrichTicket</name>
+      <kind>function signature</kind>
+      <signature>async reEnrichTicket(ticketId: string): Promise&lt;AECResponse&gt;</signature>
+      <path>client/src/services/ticket.service.ts</path>
+    </interface>
+    <interface>
+      <name>TicketsState.reEnrichTicket</name>
+      <kind>store action</kind>
+      <signature>reEnrichTicket: (ticketId: string) => Promise&lt;boolean&gt;</signature>
+      <path>client/src/stores/tickets.store.ts</path>
+    </interface>
+    <interface>
+      <name>handleReEnrich (local component handler)</name>
+      <kind>function signature</kind>
+      <signature>const handleReEnrich = async () =&gt; { setIsReEnriching(true); try { const success = await reEnrichTicket(ticketId); if (success) { await fetchTicket(ticketId); toast.success('...'); } else { toast.error('...'); } } finally { setIsReEnriching(false); } }</signature>
+      <path>client/src/tickets/components/detail/TicketDetailLayout.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Client uses no unit tests for components in this epic (stories 7-7 through 7-9 had no frontend tests). TypeScript type-checking (tsc --noEmit) is the primary validation. Manual verification of the button appearing and functioning is the acceptance test.</standards>
+    <locations>
+      <location>client/src/ — no unit test framework configured for components</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Verify service call: ticketService.reEnrichTicket('T-001') calls client.post('/tickets/T-001/re-enrich', {})</idea>
+      <idea ac="2">Verify store action: reEnrichTicket updates currentTicket when id matches, does not update when id doesn't match</idea>
+      <idea ac="3,8">Manual: ticket with status 'waiting-for-approval' and reviewSession shows Re-bake button in both pre/post tech-spec views</idea>
+      <idea ac="4">Manual: clicking Re-bake shows spinner; clicking Approve simultaneously still works independently</idea>
+      <idea ac="5">Manual: after re-bake, ticket spec tab shows refreshed acceptance criteria and tech spec</idea>
+      <idea ac="9">tsc --noEmit in client/ → confirm only pre-existing errors remain</idea>
+    </ideas>
+  </tests>
+</story-context>
