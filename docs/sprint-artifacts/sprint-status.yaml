@@ -154,8 +154,8 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 7: Ticket Lifecycle (P1) - 10 stories, ~17 days
-  # Status: 🔄 IN-PROGRESS - 8/10 done, 7-2 + 7-7 back for fixes (code review)
-  # Updated: 2026-02-21 (code reviews completed on all review stories)
+  # Status: ✅ DONE - All 10 stories complete (2026-02-22)
+  # Updated: 2026-02-22 (7-2 + 7-7 approved after re-review; all fixes verified)
   # Dependencies: Role-based authorization from Epic 3
   # Key: Full PM→Dev→PM workflow with tech-spec agent sessions + ticket re-enrichment
   #
@@ -170,18 +170,14 @@ development_status:
   #        [Approve Ticket] (green) → transitions WAITING_FOR_APPROVAL → READY
   #   Dev: forge execute T-001 → Claude gets fully-baked ticket → writes code
   #        → calls update_ticket_status → CREATED
-  #
-  # PENDING FIXES (from code review 2026-02-21):
-  #   7-2: Fixed FigmaIntegration.tsx + LoomIntegration.tsx — back in review (2026-02-22)
-  #   7-7: Fixed role check in ReEnrichWithQAUseCase — back in review (2026-02-22)
-  epic-7-ticket-lifecycle: in-progress
+  epic-7-ticket-lifecycle: done
   7-1-extend-aec-status-enum: done
-  7-2-move-tickets-to-team-scope: review
+  7-2-move-tickets-to-team-scope: done
   7-3-conversation-storage: done
   7-4-conversation-api: done
   7-5-update-ticket-filters: done
   7-6-conversation-viewer-ui: done
-  7-7-ticket-re-enrich-with-qa: review
+  7-7-ticket-re-enrich-with-qa: done
   7-8-approve-button-pm-only: done
   7-9-status-sync-web-cli: done
   7-10-ticket-creation-updates: done
