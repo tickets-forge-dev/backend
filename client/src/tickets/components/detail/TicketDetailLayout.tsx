@@ -11,7 +11,7 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2 } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
@@ -86,8 +86,9 @@ export function TicketDetailLayout({
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasTechSpec = !!ticket.techSpec;
-  const { approveTicket } = useTicketsStore();
+  const { approveTicket, reEnrichTicket } = useTicketsStore();
   const [isApproving, setIsApproving] = useState(false);
+  const [isReEnriching, setIsReEnriching] = useState(false);
 
   const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -163,6 +164,21 @@ export function TicketDetailLayout({
       }
     } finally {
       setIsApproving(false);
+    }
+  };
+
+  const handleReEnrich = async () => {
+    setIsReEnriching(true);
+    try {
+      const success = await reEnrichTicket(ticketId);
+      if (success) {
+        await fetchTicket(ticketId);
+        toast.success('Ticket re-baked — spec updated with developer insights');
+      } else {
+        toast.error('Failed to re-bake ticket. Please try again.');
+      }
+    } finally {
+      setIsReEnriching(false);
     }
   };
 
@@ -265,9 +281,21 @@ export function TicketDetailLayout({
               qaItems={ticket.reviewSession!.qaItems}
               submittedAt={ticket.reviewSession!.submittedAt}
             />
-            {/* Story 7-8: Approve button — shown when ticket is awaiting PM approval */}
+            {/* Story 7-8 + 7-10: Re-bake + Approve buttons — shown when ticket is awaiting PM approval */}
             {isWaitingForApproval && (
-              <div className="mt-4 pt-4 border-t border-[var(--border)]">
+              <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
+                <Button
+                  onClick={handleReEnrich}
+                  disabled={isReEnriching}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isReEnriching ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  {isReEnriching ? 'Re-baking...' : 'Re-bake Ticket'}
+                </Button>
                 <Button
                   onClick={handleApprove}
                   disabled={isApproving}
@@ -328,9 +356,21 @@ export function TicketDetailLayout({
             qaItems={ticket.reviewSession!.qaItems}
             submittedAt={ticket.reviewSession!.submittedAt}
           />
-          {/* Story 7-8: Approve button — shown when ticket is awaiting PM approval */}
+          {/* Story 7-8 + 7-10: Re-bake + Approve buttons — shown when ticket is awaiting PM approval */}
           {isWaitingForApproval && (
-            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
+              <Button
+                onClick={handleReEnrich}
+                disabled={isReEnriching}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isReEnriching ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                {isReEnriching ? 'Re-baking...' : 'Re-bake Ticket'}
+              </Button>
               <Button
                 onClick={handleApprove}
                 disabled={isApproving}

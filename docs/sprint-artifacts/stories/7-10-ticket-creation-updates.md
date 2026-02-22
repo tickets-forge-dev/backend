@@ -1,6 +1,6 @@
 # Story 7.10: Re-bake Ticket Frontend
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,31 +22,31 @@ so that the AI regenerates the tech spec and acceptance criteria using those ans
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Service — Add `reEnrichTicket()` to `ticket.service.ts` (AC: 1)
-  - [ ] In `client/src/services/ticket.service.ts`: add `async reEnrichTicket(ticketId: string): Promise<AECResponse>`
-  - [ ] Calls `this.client.post<AECResponse>(\`/tickets/${ticketId}/re-enrich\`, {})`
-  - [ ] Returns `response.data`
+- [x] Task 1: Service — Add `reEnrichTicket()` to `ticket.service.ts` (AC: 1)
+  - [x] In `client/src/services/ticket.service.ts`: add `async reEnrichTicket(ticketId: string): Promise<AECResponse>`
+  - [x] Calls `this.client.post<AECResponse>(\`/tickets/${ticketId}/re-enrich\`, {})`
+  - [x] Returns `response.data`
 
-- [ ] Task 2: Store — Add `reEnrichTicket()` action to `tickets.store.ts` (AC: 2)
-  - [ ] Add `reEnrichTicket: (ticketId: string) => Promise<boolean>` to the store interface
-  - [ ] Implementation calls `ticketService.reEnrichTicket(ticketId)`
-  - [ ] On success: update `currentTicket` if `currentTicket.id === ticketId`, update list item in `tickets[]`
-  - [ ] Returns `true` on success, `false` on error (with `console.error`)
+- [x] Task 2: Store — Add `reEnrichTicket()` action to `tickets.store.ts` (AC: 2)
+  - [x] Add `reEnrichTicket: (ticketId: string) => Promise<boolean>` to the store interface
+  - [x] Implementation calls `ticketService.reEnrichTicket(ticketId)`
+  - [x] On success: update `currentTicket` if `currentTicket.id === ticketId`, update list item in `tickets[]`
+  - [x] Returns `true` on success, `false` on error (with `console.error`)
 
-- [ ] Task 3: UI — Add "Re-bake Ticket" button to `TicketDetailLayout` (AC: 3, 4, 5, 6, 7, 8)
-  - [ ] In `TicketDetailLayout.tsx`: import `{ reEnrichTicket }` from `useTicketsStore()`
-  - [ ] Add `isReEnriching` state: `const [isReEnriching, setIsReEnriching] = useState(false)`
-  - [ ] Add `handleReEnrich()` function with loading guard, success/error toast, and `fetchTicket(ticketId)` on success
-  - [ ] Add "Re-bake Ticket" button inside both Q&A `CollapsibleSection` blocks (pre-tech-spec and post-tech-spec):
+- [x] Task 3: UI — Add "Re-bake Ticket" button to `TicketDetailLayout` (AC: 3, 4, 5, 6, 7, 8)
+  - [x] In `TicketDetailLayout.tsx`: import `{ reEnrichTicket }` from `useTicketsStore()`
+  - [x] Add `isReEnriching` state: `const [isReEnriching, setIsReEnriching] = useState(false)`
+  - [x] Add `handleReEnrich()` function with loading guard, success/error toast, and `fetchTicket(ticketId)` on success
+  - [x] Add "Re-bake Ticket" button inside both Q&A `CollapsibleSection` blocks (pre-tech-spec and post-tech-spec):
     - Placed ABOVE the existing "Approve Ticket" button
     - `disabled={isReEnriching}` — independent from `isApproving`
     - Blue/indigo color: `bg-blue-600 hover:bg-blue-700 text-white`
     - Icon: `<RefreshCw>` from lucide-react
     - Loading text: "Re-baking..." with spinner
-  - [ ] Import `RefreshCw` from `'lucide-react'`
+  - [x] Import `RefreshCw` from `'lucide-react'`
 
-- [ ] Task 4: TypeScript check (AC: 9)
-  - [ ] Run `tsc --noEmit` in `client/` → 0 errors (excluding pre-existing workspaceId errors from story 7-2)
+- [x] Task 4: TypeScript check (AC: 9)
+  - [x] Run `tsc --noEmit` in `client/` → only 2 pre-existing workspaceId errors from story 7-2, no new errors
 
 ## Dev Notes
 
@@ -157,4 +157,14 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
+- Followed `approveTicket()` pattern exactly for both service and store — identical structure, just different endpoint `/re-enrich`
+- Both layout branches (pre-tech-spec and post-tech-spec) updated together — they share the same `isWaitingForApproval` condition
+- `isReEnriching` state is independent from `isApproving` — the two buttons can't interfere
+- After successful re-enrich, `fetchTicket(ticketId)` is called to reload the ticket with the new techSpec and acceptanceCriteria
+- Pre-existing client TS errors (2x `workspaceId` on AECResponse in FigmaIntegration/LoomIntegration) confirmed pre-existing from story 7-2, no new errors introduced
+
 ### File List
+
+- `client/src/services/ticket.service.ts` — MODIFIED: added `reEnrichTicket()` method
+- `client/src/stores/tickets.store.ts` — MODIFIED: added `reEnrichTicket` interface + action
+- `client/src/tickets/components/detail/TicketDetailLayout.tsx` — MODIFIED: added RefreshCw import, isReEnriching state, handleReEnrich(), Re-bake button in both layout branches

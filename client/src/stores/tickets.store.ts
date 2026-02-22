@@ -84,6 +84,9 @@ interface TicketsState {
 
   // Story 7-8: PM approves ticket
   approveTicket: (ticketId: string) => Promise<boolean>;
+
+  // Story 7-10: PM triggers AI re-enrichment with developer Q&A answers
+  reEnrichTicket: (ticketId: string) => Promise<boolean>;
 }
 
 export const useTicketsStore = create<TicketsState>((set, get) => {
@@ -509,6 +512,24 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
       return true;
     } catch (error: any) {
       console.error('[TicketsStore] approveTicket error:', error);
+      return false;
+    }
+  },
+
+  // Story 7-10: PM triggers AI re-enrichment with developer Q&A answers
+  reEnrichTicket: async (ticketId: string) => {
+    try {
+      const { ticketService } = useServices();
+      const updatedTicket = await ticketService.reEnrichTicket(ticketId);
+
+      set((state) => ({
+        currentTicket: state.currentTicket?.id === ticketId ? updatedTicket : state.currentTicket,
+        tickets: state.tickets.map((t) => (t.id === ticketId ? updatedTicket : t)),
+      }));
+
+      return true;
+    } catch (error: any) {
+      console.error('[TicketsStore] reEnrichTicket error:', error);
       return false;
     }
   },

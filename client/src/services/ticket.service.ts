@@ -250,6 +250,12 @@ export class TicketService {
     const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/approve`, {});
     return response.data;
   }
+
+  // Story 7-10: PM triggers AI re-enrichment with developer Q&A answers
+  async reEnrichTicket(ticketId: string): Promise<AECResponse> {
+    const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/re-enrich`, {});
+    return response.data;
+  }
 }
 
 export interface DetectedApiResponse {
