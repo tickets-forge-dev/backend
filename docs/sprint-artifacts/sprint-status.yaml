@@ -130,10 +130,10 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 6: MCP Server (P0) - 13 stories, ~20 days
-  # Status: 🔄 IN-PROGRESS - 12/13 stories done, 6-10 integration tests remaining
+  # Status: ✅ DONE - All 13 stories complete (2026-02-21)
   # Key: BMAD agent integration for dynamic PM-Developer conversations
   # UX: Developer presses [r] → BMAD agent asks dynamic questions → enriches ticket
-  epic-6-mcp-server: in-progress
+  epic-6-mcp-server: done
   6-1-mcp-server-setup: done
   6-2-ticket-context-tool: done
   6-3-file-changes-tool: done
@@ -143,7 +143,7 @@ development_status:
   6-7-review-prompt: done
   6-8-agent-guide-executor: done
   6-9-agent-guide-reviewer: done
-  6-10-mcp-integration-tests: in-progress
+  6-10-mcp-integration-tests: done
   6-11-cli-mcp-plumbing: done
   6-12-ticket-review-mcp-tools: done
   6-13-bmad-review-agent: done
