@@ -91,6 +91,7 @@ import { AssignTicketDto } from '../dto/AssignTicketDto';
 import { SubmitReviewSessionUseCase } from '../../application/use-cases/SubmitReviewSessionUseCase';
 import { SubmitReviewSessionDto } from '../dto/SubmitReviewSessionDto';
 import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQAUseCase';
+import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -136,6 +137,7 @@ export class TicketsController {
     private readonly assignTicketUseCase: AssignTicketUseCase,
     private readonly submitReviewSessionUseCase: SubmitReviewSessionUseCase,
     private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
+    private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -458,6 +460,21 @@ export class TicketsController {
     @Param('id') id: string,
   ) {
     const aec = await this.reEnrichWithQAUseCase.execute({ ticketId: id, teamId });
+    return this.mapToResponse(aec);
+  }
+
+  /**
+   * Approve ticket after PM reviews developer Q&A and re-baked spec (Story 7-8)
+   *
+   * Transitions WAITING_FOR_APPROVAL → READY so the developer can execute the ticket.
+   * Returns 400 if ticket is not in WAITING_FOR_APPROVAL status.
+   */
+  @Post(':id/approve')
+  async approveTicket(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.approveTicketUseCase.execute({ ticketId: id, teamId });
     return this.mapToResponse(aec);
   }
 

@@ -81,6 +81,9 @@ interface TicketsState {
   setBranch: (branchName: string | null) => void;
   refreshBranches: () => Promise<void>;
   clearBranchSelection: () => void;
+
+  // Story 7-8: PM approves ticket
+  approveTicket: (ticketId: string) => Promise<boolean>;
 }
 
 export const useTicketsStore = create<TicketsState>((set, get) => {
@@ -488,6 +491,25 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
       } catch {
         // Silently fail if localStorage is unavailable
       }
+    }
+  },
+
+  // Story 7-8: PM approves ticket — transitions WAITING_FOR_APPROVAL → READY
+  approveTicket: async (ticketId: string) => {
+    try {
+      const { ticketService } = useServices();
+      const updatedTicket = await ticketService.approveTicket(ticketId);
+
+      // Update currentTicket and list optimistically with the returned data
+      set((state) => ({
+        currentTicket: state.currentTicket?.id === ticketId ? updatedTicket : state.currentTicket,
+        tickets: state.tickets.map((t) => (t.id === ticketId ? updatedTicket : t)),
+      }));
+
+      return true;
+    } catch (error: any) {
+      console.error('[TicketsStore] approveTicket error:', error);
+      return false;
     }
   },
 };

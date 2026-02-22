@@ -11,10 +11,12 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
-import { HelpCircle, MessageSquare } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2 } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
+import { useTicketsStore } from '@/stores/tickets.store';
+import { toast } from 'sonner';
 
 interface TicketDetailLayoutProps {
   ticket: AECResponse;
@@ -84,6 +86,8 @@ export function TicketDetailLayout({
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasTechSpec = !!ticket.techSpec;
+  const { approveTicket } = useTicketsStore();
+  const [isApproving, setIsApproving] = useState(false);
 
   const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -146,6 +150,21 @@ export function TicketDetailLayout({
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
+  const isWaitingForApproval = ticket.status === 'waiting-for-approval';
+
+  const handleApprove = async () => {
+    setIsApproving(true);
+    try {
+      const success = await approveTicket(ticketId);
+      if (success) {
+        toast.success('Ticket approved — status is now READY');
+      } else {
+        toast.error('Failed to approve ticket. Please try again.');
+      }
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   // Pre-tech-spec state: show simple layout with questions + attachments
   if (!hasTechSpec) {
@@ -246,6 +265,23 @@ export function TicketDetailLayout({
               qaItems={ticket.reviewSession!.qaItems}
               submittedAt={ticket.reviewSession!.submittedAt}
             />
+            {/* Story 7-8: Approve button — shown when ticket is awaiting PM approval */}
+            {isWaitingForApproval && (
+              <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                <Button
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isApproving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                  )}
+                  {isApproving ? 'Approving...' : 'Approve Ticket'}
+                </Button>
+              </div>
+            )}
           </CollapsibleSection>
         )}
 
@@ -292,6 +328,23 @@ export function TicketDetailLayout({
             qaItems={ticket.reviewSession!.qaItems}
             submittedAt={ticket.reviewSession!.submittedAt}
           />
+          {/* Story 7-8: Approve button — shown when ticket is awaiting PM approval */}
+          {isWaitingForApproval && (
+            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+              <Button
+                onClick={handleApprove}
+                disabled={isApproving}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isApproving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                )}
+                {isApproving ? 'Approving...' : 'Approve Ticket'}
+              </Button>
+            </div>
+          )}
         </CollapsibleSection>
       )}
 

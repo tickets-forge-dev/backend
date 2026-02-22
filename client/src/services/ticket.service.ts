@@ -244,6 +244,12 @@ export class TicketService {
     );
     return response.data;
   }
+
+  // Story 7-8: PM approves ticket — transitions WAITING_FOR_APPROVAL → READY
+  async approveTicket(ticketId: string): Promise<AECResponse> {
+    const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/approve`, {});
+    return response.data;
+  }
 }
 
 export interface DetectedApiResponse {

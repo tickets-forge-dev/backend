@@ -413,6 +413,17 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * PM approves the ticket after reviewing developer Q&A and re-baked spec (Story 7-8)
+   *
+   * Transitions WAITING_FOR_APPROVAL → READY.
+   * Precondition check (status === WAITING_FOR_APPROVAL) is the use case's responsibility.
+   */
+  approve(): void {
+    this._status = AECStatus.READY;
+    this._updatedAt = new Date();
+  }
+
   // Import ClarificationQuestion for type safety
   // Note: This is typed in QuestionRound import
 
