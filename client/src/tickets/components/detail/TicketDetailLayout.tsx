@@ -23,11 +23,8 @@ interface TicketDetailLayoutProps {
   ticketId: string;
   // Story 3.5-5: Assignment
   onAssignTicket: (userId: string | null) => Promise<boolean>;
-  // Metadata display
   qualityScore?: number;
-  isComplete?: boolean;
-  canToggleStatus?: boolean;
-  onStatusClick?: () => void;
+  onMarkAsReady?: () => void;
   // Edit callbacks
   onEditItem: (section: string, index: number) => void;
   onDeleteItem: (section: string, index: number) => void;
@@ -60,9 +57,7 @@ export function TicketDetailLayout({
   ticketId,
   onAssignTicket,
   qualityScore,
-  isComplete,
-  canToggleStatus,
-  onStatusClick,
+  onMarkAsReady,
   onEditItem,
   onDeleteItem,
   onSaveAcceptanceCriteria,
@@ -193,9 +188,7 @@ export function TicketDetailLayout({
           ticket={ticket}
           onAssignTicket={onAssignTicket}
           qualityScore={qualityScore}
-          isComplete={isComplete}
-          canToggleStatus={canToggleStatus}
-          onStatusClick={onStatusClick}
+          onMarkAsReady={onMarkAsReady}
         />
 
         {/* Pending Questions */}
@@ -339,9 +332,7 @@ export function TicketDetailLayout({
         ticket={ticket}
         onAssignTicket={onAssignTicket}
         qualityScore={qualityScore}
-        isComplete={isComplete}
-        canToggleStatus={canToggleStatus}
-        onStatusClick={onStatusClick}
+        onMarkAsReady={onMarkAsReady}
       />
 
       {/* Review Session Q&A (Story 6-12 / 7-6) — shown above tabs when present */}

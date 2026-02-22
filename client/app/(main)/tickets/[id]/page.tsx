@@ -675,17 +675,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   };
 
 
-  const handleToggleStatus = async () => {
+  const handleMarkAsReady = async () => {
     if (!ticketId) return;
-    const newStatus = currentTicket.status === 'complete' ? 'draft' : 'complete';
-    const success = await updateTicket(ticketId, { status: newStatus });
+    const success = await updateTicket(ticketId, { status: 'ready' });
     if (success) {
       setShowStatusConfirm(false);
     }
   };
-
-  const isComplete = currentTicket.status === 'complete';
-  const canToggleStatus = currentTicket.status === 'draft' || currentTicket.status === 'complete';
 
   const handleOpenExport = async () => {
     setShowExportDialog(true);
@@ -896,9 +892,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         ticketId={ticketId}
         onAssignTicket={handleAssignTicket}
         qualityScore={techSpec?.qualityScore}
-        isComplete={isComplete}
-        canToggleStatus={canToggleStatus}
-        onStatusClick={() => setShowStatusConfirm(true)}
+        onMarkAsReady={currentTicket.status === 'draft' ? () => setShowStatusConfirm(true) : undefined}
         onEditItem={openEdit}
         onDeleteItem={deleteTechSpecItem}
         onSaveAcceptanceCriteria={handleSaveAcceptanceCriteria}
@@ -986,17 +980,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
-      {/* Status Toggle Confirmation Dialog */}
+      {/* Mark as Ready Confirmation Dialog */}
       <Dialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {isComplete ? 'Revert to Draft?' : 'Mark as Complete?'}
-            </DialogTitle>
+            <DialogTitle>Mark as Ready?</DialogTitle>
             <DialogDescription className="text-[var(--text-base)]">
-              {isComplete
-                ? 'This will move the ticket back to draft status for further editing.'
-                : 'This will mark the ticket as complete. You can revert it to draft later if needed.'}
+              This will mark the ticket as Ready for developer review. The developer can then pick it up via the CLI.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -1008,18 +998,16 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <Button variant="outline" onClick={() => setShowStatusConfirm(false)} disabled={isUpdating}>
               Cancel
             </Button>
-            <Button onClick={handleToggleStatus} disabled={isUpdating}>
+            <Button onClick={handleMarkAsReady} disabled={isUpdating}>
               {isUpdating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Updating...
                 </>
-              ) : isComplete ? (
-                'Revert to Draft'
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Mark Complete
+                  Mark as Ready
                 </>
               )}
             </Button>
