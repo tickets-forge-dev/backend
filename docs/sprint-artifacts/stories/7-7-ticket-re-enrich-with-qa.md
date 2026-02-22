@@ -1,6 +1,6 @@
 # Story 7.7: Ticket Re-Enrich with Q&A
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
