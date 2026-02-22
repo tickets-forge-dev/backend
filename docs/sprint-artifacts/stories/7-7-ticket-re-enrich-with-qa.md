@@ -24,6 +24,12 @@ so that the ticket's tech spec and acceptance criteria are updated with develope
 
 ## Tasks / Subtasks
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review] [Med] Add `requestingUserId: string` to `ReEnrichWithQACommand` and inject `TeamMemberRepository` into `ReEnrichWithQAUseCase`; throw `ForbiddenException` if role is not PM or ADMIN
+- [x] [AI-Review] [Med] Update controller `reEnrichTicket` handler to pass `@UserId() userId` as `requestingUserId`
+- [x] [AI-Review] [Med] Add test: `throws ForbiddenException when requesting user is Developer` — 8/8 tests pass
+
 - [x] Task 1: Domain — Add `reEnrichFromQA()` to AEC (AC: 6, 7, 9)
   - [x] In `backend/src/tickets/domain/aec/AEC.ts`: add `reEnrichFromQA(techSpec: TechSpec): void`
   - [x] Sets `_techSpec = techSpec`
@@ -148,6 +154,10 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
+✅ Resolved review finding [Med]: Added role authorization to `ReEnrichWithQAUseCase` — injected `TeamMemberRepository` via `@Inject('TeamMemberRepository')`, added `requestingUserId` to `ReEnrichWithQACommand`, checked `role === Role.PM || role === Role.ADMIN`, throws `ForbiddenException('Only PMs and Admins can re-enrich tickets')` for Developers. Followed exact `AssignTicketUseCase` pattern.
+✅ Resolved review finding [Med]: Updated `reEnrichTicket` controller handler to pass `@UserId() userId` as `requestingUserId` in command.
+✅ Resolved review finding [Med]: Added test case — 8/8 tests passing (was 7). `tsc --noEmit` → 0 errors. All 39 ticket use case tests pass.
+
 - Mirrored `buildCodebaseContext()` from `FinalizeSpecUseCase` — duplicated private method as story intended; future refactor to shared service deferred.
 - Fixed Jest module resolution issue: `ReEnrichWithQAUseCase.ts` originally imported `GitHubFileService` via `@github/domain/github-file.service` (tsconfig alias). Backend Jest config has no `moduleNameMapper` for tsconfig aliases, so switched to relative path `../../../github/domain/github-file.service`.
 - All 7 unit tests pass. 10 pre-existing failures in `CreateTeamUseCase` and `GetUserTeamsUseCase` are unrelated (confirmed on clean branch).
@@ -156,7 +166,80 @@ claude-sonnet-4-6
 ### File List
 
 - `backend/src/tickets/domain/aec/AEC.ts` — added `reEnrichFromQA(techSpec)` method
-- `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.ts` — NEW
-- `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.spec.ts` — NEW (7 tests)
-- `backend/src/tickets/presentation/controllers/tickets.controller.ts` — added `POST /:id/re-enrich` handler
+- `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.ts` — added `requestingUserId` to command, `TeamMemberRepository` injection, PM/Admin role check
+- `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.spec.ts` — added Developer role test (8 tests total)
+- `backend/src/tickets/presentation/controllers/tickets.controller.ts` — added `@UserId() userId` + `requestingUserId` to `reEnrichTicket` handler
 - `backend/src/tickets/tickets.module.ts` — registered `ReEnrichWithQAUseCase`
+
+---
+
+## Senior Developer Review (AI)
+
+- **Reviewer:** BMad
+- **Date:** 2026-02-21
+- **Outcome:** Changes Requested
+
+### Summary
+
+Core implementation is solid: domain method, use case, Firestore persistence, controller route, module registration, and 7 unit tests are all verified. One notable gap: AC1 requires `RolesGuard(Role.PM, Role.ADMIN)` but no `RolesGuard` exists in the codebase, and the use case has no internal role check either. Any authenticated team member (including Developers) can call `POST /api/tickets/:id/re-enrich`. The project uses internal use case role checks (see `AssignTicketUseCase`) — this story should follow the same pattern.
+
+### Key Findings
+
+**MEDIUM**
+- `ReEnrichWithQAUseCase.ts` — No role authorization. AC1 requires PM/Admin only, but the use case only checks team ownership, not the requesting user's role. A Developer can call re-enrich. Fix: inject `TeamRepository`, fetch requesting user's member record, check `role === Role.PM || role === Role.ADMIN` (follow `AssignTicketUseCase` pattern). This requires adding `requestingUserId` to the command and controller handler. [file: backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.ts:54]
+
+**LOW**
+- Test `'status remains WAITING_FOR_APPROVAL'` (line 126) passes `reEnrichFromQA` as a mock — the test verifies `mockAEC.status` is still the original value, but since the mock never changes status, this is a tautological test. The domain method itself (`AEC.reEnrichFromQA`) is the right place to verify this constraint. Consider a separate domain unit test.
+
+### Acceptance Criteria Coverage
+
+| AC# | Description | Status | Evidence |
+|-----|-------------|--------|----------|
+| AC1 | `POST /:id/re-enrich` with FirebaseAuthGuard, WorkspaceGuard, RolesGuard(PM, Admin) | PARTIAL | `tickets.controller.ts:457` ✓; FirebaseAuthGuard+WorkspaceGuard at class level ✓; RolesGuard/role check missing ✗ |
+| AC2 | Returns 400 if no reviewSession or empty qaItems | IMPLEMENTED | `ReEnrichWithQAUseCase.ts:68-70` |
+| AC3 | Returns 403 if teamId mismatch | IMPLEMENTED | `ReEnrichWithQAUseCase.ts:62-64` |
+| AC4 | Returns 404 if ticket not found | IMPLEMENTED | `ReEnrichWithQAUseCase.ts:57-59` |
+| AC5 | Maps qaItems → AnswerContext, calls generateWithAnswers with codebase context | IMPLEMENTED | `ReEnrichWithQAUseCase.ts:73-87` |
+| AC6 | techSpec updated, ACs refreshed from BDD criteria | IMPLEMENTED | `AEC.ts:408-413`; `reEnrichFromQA()` |
+| AC7 | Status stays WAITING_FOR_APPROVAL | IMPLEMENTED | `AEC.ts:408-413` — no status change |
+| AC8 | Returns updated ticket DTO via mapToResponse | IMPLEMENTED | `tickets.controller.ts:463` |
+| AC9 | `AEC.reEnrichFromQA(techSpec)` domain method | IMPLEMENTED | `AEC.ts:408` |
+| AC10 | 7 unit tests: happy path, 404, 403, 400 (no session), 400 (empty) | IMPLEMENTED | `ReEnrichWithQAUseCase.spec.ts:99-215` |
+| AC11 | tsc → 0 errors | IMPLEMENTED | Story notes confirm |
+
+**Summary: 10 of 11 ACs fully implemented (AC1 partial)**
+
+### Task Completion Validation
+
+| Task | Marked As | Verified As | Evidence |
+|------|-----------|-------------|----------|
+| Task 1: Domain `reEnrichFromQA()` | ✅ | VERIFIED | `AEC.ts:408-414` — sets techSpec, refreshes ACs, no status change |
+| Task 2: `ReEnrichWithQAUseCase` | ✅ | PARTIAL | Logic verified; role check missing [AC1 gap] |
+| Task 3: Controller route | ✅ | VERIFIED | `tickets.controller.ts:457-464` |
+| Task 4: Module registration | ✅ | VERIFIED | `tickets.module.ts:107` |
+| Task 5: 7 unit tests | ✅ | VERIFIED | `ReEnrichWithQAUseCase.spec.ts` — all 5 required cases present |
+
+**Summary: 4 of 5 tasks fully verified, 1 partial (Task 2 — role check)**
+
+### Test Coverage and Gaps
+
+- 7 tests cover: happy path (Q&A mapping, domain call, persist, return), status-stays test, no-repo minimal context, 404, 403, 400×2 — AC10 met.
+- Gap: No test for retry logic in `generateSpecWithRetry` (3-attempt exponential backoff). Low priority but worth noting.
+
+### Architectural Alignment
+
+Clean architecture maintained: domain method is stateless content update; use case handles orchestration; controller is thin adapter. `buildCodebaseContext()` duplication from `FinalizeSpecUseCase` is intentional per story design ("future cleanup deferred").
+
+### Security Notes
+
+Authorization gap: PM/Admin-only endpoint accessible to Developers. This allows developers to re-bake specs before PM review — minor risk but violates the intended PM-controls-approval workflow.
+
+### Action Items
+
+**Code Changes Required:**
+- [x] [Med] Add role authorization to `ReEnrichWithQAUseCase` — inject `TeamMemberRepository`, add `requestingUserId: string` to `ReEnrichWithQACommand`, fetch team member, throw `ForbiddenException` if role is not PM or ADMIN [file: backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.ts]
+- [x] [Med] Update controller `reEnrichTicket` handler to pass `@UserId() userId` to command as `requestingUserId` [file: backend/src/tickets/presentation/controllers/tickets.controller.ts]
+- [x] [Med] Add test case for `ForbiddenException` when requesting user is Developer role [file: backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.spec.ts]
+
+**Advisory Notes:**
+- Note: `approveTicket` endpoint (Story 7-8) has the same role enforcement gap — address together in a follow-up pass

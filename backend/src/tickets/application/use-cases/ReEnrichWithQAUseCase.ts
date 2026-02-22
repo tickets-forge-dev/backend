@@ -15,10 +15,13 @@ import { GitHubFileService } from '../../../github/domain/github-file.service';
 import { CODEBASE_ANALYZER } from '../ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../ports/ProjectStackDetectorPort';
 import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
+import { TeamMemberRepository } from '../../../teams/application/ports/TeamMemberRepository';
+import { Role } from '../../../teams/domain/Role';
 
 export interface ReEnrichWithQACommand {
   ticketId: string;
   teamId: string;
+  requestingUserId: string;
 }
 
 /**
@@ -49,6 +52,8 @@ export class ReEnrichWithQAUseCase {
     private readonly stackDetector: ProjectStackDetector,
     @Inject(GITHUB_FILE_SERVICE)
     private readonly githubFileService: GitHubFileService,
+    @Inject('TeamMemberRepository')
+    private readonly teamMemberRepository: TeamMemberRepository,
   ) {}
 
   async execute(command: ReEnrichWithQACommand): Promise<AEC> {
@@ -61,6 +66,18 @@ export class ReEnrichWithQAUseCase {
     // 2. Verify team ownership
     if (aec.teamId !== command.teamId) {
       throw new ForbiddenException('Ticket does not belong to your team');
+    }
+
+    // 2.5. Verify requesting user has PM or Admin role (re-enrich is PM-only action)
+    const requestingMember = await this.teamMemberRepository.findByUserAndTeam(
+      command.requestingUserId,
+      command.teamId,
+    );
+    if (!requestingMember || !requestingMember.isActive()) {
+      throw new ForbiddenException('You must be an active team member to re-enrich tickets');
+    }
+    if (requestingMember.role !== Role.PM && requestingMember.role !== Role.ADMIN) {
+      throw new ForbiddenException('Only PMs and Admins can re-enrich tickets');
     }
 
     // 3. Validate review session exists and has Q&A items

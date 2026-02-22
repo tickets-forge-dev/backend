@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useServices } from '@/hooks/useServices';
 import { auth } from '@/lib/firebase';
 import { useSearchParams } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth.store';
 
 /**
  * FigmaIntegration Component
@@ -11,7 +11,7 @@ import { useSearchParams } from 'next/navigation';
  * Supports both OAuth (requires public app approval) and Personal Access Tokens (immediate)
  */
 export function FigmaIntegration() {
-  const { ticketService } = useServices();
+  const currentTeamId = useAuthStore((state) => state.currentTeamId);
   const searchParams = useSearchParams();
   const [isConnected, setIsConnected] = useState(false);
   const [connectionMethod, setConnectionMethod] = useState<'oauth' | 'personal_token' | null>(null);
@@ -21,16 +21,15 @@ export function FigmaIntegration() {
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [personalToken, setPersonalToken] = useState('');
 
-  // Get workspace ID and check if Figma is already connected
+  // Derive workspace ID from current team and check if Figma is already connected
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Try to get workspace ID from the first ticket
-        const tickets = await ticketService.list();
-        if (tickets.length > 0) {
-          setWorkspaceId(tickets[0].workspaceId);
+        // Derive legacy workspaceId from teamId (matches WorkspaceGuard derivation)
+        if (currentTeamId) {
+          setWorkspaceId(`ws_team_${currentTeamId.substring(5, 17)}`);
         } else {
-          setWorkspaceId('current');
+          setWorkspaceId(null);
         }
 
         // Check if we're returning from OAuth callback
@@ -81,7 +80,7 @@ export function FigmaIntegration() {
     };
 
     initialize();
-  }, [ticketService, searchParams]);
+  }, [currentTeamId, searchParams]);
 
   const handleConnectOAuth = async () => {
     if (!workspaceId) {

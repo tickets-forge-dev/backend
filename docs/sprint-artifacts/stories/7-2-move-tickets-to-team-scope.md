@@ -22,6 +22,11 @@ so that ticket lists are reliably isolated per-team and the CLI can request tick
 
 ## Tasks / Subtasks
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review] [Med] Fix `FigmaIntegration.tsx:31` — replace `tickets[0].workspaceId` with derivation from `teamId` using `ws_team_${teamId.substring(5,17)}` formula matching WorkspaceGuard
+- [x] [AI-Review] [Med] Fix `LoomIntegration.tsx:37` — same fix as FigmaIntegration
+
 - [x] Task 1: Backend — Update AEC domain model (AC: 1)
   - [x] In `backend/src/tickets/domain/aec/AEC.ts`: replace `workspaceId` parameter with `teamId` in constructor and all factory/create methods
   - [x] In `backend/src/tickets/application/ports/AECRepository.ts`: rename `findByWorkspace(workspaceId)` → `findByTeam(teamId)`, `countByWorkspace` → `countByTeam`, `countByWorkspaceAndCreator` → `countByTeamAndCreator`
@@ -127,6 +132,10 @@ None
 
 ### Completion Notes List
 
+✅ Resolved review finding [Med]: FigmaIntegration.tsx — replaced `ticketService.list()` approach with `useAuthStore(state => state.currentTeamId)` and derived `ws_team_${currentTeamId.substring(5, 17)}` to match WorkspaceGuard formula exactly. Removed unused `useServices` import.
+✅ Resolved review finding [Med]: LoomIntegration.tsx — identical fix: `useAuthStore` replaces `ticketService.list()`, same workspaceId derivation formula.
+`tsc --noEmit` in client → 0 errors (down from 2 pre-existing errors introduced by this story).
+
 1. Bulk use-case rename handled with `sed` across 25 files. Two special cases required manual fixes:
    - `AssignTicketUseCase`: had both `workspaceId` (ownership) and `teamId` (member lookup) — merged into single `teamId` field
    - `ExportToLinearUseCase`: had forge `workspaceId` AND Linear destination `teamId` — renamed to `forgeTeamId` / `linearTeamId` to avoid collision
@@ -185,9 +194,86 @@ None
 
 **Frontend**
 - `client/src/services/ticket.service.ts` — Axios interceptor + `AECResponse.teamId`
+- `client/src/settings/components/FigmaIntegration.tsx` — replaced ticket-fetch with `useAuthStore` + `ws_team_` workspaceId derivation
+- `client/src/settings/components/LoomIntegration.tsx` — same fix as FigmaIntegration
 
 **CLI**
 - `forge-cli/src/services/api.service.ts` — `x-team-id` header in all methods
 
 **Docs**
 - `docs/sprint-artifacts/sprint-status.yaml` — `in-progress` → `review`
+
+---
+
+## Senior Developer Review (AI)
+
+- **Reviewer:** BMad
+- **Date:** 2026-02-21
+- **Outcome:** Changes Requested
+
+### Summary
+
+Core implementation is solid. All Firestore paths, guard logic, decorator, controller, CLI, and backend tests are verified. One AC1 violation: the frontend settings components (`FigmaIntegration.tsx`, `LoomIntegration.tsx`) still reference `.workspaceId` on `AECResponse` — a field removed by this story. These TypeScript errors were noted in later stories as "pre-existing" but were actually introduced here. The Figma/Loom OAuth flows will silently break (URL gets `?workspaceId=undefined`).
+
+### Key Findings
+
+**MEDIUM**
+- `client/src/settings/components/FigmaIntegration.tsx:31` — `setWorkspaceId(tickets[0].workspaceId)` — TypeScript error; `workspaceId` removed from `AECResponse` by this story. At runtime, Figma OAuth start URL will be `?workspaceId=undefined`, breaking the Figma OAuth integration.
+- `client/src/settings/components/LoomIntegration.tsx:37` — Same issue for Loom OAuth start URL.
+
+**LOW**
+- `backend/src/tickets/application/services/estimation-engine.interface.ts:19` — Interface still declares `workspaceId: string`; `EstimateEffortUseCase.ts:41` passes it as `workspaceId: teamId`. Functionally correct but naming inconsistency violates AC1 ("all downstream layers").
+- `backend/src/tickets/application/services/drift-detector.interface.ts:12,14` — `detectDrift(workspaceId: ...)` parameter name inconsistency.
+
+### Acceptance Criteria Coverage
+
+| AC# | Description | Status | Evidence |
+|-----|-------------|--------|----------|
+| AC1 | AEC domain has `teamId`, `workspaceId` removed from domain + downstream | PARTIAL | `AEC.ts:37` ✓; `FigmaIntegration.tsx:31`, `LoomIntegration.tsx:37` ✗ |
+| AC2 | Firestore path: `teams/{teamId}/aecs/{aecId}` | IMPLEMENTED | `FirestoreAECRepository.ts:40,108,124,138` |
+| AC3 | `WorkspaceGuard` reads `x-team-id` header, falls back to Firestore user team | IMPLEMENTED | `WorkspaceGuard.ts:22,36,57` |
+| AC4 | `GET /api/tickets` returns only team's tickets | IMPLEMENTED | `tickets.controller.ts:373` `findByTeam(teamId)` |
+| AC5 | `POST /api/tickets` sets teamId; no team → 400 | IMPLEMENTED | `WorkspaceGuard.ts:52-54`; `tickets.controller.ts:319` |
+| AC6 | Frontend sends `x-team-id` via Axios interceptor | IMPLEMENTED | `ticket.service.ts:98-101` |
+| AC7 | CLI sends `x-team-id` via ApiService | IMPLEMENTED | `api.service.ts:27-29` |
+| AC8 | `npm run test` backend → ticket tests pass | IMPLEMENTED | 23/23 ticket tests per story notes |
+| AC9 | `npm run typecheck` forge-cli → 0 errors | IMPLEMENTED | Story notes confirm |
+
+**Summary: 8 of 9 ACs fully implemented (AC1 partial)**
+
+### Task Completion Validation
+
+| Task | Marked As | Verified As | Evidence |
+|------|-----------|-------------|----------|
+| Task 1: Domain model workspaceId→teamId | ✅ | VERIFIED | `AEC.ts:37` `teamId: string` |
+| Task 2: Firestore repo path update | ✅ | VERIFIED | `FirestoreAECRepository.ts:40,107-116` |
+| Task 3: WorkspaceGuard + TeamId.decorator + controller | ✅ | VERIFIED | `WorkspaceGuard.ts:22,57`; `TeamId.decorator.ts:8`; controller `@TeamId()` throughout |
+| Task 4: Frontend x-team-id header + AECResponse.teamId | ✅ | PARTIAL | `ticket.service.ts:28,98` ✓; `FigmaIntegration.tsx:31` still uses `.workspaceId` ✗ |
+| Task 5: CLI x-team-id header | ✅ | VERIFIED | `api.service.ts:27-29` |
+| Task 6: Tests | ✅ | VERIFIED | 23/23 per story notes |
+
+**Summary: 5 of 6 completed tasks verified, 1 partial (Task 4)**
+
+### Test Coverage and Gaps
+
+- `AssignTicketUseCase.spec.ts` fully rewritten with `teamId` — ✓ verified per story notes
+- No new tests for `WorkspaceGuard` behavior (header vs. fallback logic) — LOW gap
+- No test coverage for FigmaIntegration / LoomIntegration OAuth flow regression
+
+### Architectural Alignment
+
+Backend clean architecture maintained: domain has no infrastructure deps; guard in presentation layer; decorator in shared/presentation. `workspaceId` retained only in `request.workspaceId` for backward-compat with non-ticket integration repos — intentional, documented.
+
+### Security Notes
+
+`WorkspaceGuard` validates that a `teamId` exists before allowing ticket operations. The 400 response for missing team context prevents cross-team ticket creation. No new risks introduced.
+
+### Action Items
+
+**Code Changes Required:**
+- [x] [Med] Fix `FigmaIntegration.tsx:31` — replace `tickets[0].workspaceId` with derivation from `teamId` (e.g., extract workspaceId via `ws_team_${tickets[0].teamId.substring(5,17)}` or pass `teamId` directly to OAuth URL) [file: client/src/settings/components/FigmaIntegration.tsx:31]
+- [x] [Med] Fix `LoomIntegration.tsx:37` — same fix as FigmaIntegration [file: client/src/settings/components/LoomIntegration.tsx:37]
+
+**Advisory Notes:**
+- Note: `estimation-engine.interface.ts`, `drift-detector.interface.ts` still use `workspaceId` parameter names — consider renaming in a follow-up cleanup story
+- Note: The story completion notes in stories 7-9 and 7-10 call these TS errors "pre-existing" — they were introduced by this story. Correct the notes for accuracy.

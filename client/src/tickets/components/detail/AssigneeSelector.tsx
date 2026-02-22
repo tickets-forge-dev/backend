@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebase';
 import { TeamService, type TeamMember } from '@/services/team.service';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Users, UserPlus, UserCircle, X } from 'lucide-react';
+import { Users, UserPlus, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -96,42 +96,37 @@ export function AssigneeSelector({
   // Find assigned developer for display name
   const assignedDev = developers.find((d) => d.userId === assignedTo);
 
-  // Trigger button - minimal inline display
+  // Trigger button - pill-shaped chip, clearly interactive
   const TriggerButton = () => {
-    if (isPrivateWorkspace) {
+    // Assigned state — show avatar initial + name chip
+    if (assignedTo && assignedDev) {
+      const initials = (assignedDev.displayName || assignedDev.email || '?')[0].toUpperCase();
       return (
         <button
           onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+          disabled={disabled}
+          className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--bg-hover)] border border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg)] text-[var(--text)] transition-colors disabled:opacity-50"
         >
-          <Users className="h-3.5 w-3.5" />
-          <span>Assign</span>
+          <div className="h-5 w-5 rounded-full bg-[var(--blue)] flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
+            {initials}
+          </div>
+          <span className="text-xs font-medium truncate max-w-[120px]">
+            {assignedDev.displayName || assignedDev.email}
+          </span>
         </button>
       );
     }
 
-    if (!isLoading && developers.length === 0 && !error) {
-      return (
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
-        >
-          <UserPlus className="h-3.5 w-3.5 text-[var(--blue)]" />
-          <span>Assign</span>
-        </button>
-      );
-    }
-
-    // Has developers - show current assignment or "Assign"
+    // Unassigned state — dashed "Assign" button
     return (
       <button
         onClick={() => setDialogOpen(true)}
         disabled={disabled || isLoading}
-        className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-dashed border-[var(--border)] hover:border-[var(--blue)] hover:text-[var(--blue)] text-[var(--text-secondary)] transition-colors disabled:opacity-50"
       >
-        <UserCircle className="h-3.5 w-3.5" />
-        <span>
-          {isLoading ? 'Loading...' : assignedTo ? (assignedDev?.displayName || assignedDev?.email || 'Assigned') : 'Assign'}
+        <UserPlus className="h-3.5 w-3.5 shrink-0" />
+        <span className="text-xs font-medium">
+          {isLoading ? 'Loading…' : 'Assign'}
         </span>
       </button>
     );

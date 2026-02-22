@@ -457,9 +457,10 @@ export class TicketsController {
   @Post(':id/re-enrich')
   async reEnrichTicket(
     @TeamId() teamId: string,
+    @UserId() userId: string,
     @Param('id') id: string,
   ) {
-    const aec = await this.reEnrichWithQAUseCase.execute({ ticketId: id, teamId });
+    const aec = await this.reEnrichWithQAUseCase.execute({ ticketId: id, teamId, requestingUserId: userId });
     return this.mapToResponse(aec);
   }
 

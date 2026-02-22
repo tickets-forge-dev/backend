@@ -46,13 +46,21 @@ export class FirestoreAECRepository implements AECRepository {
       status: doc.status,
     });
 
+    const batch = firestore.batch();
+
+    // Write ticket document
     const docRef = firestore
       .collection('teams')
       .doc(aec.teamId)
       .collection('aecs')
       .doc(aec.id);
+    batch.set(docRef, stripUndefined(doc));
 
-    await docRef.set(stripUndefined(doc));
+    // Write lookup index so findById can resolve teamId without a collectionGroup query
+    const lookupRef = firestore.collection('aec_lookup').doc(aec.id);
+    batch.set(lookupRef, { teamId: aec.teamId });
+
+    await batch.commit();
 
     console.log(`✅ AEC saved successfully to Firestore at ${path}`);
   }
@@ -60,19 +68,27 @@ export class FirestoreAECRepository implements AECRepository {
   async findById(id: string): Promise<AEC | null> {
     const firestore = this.getFirestore();
 
-    // Use collectionGroup to find across all teams
     try {
-      const snapshot = await firestore
-        .collectionGroup('aecs')
-        .where('id', '==', id)
-        .limit(1)
-        .get();
+      // Step 1: Resolve teamId from lightweight lookup index (avoids collectionGroup index requirement)
+      const lookupDoc = await firestore.collection('aec_lookup').doc(id).get();
+      if (!lookupDoc.exists) {
+        return null;
+      }
+      const { teamId } = lookupDoc.data() as { teamId: string };
 
-      if (snapshot.empty) {
+      // Step 2: Fetch full ticket document using known path
+      const docRef = firestore
+        .collection('teams')
+        .doc(teamId)
+        .collection('aecs')
+        .doc(id);
+      const snap = await docRef.get();
+
+      if (!snap.exists) {
         return null;
       }
 
-      return AECMapper.toDomain(snapshot.docs[0].data() as AECDocument);
+      return AECMapper.toDomain(snap.data() as AECDocument);
     } catch (error) {
       console.error('❌ [FirestoreAECRepository] findById error:', error);
       return null;

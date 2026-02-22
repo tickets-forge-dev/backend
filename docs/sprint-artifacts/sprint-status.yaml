@@ -154,31 +154,26 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 7: Ticket Lifecycle (P1) - 10 stories, ~17 days
-  # Status: 🔄 IN-PROGRESS - 6/10 done, 7-2 ready-for-dev, 7-7 through 7-10 backlog
+  # Status: 🔄 IN-PROGRESS - 8/10 done, 7-2 + 7-7 back for fixes (code review)
+  # Updated: 2026-02-21 (code reviews completed on all review stories)
   # Dependencies: Role-based authorization from Epic 3
   # Key: Full PM→Dev→PM workflow with tech-spec agent sessions + ticket re-enrichment
   #
-  # FULL FLOW (with re-bake):
+  # IMPLEMENTED FLOW (end-to-end):
   #   PM creates ticket → AI enriches → READY
-  #   Dev: forge review → invokes forge_review prompt → tech-spec-reviewer agent session
-  #        (open-ended: unknown duration, not "5 generic questions")
-  #        Agent explores codebase, makes decisions, surfaces edge cases
-  #        Session ends with structured JSON output → submit_review_session MCP tool
-  #        → QUESTIONS_GENERATED
-  #   [Epic 7] Structured review session stored → PM notified → WAITING_FOR_APPROVAL
-  #   [Epic 7] PM opens ticket → sees Q&A → clicks "Re-bake Ticket"
-  #            → AI re-runs enrichment with Q&A as context → fully-baked ticket
-  #            → PM reviews diff → clicks Approve → READY (fully approved)
-  #   Dev: forge execute → Claude gets FULLY-BAKED ticket via get_ticket_context
-  #        → writes code → update_ticket_status → CREATED
+  #   Dev: forge review T-001 → invokes forge_review prompt → open-ended agent session
+  #        Agent explores codebase, asks developer questions, gathers decisions
+  #        Dev says "submit" → Claude calls submit_review_session MCP tool
+  #        → Backend stores Q&A → WAITING_FOR_APPROVAL
+  #   PM opens ticket → sees Q&A panel:
+  #        [Re-bake Ticket] (blue) → AI regenerates spec with Q&A as context
+  #        [Approve Ticket] (green) → transitions WAITING_FOR_APPROVAL → READY
+  #   Dev: forge execute T-001 → Claude gets fully-baked ticket → writes code
+  #        → calls update_ticket_status → CREATED
   #
-  # RE-BAKE ARCHITECTURE (7-10):
-  #   POST /api/tickets/:id/re-enrich
-  #   Input:  original ticket fields + conversationId (Q&A from 7-3)
-  #   AI:     "Given ticket + Q&A, produce complete execution-ready ticket"
-  #   Output: updated acceptance criteria, explicit edge cases, clear tech specs
-  #   Reuses existing AI enrichment service — same pipeline, richer input
-  #   See: docs/sprint-artifacts/stories/7-design-notes.md
+  # PENDING FIXES (from code review 2026-02-21):
+  #   7-2: Fixed FigmaIntegration.tsx + LoomIntegration.tsx — back in review (2026-02-22)
+  #   7-7: Fixed role check in ReEnrichWithQAUseCase — back in review (2026-02-22)
   epic-7-ticket-lifecycle: in-progress
   7-1-extend-aec-status-enum: done
   7-2-move-tickets-to-team-scope: review
@@ -187,9 +182,9 @@ development_status:
   7-5-update-ticket-filters: done
   7-6-conversation-viewer-ui: done
   7-7-ticket-re-enrich-with-qa: review
-  7-8-approve-button-pm-only: review
-  7-9-status-sync-web-cli: review
-  7-10-ticket-creation-updates: review
+  7-8-approve-button-pm-only: done
+  7-9-status-sync-web-cli: done
+  7-10-ticket-creation-updates: done
   epic-7-ticket-lifecycle-retrospective: optional
 
   # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days

@@ -1,12 +1,14 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ReEnrichWithQAUseCase } from './ReEnrichWithQAUseCase';
 import { AECStatus } from '../../domain/value-objects/AECStatus';
+import { Role } from '../../../teams/domain/Role';
 import type { TechSpec } from '../../domain/tech-spec/TechSpecGenerator';
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 
 const TEAM_ID = 'team_abc123';
 const TICKET_ID = 'aec_001';
+const REQUESTING_USER_ID = 'user_pm_001';
 
 const mockQAItems = [
   { question: 'What rate limit threshold?', answer: '5 per minute per IP' },
@@ -57,12 +59,17 @@ function makeMockAEC(overrides: {
 
 // ── Test suite ─────────────────────────────────────────────────────────────────
 
+function makeMockMember(role: Role, active = true) {
+  return { isActive: () => active, role };
+}
+
 describe('ReEnrichWithQAUseCase', () => {
   let aecRepository: jest.Mocked<{ findById: jest.Mock; save: jest.Mock }>;
   let techSpecGenerator: jest.Mocked<{ generateWithAnswers: jest.Mock }>;
   let codebaseAnalyzer: jest.Mocked<{ analyzeStructure: jest.Mock }>;
   let stackDetector: jest.Mocked<{ detectStack: jest.Mock }>;
   let githubFileService: jest.Mocked<{ getTree: jest.Mock; readFile: jest.Mock }>;
+  let teamMemberRepository: jest.Mocked<{ findByUserAndTeam: jest.Mock }>;
   let useCase: ReEnrichWithQAUseCase;
 
   beforeEach(() => {
@@ -83,6 +90,9 @@ describe('ReEnrichWithQAUseCase', () => {
       getTree: jest.fn(),
       readFile: jest.fn(),
     };
+    teamMemberRepository = {
+      findByUserAndTeam: jest.fn().mockResolvedValue(makeMockMember(Role.PM)),
+    };
 
     useCase = new ReEnrichWithQAUseCase(
       aecRepository as any,
@@ -90,6 +100,7 @@ describe('ReEnrichWithQAUseCase', () => {
       codebaseAnalyzer as any,
       stackDetector as any,
       githubFileService as any,
+      teamMemberRepository as any,
     );
   });
 
@@ -100,7 +111,7 @@ describe('ReEnrichWithQAUseCase', () => {
       const mockAEC = makeMockAEC({});
       aecRepository.findById.mockResolvedValue(mockAEC);
 
-      const result = await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID });
+      const result = await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID });
 
       // Q&A mapping: question text used as questionId
       expect(techSpecGenerator.generateWithAnswers).toHaveBeenCalledWith({
@@ -127,7 +138,7 @@ describe('ReEnrichWithQAUseCase', () => {
       const mockAEC = makeMockAEC({});
       aecRepository.findById.mockResolvedValue(mockAEC);
 
-      await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID });
+      await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID });
 
       // reEnrichFromQA was called once (domain method responsible for not changing status)
       expect(mockAEC.reEnrichFromQA).toHaveBeenCalledTimes(1);
@@ -139,7 +150,7 @@ describe('ReEnrichWithQAUseCase', () => {
       const mockAEC = makeMockAEC({ repositoryContext: null });
       aecRepository.findById.mockResolvedValue(mockAEC);
 
-      await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID });
+      await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID });
 
       // GitHub services NOT called when no repo
       expect(githubFileService.getTree).not.toHaveBeenCalled();
@@ -164,7 +175,7 @@ describe('ReEnrichWithQAUseCase', () => {
       aecRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute({ ticketId: 'aec_nonexistent', teamId: TEAM_ID }),
+        useCase.execute({ ticketId: 'aec_nonexistent', teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID }),
       ).rejects.toThrow(NotFoundException);
 
       expect(techSpecGenerator.generateWithAnswers).not.toHaveBeenCalled();
@@ -179,7 +190,23 @@ describe('ReEnrichWithQAUseCase', () => {
       aecRepository.findById.mockResolvedValue(mockAEC);
 
       await expect(
-        useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID }),
+        useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(techSpecGenerator.generateWithAnswers).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Error: role authorization ─────────────────────────────────────────────────
+
+  describe('Error Cases — Role Authorization', () => {
+    it('throws ForbiddenException when requesting user is a Developer', async () => {
+      const mockAEC = makeMockAEC({});
+      aecRepository.findById.mockResolvedValue(mockAEC);
+      teamMemberRepository.findByUserAndTeam.mockResolvedValue(makeMockMember(Role.DEVELOPER));
+
+      await expect(
+        useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID }),
       ).rejects.toThrow(ForbiddenException);
 
       expect(techSpecGenerator.generateWithAnswers).not.toHaveBeenCalled();
@@ -194,7 +221,7 @@ describe('ReEnrichWithQAUseCase', () => {
       aecRepository.findById.mockResolvedValue(mockAEC);
 
       await expect(
-        useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID }),
+        useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID }),
       ).rejects.toThrow(BadRequestException);
 
       expect(techSpecGenerator.generateWithAnswers).not.toHaveBeenCalled();
@@ -207,7 +234,7 @@ describe('ReEnrichWithQAUseCase', () => {
       aecRepository.findById.mockResolvedValue(mockAEC);
 
       await expect(
-        useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID }),
+        useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID, requestingUserId: REQUESTING_USER_ID }),
       ).rejects.toThrow(BadRequestException);
 
       expect(techSpecGenerator.generateWithAnswers).not.toHaveBeenCalled();
