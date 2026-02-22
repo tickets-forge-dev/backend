@@ -39,7 +39,7 @@ function getTypeIcon(type: string | null) {
 
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
-  const { currentTeam } = useTeamStore();
+  const { currentTeam, loadTeamMembers } = useTeamStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(listPreferences?.typeFilter || 'all');
@@ -55,32 +55,14 @@ export default function TicketsListPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reload tickets when workspace changes
+  // Reload tickets and members when team changes
   useEffect(() => {
     loadTickets();
     fetchQuota();
-  }, [loadTickets, fetchQuota, currentTeam?.id]);
+    if (currentTeam?.id) loadTeamMembers(currentTeam.id);
+  }, [loadTickets, fetchQuota, loadTeamMembers, currentTeam?.id]);
 
   const allTickets = tickets;
-
-  // Helper to determine ticket status
-  const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' => {
-    if (ticket.status === 'complete') return 'complete';
-
-    // Detect partial/incomplete tickets (need resume)
-    const isPartial =
-      ticket.status === 'draft' &&
-      ticket.techSpec &&
-      (ticket.techSpec.qualityScore === 0 || ticket.techSpec.qualityScore === undefined);
-    if (isPartial) return 'needs-resume';
-
-    if (ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined) {
-      return 'in-progress';
-    }
-    if (ticket.status === 'draft' && !ticket.techSpec) return 'draft';
-    if (ticket.questions && ticket.questions.length > 0) return 'needs-input';
-    return 'draft';
-  };
 
   // Filter and sort tickets
   const filteredTickets = useMemo(() => {
@@ -154,7 +136,7 @@ export default function TicketsListPage() {
     }[sortBy];
 
     return (
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6" style={{ width: '70vw', marginLeft: 'calc(50% - 35vw)' }}>
       {/* Header with Create Button */}
       <div className="flex items-center justify-end gap-2 px-2 sm:px-0">
         {quota && !quota.canCreate ? (
@@ -342,10 +324,13 @@ export default function TicketsListPage() {
       )}
 
       {!isLoading && !loadError && filteredTickets.length > 0 && (
-        <div>
+        <div className="rounded-lg overflow-hidden mx-2 sm:mx-0 border border-[var(--border-subtle)]">
+          {/* Column headers */}
+          <TicketGridHeader />
+
           {groups.length > 1 ? (
             // Grouped view
-            <div className="space-y-0">
+            <div>
               {groups.map((group) => {
                 const isCollapsed = collapsedGroups.has(group.key);
                 return (
@@ -357,7 +342,7 @@ export default function TicketsListPage() {
                       onToggle={() => toggleGroup(group.key)}
                     />
                     {!isCollapsed && (
-                      <div className="space-y-1">
+                      <div>
                         {group.tickets.map((ticket) => (
                           <TicketRow key={ticket.id} ticket={ticket} />
                         ))}
@@ -368,8 +353,8 @@ export default function TicketsListPage() {
               })}
             </div>
           ) : (
-            // Flat view (if only one group or no groups)
-            <div className="space-y-1">
+            // Flat view
+            <div>
               {filteredTickets.map((ticket) => (
                 <TicketRow key={ticket.id} ticket={ticket} />
               ))}
@@ -381,240 +366,238 @@ export default function TicketsListPage() {
   );
 }
 
-// Extract ticket row to a separate component for reusability
+// Grid column header row
+function TicketGridHeader() {
+  return (
+    <div className="grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
+      style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}>
+      <span className="pl-6">Title</span>
+      <span className="hidden sm:block">Status</span>
+      <span className="hidden sm:block">Priority</span>
+      <span className="hidden md:block">Assignee</span>
+      <span className="hidden md:block">Updated</span>
+      <span className="text-center">Score</span>
+      <span />
+    </div>
+  );
+}
+
+// Shared helpers
+function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' {
+  if (ticket.status === 'complete') return 'complete';
+  const isPartial = ticket.status === 'draft' && ticket.techSpec &&
+    (ticket.techSpec.qualityScore === 0 || ticket.techSpec.qualityScore === undefined);
+  if (isPartial) return 'needs-resume';
+  if (ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined) return 'in-progress';
+  if (ticket.status === 'draft' && !ticket.techSpec) return 'draft';
+  if (ticket.questions && ticket.questions.length > 0) return 'needs-input';
+  return 'draft';
+}
+
+function isTicketInProgress(ticket: any) {
+  return ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined;
+}
+
+function getRelativeTime(date: string | Date) {
+  const now = new Date();
+  const past = new Date(date);
+  const diffMs = now.getTime() - past.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d`;
+  return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function StatusCell({ ticket }: { ticket: any }) {
+  const ticketStatus = getTicketStatusKey(ticket);
+  if (ticketStatus === 'needs-resume') return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-red-500 truncate">
+      <span className="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0" />Needs Resume
+    </span>
+  );
+  if (isTicketInProgress(ticket)) return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-blue-500 truncate">
+      <span className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0" />In Progress
+    </span>
+  );
+  const map: Record<string, { dot: string; label: string; text: string }> = {
+    complete:             { dot: 'bg-green-500',  label: 'Complete',       text: 'text-green-500'  },
+    ready:                { dot: 'bg-green-500',  label: 'Ready',          text: 'text-green-500'  },
+    'waiting-for-approval':{ dot: 'bg-amber-500', label: 'Awaiting Review',text: 'text-amber-500'  },
+    created:              { dot: 'bg-purple-500', label: 'Created',        text: 'text-purple-500' },
+    draft:                { dot: 'bg-[var(--text-tertiary)]/50', label: 'Draft', text: 'text-[var(--text-tertiary)]' },
+  };
+  const cfg = map[ticket.status] ?? map.draft;
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[11px] truncate ${cfg.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />{cfg.label}
+    </span>
+  );
+}
+
+function PriorityCell({ priority }: { priority: string | null }) {
+  if (!priority) return <span className="text-[11px] text-[var(--text-tertiary)]">—</span>;
+  const map: Record<string, { dot: string; label: string }> = {
+    low:    { dot: 'bg-green-500',  label: 'Low'    },
+    medium: { dot: 'bg-yellow-500', label: 'Medium' },
+    high:   { dot: 'bg-orange-500', label: 'High'   },
+    urgent: { dot: 'bg-red-500',    label: 'Urgent' },
+  };
+  const c = map[priority];
+  if (!c) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] truncate">
+      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${c.dot}`} />{c.label}
+    </span>
+  );
+}
+
+// Grid-based ticket row
 function TicketRow({ ticket }: { ticket: any }) {
   const router = useRouter();
-  const { deleteTicket, assignTicket } = useTicketsStore();
+  const { deleteTicket } = useTicketsStore();
+  const { teamMembers } = useTeamStore();
+  const ticketStatus = getTicketStatusKey(ticket);
+  const inProgress = isTicketInProgress(ticket);
+  const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
 
-  // Helper to determine ticket status
-  const getTicketStatus = (ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' => {
-    if (ticket.status === 'complete') return 'complete';
-
-    // Detect partial/incomplete tickets (need resume)
-    const isPartial =
-      ticket.status === 'draft' &&
-      ticket.techSpec &&
-      (ticket.techSpec.qualityScore === 0 || ticket.techSpec.qualityScore === undefined);
-    if (isPartial) return 'needs-resume';
-
-    if (ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined) {
-      return 'in-progress';
-    }
-    if (ticket.status === 'draft' && !ticket.techSpec) return 'draft';
-    if (ticket.questions && ticket.questions.length > 0) return 'needs-input';
-    return 'draft';
-  };
-
-  /** Detect tickets that are mid-wizard (draft with no finalized techSpec) */
-  const isInProgress = (ticket: any) =>
-    ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined;
-
-  const getPriorityIndicator = (priority: string | null) => {
-    if (!priority) return "";
-    const config: Record<string, { color: string; label: string }> = {
-      low: { color: 'bg-green-500', label: 'Low' },
-      medium: { color: 'bg-yellow-500', label: 'Medium' },
-      high: { color: 'bg-orange-500', label: 'High' },
-      urgent: { color: 'bg-red-500', label: 'Urgent' },
-    };
-    const c = config[priority];
-    if (!c) return "";
-    return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
-        <span className={`h-1.5 w-1.5 rounded-full ${c.color}`} />
-        {c.label}
-      </span>
-    );
-  };
-
-  const getStatusBadge = (ticket: any) => {
-    const ticketStatus = getTicketStatus(ticket);
-
-    if (ticketStatus === 'needs-resume') {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-red-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-          Needs Resume
-        </span>
-      );
-    }
-    if (isInProgress(ticket)) {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-blue-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-          In Progress
-        </span>
-      );
-    }
-    if (ticket.status === 'complete') {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-          Complete
-        </span>
-      );
-    }
-    if (ticket.status === 'ready') {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-          Ready
-        </span>
-      );
-    }
-    if (ticket.status === 'waiting-for-approval') {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-          Awaiting Review
-        </span>
-      );
-    }
-    if (ticket.status === 'created') {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-purple-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-          Created
-        </span>
-      );
-    }
-    if (ticket.questions && ticket.questions.length > 0) {
-      return "";
-    }
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-tertiary)]/50" />
-        Draft
-      </span>
-    );
-  };
-
-  // Format relative time (Linear-style)
-  const getRelativeTime = (date: string | Date) => {
-    const now = new Date();
-    const past = new Date(date);
-    const diffMs = now.getTime() - past.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const ticketStatus = getTicketStatus(ticket);
-  const isNeedsInput = ticketStatus === 'needs-input';
-
-  const handleOpen = () => {
-    router.push(isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`);
-  };
+  const handleOpen = () => router.push(href);
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this ticket?')) {
       const success = await deleteTicket(ticket.id);
-      if (success) {
-        toast.success('Ticket deleted');
-      } else {
-        toast.error('Failed to delete ticket');
-      }
+      if (success) toast.success('Ticket deleted');
+      else toast.error('Failed to delete ticket');
     }
   };
 
-  const handleArchive = () => {
-    toast.info('Archive feature coming soon');
-  };
-
-  const handleAssign = () => {
-    // Navigate to ticket detail page where assignment can be done
-    router.push(`/tickets/${ticket.id}`);
-  };
-
   return (
-    <div className={`group rounded-lg px-3 sm:px-4 py-2.5 sm:py-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center justify-between gap-2 sm:gap-4 mx-2 sm:mx-4 ${
-      ticketStatus === 'needs-resume'
-        ? 'bg-red-500/5'
-        : ''
-    }`}>
-      <Link href={isInProgress(ticket) ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`} className="flex-1 min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          {/* Left: Title row */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
-              <div className="flex-shrink-0">
-                {getTypeIcon(ticket.type)}
-              </div>
-              <h3 className={`text-xs sm:text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors flex-1 min-w-0 ${
-                ticketStatus === 'needs-input' || ticketStatus === 'needs-resume' ? 'font-semibold text-[var(--text)]' : 'font-medium text-[var(--text-secondary)]'
-              }`}>
-                {ticket.title}
-                {ticketStatus === 'needs-resume' && <span className="ml-1 sm:ml-2 text-red-500 font-normal">❌</span>}
-              </h3>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 mt-1 ml-5 sm:ml-6">
-              <span className="text-[10px] sm:text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                {getRelativeTime(ticket.updatedAt)}
-              </span>
-              <div className="hidden sm:contents">
-                {getPriorityIndicator(ticket.priority)}
-                {!ticket.questions || ticket.questions.length === 0 ? getStatusBadge(ticket) : null}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Assignee + Progress ring - Responsive */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 sm:hidden">
-              {getPriorityIndicator(ticket.priority)}
-            </div>
-            {/* Story 3.5-5: Show assignee avatar if assigned */}
-            {ticket.assignedTo && (
-              <div
-                className="h-6 w-6 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[10px] font-medium text-[var(--primary)] flex-shrink-0"
-                title={`Assigned to ${ticket.assignedTo}`}
-              >
-                {ticket.assignedTo.slice(0, 2).toUpperCase()}
-              </div>
-            )}
-            <ProgressRing ticket={ticket} />
-          </div>
-        </div>
+    <div
+      className={`group grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border)]/20 last:border-0 hover:bg-[var(--bg-hover)] transition-colors ${
+        ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
+      }`}
+      style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}
+    >
+      {/* Title cell */}
+      <Link href={href} className="flex items-center gap-2 py-3 min-w-0 pr-3">
+        <span className="flex-shrink-0">{getTypeIcon(ticket.type)}</span>
+        <span className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
+          ticketStatus === 'needs-input' || ticketStatus === 'needs-resume'
+            ? 'font-semibold text-[var(--text)]'
+            : 'font-medium text-[var(--text-secondary)]'
+        }`}>
+          {ticket.title}
+        </span>
+        {ticketStatus === 'needs-resume' && <span className="flex-shrink-0 text-red-500 text-xs">❌</span>}
       </Link>
 
-      {/* Actions menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-subtle)] transition-all focus:opacity-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreVertical className="h-4 w-4 text-[var(--text-tertiary)]" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={handleOpen}>
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Open
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleAssign}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Assign
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleArchive}>
-            <Archive className="h-4 w-4 mr-2" />
-            Archive
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Status */}
+      <Link href={href} className="hidden sm:flex items-center py-3">
+        <StatusCell ticket={ticket} />
+      </Link>
+
+      {/* Priority */}
+      <Link href={href} className="hidden sm:flex items-center py-3">
+        <PriorityCell priority={ticket.priority} />
+      </Link>
+
+      {/* Assignee */}
+      <div className="hidden md:flex items-center py-3">
+        <AssigneeCell ticket={ticket} teamMembers={teamMembers} />
+      </div>
+
+      {/* Updated */}
+      <Link href={href} className="hidden md:flex items-center py-3">
+        <span className="text-[11px] text-[var(--text-tertiary)]">{getRelativeTime(ticket.updatedAt)}</span>
+      </Link>
+
+      {/* Progress ring */}
+      <Link href={href} className="flex items-center justify-center py-3">
+        <ProgressRing ticket={ticket} />
+      </Link>
+
+      {/* Actions */}
+      <div className="flex items-center justify-center py-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-subtle)] transition-all focus:opacity-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={handleOpen}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push(`/tickets/${ticket.id}`)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => toast.info('Archive feature coming soon')}>
+              <Archive className="h-4 w-4 mr-2" />
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+// Lifecycle state info for tooltip
+function getLifecycleInfo(ticket: any): { label: string; colorClass: string; dot: string; next: string } {
+  const key = getTicketStatusKey(ticket);
+  if (key === 'needs-resume') return { label: 'Broken Spec', colorClass: 'text-red-500', dot: 'bg-red-500', next: 'Resume ticket creation to fix the spec' };
+  if (key === 'in-progress') return { label: 'Being Enriched', colorClass: 'text-blue-500', dot: 'bg-blue-500', next: 'AI is generating the technical spec' };
+  if (key === 'needs-input') return { label: 'Needs Input', colorClass: 'text-amber-500', dot: 'bg-amber-500', next: 'Answer the questions to continue' };
+  const map: Record<string, { label: string; colorClass: string; dot: string; next: string }> = {
+    complete:              { label: 'Complete',          colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
+    ready:                 { label: 'Ready for Dev',     colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Run forge execute to implement' },
+    'waiting-for-approval':{ label: 'Awaiting Approval', colorClass: 'text-amber-500',             dot: 'bg-amber-500',              next: 'PM needs to review and re-bake ticket' },
+    created:               { label: 'Code Written',      colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Review and merge the implementation' },
+    draft:                 { label: 'Draft',             colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: 'Complete the ticket enrichment flow' },
+  };
+  return map[ticket.status] ?? { label: 'Unknown', colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: '' };
+}
+
+function AssigneeCell({ ticket, teamMembers }: { ticket: any; teamMembers: any[] }) {
+  const info = getLifecycleInfo(ticket);
+  const member = ticket.assignedTo ? teamMembers.find((m) => m.userId === ticket.assignedTo) : null;
+  const name = member ? (member.displayName || member.email || null) : null;
+
+  return (
+    <div className="relative group/assignee w-full">
+      {name ? (
+        <span className="text-[11px] text-[var(--text-secondary)] truncate block max-w-full cursor-default">
+          {name}
+        </span>
+      ) : (
+        <span className="text-[11px] text-[var(--text-tertiary)]/40 cursor-default">—</span>
+      )}
+
+      {/* Lifecycle tooltip */}
+      <div className="pointer-events-none absolute bottom-full left-0 mb-2 hidden group-hover/assignee:block z-50 w-48 rounded-md bg-[var(--bg-secondary)] border border-[var(--border)] px-3 py-2 shadow-xl">
+        <div className={`flex items-center gap-1.5 text-[11px] font-medium ${info.colorClass}`}>
+          <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${info.dot}`} />
+          {info.label}
+        </div>
+        {info.next && (
+          <p className="mt-1 text-[10px] text-[var(--text-tertiary)] leading-tight">{info.next}</p>
+        )}
+      </div>
     </div>
   );
 }

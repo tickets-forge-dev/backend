@@ -45,6 +45,7 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
+import { CurrentTeamId } from '../../../shared/presentation/decorators/CurrentTeamId.decorator';
 import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
 import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
@@ -411,6 +412,7 @@ export class TicketsController {
   @Patch(':id/assign')
   async assignTicket(
     @WorkspaceId() workspaceId: string,
+    @CurrentTeamId() currentTeamId: string | null,
     @UserId() userId: string,
     @Param('id') id: string,
     @Body() dto: AssignTicketDto,
@@ -420,6 +422,7 @@ export class TicketsController {
       userId: dto.userId,
       requestingUserId: userId,
       workspaceId,
+      teamId: currentTeamId,
     });
 
     return { success: true };

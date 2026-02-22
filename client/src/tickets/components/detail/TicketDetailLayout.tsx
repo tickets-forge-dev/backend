@@ -298,129 +298,127 @@ export function TicketDetailLayout({
         </TabsList>
 
         <TabsContent value="spec" className="mt-6">
-          <div className="flex gap-6">
-            {/* Scroll spy navigator */}
-            <div className="hidden lg:block w-48 flex-shrink-0">
-              <nav className="sticky top-6 space-y-2">
-                {[
-                  { id: 'reproduction-steps', label: 'Reproduction Steps', bugOnly: true },
-                  { id: 'problem-statement', label: 'Problem Statement' },
-                  { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
-                  { id: 'visual-qa', label: 'Visual QA Expectations' },
-                  { id: 'scope', label: 'Scope' },
-                  { id: 'solution', label: 'Solution' },
-                  { id: 'assets', label: 'Assets' },
-                ]
-                .filter(section => !section.bugOnly || ticket.type === 'bug')
-                .map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      const element = document.getElementById(`spec-${section.id}`);
-                      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className={`block text-sm py-1.5 px-3 rounded transition-colors ${
-                      activeSection === `spec-${section.id}`
-                        ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
-                    }`}
-                  >
-                    {section.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <SpecificationTab
-                ticket={ticket}
-                ticketId={ticketId}
-                onEditItem={onEditItem}
-                onDeleteItem={onDeleteItem}
-                onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
-                onSaveAssumptions={onSaveAssumptions}
-                onEditReproductionStep={onEditReproductionStep}
-                onDeleteReproductionStep={onDeleteReproductionStep}
-                onAddReproductionStep={onAddReproductionStep}
-                onUploadAttachment={onUploadAttachment}
-                onDeleteAttachment={onDeleteAttachment}
-                isUploadingAttachment={isUploadingAttachment}
-                saveTechSpecPatch={saveTechSpecPatch}
-                fetchTicket={fetchTicket}
-              />
-            </div>
+          <div className="max-w-3xl mx-auto">
+            {/* Content - centered */}
+            <SpecificationTab
+              ticket={ticket}
+              ticketId={ticketId}
+              onEditItem={onEditItem}
+              onDeleteItem={onDeleteItem}
+              onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
+              onSaveAssumptions={onSaveAssumptions}
+              onEditReproductionStep={onEditReproductionStep}
+              onDeleteReproductionStep={onDeleteReproductionStep}
+              onAddReproductionStep={onAddReproductionStep}
+              onUploadAttachment={onUploadAttachment}
+              onDeleteAttachment={onDeleteAttachment}
+              isUploadingAttachment={isUploadingAttachment}
+              saveTechSpecPatch={saveTechSpecPatch}
+              fetchTicket={fetchTicket}
+            />
+          </div>
+          
+          {/* Scroll spy navigator - fixed position on left side (after sidebar) */}
+          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+2rem)] top-32 w-48 z-10">
+            <nav className="space-y-2">
+              {[
+                { id: 'reproduction-steps', label: 'Reproduction Steps', bugOnly: true },
+                { id: 'problem-statement', label: 'Problem Statement' },
+                { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
+                { id: 'visual-qa', label: 'Visual QA Expectations' },
+                { id: 'scope', label: 'Scope' },
+                { id: 'solution', label: 'Solution' },
+                { id: 'assets', label: 'Assets' },
+              ]
+              .filter(section => !section.bugOnly || ticket.type === 'bug')
+              .map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => {
+                    const element = document.getElementById(`spec-${section.id}`);
+                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className={`block text-sm py-1.5 px-3 rounded transition-colors text-left w-full ${
+                    activeSection === `spec-${section.id}`
+                      ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
           </div>
         </TabsContent>
 
         <TabsContent value="design" className="mt-6">
-          {onAddDesignReference && onRemoveDesignReference ? (
-            <DesignTab
-              ticketId={ticketId}
-              references={ticket.designReferences || []}
-              onAddDesignReference={onAddDesignReference}
-              onRemoveDesignReference={onRemoveDesignReference}
-              onRefreshDesignReference={onRefreshDesignReference}
-            />
-          ) : (
-            <div className="max-w-4xl">
-              <h2 className="text-sm font-medium text-[var(--text)] mb-4">Design References</h2>
-              <div className="flex items-center justify-center min-h-[200px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-secondary)]">
-                <div className="text-center">
-                  <div className="text-4xl mb-3">🎨</div>
-                  <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
+          <div className="max-w-3xl mx-auto">
+            {onAddDesignReference && onRemoveDesignReference ? (
+              <DesignTab
+                ticketId={ticketId}
+                references={ticket.designReferences || []}
+                onAddDesignReference={onAddDesignReference}
+                onRemoveDesignReference={onRemoveDesignReference}
+                onRefreshDesignReference={onRefreshDesignReference}
+              />
+            ) : (
+              <div>
+                <h2 className="text-sm font-medium text-[var(--text)] mb-4">Design References</h2>
+                <div className="flex items-center justify-center min-h-[200px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-secondary)]">
+                  <div className="text-center">
+                    <div className="text-4xl mb-3">🎨</div>
+                    <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="technical" className="mt-6">
-          <div className="flex gap-6">
-            {/* Scroll spy navigator */}
-            <div className="hidden lg:block w-48 flex-shrink-0">
-              <nav className="sticky top-6 space-y-2">
-                {[
-                  { id: 'file-changes', label: 'File Changes' },
-                  { id: 'api-endpoints', label: 'API Endpoints' },
-                  { id: 'dependencies', label: 'Dependencies' },
-                  { id: 'test-plan', label: 'Test Plan' },
-                  { id: 'stack', label: 'Stack' },
-                ].map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      const element = document.getElementById(`technical-${section.id}`);
-                      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className={`block text-sm py-1.5 px-3 rounded transition-colors ${
-                      activeSection === `technical-${section.id}`
-                        ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
-                    }`}
-                  >
-                    {section.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <ImplementationTab
-                ticket={ticket}
-                ticketId={ticketId}
-                onEditItem={onEditItem}
-                onDeleteItem={onDeleteItem}
-                onAddApiEndpoint={onAddApiEndpoint}
-                onSaveApiEndpoints={onSaveApiEndpoints}
-                onScanApis={onScanApis}
-                isScanningApis={isScanningApis}
-                saveTechSpecPatch={saveTechSpecPatch}
-                fetchTicket={fetchTicket}
-              />
-            </div>
+          <div className="max-w-3xl mx-auto">
+            {/* Content - centered */}
+            <ImplementationTab
+              ticket={ticket}
+              ticketId={ticketId}
+              onEditItem={onEditItem}
+              onDeleteItem={onDeleteItem}
+              onAddApiEndpoint={onAddApiEndpoint}
+              onSaveApiEndpoints={onSaveApiEndpoints}
+              onScanApis={onScanApis}
+              isScanningApis={isScanningApis}
+              saveTechSpecPatch={saveTechSpecPatch}
+              fetchTicket={fetchTicket}
+            />
+          </div>
+          
+          {/* Scroll spy navigator - fixed position on left side (after sidebar) */}
+          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+2rem)] top-32 w-48 z-10">
+            <nav className="space-y-2">
+              {[
+                { id: 'file-changes', label: 'File Changes' },
+                { id: 'api-endpoints', label: 'API Endpoints' },
+                { id: 'dependencies', label: 'Dependencies' },
+                { id: 'test-plan', label: 'Test Plan' },
+                { id: 'stack', label: 'Stack' },
+              ].map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => {
+                    const element = document.getElementById(`technical-${section.id}`);
+                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className={`block text-sm py-1.5 px-3 rounded transition-colors text-left w-full ${
+                    activeSection === `technical-${section.id}`
+                      ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
           </div>
         </TabsContent>
       </Tabs>

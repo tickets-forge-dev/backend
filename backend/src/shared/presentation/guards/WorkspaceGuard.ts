@@ -51,6 +51,8 @@ export class WorkspaceGuard implements CanActivate {
 
     // Attach workspaceId to request for controllers
     request.workspaceId = workspaceId;
+    // Attach currentTeamId for team-related operations (e.g., assigning tickets)
+    request.currentTeamId = currentTeamId;
 
     // DIAGNOSTIC: Log workspace determination for debugging
     console.log(`[WorkspaceGuard] userId: ${firebaseUser.uid}, currentTeamId: ${currentTeamId || 'none'}, workspaceId: ${workspaceId}`);

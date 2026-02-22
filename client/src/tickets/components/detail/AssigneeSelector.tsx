@@ -32,8 +32,9 @@ export function AssigneeSelector({
   const [isAssigning, setIsAssigning] = useState(false);
   
   // Get current team from team store
-  const currentTeamId = useTeamStore((state) => state.currentTeamId);
   const currentTeam = useTeamStore((state) => state.currentTeam);
+  // Derive currentTeamId from currentTeam (Zustand getters don't work with selectors)
+  const currentTeamId = currentTeam?.id || null;
 
   // Determine if user is in a team workspace or private workspace
   const isPrivateWorkspace = !currentTeamId;
@@ -64,8 +65,9 @@ export function AssigneeSelector({
         setAllMembers(members.filter((m) => m.status === 'active'));
 
         // Filter: Only ACTIVE members who can execute tickets (admin + developer roles)
+        // Exclude the current user (can't assign to yourself)
         const activeDevelopers = members.filter(
-          (m) => m.status === 'active' && (m.role === 'developer' || m.role === 'admin')
+          (m) => m.status === 'active' && (m.role === 'developer' || m.role === 'admin') && m.userId !== user.uid
         );
 
         setDevelopers(activeDevelopers);
@@ -211,10 +213,11 @@ export function AssigneeSelector({
                       {(dev.displayName || dev.email || '?')[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{dev.displayName || dev.email}</p>
-                      {dev.displayName && (
-                        <p className="text-xs text-[var(--text-tertiary)] truncate">{dev.email}</p>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm truncate">{dev.displayName || dev.email}</p>
+                        <span className="text-xs text-[var(--text-tertiary)] capitalize">{dev.role}</span>
+                      </div>
+                      <p className="text-xs text-[var(--text-tertiary)] truncate">{dev.email}</p>
                     </div>
                     {dev.userId === assignedTo && (
                       <span className="text-xs text-[var(--blue)]">Current</span>
