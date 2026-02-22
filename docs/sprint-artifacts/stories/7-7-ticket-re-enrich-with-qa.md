@@ -1,6 +1,6 @@
 # Story 7.7: Ticket Re-Enrich with Q&A
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -24,43 +24,43 @@ so that the ticket's tech spec and acceptance criteria are updated with develope
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Domain — Add `reEnrichFromQA()` to AEC (AC: 6, 7, 9)
-  - [ ] In `backend/src/tickets/domain/aec/AEC.ts`: add `reEnrichFromQA(techSpec: TechSpec): void`
-  - [ ] Sets `_techSpec = techSpec`
-  - [ ] Refreshes `_acceptanceCriteria` from `techSpec.acceptanceCriteria.map(ac => \`Given ${ac.given} When ${ac.when} Then ${ac.then}\`)`
-  - [ ] Does NOT change `_status` (intentional — stays WAITING_FOR_APPROVAL)
-  - [ ] Updates `_updatedAt = new Date()`
+- [x] Task 1: Domain — Add `reEnrichFromQA()` to AEC (AC: 6, 7, 9)
+  - [x] In `backend/src/tickets/domain/aec/AEC.ts`: add `reEnrichFromQA(techSpec: TechSpec): void`
+  - [x] Sets `_techSpec = techSpec`
+  - [x] Refreshes `_acceptanceCriteria` from `techSpec.acceptanceCriteria.map(ac => \`Given ${ac.given} When ${ac.when} Then ${ac.then}\`)`
+  - [x] Does NOT change `_status` (intentional — stays WAITING_FOR_APPROVAL)
+  - [x] Updates `_updatedAt = new Date()`
 
-- [ ] Task 2: Application — `ReEnrichWithQAUseCase` (AC: 2, 3, 4, 5, 6, 7)
-  - [ ] Create `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.ts`
-  - [ ] Command: `{ ticketId: string; teamId: string }`
-  - [ ] Inject: `AEC_REPOSITORY`, `TECH_SPEC_GENERATOR`, `GITHUB_FILE_SERVICE`, `CODEBASE_ANALYZER`, `PROJECT_STACK_DETECTOR`
-  - [ ] Load ticket → 404 if missing; 403 if teamId mismatch
-  - [ ] Validate `reviewSession?.qaItems` non-empty → 400 `BadRequestException('No review session found on this ticket')`
-  - [ ] Map Q&A: `qaItems.map(qa => ({ questionId: qa.question, answer: qa.answer }))`
-  - [ ] Build codebase context using same logic as `FinalizeSpecUseCase.buildCodebaseContext()` (copy private method or inline)
-  - [ ] Call `techSpecGenerator.generateWithAnswers({ title, description, context, answers })`
-  - [ ] Call `aec.reEnrichFromQA(techSpec)` and `aecRepository.save(aec)`
-  - [ ] Return updated `AEC`
+- [x] Task 2: Application — `ReEnrichWithQAUseCase` (AC: 2, 3, 4, 5, 6, 7)
+  - [x] Create `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.ts`
+  - [x] Command: `{ ticketId: string; teamId: string }`
+  - [x] Inject: `AEC_REPOSITORY`, `TECH_SPEC_GENERATOR`, `GITHUB_FILE_SERVICE`, `CODEBASE_ANALYZER`, `PROJECT_STACK_DETECTOR`
+  - [x] Load ticket → 404 if missing; 403 if teamId mismatch
+  - [x] Validate `reviewSession?.qaItems` non-empty → 400 `BadRequestException('No review session found on this ticket')`
+  - [x] Map Q&A: `qaItems.map(qa => ({ questionId: qa.question, answer: qa.answer }))`
+  - [x] Build codebase context using same logic as `FinalizeSpecUseCase.buildCodebaseContext()` (copy private method or inline)
+  - [x] Call `techSpecGenerator.generateWithAnswers({ title, description, context, answers })`
+  - [x] Call `aec.reEnrichFromQA(techSpec)` and `aecRepository.save(aec)`
+  - [x] Return updated `AEC`
 
-- [ ] Task 3: Presentation — New route in `tickets.controller.ts` (AC: 1, 8)
-  - [ ] Add `@Post(':id/re-enrich')` handler in `tickets.controller.ts`
-  - [ ] Guards: `@UseGuards(WorkspaceGuard, FirebaseAuthGuard)` + `@Roles(Role.PM, Role.ADMIN)`
-  - [ ] Params: `@Param('id') ticketId`, `@TeamId() teamId`
-  - [ ] Return `mapToResponse(aec)` (same as existing ticket handlers)
+- [x] Task 3: Presentation — New route in `tickets.controller.ts` (AC: 1, 8)
+  - [x] Add `@Post(':id/re-enrich')` handler in `tickets.controller.ts`
+  - [x] Guards: `@UseGuards(WorkspaceGuard, FirebaseAuthGuard)` + `@Roles(Role.PM, Role.ADMIN)`
+  - [x] Params: `@Param('id') ticketId`, `@TeamId() teamId`
+  - [x] Return `mapToResponse(aec)` (same as existing ticket handlers)
 
-- [ ] Task 4: Module — Register `ReEnrichWithQAUseCase` in `TicketsModule` (AC: 1)
-  - [ ] Add `ReEnrichWithQAUseCase` to `providers` array in `tickets.module.ts`
+- [x] Task 4: Module — Register `ReEnrichWithQAUseCase` in `TicketsModule` (AC: 1)
+  - [x] Add `ReEnrichWithQAUseCase` to `providers` array in `tickets.module.ts`
 
-- [ ] Task 5: Tests — Unit tests for `ReEnrichWithQAUseCase` (AC: 10, 11)
-  - [ ] Create `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.spec.ts`
-  - [ ] Mock `AECRepository`, `TechSpecGenerator` (and optional ports for codebase analysis)
-  - [ ] Test: happy path → techSpec set, ACs refreshed, status stays WAITING_FOR_APPROVAL, save called
-  - [ ] Test: no reviewSession → 400 BadRequestException
-  - [ ] Test: empty qaItems array → 400 BadRequestException
-  - [ ] Test: teamId mismatch → 403 ForbiddenException
-  - [ ] Test: ticket not found → 404 NotFoundException
-  - [ ] Run `tsc --noEmit` → 0 errors
+- [x] Task 5: Tests — Unit tests for `ReEnrichWithQAUseCase` (AC: 10, 11)
+  - [x] Create `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.spec.ts`
+  - [x] Mock `AECRepository`, `TechSpecGenerator` (and optional ports for codebase analysis)
+  - [x] Test: happy path → techSpec set, ACs refreshed, status stays WAITING_FOR_APPROVAL, save called
+  - [x] Test: no reviewSession → 400 BadRequestException
+  - [x] Test: empty qaItems array → 400 BadRequestException
+  - [x] Test: teamId mismatch → 403 ForbiddenException
+  - [x] Test: ticket not found → 404 NotFoundException
+  - [x] Run `tsc --noEmit` → 0 errors (confirmed)
 
 ## Dev Notes
 
@@ -148,4 +148,15 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
+- Mirrored `buildCodebaseContext()` from `FinalizeSpecUseCase` — duplicated private method as story intended; future refactor to shared service deferred.
+- Fixed Jest module resolution issue: `ReEnrichWithQAUseCase.ts` originally imported `GitHubFileService` via `@github/domain/github-file.service` (tsconfig alias). Backend Jest config has no `moduleNameMapper` for tsconfig aliases, so switched to relative path `../../../github/domain/github-file.service`.
+- All 7 unit tests pass. 10 pre-existing failures in `CreateTeamUseCase` and `GetUserTeamsUseCase` are unrelated (confirmed on clean branch).
+- `tsc --noEmit` → 0 errors in backend.
+
 ### File List
+
+- `backend/src/tickets/domain/aec/AEC.ts` — added `reEnrichFromQA(techSpec)` method
+- `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.ts` — NEW
+- `backend/src/tickets/application/use-cases/ReEnrichWithQAUseCase.spec.ts` — NEW (7 tests)
+- `backend/src/tickets/presentation/controllers/tickets.controller.ts` — added `POST /:id/re-enrich` handler
+- `backend/src/tickets/tickets.module.ts` — registered `ReEnrichWithQAUseCase`

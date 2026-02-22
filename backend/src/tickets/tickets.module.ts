@@ -61,6 +61,7 @@ import { RefreshDesignMetadataUseCase } from './application/use-cases/RefreshDes
 import { FetchDesignMetadataUseCase } from './application/use-cases/FetchDesignMetadataUseCase';
 import { AssignTicketUseCase } from './application/use-cases/AssignTicketUseCase';
 import { SubmitReviewSessionUseCase } from './application/use-cases/SubmitReviewSessionUseCase';
+import { ReEnrichWithQAUseCase } from './application/use-cases/ReEnrichWithQAUseCase';
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
 import { TeamsModule } from '../teams/teams.module';
@@ -102,6 +103,7 @@ import { TeamsModule } from '../teams/teams.module';
     FetchDesignMetadataUseCase,
     AssignTicketUseCase,
     SubmitReviewSessionUseCase,
+    ReEnrichWithQAUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,

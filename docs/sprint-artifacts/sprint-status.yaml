@@ -186,7 +186,7 @@ development_status:
   7-4-conversation-api: done
   7-5-update-ticket-filters: done
   7-6-conversation-viewer-ui: done
-  7-7-ticket-re-enrich-with-qa: ready-for-dev
+  7-7-ticket-re-enrich-with-qa: review
   7-8-approve-button-pm-only: backlog
   7-9-status-sync-web-cli: backlog
   7-10-ticket-creation-updates: backlog

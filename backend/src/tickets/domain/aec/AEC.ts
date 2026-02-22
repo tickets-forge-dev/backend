@@ -398,6 +398,21 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Re-enrich ticket from developer Q&A review session (Story 7-7)
+   *
+   * Updates techSpec and acceptanceCriteria from the AI-generated spec.
+   * Does NOT change status — intentionally stays WAITING_FOR_APPROVAL
+   * until PM approves (Story 7-8).
+   */
+  reEnrichFromQA(techSpec: TechSpec): void {
+    this._techSpec = techSpec;
+    this._acceptanceCriteria = techSpec.acceptanceCriteria.map(
+      (ac) => `Given ${ac.given} When ${ac.when} Then ${ac.then}`,
+    );
+    this._updatedAt = new Date();
+  }
+
   // Import ClarificationQuestion for type safety
   // Note: This is typed in QuestionRound import
 

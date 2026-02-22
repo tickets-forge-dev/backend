@@ -90,6 +90,7 @@ import { AssignTicketUseCase } from '../../application/use-cases/AssignTicketUse
 import { AssignTicketDto } from '../dto/AssignTicketDto';
 import { SubmitReviewSessionUseCase } from '../../application/use-cases/SubmitReviewSessionUseCase';
 import { SubmitReviewSessionDto } from '../dto/SubmitReviewSessionDto';
+import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQAUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -134,6 +135,7 @@ export class TicketsController {
     private readonly refreshDesignMetadataUseCase: RefreshDesignMetadataUseCase,
     private readonly assignTicketUseCase: AssignTicketUseCase,
     private readonly submitReviewSessionUseCase: SubmitReviewSessionUseCase,
+    private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -440,6 +442,23 @@ export class TicketsController {
       teamId,
       qaItems: dto.qaItems,
     });
+  }
+
+  /**
+   * Re-enrich ticket using developer Q&A review session (Story 7-7)
+   *
+   * PM triggers this after reviewing the developer's Q&A answers.
+   * Calls TechSpecGenerator.generateWithAnswers() with stored Q&A as context,
+   * then updates ticket's techSpec and acceptanceCriteria.
+   * Status stays WAITING_FOR_APPROVAL (approve is Story 7-8).
+   */
+  @Post(':id/re-enrich')
+  async reEnrichTicket(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.reEnrichWithQAUseCase.execute({ ticketId: id, teamId });
+    return this.mapToResponse(aec);
   }
 
   /**
