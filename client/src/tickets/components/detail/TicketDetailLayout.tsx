@@ -101,20 +101,41 @@ export function TicketDetailLayout({
     window.history.replaceState({}, '', url.toString());
   };
 
+  // Section definitions
+  const specSections = [
+    { id: 'reproduction-steps', label: 'Reproduction Steps', short: 'Repro', bugOnly: true },
+    { id: 'problem-statement', label: 'Problem Statement', short: 'Problem' },
+    { id: 'acceptance-criteria', label: 'Acceptance Criteria', short: 'AC' },
+    { id: 'visual-qa', label: 'Visual QA Expectations', short: 'Visual QA' },
+    { id: 'scope', label: 'Scope', short: 'Scope' },
+    { id: 'solution', label: 'Solution', short: 'Solution' },
+    { id: 'assets', label: 'Assets', short: 'Assets' },
+  ].filter(s => !s.bugOnly || ticket.type === 'bug');
+
+  const techSections = [
+    { id: 'file-changes', label: 'File Changes', short: 'Files' },
+    { id: 'api-endpoints', label: 'API Endpoints', short: 'APIs' },
+    { id: 'dependencies', label: 'Dependencies', short: 'Deps' },
+    { id: 'test-plan', label: 'Test Plan', short: 'Tests' },
+    { id: 'stack', label: 'Stack', short: 'Stack' },
+  ];
+
+  const scrollTo = (tabPrefix: string, sectionId: string) => {
+    document.getElementById(`${tabPrefix}-${sectionId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // Track scroll position for scroll spy
   useEffect(() => {
     const handleScroll = () => {
       const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
-      const sections = activeTab === 'spec'
-        ? ['reproduction-steps', 'problem-statement', 'acceptance-criteria', 'visual-qa', 'scope', 'solution', 'assets']
-        : ['file-changes', 'api-endpoints', 'dependencies', 'test-plan', 'stack'];
+      const sections = activeTab === 'spec' ? specSections : techSections;
 
-      for (const sectionId of sections) {
-        const element = document.getElementById(`${currentTab}-${sectionId}`);
+      for (const section of sections) {
+        const element = document.getElementById(`${currentTab}-${section.id}`);
         if (element) {
           const rect = element.getBoundingClientRect();
           if (rect.top <= 100) {
-            setActiveSection(`${currentTab}-${sectionId}`);
+            setActiveSection(`${currentTab}-${section.id}`);
           }
         }
       }
@@ -298,8 +319,24 @@ export function TicketDetailLayout({
         </TabsList>
 
         <TabsContent value="spec" className="mt-6">
+          {/* Mobile section pills — shown below xl only */}
+          <div className="xl:hidden flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+            {specSections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => scrollTo('spec', s.id)}
+                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                  activeSection === `spec-${s.id}`
+                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
+                }`}
+              >
+                {s.short}
+              </button>
+            ))}
+          </div>
+
           <div className="max-w-3xl mx-auto">
-            {/* Content - centered */}
             <SpecificationTab
               ticket={ticket}
               ticketId={ticketId}
@@ -317,34 +354,22 @@ export function TicketDetailLayout({
               fetchTicket={fetchTicket}
             />
           </div>
-          
-          {/* Scroll spy navigator - fixed position on left side (after sidebar) */}
-          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+2rem)] top-32 w-48 z-10">
-            <nav className="space-y-2">
-              {[
-                { id: 'reproduction-steps', label: 'Reproduction Steps', bugOnly: true },
-                { id: 'problem-statement', label: 'Problem Statement' },
-                { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
-                { id: 'visual-qa', label: 'Visual QA Expectations' },
-                { id: 'scope', label: 'Scope' },
-                { id: 'solution', label: 'Solution' },
-                { id: 'assets', label: 'Assets' },
-              ]
-              .filter(section => !section.bugOnly || ticket.type === 'bug')
-              .map((section) => (
+
+          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
+          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+1rem)] top-32 w-[88px] z-10">
+            <nav className="space-y-0.5">
+              {specSections.map((s) => (
                 <button
-                  key={section.id}
-                  onClick={() => {
-                    const element = document.getElementById(`spec-${section.id}`);
-                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className={`block text-sm py-1.5 px-3 rounded transition-colors text-left w-full ${
-                    activeSection === `spec-${section.id}`
-                      ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                  key={s.id}
+                  onClick={() => scrollTo('spec', s.id)}
+                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
+                    activeSection === `spec-${s.id}`
+                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
+                      : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
                   }`}
+                  title={s.label}
                 >
-                  {section.label}
+                  {s.short}
                 </button>
               ))}
             </nav>
@@ -377,8 +402,24 @@ export function TicketDetailLayout({
         </TabsContent>
 
         <TabsContent value="technical" className="mt-6">
+          {/* Mobile section pills — shown below xl only */}
+          <div className="xl:hidden flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+            {techSections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => scrollTo('technical', s.id)}
+                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                  activeSection === `technical-${s.id}`
+                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
+                }`}
+              >
+                {s.short}
+              </button>
+            ))}
+          </div>
+
           <div className="max-w-3xl mx-auto">
-            {/* Content - centered */}
             <ImplementationTab
               ticket={ticket}
               ticketId={ticketId}
@@ -392,30 +433,22 @@ export function TicketDetailLayout({
               fetchTicket={fetchTicket}
             />
           </div>
-          
-          {/* Scroll spy navigator - fixed position on left side (after sidebar) */}
-          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+2rem)] top-32 w-48 z-10">
-            <nav className="space-y-2">
-              {[
-                { id: 'file-changes', label: 'File Changes' },
-                { id: 'api-endpoints', label: 'API Endpoints' },
-                { id: 'dependencies', label: 'Dependencies' },
-                { id: 'test-plan', label: 'Test Plan' },
-                { id: 'stack', label: 'Stack' },
-              ].map((section) => (
+
+          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
+          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+1rem)] top-32 w-[88px] z-10">
+            <nav className="space-y-0.5">
+              {techSections.map((s) => (
                 <button
-                  key={section.id}
-                  onClick={() => {
-                    const element = document.getElementById(`technical-${section.id}`);
-                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className={`block text-sm py-1.5 px-3 rounded transition-colors text-left w-full ${
-                    activeSection === `technical-${section.id}`
-                      ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                  key={s.id}
+                  onClick={() => scrollTo('technical', s.id)}
+                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
+                    activeSection === `technical-${s.id}`
+                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
+                    : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
                   }`}
+                  title={s.label}
                 >
-                  {section.label}
+                  {s.short}
                 </button>
               ))}
             </nav>
