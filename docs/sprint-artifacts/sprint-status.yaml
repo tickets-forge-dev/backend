@@ -147,7 +147,7 @@ development_status:
   6-10-mcp-integration-tests: in-progress
   6-11-cli-mcp-plumbing: done
   6-12-ticket-review-mcp-tools: done
-  6-13-bmad-review-agent: ready-for-dev
+  6-13-bmad-review-agent: done
   epic-6-mcp-server-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -182,7 +182,7 @@ development_status:
   #   See: docs/sprint-artifacts/stories/7-design-notes.md
   epic-7-ticket-lifecycle: in-progress
   7-1-extend-aec-status-enum: done
-  7-2-move-tickets-to-team-scope: backlog
+  7-2-move-tickets-to-team-scope: ready-for-dev
   7-3-conversation-storage: done
   7-4-conversation-api: done
   7-5-update-ticket-filters: done

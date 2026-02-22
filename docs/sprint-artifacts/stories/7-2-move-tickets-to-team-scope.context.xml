@@ -1,0 +1,205 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>2</storyId>
+    <title>Move Tickets to Team Scope</title>
+    <status>drafted</status>
+    <generatedAt>2026-02-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/7-2-move-tickets-to-team-scope.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a team member (PM or developer)</asA>
+    <iWant>tickets to be explicitly scoped to a team using a direct teamId field</iWant>
+    <soThat>ticket lists are reliably isolated per-team and the CLI can request tickets for a specific team without relying on server-side user document state</soThat>
+    <tasks>
+      Task 1: Backend — Update AEC domain model (AC: 1)
+        - In AEC.ts: replace workspaceId param with teamId in constructor, createDraft, and reconstitute
+        - In AECRepository.ts: rename findByWorkspace→findByTeam, countByWorkspace→countByTeam, countByWorkspaceAndCreator→countByTeamAndCreator, delete(aecId, workspaceId)→delete(aecId, teamId)
+        - Update all use cases: CreateTicketUseCase, ListTicketsUseCase, GetTicketUseCase, etc.
+
+      Task 2: Backend — Update Firestore repository and mapper (AC: 2)
+        - FirestoreAECRepository.ts: path workspaces/${workspaceId}/aecs → teams/${teamId}/aecs
+        - findById: switch from scanning all workspaces to scanning all teams (or use collectionGroup('aecs'))
+        - AECMapper.ts: AECDocument.workspaceId → teamId field
+
+      Task 3: Backend — Update team context resolution (AC: 3, 4, 5)
+        - WorkspaceGuard.ts → TeamGuard.ts: read x-team-id header first; fallback to user.getCurrentTeamId()
+        - New: TeamId.decorator.ts (mirrors WorkspaceId.decorator.ts — reads request.teamId)
+        - tickets.controller.ts: @WorkspaceId() workspaceId → @TeamId() teamId everywhere
+
+      Task 4: Frontend — Send x-team-id header (AC: 6)
+        - client/src/services/ticket.service.ts: in the request interceptor, also set x-team-id from useTeamStore.getState().currentTeam?.id
+
+      Task 5: CLI — Send x-team-id header (AC: 7, 9)
+        - forge-cli/src/services/api.service.ts: add 'x-team-id': config.teamId to makeRequest headers
+
+      Task 6: Tests (AC: 8)
+        - Update all backend AEC fixtures: workspaceId → teamId
+        - Update controller/use-case tests to pass x-team-id header
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="AC1">AEC domain model has teamId field (replacing workspaceId). The workspaceId field is removed from the domain model and all downstream layers.</ac>
+    <ac id="AC2">Firestore storage path changes from workspaces/{workspaceId}/aecs/{aecId} to teams/{teamId}/aecs/{aecId}. All repository read/write operations use this new path.</ac>
+    <ac id="AC3">Backend accepts x-team-id request header for explicit team context. WorkspaceGuard (or replacement TeamGuard) reads teamId from header first; falls back to user.getCurrentTeamId() from Firestore user document. Attaches as request.teamId.</ac>
+    <ac id="AC4">GET /api/tickets returns only tickets where teamId matches the resolved team from AC3.</ac>
+    <ac id="AC5">POST /api/tickets sets teamId on the new ticket from the resolved team (AC3). Creating without team context returns 400.</ac>
+    <ac id="AC6">Frontend sends x-team-id: {currentTeam.id} as default header on all ticket API requests (via Axios interceptor). The useEffect reload-on-team-change in TicketsListPage continues to work.</ac>
+    <ac id="AC7">CLI sends x-team-id: {config.teamId} as header on all API requests via ApiService.</ac>
+    <ac id="AC8">npm run test in backend → all ticket-related tests pass at 0 failures.</ac>
+    <ac id="AC9">npm run typecheck in forge-cli → 0 errors (only ApiService header change needed).</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <!-- No architecture/PRD/tech-spec docs exist for Epic 7. Context is derived from code analysis. -->
+    </docs>
+
+    <code>
+      <file>
+        <path>backend/src/tickets/domain/aec/AEC.ts</path>
+        <kind>domain entity (primary change target)</kind>
+        <symbol>AEC, AEC.createDraft, AEC.reconstitute</symbol>
+        <lines>34-122</lines>
+        <reason>Contains workspaceId as the second constructor parameter (line 37) and in both factory methods. All references to workspaceId in this file must be renamed to teamId. The ReviewSession and ReviewQAItem interfaces at lines 24-32 are unaffected.</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/application/ports/AECRepository.ts</path>
+        <kind>domain port interface</kind>
+        <symbol>AECRepository, AEC_REPOSITORY</symbol>
+        <lines>1-13</lines>
+        <reason>All 4 workspace-scoped methods must be renamed to team equivalents: findByWorkspace(workspaceId)→findByTeam(teamId), countByWorkspace(workspaceId)→countByTeam(teamId), countByWorkspaceAndCreator→countByTeamAndCreator, delete(aecId, workspaceId)→delete(aecId, teamId). Every use case that injects this port must also be updated.</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/infrastructure/persistence/FirestoreAECRepository.ts</path>
+        <kind>infrastructure — Firestore adapter</kind>
+        <symbol>FirestoreAECRepository</symbol>
+        <lines>36-80</lines>
+        <reason>save() uses path workspaces/${aec.workspaceId}/aecs/${aec.id} (line 40) — change to teams/${aec.teamId}/aecs/${aec.id}. findById() scans all workspace docs (line 69) — change to scan all team docs or use collectionGroup('aecs'). findByWorkspace→findByTeam query must update collection path. All .workspaceId field references become .teamId.</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts</path>
+        <kind>infrastructure mapper</kind>
+        <symbol>AECDocument, AECMapper.toFirestore, AECMapper.toDomain</symbol>
+        <lines>47-60</lines>
+        <reason>AECDocument interface at line 49 has workspaceId: string — rename to teamId. The toFirestore() method writes workspaceId to the document and toDomain() reads it back — both must be updated. This is the Firestore serialization boundary.</reason>
+      </file>
+      <file>
+        <path>backend/src/shared/presentation/guards/WorkspaceGuard.ts</path>
+        <kind>NestJS guard (replace or extend)</kind>
+        <symbol>WorkspaceGuard</symbol>
+        <lines>1-62</lines>
+        <reason>CRITICAL: This guard is the team context resolver. Currently derives workspaceId as ws_team_${teamIdStr.substring(5,17)} and sets request.workspaceId and request.currentTeamId. Story 7-2 replaces this logic with: (1) read x-team-id header for explicit teamId, (2) fallback to user.getCurrentTeamId(). Set request.teamId (not request.workspaceId). The ws_team_* derivation is removed entirely.</reason>
+      </file>
+      <file>
+        <path>backend/src/shared/presentation/decorators/WorkspaceId.decorator.ts</path>
+        <kind>NestJS param decorator (pattern reference)</kind>
+        <symbol>WorkspaceId</symbol>
+        <lines>1-10</lines>
+        <reason>Pattern for the new TeamId.decorator.ts. The new decorator reads request.teamId instead of request.workspaceId. File to create: backend/src/shared/presentation/decorators/TeamId.decorator.ts</reason>
+      </file>
+      <file>
+        <path>backend/src/tickets/application/use-cases/CreateTicketUseCase.ts</path>
+        <kind>use case</kind>
+        <symbol>CreateTicketUseCase, CreateTicketCommand</symbol>
+        <lines>18-50</lines>
+        <reason>CreateTicketCommand.workspaceId must be renamed to teamId. The quota check on line 46 calls countByWorkspace(workspaceId) — update to countByTeam(teamId). AEC.createDraft() call must pass teamId. Repeat this rename pattern for all other use cases (ListTickets, GetTicket, UpdateTicket, DeleteTicket, SubmitReviewSession, etc.).</reason>
+      </file>
+      <file>
+        <path>client/src/services/ticket.service.ts</path>
+        <kind>frontend service (Axios instance)</kind>
+        <symbol>TicketService</symbol>
+        <lines>76-98</lines>
+        <reason>TicketService creates its own Axios instance (line 82) and adds Firebase ID token via request interceptor (lines 91-98). AC6 requires adding x-team-id header to the same interceptor: import useTeamStore, call useTeamStore.getState().currentTeam?.id, add as config.headers['x-team-id'] when present. The AECResponse interface at line 26 has workspaceId: string — update to teamId.</reason>
+      </file>
+      <file>
+        <path>forge-cli/src/services/api.service.ts</path>
+        <kind>CLI HTTP client</kind>
+        <symbol>makeRequest, get, post, patch</symbol>
+        <lines>18-31</lines>
+        <reason>makeRequest builds fetch headers with Authorization and Content-Type (lines 26-30). AC7 requires adding 'x-team-id': config.teamId to these headers. Since config is passed to get/post/patch but not to makeRequest, thread teamId through by either updating the makeRequest signature to accept headers or by passing config to makeRequest. Simplest: add teamId to the headers object in get/post/patch before calling makeRequest.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="backend (NestJS/TypeScript)">
+        <package name="@nestjs/core" version="^10.3.0" reason="Guard and decorator patterns for TeamGuard + TeamId.decorator.ts" />
+        <package name="@nestjs/common" version="^10.3.0" reason="Injectable, CanActivate, createParamDecorator" />
+        <package name="firebase-admin" version="^12.0.0" reason="Firestore collection path: teams/{teamId}/aecs/{aecId}" />
+        <package name="typescript" version="^5.3.x" reason="Strict typing for teamId rename across all layers" />
+      </ecosystem>
+      <ecosystem name="client (Next.js/React)">
+        <package name="next" version="^15.5.11" reason="No changes to Next.js itself; Axios interceptor change only" />
+        <package name="axios" version="^1.6.5" reason="Axios request interceptor in TicketService to add x-team-id header" />
+        <package name="zustand" version="^x.x.x" reason="useTeamStore.getState().currentTeam?.id used in interceptor (outside React component context)" />
+      </ecosystem>
+      <ecosystem name="forge-cli (Node/TypeScript)">
+        <package name="typescript" version="^5.6.3" reason="typecheck must pass at 0 errors after header addition" />
+        <package name="vitest" version="^4.0.18" reason="Existing tests must continue to pass" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint id="C1">Clean Architecture: domain change must propagate outward. Order: AEC.ts (domain) → AECRepository.ts (port) → FirestoreAECRepository.ts + AECMapper.ts (infra) → use cases (application) → WorkspaceGuard→TeamGuard + controller (presentation). Never skip layers.</constraint>
+    <constraint id="C2">WorkspaceGuard already sets request.currentTeamId (line 55 of WorkspaceGuard.ts). The guard already has the teamId value — it just builds an opaque workspaceId from it. The migration simplifies the guard: skip the ws_team_* derivation and just use teamId directly.</constraint>
+    <constraint id="C3">findById in FirestoreAECRepository currently scans ALL workspace docs (expensive). After migration, use Firestore collectionGroup('aecs') query or require teamId to be passed to findById. Preferred: change findById signature to findById(id: string, teamId?: string) — use direct path when teamId available, collectionGroup fallback otherwise.</constraint>
+    <constraint id="C4">The AECResponse interface in client/src/services/ticket.service.ts has workspaceId: string — this must also be updated to teamId to match the backend response. Check if this type is duplicated in packages/shared-types/ and update there too.</constraint>
+    <constraint id="C5">The CLI makeRequest function needs access to config.teamId. The simplest approach: thread the config (or just teamId) into makeRequest as an optional extra headers parameter. Do NOT restructure the retry/refresh logic.</constraint>
+    <constraint id="C6">No Firestore data migration needed for development. The teams/{teamId}/aecs/ path is new — any existing data in workspaces/{workspaceId}/aecs/ is development data and can be discarded.</constraint>
+    <constraint id="C7">The WorkspaceGuard is registered in the tickets module (likely in TicketsModule providers). When creating TeamGuard, register it in the same module or SharedModule. Do NOT break other modules that may depend on WorkspaceGuard (check usages with grep).</constraint>
+    <constraint id="C8">x-team-id header fallback: if the header is absent and user has no getCurrentTeamId(), the guard should return 400 Bad Request — a ticket cannot exist outside a team context. Remove the "personal workspace" fallback logic.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>AECRepository port (after change)</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface AECRepository { save(aec: AEC): Promise&lt;void&gt;; findById(id: string, teamId?: string): Promise&lt;AEC | null&gt;; findByTeam(teamId: string): Promise&lt;AEC[]&gt;; countByTeam(teamId: string): Promise&lt;number&gt;; countByTeamAndCreator(teamId: string, createdBy: string): Promise&lt;number&gt;; update(aec: AEC): Promise&lt;void&gt;; delete(aecId: string, teamId: string): Promise&lt;void&gt;; }</signature>
+      <path>backend/src/tickets/application/ports/AECRepository.ts</path>
+    </interface>
+    <interface>
+      <name>CreateTicketCommand (after change)</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface CreateTicketCommand { teamId: string; userId: string; userEmail: string; title: string; description?: string; repositoryFullName?: string; branchName?: string; maxRounds?: number; type?: 'feature' | 'bug' | 'task'; priority?: 'low' | 'medium' | 'high' | 'urgent'; taskAnalysis?: any; }</signature>
+      <path>backend/src/tickets/application/use-cases/CreateTicketUseCase.ts</path>
+    </interface>
+    <interface>
+      <name>TeamId param decorator (new file)</name>
+      <kind>NestJS param decorator</kind>
+      <signature>export const TeamId = createParamDecorator((data: unknown, ctx: ExecutionContext): string =&gt; { const request = ctx.switchToHttp().getRequest(); return request.teamId; });</signature>
+      <path>backend/src/shared/presentation/decorators/TeamId.decorator.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>makeRequest with teamId header</name>
+      <kind>CLI internal function (after change)</kind>
+      <signature>function makeRequest(url: string, accessToken: string, teamId: string, options?: { method?: string; body?: string }): Promise&lt;Response&gt; — headers: { Authorization, Content-Type, 'x-team-id': teamId }</signature>
+      <path>forge-cli/src/services/api.service.ts</path>
+    </interface>
+    <interface>
+      <name>Axios request interceptor (after change)</name>
+      <kind>Frontend service interceptor</kind>
+      <signature>client.interceptors.request.use(async (config) =&gt; { if (user) config.headers.Authorization = `Bearer ${token}`; const teamId = useTeamStore.getState().currentTeam?.id; if (teamId) config.headers['x-team-id'] = teamId; return config; })</signature>
+      <path>client/src/services/ticket.service.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Backend unit tests use @nestjs/testing with TestingModule, mocked repository injections (jest.fn()), and no live Firestore. Integration tests use NestJS supertest. The ticket test suite lives under backend/src/tickets/**/__tests__/. All renamed workspaceId symbols in test fixtures must be updated to teamId. CLI tests use vitest with vi.mock for API service. No new test files are required for the frontend (Axios interceptor change is not unit-tested here).</standards>
+    <locations>
+      <location>backend/src/tickets/**/__tests__/ — unit and integration tests for use cases, controller, mapper</location>
+      <location>forge-cli/src/services/__tests__/ — ApiService tests (verify header presence)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC1">Unit test AEC.createDraft(teamId, ...) — verify aec.teamId equals provided teamId and aec.workspaceId does not exist.</idea>
+      <idea ac="AC2">Unit test FirestoreAECRepository.save() — verify Firestore set() is called with path teams/${teamId}/aecs/${id}, not workspaces/.</idea>
+      <idea ac="AC3">Unit test TeamGuard — mock request with x-team-id: 'team_123' → verify request.teamId === 'team_123'. Test fallback: no header + user doc has currentTeamId → verify request.teamId from user doc. Test failure: no header + no currentTeamId → verify 400.</idea>
+      <idea ac="AC4">Controller integration test: GET /tickets with x-team-id: 'team_A' header → mock findByTeam('team_A') returns 2 tickets → verify response contains exactly those 2 tickets.</idea>
+      <idea ac="AC5">Controller integration test: POST /tickets with x-team-id: 'team_A' → verify created ticket has teamId === 'team_A'. POST without x-team-id and no user.getCurrentTeamId() → verify 400.</idea>
+      <idea ac="AC7,AC9">CLI test: verify get/post/patch calls include x-team-id header matching config.teamId. Run npm run typecheck → 0 errors.</idea>
+    </ideas>
+  </tests>
+</story-context>
