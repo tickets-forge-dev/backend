@@ -16,7 +16,7 @@ export const TICKET_LIMITS: Record<string, number> = {
 export const DEFAULT_TICKET_LIMIT = 3;
 
 export interface CreateTicketCommand {
-  workspaceId: string;
+  teamId: string;
   userId: string; // Creator's Firebase UID
   userEmail: string;
   title: string;
@@ -43,7 +43,7 @@ export class CreateTicketUseCase {
   async execute(command: CreateTicketCommand): Promise<AEC> {
     // Quota check
     const limit = TICKET_LIMITS[command.userEmail] ?? DEFAULT_TICKET_LIMIT;
-    const used = await this.aecRepository.countByWorkspace(command.workspaceId);
+    const used = await this.aecRepository.countByTeam(command.teamId);
     if (used >= limit) {
       throw new QuotaExceededError(used, limit);
     }
@@ -55,7 +55,7 @@ export class CreateTicketUseCase {
       // Try to fetch GitHub access token from OAuth integration
       // If not available, we'll use on-demand code scanning with env token instead
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(
-        command.workspaceId,
+        command.teamId,
       );
 
       if (integration) {
@@ -73,7 +73,7 @@ export class CreateTicketUseCase {
 
     // Create domain entity
     const aec = AEC.createDraft(
-      command.workspaceId,
+      command.teamId,
       command.userId,
       command.title,
       command.description,

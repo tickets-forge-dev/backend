@@ -34,7 +34,7 @@ export interface ReviewSession {
 export class AEC {
   private constructor(
     public readonly id: string,
-    public readonly workspaceId: string,
+    public readonly teamId: string,
     public readonly createdBy: string, // userId of ticket creator
     private _status: AECStatus,
     private _title: string,
@@ -71,7 +71,7 @@ export class AEC {
 
   // Factory method for creating new draft
   static createDraft(
-    workspaceId: string,
+    teamId: string,
     createdBy: string,
     title: string,
     description?: string,
@@ -87,7 +87,7 @@ export class AEC {
 
     return new AEC(
       `aec_${randomUUID()}`,
-      workspaceId,
+      teamId,
       createdBy,
       AECStatus.DRAFT,
       title,
@@ -124,7 +124,7 @@ export class AEC {
   // Factory method for reconstitution from persistence
   static reconstitute(
     id: string,
-    workspaceId: string,
+    teamId: string,
     createdBy: string,
     status: AECStatus,
     title: string,
@@ -159,7 +159,7 @@ export class AEC {
   ): AEC {
     return new AEC(
       id,
-      workspaceId,
+      teamId,
       createdBy,
       status,
       title,

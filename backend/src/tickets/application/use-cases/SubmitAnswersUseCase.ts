@@ -15,7 +15,7 @@ import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
  */
 export interface SubmitAnswersCommand {
   aecId: string;
-  workspaceId: string;
+  teamId: string;
   roundNumber: number;
   answers: Record<string, string | string[]>;
 }
@@ -82,7 +82,7 @@ export class SubmitAnswersUseCase {
     }
 
     // Verify workspace ownership
-    if (aec.workspaceId !== command.workspaceId) {
+    if (aec.teamId !== command.teamId) {
       throw new BadRequestException('Workspace mismatch');
     }
 

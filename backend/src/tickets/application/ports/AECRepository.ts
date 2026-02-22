@@ -3,11 +3,11 @@ import { AEC } from '../../domain/aec/AEC';
 export interface AECRepository {
   save(aec: AEC): Promise<void>;
   findById(id: string): Promise<AEC | null>;
-  findByWorkspace(workspaceId: string): Promise<AEC[]>;
-  countByWorkspace(workspaceId: string): Promise<number>;
-  countByWorkspaceAndCreator(workspaceId: string, createdBy: string): Promise<number>;
+  findByTeam(teamId: string): Promise<AEC[]>;
+  countByTeam(teamId: string): Promise<number>;
+  countByTeamAndCreator(teamId: string, createdBy: string): Promise<number>;
   update(aec: AEC): Promise<void>;
-  delete(aecId: string, workspaceId: string): Promise<void>;
+  delete(aecId: string, teamId: string): Promise<void>;
 }
 
 export const AEC_REPOSITORY = Symbol('AECRepository');

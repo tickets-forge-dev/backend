@@ -8,8 +8,8 @@ export class DeleteAECUseCase {
     private readonly aecRepository: AECRepository,
   ) {}
 
-  async execute(aecId: string, workspaceId: string): Promise<void> {
-    console.log(`🗑️ [DeleteAECUseCase] Deleting AEC: ${aecId} for workspace: ${workspaceId}`);
+  async execute(aecId: string, teamId: string): Promise<void> {
+    console.log(`🗑️ [DeleteAECUseCase] Deleting AEC: ${aecId} for workspace: ${teamId}`);
 
     const aec = await this.aecRepository.findById(aecId);
 
@@ -18,12 +18,12 @@ export class DeleteAECUseCase {
       throw new NotFoundException('Ticket not found');
     }
 
-    if (aec.workspaceId !== workspaceId) {
+    if (aec.teamId !== teamId) {
       console.log(`❌ [DeleteAECUseCase] Workspace mismatch for AEC: ${aecId}`);
       throw new ForbiddenException('You do not have permission to delete this ticket');
     }
 
-    await this.aecRepository.delete(aecId, workspaceId);
+    await this.aecRepository.delete(aecId, teamId);
 
     console.log(`✅ [DeleteAECUseCase] AEC deleted: ${aecId}`);
   }

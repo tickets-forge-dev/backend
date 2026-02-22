@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { auth } from '@/lib/firebase';
 import type { DesignReference } from '@repo/shared-types';
+import { useTeamStore } from '@/teams/stores/team.store';
 
 export interface CreateTicketRequest {
   title: string;
@@ -24,7 +25,7 @@ export interface AttachmentResponse {
 
 export interface AECResponse {
   id: string;
-  workspaceId: string;
+  teamId: string;
   status: string;
   title: string;
   description: string | null;
@@ -87,12 +88,16 @@ export class TicketService {
       timeout: 30000, // 30 second timeout
     });
 
-    // Add Firebase ID token to all requests
+    // Add Firebase ID token and team context to all requests
     this.client.interceptors.request.use(async (config) => {
       const user = auth.currentUser;
       if (user) {
         const token = await user.getIdToken();
         config.headers.Authorization = `Bearer ${token}`;
+      }
+      const teamId = useTeamStore.getState().currentTeam?.id;
+      if (teamId) {
+        config.headers['x-team-id'] = teamId;
       }
       return config;
     });

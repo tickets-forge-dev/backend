@@ -23,7 +23,7 @@ import {
  * Input command for PRD breakdown
  */
 export interface PRDBreakdownExecuteCommand extends PRDBreakdownCommand {
-  workspaceId: string;
+  teamId: string;
   onProgress?: (step: string, message: string) => void;
 }
 
@@ -112,7 +112,7 @@ export class PRDBreakdownUseCase {
       throw new BadRequestException('PRD text is required');
     }
 
-    if (!command.workspaceId) {
+    if (!command.teamId) {
       throw new BadRequestException('Workspace ID is required');
     }
 

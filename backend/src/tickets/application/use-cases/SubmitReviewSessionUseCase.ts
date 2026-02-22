@@ -4,7 +4,7 @@ import type { ReviewQAItem } from '../../domain/aec/AEC';
 
 export interface SubmitReviewSessionCommand {
   ticketId: string;
-  workspaceId: string;
+  teamId: string;
   qaItems: ReviewQAItem[];
 }
 
@@ -36,7 +36,7 @@ export class SubmitReviewSessionUseCase {
     }
 
     // 2. Verify workspace ownership
-    if (aec.workspaceId !== command.workspaceId) {
+    if (aec.teamId !== command.teamId) {
       throw new ForbiddenException('Ticket does not belong to your workspace');
     }
 

@@ -1,4 +1,4 @@
-# generated: 2026-02-20
+# generated: 2026-02-21
 # project: forge
 # project_key: FORGE
 # tracking_system: file-system
@@ -32,7 +32,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-02-20
+generated: 2026-02-21
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -130,8 +130,7 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 6: MCP Server (P0) - 13 stories, ~20 days
-  # Status: ⬜ NOT STARTED - Blocked by Epic 5 completion
-  # Dependencies: CLI Foundation must be complete
+  # Status: 🔄 IN-PROGRESS - 12/13 stories done, 6-10 integration tests remaining
   # Key: BMAD agent integration for dynamic PM-Developer conversations
   # UX: Developer presses [r] → BMAD agent asks dynamic questions → enriches ticket
   epic-6-mcp-server: in-progress
@@ -155,7 +154,7 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 7: Ticket Lifecycle (P1) - 10 stories, ~17 days
-  # Status: ⬜ NOT STARTED - Can start after Epic 3 complete (needs roles)
+  # Status: 🔄 IN-PROGRESS - 6/10 done, 7-2 ready-for-dev, 7-7 through 7-10 backlog
   # Dependencies: Role-based authorization from Epic 3
   # Key: Full PM→Dev→PM workflow with tech-spec agent sessions + ticket re-enrichment
   #
@@ -182,7 +181,7 @@ development_status:
   #   See: docs/sprint-artifacts/stories/7-design-notes.md
   epic-7-ticket-lifecycle: in-progress
   7-1-extend-aec-status-enum: done
-  7-2-move-tickets-to-team-scope: ready-for-dev
+  7-2-move-tickets-to-team-scope: review
   7-3-conversation-storage: done
   7-4-conversation-api: done
   7-5-update-ticket-filters: done

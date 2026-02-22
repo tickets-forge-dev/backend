@@ -5,7 +5,7 @@ import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 export interface RemoveDesignReferenceCommand {
   ticketId: string;
   referenceId: string;
-  workspaceId: string;
+  teamId: string;
 }
 
 export interface RemoveDesignReferenceResult {
@@ -24,7 +24,7 @@ export class RemoveDesignReferenceUseCase {
   constructor(@Inject(AEC_REPOSITORY) private aecRepository: AECRepository) {}
 
   async execute(command: RemoveDesignReferenceCommand): Promise<RemoveDesignReferenceResult> {
-    const { ticketId, referenceId, workspaceId } = command;
+    const { ticketId, referenceId, teamId } = command;
 
     // Fetch ticket
     const aec = await this.aecRepository.findById(ticketId);
@@ -33,7 +33,7 @@ export class RemoveDesignReferenceUseCase {
     }
 
     // Verify workspace ownership
-    if (aec.workspaceId !== workspaceId) {
+    if (aec.teamId !== teamId) {
       throw new ForbiddenException('Cannot modify ticket from different workspace');
     }
 

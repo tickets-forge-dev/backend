@@ -69,7 +69,7 @@ interface TicketEnrichmentResult {
  * require repository information.
  */
 export interface EnrichMultipleCommand {
-  workspaceId: string;
+  teamId: string;
   ticketIds: string[];
   repositoryOwner?: string; // Optional - not used during question generation
   repositoryName?: string; // Optional - not used during question generation
@@ -100,7 +100,7 @@ export class EnrichMultipleTicketsUseCase {
   /**
    * Execute parallel enrichment
    *
-   * @param command Contains workspaceId, ticketIds, and optional progress callback
+   * @param command Contains teamId, ticketIds, and optional progress callback
    * @returns Map of questions by ticketId + errors + counts
    */
   async execute(command: EnrichMultipleCommand): Promise<EnrichMultipleResult> {
@@ -121,7 +121,7 @@ export class EnrichMultipleTicketsUseCase {
           );
         }
         // Verify ticket belongs to the workspace
-        if (ticket.workspaceId !== command.workspaceId) {
+        if (ticket.teamId !== command.teamId) {
           throw new ForbiddenException(
             `Ticket "${ticket.title}" does not belong to your workspace`,
           );
@@ -139,7 +139,7 @@ export class EnrichMultipleTicketsUseCase {
         this.generateQuestionsForTicket(
           item.ticket,
           index + 1, // agentId (1, 2, 3)
-          command.workspaceId,
+          command.teamId,
           command.onProgress,
         ),
       ),
@@ -194,7 +194,7 @@ export class EnrichMultipleTicketsUseCase {
   private async generateQuestionsForTicket(
     ticket: any,
     agentId: number,
-    workspaceId: string,
+    teamId: string,
     onProgress?: (event: EnrichmentProgressEvent) => void,
   ): Promise<TicketEnrichmentResult> {
     const ticketId = ticket.id;
@@ -215,7 +215,7 @@ export class EnrichMultipleTicketsUseCase {
       // Generate questions for this ticket
       const questions = await this.generateQuestionsUseCase.execute({
         aecId: ticketId,
-        workspaceId,
+        teamId,
       });
 
       // Progress: complete

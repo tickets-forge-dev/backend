@@ -10,7 +10,7 @@ import {
 import { TicketPriority, TicketType } from '../../domain/value-objects/AECStatus';
 
 interface ImportFromJiraCommand {
-  workspaceId: string;
+  teamId: string;
   userId: string;
   issueKey: string;
 }
@@ -127,7 +127,7 @@ export class ImportFromJiraUseCase {
     // Check Jira integration exists
     const integration = await this.jiraIntegrationRepo.findByUserAndWorkspace(
       command.userId,
-      command.workspaceId,
+      command.teamId,
     );
     if (!integration) {
       throw new Error('Jira not connected. Connect Jira in Settings.');
@@ -172,7 +172,7 @@ export class ImportFromJiraUseCase {
 
     // Create draft AEC
     const aec = AEC.createDraft(
-      command.workspaceId,
+      command.teamId,
       command.userId,
       title,
       description ?? undefined,

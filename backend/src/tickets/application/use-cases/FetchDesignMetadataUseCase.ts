@@ -34,19 +34,19 @@ export class FetchDesignMetadataUseCase {
    * Tracks fetch status for error handling
    *
    * @param reference DesignReference with URL
-   * @param workspaceId Workspace to look up OAuth token
+   * @param teamId Workspace to look up OAuth token
    * @returns Updated reference with metadata and fetch status
    */
   async execute(
     reference: DesignReference,
-    workspaceId: string,
+    teamId: string,
   ): Promise<DesignReference> {
     try {
       // Route to appropriate metadata fetcher
       if (reference.platform === 'figma') {
-        return await this.fetchFigmaMetadata(reference, workspaceId);
+        return await this.fetchFigmaMetadata(reference, teamId);
       } else if (reference.platform === 'loom') {
-        return await this.fetchLoomMetadata(reference, workspaceId);
+        return await this.fetchLoomMetadata(reference, teamId);
       }
 
       // No metadata available for other platforms - mark as skipped
@@ -74,13 +74,13 @@ export class FetchDesignMetadataUseCase {
    */
   private async fetchFigmaMetadata(
     reference: DesignReference,
-    workspaceId: string,
+    teamId: string,
   ): Promise<DesignReference> {
     // Check if Figma is connected for this workspace
-    const token = await this.figmaIntegrationRepository.getToken(workspaceId);
+    const token = await this.figmaIntegrationRepository.getToken(teamId);
     if (!token) {
       this.logger.debug(
-        `Figma not connected for workspace ${workspaceId}, skipping metadata fetch`,
+        `Figma not connected for workspace ${teamId}, skipping metadata fetch`,
       );
       // Figma not connected - can retry later
       return {
@@ -157,13 +157,13 @@ export class FetchDesignMetadataUseCase {
    */
   private async fetchLoomMetadata(
     reference: DesignReference,
-    workspaceId: string,
+    teamId: string,
   ): Promise<DesignReference> {
     // Check if Loom is connected for this workspace
-    const token = await this.loomIntegrationRepository.getToken(workspaceId);
+    const token = await this.loomIntegrationRepository.getToken(teamId);
     if (!token) {
       this.logger.debug(
-        `Loom not connected for workspace ${workspaceId}, skipping metadata fetch`,
+        `Loom not connected for workspace ${teamId}, skipping metadata fetch`,
       );
       // Loom not connected - can retry later
       return {

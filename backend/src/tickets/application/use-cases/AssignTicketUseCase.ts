@@ -15,8 +15,7 @@ export interface AssignTicketCommand {
   ticketId: string;
   userId: string | null; // null = unassign
   requestingUserId: string;
-  workspaceId: string;
-  teamId: string | null; // The actual team ID for member lookup (null = personal workspace)
+  teamId: string; // forge team ID — used for both ownership check and member lookup
 }
 
 @Injectable()
@@ -35,17 +34,12 @@ export class AssignTicketUseCase {
       throw new NotFoundException(`Ticket ${command.ticketId} not found`);
     }
 
-    // 2. Verify workspace ownership
-    if (aec.workspaceId !== command.workspaceId) {
-      throw new ForbiddenException('Ticket does not belong to your workspace');
+    // 2. Verify team ownership
+    if (aec.teamId !== command.teamId) {
+      throw new ForbiddenException('Ticket does not belong to your team');
     }
 
-    // 3. Assignment requires a team context
-    if (!command.teamId) {
-      throw new ForbiddenException('Assignment requires a team workspace');
-    }
-
-    // 4. Verify requesting user has permission to assign (Admin, PM, or Developer)
+    // 3. Verify requesting user has permission to assign (Admin, PM, or Developer)
     const requestingMember = await this.teamMemberRepository.findByUserAndTeam(
       command.requestingUserId,
       command.teamId,

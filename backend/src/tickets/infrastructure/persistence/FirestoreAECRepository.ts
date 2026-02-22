@@ -37,18 +37,18 @@ export class FirestoreAECRepository implements AECRepository {
     const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
 
-    const path = `workspaces/${aec.workspaceId}/aecs/${aec.id}`;
+    const path = `teams/${aec.teamId}/aecs/${aec.id}`;
     console.log(`📝 [FirestoreAECRepository] Saving AEC to path: ${path}`);
     console.log(`📝 [FirestoreAECRepository] Document data:`, {
       id: doc.id,
-      workspaceId: doc.workspaceId,
+      teamId: doc.teamId,
       title: doc.title,
       status: doc.status,
     });
 
     const docRef = firestore
-      .collection('workspaces')
-      .doc(aec.workspaceId)
+      .collection('teams')
+      .doc(aec.teamId)
       .collection('aecs')
       .doc(aec.id);
 
@@ -60,36 +60,30 @@ export class FirestoreAECRepository implements AECRepository {
   async findById(id: string): Promise<AEC | null> {
     const firestore = this.getFirestore();
 
-    // Note: We use collectionGroup to find across all workspaces
-    // This requires the workspaceId to be validated by auth guards
-    // For now, we need to scan all workspaces (not ideal but works)
-
+    // Use collectionGroup to find across all teams
     try {
-      // Get all workspaces
-      const workspacesSnapshot = await firestore.collection('workspaces').listDocuments();
+      const snapshot = await firestore
+        .collectionGroup('aecs')
+        .where('id', '==', id)
+        .limit(1)
+        .get();
 
-      // Try to find the AEC in each workspace
-      for (const workspaceRef of workspacesSnapshot) {
-        const aecRef = workspaceRef.collection('aecs').doc(id);
-        const aecDoc = await aecRef.get();
-
-        if (aecDoc.exists) {
-          return AECMapper.toDomain(aecDoc.data() as AECDocument);
-        }
+      if (snapshot.empty) {
+        return null;
       }
 
-      return null;
+      return AECMapper.toDomain(snapshot.docs[0].data() as AECDocument);
     } catch (error) {
       console.error('❌ [FirestoreAECRepository] findById error:', error);
       return null;
     }
   }
 
-  async countByWorkspace(workspaceId: string): Promise<number> {
+  async countByTeam(teamId: string): Promise<number> {
     const firestore = this.getFirestore();
     const snapshot = await firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .count()
       .get();
@@ -97,11 +91,11 @@ export class FirestoreAECRepository implements AECRepository {
     return snapshot.data().count;
   }
 
-  async countByWorkspaceAndCreator(workspaceId: string, createdBy: string): Promise<number> {
+  async countByTeamAndCreator(teamId: string, createdBy: string): Promise<number> {
     const firestore = this.getFirestore();
     const snapshot = await firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .where('createdBy', '==', createdBy)
       .count()
@@ -110,11 +104,11 @@ export class FirestoreAECRepository implements AECRepository {
     return snapshot.data().count;
   }
 
-  async findByWorkspace(workspaceId: string): Promise<AEC[]> {
+  async findByTeam(teamId: string): Promise<AEC[]> {
     const firestore = this.getFirestore();
     const snapshot = await firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .orderBy('updatedAt', 'desc')
       .get();
@@ -126,8 +120,8 @@ export class FirestoreAECRepository implements AECRepository {
     const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
     const docRef = firestore
-      .collection('workspaces')
-      .doc(aec.workspaceId)
+      .collection('teams')
+      .doc(aec.teamId)
       .collection('aecs')
       .doc(aec.id);
 
@@ -139,14 +133,14 @@ export class FirestoreAECRepository implements AECRepository {
     await docRef.update(stripUndefined(doc) as any);
   }
 
-  async delete(aecId: string, workspaceId: string): Promise<void> {
+  async delete(aecId: string, teamId: string): Promise<void> {
     const firestore = this.getFirestore();
-    const path = `workspaces/${workspaceId}/aecs/${aecId}`;
+    const path = `teams/${teamId}/aecs/${aecId}`;
     console.log(`🗑️ [FirestoreAECRepository] Deleting AEC from path: ${path}`);
 
     const docRef = firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .doc(aecId);
 

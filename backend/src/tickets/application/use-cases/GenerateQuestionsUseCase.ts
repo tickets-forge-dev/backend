@@ -19,7 +19,7 @@ import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
  */
 export interface GenerateQuestionsCommand {
   aecId: string;
-  workspaceId: string;
+  teamId: string;
 }
 
 /**
@@ -75,7 +75,7 @@ export class GenerateQuestionsUseCase {
     }
 
     // Verify workspace ownership
-    if (aec.workspaceId !== command.workspaceId) {
+    if (aec.teamId !== command.teamId) {
       throw new BadRequestException('Workspace mismatch');
     }
 
