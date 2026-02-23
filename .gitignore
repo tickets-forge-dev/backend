@@ -44,6 +44,11 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
+# BMAD framework
+.claude/commands/bmad-*
+.opencode/
+_bmad/
+
 # External repos (separate git repos, not part of this monorepo)
 forge-cli/
 client/src/core/components/dev/CLAUDE.md
