@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
 import { FirestoreTeamRepository } from '../../../teams/infrastructure/persistence/FirestoreTeamRepository';
 
@@ -50,7 +50,8 @@ export class WorkspaceGuard implements CanActivate {
     }
 
     if (!resolvedTeamId) {
-      throw new BadRequestException('No team context. Send x-team-id header or join a team.');
+      // Personal workspace: scope data to the authenticated user
+      resolvedTeamId = `personal_${firebaseUser.uid}`;
     }
 
     // Attach both to request
