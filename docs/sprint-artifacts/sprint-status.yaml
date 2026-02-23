@@ -184,16 +184,26 @@ development_status:
   epic-7-ticket-lifecycle-retrospective: optional
 
   # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days
-  # Status: ⬜ NOT STARTED - Can start anytime (parallel with other epics)
+  # Status: 🔄 IN PROGRESS - Starting with CLI command test coverage (8-3)
   # Note: Can be worked on incrementally alongside feature development
-  epic-8-testing-documentation: backlog
-  8-1-backend-unit-tests: backlog
+  epic-8-testing-documentation: in-progress
+  8-1-backend-unit-tests: review
   8-2-frontend-component-tests: backlog
-  8-3-cli-integration-tests: backlog
+  8-3-cli-integration-tests: review
   8-4-user-documentation: backlog
   8-5-api-documentation: backlog
   8-6-architecture-update: backlog
+  8-7-cli-publish: drafted
   epic-8-testing-documentation-retrospective: optional
+
+  # EPIC 9: Notifications & Alerts (P1) - 1 story, ~3 days
+  # Status: ⬜ NOT STARTED
+  # Goal: Notify developers when they are assigned a ticket or when their ticket is approved and ready to execute
+  # Key events: ticket assigned → email developer; ticket WAITING_FOR_APPROVAL → READY → email assigned developer
+  # Approach: Reuse existing Epic 3 email infrastructure (nodemailer/SendGrid already wired)
+  epic-9-notifications: backlog
+  9-1-developer-notifications: drafted
+  epic-9-notifications-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)

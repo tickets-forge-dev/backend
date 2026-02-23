@@ -478,7 +478,7 @@ function TicketRow({ ticket }: { ticket: any }) {
 
   return (
     <div
-      className={`group grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border)]/20 last:border-0 hover:bg-[var(--bg-hover)] transition-colors ${
+      className={`group grid items-center px-3 sm:px-4 py-0 border-b border-white/5 last:border-0 hover:bg-[var(--bg-hover)] transition-colors ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
       }`}
       style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}

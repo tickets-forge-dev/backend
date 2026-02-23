@@ -410,109 +410,19 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="py-24">
-          <div className="container mx-auto px-4 max-w-5xl">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold mb-4">Simple Pricing for Teams</h2>
-              <p className="text-[var(--text-secondary)]">Start free. Scale when you&apos;re ready.</p>
-            </div>
-            
-            {/* Value proposition callout */}
-            <div className="flex justify-center mb-12">
-              <div className="inline-flex items-center gap-3 px-5 py-3 rounded-full border border-green-500/30 bg-green-500/5">
-                <span className="text-2xl">💡</span>
-                <span className="text-sm text-[var(--text)]">
-                  <span className="font-semibold text-green-400">Pay for PMs, not developers.</span>
-                  <span className="text-[var(--text-secondary)]"> One PM seat can create tickets for unlimited devs via CLI.</span>
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Free Tier */}
-              <div className="p-8 rounded-xl border border-[var(--border)] bg-[var(--bg)] flex flex-col">
-                <h3 className="font-semibold text-xl mb-2">Starter</h3>
-                <div className="text-4xl font-bold mb-6">$0<span className="text-base font-normal text-[var(--text-secondary)]">/mo</span></div>
-                <p className="text-[var(--text-secondary)] text-sm mb-8">For individuals and small experiments.</p>
-                <Link href="/tickets" className="w-full py-2.5 rounded-lg border border-[var(--border)] text-center text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors">
-                  Get Started
-                </Link>
-                <ul className="mt-8 space-y-3 text-sm">
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>5 tickets / month</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Web UI + CLI access</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Basic AI enrichment</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Pro Tier */}
-              <div className="p-8 rounded-xl border border-[var(--primary)] bg-[var(--bg-subtle)] flex flex-col relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-[var(--primary)] text-[var(--primary-bg)] text-xs font-bold px-3 py-1 rounded-bl-lg">
-                  POPULAR
-                </div>
-                <h3 className="font-semibold text-xl mb-2">Pro</h3>
-                <div className="text-4xl font-bold mb-6">$12<span className="text-base font-normal text-[var(--text-secondary)]">/PM/mo</span></div>
-                <p className="text-[var(--text-secondary)] text-sm mb-8">One PM, unlimited developers via CLI.</p>
-                <Link href="/tickets" className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] text-center text-sm font-medium hover:opacity-90 transition-opacity">
-                  Start Free Trial
-                </Link>
-                <ul className="mt-8 space-y-3 text-sm">
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Unlimited tickets</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span className="font-medium text-green-400">Unlimited dev CLI access</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Full MCP integration</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Deep code analysis</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Team Tier */}
-              <div className="p-8 rounded-xl border border-[var(--border)] bg-[var(--bg)] flex flex-col">
-                <h3 className="font-semibold text-xl mb-2">Team</h3>
-                <div className="text-4xl font-bold mb-6">$39<span className="text-base font-normal text-[var(--text-secondary)]">/PM/mo</span></div>
-                <p className="text-[var(--text-secondary)] text-sm mb-8">Multiple PMs + full team features.</p>
-                <Link href="/tickets" className="w-full py-2.5 rounded-lg border border-[var(--border)] text-center text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors">
-                  Contact Us
-                </Link>
-                <ul className="mt-8 space-y-3 text-sm">
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Everything in Pro</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Multiple PM seats</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Team workspaces</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckIcon className="w-5 h-5 text-[var(--primary)]" />
-                    <span>Priority support</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
+        {/* CTA Section */}
+        <section className="py-24">
+          <div className="container mx-auto px-4 max-w-3xl text-center">
+            <h2 className="text-3xl font-bold mb-4">Ready to ditch the Jira complexity?</h2>
+            <p className="text-[var(--text-secondary)] mb-8 text-lg">
+              Join teams shipping faster with AI-native project management.
+            </p>
+            <Link
+              href="/tickets"
+              className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--text)] px-8 text-base font-medium text-[var(--bg)] transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+            >
+              Try Forge for Free
+            </Link>
           </div>
         </section>
       </main>
@@ -520,16 +430,11 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-[var(--border)] py-12 text-center text-sm text-[var(--text-tertiary)] bg-[var(--bg-subtle)]">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center gap-4 mb-8">
+          <div className="flex flex-col items-center gap-4 mb-4">
             <div className="flex items-center gap-2 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
               <Image src="/forge-icon.png" alt="Forge" width={24} height={24} />
               <span className="font-bold text-base bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
             </div>
-          </div>
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <Link href="/pricing" className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
-              Pricing
-            </Link>
           </div>
           <p>&copy; {new Date().getFullYear()} Forge. All rights reserved.</p>
         </div>
