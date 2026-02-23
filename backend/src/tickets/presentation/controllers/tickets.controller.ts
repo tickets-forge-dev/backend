@@ -351,14 +351,9 @@ export class TicketsController {
 
   @Get(':id(aec_[a-f0-9\\-]+)')
   async getTicket(@TeamId() teamId: string, @Param('id') id: string) {
-    const aec = await this.aecRepository.findById(id);
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
     if (!aec) {
-      throw new Error('AEC not found');
-    }
-
-    // Verify AEC belongs to user's team
-    if (aec.teamId !== teamId) {
-      throw new Error('AEC not found'); // Don't reveal it exists in another team
+      throw new NotFoundException('Ticket not found');
     }
 
     return this.mapToResponse(aec);
@@ -558,8 +553,8 @@ export class TicketsController {
     @Res() res: Response,
   ) {
     try {
-      const aec = await this.aecRepository.findById(id);
-      if (!aec || aec.teamId !== teamId) {
+      const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+      if (!aec) {
         res.status(400).json({ message: 'Ticket not found' });
         return;
       }
@@ -591,8 +586,8 @@ export class TicketsController {
     @Res() res: Response,
   ) {
     try {
-      const aec = await this.aecRepository.findById(id);
-      if (!aec || aec.teamId !== teamId) {
+      const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+      if (!aec) {
         res.status(400).json({ message: 'Ticket not found' });
         return;
       }
@@ -619,8 +614,8 @@ export class TicketsController {
    */
   @Post(':id(aec_[a-f0-9\\-]+)/detect-apis')
   async detectApis(@TeamId() teamId: string, @Param('id') id: string) {
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.teamId !== teamId) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 
@@ -741,8 +736,8 @@ export class TicketsController {
       );
     }
 
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.teamId !== teamId) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 
@@ -778,8 +773,8 @@ export class TicketsController {
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
   ) {
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.teamId !== teamId) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 
@@ -801,8 +796,8 @@ export class TicketsController {
     @TeamId() teamId: string,
     @Param('id') id: string,
   ) {
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.teamId !== teamId) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 

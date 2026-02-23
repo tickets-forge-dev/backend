@@ -11,16 +11,11 @@ export class DeleteAECUseCase {
   async execute(aecId: string, teamId: string): Promise<void> {
     console.log(`🗑️ [DeleteAECUseCase] Deleting AEC: ${aecId} for workspace: ${teamId}`);
 
-    const aec = await this.aecRepository.findById(aecId);
+    const aec = await this.aecRepository.findByIdInTeam(aecId, teamId);
 
     if (!aec) {
       console.log(`❌ [DeleteAECUseCase] AEC not found: ${aecId}`);
       throw new NotFoundException('Ticket not found');
-    }
-
-    if (aec.teamId !== teamId) {
-      console.log(`❌ [DeleteAECUseCase] Workspace mismatch for AEC: ${aecId}`);
-      throw new ForbiddenException('You do not have permission to delete this ticket');
     }
 
     await this.aecRepository.delete(aecId, teamId);

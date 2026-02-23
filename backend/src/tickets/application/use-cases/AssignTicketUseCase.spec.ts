@@ -16,6 +16,7 @@ describe('AssignTicketUseCase', () => {
   beforeEach(() => {
     mockAecRepository = {
       findById: jest.fn(),
+      findByIdInTeam: jest.fn(),
       save: jest.fn(),
       findByTeam: jest.fn(),
       delete: jest.fn(),

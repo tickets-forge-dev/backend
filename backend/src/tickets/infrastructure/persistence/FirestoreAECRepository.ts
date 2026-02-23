@@ -71,10 +71,31 @@ export class FirestoreAECRepository implements AECRepository {
     try {
       // Step 1: Resolve teamId from lightweight lookup index (avoids collectionGroup index requirement)
       const lookupDoc = await firestore.collection('aec_lookup').doc(id).get();
-      if (!lookupDoc.exists) {
-        return null;
+
+      let teamId: string;
+
+      if (lookupDoc.exists) {
+        teamId = (lookupDoc.data() as { teamId: string }).teamId;
+      } else {
+        // Fallback: lookup missing (ticket predates lookup migration) — collectionGroup query
+        console.warn(`⚠️ [FirestoreAECRepository] Lookup missing for ${id}, falling back to collectionGroup`);
+        const snapshot = await firestore
+          .collectionGroup('aecs')
+          .where('id', '==', id)
+          .limit(1)
+          .get();
+
+        if (snapshot.empty) {
+          return null;
+        }
+
+        const data = snapshot.docs[0].data() as AECDocument;
+        teamId = data.teamId;
+
+        // Self-heal: write the missing lookup so future requests are fast
+        await firestore.collection('aec_lookup').doc(id).set({ teamId });
+        console.log(`✅ [FirestoreAECRepository] Healed missing lookup for ${id} → team ${teamId}`);
       }
-      const { teamId } = lookupDoc.data() as { teamId: string };
 
       // Step 2: Fetch full ticket document using known path
       const docRef = firestore
@@ -91,6 +112,35 @@ export class FirestoreAECRepository implements AECRepository {
       return AECMapper.toDomain(snap.data() as AECDocument);
     } catch (error) {
       console.error('❌ [FirestoreAECRepository] findById error:', error);
+      return null;
+    }
+  }
+
+  async findByIdInTeam(id: string, teamId: string): Promise<AEC | null> {
+    const firestore = this.getFirestore();
+
+    try {
+      const docRef = firestore
+        .collection('teams')
+        .doc(teamId)
+        .collection('aecs')
+        .doc(id);
+      const snap = await docRef.get();
+
+      if (!snap.exists) {
+        return null;
+      }
+
+      // Self-heal: ensure lookup index exists for future findById calls
+      const lookupRef = firestore.collection('aec_lookup').doc(id);
+      const lookupDoc = await lookupRef.get();
+      if (!lookupDoc.exists) {
+        await lookupRef.set({ teamId });
+      }
+
+      return AECMapper.toDomain(snap.data() as AECDocument);
+    } catch (error) {
+      console.error('❌ [FirestoreAECRepository] findByIdInTeam error:', error);
       return null;
     }
   }
