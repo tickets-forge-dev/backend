@@ -20,6 +20,7 @@ import {
 } from '@/core/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { TicketLifecycleInfo } from '@/tickets/components/detail/TicketLifecycleInfo';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
 type SortDirection = 'desc' | 'asc';
@@ -426,11 +427,12 @@ function StatusCell({ ticket }: { ticket: any }) {
     </span>
   );
   const map: Record<string, { dot: string; label: string; text: string }> = {
-    complete:             { dot: 'bg-green-500',  label: 'Complete',       text: 'text-green-500'  },
-    ready:                { dot: 'bg-green-500',  label: 'Ready',          text: 'text-green-500'  },
-    'waiting-for-approval':{ dot: 'bg-amber-500', label: 'Awaiting Review',text: 'text-amber-500'  },
-    created:              { dot: 'bg-purple-500', label: 'Created',        text: 'text-purple-500' },
-    draft:                { dot: 'bg-[var(--text-tertiary)]/50', label: 'Draft', text: 'text-[var(--text-tertiary)]' },
+    complete:             { dot: 'bg-green-500',  label: 'Done',           text: 'text-green-500'  },
+    ready:                { dot: 'bg-green-500',  label: 'Execute',        text: 'text-green-500'  },
+    'waiting-for-approval':{ dot: 'bg-amber-500', label: 'Approve',        text: 'text-amber-500'  },
+    created:              { dot: 'bg-purple-500', label: 'Exported',       text: 'text-purple-500' },
+    draft:                { dot: 'bg-[var(--text-tertiary)]/50', label: 'Write', text: 'text-[var(--text-tertiary)]' },
+    validated:            { dot: 'bg-purple-500', label: 'Dev-Refine',     text: 'text-purple-500' },
   };
   const cfg = map[ticket.status] ?? map.draft;
   return (
@@ -498,7 +500,9 @@ function TicketRow({ ticket }: { ticket: any }) {
 
       {/* Status */}
       <Link href={href} className="hidden sm:flex items-center py-3">
-        <StatusCell ticket={ticket} />
+        <TicketLifecycleInfo currentStatus={ticket.status} trigger="hover">
+          <StatusCell ticket={ticket} />
+        </TicketLifecycleInfo>
       </Link>
 
       {/* Priority */}
@@ -564,11 +568,12 @@ function getLifecycleInfo(ticket: any): { label: string; colorClass: string; dot
   if (key === 'in-progress') return { label: 'Being Enriched', colorClass: 'text-blue-500', dot: 'bg-blue-500', next: 'AI is generating the technical spec' };
   if (key === 'needs-input') return { label: 'Needs Input', colorClass: 'text-amber-500', dot: 'bg-amber-500', next: 'Answer the questions to continue' };
   const map: Record<string, { label: string; colorClass: string; dot: string; next: string }> = {
-    complete:              { label: 'Complete',          colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
-    ready:                 { label: 'Ready for Dev',     colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Run forge execute to implement' },
-    'waiting-for-approval':{ label: 'Awaiting Approval', colorClass: 'text-amber-500',             dot: 'bg-amber-500',              next: 'PM needs to review and re-bake ticket' },
-    created:               { label: 'Code Written',      colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Review and merge the implementation' },
-    draft:                 { label: 'Draft',             colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: 'Complete the ticket enrichment flow' },
+    complete:              { label: 'Done',              colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
+    ready:                 { label: 'Execute',           colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Run forge execute to implement' },
+    'waiting-for-approval':{ label: 'Approve',           colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'PM needs to review and approve' },
+    created:               { label: 'Exported',          colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Review and merge the implementation' },
+    validated:             { label: 'Dev-Refine',        colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Developer reviews and refines the spec' },
+    draft:                 { label: 'Write',             colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: 'Complete the ticket enrichment flow' },
   };
   return map[ticket.status] ?? { label: 'Unknown', colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: '' };
 }

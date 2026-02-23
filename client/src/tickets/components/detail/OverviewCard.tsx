@@ -2,6 +2,8 @@
 
 import { Bug, ClipboardList, Lightbulb, ArrowRight } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
+import { TicketLifecycleInfo } from './TicketLifecycleInfo';
+import { TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
 import type { AECResponse } from '@/services/ticket.service';
 
 interface OverviewCardProps {
@@ -12,16 +14,9 @@ interface OverviewCardProps {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; className: string }> = {
-    draft:                 { label: 'Draft',               className: 'bg-[var(--bg-hover)] text-[var(--text-secondary)]' },
-    ready:                 { label: 'Ready',               className: 'bg-blue-500/15 text-blue-600 dark:text-blue-400' },
-    validated:             { label: 'Validated',           className: 'bg-purple-500/15 text-purple-600 dark:text-purple-400' },
-    'waiting-for-approval':{ label: 'Awaiting Approval',   className: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
-    created:               { label: 'Created',             className: 'bg-green-500/15 text-green-600 dark:text-green-400' },
-    drifted:               { label: 'Drifted',             className: 'bg-red-500/15 text-red-500' },
-  };
-
-  const { label, className } = config[status] ?? { label: status, className: 'bg-[var(--bg-hover)] text-[var(--text-secondary)]' };
+  const cfg = TICKET_STATUS_CONFIG[status];
+  const label = cfg?.label ?? status;
+  const className = cfg?.badgeClass ?? 'bg-[var(--bg-hover)] text-[var(--text-secondary)]';
 
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>
@@ -84,7 +79,12 @@ export function OverviewCard({
         )}
 
         {/* Status badge */}
-        {ticket.status && <StatusBadge status={ticket.status} />}
+        {ticket.status && (
+          <>
+            <StatusBadge status={ticket.status} />
+            <TicketLifecycleInfo currentStatus={ticket.status} />
+          </>
+        )}
 
         {/* Mark as Ready — only for draft tickets */}
         {ticket.status === 'draft' && onMarkAsReady && (

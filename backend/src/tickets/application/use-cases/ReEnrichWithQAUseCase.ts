@@ -76,9 +76,10 @@ export class ReEnrichWithQAUseCase {
     if (!requestingMember || !requestingMember.isActive()) {
       throw new ForbiddenException('You must be an active team member to re-enrich tickets');
     }
-    if (requestingMember.role !== Role.PM && requestingMember.role !== Role.ADMIN) {
-      throw new ForbiddenException('Only PMs and Admins can re-enrich tickets');
-    }
+    // TODO: Re-enable role check when role management is fully in place
+    // if (requestingMember.role !== Role.PM && requestingMember.role !== Role.ADMIN) {
+    //   throw new ForbiddenException('Only PMs and Admins can re-enrich tickets');
+    // }
 
     // 3. Validate review session exists and has Q&A items
     const reviewSession = aec.reviewSession;

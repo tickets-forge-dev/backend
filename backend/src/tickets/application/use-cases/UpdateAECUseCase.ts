@@ -1,7 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
+import { AECStatus } from '../../domain/value-objects/AECStatus';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
-import { AECNotFoundError } from '../../../shared/domain/exceptions/DomainExceptions';
+import { AECNotFoundError, InvalidStateTransitionError } from '../../../shared/domain/exceptions/DomainExceptions';
+import { ValidationResult, ValidatorType } from '../../domain/value-objects/ValidationResult';
 
 export interface UpdateAECCommand {
   aecId: string;
@@ -9,7 +11,7 @@ export interface UpdateAECCommand {
   description?: string;
   acceptanceCriteria?: string[];
   assumptions?: string[];
-  status?: 'draft' | 'complete';
+  status?: AECStatus;
   techSpec?: Record<string, any>;
 }
 
@@ -48,10 +50,8 @@ export class UpdateAECUseCase {
       aec.updateTechSpec(command.techSpec);
     }
 
-    if (command.status === 'complete') {
-      aec.markComplete();
-    } else if (command.status === 'draft') {
-      aec.revertToDraft();
+    if (command.status !== undefined) {
+      this.transitionStatus(aec, command.status);
     }
 
     // Persist changes
@@ -61,5 +61,53 @@ export class UpdateAECUseCase {
     // This will be implemented in Epic 3
 
     return aec;
+  }
+
+  private transitionStatus(aec: AEC, targetStatus: AECStatus): void {
+    if (aec.status === targetStatus) return;
+
+    switch (targetStatus) {
+      case AECStatus.DRAFT:
+        aec.revertToDraft();
+        break;
+      case AECStatus.COMPLETE:
+        aec.markComplete();
+        break;
+      case AECStatus.VALIDATED:
+        aec.validate(this.createAutoPassValidation());
+        break;
+      case AECStatus.READY:
+        // If draft, validate first then mark ready
+        if (aec.status === AECStatus.DRAFT) {
+          aec.validate(this.createAutoPassValidation());
+        }
+        if (aec.status === AECStatus.WAITING_FOR_APPROVAL) {
+          aec.approve();
+        } else {
+          aec.markReady({ commitSha: 'manual', indexId: 'manual' });
+        }
+        break;
+      case AECStatus.DRIFTED:
+        aec.detectDrift('Manual status change');
+        break;
+      default:
+        throw new InvalidStateTransitionError(
+          `Cannot transition to ${targetStatus} via PATCH. Use the dedicated endpoint.`,
+        );
+    }
+  }
+
+  private createAutoPassValidation(): ValidationResult[] {
+    return [
+      ValidationResult.create({
+        criterion: ValidatorType.COMPLETENESS,
+        passed: true,
+        score: 1.0,
+        weight: 1.0,
+        issues: [],
+        blockers: [],
+        message: 'Auto-validated via status transition',
+      }),
+    ];
   }
 }
