@@ -145,7 +145,7 @@ export function TeamSwitcher() {
             className="cursor-pointer flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 min-w-0">
-              {!currentTeamId && <Check className="h-4 w-4 text-[var(--primary)]" />}
+              {!teams.some((t) => t.isCurrent) && <Check className="h-4 w-4 text-[var(--primary)]" />}
               <span className="text-[var(--text-sm)] truncate">Personal Workspace</span>
             </div>
             <Badge

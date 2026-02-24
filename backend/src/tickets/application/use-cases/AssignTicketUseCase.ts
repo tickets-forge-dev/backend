@@ -15,7 +15,7 @@ export interface AssignTicketCommand {
   ticketId: string;
   userId: string | null; // null = unassign
   requestingUserId: string;
-  workspaceId: string;
+  teamId: string; // forge team ID — used for both ownership check and member lookup
 }
 
 @Injectable()
@@ -34,16 +34,15 @@ export class AssignTicketUseCase {
       throw new NotFoundException(`Ticket ${command.ticketId} not found`);
     }
 
-    // 2. Verify workspace ownership
-    if (aec.workspaceId !== command.workspaceId) {
-      throw new ForbiddenException('Ticket does not belong to your workspace');
+    // 2. Verify team ownership
+    if (aec.teamId !== command.teamId) {
+      throw new ForbiddenException('Ticket does not belong to your team');
     }
 
-    // 3. Verify requesting user has permission to assign (PM or Admin only)
-    // Note: workspaceId maps to teamId in current architecture (Epic 2 deferred)
+    // 3. Verify requesting user has permission to assign (Admin, PM, or Developer)
     const requestingMember = await this.teamMemberRepository.findByUserAndTeam(
       command.requestingUserId,
-      command.workspaceId, // workspaceId = teamId
+      command.teamId,
     );
 
     if (!requestingMember || !requestingMember.isActive()) {
@@ -51,11 +50,11 @@ export class AssignTicketUseCase {
     }
 
     const requestingRole = requestingMember.role;
-    if (requestingRole !== Role.ADMIN && requestingRole !== Role.PM) {
-      throw new ForbiddenException('Only Admins and PMs can assign tickets');
+    if (requestingRole !== Role.ADMIN && requestingRole !== Role.PM && requestingRole !== Role.DEVELOPER) {
+      throw new ForbiddenException('Only Admins, PMs, and Developers can assign tickets');
     }
 
-    // 4. Assign or unassign
+    // 5. Assign or unassign
     if (command.userId === null) {
       // Unassign - no further validation needed
       aec.unassign();
@@ -68,7 +67,7 @@ export class AssignTicketUseCase {
       // Validate assigned user is active team member with developer role
       const assignedMember = await this.teamMemberRepository.findByUserAndTeam(
         command.userId,
-        command.workspaceId, // workspaceId = teamId
+        command.teamId!,
       );
 
       if (!assignedMember) {
@@ -83,18 +82,18 @@ export class AssignTicketUseCase {
         );
       }
 
-      // Business rule: Only developers can be assigned tickets
+      // Business rule: Only developers and admins can be assigned tickets
       const assignedRole = assignedMember.role;
-      if (assignedRole !== Role.DEVELOPER) {
+      if (assignedRole !== Role.DEVELOPER && assignedRole !== Role.ADMIN) {
         throw new BadRequestException(
-          `Can only assign tickets to developers. User has role: ${assignedRole}`
+          `Can only assign tickets to developers or admins. User has role: ${assignedRole}`
         );
       }
 
       aec.assign(command.userId);
     }
 
-    // 5. Save
+    // 6. Save
     await this.aecRepository.save(aec);
   }
 }

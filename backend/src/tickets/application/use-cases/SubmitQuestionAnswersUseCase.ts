@@ -8,7 +8,7 @@ import { FinalizeSpecUseCase } from './FinalizeSpecUseCase';
  */
 export interface SubmitQuestionAnswersCommand {
   aecId: string;
-  workspaceId: string;
+  teamId: string;
   answers: Record<string, string | string[]>; // questionId -> answer mapping
 }
 
@@ -54,7 +54,7 @@ export class SubmitQuestionAnswersUseCase {
     }
 
     // Verify workspace ownership
-    if (aec.workspaceId !== command.workspaceId) {
+    if (aec.teamId !== command.teamId) {
       throw new BadRequestException('Workspace mismatch');
     }
 
@@ -69,7 +69,7 @@ export class SubmitQuestionAnswersUseCase {
     // Finalize the spec (generate final technical specification)
     const aecWithSpec = await this.finalizeSpecUseCase.execute({
       aecId: command.aecId,
-      workspaceId: command.workspaceId,
+      teamId: command.teamId,
     });
 
     console.log(`✅ [SubmitQuestionAnswersUseCase] Tech spec finalized`);

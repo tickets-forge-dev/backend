@@ -10,7 +10,7 @@ import {
 import { TicketPriority } from '../../domain/value-objects/AECStatus';
 
 interface ImportFromLinearCommand {
-  workspaceId: string;
+  teamId: string;
   userId: string;
   issueId: string;
 }
@@ -65,7 +65,7 @@ export class ImportFromLinearUseCase {
 
   async execute(command: ImportFromLinearCommand): Promise<ImportFromLinearResult> {
     // Check Linear integration exists
-    const integration = await this.linearIntegrationRepo.findByWorkspaceId(command.workspaceId);
+    const integration = await this.linearIntegrationRepo.findByWorkspaceId(command.teamId);
     if (!integration) {
       throw new Error('Linear not connected. Connect Linear in Settings.');
     }
@@ -98,7 +98,7 @@ export class ImportFromLinearUseCase {
 
     // Create draft AEC (Linear issues always map to task type)
     const aec = AEC.createDraft(
-      command.workspaceId,
+      command.teamId,
       command.userId,
       title,
       description ?? undefined,

@@ -11,22 +11,20 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
-import { HelpCircle, MessageSquare } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
+import { ReviewSessionSection } from './ReviewSessionSection';
+import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
+import { useTicketsStore } from '@/stores/tickets.store';
+import { toast } from 'sonner';
 
 interface TicketDetailLayoutProps {
   ticket: AECResponse;
   ticketId: string;
-  // Description / Notes
-  descriptionDraft: string;
-  onDescriptionChange: (value: string) => void;
-  onDescriptionSave: () => void;
-  isSavingDescription: boolean;
-  isDescriptionDirty: boolean;
-  onDescriptionExpand: () => void;
   // Story 3.5-5: Assignment
   onAssignTicket: (userId: string | null) => Promise<boolean>;
+  qualityScore?: number;
   // Edit callbacks
   onEditItem: (section: string, index: number) => void;
   onDeleteItem: (section: string, index: number) => void;
@@ -52,18 +50,18 @@ interface TicketDetailLayoutProps {
   // Tech spec patch
   saveTechSpecPatch: (patch: Record<string, any>) => Promise<boolean | undefined>;
   fetchTicket: (id: string) => Promise<void>;
+  // Lifecycle transitions
+  onStatusTransition?: (status: string) => void;
+  // Assign dialog control (for lifecycle warning)
+  assignDialogOpen?: boolean;
+  onAssignDialogOpenChange?: (open: boolean) => void;
 }
 
 export function TicketDetailLayout({
   ticket,
   ticketId,
-  descriptionDraft,
-  onDescriptionChange,
-  onDescriptionSave,
-  isSavingDescription,
-  isDescriptionDirty,
-  onDescriptionExpand,
   onAssignTicket,
+  qualityScore,
   onEditItem,
   onDeleteItem,
   onSaveAcceptanceCriteria,
@@ -83,10 +81,16 @@ export function TicketDetailLayout({
   onRefreshDesignReference,
   saveTechSpecPatch,
   fetchTicket,
+  onStatusTransition,
+  assignDialogOpen,
+  onAssignDialogOpenChange,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasTechSpec = !!ticket.techSpec;
+  const { approveTicket, reEnrichTicket } = useTicketsStore();
+  const [isApproving, setIsApproving] = useState(false);
+  const [isReEnriching, setIsReEnriching] = useState(false);
 
   const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -104,20 +108,41 @@ export function TicketDetailLayout({
     window.history.replaceState({}, '', url.toString());
   };
 
+  // Section definitions
+  const specSections = [
+    { id: 'reproduction-steps', label: 'Reproduction Steps', short: 'Repro', bugOnly: true },
+    { id: 'problem-statement', label: 'Problem Statement', short: 'Problem' },
+    { id: 'acceptance-criteria', label: 'Acceptance Criteria', short: 'AC' },
+    { id: 'visual-qa', label: 'Visual QA Expectations', short: 'Visual QA' },
+    { id: 'scope', label: 'Scope', short: 'Scope' },
+    { id: 'solution', label: 'Solution', short: 'Solution' },
+    { id: 'assets', label: 'Assets', short: 'Assets' },
+  ].filter(s => !s.bugOnly || ticket.type === 'bug');
+
+  const techSections = [
+    { id: 'file-changes', label: 'File Changes', short: 'Files' },
+    { id: 'api-endpoints', label: 'API Endpoints', short: 'APIs' },
+    { id: 'dependencies', label: 'Dependencies', short: 'Deps' },
+    { id: 'test-plan', label: 'Test Plan', short: 'Tests' },
+    { id: 'stack', label: 'Stack', short: 'Stack' },
+  ];
+
+  const scrollTo = (tabPrefix: string, sectionId: string) => {
+    document.getElementById(`${tabPrefix}-${sectionId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // Track scroll position for scroll spy
   useEffect(() => {
     const handleScroll = () => {
       const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
-      const sections = activeTab === 'spec'
-        ? ['reproduction-steps', 'problem-statement', 'acceptance-criteria', 'visual-qa', 'scope', 'solution', 'assets']
-        : ['file-changes', 'api-endpoints', 'dependencies', 'test-plan', 'stack'];
+      const sections = activeTab === 'spec' ? specSections : techSections;
 
-      for (const sectionId of sections) {
-        const element = document.getElementById(`${currentTab}-${sectionId}`);
+      for (const section of sections) {
+        const element = document.getElementById(`${currentTab}-${section.id}`);
         if (element) {
           const rect = element.getBoundingClientRect();
           if (rect.top <= 100) {
-            setActiveSection(`${currentTab}-${sectionId}`);
+            setActiveSection(`${currentTab}-${section.id}`);
           }
         }
       }
@@ -127,22 +152,55 @@ export function TicketDetailLayout({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeTab]);
 
+  const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
+  const isWaitingForApproval = ticket.status === 'waiting-for-approval';
+
+  const handleApprove = async () => {
+    setIsApproving(true);
+    try {
+      const success = await approveTicket(ticketId);
+      if (success) {
+        toast.success('Ticket approved — status is now READY');
+      } else {
+        toast.error('Failed to approve ticket. Please try again.');
+      }
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleReEnrich = async () => {
+    setIsReEnriching(true);
+    try {
+      const success = await reEnrichTicket(ticketId);
+      if (success) {
+        await fetchTicket(ticketId);
+        toast.success('Spec regenerated with developer insights');
+      } else {
+        toast.error('Failed to regenerate spec. Please try again.');
+      }
+    } finally {
+      setIsReEnriching(false);
+    }
+  };
+
   // Pre-tech-spec state: show simple layout with questions + attachments
   if (!hasTechSpec) {
     const hasQuestions = ticket.questions && ticket.questions.length > 0;
 
     return (
       <div className="space-y-6">
-        {/* Overview Card (notes only, no metrics) */}
+        {/* Regeneration progress dialog */}
+        <ReEnrichProgressDialog isVisible={isReEnriching} />
+
+        {/* Overview Card (metadata bar) */}
         <OverviewCard
           ticket={ticket}
-          descriptionDraft={descriptionDraft}
-          onDescriptionChange={onDescriptionChange}
-          onDescriptionSave={onDescriptionSave}
-          isSavingDescription={isSavingDescription}
-          isDescriptionDirty={isDescriptionDirty}
-          onDescriptionExpand={onDescriptionExpand}
           onAssignTicket={onAssignTicket}
+          qualityScore={qualityScore}
+          onTransition={onStatusTransition}
+          assignDialogOpen={assignDialogOpen}
+          onAssignDialogOpenChange={onAssignDialogOpenChange}
         />
 
         {/* Pending Questions */}
@@ -216,6 +274,46 @@ export function TicketDetailLayout({
           </CollapsibleSection>
         )}
 
+        {/* Review Session Q&A (Story 6-12 / 7-6) */}
+        {hasReviewSession && (
+          <CollapsibleSection
+            id="review-session"
+            title="Developer Review Q&A"
+            badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
+            defaultExpanded={true}
+          >
+            <ReviewSessionSection
+              qaItems={ticket.reviewSession!.qaItems}
+              submittedAt={ticket.reviewSession!.submittedAt}
+            />
+            {/* Story 7-8 + 7-10: Regenerate + Approve buttons — shown when ticket is awaiting PM approval */}
+            {isWaitingForApproval && (
+              <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
+                <Button
+                  onClick={handleReEnrich}
+                  disabled={isReEnriching}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {!isReEnriching && <RefreshCw className="h-4 w-4 mr-2" />}
+                  Regenerate with Developer Insights
+                </Button>
+                <Button
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isApproving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                  )}
+                  {isApproving ? 'Approving...' : 'Approve Ticket'}
+                </Button>
+              </div>
+            )}
+          </CollapsibleSection>
+        )}
+
         {/* Attachments */}
         <CollapsibleSection
           id="assets-attachments"
@@ -237,17 +335,58 @@ export function TicketDetailLayout({
   // Post-tech-spec: 2-tab layout
   return (
     <div className="space-y-6">
+      {/* Regeneration progress dialog */}
+      <ReEnrichProgressDialog isVisible={isReEnriching} />
+
       {/* Overview Card */}
       <OverviewCard
         ticket={ticket}
-        descriptionDraft={descriptionDraft}
-        onDescriptionChange={onDescriptionChange}
-        onDescriptionSave={onDescriptionSave}
-        isSavingDescription={isSavingDescription}
-        isDescriptionDirty={isDescriptionDirty}
-        onDescriptionExpand={onDescriptionExpand}
         onAssignTicket={onAssignTicket}
+        qualityScore={qualityScore}
+        onTransition={onStatusTransition}
+        assignDialogOpen={assignDialogOpen}
+        onAssignDialogOpenChange={onAssignDialogOpenChange}
       />
+
+      {/* Review Session Q&A (Story 6-12 / 7-6) — shown above tabs when present */}
+      {hasReviewSession && (
+        <CollapsibleSection
+          id="review-session"
+          title="Developer Review Q&A"
+          badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
+          defaultExpanded={true}
+        >
+          <ReviewSessionSection
+            qaItems={ticket.reviewSession!.qaItems}
+            submittedAt={ticket.reviewSession!.submittedAt}
+          />
+          {/* Story 7-8 + 7-10: Regenerate + Approve buttons — shown when ticket is awaiting PM approval */}
+          {isWaitingForApproval && (
+            <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
+              <Button
+                onClick={handleReEnrich}
+                disabled={isReEnriching}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {!isReEnriching && <RefreshCw className="h-4 w-4 mr-2" />}
+                Regenerate with Developer Insights
+              </Button>
+              <Button
+                onClick={handleApprove}
+                disabled={isApproving}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isApproving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                )}
+                {isApproving ? 'Approving...' : 'Approve Ticket'}
+              </Button>
+            </div>
+          )}
+        </CollapsibleSection>
+      )}
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -273,129 +412,139 @@ export function TicketDetailLayout({
         </TabsList>
 
         <TabsContent value="spec" className="mt-6">
-          <div className="flex gap-6">
-            {/* Scroll spy navigator */}
-            <div className="hidden lg:block w-48 flex-shrink-0">
-              <nav className="sticky top-6 space-y-2">
-                {[
-                  { id: 'reproduction-steps', label: 'Reproduction Steps', bugOnly: true },
-                  { id: 'problem-statement', label: 'Problem Statement' },
-                  { id: 'acceptance-criteria', label: 'Acceptance Criteria' },
-                  { id: 'visual-qa', label: 'Visual QA Expectations' },
-                  { id: 'scope', label: 'Scope' },
-                  { id: 'solution', label: 'Solution' },
-                  { id: 'assets', label: 'Assets' },
-                ]
-                .filter(section => !section.bugOnly || ticket.type === 'bug')
-                .map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      const element = document.getElementById(`spec-${section.id}`);
-                      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className={`block text-sm py-1.5 px-3 rounded transition-colors ${
-                      activeSection === `spec-${section.id}`
-                        ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
-                    }`}
-                  >
-                    {section.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
+          {/* Mobile section pills — shown below xl only */}
+          <div className="xl:hidden flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+            {specSections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => scrollTo('spec', s.id)}
+                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                  activeSection === `spec-${s.id}`
+                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
+                }`}
+              >
+                {s.short}
+              </button>
+            ))}
+          </div>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <SpecificationTab
-                ticket={ticket}
-                ticketId={ticketId}
-                onEditItem={onEditItem}
-                onDeleteItem={onDeleteItem}
-                onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
-                onSaveAssumptions={onSaveAssumptions}
-                onEditReproductionStep={onEditReproductionStep}
-                onDeleteReproductionStep={onDeleteReproductionStep}
-                onAddReproductionStep={onAddReproductionStep}
-                onUploadAttachment={onUploadAttachment}
-                onDeleteAttachment={onDeleteAttachment}
-                isUploadingAttachment={isUploadingAttachment}
-                saveTechSpecPatch={saveTechSpecPatch}
-                fetchTicket={fetchTicket}
-              />
-            </div>
+          <div className="max-w-3xl mx-auto">
+            <SpecificationTab
+              ticket={ticket}
+              ticketId={ticketId}
+              onEditItem={onEditItem}
+              onDeleteItem={onDeleteItem}
+              onSaveAcceptanceCriteria={onSaveAcceptanceCriteria}
+              onSaveAssumptions={onSaveAssumptions}
+              onEditReproductionStep={onEditReproductionStep}
+              onDeleteReproductionStep={onDeleteReproductionStep}
+              onAddReproductionStep={onAddReproductionStep}
+              onUploadAttachment={onUploadAttachment}
+              onDeleteAttachment={onDeleteAttachment}
+              isUploadingAttachment={isUploadingAttachment}
+              saveTechSpecPatch={saveTechSpecPatch}
+              fetchTicket={fetchTicket}
+            />
+          </div>
+
+          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
+          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+1rem)] top-32 w-[88px] z-10">
+            <nav className="space-y-0.5">
+              {specSections.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => scrollTo('spec', s.id)}
+                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
+                    activeSection === `spec-${s.id}`
+                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
+                      : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
+                  }`}
+                  title={s.label}
+                >
+                  {s.short}
+                </button>
+              ))}
+            </nav>
           </div>
         </TabsContent>
 
         <TabsContent value="design" className="mt-6">
-          {onAddDesignReference && onRemoveDesignReference ? (
-            <DesignTab
-              ticketId={ticketId}
-              references={ticket.designReferences || []}
-              onAddDesignReference={onAddDesignReference}
-              onRemoveDesignReference={onRemoveDesignReference}
-              onRefreshDesignReference={onRefreshDesignReference}
-            />
-          ) : (
-            <div className="max-w-4xl">
-              <h2 className="text-sm font-medium text-[var(--text)] mb-4">Design References</h2>
-              <div className="flex items-center justify-center min-h-[200px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-secondary)]">
-                <div className="text-center">
-                  <div className="text-4xl mb-3">🎨</div>
-                  <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
+          <div className="max-w-3xl mx-auto">
+            {onAddDesignReference && onRemoveDesignReference ? (
+              <DesignTab
+                ticketId={ticketId}
+                references={ticket.designReferences || []}
+                onAddDesignReference={onAddDesignReference}
+                onRemoveDesignReference={onRemoveDesignReference}
+                onRefreshDesignReference={onRefreshDesignReference}
+              />
+            ) : (
+              <div>
+                <h2 className="text-sm font-medium text-[var(--text)] mb-4">Design References</h2>
+                <div className="flex items-center justify-center min-h-[200px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-secondary)]">
+                  <div className="text-center">
+                    <div className="text-4xl mb-3">🎨</div>
+                    <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="technical" className="mt-6">
-          <div className="flex gap-6">
-            {/* Scroll spy navigator */}
-            <div className="hidden lg:block w-48 flex-shrink-0">
-              <nav className="sticky top-6 space-y-2">
-                {[
-                  { id: 'file-changes', label: 'File Changes' },
-                  { id: 'api-endpoints', label: 'API Endpoints' },
-                  { id: 'dependencies', label: 'Dependencies' },
-                  { id: 'test-plan', label: 'Test Plan' },
-                  { id: 'stack', label: 'Stack' },
-                ].map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      const element = document.getElementById(`technical-${section.id}`);
-                      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className={`block text-sm py-1.5 px-3 rounded transition-colors ${
-                      activeSection === `technical-${section.id}`
-                        ? 'bg-[var(--bg-hover)] text-[var(--primary)] font-medium'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
-                    }`}
-                  >
-                    {section.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
+          {/* Mobile section pills — shown below xl only */}
+          <div className="xl:hidden flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+            {techSections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => scrollTo('technical', s.id)}
+                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                  activeSection === `technical-${s.id}`
+                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
+                }`}
+              >
+                {s.short}
+              </button>
+            ))}
+          </div>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <ImplementationTab
-                ticket={ticket}
-                ticketId={ticketId}
-                onEditItem={onEditItem}
-                onDeleteItem={onDeleteItem}
-                onAddApiEndpoint={onAddApiEndpoint}
-                onSaveApiEndpoints={onSaveApiEndpoints}
-                onScanApis={onScanApis}
-                isScanningApis={isScanningApis}
-                saveTechSpecPatch={saveTechSpecPatch}
-                fetchTicket={fetchTicket}
-              />
-            </div>
+          <div className="max-w-3xl mx-auto">
+            <ImplementationTab
+              ticket={ticket}
+              ticketId={ticketId}
+              onEditItem={onEditItem}
+              onDeleteItem={onDeleteItem}
+              onAddApiEndpoint={onAddApiEndpoint}
+              onSaveApiEndpoints={onSaveApiEndpoints}
+              onScanApis={onScanApis}
+              isScanningApis={isScanningApis}
+              saveTechSpecPatch={saveTechSpecPatch}
+              fetchTicket={fetchTicket}
+            />
+          </div>
+
+          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
+          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+1rem)] top-32 w-[88px] z-10">
+            <nav className="space-y-0.5">
+              {techSections.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => scrollTo('technical', s.id)}
+                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
+                    activeSection === `technical-${s.id}`
+                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
+                    : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
+                  }`}
+                  title={s.label}
+                >
+                  {s.short}
+                </button>
+              ))}
+            </nav>
           </div>
         </TabsContent>
       </Tabs>

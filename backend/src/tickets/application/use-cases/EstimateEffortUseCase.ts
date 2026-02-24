@@ -22,11 +22,11 @@ export class EstimateEffortUseCase {
     private readonly aecRepository: any, // AECRepository interface
   ) {}
 
-  async execute(aecId: string, workspaceId: string): Promise<Estimate> {
+  async execute(aecId: string, teamId: string): Promise<Estimate> {
     this.logger.log(`Estimating effort for AEC: ${aecId}`);
 
     // Load AEC
-    const aec = await this.aecRepository.findById(workspaceId, aecId);
+    const aec = await this.aecRepository.findById(teamId, aecId);
     if (!aec) {
       throw new NotFoundException(`AEC not found: ${aecId}`);
     }
@@ -38,7 +38,7 @@ export class EstimateEffortUseCase {
 
     // Calculate estimate
     const estimate = await this.estimationEngine.estimateEffort({
-      workspaceId,
+      workspaceId: teamId,
       repositoryName: aec.repositoryContext?.repositoryName || '',
       ticketType: aec.type || 'task',
       repoPaths: aec.repoPaths || [],

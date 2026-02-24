@@ -15,7 +15,7 @@ import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
  */
 export interface FinalizeSpecCommand {
   aecId: string;
-  workspaceId: string;
+  teamId: string;
 }
 
 /**
@@ -74,7 +74,7 @@ export class FinalizeSpecUseCase {
     }
 
     // Verify workspace ownership
-    if (aec.workspaceId !== command.workspaceId) {
+    if (aec.teamId !== command.teamId) {
       throw new BadRequestException('Workspace mismatch');
     }
 

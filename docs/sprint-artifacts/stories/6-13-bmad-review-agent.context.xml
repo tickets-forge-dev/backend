@@ -1,0 +1,189 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>13</storyId>
+    <title>BMAD Forge-Reviewer Agent</title>
+    <status>drafted</status>
+    <generatedAt>2026-02-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/6-13-bmad-review-agent.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer using Claude Code with BMAD installed</asA>
+    <iWant>to invoke a forge-reviewer BMAD agent that orchestrates the full Forge review session interactively</iWant>
+    <soThat>Claude guides me through fetching the ticket, asking clarifying questions, collecting my answers, and submitting the review session to Forge — all without leaving my editor</soThat>
+    <tasks>
+      Task 1: Create .bmad/bmm/agents/forge-reviewer.md BMAD agent (AC: 1,2,3,4,5,6,7)
+        - Write YAML frontmatter: name, description
+        - Write Activation section (load config, greet, confirm MCP running, ask ticketId, WAIT)
+        - Write Persona section (Forge Review Orchestrator role, concise, phases-labeled, no early questions)
+        - Write Workflow section (Phase 1 Load / Phase 2 Review / Phase 3 Submit)
+        - Write Menu section (*review, *submit, *abort, *help)
+        - Verify file is ≤200 lines
+        - Verify YAML frontmatter matches sm.md/dev.md convention
+
+      Task 2: Validate (AC: 8)
+        - Run npm run typecheck in forge-cli → 0 errors (no new TS files)
+        - Manually invoke agent via BMAD skill in Claude Code
+        - Walk through Phase 1→2→3 with a real ticket
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="AC1">A BMAD-format agent file exists at .bmad/bmm/agents/forge-reviewer.md following BMAD agent conventions (YAML frontmatter, activation steps, persona, menu with * triggers).</ac>
+    <ac id="AC2">The agent can be invoked via /bmad:bmm:agents:forge-reviewer, and Claude immediately loads the Forge Reviewer persona — asking for a ticketId before proceeding.</ac>
+    <ac id="AC3">On receiving a ticketId, the agent instructs Claude to call get_ticket_context MCP tool and use returned ticket data as basis for generating 5–10 targeted clarifying questions per dev-reviewer.md guidelines.</ac>
+    <ac id="AC4">The agent structures the session in three explicit phases: Phase 1 Load (fetch ticket), Phase 2 Review (Q&A dialogue), Phase 3 Submit (compile and submit when developer signals done).</ac>
+    <ac id="AC5">Phase 3: when developer signals completion ("done", "submit", "send it back"), agent instructs Claude to call submit_review_session({ ticketId, qaItems: [{question, answer}, ...] }) using all Q&A pairs collected in Phase 2.</ac>
+    <ac id="AC6">On successful submission, agent confirms: "✅ Review session submitted to Forge. The PM will see your answers and can re-bake the ticket. You're done."</ac>
+    <ac id="AC7">Agent file is ≤200 lines, focused, and contains four sections: Persona, Activation, Workflow, and Menu.</ac>
+    <ac id="AC8">npm run typecheck in forge-cli → 0 errors (no new CLI source files required — agent file is plain Markdown in monorepo root).</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-6-mcp-server.md</path>
+        <title>Epic 6 Technical Specification: MCP Server</title>
+        <section>Out of Scope</section>
+        <snippet>BMAD-specific multi-agent review orchestration → separate story (6-13). The forge_review MCP prompt (6-7) returns a static prompt message; the BMAD agent adds interactive orchestration on top.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-6-mcp-server.md</path>
+        <title>Epic 6 Technical Specification: MCP Server</title>
+        <section>Workflows — forge review T-001 flow</section>
+        <snippet>forge review T-001: validates status, starts MCP with forge_review prompt registered, Claude Code invokes forge_review → receives dev-reviewer.md persona + ticket summary → generates questions. Epic 7 deferred: POST /tickets/:id/questions. (Now fulfilled by submit_review_session in 6-12.)</snippet>
+      </doc>
+      <doc>
+        <path>forge-cli/src/agents/dev-reviewer.md</path>
+        <title>Dev Reviewer Agent Guide (MCP Prompt)</title>
+        <section>Process — Steps 1–6</section>
+        <snippet>The BMAD agent MUST inherit and delegate to this guide's question categories (Scope, AC Edge Cases, Technical Constraints, UX Intent, Dependencies), [BLOCKING] annotation pattern, PM-accessible language rules, and the Step 6 submit-when-done flow. Do NOT reinvent these — reference them.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>.bmad/bmm/agents/sm.md</path>
+        <kind>BMAD agent (authoritative format reference)</kind>
+        <symbol>sm agent</symbol>
+        <lines>1-93</lines>
+        <reason>Canonical BMAD agent format: YAML frontmatter (name, description), xml agent block with activation steps, persona, menu with *cmd triggers, menu-handlers, rules. The forge-reviewer.md MUST follow this exact structure.</reason>
+      </file>
+      <file>
+        <path>.bmad/bmm/agents/dev.md</path>
+        <kind>BMAD agent (secondary format reference)</kind>
+        <symbol>dev agent</symbol>
+        <lines>1-60</lines>
+        <reason>Additional activation pattern reference: how to load config.yaml, store session variables, show menu, and WAIT for user input before executing. Especially relevant for steps 2–5 of activation.</reason>
+      </file>
+      <file>
+        <path>forge-cli/src/mcp/tools/submit-review-session.ts</path>
+        <kind>MCP tool handler (Phase 3 target)</kind>
+        <symbol>handleSubmitReviewSession, submitReviewSessionToolDefinition</symbol>
+        <lines>1-132</lines>
+        <reason>Phase 3 MCP tool. Input: { ticketId: string, qaItems: Array&lt;{ question: string; answer: string }&gt; }. Calls POST /tickets/:id/review-session. Returns { success, ticketId, status, message }. Validates: ticketId non-empty, qaItems non-empty array, each item has string question+answer.</reason>
+      </file>
+      <file>
+        <path>forge-cli/src/mcp/tools/get-ticket-context.ts</path>
+        <kind>MCP tool handler (Phase 1 target)</kind>
+        <symbol>handleGetTicketContext, getTicketContextToolDefinition</symbol>
+        <lines>1-64</lines>
+        <reason>Phase 1 MCP tool. Input: { ticketId: string }. Returns full TicketDetail as JSON string. Error on 404 → isError: true, "Ticket not found: {id}". Agent must call this in Phase 1 before generating any questions.</reason>
+      </file>
+      <file>
+        <path>forge-cli/src/mcp/server.ts</path>
+        <kind>MCP server (registered tools list)</kind>
+        <symbol>ForgeMCPServer</symbol>
+        <lines>1-130</lines>
+        <reason>All 5 registered tools: get_ticket_context, get_file_changes, get_repository_context, update_ticket_status, submit_review_session. The agent can use any of these. Also shows 2 registered prompts: forge_execute, forge_review.</reason>
+      </file>
+      <file>
+        <path>forge-cli/src/mcp/types.ts</path>
+        <kind>type definitions</kind>
+        <symbol>ToolResult, PromptResult, PromptMessage, TextContent</symbol>
+        <lines>1-25</lines>
+        <reason>Shared MCP protocol types. No changes needed. Referenced for understanding tool response shapes during agent implementation.</reason>
+      </file>
+      <file>
+        <path>forge-cli/src/agents/dev-reviewer.md</path>
+        <kind>MCP prompt persona (question generation authority)</kind>
+        <symbol>dev-reviewer persona</symbol>
+        <lines>1-198</lines>
+        <reason>The BMAD agent's question generation phase MUST follow the six-step process defined here (Steps 1–4: read, categorize, filter, present). Steps 5–6 are the "stop and wait" and "submit when done" phases that the BMAD agent orchestrates at the session level.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="forge-cli (Node/TypeScript)">
+        <note>No changes to forge-cli dependencies or source files. The agent file is pure Markdown in the monorepo root.</note>
+        <package name="@modelcontextprotocol/sdk" version="^1.26.0" reason="MCP tools available to the agent session (started by forge review CLI command)" />
+        <package name="simple-git" version="^3.31.1" reason="Powers get_repository_context — available to agent if developer wants repo context" />
+        <package name="zod" version="^3.23.8" reason="Tool input validation in handlers" />
+        <package name="typescript" version="^5.6.3" reason="npm run typecheck must pass (AC8)" />
+        <package name="vitest" version="^4.0.18" reason="Test framework — no new tests for this story (markdown only)" />
+      </ecosystem>
+      <ecosystem name="BMAD (.bmad/bmm)">
+        <note>No changes to BMAD module infrastructure. New agent file added to existing .bmad/bmm/agents/ directory. BMAD installer already handles skill registration for all .md files in this directory.</note>
+        <package name="bmm module" version="installed" reason="Provides agent convention, config.yaml, and skill invocation system" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint id="C1">Output is a SINGLE Markdown file at .bmad/bmm/agents/forge-reviewer.md — NO TypeScript, NO test files, NO changes to forge-cli source.</constraint>
+    <constraint id="C2">File MUST be ≤200 lines (AC7). Focus on the three-phase workflow; delegate question generation to dev-reviewer.md by reference, not by copying its content.</constraint>
+    <constraint id="C3">YAML frontmatter convention: name and description keys only (matches sm.md and dev.md exactly). The xml agent block follows immediately after.</constraint>
+    <constraint id="C4">Activation steps MUST follow the sm.md/dev.md pattern: (1) load persona, (2) load config.yaml and store variables, (3) greet + ask ticketId, (4) confirm forge MCP server is running, (5) WAIT for user input.</constraint>
+    <constraint id="C5">The agent is SUPPLEMENTAL — it does NOT replace forge_review MCP prompt (Story 6-7). Both coexist. The BMAD agent provides interactive orchestration; the MCP prompt provides one-shot static message delivery.</constraint>
+    <constraint id="C6">Phase 2 questions MUST follow dev-reviewer.md guidelines (5 categories, [BLOCKING] annotation, PM-accessible language). Do not restate the full guide in the agent — reference it by name and category.</constraint>
+    <constraint id="C7">Phase 3 MUST NOT call submit_review_session until the developer explicitly signals done. Partial Q&A must prompt confirmation ("answer remaining or submit partial?") before submitting.</constraint>
+    <constraint id="C8">Menu triggers use asterisk (*) — NOT markdown bullet syntax. Display exactly as shown in sm.md pattern: &lt;item cmd="*cmd"&gt;description&lt;/item&gt;.</constraint>
+    <constraint id="C9">npm run typecheck in forge-cli must pass at 0 errors after story completion (AC8). Since no TS files change, this is a verification step only.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>submit_review_session MCP tool</name>
+      <kind>MCP CallTool</kind>
+      <signature>submit_review_session({ ticketId: string, qaItems: Array&lt;{ question: string; answer: string }&gt; }) → { success: true, ticketId: string, status: "waiting-for-approval", message: string } | { isError: true, content: [{type: "text", text: string}] }</signature>
+      <path>forge-cli/src/mcp/tools/submit-review-session.ts</path>
+    </interface>
+    <interface>
+      <name>get_ticket_context MCP tool</name>
+      <kind>MCP CallTool</kind>
+      <signature>get_ticket_context({ ticketId: string }) → JSON string of TicketDetail (id, title, description, problemStatement, solution, acceptanceCriteria[], fileChanges[], status) | { isError: true }</signature>
+      <path>forge-cli/src/mcp/tools/get-ticket-context.ts</path>
+    </interface>
+    <interface>
+      <name>BMAD agent XML block structure</name>
+      <kind>Agent format convention</kind>
+      <signature>&lt;agent id=".bmad/bmm/agents/{name}.md" name="{DisplayName}" title="{Title}" icon="{emoji}"&gt; &lt;activation critical="MANDATORY"&gt; ... steps ... &lt;/activation&gt; &lt;persona&gt; &lt;role/&gt; &lt;identity/&gt; &lt;communication_style/&gt; &lt;principles/&gt; &lt;/persona&gt; &lt;menu&gt; &lt;item cmd="*cmd"&gt;...&lt;/item&gt; &lt;/menu&gt; &lt;/agent&gt;</signature>
+      <path>.bmad/bmm/agents/sm.md</path>
+    </interface>
+    <interface>
+      <name>ForgeConfig (session auth)</name>
+      <kind>TypeScript interface (reference only — agent is markdown)</kind>
+      <signature>{ accessToken: string, refreshToken: string, expiresAt: string, userId: string, teamId: string, user: { email, displayName } }</signature>
+      <path>forge-cli/src/services/config.service.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>No automated tests are applicable for this story. The deliverable is a plain Markdown file (.bmad/bmm/agents/forge-reviewer.md) — a BMAD agent persona definition, not compiled code. BMAD agents are tested manually by invoking them in Claude Code and verifying conversational behavior. The only automated check is npm run typecheck in forge-cli (AC8), which must pass at 0 errors because no TypeScript files change.</standards>
+    <locations>
+      <location>forge-cli/src/mcp/__tests__/ — existing integration tests (not modified by this story; run to confirm 217 tests still pass)</location>
+      <location>Manual test: Claude Code session with forge review &lt;ticketId&gt; running in terminal, then /bmad:bmm:agents:forge-reviewer invoked</location>
+    </locations>
+    <ideas>
+      <idea ac="AC2">Manual: invoke /bmad:bmm:agents:forge-reviewer — verify Claude greets and asks for ticketId before any action.</idea>
+      <idea ac="AC3">Manual Phase 1: provide ticketId → verify Claude calls get_ticket_context MCP tool → verify ticket title displayed.</idea>
+      <idea ac="AC3,AC4">Manual Phase 2: verify Claude presents 5–10 numbered questions organized by category following dev-reviewer.md guidelines.</idea>
+      <idea ac="AC5">Manual Phase 3: answer all questions then say "done" → verify Claude calls submit_review_session with correct ticketId and all qaItems.</idea>
+      <idea ac="AC6">Manual submission: verify exact confirmation message: "✅ Review session submitted to Forge. The PM will see your answers and can re-bake the ticket. You're done."</idea>
+      <idea ac="AC7,C7">Manual partial: answer 3 of 5 questions then say "submit" → verify agent prompts "Answer remaining or submit partial?" before calling submit_review_session.</idea>
+      <idea ac="AC8">Automated: npm run typecheck in forge-cli → 0 errors (CI verification only, no source changes).</idea>
+    </ideas>
+  </tests>
+</story-context>

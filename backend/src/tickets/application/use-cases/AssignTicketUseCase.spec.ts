@@ -16,8 +16,9 @@ describe('AssignTicketUseCase', () => {
   beforeEach(() => {
     mockAecRepository = {
       findById: jest.fn(),
+      findByIdInTeam: jest.fn(),
       save: jest.fn(),
-      findByWorkspace: jest.fn(),
+      findByTeam: jest.fn(),
       delete: jest.fn(),
     } as any;
 
@@ -50,17 +51,17 @@ describe('AssignTicketUseCase', () => {
   };
 
   // Helper to setup valid authorization mocks (PM requesting, Dev being assigned)
-  const setupValidAuthMocks = (requestingUserId: string, assignedUserId: string, workspaceId: string) => {
-    const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
-    const assignedDev = createMockMember(assignedUserId, workspaceId, Role.DEVELOPER);
+  const setupValidAuthMocks = (requestingUserId: string, assignedUserId: string, teamId: string) => {
+    const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
+    const assignedDev = createMockMember(assignedUserId, teamId, Role.DEVELOPER);
     mockTeamMemberRepository.findByUserAndTeam
       .mockResolvedValueOnce(requestingPM)
       .mockResolvedValueOnce(assignedDev);
   };
 
   // Helper for unassign: only needs requesting user validation
-  const setupUnassignAuthMocks = (requestingUserId: string, workspaceId: string) => {
-    const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
+  const setupUnassignAuthMocks = (requestingUserId: string, teamId: string) => {
+    const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
     mockTeamMemberRepository.findByUserAndTeam.mockResolvedValueOnce(requestingPM);
   };
 
@@ -69,22 +70,22 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket', 'Description');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket', 'Description');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then
       expect(mockAecRepository.findById).toHaveBeenCalledWith(ticketId);
-      expect(mockTeamMemberRepository.findByUserAndTeam).toHaveBeenCalledWith(requestingUserId, workspaceId);
-      expect(mockTeamMemberRepository.findByUserAndTeam).toHaveBeenCalledWith(userId, workspaceId);
+      expect(mockTeamMemberRepository.findByUserAndTeam).toHaveBeenCalledWith(requestingUserId, teamId);
+      expect(mockTeamMemberRepository.findByUserAndTeam).toHaveBeenCalledWith(userId, teamId);
       expect(mockAecRepository.save).toHaveBeenCalledTimes(1);
       expect(mockAec.assignedTo).toBe(userId);
     });
@@ -93,17 +94,17 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = '  user-456  '; // With whitespace
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then: Should succeed (userId accepted as-is, trimming is caller's responsibility)
       expect(mockAec.assignedTo).toBe(userId);
@@ -115,11 +116,11 @@ describe('AssignTicketUseCase', () => {
     it('should unassign ticket when userId is null', async () => {
       // Given
       const ticketId = 'aec_123';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
       const mockAec = AEC.createDraft(
-        workspaceId,
+        teamId,
         requestingUserId,
         'Test Ticket',
         'Description',
@@ -130,11 +131,11 @@ describe('AssignTicketUseCase', () => {
       );
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupUnassignAuthMocks(requestingUserId, workspaceId);
+      setupUnassignAuthMocks(requestingUserId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId: null, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId: null, requestingUserId, teamId });
 
       // Then
       expect(mockAec.assignedTo).toBeNull();
@@ -144,17 +145,17 @@ describe('AssignTicketUseCase', () => {
     it('should unassign ticket even if already unassigned', async () => {
       // Given
       const ticketId = 'aec_123';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupUnassignAuthMocks(requestingUserId, workspaceId);
+      setupUnassignAuthMocks(requestingUserId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId: null, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId: null, requestingUserId, teamId });
 
       // Then: Should succeed (idempotent)
       expect(mockAec.assignedTo).toBeNull();
@@ -167,17 +168,17 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'dev-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then: Should succeed
       expect(mockAec.assignedTo).toBe(userId);
@@ -187,12 +188,12 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'dev-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'admin-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingAdmin = createMockMember(requestingUserId, workspaceId, Role.ADMIN);
-      const assignedDev = createMockMember(userId, workspaceId, Role.DEVELOPER);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingAdmin = createMockMember(requestingUserId, teamId, Role.ADMIN);
+      const assignedDev = createMockMember(userId, teamId, Role.DEVELOPER);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam
@@ -201,64 +202,67 @@ describe('AssignTicketUseCase', () => {
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then: Should succeed
       expect(mockAec.assignedTo).toBe(userId);
     });
 
-    it('should reject if requesting user is Developer (not PM/Admin)', async () => {
+    it('should allow Developer to assign tickets', async () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'dev-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'dev-789';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingDev = createMockMember(requestingUserId, workspaceId, Role.DEVELOPER);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingDev = createMockMember(requestingUserId, teamId, Role.DEVELOPER);
+      const assignedDev = createMockMember(userId, teamId, Role.DEVELOPER);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      mockTeamMemberRepository.findByUserAndTeam.mockResolvedValue(requestingDev);
+      mockTeamMemberRepository.findByUserAndTeam
+        .mockResolvedValueOnce(requestingDev)
+        .mockResolvedValueOnce(assignedDev);
+      mockAecRepository.save.mockResolvedValue(undefined);
 
-      // When/Then
-      await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
-      ).rejects.toThrow('Only Admins and PMs can assign tickets');
+      // When
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
-      expect(mockAecRepository.save).not.toHaveBeenCalled();
+      // Then: Should succeed
+      expect(mockAec.assignedTo).toBe(userId);
     });
 
-    it('should reject if requesting user is QA (not PM/Admin)', async () => {
+    it('should reject if requesting user is QA (not Admin/PM/Developer)', async () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'dev-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'qa-789';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingQA = createMockMember(requestingUserId, workspaceId, Role.QA);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingQA = createMockMember(requestingUserId, teamId, Role.QA);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam.mockResolvedValue(requestingQA);
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
-      ).rejects.toThrow('Only Admins and PMs can assign tickets');
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
+      ).rejects.toThrow('Only Admins, PMs, and Developers can assign tickets');
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should reject assigning to non-developer (PM)', async () => {
+    it('should reject assigning to PM', async () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'pm-other';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
-      const targetPM = createMockMember(userId, workspaceId, Role.PM);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
+      const targetPM = createMockMember(userId, teamId, Role.PM);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam
@@ -267,20 +271,20 @@ describe('AssignTicketUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
-      ).rejects.toThrow('Can only assign tickets to developers');
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
+      ).rejects.toThrow('Can only assign tickets to developers or admins');
     });
 
     it('should reject assigning to QA', async () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'qa-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
-      const targetQA = createMockMember(userId, workspaceId, Role.QA);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
+      const targetQA = createMockMember(userId, teamId, Role.QA);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam
@@ -289,20 +293,20 @@ describe('AssignTicketUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
-      ).rejects.toThrow('Can only assign tickets to developers');
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
+      ).rejects.toThrow('Can only assign tickets to developers or admins');
     });
 
     it('should reject assigning to inactive developer', async () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'dev-removed';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
-      const inactiveDev = createMockMember(userId, workspaceId, Role.DEVELOPER, MemberStatus.REMOVED);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
+      const inactiveDev = createMockMember(userId, teamId, Role.DEVELOPER, MemberStatus.REMOVED);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam
@@ -311,7 +315,7 @@ describe('AssignTicketUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
       ).rejects.toThrow('Cannot assign tickets to inactive team members');
     });
 
@@ -319,11 +323,11 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'external-dev';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam
@@ -332,32 +336,32 @@ describe('AssignTicketUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
       ).rejects.toThrow('is not a member of this team');
     });
   });
 
-  describe('Authorization - Workspace Isolation', () => {
-    it('should reject if ticket does not belong to workspace', async () => {
+  describe('Authorization - Team Isolation', () => {
+    it('should reject if ticket does not belong to team', async () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
-      const ticketWorkspaceId = 'workspace-DIFFERENT';
-      const requestingWorkspaceId = 'workspace-789';
+      const ticketTeamId = 'team_DIFFERENT';
+      const requestingTeamId = 'team_789';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(ticketWorkspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(ticketTeamId, requestingUserId, 'Test Ticket');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId: requestingWorkspaceId })
+        useCase.execute({ ticketId, userId, requestingUserId, teamId: requestingTeamId })
       ).rejects.toThrow(ForbiddenException);
 
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId: requestingWorkspaceId })
-      ).rejects.toThrow('Ticket does not belong to your workspace');
+        useCase.execute({ ticketId, userId, requestingUserId, teamId: requestingTeamId })
+      ).rejects.toThrow('Ticket does not belong to your team');
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
     });
@@ -367,18 +371,18 @@ describe('AssignTicketUseCase', () => {
     it('should reject empty userId string', async () => {
       // Given
       const ticketId = 'aec_123';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam.mockResolvedValue(requestingPM);
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId: '', requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId: '', requestingUserId, teamId })
       ).rejects.toThrow('userId cannot be empty');
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
@@ -387,18 +391,18 @@ describe('AssignTicketUseCase', () => {
     it('should reject whitespace-only userId', async () => {
       // Given
       const ticketId = 'aec_123';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
-      const requestingPM = createMockMember(requestingUserId, workspaceId, Role.PM);
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+      const requestingPM = createMockMember(requestingUserId, teamId, Role.PM);
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       mockTeamMemberRepository.findByUserAndTeam.mockResolvedValueOnce(requestingPM);
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId: '   ', requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId: '   ', requestingUserId, teamId })
       ).rejects.toThrow(BadRequestException);
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
@@ -410,18 +414,18 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'nonexistent-aec';
       const userId = 'user-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
       mockAecRepository.findById.mockResolvedValue(null);
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
       ).rejects.toThrow(`Ticket ${ticketId} not found`);
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
@@ -431,18 +435,18 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockRejectedValue(new Error('Database connection failed'));
 
       // When/Then
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
       ).rejects.toThrow('Database connection failed');
     });
   });
@@ -452,11 +456,11 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
       const mockAec = AEC.createDraft(
-        workspaceId,
+        teamId,
         requestingUserId,
         'Test Ticket',
         'Description',
@@ -467,11 +471,11 @@ describe('AssignTicketUseCase', () => {
       );
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then: Should succeed (idempotent)
       expect(mockAec.assignedTo).toBe(userId);
@@ -483,11 +487,11 @@ describe('AssignTicketUseCase', () => {
       const ticketId = 'aec_123';
       const oldUserId = 'user-456';
       const newUserId = 'user-789';
-      const workspaceId = 'workspace-123';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
       const mockAec = AEC.createDraft(
-        workspaceId,
+        teamId,
         requestingUserId,
         'Test Ticket',
         'Description',
@@ -498,11 +502,11 @@ describe('AssignTicketUseCase', () => {
       );
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, newUserId, workspaceId);
+      setupValidAuthMocks(requestingUserId, newUserId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId: newUserId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId: newUserId, requestingUserId, teamId });
 
       // Then
       expect(mockAec.assignedTo).toBe(newUserId);
@@ -513,17 +517,17 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456@firebase.com'; // Special characters
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then: Should succeed (userId not validated for format)
       expect(mockAec.assignedTo).toBe(userId);
@@ -536,17 +540,17 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then
       expect(mockAec.status).toBe(AECStatus.DRAFT);
@@ -557,18 +561,18 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
       mockAec.markComplete(); // Mark as complete
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
 
       // When/Then: Domain enforces: cannot assign completed tickets
       await expect(
-        useCase.execute({ ticketId, userId, requestingUserId, workspaceId })
+        useCase.execute({ ticketId, userId, requestingUserId, teamId })
       ).rejects.toThrow('Cannot assign a completed ticket. Revert to draft first.');
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
@@ -578,21 +582,21 @@ describe('AssignTicketUseCase', () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
-      const workspaceId = 'workspace-789';
+      const teamId = 'team_123';
       const requestingUserId = 'pm-user-123';
 
-      const mockAec = AEC.createDraft(workspaceId, requestingUserId, 'Test Ticket');
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
       const originalUpdatedAt = mockAec.updatedAt;
 
       // Wait a tiny bit to ensure timestamp difference
       await new Promise(resolve => setTimeout(resolve, 10));
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
-      setupValidAuthMocks(requestingUserId, userId, workspaceId);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
       mockAecRepository.save.mockResolvedValue(undefined);
 
       // When
-      await useCase.execute({ ticketId, userId, requestingUserId, workspaceId });
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
 
       // Then: updatedAt should change
       expect(mockAec.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());

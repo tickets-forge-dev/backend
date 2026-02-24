@@ -9,7 +9,7 @@ import {
 } from '../../../linear/domain/LinearIntegrationRepository';
 
 interface GetImportAvailabilityCommand {
-  workspaceId: string;
+  teamId: string;
   userId: string;
 }
 
@@ -40,8 +40,8 @@ export class GetImportAvailabilityUseCase {
 
   async execute(command: GetImportAvailabilityCommand): Promise<ImportAvailabilityResult> {
     const [jiraIntegration, linearIntegration] = await Promise.all([
-      this.jiraIntegrationRepo.findByUserAndWorkspace(command.userId, command.workspaceId),
-      this.linearIntegrationRepo.findByWorkspaceId(command.workspaceId),
+      this.jiraIntegrationRepo.findByUserAndWorkspace(command.userId, command.teamId),
+      this.linearIntegrationRepo.findByWorkspaceId(command.teamId),
     ]);
 
     return {

@@ -6,7 +6,7 @@ import { FetchDesignMetadataUseCase } from './FetchDesignMetadataUseCase';
 
 export interface AddDesignReferenceCommand {
   ticketId: string;
-  workspaceId: string;
+  teamId: string;
   userId: string; // Firebase UID
   userEmail: string; // For audit trail
   url: string;
@@ -40,7 +40,7 @@ export class AddDesignReferenceUseCase {
   ) {}
 
   async execute(command: AddDesignReferenceCommand): Promise<AddDesignReferenceResult> {
-    const { ticketId, workspaceId, userEmail, url, title } = command;
+    const { ticketId, teamId, userEmail, url, title } = command;
 
     // Validate URL format (throws Error if invalid)
     try {
@@ -57,7 +57,7 @@ export class AddDesignReferenceUseCase {
     }
 
     // Verify workspace ownership
-    if (aec.workspaceId !== workspaceId) {
+    if (aec.teamId !== teamId) {
       throw new ForbiddenException('Cannot modify ticket from different workspace');
     }
 
@@ -80,7 +80,7 @@ export class AddDesignReferenceUseCase {
 
     // Fetch metadata asynchronously (non-blocking)
     // Design reference is already stored and returned, metadata is enriched in background
-    this.fetchAndUpdateMetadata(ticketId, designReference, workspaceId);
+    this.fetchAndUpdateMetadata(ticketId, designReference, teamId);
 
     return {
       designReference,
@@ -96,13 +96,13 @@ export class AddDesignReferenceUseCase {
   private async fetchAndUpdateMetadata(
     ticketId: string,
     designReference: DesignReference,
-    workspaceId: string,
+    teamId: string,
   ): Promise<void> {
     try {
       // Fetch metadata from platform API
       const enrichedReference = await this.fetchDesignMetadataUseCase.execute(
         designReference,
-        workspaceId,
+        teamId,
       );
 
       if (!enrichedReference) {

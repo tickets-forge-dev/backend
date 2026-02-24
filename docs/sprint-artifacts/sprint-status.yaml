@@ -1,4 +1,4 @@
-# generated: 2026-02-20
+# generated: 2026-02-22
 # project: forge
 # project_key: FORGE
 # tracking_system: file-system
@@ -32,7 +32,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-02-20
+generated: 2026-02-22
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -111,19 +111,18 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 5: CLI Foundation (P0) - 8 stories, ~14 days
-  # Status: ⬜ NOT STARTED - Blocked by Epic 3 completion
-  # Dependencies: Needs completed team/workspace APIs for authentication
-  # Key: Interactive ticket list with vim-like commands [e][r][c][b][q]
-  # UX: forge list → ↑↓ navigate → Enter view → [e] execute / [r] review
-  epic-5-cli-foundation: contexted
-  5-1-cli-project-setup: backlog
-  5-2-login-command-oauth: backlog
-  5-3-logout-command: backlog
-  5-4-interactive-ticket-list: backlog
-  5-5-ticket-detail-view: backlog
-  5-6-action-handlers-stub: backlog
-  5-7-config-management: backlog
-  5-8-error-handling-offline: backlog
+  # Status: ✅ DONE - All 8 stories complete (2026-02-20)
+  # Completed: 48 tests passing, TypeScript clean, CJS native (no ESM deps)
+  # Deliverable: forge login/logout/list/show/review/execute — npm-installable CLI
+  epic-5-cli-foundation: done
+  5-1-cli-project-setup: done
+  5-2-login-command-oauth: done
+  5-3-logout-command: done
+  5-4-interactive-ticket-list: done
+  5-5-ticket-detail-view: done
+  5-6-action-handlers-stub: done
+  5-7-config-management: done
+  5-8-error-handling-offline: done
   epic-5-cli-foundation-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -131,58 +130,80 @@ development_status:
   # ──────────────────────────────────────────────────────────────────────────
 
   # EPIC 6: MCP Server (P0) - 13 stories, ~20 days
-  # Status: ⬜ NOT STARTED - Blocked by Epic 5 completion
-  # Dependencies: CLI Foundation must be complete
+  # Status: ✅ DONE - All 13 stories complete (2026-02-21)
   # Key: BMAD agent integration for dynamic PM-Developer conversations
   # UX: Developer presses [r] → BMAD agent asks dynamic questions → enriches ticket
-  epic-6-mcp-server: backlog
-  6-1-mcp-server-setup: backlog
-  6-2-ticket-context-tool: backlog
-  6-3-file-changes-tool: backlog
-  6-4-repository-context-tool: backlog
-  6-5-status-update-tool: backlog
-  6-6-execute-prompt: backlog
-  6-7-review-prompt: backlog
-  6-8-agent-guide-executor: backlog
-  6-9-agent-guide-reviewer: backlog
-  6-10-mcp-integration-tests: backlog
-  6-11-cli-mcp-plumbing: backlog
-  6-12-ticket-review-mcp-tools: backlog
-  6-13-bmad-review-agent: backlog
+  epic-6-mcp-server: done
+  6-1-mcp-server-setup: done
+  6-2-ticket-context-tool: done
+  6-3-file-changes-tool: done
+  6-4-repository-context-tool: done
+  6-5-status-update-tool: done
+  6-6-execute-prompt: done
+  6-7-review-prompt: done
+  6-8-agent-guide-executor: done
+  6-9-agent-guide-reviewer: done
+  6-10-mcp-integration-tests: done
+  6-11-cli-mcp-plumbing: done
+  6-12-ticket-review-mcp-tools: done
+  6-13-bmad-review-agent: done
   epic-6-mcp-server-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
   # PHASE 5 (Weeks 9+): Integration & Launch
   # ──────────────────────────────────────────────────────────────────────────
 
-  # EPIC 7: Ticket Lifecycle (P1) - 9 stories, ~15 days
-  # Status: ⬜ NOT STARTED - Can start after Epic 3 complete (needs roles)
+  # EPIC 7: Ticket Lifecycle (P1) - 10 stories, ~17 days
+  # Status: ✅ DONE - All 10 stories complete (2026-02-22)
+  # Updated: 2026-02-22 (7-2 + 7-7 approved after re-review; all fixes verified)
   # Dependencies: Role-based authorization from Epic 3
-  # Key: Full PM→Dev→PM workflow with dynamic agent conversations
-  # Flow: PM creates → Dev reviews (CLI) → PM approves → Dev executes
-  epic-7-ticket-lifecycle: backlog
-  7-1-extend-aec-status-enum: backlog
-  7-2-move-tickets-to-team-scope: backlog
-  7-3-conversation-storage: backlog
-  7-4-conversation-api: backlog
-  7-5-update-ticket-filters: backlog
-  7-6-conversation-viewer-ui: backlog
-  7-7-approve-button-pm-only: backlog
-  7-8-status-sync-web-cli: backlog
-  7-9-ticket-creation-updates: backlog
+  # Key: Full PM→Dev→PM workflow with tech-spec agent sessions + ticket re-enrichment
+  #
+  # IMPLEMENTED FLOW (end-to-end):
+  #   PM creates ticket → AI enriches → READY
+  #   Dev: forge review T-001 → invokes forge_review prompt → open-ended agent session
+  #        Agent explores codebase, asks developer questions, gathers decisions
+  #        Dev says "submit" → Claude calls submit_review_session MCP tool
+  #        → Backend stores Q&A → WAITING_FOR_APPROVAL
+  #   PM opens ticket → sees Q&A panel:
+  #        [Re-bake Ticket] (blue) → AI regenerates spec with Q&A as context
+  #        [Approve Ticket] (green) → transitions WAITING_FOR_APPROVAL → READY
+  #   Dev: forge execute T-001 → Claude gets fully-baked ticket → writes code
+  #        → calls update_ticket_status → CREATED
+  epic-7-ticket-lifecycle: done
+  7-1-extend-aec-status-enum: done
+  7-2-move-tickets-to-team-scope: done
+  7-3-conversation-storage: done
+  7-4-conversation-api: done
+  7-5-update-ticket-filters: done
+  7-6-conversation-viewer-ui: done
+  7-7-ticket-re-enrich-with-qa: done
+  7-8-approve-button-pm-only: done
+  7-9-status-sync-web-cli: done
+  7-10-ticket-creation-updates: done
   epic-7-ticket-lifecycle-retrospective: optional
 
   # EPIC 8: Testing & Documentation (P2) - 6 stories, ~11 days
-  # Status: ⬜ NOT STARTED - Can start anytime (parallel with other epics)
+  # Status: 🔄 IN PROGRESS - Starting with CLI command test coverage (8-3)
   # Note: Can be worked on incrementally alongside feature development
-  epic-8-testing-documentation: backlog
-  8-1-backend-unit-tests: backlog
+  epic-8-testing-documentation: in-progress
+  8-1-backend-unit-tests: review
   8-2-frontend-component-tests: backlog
-  8-3-cli-integration-tests: backlog
+  8-3-cli-integration-tests: review
   8-4-user-documentation: backlog
   8-5-api-documentation: backlog
   8-6-architecture-update: backlog
+  8-7-cli-publish: drafted
   epic-8-testing-documentation-retrospective: optional
+
+  # EPIC 9: Notifications & Alerts (P1) - 1 story, ~3 days
+  # Status: ⬜ NOT STARTED
+  # Goal: Notify developers when they are assigned a ticket or when their ticket is approved and ready to execute
+  # Key events: ticket assigned → email developer; ticket WAITING_FOR_APPROVAL → READY → email assigned developer
+  # Approach: Reuse existing Epic 3 email infrastructure (nodemailer/SendGrid already wired)
+  epic-9-notifications: backlog
+  9-1-developer-notifications: drafted
+  epic-9-notifications-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebase';
 import { TeamService, type TeamMember } from '@/services/team.service';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Users, UserPlus, UserCircle, X } from 'lucide-react';
+import { Users, UserPlus, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,23 +17,34 @@ interface AssigneeSelectorProps {
   assignedTo: string | null;
   onAssign: (userId: string | null) => Promise<boolean>;
   disabled?: boolean;
+  /** Controlled open state — lets parent open the dialog programmatically */
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 export function AssigneeSelector({
   assignedTo,
   onAssign,
   disabled = false,
+  externalOpen,
+  onExternalOpenChange,
 }: AssigneeSelectorProps) {
   const [developers, setDevelopers] = useState<TeamMember[]>([]);
   const [allMembers, setAllMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Sync external open state
+  useEffect(() => {
+    if (externalOpen) setDialogOpen(true);
+  }, [externalOpen]);
   const [isAssigning, setIsAssigning] = useState(false);
   
   // Get current team from team store
-  const currentTeamId = useTeamStore((state) => state.currentTeamId);
   const currentTeam = useTeamStore((state) => state.currentTeam);
+  // Derive currentTeamId from currentTeam (Zustand getters don't work with selectors)
+  const currentTeamId = currentTeam?.id || null;
 
   // Determine if user is in a team workspace or private workspace
   const isPrivateWorkspace = !currentTeamId;
@@ -63,9 +74,10 @@ export function AssigneeSelector({
         const members = await teamService.getTeamMembers(currentTeamId, idToken);
         setAllMembers(members.filter((m) => m.status === 'active'));
 
-        // Filter: Only ACTIVE members with DEVELOPER role (business rule)
+        // Filter: Only ACTIVE members who can execute tickets (admin + developer roles)
+        // Exclude the current user (can't assign to yourself)
         const activeDevelopers = members.filter(
-          (m) => m.status === 'active' && m.role === 'developer'
+          (m) => m.status === 'active' && (m.role === 'developer' || m.role === 'admin') && m.userId !== user.uid
         );
 
         setDevelopers(activeDevelopers);
@@ -94,42 +106,37 @@ export function AssigneeSelector({
   // Find assigned developer for display name
   const assignedDev = developers.find((d) => d.userId === assignedTo);
 
-  // Trigger button - minimal inline display
+  // Trigger button - pill-shaped chip, clearly interactive
   const TriggerButton = () => {
-    if (isPrivateWorkspace) {
+    // Assigned state — show avatar initial + name chip
+    if (assignedTo && assignedDev) {
+      const initials = (assignedDev.displayName || assignedDev.email || '?')[0].toUpperCase();
       return (
         <button
           onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+          disabled={disabled}
+          className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--bg-hover)] border border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg)] text-[var(--text)] transition-colors disabled:opacity-50"
         >
-          <Users className="h-3.5 w-3.5" />
-          <span>Assign</span>
+          <div className="h-5 w-5 rounded-full bg-[var(--blue)] flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
+            {initials}
+          </div>
+          <span className="text-xs font-medium truncate max-w-[120px]">
+            {assignedDev.displayName || assignedDev.email}
+          </span>
         </button>
       );
     }
 
-    if (!isLoading && developers.length === 0 && !error) {
-      return (
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
-        >
-          <UserPlus className="h-3.5 w-3.5 text-[var(--blue)]" />
-          <span>Assign</span>
-        </button>
-      );
-    }
-
-    // Has developers - show current assignment or "Assign"
+    // Unassigned state — dashed "Assign" button
     return (
       <button
         onClick={() => setDialogOpen(true)}
         disabled={disabled || isLoading}
-        className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-dashed border-[var(--border)] hover:border-[var(--blue)] hover:text-[var(--blue)] text-[var(--text-secondary)] transition-colors disabled:opacity-50"
       >
-        <UserCircle className="h-3.5 w-3.5" />
-        <span>
-          {isLoading ? 'Loading...' : assignedTo ? (assignedDev?.displayName || assignedDev?.email || 'Assigned') : 'Assign'}
+        <UserPlus className="h-3.5 w-3.5 shrink-0" />
+        <span className="text-xs font-medium">
+          {isLoading ? 'Loading…' : 'Assign To Developer'}
         </span>
       </button>
     );
@@ -139,7 +146,10 @@ export function AssigneeSelector({
     <>
       <TriggerButton />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) onExternalOpenChange?.(false);
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Assign Ticket</DialogTitle>
@@ -159,19 +169,19 @@ export function AssigneeSelector({
               </div>
             )}
 
-            {/* No developers message */}
+            {/* No assignable members message */}
             {!isPrivateWorkspace && !isLoading && developers.length === 0 && !error && (
               <div className="text-center py-6">
                 <UserPlus className="h-10 w-10 text-[var(--blue)] mx-auto mb-3" />
                 <p className="text-sm text-[var(--text)]">
-                  No developers in your team yet
+                  No assignable members in your team yet
                 </p>
                 <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Invite team members with the developer role to enable assignment.
+                  Invite team members with admin or developer role to enable assignment.
                 </p>
                 {allMembers.length > 0 && (
                   <p className="text-xs text-[var(--text-tertiary)] mt-2">
-                    {allMembers.length} member{allMembers.length !== 1 ? 's' : ''} without developer role
+                    {allMembers.length} member{allMembers.length !== 1 ? 's' : ''} without assignable role
                   </p>
                 )}
               </div>
@@ -211,10 +221,11 @@ export function AssigneeSelector({
                       {(dev.displayName || dev.email || '?')[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{dev.displayName || dev.email}</p>
-                      {dev.displayName && (
-                        <p className="text-xs text-[var(--text-tertiary)] truncate">{dev.email}</p>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm truncate">{dev.displayName || dev.email}</p>
+                        <span className="text-xs text-[var(--text-tertiary)] capitalize">{dev.role}</span>
+                      </div>
+                      <p className="text-xs text-[var(--text-tertiary)] truncate">{dev.email}</p>
                     </div>
                     {dev.userId === assignedTo && (
                       <span className="text-xs text-[var(--blue)]">Current</span>

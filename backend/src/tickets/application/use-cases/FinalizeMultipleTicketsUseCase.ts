@@ -41,7 +41,7 @@ interface TicketFinalizationResult {
  * Command for finalization
  */
 export interface FinalizeMultipleCommand {
-  workspaceId: string;
+  teamId: string;
   answers: QuestionAnswer[];
   onProgress?: (event: EnrichmentProgressEvent) => void;
 }
@@ -79,7 +79,7 @@ export class FinalizeMultipleTicketsUseCase {
   async execute(command: FinalizeMultipleCommand): Promise<FinalizeMultipleResult> {
     this.logger.log(`⚙️ Starting parallel finalization of ${command.answers.length} answers`);
 
-    if (!command.workspaceId) {
+    if (!command.teamId) {
       throw new BadRequestException('Workspace ID is required');
     }
 
@@ -103,8 +103,8 @@ export class FinalizeMultipleTicketsUseCase {
         if (!ticket) {
           throw new BadRequestException(`Ticket "${id}" not found`);
         }
-        if (ticket.workspaceId !== command.workspaceId) {
-          throw new BadRequestException(`Ticket "${id}" does not belong to workspace "${command.workspaceId}"`);
+        if (ticket.teamId !== command.teamId) {
+          throw new BadRequestException(`Ticket "${id}" does not belong to workspace "${command.teamId}"`);
         }
         return { id, ticket };
       }),
@@ -206,7 +206,7 @@ export class FinalizeMultipleTicketsUseCase {
       // 4. Save the ticket with tech spec
       await this.submitQuestionAnswersUseCase.execute({
         aecId: ticketId,
-        workspaceId: ticket.workspaceId,
+        teamId: ticket.teamId,
         answers: answerRecord,
       });
 

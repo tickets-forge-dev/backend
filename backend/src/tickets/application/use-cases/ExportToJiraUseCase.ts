@@ -12,7 +12,7 @@ import { TechSpecSerializer } from '../services/TechSpecSerializer';
 
 interface ExportToJiraCommand {
   aecId: string;
-  workspaceId: string;
+  teamId: string;
   userId: string;
   projectKey: string;
   sections?: string[];
@@ -44,7 +44,7 @@ export class ExportToJiraUseCase {
 
   async execute(command: ExportToJiraCommand): Promise<{ issueId: string; issueKey: string; issueUrl: string }> {
     const aec = await this.aecRepository.findById(command.aecId);
-    if (!aec || aec.workspaceId !== command.workspaceId) {
+    if (!aec || aec.teamId !== command.teamId) {
       throw new Error('Ticket not found');
     }
 
@@ -54,7 +54,7 @@ export class ExportToJiraUseCase {
 
     const integration = await this.jiraIntegrationRepo.findByUserAndWorkspace(
       command.userId,
-      command.workspaceId,
+      command.teamId,
     );
     if (!integration) {
       throw new Error('Jira not connected. Connect Jira in Settings.');

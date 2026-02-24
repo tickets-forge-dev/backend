@@ -81,14 +81,15 @@ export function Stage1Input() {
   }, []);
 
   // Sync tickets store repository selection to wizard store
+  // Fires when: (a) user picks a different repo, (b) reset() clears wizard values
   React.useEffect(() => {
     if (selectedRepository) {
       const [owner, name] = selectedRepository.split('/');
-      if (owner && name) {
+      if (owner && name && (input.repoOwner !== owner || input.repoName !== name)) {
         setRepository(owner, name);
       }
     }
-  }, [selectedRepository, setRepository]);
+  }, [selectedRepository, input.repoOwner, input.repoName, setRepository]);
 
   // Form validation (AC#1: Repository optional when includeRepository is false)
   const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
@@ -209,7 +210,7 @@ export function Stage1Input() {
           <MarkdownInput
             value={input.title}
             onChange={handleTitleChange}
-            placeholder="Add user authentication with Zustand (supports **bold**, *italic*, `code`)"
+            placeholder="e.g. As a user, I want to reset my password so that I can regain access to my account if I forget it."
             maxLength={500}
             rows={3}
             autoFocus={true}

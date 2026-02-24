@@ -10,8 +10,8 @@ import { TechSpecMarkdownGenerator } from '../services/TechSpecMarkdownGenerator
 
 interface ExportToLinearCommand {
   aecId: string;
-  workspaceId: string;
-  teamId: string;
+  forgeTeamId: string;   // Forge team ID (for AEC ownership + integration lookup)
+  linearTeamId: string;  // Linear team ID (export destination)
 }
 
 // Map Forge priority to Linear priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)
@@ -38,7 +38,7 @@ export class ExportToLinearUseCase {
 
   async execute(command: ExportToLinearCommand): Promise<{ issueId: string; issueUrl: string; identifier: string }> {
     const aec = await this.aecRepository.findById(command.aecId);
-    if (!aec || aec.workspaceId !== command.workspaceId) {
+    if (!aec || aec.teamId !== command.forgeTeamId) {
       throw new Error('Ticket not found');
     }
 
@@ -46,7 +46,7 @@ export class ExportToLinearUseCase {
       throw new Error('Ticket has no tech spec. Generate a spec first.');
     }
 
-    const integration = await this.linearIntegrationRepo.findByWorkspaceId(command.workspaceId);
+    const integration = await this.linearIntegrationRepo.findByWorkspaceId(command.forgeTeamId);
     if (!integration) {
       throw new Error('Linear not connected. Connect Linear in Settings.');
     }
@@ -78,7 +78,7 @@ export class ExportToLinearUseCase {
 
     // Create new issue
     const issue = await this.apiClient.createIssue(accessToken, {
-      teamId: command.teamId,
+      teamId: command.linearTeamId,
       title: aec.title,
       description,
       priority,

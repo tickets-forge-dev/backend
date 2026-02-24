@@ -71,7 +71,7 @@ export class ValidationEngine {
     const summary = this.getValidationSummary(results);
     const metric: ValidationMetric = {
       aecId: aec.id,
-      workspaceId: aec.workspaceId,
+      workspaceId: aec.teamId,
       timestamp: new Date(),
       overallScore: summary.overallScore,
       passed: summary.passed,

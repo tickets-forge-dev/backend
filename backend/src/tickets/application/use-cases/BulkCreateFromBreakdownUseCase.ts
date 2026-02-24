@@ -27,7 +27,7 @@ export interface BreakdownTicketToCreate {
  * Command for bulk creation
  */
 export interface BulkCreateCommand {
-  workspaceId: string;
+  teamId: string;
   userEmail: string;
   userId: string; // Firebase UID for workspace ownership verification
   tickets: BreakdownTicketToCreate[];
@@ -87,9 +87,9 @@ export class BulkCreateFromBreakdownUseCase {
     );
 
     // CRITICAL FIX #3: Verify workspace isolation
-    const workspace = await this.workspaceRepository.findById(command.workspaceId);
+    const workspace = await this.workspaceRepository.findById(command.teamId);
     if (!workspace) {
-      throw new BadRequestException(`Workspace "${command.workspaceId}" not found`);
+      throw new BadRequestException(`Workspace "${command.teamId}" not found`);
     }
 
     if (workspace.ownerId !== command.userId) {
@@ -115,7 +115,7 @@ export class BulkCreateFromBreakdownUseCase {
       const ticket = command.tickets[i];
       try {
         const aec = await this.createTicketUseCase.execute({
-          workspaceId: command.workspaceId,
+          teamId: command.teamId,
           userId: command.userId,
           userEmail: command.userEmail,
           title: ticket.title,

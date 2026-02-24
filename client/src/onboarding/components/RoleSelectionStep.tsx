@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 
@@ -42,7 +42,14 @@ const roleOptions: RoleOption[] = [
 
 export function RoleSelectionStep() {
   const router = useRouter();
-  const { selectRole } = useOnboardingStore();
+  const { selectRole, resumeFromStorage, currentState } = useOnboardingStore();
+
+  // Restore state from localStorage on mount (handles page refresh)
+  useEffect(() => {
+    if (currentState !== 'team_created') {
+      resumeFromStorage();
+    }
+  }, []);
 
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,30 +76,6 @@ export function RoleSelectionStep() {
       selectRole(selectedRole);
 
       console.log('✅ [RoleSelectionStep] Role selected:', selectedRole);
-
-      // Save role to backend (update team member record)
-      const { auth } = await import('@/lib/firebase');
-      const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken();
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-
-        const response = await fetch(`${apiUrl}/teams/me/member/role`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ role: selectedRole }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to update role');
-        }
-
-        console.log('✅ [RoleSelectionStep] Role saved to backend:', selectedRole);
-      }
 
       // Conditional routing based on role
       if (selectedRole === 'developer') {

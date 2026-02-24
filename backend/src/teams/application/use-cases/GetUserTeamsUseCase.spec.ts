@@ -28,7 +28,11 @@ describe('GetUserTeamsUseCase', () => {
       getByEmail: jest.fn(),
     } as any;
 
-    useCase = new GetUserTeamsUseCase(mockTeamRepository, mockUserRepository);
+    const mockSyncUserTeamsUseCase = {
+      execute: jest.fn().mockResolvedValue(undefined),
+    };
+
+    useCase = new GetUserTeamsUseCase(mockTeamRepository, mockUserRepository, mockSyncUserTeamsUseCase as any);
   });
 
   describe('Happy Path', () => {
@@ -91,6 +95,8 @@ describe('GetUserTeamsUseCase', () => {
       const user = User.create(userId, 'test@example.com', 'Test User');
 
       mockUserRepository.getById.mockResolvedValue(user);
+      // Self-healing path: getByOwnerId called to check for orphaned owned teams
+      mockTeamRepository.getByOwnerId.mockResolvedValue([]);
 
       // When
       const result = await useCase.execute({ userId });
@@ -128,14 +134,16 @@ describe('GetUserTeamsUseCase', () => {
   });
 
   describe('Error Cases', () => {
-    it('should throw error if user not found', async () => {
-      // Given
+    it('should return empty teams if user not found (race condition with auth/init)', async () => {
+      // Given: user exists in Firebase Auth but Firestore doc not created yet
       mockUserRepository.getById.mockResolvedValue(null);
 
-      // When/Then
-      await expect(
-        useCase.execute({ userId: 'nonexistent-user' })
-      ).rejects.toThrow('User nonexistent-user not found');
+      // When
+      const result = await useCase.execute({ userId: 'nonexistent-user' });
+
+      // Then: returns empty gracefully instead of throwing
+      expect(result.teams).toHaveLength(0);
+      expect(result.currentTeamId).toBeNull();
     });
 
     it('should handle team not found gracefully', async () => {

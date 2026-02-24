@@ -72,6 +72,7 @@ Avoid extra visual containers.
 - **Theme colors must stay comfortable**: dark mode text is soft white (#e8e8e8), not harsh (#fafafa)
 - **Scrollbars are 8px thin rounded**, not default browser ugly scrollbars
 - **Sidebar is structural**: if navigation changes, sidebar state MUST be persisted in `useUIStore`
+- **Border token rule**: ALL card/grid/container borders MUST use `border border-[var(--border-subtle)]` — never use hardcoded `border-white/[0.XX]` or `border-[var(--border)]/30`. The `--border-subtle` token is `rgba(255,255,255,0.06)` in dark mode and `rgba(0,0,0,0.08)` in light mode — a consistent hairline that works across themes.
 
 **Design System Components (Protected):**
 - `client/src/core/components/sidebar/Sidebar.tsx` - Main navigation

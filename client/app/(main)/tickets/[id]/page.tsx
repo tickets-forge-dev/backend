@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye, ExternalLink, Upload } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye, ExternalLink, Upload, UserPlus } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -20,6 +20,7 @@ import { useServices } from '@/services/index';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
+import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
 import { toast } from 'sonner';
 
 interface TicketDetailPageProps {
@@ -31,6 +32,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState<string | null>(null);
+  const [needsAssignWarning, setNeedsAssignWarning] = useState(false);
+  const [forceAssignOpen, setForceAssignOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [editContext, setEditContext] = useState<{ section: string; index: number } | null>(null);
@@ -675,17 +679,38 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   };
 
 
-  const handleToggleStatus = async () => {
+  const handleMarkAsReady = async () => {
     if (!ticketId) return;
-    const newStatus = currentTicket.status === 'complete' ? 'draft' : 'complete';
-    const success = await updateTicket(ticketId, { status: newStatus });
+    const success = await updateTicket(ticketId, { status: 'ready' });
     if (success) {
       setShowStatusConfirm(false);
     }
   };
 
-  const isComplete = currentTicket.status === 'complete';
-  const canToggleStatus = currentTicket.status === 'draft' || currentTicket.status === 'complete';
+  const handleStatusTransition = (status: string) => {
+    if (!ticketId) return;
+    if (status === 'validated') {
+      // Re-fetch fresh ticket to get latest assignedTo
+      const fresh = useTicketsStore.getState().currentTicket;
+      console.log('[lifecycle] assignedTo =', JSON.stringify(fresh?.assignedTo));
+      setNeedsAssignWarning(!fresh?.assignedTo);
+    } else {
+      setNeedsAssignWarning(false);
+    }
+    setPendingTransition(status);
+  };
+
+  const confirmTransition = async () => {
+    if (!ticketId || !pendingTransition) return;
+    const label = getStatusLabel(pendingTransition);
+    setPendingTransition(null);
+    const success = await updateTicket(ticketId, { status: pendingTransition });
+    if (success) {
+      toast.success(`Ticket moved to ${label}`);
+    } else {
+      toast.error(`Failed to move ticket to ${label}`);
+    }
+  };
 
   const handleOpenExport = async () => {
     setShowExportDialog(true);
@@ -793,29 +818,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Tickets
           </Button>
-          
-          {/* Type badge */}
-          {currentTicket.type && (
-            <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
-              {currentTicket.type === 'bug' ? <Bug className="h-3 w-3 text-red-500" />
-                : currentTicket.type === 'task' ? <ClipboardList className="h-3 w-3 text-blue-500" />
-                : <Lightbulb className="h-3 w-3 text-amber-500" />}
-              {currentTicket.type}
-            </Badge>
-          )}
-
-          {/* Priority badge */}
-          {currentTicket.priority && (
-            <Badge variant="outline" className="capitalize gap-1.5 py-0.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${
-                currentTicket.priority === 'urgent' ? 'bg-red-500'
-                  : currentTicket.priority === 'high' ? 'bg-orange-500'
-                  : currentTicket.priority === 'medium' ? 'bg-yellow-500'
-                  : 'bg-green-500'
-              }`} />
-              {currentTicket.priority}
-            </Badge>
-          )}
 
           {/* No code analysis indicator */}
           {!currentTicket.repositoryContext && (
@@ -845,7 +847,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
-      {/* Hero Header — Title + Quality + Status */}
+      {/* Hero Header — Title */}
       <div className="flex items-start gap-4 py-2">
         {/* Title - editable with max 2 lines, full width */}
         <div className="flex-1 min-w-0">
@@ -901,56 +903,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             </div>
           )}
         </div>
-
-        {/* Quality score */}
-        {techSpec?.qualityScore !== undefined && (
-          <div className="relative group flex-shrink-0">
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-white cursor-default ${
-              techSpec.qualityScore >= 75
-                ? 'bg-green-500'
-                : techSpec.qualityScore >= 50
-                ? 'bg-amber-500'
-                : 'bg-red-500'
-            }`}>
-              {techSpec.qualityScore}/100
-            </span>
-            {qualityTips.length > 0 && (
-              <div className="absolute right-0 top-full mt-2 w-64 p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <p className="text-[11px] font-medium text-[var(--text)] mb-2">
-                  To improve your score:
-                </p>
-                <ul className="space-y-1">
-                  {qualityTips.slice(0, 5).map((tip, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--text-secondary)]">
-                      <span className="text-amber-500 mt-px">*</span>
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Status button */}
-        {canToggleStatus && (
-          <button
-            onClick={() => setShowStatusConfirm(true)}
-            className={`
-              inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border relative group
-              ${isComplete
-                ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/20 hover:border-green-500/30'
-                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-tertiary)]'
-              }
-            `}
-          >
-            {isComplete && <CheckCircle className="h-3.5 w-3.5" />}
-            <span>{isComplete ? 'Complete' : 'Draft'}</span>
-            <span className="absolute -bottom-5 right-0 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity whitespace-nowrap">
-              Click to {isComplete ? 'revert' : 'complete'}
-            </span>
-          </button>
-        )}
       </div>
 
       {/* Full title (shown when title is long and would be truncated) */}
@@ -967,16 +919,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       <TicketDetailLayout
         ticket={currentTicket}
         ticketId={ticketId}
-        descriptionDraft={descriptionDraft}
-        onDescriptionChange={(value) => {
-          setDescriptionDraft(value);
-          setIsDescriptionDirty(value !== (currentTicket?.description || ''));
-        }}
-        onDescriptionSave={handleSaveDescription}
-        isSavingDescription={isSavingDescription}
-        isDescriptionDirty={isDescriptionDirty}
-        onDescriptionExpand={() => { setDescriptionExpanded(true); setDescriptionMode('edit'); }}
         onAssignTicket={handleAssignTicket}
+        qualityScore={techSpec?.qualityScore}
         onEditItem={openEdit}
         onDeleteItem={deleteTechSpecItem}
         onSaveAcceptanceCriteria={handleSaveAcceptanceCriteria}
@@ -996,7 +940,52 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onRefreshDesignReference={handleRefreshDesignReference}
         saveTechSpecPatch={saveTechSpecPatch}
         fetchTicket={fetchTicket}
+        onStatusTransition={handleStatusTransition}
+        assignDialogOpen={forceAssignOpen}
+        onAssignDialogOpenChange={setForceAssignOpen}
       />
+
+      {/* Notes Section - at bottom */}
+      <div className="pt-4 border-t border-[var(--border)]">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-[var(--text)]">Notes</h3>
+          <div className="flex items-center gap-1">
+            {isDescriptionDirty && (
+              <span className="text-[10px] text-[var(--text-tertiary)] mr-2">Unsaved</span>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!isDescriptionDirty || isSavingDescription}
+              onClick={handleSaveDescription}
+              className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+            >
+              {isSavingDescription ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Save className="h-3 w-3 mr-1" />
+              )}
+              Save
+            </Button>
+          </div>
+        </div>
+        <textarea
+          value={descriptionDraft}
+          onChange={(e) => {
+            setDescriptionDraft(e.target.value);
+            setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              if (isDescriptionDirty) handleSaveDescription();
+            }
+          }}
+          placeholder="Add notes... (supports Markdown)"
+          rows={3}
+          className="w-full bg-[var(--bg-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed rounded-lg px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 transition-colors resize-y"
+        />
+      </div>
 
       {/* Footer with actions */}
       <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
@@ -1022,17 +1011,59 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
-      {/* Status Toggle Confirmation Dialog */}
-      <Dialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
+      {/* Lifecycle Transition Confirmation Dialog */}
+      <Dialog open={!!pendingTransition} onOpenChange={(open) => { if (!open) { setPendingTransition(null); setNeedsAssignWarning(false); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {isComplete ? 'Revert to Draft?' : 'Mark as Complete?'}
+              {needsAssignWarning ? (
+                <span className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  No Developer Assigned
+                </span>
+              ) : (
+                <>Move to {getStatusLabel(pendingTransition ?? '')}?</>
+              )}
             </DialogTitle>
+            <DialogDescription>
+              {needsAssignWarning
+                ? 'Dev-Refine requires a developer to review and refine the spec. No developer is currently assigned to this ticket.'
+                : `This will move the ticket from ${getStatusLabel(currentTicket.status)} to ${getStatusLabel(pendingTransition ?? '')}.`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPendingTransition(null); setNeedsAssignWarning(false); }}>
+              Cancel
+            </Button>
+            {needsAssignWarning && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPendingTransition(null);
+                  setNeedsAssignWarning(false);
+                  setForceAssignOpen(true);
+                }}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign
+              </Button>
+            )}
+            <Button onClick={confirmTransition} disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {needsAssignWarning ? 'Move Anyway' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark as Ready Confirmation Dialog */}
+      <Dialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark as Ready?</DialogTitle>
             <DialogDescription className="text-[var(--text-base)]">
-              {isComplete
-                ? 'This will move the ticket back to draft status for further editing.'
-                : 'This will mark the ticket as complete. You can revert it to draft later if needed.'}
+              This will mark the ticket as Ready for developer review. The developer can then pick it up via the CLI.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -1044,18 +1075,16 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <Button variant="outline" onClick={() => setShowStatusConfirm(false)} disabled={isUpdating}>
               Cancel
             </Button>
-            <Button onClick={handleToggleStatus} disabled={isUpdating}>
+            <Button onClick={handleMarkAsReady} disabled={isUpdating}>
               {isUpdating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Updating...
                 </>
-              ) : isComplete ? (
-                'Revert to Draft'
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Mark Complete
+                  Mark as Ready
                 </>
               )}
             </Button>

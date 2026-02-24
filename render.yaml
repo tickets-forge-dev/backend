@@ -37,3 +37,9 @@ services:
         sync: false
       - key: SESSION_SECRET
         sync: false
+      # CLI Device Flow auth — required for POST /api/auth/device/token and /api/auth/refresh
+      - key: FIREBASE_WEB_API_KEY
+        sync: false
+      # Public app URL shown to CLI users (verificationUri in device flow response)
+      - key: APP_URL
+        sync: false
