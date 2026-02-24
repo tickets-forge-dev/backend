@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound } from '@/types/question-refinement';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useTeamStore } from '@/teams/stores/team.store';
 import { auth } from '@/lib/firebase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -73,6 +74,11 @@ async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   if (user) {
     const token = await user.getIdToken();
     headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const teamId = useTeamStore.getState().currentTeam?.id;
+  if (teamId) {
+    headers['x-team-id'] = teamId;
   }
 
   return fetch(`${API_URL}${path}`, { ...init, headers });
@@ -717,7 +723,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, currentPhase: 'preparing', loadingMessage: 'Creating ticket...', progressPercent: 0 });
 
     try {
       // Build request body (only include repository fields if we have a repository)
@@ -770,7 +776,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           set({
             draftAecId: aec.id,
             spec: finalizedAec.techSpec,
-            currentStage: 4,
+            currentStage: 3,
             loading: false,
             loadingMessage: null,
           });
@@ -1363,6 +1369,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     localStorage.removeItem('wizard-draft-aec-id');
     localStorage.removeItem('wizard-question-rounds');
     localStorage.removeItem('wizard-current-round');
+    localStorage.removeItem('wizard-clarification-questions');
+    localStorage.removeItem('wizard-question-answers');
     localStorage.removeItem(WIZARD_STORAGE_KEY);
 
     set({
@@ -1371,6 +1379,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         title: '',
         repoOwner: '',
         repoName: '',
+        description: undefined,
+        branch: undefined,
       },
       type: 'feature',
       priority: 'low',
@@ -1379,7 +1389,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       spec: null,
       answers: {},
       pendingFiles: [],
+      pendingDesignLinks: [],
       draftAecId: null,
+      clarificationQuestions: [],
+      questionAnswers: {},
       questionRounds: [],
       currentRound: 0,
       maxRounds: 3,

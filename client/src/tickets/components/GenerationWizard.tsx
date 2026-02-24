@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo } from '@/tickets/stores/generation-wizard.store';
 import { Stage1Input } from './wizard/Stage1Input';
 import { Stage3Draft } from './wizard/Stage3Draft';
-import { Stage4Review } from './wizard/Stage4Review';
 import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
 import { FirstTicketCelebrationDialog } from '@/core/components/celebration/FirstTicketCelebrationDialog';
@@ -14,11 +13,9 @@ import { Button } from '@/core/components/ui/button';
 /**
  * GenerationWizard Container Component
  *
- * Orchestrates the 4-stage ticket generation wizard:
+ * Orchestrates the ticket generation wizard:
  * 1. Input: User enters title and selects repository
- * 2. Context: Reviews detected stack, patterns, and files
- * 3. Draft: Reviews generated spec and answers clarification questions
- * 4. Review: Final review before ticket creation
+ * 3. Draft: Answers clarification questions, reviews generated spec, and shows unified summary
  *
  * Manages:
  * - Conditional rendering of stages
@@ -189,11 +186,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {/* Stage 1: Input */}
         {currentStage === 1 && <Stage1Input />}
 
-        {/* Stage 3: Draft Review & Questions (Stage 2 context review removed) */}
+        {/* Stage 3: Draft Review, Questions & Unified Summary */}
         {currentStage === 3 && <Stage3Draft />}
-
-        {/* Stage 4: Final Review & Create */}
-        {currentStage === 4 && <Stage4Review />}
       </div>
 
       {/* Analysis Progress Dialog */}

@@ -17,6 +17,7 @@ export const DEFAULT_TICKET_LIMIT = 3;
 
 export interface CreateTicketCommand {
   teamId: string;
+  workspaceId?: string; // Workspace ID for integration lookups (ws_*)
   userId: string; // Creator's Firebase UID
   userEmail: string;
   title: string;
@@ -51,11 +52,11 @@ export class CreateTicketUseCase {
     // Build repository context if repository info provided
     let repositoryContext: RepositoryContext | undefined;
 
-    if (command.repositoryFullName && command.branchName) {
+    if (command.repositoryFullName && command.branchName && command.workspaceId) {
       // Try to fetch GitHub access token from OAuth integration
-      // If not available, we'll use on-demand code scanning with env token instead
+      // Uses workspaceId (ws_*) — not teamId — to look up the integration
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(
-        command.teamId,
+        command.workspaceId,
       );
 
       if (integration) {

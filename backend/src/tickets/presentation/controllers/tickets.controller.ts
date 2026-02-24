@@ -45,6 +45,7 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
 import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
+import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
 import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
@@ -153,6 +154,7 @@ export class TicketsController {
   @Post('analyze-repo')
   async analyzeRepository(
     @TeamId() teamId: string,
+    @WorkspaceId() workspaceId: string,
     @Body() dto: AnalyzeRepositoryDto,
     @Res() res: Response,
   ) {
@@ -190,7 +192,7 @@ export class TicketsController {
       // 1. Auth: fetch integration, decrypt token, create Octokit
       send({ phase: 'connecting', message: 'Connecting to GitHub...', percent: 5 });
 
-      const integration = await this.githubIntegrationRepository.findByWorkspaceId(teamId);
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
       if (!integration) {
         throw new BadRequestException(
           'GitHub not connected. Please connect GitHub in Settings first.',
@@ -307,6 +309,7 @@ export class TicketsController {
   @HttpCode(HttpStatus.CREATED)
   async createTicket(
     @TeamId() teamId: string,
+    @WorkspaceId() workspaceId: string,
     @UserEmail() userEmail: string,
     @UserId() userId: string,
     @Body() dto: CreateTicketDto,
@@ -317,6 +320,7 @@ export class TicketsController {
 
       const aec = await this.createTicketUseCase.execute({
         teamId,
+        workspaceId,
         userId,
         userEmail,
         title: dto.title,
@@ -613,7 +617,7 @@ export class TicketsController {
    * Resolves per-user GitHub token (same pattern as analyzeRepository).
    */
   @Post(':id(aec_[a-f0-9\\-]+)/detect-apis')
-  async detectApis(@TeamId() teamId: string, @Param('id') id: string) {
+  async detectApis(@TeamId() teamId: string, @WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.aecRepository.findByIdInTeam(id, teamId);
     if (!aec) {
       throw new BadRequestException('Ticket not found');
@@ -633,7 +637,7 @@ export class TicketsController {
 
     try {
       // Resolve per-user GitHub token (same as analyzeRepository)
-      const integration = await this.githubIntegrationRepository.findByWorkspaceId(teamId);
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
       if (!integration) {
         throw new BadRequestException(
           'GitHub not connected. Please connect GitHub in Settings first.',

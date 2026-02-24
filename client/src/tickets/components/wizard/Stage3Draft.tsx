@@ -5,46 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Button } from '@/core/components/ui/button';
 import { Card } from '@/core/components/ui/card';
-import { AlertTriangle, Loader2, CheckCircle2, ChevronLeft, Check } from 'lucide-react';
+import {
+  AlertTriangle,
+  Loader2,
+  CheckCircle2,
+  ChevronLeft,
+  Check,
+  FileCode2,
+  Lightbulb,
+  ListChecks,
+  Layers,
+  ArrowRight,
+  Plus,
+  FlaskConical,
+} from 'lucide-react';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
 import { SpecGenerationProgressDialog } from './SpecGenerationProgressDialog';
-
-/** Recursively extract the first meaningful string from a deeply nested object */
-function extractText(value: unknown, maxDepth = 5): string {
-  if (!value) return '';
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    // If it looks like JSON, parse and try to extract readable text
-    if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && maxDepth > 0) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        const result = extractText(parsed, maxDepth - 1);
-        if (result.length > 10) return result;
-      } catch { /* not JSON */ }
-      // JSON string but nothing readable extracted — don't return raw JSON
-      return '';
-    }
-    return value;
-  }
-  if (maxDepth <= 0) return '';
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    for (const key of ['narrative', 'description', 'summary', 'overview', 'problem', 'text', 'whyItMatters', 'context']) {
-      if (typeof obj[key] === 'string' && (obj[key] as string).length > 10) return obj[key] as string;
-    }
-    for (const key of Object.keys(obj)) {
-      const result = extractText(obj[key], maxDepth - 1);
-      if (result.length > 10) return result;
-    }
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const result = extractText(item, maxDepth - 1);
-      if (result.length > 10) return result;
-    }
-  }
-  return '';
-}
 
 /** Extract readable solution text */
 function extractSolutionText(sol: unknown): string {
@@ -54,9 +30,25 @@ function extractSolutionText(sol: unknown): string {
   if (typeof sol === 'object' && sol !== null) {
     const obj = sol as Record<string, unknown>;
     if (typeof obj.overview === 'string') return obj.overview;
-    return extractText(sol);
+    if (Array.isArray(obj.steps)) {
+      return obj.steps
+        .map((s: any) => (typeof s === 'string' ? s : s?.description || ''))
+        .filter(Boolean)
+        .join('\n');
+    }
   }
   return '';
+}
+
+/** Count solution steps */
+function countSolutionSteps(sol: unknown): number {
+  if (!sol) return 0;
+  if (Array.isArray(sol)) return sol.length;
+  if (typeof sol === 'object' && sol !== null) {
+    const obj = sol as Record<string, unknown>;
+    if (Array.isArray(obj.steps)) return obj.steps.length;
+  }
+  return 0;
 }
 
 /**
@@ -67,7 +59,7 @@ function extractSolutionText(sol: unknown): string {
  * 2. Generate up to 5 clarification questions
  * 3. Show ONE question at a time with LLM options + "type your own"
  * 4. After all questions → auto-submit → finalize
- * 5. Show spec summary → "Continue to Review"
+ * 5. Show unified summary with actions (merged Stage 3 + Stage 4)
  */
 export function Stage3Draft() {
   const router = useRouter();
@@ -80,17 +72,19 @@ export function Stage3Draft() {
     error,
     goBackToInput,
     confirmContextContinue,
-    confirmSpecContinue,
     generateQuestions,
     submitQuestionAnswers,
     answerQuestion,
     setError,
+    reset,
+    input,
   } = useWizardStore();
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [customAnswer, setCustomAnswer] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const initRef = useRef(false);
   const autoSubmitRef = useRef(false);
 
@@ -104,25 +98,31 @@ export function Stage3Draft() {
 
     const init = async () => {
       try {
-        // Create draft AEC if we don't have one yet
-        if (!draftAecId) {
+        const storeState = useWizardStore.getState();
+
+        // Read fresh store state (not stale closure) to decide if draft exists
+        if (!storeState.draftAecId) {
           await confirmContextContinue();
-          // Check if draft was created (confirmContextContinue sets draftAecId in store)
           const newState = useWizardStore.getState();
           if (!newState.draftAecId) {
             // confirmContextContinue set an error in the store — don't proceed
             return;
           }
+          // Auto-finalize path (maxRounds=0) may have already set spec — skip questions
+          if (newState.spec) {
+            return;
+          }
         }
-        // Generate questions
         await generateQuestions();
       } catch (err) {
+        console.error('[Stage3Draft init] Error:', err);
         setLocalError(err instanceof Error ? err.message : 'Failed to initialize');
       }
     };
 
     init();
-  }, [draftAecId, clarificationQuestions.length, spec, confirmContextContinue, generateQuestions]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftAecId, clarificationQuestions.length, spec, confirmContextContinue, generateQuestions, retryCount]);
 
   // Auto-submit after all questions are answered
   const answeredCount = clarificationQuestions.filter(
@@ -133,11 +133,16 @@ export function Stage3Draft() {
   useEffect(() => {
     if (allAnswered && !autoSubmitRef.current && !spec && roundStatus === 'idle') {
       autoSubmitRef.current = true;
-      submitQuestionAnswers().catch((err) => {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to finalize';
-        setLocalError(errorMsg);
-        setError(errorMsg);
-      });
+      // Small delay so the "all answered" UI renders before the submit overlay kicks in
+      const timer = setTimeout(() => {
+        submitQuestionAnswers().catch((err) => {
+          const errorMsg = err instanceof Error ? err.message : 'Failed to finalize';
+          setLocalError(errorMsg);
+          setError(errorMsg);
+          autoSubmitRef.current = false; // Allow retry
+        });
+      }, 600);
+      return () => clearTimeout(timer);
     }
   }, [allAnswered, spec, roundStatus, submitQuestionAnswers, setError]);
 
@@ -224,15 +229,53 @@ export function Stage3Draft() {
   if (!draftAecId) {
     return (
       <div className="space-y-6">
-        <div className="text-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Creating ticket draft...
-          </p>
-        </div>
+        {(error || localError) ? (
+          <div className="text-center py-12 space-y-4">
+            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto" />
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {error || localError}
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button variant="outline" size="sm" onClick={goBackToInput}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setLocalError(null);
+                  setError(null);
+                  initRef.current = false;
+                  setRetryCount((c) => c + 1);
+                }}
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Creating ticket draft...
+            </p>
+          </div>
+        )}
       </div>
     );
   }
+
+  // Derive spec stats
+  const fileChangesCount = spec?.fileChanges?.length ?? 0;
+  const acCount = spec?.acceptanceCriteria?.length ?? 0;
+  const solutionSteps = countSolutionSteps(spec?.solution);
+  const testCount =
+    (spec?.testPlan?.unitTests?.length ?? 0) +
+    (spec?.testPlan?.integrationTests?.length ?? 0) +
+    (spec?.testPlan?.edgeCases?.length ?? 0);
+  const apiCount = spec?.apiChanges?.endpoints?.length ?? 0;
+  const ps = spec?.problemStatement ? normalizeProblemStatement(spec.problemStatement) : null;
+  const solutionText = extractSolutionText(spec?.solution);
 
   return (
     <div className="space-y-8">
@@ -250,82 +293,173 @@ export function Stage3Draft() {
         </Card>
       )}
 
-      {/* Spec Summary (shown after finalization) */}
+      {/* ─── Unified Summary (replaces Stage 3 spec view + Stage 4) ─── */}
       {spec && (
         <>
-          <div className="text-center">
-            <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 mx-auto mb-3" />
-            <h2 className="text-xl font-medium text-gray-900 dark:text-gray-50 mb-1">
-              Specification Ready
+          {/* Success Header */}
+          <div className="text-center pt-2">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/10 mb-4">
+              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-[var(--text)] mb-1">
+              Ticket Ready
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Your technical specification has been generated.
+            <p className="text-sm text-[var(--text-secondary)]">
+              {input.title}
             </p>
           </div>
 
-          <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-gray-900 dark:text-gray-50">
-                Generated Specification
-              </h3>
-              {spec.qualityScore !== undefined && (
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Quality: {Math.round(spec.qualityScore)}/100
-                </span>
-              )}
-            </div>
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Quality', value: spec.qualityScore !== undefined ? `${Math.round(spec.qualityScore)}%` : '—', color: (spec.qualityScore ?? 0) >= 75 ? 'text-green-600 dark:text-green-400' : (spec.qualityScore ?? 0) >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400' },
+              { label: 'Files', value: fileChangesCount, color: 'text-blue-600 dark:text-blue-400' },
+              { label: 'Criteria', value: acCount, color: 'text-purple-600 dark:text-purple-400' },
+              { label: 'Tests', value: testCount, color: 'text-cyan-600 dark:text-cyan-400' },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3 text-center">
+                <p className={`text-lg font-semibold ${stat.color}`}>{stat.value}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{stat.label}</p>
+              </div>
+            ))}
+          </div>
 
+          {/* Content Sections */}
+          <div className="space-y-4">
             {/* Problem Statement */}
-            {spec.problemStatement && (() => {
-              const ps = normalizeProblemStatement(spec.problemStatement);
-              return ps.narrative ? (
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Problem</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {ps.narrative}
-                  </p>
+            {ps?.narrative && (
+              <div className="rounded-lg border border-[var(--border-subtle)] p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="h-4 w-4 text-amber-500" />
+                  <h3 className="text-sm font-medium text-[var(--text)]">Problem</h3>
                 </div>
-              ) : null;
-            })()}
-
-            {/* Solution */}
-            {spec.solution && (
-              <div className="space-y-1 pt-3 border-t border-gray-200 dark:border-gray-800">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Solution</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">
-                  {extractSolutionText(spec.solution)}
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-3">
+                  {ps.narrative}
                 </p>
               </div>
             )}
 
-            {/* File Changes Count */}
-            {spec.fileChanges && Array.isArray(spec.fileChanges) && spec.fileChanges.length > 0 && (
-              <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {spec.fileChanges.length} file change{spec.fileChanges.length !== 1 ? 's' : ''} identified
+            {/* Solution */}
+            {solutionText && (
+              <div className="rounded-lg border border-[var(--border-subtle)] p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Layers className="h-4 w-4 text-blue-500" />
+                  <h3 className="text-sm font-medium text-[var(--text)]">Solution</h3>
+                  {solutionSteps > 0 && (
+                    <span className="text-[11px] text-[var(--text-tertiary)]">
+                      {solutionSteps} step{solutionSteps !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-3 whitespace-pre-line">
+                  {solutionText}
                 </p>
+              </div>
+            )}
+
+            {/* File Changes + API + Tests — compact row */}
+            {(fileChangesCount > 0 || apiCount > 0 || testCount > 0) && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {fileChangesCount > 0 && (
+                  <div className="rounded-lg border border-[var(--border-subtle)] p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <FileCode2 className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="text-xs font-medium text-[var(--text)]">File Changes</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {spec.fileChanges!.slice(0, 3).map((f: any, i: number) => (
+                        <p key={i} className="text-[11px] text-[var(--text-tertiary)] font-mono truncate">
+                          {f.path}
+                        </p>
+                      ))}
+                      {fileChangesCount > 3 && (
+                        <p className="text-[11px] text-[var(--text-tertiary)]">
+                          +{fileChangesCount - 3} more
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {apiCount > 0 && (
+                  <div className="rounded-lg border border-[var(--border-subtle)] p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Layers className="h-3.5 w-3.5 text-green-500" />
+                      <span className="text-xs font-medium text-[var(--text)]">API Endpoints</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {spec.apiChanges!.endpoints!.slice(0, 3).map((ep: any, i: number) => (
+                        <p key={i} className="text-[11px] text-[var(--text-tertiary)] font-mono truncate">
+                          <span className="text-blue-500">{ep.method}</span> {ep.route}
+                        </p>
+                      ))}
+                      {apiCount > 3 && (
+                        <p className="text-[11px] text-[var(--text-tertiary)]">
+                          +{apiCount - 3} more
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {testCount > 0 && (
+                  <div className="rounded-lg border border-[var(--border-subtle)] p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <FlaskConical className="h-3.5 w-3.5 text-cyan-500" />
+                      <span className="text-xs font-medium text-[var(--text)]">Test Plan</span>
+                    </div>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">
+                      {spec.testPlan?.unitTests?.length ?? 0} unit, {spec.testPlan?.integrationTests?.length ?? 0} integration, {spec.testPlan?.edgeCases?.length ?? 0} edge cases
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Acceptance Criteria */}
+            {acCount > 0 && (
+              <div className="rounded-lg border border-[var(--border-subtle)] p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ListChecks className="h-4 w-4 text-purple-500" />
+                  <h3 className="text-sm font-medium text-[var(--text)]">Acceptance Criteria</h3>
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{acCount}</span>
+                </div>
+                <div className="space-y-1">
+                  {spec.acceptanceCriteria!.slice(0, 4).map((ac: any, i: number) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <Check className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                      <p className="text-[12px] text-[var(--text-secondary)] leading-snug">
+                        {typeof ac === 'string'
+                          ? ac
+                          : ac.given
+                            ? `Given ${ac.given}, when ${ac.when}, then ${ac.then}`
+                            : JSON.stringify(ac)
+                        }
+                      </p>
+                    </div>
+                  ))}
+                  {acCount > 4 && (
+                    <p className="text-[11px] text-[var(--text-tertiary)] ml-5">
+                      +{acCount - 4} more criteria
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Actions after finalization */}
-          <div className="flex gap-3 justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
-            <Button variant="outline" onClick={goBackToInput}>
-              Start Over
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
+            <Button variant="outline" onClick={reset}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Another
             </Button>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (draftAecId) router.push(`/tickets/${draftAecId}`);
-                }}
-              >
-                View Full Ticket
-              </Button>
-              <Button onClick={confirmSpecContinue}>
-                Continue to Review
-              </Button>
-            </div>
+            <Button
+              onClick={() => {
+                if (draftAecId) router.push(`/tickets/${draftAecId}`);
+              }}
+            >
+              View Ticket
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
         </>
       )}
@@ -337,8 +471,32 @@ export function Stage3Draft() {
         isGenerating={isGenerating}
       />
 
-      {/* One-at-a-Time Question Flow */}
-      {!spec && !isGenerating && !isSubmitting && currentQuestion && (
+      {/* All questions answered — transitioning to spec generation */}
+      {!spec && !isGenerating && !isSubmitting && allAnswered && clarificationQuestions.length > 0 && (
+        <div className="text-center py-12 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+          <p className="text-sm text-[var(--text-secondary)]">
+            Generating your specification...
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              autoSubmitRef.current = false;
+              submitQuestionAnswers().catch((err) => {
+                const errorMsg = err instanceof Error ? err.message : 'Failed to finalize';
+                setLocalError(errorMsg);
+                setError(errorMsg);
+              });
+            }}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* One-at-a-Time Question Flow (only when NOT all answered) */}
+      {!spec && !isGenerating && !isSubmitting && !allAnswered && currentQuestion && (
         <>
           {/* Progress Bar */}
           <div className="space-y-2">
