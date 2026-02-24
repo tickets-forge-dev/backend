@@ -25,7 +25,6 @@ interface TicketDetailLayoutProps {
   // Story 3.5-5: Assignment
   onAssignTicket: (userId: string | null) => Promise<boolean>;
   qualityScore?: number;
-  onMarkAsReady?: () => void;
   // Edit callbacks
   onEditItem: (section: string, index: number) => void;
   onDeleteItem: (section: string, index: number) => void;
@@ -51,6 +50,11 @@ interface TicketDetailLayoutProps {
   // Tech spec patch
   saveTechSpecPatch: (patch: Record<string, any>) => Promise<boolean | undefined>;
   fetchTicket: (id: string) => Promise<void>;
+  // Lifecycle transitions
+  onStatusTransition?: (status: string) => void;
+  // Assign dialog control (for lifecycle warning)
+  assignDialogOpen?: boolean;
+  onAssignDialogOpenChange?: (open: boolean) => void;
 }
 
 export function TicketDetailLayout({
@@ -58,7 +62,6 @@ export function TicketDetailLayout({
   ticketId,
   onAssignTicket,
   qualityScore,
-  onMarkAsReady,
   onEditItem,
   onDeleteItem,
   onSaveAcceptanceCriteria,
@@ -78,6 +81,9 @@ export function TicketDetailLayout({
   onRefreshDesignReference,
   saveTechSpecPatch,
   fetchTicket,
+  onStatusTransition,
+  assignDialogOpen,
+  onAssignDialogOpenChange,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -192,7 +198,9 @@ export function TicketDetailLayout({
           ticket={ticket}
           onAssignTicket={onAssignTicket}
           qualityScore={qualityScore}
-          onMarkAsReady={onMarkAsReady}
+          onTransition={onStatusTransition}
+          assignDialogOpen={assignDialogOpen}
+          onAssignDialogOpenChange={onAssignDialogOpenChange}
         />
 
         {/* Pending Questions */}
@@ -335,7 +343,9 @@ export function TicketDetailLayout({
         ticket={ticket}
         onAssignTicket={onAssignTicket}
         qualityScore={qualityScore}
-        onMarkAsReady={onMarkAsReady}
+        onTransition={onStatusTransition}
+        assignDialogOpen={assignDialogOpen}
+        onAssignDialogOpenChange={onAssignDialogOpenChange}
       />
 
       {/* Review Session Q&A (Story 6-12 / 7-6) — shown above tabs when present */}

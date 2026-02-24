@@ -66,6 +66,29 @@ export class UpdateAECUseCase {
   private transitionStatus(aec: AEC, targetStatus: AECStatus): void {
     if (aec.status === targetStatus) return;
 
+    // Determine if this is a backward transition
+    const lifecycleOrder: Record<string, number> = {
+      [AECStatus.DRAFT]: 0,
+      [AECStatus.VALIDATED]: 1,
+      [AECStatus.WAITING_FOR_APPROVAL]: 2,
+      [AECStatus.READY]: 3,
+      [AECStatus.CREATED]: 3,
+      [AECStatus.DRIFTED]: 3,
+    };
+
+    const currentLevel = lifecycleOrder[aec.status];
+    const targetLevel = lifecycleOrder[targetStatus];
+
+    // If both statuses are in the lifecycle and target is behind current, use sendBack
+    if (
+      currentLevel !== undefined &&
+      targetLevel !== undefined &&
+      targetLevel < currentLevel
+    ) {
+      aec.sendBack(targetStatus);
+      return;
+    }
+
     switch (targetStatus) {
       case AECStatus.DRAFT:
         aec.revertToDraft();
@@ -75,6 +98,10 @@ export class UpdateAECUseCase {
         break;
       case AECStatus.VALIDATED:
         aec.validate(this.createAutoPassValidation());
+        break;
+      case AECStatus.WAITING_FOR_APPROVAL:
+        // Forward: submit an empty review session to transition
+        aec.submitReviewSession([]);
         break;
       case AECStatus.READY:
         // If draft, validate first then mark ready

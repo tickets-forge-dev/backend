@@ -266,7 +266,8 @@ export function ImageAttachmentsGrid({
           {canUpload && !isActivelyUploading && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg border border-dashed border-[var(--text-tertiary)]/25 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 hover:border-[var(--text-tertiary)]/35 transition-all overflow-hidden cursor-pointer group"
+              className="rounded-lg bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 transition-all overflow-hidden cursor-pointer group"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='8' ry='8' stroke='rgba(136,136,136,0.25)' stroke-width='3' stroke-dasharray='6%2c 14' stroke-linecap='round'/%3e%3c/svg%3e")` }}
             >
               <div className="aspect-square flex flex-col items-center justify-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-[var(--primary)]/15 group-hover:bg-[var(--primary)]/25 flex items-center justify-center transition-colors">

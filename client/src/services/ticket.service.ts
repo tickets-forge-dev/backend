@@ -127,7 +127,7 @@ export class TicketService {
 
   async update(
     id: string,
-    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'ready' | 'complete'; techSpec?: Record<string, any> },
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: string; techSpec?: Record<string, any> },
   ): Promise<AECResponse> {
     const response = await this.client.patch<AECResponse>(
       `/tickets/${id}`,

@@ -17,18 +17,28 @@ interface AssigneeSelectorProps {
   assignedTo: string | null;
   onAssign: (userId: string | null) => Promise<boolean>;
   disabled?: boolean;
+  /** Controlled open state — lets parent open the dialog programmatically */
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 export function AssigneeSelector({
   assignedTo,
   onAssign,
   disabled = false,
+  externalOpen,
+  onExternalOpenChange,
 }: AssigneeSelectorProps) {
   const [developers, setDevelopers] = useState<TeamMember[]>([]);
   const [allMembers, setAllMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Sync external open state
+  useEffect(() => {
+    if (externalOpen) setDialogOpen(true);
+  }, [externalOpen]);
   const [isAssigning, setIsAssigning] = useState(false);
   
   // Get current team from team store
@@ -126,7 +136,7 @@ export function AssigneeSelector({
       >
         <UserPlus className="h-3.5 w-3.5 shrink-0" />
         <span className="text-xs font-medium">
-          {isLoading ? 'Loading…' : 'Assign'}
+          {isLoading ? 'Loading…' : 'Assign To Developer'}
         </span>
       </button>
     );
@@ -136,7 +146,10 @@ export function AssigneeSelector({
     <>
       <TriggerButton />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) onExternalOpenChange?.(false);
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Assign Ticket</DialogTitle>

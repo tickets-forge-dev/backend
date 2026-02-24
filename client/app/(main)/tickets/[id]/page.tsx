@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye, ExternalLink, Upload } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye, ExternalLink, Upload, UserPlus } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -20,6 +20,7 @@ import { useServices } from '@/services/index';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
+import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
 import { toast } from 'sonner';
 
 interface TicketDetailPageProps {
@@ -31,6 +32,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState<string | null>(null);
+  const [needsAssignWarning, setNeedsAssignWarning] = useState(false);
+  const [forceAssignOpen, setForceAssignOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [editContext, setEditContext] = useState<{ section: string; index: number } | null>(null);
@@ -683,6 +687,31 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     }
   };
 
+  const handleStatusTransition = (status: string) => {
+    if (!ticketId) return;
+    if (status === 'validated') {
+      // Re-fetch fresh ticket to get latest assignedTo
+      const fresh = useTicketsStore.getState().currentTicket;
+      console.log('[lifecycle] assignedTo =', JSON.stringify(fresh?.assignedTo));
+      setNeedsAssignWarning(!fresh?.assignedTo);
+    } else {
+      setNeedsAssignWarning(false);
+    }
+    setPendingTransition(status);
+  };
+
+  const confirmTransition = async () => {
+    if (!ticketId || !pendingTransition) return;
+    const label = getStatusLabel(pendingTransition);
+    setPendingTransition(null);
+    const success = await updateTicket(ticketId, { status: pendingTransition });
+    if (success) {
+      toast.success(`Ticket moved to ${label}`);
+    } else {
+      toast.error(`Failed to move ticket to ${label}`);
+    }
+  };
+
   const handleOpenExport = async () => {
     setShowExportDialog(true);
     setSelectedTeamId('');
@@ -892,7 +921,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         ticketId={ticketId}
         onAssignTicket={handleAssignTicket}
         qualityScore={techSpec?.qualityScore}
-        onMarkAsReady={currentTicket.status === 'draft' ? () => setShowStatusConfirm(true) : undefined}
         onEditItem={openEdit}
         onDeleteItem={deleteTechSpecItem}
         onSaveAcceptanceCriteria={handleSaveAcceptanceCriteria}
@@ -912,6 +940,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onRefreshDesignReference={handleRefreshDesignReference}
         saveTechSpecPatch={saveTechSpecPatch}
         fetchTicket={fetchTicket}
+        onStatusTransition={handleStatusTransition}
+        assignDialogOpen={forceAssignOpen}
+        onAssignDialogOpenChange={setForceAssignOpen}
       />
 
       {/* Notes Section - at bottom */}
@@ -979,6 +1010,52 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           </a>
         )}
       </div>
+
+      {/* Lifecycle Transition Confirmation Dialog */}
+      <Dialog open={!!pendingTransition} onOpenChange={(open) => { if (!open) { setPendingTransition(null); setNeedsAssignWarning(false); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {needsAssignWarning ? (
+                <span className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  No Developer Assigned
+                </span>
+              ) : (
+                <>Move to {getStatusLabel(pendingTransition ?? '')}?</>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {needsAssignWarning
+                ? 'Dev-Refine requires a developer to review and refine the spec. No developer is currently assigned to this ticket.'
+                : `This will move the ticket from ${getStatusLabel(currentTicket.status)} to ${getStatusLabel(pendingTransition ?? '')}.`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPendingTransition(null); setNeedsAssignWarning(false); }}>
+              Cancel
+            </Button>
+            {needsAssignWarning && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPendingTransition(null);
+                  setNeedsAssignWarning(false);
+                  setForceAssignOpen(true);
+                }}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign
+              </Button>
+            )}
+            <Button onClick={confirmTransition} disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {needsAssignWarning ? 'Move Anyway' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Mark as Ready Confirmation Dialog */}
       <Dialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>

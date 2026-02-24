@@ -2,10 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { HelpCircle } from 'lucide-react';
 import { LIFECYCLE_STEPS, EXECUTE_STATUSES, TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
 
-function LifecyclePanel({ currentStatus }: { currentStatus: string }) {
+function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string; onTransition?: (status: string) => void }) {
+  // Always 4 fixed steps. Drifted/created/complete all map to the "Execute" step.
+  const currentIdx = LIFECYCLE_STEPS.findIndex(
+    (s) => s.key === currentStatus || (s.key === 'ready' && EXECUTE_STATUSES.has(currentStatus)),
+  );
+
   return (
     <div className="w-72 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] shadow-lg p-3">
       <p className="text-xs font-semibold text-[var(--text)] mb-3">Ticket Lifecycle</p>
@@ -17,6 +21,9 @@ function LifecyclePanel({ currentStatus }: { currentStatus: string }) {
             (step.key === 'ready' && EXECUTE_STATUSES.has(currentStatus));
           const isLast = i === LIFECYCLE_STEPS.length - 1;
           const statusCfg = TICKET_STATUS_CONFIG[step.key];
+          const isClickable = onTransition && !isCurrent;
+          const isBefore = currentIdx >= 0 && i < currentIdx;
+          const isAfter = currentIdx >= 0 && i > currentIdx;
 
           return (
             <div key={step.key} className="flex gap-2.5">
@@ -40,16 +47,30 @@ function LifecyclePanel({ currentStatus }: { currentStatus: string }) {
 
               {/* Content */}
               <div className={`pb-3 -mt-0.5 ${isLast ? 'pb-0' : ''}`}>
-                <span
-                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium leading-none ${
-                    isCurrent
-                      ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold'
-                      : statusCfg?.badgeClass ?? 'text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {step.label}
-                </span>
-                <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
+                {isClickable ? (
+                  <button
+                    onClick={() => onTransition(step.key)}
+                    className={`group/step inline-flex items-center gap-1.5 px-2 py-1 -mx-0.5 rounded-md text-[11px] font-medium leading-none transition-all cursor-pointer border border-transparent ${
+                      isBefore
+                        ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
+                        : 'text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/20'
+                    }`}
+                  >
+                    {isBefore ? '\u2190' : '\u2192'}
+                    {step.label}
+                  </button>
+                ) : (
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium leading-none ${
+                      isCurrent
+                        ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold'
+                        : statusCfg?.badgeClass ?? 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                )}
+                <p className={`text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug ${isClickable ? 'ml-0.5' : ''}`}>
                   {step.description}
                 </p>
                 {step.note && (
@@ -66,20 +87,20 @@ function LifecyclePanel({ currentStatus }: { currentStatus: string }) {
   );
 }
 
-/* ── Click trigger (icon button) — used in OverviewCard ── */
+/* ── Props ── */
 
 interface ClickProps {
   currentStatus: string;
   trigger?: 'click';
-  children?: never;
+  children: ReactNode;
+  onTransition?: (status: string) => void;
 }
-
-/* ── Hover trigger (wraps children) — used in ticket grid ── */
 
 interface HoverProps {
   currentStatus: string;
   trigger: 'hover';
   children: ReactNode;
+  onTransition?: never;
 }
 
 type TicketLifecycleInfoProps = ClickProps | HoverProps;
@@ -91,12 +112,16 @@ export function TicketLifecycleInfo(props: TicketLifecycleInfoProps) {
     return <HoverLifecycle currentStatus={currentStatus}>{props.children}</HoverLifecycle>;
   }
 
-  return <ClickLifecycle currentStatus={currentStatus} />;
+  return (
+    <ClickLifecycle currentStatus={currentStatus} onTransition={props.onTransition}>
+      {props.children}
+    </ClickLifecycle>
+  );
 }
 
-/* ── Click variant ── */
+/* ── Click variant — wraps children (the badge), click to open lifecycle panel ── */
 
-function ClickLifecycle({ currentStatus }: { currentStatus: string }) {
+function ClickLifecycle({ currentStatus, onTransition, children }: { currentStatus: string; onTransition?: (status: string) => void; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -117,22 +142,22 @@ function ClickLifecycle({ currentStatus }: { currentStatus: string }) {
     <div ref={containerRef} className="relative inline-flex items-center">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-        aria-label="Ticket lifecycle info"
+        className="appearance-none bg-transparent border-none p-0 m-0"
+        aria-label="Ticket lifecycle"
       >
-        <HelpCircle className="h-3.5 w-3.5" />
+        {children}
       </button>
 
       {open && (
         <div className="absolute right-0 top-full mt-2 z-50">
-          <LifecyclePanel currentStatus={currentStatus} />
+          <LifecyclePanel currentStatus={currentStatus} onTransition={onTransition} />
         </div>
       )}
     </div>
   );
 }
 
-/* ── Hover variant ── */
+/* ── Hover variant — used in ticket grid (read-only) ── */
 
 function HoverLifecycle({ currentStatus, children }: { currentStatus: string; children: ReactNode }) {
   const [visible, setVisible] = useState(false);
@@ -152,6 +177,7 @@ function HoverLifecycle({ currentStatus, children }: { currentStatus: string; ch
   }, []);
 
   const hide = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => setVisible(false), 150);
   }, []);
 

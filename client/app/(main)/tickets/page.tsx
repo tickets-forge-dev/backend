@@ -429,9 +429,9 @@ function StatusCell({ ticket }: { ticket: any }) {
   const map: Record<string, { dot: string; label: string; text: string }> = {
     complete:             { dot: 'bg-green-500',  label: 'Done',           text: 'text-green-500'  },
     ready:                { dot: 'bg-green-500',  label: 'Execute',        text: 'text-green-500'  },
-    'waiting-for-approval':{ dot: 'bg-amber-500', label: 'Approve',        text: 'text-amber-500'  },
+    'waiting-for-approval':{ dot: 'bg-amber-500', label: 'Approve (PM)',    text: 'text-amber-500'  },
     created:              { dot: 'bg-purple-500', label: 'Exported',       text: 'text-purple-500' },
-    draft:                { dot: 'bg-[var(--text-tertiary)]/50', label: 'Write', text: 'text-[var(--text-tertiary)]' },
+    draft:                { dot: 'bg-[var(--text-tertiary)]/50', label: 'Define', text: 'text-[var(--text-tertiary)]' },
     validated:            { dot: 'bg-purple-500', label: 'Dev-Refine',     text: 'text-purple-500' },
   };
   const cfg = map[ticket.status] ?? map.draft;
@@ -570,10 +570,10 @@ function getLifecycleInfo(ticket: any): { label: string; colorClass: string; dot
   const map: Record<string, { label: string; colorClass: string; dot: string; next: string }> = {
     complete:              { label: 'Done',              colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
     ready:                 { label: 'Execute',           colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Run forge execute to implement' },
-    'waiting-for-approval':{ label: 'Approve',           colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'PM needs to review and approve' },
+    'waiting-for-approval':{ label: 'Approve (PM)',       colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'PM needs to review and approve' },
     created:               { label: 'Exported',          colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Review and merge the implementation' },
     validated:             { label: 'Dev-Refine',        colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Developer reviews and refines the spec' },
-    draft:                 { label: 'Write',             colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: 'Complete the ticket enrichment flow' },
+    draft:                 { label: 'Define',            colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: 'Complete the ticket enrichment flow' },
   };
   return map[ticket.status] ?? { label: 'Unknown', colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: '' };
 }

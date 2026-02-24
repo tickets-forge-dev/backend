@@ -328,6 +328,53 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Move the ticket backward in the lifecycle.
+   * Lifecycle order: draft(0) → validated(1) → waiting-for-approval(2) → ready(3)
+   * Statuses 'created' and 'drifted' map to the same level as 'ready' (3).
+   */
+  sendBack(targetStatus: AECStatus): void {
+    const lifecycleOrder: Record<string, number> = {
+      [AECStatus.DRAFT]: 0,
+      [AECStatus.VALIDATED]: 1,
+      [AECStatus.WAITING_FOR_APPROVAL]: 2,
+      [AECStatus.READY]: 3,
+      [AECStatus.CREATED]: 3,
+      [AECStatus.DRIFTED]: 3,
+    };
+
+    const currentLevel = lifecycleOrder[this._status];
+    const targetLevel = lifecycleOrder[targetStatus];
+
+    if (currentLevel === undefined || targetLevel === undefined) {
+      throw new InvalidStateTransitionError(
+        `Cannot send back from ${this._status} to ${targetStatus}`,
+      );
+    }
+
+    if (targetLevel >= currentLevel) {
+      throw new InvalidStateTransitionError(
+        `Cannot send back to ${targetStatus} — it is not before ${this._status}`,
+      );
+    }
+
+    // Clear data depending on how far back we go
+    if (targetLevel <= 0) {
+      // Reverting to draft: clear validation and snapshot
+      this._validationResults = [];
+      this._readinessScore = 0;
+      this._codeSnapshot = null;
+      this._apiSnapshot = null;
+    } else if (targetLevel <= 1) {
+      // Reverting to validated: keep validation, clear snapshot
+      this._codeSnapshot = null;
+      this._apiSnapshot = null;
+    }
+
+    this._status = targetStatus;
+    this._updatedAt = new Date();
+  }
+
   detectDrift(_reason: string): void {
     if (![AECStatus.READY, AECStatus.CREATED].includes(this._status)) {
       return;
