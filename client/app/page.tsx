@@ -141,7 +141,7 @@ export default function LandingPage() {
                 <div className="px-5 pb-6 pt-2 border-t border-[var(--border-subtle)]">
                   <h3 className="font-semibold text-lg mb-2">Web App</h3>
                   <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                    Product managers create tickets, add context, review answers, and approve — all from the browser.
+                    Create tickets, add context, review answers, and approve — all from the browser. For PMs, QA, and anyone on the team.
                   </p>
                 </div>
               </div>
