@@ -16,7 +16,6 @@ import { CODEBASE_ANALYZER } from '../ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../ports/ProjectStackDetectorPort';
 import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
 import { TeamMemberRepository } from '../../../teams/application/ports/TeamMemberRepository';
-import { Role } from '../../../teams/domain/Role';
 
 export interface ReEnrichWithQACommand {
   ticketId: string;

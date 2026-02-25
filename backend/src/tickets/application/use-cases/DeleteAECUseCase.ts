@@ -1,4 +1,4 @@
-import { Inject, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 
 @Injectable()
