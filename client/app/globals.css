@@ -509,3 +509,52 @@ input[type="checkbox"]:checked:hover {
 .animate-fade-in {
   animation: fadeIn 150ms ease-in-out;
 }
+
+/* Forge ember particles — pixelated fire sprinkles */
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-120px) translateX(var(--ember-drift));
+    opacity: 0;
+  }
+}
+
+@keyframes ember-rise-slow {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  60% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-90px) translateX(var(--ember-drift));
+    opacity: 0;
+  }
+}
+
+.ember-particle {
+  position: absolute;
+  bottom: 0;
+  image-rendering: pixelated;
+  animation: ember-rise var(--ember-duration) var(--ember-delay) infinite;
+}
+
+.ember-particle-slow {
+  position: absolute;
+  bottom: 0;
+  image-rendering: pixelated;
+  animation: ember-rise-slow var(--ember-duration) var(--ember-delay) infinite;
+}

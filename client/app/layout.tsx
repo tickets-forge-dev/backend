@@ -28,7 +28,7 @@ const unbounded = Unbounded({
 
 export const metadata: Metadata = {
   title: 'Forge',
-  description: 'Modern ticketing for teams that ship',
+  description: 'Stop shipping half-baked tickets. Forge turns ideas into verified execution contracts.',
   icons: {
     icon: '/forge-icon.png',
     shortcut: '/forge-icon.png',
