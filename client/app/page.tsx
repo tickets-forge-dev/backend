@@ -144,60 +144,73 @@ export default function LandingPage() {
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4">How it works</h2>
               <p className="text-[var(--text-secondary)]">From idea to shipped code — with a built-in feedback loop.</p>
-              <p className="text-[var(--text-secondary)] text-sm mt-2 opacity-60">Web = purple &amp; amber nodes &middot; CLI = blue &amp; green nodes</p>
             </div>
 
             {/* Flow Diagram */}
             <div className="relative">
               {/* Desktop Flow */}
               <div className="hidden md:block">
-                <svg viewBox="0 0 900 340" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-                  {/* Flow arrows: Create → Review */}
-                  <line x1="228" y1="90" x2="312" y2="90" stroke="#525252" strokeWidth="2" strokeDasharray="6 4" />
-                  <polygon points="310,85 320,90 310,95" fill="#525252" />
+                {/*
+                  Layout grid (viewBox 860x340):
+                  N1: rect(30,50,210,80)   right-center = (240,90)
+                  N2: rect(310,50,210,80)  left-center = (310,90)  bottom-center = (415,130)
+                  N3: rect(590,50,220,80)  left-center = (590,90)  bottom-center = (700,130)
+                  N4: rect(590,250,220,80) top-center = (700,250)
+                */}
+                <svg viewBox="0 0 860 350" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+                  <defs>
+                    <marker id="arrow-gray" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#525252" />
+                    </marker>
+                    <marker id="arrow-purple" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a855f7" />
+                    </marker>
+                    <marker id="arrow-green" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+                    </marker>
+                  </defs>
 
-                  {/* Flow arrows: Review → Approve */}
-                  <line x1="508" y1="90" x2="592" y2="90" stroke="#525252" strokeWidth="2" strokeDasharray="6 4" />
-                  <polygon points="590,85 600,90 590,95" fill="#525252" />
+                  {/* Arrow: N1 → N2 */}
+                  <line x1="240" y1="90" x2="310" y2="90" stroke="#525252" strokeWidth="2" markerEnd="url(#arrow-gray)" />
 
-                  {/* Flow arrows: Approve → Execute */}
-                  <line x1="788" y1="90" x2="810" y2="90" stroke="#525252" strokeWidth="2" />
-                  <line x1="810" y1="90" x2="810" y2="200" stroke="#525252" strokeWidth="2" />
-                  <line x1="810" y1="200" x2="720" y2="200" stroke="#525252" strokeWidth="2" />
-                  <polygon points="722,195 712,200 722,205" fill="#525252" />
+                  {/* Arrow: N2 → N3 */}
+                  <line x1="520" y1="90" x2="590" y2="90" stroke="#525252" strokeWidth="2" markerEnd="url(#arrow-gray)" />
 
-                  {/* Refinement loop: Approve back to Review */}
-                  <path d="M 600 130 L 600 170 Q 600 180 590 180 L 330 180 Q 320 180 320 170 L 320 130" stroke="#a855f7" strokeWidth="2" strokeDasharray="6 4" fill="none" />
-                  <polygon points="315,132 320,122 325,132" fill="#a855f7" />
-                  <text x="460" y="198" textAnchor="middle" fill="#a855f7" fontSize="12" fontFamily="system-ui">needs more context</text>
+                  {/* Arrow: N3 → N4 (approved) */}
+                  <line x1="700" y1="130" x2="700" y2="250" stroke="#10b981" strokeWidth="2" markerEnd="url(#arrow-green)" />
+                  <text x="722" y="195" fill="#10b981" fontSize="11" fontFamily="system-ui">approved</text>
+
+                  {/* Loop: N3 bottom → back to N2 bottom (needs more context) */}
+                  <path d="M 640 130 L 640 190 Q 640 200 630 200 L 425 200 Q 415 200 415 190 L 415 130" stroke="#a855f7" strokeWidth="2" strokeDasharray="6 4" fill="none" markerEnd="url(#arrow-purple)" />
+                  <text x="527" y="220" textAnchor="middle" fill="#a855f7" fontSize="11" fontFamily="system-ui">needs more context</text>
 
                   {/* Node 1: PM Creates + AI Enriches */}
-                  <rect x="20" y="50" width="208" height="80" rx="16" fill="#18181b" stroke="#7c3aed" strokeWidth="1.5" />
-                  <text x="124" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">PM Creates</text>
-                  <text x="124" y="104" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">AI enriches automatically</text>
-                  <circle cx="210" cy="52" r="12" fill="#7c3aed" />
-                  <text x="210" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
+                  <rect x="30" y="50" width="210" height="80" rx="16" fill="#18181b" stroke="#7c3aed" strokeWidth="1.5" />
+                  <text x="135" y="84" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">PM Creates</text>
+                  <text x="135" y="106" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">AI enriches automatically</text>
+                  <circle cx="222" cy="52" r="12" fill="#7c3aed" />
+                  <text x="222" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
 
                   {/* Node 2: Dev Reviews */}
-                  <rect x="320" y="50" width="188" height="80" rx="16" fill="#18181b" stroke="#3b82f6" strokeWidth="1.5" />
-                  <text x="414" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev Reviews</text>
-                  <text x="414" y="104" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">AI asks clarifying questions</text>
-                  <circle cx="490" cy="52" r="12" fill="#3b82f6" />
-                  <text x="490" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">CLI</text>
+                  <rect x="310" y="50" width="210" height="80" rx="16" fill="#18181b" stroke="#3b82f6" strokeWidth="1.5" />
+                  <text x="415" y="84" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev Reviews</text>
+                  <text x="415" y="106" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">AI asks clarifying questions</text>
+                  <circle cx="502" cy="52" r="12" fill="#3b82f6" />
+                  <text x="502" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">CLI</text>
 
                   {/* Node 3: PM Approves */}
-                  <rect x="600" y="50" width="188" height="80" rx="16" fill="#18181b" stroke="#f59e0b" strokeWidth="1.5" />
-                  <text x="694" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">PM Approves</text>
-                  <text x="694" y="104" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">Review &amp; sign off</text>
-                  <circle cx="770" cy="52" r="12" fill="#f59e0b" />
-                  <text x="770" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
+                  <rect x="590" y="50" width="220" height="80" rx="16" fill="#18181b" stroke="#f59e0b" strokeWidth="1.5" />
+                  <text x="700" y="84" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">PM Approves</text>
+                  <text x="700" y="106" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">Review &amp; sign off</text>
+                  <circle cx="792" cy="52" r="12" fill="#f59e0b" />
+                  <text x="792" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
 
                   {/* Node 4: Dev Executes */}
-                  <rect x="520" y="230" width="200" height="80" rx="16" fill="#18181b" stroke="#10b981" strokeWidth="2" />
-                  <text x="620" y="262" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev Executes</text>
-                  <text x="620" y="284" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">Full context via MCP. Ship it.</text>
-                  <circle cx="702" cy="232" r="12" fill="#10b981" />
-                  <text x="702" y="236" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">CLI</text>
+                  <rect x="590" y="250" width="220" height="80" rx="16" fill="#18181b" stroke="#10b981" strokeWidth="2" />
+                  <text x="700" y="284" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev Executes</text>
+                  <text x="700" y="306" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">Full context via MCP. Ship it.</text>
+                  <circle cx="792" cy="252" r="12" fill="#10b981" />
+                  <text x="792" y="256" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">CLI</text>
                 </svg>
               </div>
 
