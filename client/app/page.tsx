@@ -34,10 +34,10 @@ function PlugIcon() {
   );
 }
 
-function ArrowRightIcon() {
+function ArrowDownIcon() {
   return (
-    <svg className="w-6 h-6 text-[var(--text-secondary)] rotate-90 md:rotate-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+    <svg className="w-5 h-5 text-[#525252]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m0 0l-4-4m4 4l4-4" />
     </svg>
   );
 }
@@ -156,64 +156,101 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How It Works */}
+        {/* How It Works — Flow Diagram */}
         <section id="how-it-works" className="py-24 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4">How it works</h2>
-              <p className="text-[var(--text-secondary)]">One platform, three interfaces. PMs and developers finally in sync.</p>
+              <p className="text-[var(--text-secondary)]">From idea to shipped code — with a built-in feedback loop.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
-              {/* Connector Line (Desktop) */}
-              <div className="hidden md:block absolute top-12 left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-[var(--border-subtle)] via-[var(--primary)]/20 to-[var(--border-subtle)] -z-10" />
+            {/* Flow Diagram */}
+            <div className="relative">
+              {/* Desktop Flow */}
+              <div className="hidden md:block">
+                <svg viewBox="0 0 900 340" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+                  {/* Flow arrows: Create → Review */}
+                  <line x1="228" y1="90" x2="312" y2="90" stroke="#525252" strokeWidth="2" strokeDasharray="6 4" />
+                  <polygon points="310,85 320,90 310,95" fill="#525252" />
 
-              {/* Step 1 */}
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border-subtle)] shadow-sm flex items-center justify-center mb-6 relative z-10">
-                  <span className="text-3xl">1</span>
-                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs">PM</div>
-                </div>
-                <h3 className="font-semibold text-lg mb-2">PM Creates</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Product manager creates a ticket in the web UI — just the intent.
-                </p>
+                  {/* Flow arrows: Review → Approve */}
+                  <line x1="508" y1="90" x2="592" y2="90" stroke="#525252" strokeWidth="2" strokeDasharray="6 4" />
+                  <polygon points="590,85 600,90 590,95" fill="#525252" />
+
+                  {/* Flow arrows: Approve → Execute */}
+                  <line x1="788" y1="90" x2="810" y2="90" stroke="#525252" strokeWidth="2" />
+                  <line x1="810" y1="90" x2="810" y2="200" stroke="#525252" strokeWidth="2" />
+                  <line x1="810" y1="200" x2="720" y2="200" stroke="#525252" strokeWidth="2" />
+                  <polygon points="722,195 712,200 722,205" fill="#525252" />
+
+                  {/* Refinement loop: Approve back to Review */}
+                  <path d="M 600 130 L 600 170 Q 600 180 590 180 L 330 180 Q 320 180 320 170 L 320 130" stroke="#a855f7" strokeWidth="2" strokeDasharray="6 4" fill="none" />
+                  <polygon points="315,132 320,122 325,132" fill="#a855f7" />
+                  <text x="460" y="198" textAnchor="middle" fill="#a855f7" fontSize="12" fontFamily="system-ui">needs more context</text>
+
+                  {/* Node 1: PM Creates + AI Enriches */}
+                  <rect x="20" y="50" width="208" height="80" rx="16" fill="#18181b" stroke="#7c3aed" strokeWidth="1.5" />
+                  <text x="124" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">PM Creates</text>
+                  <text x="124" y="104" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">AI enriches automatically</text>
+                  <circle cx="210" cy="52" r="12" fill="#7c3aed" />
+                  <text x="210" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
+
+                  {/* Node 2: Dev Reviews */}
+                  <rect x="320" y="50" width="188" height="80" rx="16" fill="#18181b" stroke="#3b82f6" strokeWidth="1.5" />
+                  <text x="414" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev Reviews</text>
+                  <text x="414" y="104" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">AI asks clarifying questions</text>
+                  <circle cx="490" cy="52" r="12" fill="#3b82f6" />
+                  <text x="490" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">CLI</text>
+
+                  {/* Node 3: PM Approves */}
+                  <rect x="600" y="50" width="188" height="80" rx="16" fill="#18181b" stroke="#f59e0b" strokeWidth="1.5" />
+                  <text x="694" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">PM Approves</text>
+                  <text x="694" y="104" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">Review &amp; sign off</text>
+                  <circle cx="770" cy="52" r="12" fill="#f59e0b" />
+                  <text x="770" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
+
+                  {/* Node 4: Dev Executes */}
+                  <rect x="520" y="230" width="200" height="80" rx="16" fill="#18181b" stroke="#10b981" strokeWidth="2" />
+                  <text x="620" y="262" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev Executes</text>
+                  <text x="620" y="284" textAnchor="middle" fill="#a1a1aa" fontSize="12" fontFamily="system-ui">Full context via MCP. Ship it.</text>
+                  <circle cx="702" cy="232" r="12" fill="#10b981" />
+                  <text x="702" y="236" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">CLI</text>
+                </svg>
               </div>
 
-              {/* Step 2 */}
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border-subtle)] shadow-sm flex items-center justify-center mb-6 relative z-10">
-                  <span className="text-3xl">2</span>
-                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs">AI</div>
+              {/* Mobile Flow (vertical) */}
+              <div className="md:hidden flex flex-col items-center gap-3">
+                {/* Node 1 */}
+                <div className="w-full max-w-[300px] rounded-2xl border border-purple-500/50 bg-[#18181b] p-5 text-center relative">
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-[10px]">Web</div>
+                  <p className="font-semibold text-[15px] mb-1">PM Creates</p>
+                  <p className="text-[var(--text-secondary)] text-xs">AI enriches automatically</p>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">AI Enriches</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Forge generates specs, test plans, and implementation details automatically.
-                </p>
-              </div>
+                <ArrowDownIcon />
 
-              {/* Step 3 */}
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border-subtle)] shadow-sm flex items-center justify-center mb-6 relative z-10">
-                  <span className="text-3xl">3</span>
-                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs">Dev</div>
+                {/* Node 2 */}
+                <div className="w-full max-w-[300px] rounded-2xl border border-blue-500/50 bg-[#18181b] p-5 text-center relative">
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-[10px]">CLI</div>
+                  <p className="font-semibold text-[15px] mb-1">Dev Reviews</p>
+                  <p className="text-[var(--text-secondary)] text-xs">AI asks clarifying questions</p>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Dev Executes</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Developer&apos;s AI assistant gets full context via MCP. No copy-pasting.
-                </p>
-              </div>
+                <ArrowDownIcon />
 
-              {/* Step 4 */}
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-2xl bg-[var(--bg)] border border-[var(--border-subtle)] shadow-sm flex items-center justify-center mb-6 relative z-10">
-                  <span className="text-3xl">4</span>
-                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs">Ship</div>
+                {/* Node 3 + loop indicator */}
+                <div className="w-full max-w-[300px] rounded-2xl border border-amber-500/50 bg-[#18181b] p-5 text-center relative">
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-[10px]">Web</div>
+                  <p className="font-semibold text-[15px] mb-1">PM Approves</p>
+                  <p className="text-[var(--text-secondary)] text-xs">Review &amp; sign off</p>
+                  <p className="text-purple-400 text-[11px] mt-2">&#8635; needs more context? back to review</p>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Ship & Sync</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Status syncs to web UI. PM approves. Everyone stays aligned.
-                </p>
+                <ArrowDownIcon />
+
+                {/* Node 4 */}
+                <div className="w-full max-w-[300px] rounded-2xl border-2 border-green-500/50 bg-[#18181b] p-5 text-center relative">
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-[10px]">CLI</div>
+                  <p className="font-semibold text-[15px] mb-1">Dev Executes</p>
+                  <p className="text-[var(--text-secondary)] text-xs">Full context via MCP. Ship it.</p>
+                </div>
               </div>
             </div>
           </div>
