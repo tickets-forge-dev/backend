@@ -1,4 +1,4 @@
-import { AEC, type ReviewSession } from '../../../domain/aec/AEC';
+import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
