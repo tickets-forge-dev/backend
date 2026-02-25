@@ -64,8 +64,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg sm:text-xl text-[var(--text-secondary)] mb-12 max-w-2xl leading-relaxed mx-auto">
-            Web UI for product managers. CLI for developers.
-            AI enriches every ticket with implementation context automatically.
+            Tickets that actually help developers ship.
+            Built for teams that move fast.
           </p>
 
           {/* Video Placeholder */}
