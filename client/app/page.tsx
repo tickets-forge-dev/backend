@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { CopyCommand } from '@/core/components/CopyCommand';
 
 function PlayIcon() {
   return (
@@ -134,10 +135,11 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400 mb-5">
                   <TerminalIcon />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">CLI</h3>
+                <h3 className="font-semibold text-lg mb-2">CLI + MCP Server</h3>
                 <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
                   Stay in terminal. Pull tickets, update status, enrich with local codebase analysis.
                 </p>
+                <CopyCommand command="npm install -g forge-ai-cli" />
               </div>
 
               {/* MCP Server */}
