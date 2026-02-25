@@ -26,14 +26,6 @@ function TerminalIcon() {
   );
 }
 
-function PlugIcon() {
-  return (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-  );
-}
-
 function ArrowDownIcon() {
   return (
     <svg className="w-5 h-5 text-[#525252]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,7 +79,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg sm:text-xl text-[var(--text-secondary)] mb-12 max-w-2xl leading-relaxed mx-auto">
-            Web UI for product managers. CLI and MCP server for developers.
+            Web UI for product managers. CLI for developers.
             AI enriches every ticket with implementation context automatically.
           </p>
 
@@ -110,47 +102,37 @@ export default function LandingPage() {
           </Link>
         </section>
 
-        {/* Three Channels */}
+        {/* Two Interfaces */}
         <section className="py-24 border-b border-[var(--border-subtle)]">
-          <div className="container mx-auto px-4 max-w-5xl">
+          <div className="container mx-auto px-4 max-w-4xl">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">Three ways to use Forge</h2>
-              <p className="text-[var(--text-secondary)]">Pick the interface that fits how you work.</p>
+              <h2 className="text-3xl font-bold mb-4">Two interfaces, one platform</h2>
+              <p className="text-[var(--text-secondary)]">PMs work in the browser. Developers work in the terminal.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Web App */}
-              <div className="p-6 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Web App — PM */}
+              <div className="p-8 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left">
                 <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 mb-5">
                   <MonitorIcon />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Web App</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Clean UI for product managers. Create tickets, add context, track progress.
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-4">
+                  Product managers create tickets, add context, review answers, and approve — all from the browser.
                 </p>
+                <p className="text-purple-400 text-xs font-medium">forge-ai.dev</p>
               </div>
 
-              {/* CLI */}
-              <div className="p-6 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left">
+              {/* CLI — Developer */}
+              <div className="p-8 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left">
                 <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400 mb-5">
                   <TerminalIcon />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">CLI + MCP Server</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Stay in terminal. Pull tickets, update status, enrich with local codebase analysis.
+                <h3 className="font-semibold text-lg mb-2">CLI</h3>
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-4">
+                  Install, authenticate, and your AI coding assistant (Claude Code, Cursor, Windsurf) gets full ticket context via MCP.
                 </p>
-                <CopyCommand command="npm install -g forge-ai-cli" />
-              </div>
-
-              {/* MCP Server */}
-              <div className="p-6 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-5">
-                  <PlugIcon />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">MCP Server</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                  Your AI coding assistant (Cursor, Claude Code, Windsurf) gets full ticket context automatically.
-                </p>
+                <CopyCommand command="npm install -g @forge/cli" />
               </div>
             </div>
           </div>
@@ -162,6 +144,7 @@ export default function LandingPage() {
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4">How it works</h2>
               <p className="text-[var(--text-secondary)]">From idea to shipped code — with a built-in feedback loop.</p>
+              <p className="text-[var(--text-secondary)] text-sm mt-2 opacity-60">Web = purple &amp; amber nodes &middot; CLI = blue &amp; green nodes</p>
             </div>
 
             {/* Flow Diagram */}
