@@ -7,6 +7,7 @@ import { useUIStore } from '@/stores/ui.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
 import { Github, SearchCode, FileCheck2, ArrowRight, Rocket, Shield, ChevronDown, Trello, Video, Palette, Check } from 'lucide-react';
+import { ForgeBrand } from '@/core/components/ForgeBrand';
 
 const STEPS = [
   { id: 0, label: 'Welcome' },
@@ -147,11 +148,11 @@ export function OnboardingDialog() {
                   className="rounded-2xl"
                 />
               </div>
-              <h2 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mb-3">
-                Welcome to Forge
+              <h2 className="text-[22px] font-bold text-[var(--text)] tracking-tight mb-3">
+                Welcome to <ForgeBrand size="sm" />
               </h2>
               <p className="text-[14px] text-[var(--text-secondary)] max-w-[400px] mx-auto leading-relaxed">
-                Transform product intent into execution-ready engineering tickets.
+                Modern ticketing for teams that ship.
                 Let&apos;s get you set up in a few quick steps.
               </p>
             </div>

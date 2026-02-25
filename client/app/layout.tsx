@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Inter, JetBrains_Mono, Unbounded } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import { PostHogProvider } from '@/src/components/PostHogProvider';
@@ -19,9 +19,16 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
+const unbounded = Unbounded({
+  subsets: ['latin'],
+  variable: '--font-unbounded',
+  display: 'swap',
+  weight: ['700'],
+});
+
 export const metadata: Metadata = {
   title: 'Forge',
-  description: 'Transform product intent into execution-ready tickets',
+  description: 'Modern ticketing for teams that ship',
   icons: {
     icon: '/forge-icon.png',
     shortcut: '/forge-icon.png',
@@ -50,7 +57,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`preload ${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className={`preload ${inter.variable} ${jetbrainsMono.variable} ${unbounded.variable}`}>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
