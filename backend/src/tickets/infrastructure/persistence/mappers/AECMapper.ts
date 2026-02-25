@@ -46,7 +46,7 @@ export interface QuestionRoundDocument {
 
 export interface AECDocument {
   id: string;
-  workspaceId: string;
+  teamId: string;
   createdBy: string; // userId of ticket creator
   status: string;
   title: string;
@@ -77,6 +77,8 @@ export interface AECDocument {
   taskAnalysis?: any;
   attachments?: any[];
   designReferences?: any[];
+  assignedTo?: string | null; // Story 3.5-5: userId of assigned team member
+  reviewSession?: { qaItems: { question: string; answer: string }[]; submittedAt: Timestamp } | null; // Story 6-12
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -165,7 +167,7 @@ export class AECMapper {
 
     return AEC.reconstitute(
       doc.id,
-      doc.workspaceId,
+      doc.teamId,
       doc.createdBy || 'unknown', // Backward compatibility: fallback for old documents
       doc.status as AECStatus,
       doc.title,
@@ -198,6 +200,13 @@ export class AECMapper {
         uploadedAt: toDate(a.uploadedAt),
       })) as Attachment[],
       designReferences,
+      doc.assignedTo ?? null, // Story 3.5-5: backward compatible (null for old tickets)
+      doc.reviewSession
+        ? {
+            qaItems: doc.reviewSession.qaItems,
+            submittedAt: toDate(doc.reviewSession.submittedAt),
+          }
+        : null, // Story 6-12: backward compatible (null for old tickets)
     );
   }
 
@@ -215,7 +224,7 @@ export class AECMapper {
 
     return {
       id: aec.id,
-      workspaceId: aec.workspaceId,
+      teamId: aec.teamId,
       createdBy: aec.createdBy,
       status: aec.status,
       title: aec.title,
@@ -253,6 +262,13 @@ export class AECMapper {
         ...ref,
         addedAt: Timestamp.fromDate(ref.addedAt),
       })),
+      assignedTo: aec.assignedTo ?? null, // Story 3.5-5: AC#2
+      reviewSession: aec.reviewSession
+        ? {
+            qaItems: aec.reviewSession.qaItems,
+            submittedAt: Timestamp.fromDate(aec.reviewSession.submittedAt),
+          }
+        : null, // Story 6-12
     };
   }
 }

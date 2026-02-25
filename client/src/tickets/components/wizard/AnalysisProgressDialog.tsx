@@ -13,6 +13,7 @@ import {
   Loader2,
   Check,
 } from 'lucide-react';
+import { AnalysisLoaderMessages } from '../AnalysisLoaderMessages';
 
 /**
  * AnalysisProgressDialog - Real-time analysis progress visualization
@@ -31,6 +32,7 @@ interface AnalysisProgressDialogProps {
   currentPhase: string | null;
   message: string | null;
   percent: number;
+  hasRepository?: boolean; // Whether repository is being analyzed
 }
 
 interface PhaseConfig {
@@ -40,8 +42,8 @@ interface PhaseConfig {
   order: number;
 }
 
-// Phase configurations in order
-const ANALYSIS_PHASES: PhaseConfig[] = [
+// Phase configurations for repository analysis
+const REPO_PHASES: PhaseConfig[] = [
   { key: 'connecting', label: 'Connecting to GitHub', icon: Cloud, order: 1 },
   { key: 'fetching_tree', label: 'Fetching repository structure', icon: FolderTree, order: 2 },
   { key: 'reading_configs', label: 'Reading configuration files', icon: FileCode, order: 3 },
@@ -52,32 +54,48 @@ const ANALYSIS_PHASES: PhaseConfig[] = [
   { key: 'complete', label: 'Analysis complete', icon: CheckCircle2, order: 8 },
 ];
 
+// Phase configurations for non-repository tickets
+const NO_REPO_PHASES: PhaseConfig[] = [
+  { key: 'preparing', label: 'Preparing ticket', icon: FileText, order: 1 },
+  { key: 'analyzing', label: 'Analyzing requirements', icon: Brain, order: 2 },
+  { key: 'organizing', label: 'Organizing information', icon: Layers, order: 3 },
+  { key: 'complete', label: 'Setup complete', icon: CheckCircle2, order: 4 },
+];
+
 // Map backend phase names to our phase keys
-function normalizePhase(backendPhase: string | null): string | null {
+function normalizePhase(backendPhase: string | null, hasRepository: boolean): string | null {
   if (!backendPhase) return null;
 
-  // Exact matches
-  const phaseMap: Record<string, string> = {
-    'connecting': 'connecting',
-    'fetching_tree': 'fetching_tree',
-    'reading_configs': 'reading_configs',
-    'fingerprinting': 'fingerprinting',
-    'selecting_files': 'selecting_files',
-    'reading_files': 'reading_files',
-    'analyzing': 'analyzing',
-    'complete': 'complete',
-  };
+  // For repository analysis, use exact backend phases
+  if (hasRepository) {
+    const repoPhaseMap: Record<string, string> = {
+      'connecting': 'connecting',
+      'fetching_tree': 'fetching_tree',
+      'reading_configs': 'reading_configs',
+      'fingerprinting': 'fingerprinting',
+      'selecting_files': 'selecting_files',
+      'reading_files': 'reading_files',
+      'analyzing': 'analyzing',
+      'complete': 'complete',
+    };
+    return repoPhaseMap[backendPhase] || null;
+  }
 
-  return phaseMap[backendPhase] || null;
+  // For non-repository tickets, map backend 'complete' to our phases
+  if (backendPhase === 'complete') return 'complete';
+  // Default to 'preparing' for non-repo case
+  return 'preparing';
 }
 
 export function AnalysisProgressDialog({
   currentPhase,
   message,
   percent,
+  hasRepository = true, // Default to true for backward compatibility
 }: AnalysisProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const normalizedPhase = normalizePhase(currentPhase);
+  const PHASES = hasRepository ? REPO_PHASES : NO_REPO_PHASES;
+  const normalizedPhase = normalizePhase(currentPhase, hasRepository);
   const activePhaseRef = useRef<HTMLDivElement>(null);
 
   // Elapsed time counter
@@ -103,8 +121,8 @@ export function AnalysisProgressDialog({
   const getPhaseStatus = (phaseKey: string): 'pending' | 'in_progress' | 'complete' => {
     if (phaseKey === normalizedPhase) return 'in_progress';
 
-    const currentPhaseOrder = ANALYSIS_PHASES.find((p) => p.key === normalizedPhase)?.order ?? 0;
-    const phaseOrder = ANALYSIS_PHASES.find((p) => p.key === phaseKey)?.order ?? 0;
+    const currentPhaseOrder = PHASES.find((p) => p.key === normalizedPhase)?.order ?? 0;
+    const phaseOrder = PHASES.find((p) => p.key === phaseKey)?.order ?? 0;
 
     if (phaseOrder < currentPhaseOrder) return 'complete';
     return 'pending';
@@ -116,16 +134,18 @@ export function AnalysisProgressDialog({
         {/* Header */}
         <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-            Analyzing Your Codebase
+            {hasRepository ? 'Analyzing Your Codebase' : 'Preparing Your Ticket'}
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Hang tight! We&apos;re analyzing your repository to understand its structure and patterns.
+            {hasRepository
+              ? "Hang tight! We're analyzing your repository to understand its structure and patterns."
+              : "Hang tight! We're setting up your ticket specification."}
           </p>
         </div>
 
         {/* Phase Checklist */}
         <div className="px-6 py-6 space-y-3">
-          {ANALYSIS_PHASES.map((phase) => {
+          {PHASES.map((phase) => {
             const status = getPhaseStatus(phase.key);
             const Icon = phase.icon;
             const isActive = status === 'in_progress';
@@ -176,11 +196,15 @@ export function AnalysisProgressDialog({
                     {phase.label}
                   </p>
 
-                  {/* Sub-message for active phase */}
-                  {isActive && message && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
-                      {message}
-                    </p>
+                  {/* AC#2, #3, #4: Phase-mapped loader messages with auto-rotation */}
+                  {isActive && (
+                    <div className="mt-1">
+                      <AnalysisLoaderMessages
+                        currentPhase={currentPhase || undefined}
+                        isActive={isActive}
+                        hasRepository={hasRepository}
+                      />
+                    </div>
                   )}
                 </div>
               </div>

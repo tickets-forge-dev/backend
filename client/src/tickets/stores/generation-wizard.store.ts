@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound } from '@/types/question-refinement';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useTeamStore } from '@/teams/stores/team.store';
 import { auth } from '@/lib/firebase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -17,6 +19,7 @@ interface WizardSnapshot {
   maxRounds: number;
   context: WizardState['context'];
   timestamp: number;
+  includeRepository: boolean; // AC#3: Persist repository inclusion preference
 }
 
 function saveSnapshot(state: WizardState): void {
@@ -30,6 +33,7 @@ function saveSnapshot(state: WizardState): void {
       maxRounds: state.maxRounds,
       context: state.context,
       timestamp: Date.now(),
+      includeRepository: state.includeRepository, // AC#3: Persist repository inclusion
     };
     localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
@@ -70,6 +74,11 @@ async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   if (user) {
     const token = await user.getIdToken();
     headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const teamId = useTeamStore.getState().currentTeam?.id;
+  if (teamId) {
+    headers['x-team-id'] = teamId;
   }
 
   return fetch(`${API_URL}${path}`, { ...init, headers });
@@ -144,6 +153,10 @@ export interface WizardState {
   };
   type: string;
   priority: string;
+
+  // AC#3: Repository inclusion flag (default: true for backward compatibility)
+  includeRepository: boolean;
+
   context: {
     stack: any;
     analysis: any;
@@ -177,6 +190,7 @@ export interface WizardState {
   loadingMessage: string | null;
   progressPercent: number;
   currentPhase: string | null; // Current analysis phase (e.g., 'connecting', 'analyzing', etc.)
+  hasRepository: boolean; // Whether repository is being analyzed (for progress UI)
   error: string | null;
 
   // First ticket celebration
@@ -202,6 +216,7 @@ export interface WizardActions {
   setRepository: (owner: string, name: string) => void;
   setType: (type: string) => void;
   setPriority: (priority: string) => void;
+  setIncludeRepository: (include: boolean) => void; // AC#3: Toggle repository inclusion
 
   // Context stage
   analyzeRepository: () => Promise<void>;
@@ -279,6 +294,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   },
   type: 'feature',
   priority: 'low',
+  // AC#3: Default based on GitHub connection status
+  // If GitHub not connected, default to false (PMs without GitHub shouldn't see repo as default)
+  // If GitHub connected, default to true (backward compatibility for developers)
+  includeRepository: useSettingsStore.getState().githubConnected,
   context: null,
   spec: null,
   answers: {},
@@ -295,6 +314,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   loadingMessage: null,
   progressPercent: 0,
   currentPhase: null,
+  hasRepository: false,
   error: null,
   showCelebration: false,
 
@@ -363,6 +383,9 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   setType: (type: string) => set({ type }),
 
   setPriority: (priority: string) => set({ priority }),
+
+  // AC#3: Toggle repository inclusion
+  setIncludeRepository: (include: boolean) => set({ includeRepository: include }),
 
   // ============================================================================
   // RECOVERY
@@ -446,6 +469,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         priority: snapshot.priority,
         maxRounds: snapshot.maxRounds,
         context: snapshot.context,
+        includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference (default true)
       });
       return;
     }
@@ -456,6 +480,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         input: snapshot.input,
         type: snapshot.type,
         priority: snapshot.priority,
+        includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference
       });
     }
   },
@@ -472,7 +497,44 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   analyzeRepository: async () => {
     const state = get();
     const ticketsState = useTicketsStore.getState();
-    set({ loading: true, loadingMessage: 'Connecting to GitHub...', progressPercent: 0, currentPhase: 'connecting', error: null });
+
+    // Determine if repository is being analyzed
+    const hasRepo = !!(state.input.repoOwner && state.input.repoName && state.input.repoOwner !== '' && state.input.repoName !== '');
+
+    // If no repository, skip analysis and go directly to Stage 3 (Draft)
+    if (!hasRepo) {
+      set({
+        loading: true,
+        loadingMessage: 'Preparing ticket...',
+        progressPercent: 50,
+        currentPhase: 'preparing',
+        hasRepository: false,
+        error: null,
+      });
+
+      // Simulate brief loading for UX smoothness
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      set({
+        context: null, // No repository context
+        currentStage: 3, // Go directly to Stage 3 (Draft)
+        loading: false,
+        loadingMessage: null,
+        progressPercent: 100,
+        currentPhase: 'complete',
+      });
+      saveSnapshot(get());
+      return;
+    }
+
+    set({
+      loading: true,
+      loadingMessage: 'Connecting to GitHub...',
+      progressPercent: 0,
+      currentPhase: 'connecting',
+      hasRepository: hasRepo,
+      error: null
+    });
 
     try {
       const branch = ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
@@ -646,31 +708,44 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     // Resolve owner/repo with fallback to tickets store
     const repoOwner = state.input.repoOwner || ticketsState.selectedRepository?.split('/')[0] || '';
     const repoName = state.input.repoName || ticketsState.selectedRepository?.split('/')[1] || '';
-    if (!state.input.title || !repoOwner || !repoName) {
+
+    // Validate required fields (repository only required if hasRepository is true)
+    if (!state.input.title) {
+      set({ error: 'Missing required field: title', loading: false });
+      return;
+    }
+
+    if (state.hasRepository && (!repoOwner || !repoName)) {
       const missing = [];
-      if (!state.input.title) missing.push('title');
       if (!repoOwner) missing.push('repository owner');
       if (!repoName) missing.push('repository name');
       set({ error: `Missing required fields: ${missing.join(', ')}`, loading: false });
       return;
     }
 
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, currentPhase: 'preparing', loadingMessage: 'Creating ticket...', progressPercent: 0 });
 
     try {
+      // Build request body (only include repository fields if we have a repository)
+      const requestBody: any = {
+        title: state.input.title,
+        description: state.input.description,
+        type: state.type,
+        priority: state.priority,
+        maxRounds: state.maxRounds,
+        taskAnalysis: state.context?.taskAnalysis ?? undefined,
+      };
+
+      // Only include repository fields if we have a repository
+      if (state.hasRepository && repoOwner && repoName) {
+        requestBody.repositoryFullName = `${repoOwner}/${repoName}`;
+        requestBody.branchName = state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
+      }
+
       // Create draft AEC with adaptive maxRounds + taskAnalysis from deep analysis
       const createResponse = await authFetch('/tickets', {
         method: 'POST',
-        body: JSON.stringify({
-          title: state.input.title,
-          description: state.input.description,
-          repositoryFullName: `${repoOwner}/${repoName}`,
-          branchName: state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main',
-          maxRounds: state.maxRounds,
-          type: state.type,
-          priority: state.priority,
-          taskAnalysis: state.context?.taskAnalysis ?? undefined,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!createResponse.ok) {
@@ -701,7 +776,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           set({
             draftAecId: aec.id,
             spec: finalizedAec.techSpec,
-            currentStage: 4,
+            currentStage: 3,
             loading: false,
             loadingMessage: null,
           });
@@ -1294,6 +1369,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     localStorage.removeItem('wizard-draft-aec-id');
     localStorage.removeItem('wizard-question-rounds');
     localStorage.removeItem('wizard-current-round');
+    localStorage.removeItem('wizard-clarification-questions');
+    localStorage.removeItem('wizard-question-answers');
     localStorage.removeItem(WIZARD_STORAGE_KEY);
 
     set({
@@ -1302,14 +1379,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         title: '',
         repoOwner: '',
         repoName: '',
+        description: undefined,
+        branch: undefined,
       },
       type: 'feature',
       priority: 'low',
+      includeRepository: true, // AC#3: Reset to default (true)
       context: null,
       spec: null,
       answers: {},
       pendingFiles: [],
+      pendingDesignLinks: [],
       draftAecId: null,
+      clarificationQuestions: [],
+      questionAnswers: {},
       questionRounds: [],
       currentRound: 0,
       maxRounds: 3,
@@ -1318,6 +1401,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       loadingMessage: null,
       progressPercent: 0,
       currentPhase: null,
+      hasRepository: false,
       error: null,
       showCelebration: false,
     });

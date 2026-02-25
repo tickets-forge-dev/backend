@@ -9,9 +9,9 @@ describe('CreateTeamUseCase', () => {
   let useCase: CreateTeamUseCase;
   let mockTeamRepository: jest.Mocked<FirestoreTeamRepository>;
   let mockUserRepository: jest.Mocked<FirestoreUserRepository>;
+  let mockMemberRepository: jest.Mocked<{ save: jest.Mock }>;
 
   beforeEach(() => {
-    // Create mock repositories
     mockTeamRepository = {
       save: jest.fn(),
       getById: jest.fn(),
@@ -24,11 +24,15 @@ describe('CreateTeamUseCase', () => {
 
     mockUserRepository = {
       getById: jest.fn(),
-      save: jest.fn(),
+      save: jest.fn().mockResolvedValue(undefined),
       getByEmail: jest.fn(),
     } as any;
 
-    useCase = new CreateTeamUseCase(mockTeamRepository, mockUserRepository);
+    mockMemberRepository = {
+      save: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
+    useCase = new CreateTeamUseCase(mockTeamRepository, mockUserRepository, mockMemberRepository as any);
   });
 
   describe('Happy Path', () => {
@@ -44,6 +48,7 @@ describe('CreateTeamUseCase', () => {
       // When
       const result = await useCase.execute({
         userId,
+        userEmail: 'test@example.com',
         teamName,
       });
 
@@ -57,9 +62,10 @@ describe('CreateTeamUseCase', () => {
       expect(result.updatedAt).toBeDefined();
 
       expect(mockTeamRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockMemberRepository.save).toHaveBeenCalledTimes(1);
       expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
 
-      // Verify user was updated
+      // Verify user was updated with team membership
       const savedUserCall = mockUserRepository.save.mock.calls[0][0];
       expect(savedUserCall.isMemberOfTeam(TeamId.create(result.id))).toBe(true);
     });
@@ -75,6 +81,7 @@ describe('CreateTeamUseCase', () => {
       // When
       const result = await useCase.execute({
         userId,
+        userEmail: 'test@example.com',
         teamName: 'Test Team',
       });
 
@@ -93,6 +100,7 @@ describe('CreateTeamUseCase', () => {
       // When
       const result = await useCase.execute({
         userId,
+        userEmail: 'test@example.com',
         teamName: 'Test Team',
         allowMemberInvites: false,
       });
@@ -101,7 +109,7 @@ describe('CreateTeamUseCase', () => {
       expect(result.settings.allowMemberInvites).toBe(false);
     });
 
-    it('should auto-switch to new team', async () => {
+    it('should auto-switch to new team when user already belongs to a team', async () => {
       // Given
       const userId = 'user-123';
       const existingTeamId = TeamId.generate();
@@ -113,13 +121,36 @@ describe('CreateTeamUseCase', () => {
       // When
       const result = await useCase.execute({
         userId,
+        userEmail: 'test@example.com',
         teamName: 'New Team',
       });
 
-      // Then
-      const savedUserCall = mockUserRepository.save.mock.calls[0][0];
+      // Then: last save call should have the new team as current
+      const savedUserCall = mockUserRepository.save.mock.calls[mockUserRepository.save.mock.calls.length - 1][0];
       expect(savedUserCall.getCurrentTeamId()!.getValue()).toBe(result.id);
       expect(savedUserCall.getCurrentTeamId()!.getValue()).not.toBe(existingTeamId.getValue());
+    });
+  });
+
+  describe('Auto-create User', () => {
+    it('should auto-create user in Firestore when not found (Firebase Auth sync)', async () => {
+      // Given: user exists in Firebase Auth but not in Firestore yet
+      mockUserRepository.getById.mockResolvedValue(null);
+      mockTeamRepository.isSlugUnique.mockResolvedValue(true);
+
+      // When
+      const result = await useCase.execute({
+        userId: 'new-firebase-user',
+        userEmail: 'new@example.com',
+        userDisplayName: 'New User',
+        teamName: 'My Team',
+      });
+
+      // Then: user was auto-created and team was created successfully
+      expect(result.name).toBe('My Team');
+      expect(result.ownerId).toBe('new-firebase-user');
+      // userRepository.save called twice: once for auto-create, once for team membership
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -132,10 +163,7 @@ describe('CreateTeamUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({
-          userId,
-          teamName: 'AB',
-        })
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: 'AB' })
       ).rejects.toThrow(InvalidTeamException);
     });
 
@@ -147,10 +175,7 @@ describe('CreateTeamUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({
-          userId,
-          teamName: 'A'.repeat(51),
-        })
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: 'A'.repeat(51) })
       ).rejects.toThrow(InvalidTeamException);
     });
 
@@ -162,10 +187,7 @@ describe('CreateTeamUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({
-          userId,
-          teamName: '',
-        })
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: '' })
       ).rejects.toThrow(InvalidTeamException);
     });
 
@@ -177,10 +199,7 @@ describe('CreateTeamUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({
-          userId,
-          teamName: '   ',
-        })
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: '   ' })
       ).rejects.toThrow(InvalidTeamException);
     });
   });
@@ -196,10 +215,7 @@ describe('CreateTeamUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({
-          userId,
-          teamName: 'ACME',
-        })
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: 'ACME' })
       ).rejects.toThrow(InvalidTeamException);
     });
 
@@ -213,29 +229,13 @@ describe('CreateTeamUseCase', () => {
 
       // When: create team "ACME CORP" (same slug after transform)
       await expect(
-        useCase.execute({
-          userId,
-          teamName: 'ACME CORP',
-        })
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: 'ACME CORP' })
       ).rejects.toThrow(InvalidTeamException);
     });
   });
 
   describe('Error Cases', () => {
-    it('should throw error if user not found', async () => {
-      // Given
-      mockUserRepository.getById.mockResolvedValue(null);
-
-      // When/Then
-      await expect(
-        useCase.execute({
-          userId: 'nonexistent-user',
-          teamName: 'Test Team',
-        })
-      ).rejects.toThrow('User nonexistent-user not found');
-    });
-
-    it('should propagate repository errors', async () => {
+    it('should propagate repository errors from teamRepository.save', async () => {
       // Given
       const userId = 'user-123';
       const user = User.create(userId, 'test@example.com', 'Test User');
@@ -246,11 +246,23 @@ describe('CreateTeamUseCase', () => {
 
       // When/Then
       await expect(
-        useCase.execute({
-          userId,
-          teamName: 'Test Team',
-        })
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: 'Test Team' })
       ).rejects.toThrow('Database error');
+    });
+
+    it('should propagate errors from memberRepository.save', async () => {
+      // Given
+      const userId = 'user-123';
+      const user = User.create(userId, 'test@example.com', 'Test User');
+
+      mockUserRepository.getById.mockResolvedValue(user);
+      mockTeamRepository.isSlugUnique.mockResolvedValue(true);
+      mockMemberRepository.save.mockRejectedValue(new Error('Member save failed'));
+
+      // When/Then
+      await expect(
+        useCase.execute({ userId, userEmail: 'test@example.com', teamName: 'Test Team' })
+      ).rejects.toThrow('Member save failed');
     });
   });
 
@@ -266,6 +278,7 @@ describe('CreateTeamUseCase', () => {
       // When
       const result = await useCase.execute({
         userId,
+        userEmail: 'test@example.com',
         teamName: 'Team @ #1!',
       });
 
@@ -285,6 +298,7 @@ describe('CreateTeamUseCase', () => {
       // When
       const result = await useCase.execute({
         userId,
+        userEmail: 'test@example.com',
         teamName: '  Test Team  ',
       });
 
@@ -292,7 +306,7 @@ describe('CreateTeamUseCase', () => {
       expect(result.name).toBe('Test Team');
     });
 
-    it('should handle user with no teams (first team)', async () => {
+    it('should handle user with no teams (first team) — sets as current team', async () => {
       // Given
       const userId = 'user-123';
       const user = User.create(userId, 'test@example.com', 'Test User');
@@ -303,11 +317,12 @@ describe('CreateTeamUseCase', () => {
       // When
       await useCase.execute({
         userId,
+        userEmail: 'test@example.com',
         teamName: 'First Team',
       });
 
-      // Then
-      const savedUserCall = mockUserRepository.save.mock.calls[0][0];
+      // Then: last save has the user with team membership
+      const savedUserCall = mockUserRepository.save.mock.calls[mockUserRepository.save.mock.calls.length - 1][0];
       expect(savedUserCall.hasTeams()).toBe(true);
       expect(savedUserCall.getCurrentTeamId()).not.toBeNull();
     });

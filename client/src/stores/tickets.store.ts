@@ -31,6 +31,8 @@ interface TicketsState {
   updateError: string | null;
   isDeleting: boolean;
   deleteError: string | null;
+  isAssigning: boolean;
+  assignError: string | null;
 
   // Attachments
   isUploadingAttachment: boolean;
@@ -57,9 +59,10 @@ interface TicketsState {
   fetchQuota: () => Promise<void>;
   updateTicket: (
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: string; techSpec?: Record<string, any> }
   ) => Promise<boolean>;
   deleteTicket: (id: string) => Promise<boolean>;
+  assignTicket: (id: string, userId: string | null) => Promise<boolean>;
   clearCreateError: () => void;
 
   // List preferences
@@ -78,6 +81,12 @@ interface TicketsState {
   setBranch: (branchName: string | null) => void;
   refreshBranches: () => Promise<void>;
   clearBranchSelection: () => void;
+
+  // Story 7-8: PM approves ticket
+  approveTicket: (ticketId: string) => Promise<boolean>;
+
+  // Story 7-10: PM triggers AI re-enrichment with developer Q&A answers
+  reEnrichTicket: (ticketId: string) => Promise<boolean>;
 }
 
 export const useTicketsStore = create<TicketsState>((set, get) => {
@@ -105,6 +114,8 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     updateError: null,
     isDeleting: false,
     deleteError: null,
+    isAssigning: false,
+    assignError: null,
 
     // Attachments
     isUploadingAttachment: false,
@@ -217,7 +228,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
 
   updateTicket: async (
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> }
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: string; techSpec?: Record<string, any> }
   ) => {
     set({ isUpdating: true, updateError: null });
 
@@ -237,6 +248,37 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to update ticket';
       set({ isUpdating: false, updateError: errorMessage });
+      return false;
+    }
+  },
+
+  // Story 3.5-5: Assign ticket to developer
+  assignTicket: async (id: string, userId: string | null) => {
+    set({ isAssigning: true, assignError: null });
+
+    try {
+      const { ticketService } = useServices();
+      await ticketService.assign(id, userId);
+
+      // Optimistic update: Update assignedTo in current ticket and tickets list
+      set((state) => {
+        const updatedTicket = state.currentTicket?.id === id
+          ? { ...state.currentTicket, assignedTo: userId }
+          : state.currentTicket;
+
+        return {
+          currentTicket: updatedTicket,
+          tickets: state.tickets.map((t) =>
+            t.id === id ? { ...t, assignedTo: userId } : t
+          ),
+          isAssigning: false,
+        };
+      });
+
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to assign ticket';
+      set({ isAssigning: false, assignError: errorMessage });
       return false;
     }
   },
@@ -452,6 +494,43 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
       } catch {
         // Silently fail if localStorage is unavailable
       }
+    }
+  },
+
+  // Story 7-8: PM approves ticket — transitions WAITING_FOR_APPROVAL → READY
+  approveTicket: async (ticketId: string) => {
+    try {
+      const { ticketService } = useServices();
+      const updatedTicket = await ticketService.approveTicket(ticketId);
+
+      // Update currentTicket and list optimistically with the returned data
+      set((state) => ({
+        currentTicket: state.currentTicket?.id === ticketId ? updatedTicket : state.currentTicket,
+        tickets: state.tickets.map((t) => (t.id === ticketId ? updatedTicket : t)),
+      }));
+
+      return true;
+    } catch (error: any) {
+      console.error('[TicketsStore] approveTicket error:', error);
+      return false;
+    }
+  },
+
+  // Story 7-10: PM triggers AI re-enrichment with developer Q&A answers
+  reEnrichTicket: async (ticketId: string) => {
+    try {
+      const { ticketService } = useServices();
+      const updatedTicket = await ticketService.reEnrichTicket(ticketId);
+
+      set((state) => ({
+        currentTicket: state.currentTicket?.id === ticketId ? updatedTicket : state.currentTicket,
+        tickets: state.tickets.map((t) => (t.id === ticketId ? updatedTicket : t)),
+      }));
+
+      return true;
+    } catch (error: any) {
+      console.error('[TicketsStore] reEnrichTicket error:', error);
+      return false;
     }
   },
 };

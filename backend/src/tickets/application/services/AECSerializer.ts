@@ -113,7 +113,7 @@ export class AECSerializer {
   private buildIdentification(aec: AEC): any {
     return {
       ticketId: aec.id,
-      workspaceId: aec.workspaceId,
+      teamId: aec.teamId,
       title: aec.title,
       description: aec.description || '[No description]',
     };

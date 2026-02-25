@@ -9,19 +9,26 @@ import { auth, googleProvider, githubProvider } from '@/lib/firebase';
 import { AuthService } from '@/services/auth.service';
 import { FirebaseError } from 'firebase/app';
 
+export interface SignInResult {
+  hasTeams: boolean;
+  teamCount: number;
+  currentTeamId: string | null;
+}
+
 export class SignInUseCase {
   constructor(private authService: AuthService) {}
 
-  async signInWithGoogle(): Promise<void> {
+  async signInWithGoogle(): Promise<SignInResult> {
     try {
       await signInWithPopup(auth, googleProvider);
-      await this.authService.initializeWorkspace();
+      const initResult = await this.authService.initializeWorkspace();
+      return initResult;
     } catch (error) {
-      await this.handleSignInError(error, 'Google', googleProvider);
+      return await this.handleSignInError(error, 'Google', googleProvider);
     }
   }
 
-  async signInWithGitHub(): Promise<void> {
+  async signInWithGitHub(): Promise<SignInResult> {
     try {
       const result = await signInWithPopup(auth, githubProvider);
 
@@ -32,13 +39,14 @@ export class SignInUseCase {
         localStorage.setItem('github_access_token', accessToken);
       }
 
-      await this.authService.initializeWorkspace();
+      const initResult = await this.authService.initializeWorkspace();
+      return initResult;
     } catch (error) {
-      await this.handleSignInError(error, 'GitHub', githubProvider);
+      return await this.handleSignInError(error, 'GitHub', githubProvider);
     }
   }
 
-  private async handleSignInError(error: unknown, provider: string, authProvider: GoogleAuthProvider | GithubAuthProvider): Promise<void> {
+  private async handleSignInError(error: unknown, provider: string, authProvider: GoogleAuthProvider | GithubAuthProvider): Promise<SignInResult> {
     if (error instanceof FirebaseError) {
       // Handle account linking error
       if (error.code === 'auth/account-exists-with-different-credential') {
@@ -49,8 +57,8 @@ export class SignInUseCase {
           try {
             // Link the pending credential to the existing account
             await linkWithCredential(auth.currentUser, pendingCredential);
-            await this.authService.initializeWorkspace();
-            return;
+            const initResult = await this.authService.initializeWorkspace();
+            return initResult;
           } catch (linkError) {
             console.error('Failed to link accounts:', linkError);
             throw new Error(`Failed to link ${provider} account. Please try again.`);

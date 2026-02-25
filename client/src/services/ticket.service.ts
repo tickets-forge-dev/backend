@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { auth } from '@/lib/firebase';
 import type { DesignReference } from '@repo/shared-types';
+import { useTeamStore } from '@/teams/stores/team.store';
 
 export interface CreateTicketRequest {
   title: string;
@@ -24,12 +25,13 @@ export interface AttachmentResponse {
 
 export interface AECResponse {
   id: string;
-  workspaceId: string;
+  teamId: string;
   status: string;
   title: string;
   description: string | null;
   type: string | null;
   priority: string | null;
+  assignedTo: string | null; // Story 3.5-5: User ID of assigned developer (null if unassigned)
   readinessScore: number;
   generationState: {
     currentStep: number;
@@ -55,6 +57,19 @@ export interface AECResponse {
   externalIssue?: { platform: 'linear' | 'jira'; issueId: string; issueUrl: string } | null;
   attachments?: AttachmentResponse[];
   designReferences?: any[]; // DesignReference[] from @repo/shared-types
+  // Repository context (null if ticket created without repository)
+  repositoryContext?: {
+    repositoryFullName: string; // "owner/repo"
+    branchName: string;
+    commitSha: string;
+    isDefaultBranch: boolean;
+    selectedAt: string;
+  } | null;
+  // Story 6-12: Review session submitted by CLI reviewer agent
+  reviewSession?: {
+    qaItems: Array<{ question: string; answer: string }>;
+    submittedAt: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,12 +88,16 @@ export class TicketService {
       timeout: 30000, // 30 second timeout
     });
 
-    // Add Firebase ID token to all requests
+    // Add Firebase ID token and team context to all requests
     this.client.interceptors.request.use(async (config) => {
       const user = auth.currentUser;
       if (user) {
         const token = await user.getIdToken();
         config.headers.Authorization = `Bearer ${token}`;
+      }
+      const teamId = useTeamStore.getState().currentTeam?.id;
+      if (teamId) {
+        config.headers['x-team-id'] = teamId;
       }
       return config;
     });
@@ -108,7 +127,7 @@ export class TicketService {
 
   async update(
     id: string,
-    data: { description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: 'draft' | 'complete'; techSpec?: Record<string, any> },
+    data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: string; techSpec?: Record<string, any> },
   ): Promise<AECResponse> {
     const response = await this.client.patch<AECResponse>(
       `/tickets/${id}`,
@@ -214,6 +233,27 @@ export class TicketService {
     const response = await this.client.post<{ designReference: DesignReference }>(
       `/tickets/${ticketId}/design-references/${referenceId}/refresh`
     );
+    return response.data;
+  }
+
+  // Story 3.5-5: Assign ticket to developer
+  async assign(ticketId: string, userId: string | null): Promise<{ success: boolean }> {
+    const response = await this.client.patch<{ success: boolean }>(
+      `/tickets/${ticketId}/assign`,
+      { userId }
+    );
+    return response.data;
+  }
+
+  // Story 7-8: PM approves ticket — transitions WAITING_FOR_APPROVAL → READY
+  async approveTicket(ticketId: string): Promise<AECResponse> {
+    const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/approve`, {});
+    return response.data;
+  }
+
+  // Story 7-10: PM triggers AI re-enrichment with developer Q&A answers
+  async reEnrichTicket(ticketId: string): Promise<AECResponse> {
+    const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/re-enrich`, {});
     return response.data;
   }
 }

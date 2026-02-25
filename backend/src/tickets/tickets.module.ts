@@ -59,8 +59,13 @@ import { AddDesignReferenceUseCase } from './application/use-cases/AddDesignRefe
 import { RemoveDesignReferenceUseCase } from './application/use-cases/RemoveDesignReferenceUseCase';
 import { RefreshDesignMetadataUseCase } from './application/use-cases/RefreshDesignMetadataUseCase';
 import { FetchDesignMetadataUseCase } from './application/use-cases/FetchDesignMetadataUseCase';
+import { AssignTicketUseCase } from './application/use-cases/AssignTicketUseCase';
+import { SubmitReviewSessionUseCase } from './application/use-cases/SubmitReviewSessionUseCase';
+import { ReEnrichWithQAUseCase } from './application/use-cases/ReEnrichWithQAUseCase';
+import { ApproveTicketUseCase } from './application/use-cases/ApproveTicketUseCase';
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
+import { TeamsModule } from '../teams/teams.module';
 
 @Module({
   imports: [
@@ -71,6 +76,7 @@ import { LoomModule } from '../integrations/loom/loom.module';
     WorkspacesModule,
     FigmaModule,
     LoomModule,
+    TeamsModule, // Story 3.5-5: Access to TeamMemberRepository for assignment validation
   ],
   controllers: [TicketsController],
   providers: [
@@ -96,6 +102,10 @@ import { LoomModule } from '../integrations/loom/loom.module';
     RemoveDesignReferenceUseCase,
     RefreshDesignMetadataUseCase,
     FetchDesignMetadataUseCase,
+    AssignTicketUseCase,
+    SubmitReviewSessionUseCase,
+    ReEnrichWithQAUseCase,
+    ApproveTicketUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,

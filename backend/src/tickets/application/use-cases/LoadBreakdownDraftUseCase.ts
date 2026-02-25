@@ -14,7 +14,7 @@ export class LoadBreakdownDraftUseCase {
     return null;
   }
 
-  async getLatest(_workspaceId: string, _userId: string): Promise<any | null> {
+  async getLatest(_teamId: string, _userId: string): Promise<any | null> {
     // Placeholder for future implementation
     return null;
   }

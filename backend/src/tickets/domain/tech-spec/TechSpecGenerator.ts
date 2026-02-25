@@ -501,7 +501,7 @@ export interface TechSpecGenerator {
   generateQuestionsWithContext(input: {
     title: string;
     description?: string;
-    context: CodebaseContext;
+    context: CodebaseContext | null;  // Null when no repository provided (PM without GitHub)
     priorAnswers: AnswerContext[];
     roundNumber: number;
   }): Promise<ClarificationQuestion[]>;
@@ -543,7 +543,7 @@ export interface TechSpecGenerator {
   generateWithAnswers(input: {
     title: string;
     description?: string;
-    context: CodebaseContext;
+    context: CodebaseContext | null;  // Null when no repository provided (PM without GitHub)
     answers: AnswerContext[];
   }): Promise<TechSpec>;
 }

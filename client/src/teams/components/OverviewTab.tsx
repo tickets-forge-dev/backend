@@ -1,4 +1,3 @@
-import { Card } from '@/core/components/ui/card';
 import { Badge } from '@/core/components/ui/badge';
 import { Crown, Users, Calendar } from 'lucide-react';
 import type { Team } from '../services/team.service';
@@ -30,7 +29,7 @@ export function OverviewTab({ team }: OverviewTabProps) {
   return (
     <div className="space-y-6">
       {/* Team Info Card */}
-      <Card className="p-6">
+      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30 p-6">
         <div className="space-y-4">
           {/* Team Name + Owner Badge */}
           <div className="flex items-center gap-3">
@@ -52,7 +51,7 @@ export function OverviewTab({ team }: OverviewTabProps) {
           {/* Grid: Member Count + Created Date */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Member Count */}
-            <div className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--background-soft)] p-4">
+            <div className="flex items-start gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--background-soft)] p-4">
               <div className="rounded-full bg-[var(--primary)]/10 p-2">
                 <Users className="h-5 w-5 text-[var(--primary)]" />
               </div>
@@ -68,7 +67,7 @@ export function OverviewTab({ team }: OverviewTabProps) {
             </div>
 
             {/* Created Date */}
-            <div className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--background-soft)] p-4">
+            <div className="flex items-start gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--background-soft)] p-4">
               <div className="rounded-full bg-[var(--primary)]/10 p-2">
                 <Calendar className="h-5 w-5 text-[var(--primary)]" />
               </div>
@@ -79,10 +78,10 @@ export function OverviewTab({ team }: OverviewTabProps) {
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Team Slug */}
-      <Card className="p-6">
+      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30 p-6">
         <div>
           <p className="text-sm font-medium text-[var(--text)]">Team Slug</p>
           <p className="mt-2 font-mono text-sm text-[var(--text-muted)]">
@@ -92,7 +91,7 @@ export function OverviewTab({ team }: OverviewTabProps) {
             Used in URLs and API requests to identify this team
           </p>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

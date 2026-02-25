@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SharedModule } from './shared/shared.module';
+import { AuthModule } from './auth/auth.module';
 import { TeamsModule } from './teams/teams.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
@@ -18,6 +19,7 @@ import { FeedbackModule } from './feedback/feedback.module';
       envFilePath: '.env',
     }),
     SharedModule,
+    AuthModule,
     TeamsModule, // CRITICAL FIX: Register teams endpoints
     WorkspacesModule,
     TicketsModule,

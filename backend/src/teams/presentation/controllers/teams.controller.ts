@@ -12,6 +12,7 @@ import {
   HttpStatus,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { CreateTeamUseCase } from '../../application/use-cases/CreateTeamUseCase';
@@ -26,6 +27,8 @@ import { ChangeMemberRoleUseCase } from '../../application/use-cases/ChangeMembe
 import { RemoveMemberUseCase } from '../../application/use-cases/RemoveMemberUseCase';
 import { AcceptInviteUseCase } from '../../application/use-cases/AcceptInviteUseCase';
 import { SyncUserTeamsUseCase } from '../../application/use-cases/SyncUserTeamsUseCase';
+import { GetCurrentMemberUseCase } from '../../application/use-cases/GetCurrentMemberUseCase';
+import { UpdateOwnRoleUseCase } from '../../application/use-cases/UpdateOwnRoleUseCase';
 import { InviteTokenService } from '../../application/services/InviteTokenService';
 import { CreateTeamDto } from '../dtos/CreateTeamDto';
 import { UpdateTeamDto } from '../dtos/UpdateTeamDto';
@@ -54,6 +57,8 @@ export class TeamsController {
     private readonly changeMemberRoleUseCase: ChangeMemberRoleUseCase,
     private readonly removeMemberUseCase: RemoveMemberUseCase,
     private readonly acceptInviteUseCase: AcceptInviteUseCase,
+    private readonly getCurrentMemberUseCase: GetCurrentMemberUseCase,
+    private readonly updateOwnRoleUseCase: UpdateOwnRoleUseCase,
     private readonly inviteTokenService: InviteTokenService,
   ) {}
 
@@ -66,9 +71,14 @@ export class TeamsController {
   async createTeam(@Request() req: any, @Body() dto: CreateTeamDto) {
     try {
       const userId = req.user.uid;
+      // Firebase token includes email and name for auto-creating user if needed
+      const userEmail = req.user.email || '';
+      const userDisplayName = req.user.name || req.user.displayName;
 
       const result = await this.createTeamUseCase.execute({
         userId,
+        userEmail,
+        userDisplayName,
         teamName: dto.name,
         allowMemberInvites: dto.allowMemberInvites,
       });
@@ -167,7 +177,7 @@ export class TeamsController {
 
   /**
    * POST /teams/switch
-   * Switch current team
+   * Switch current team or to personal workspace (teamId: null)
    */
   @Post('switch')
   @HttpCode(HttpStatus.OK)
@@ -177,7 +187,7 @@ export class TeamsController {
 
       const result = await this.switchTeamUseCase.execute({
         userId,
-        teamId: dto.teamId,
+        teamId: dto.teamId ?? null,
       });
 
       return {
@@ -421,6 +431,64 @@ export class TeamsController {
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
         throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * GET /teams/me/member
+   * Get current user's team member info for their active team
+   */
+  @Get('me/member')
+  async getCurrentMember(@Request() req: any) {
+    try {
+      const userId = req.user.uid;
+
+      const result = await this.getCurrentMemberUseCase.execute({ userId });
+
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * PATCH /teams/me/member/role
+   * Update current user's role in their active team
+   */
+  @Patch('me/member/role')
+  async updateOwnRole(@Request() req: any, @Body() dto: { role: string }) {
+    try {
+      const userId = req.user.uid;
+
+      const result = await this.updateOwnRoleUseCase.execute({
+        userId,
+        newRole: dto.role,
+      });
+
+      return {
+        success: true,
+        member: result,
+      };
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new BadRequestException(error.message);
+      }
+      if (error instanceof Error && error.message.includes('Cannot change role')) {
+        throw new ForbiddenException(error.message);
       }
       throw error;
     }

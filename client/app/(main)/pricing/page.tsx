@@ -2,6 +2,7 @@
 
 import { Button } from '@/core/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
 
 interface TierFeature {
   name: string;
@@ -13,9 +14,9 @@ interface PricingTier {
   price: number;
   period: string;
   description: string;
-  ticketsPerMonth: number;
   features: TierFeature[];
   cta: string;
+  ctaLink: string;
   highlighted?: boolean;
   comingSoon?: boolean;
 }
@@ -25,51 +26,52 @@ const tiers: PricingTier[] = [
     name: 'Free',
     price: 0,
     period: 'forever',
-    description: 'Get started with basic ticket generation',
-    ticketsPerMonth: 3,
+    description: 'Try Forge with your team — no credit card required',
     features: [
-      { name: '3 tickets/month', included: true },
-      { name: 'Basic features', included: true },
-      { name: 'Community support', included: true },
-      { name: 'Export integrations', included: false },
-      { name: 'Team workspace', included: false },
-      { name: 'Role-based access', included: false },
+      { name: 'Unlimited tickets', included: true },
+      { name: 'Web UI for PMs', included: true },
+      { name: 'CLI for developers', included: true },
+      { name: 'MCP integration (Cursor, Claude, Windsurf)', included: true },
+      { name: 'Basic AI enrichment', included: true },
+      { name: 'GitHub integration', included: false },
+      { name: 'Priority support', included: false },
     ],
-    cta: 'Get Started',
+    cta: 'Try for Free',
+    ctaLink: '/tickets',
   },
   {
     name: 'Pro',
     price: 12,
-    period: 'month',
-    description: 'For individuals and small teams scaling ticket generation',
-    ticketsPerMonth: 30,
+    period: 'PM/month',
+    description: 'One PM seat, unlimited developers via CLI',
     features: [
-      { name: '30 tickets/month', included: true },
-      { name: 'Export to Linear & Jira', included: true },
+      { name: 'Everything in Free', included: true },
+      { name: 'Deep code analysis', included: true },
+      { name: 'GitHub repo integration', included: true },
+      { name: 'Agent-ready XML exports', included: true },
+      { name: 'Unlimited dev CLI access', included: true },
       { name: 'Priority email support', included: true },
-      { name: 'Advanced analytics', included: true },
-      { name: 'Up to 3 team members', included: true },
-      { name: 'Role-based access', included: false },
     ],
     cta: 'Coming Soon',
+    ctaLink: '/tickets',
     highlighted: true,
     comingSoon: true,
   },
   {
     name: 'Team',
-    price: 59,
-    period: 'month',
-    description: 'For organizations with advanced needs',
-    ticketsPerMonth: -1, // unlimited
+    price: 39,
+    period: 'PM/month',
+    description: 'Multiple PMs + full team features',
     features: [
-      { name: 'Unlimited tickets', included: true },
-      { name: 'Export to Linear, Jira & GitHub', included: true },
+      { name: 'Everything in Pro', included: true },
+      { name: 'Multiple PM seats', included: true },
+      { name: 'Team workspaces', included: true },
+      { name: 'PM approval workflows', included: true },
+      { name: 'Advanced analytics', included: true },
       { name: '24/7 priority support', included: true },
-      { name: 'Advanced analytics & reporting', included: true },
-      { name: 'Unlimited team members', included: true },
-      { name: 'Role-based access & permissions', included: true },
     ],
     cta: 'Coming Soon',
+    ctaLink: '/tickets',
     comingSoon: true,
   },
 ];
@@ -81,14 +83,14 @@ export default function PricingPage() {
       <div className="border-b border-[var(--border)]/20">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <h1 className="text-3xl font-bold text-[var(--text)] mb-2">
-            Transparent Pricing
+            Simple Pricing
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mb-3">
-            Choose the plan that works for you. Upgrade anytime.
+            Pay for PMs, not developers. One PM seat can create tickets for unlimited devs via CLI.
           </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-              🧪 Beta Testing Phase - Free tier available now, paid plans coming soon!
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20">
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">
+              🎉 Free during beta — try everything, no limits!
             </span>
           </div>
         </div>
@@ -139,30 +141,20 @@ export default function PricingPage() {
 
               {/* Pricing */}
               <div className="px-6 py-3 border-t border-[var(--border)]/10">
-                {!tier.comingSoon ? (
-                  <>
-                    <div className="flex items-baseline gap-0.5 mb-1">
-                      <span className="text-3xl font-bold text-[var(--text)]">
-                        ${tier.price}
-                      </span>
-                      {tier.price > 0 && (
-                        <span className="text-xs text-[var(--text-secondary)]">
-                          /{tier.period}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-[var(--text-tertiary)]">
-                      {tier.ticketsPerMonth === -1
-                        ? 'Unlimited tickets/month'
-                        : `${tier.ticketsPerMonth} tickets/month`}
-                    </p>
-                  </>
-                ) : (
-                  <div className="py-4">
-                    <p className="text-xs text-[var(--text-tertiary)] text-center">
-                      Pricing will be announced soon
-                    </p>
-                  </div>
+                <div className="flex items-baseline gap-0.5 mb-1">
+                  <span className="text-3xl font-bold text-[var(--text)]">
+                    ${tier.price}
+                  </span>
+                  {tier.price > 0 && (
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      /{tier.period}
+                    </span>
+                  )}
+                </div>
+                {tier.price === 0 && (
+                  <p className="text-xs text-green-500 font-medium">
+                    Free forever
+                  </p>
                 )}
               </div>
 
@@ -192,12 +184,14 @@ export default function PricingPage() {
 
               {/* CTA Button */}
               <div className="px-6 py-4 border-t border-[var(--border)]/10">
-                <Button
-                  className="w-full h-9 text-sm"
-                  variant={tier.highlighted ? 'default' : 'outline'}
-                >
-                  {tier.cta}
-                </Button>
+                <Link href={tier.ctaLink}>
+                  <Button
+                    className="w-full h-9 text-sm"
+                    variant={tier.highlighted ? 'default' : 'outline'}
+                  >
+                    {tier.cta}
+                  </Button>
+                </Link>
               </div>
             </div>
           ))}
@@ -214,20 +208,20 @@ export default function PricingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
-                q: 'Can I change plans anytime?',
-                a: 'Yes, upgrade or downgrade anytime. Changes take effect immediately.',
+                q: 'What is the CLI for?',
+                a: 'The CLI connects to AI coding assistants (Cursor, Claude Code, Windsurf) via MCP protocol, giving them full ticket context.',
               },
               {
-                q: 'Do you offer annual discounts?',
-                a: 'Contact us for enterprise pricing and annual billing options.',
+                q: 'Do developers need a paid seat?',
+                a: 'No! Developers use the free CLI. Only PMs who create and manage tickets need a paid seat.',
               },
               {
-                q: 'What if I exceed my limit?',
-                a: 'We\'ll notify you and you can upgrade anytime to increase capacity.',
+                q: 'What if I\'m not a technical PM?',
+                a: 'No problem! Describe what you want in plain language. AI enriches tickets with technical details automatically.',
               },
               {
-                q: 'Is there a free trial?',
-                a: 'Yes! Free tier includes 3 tickets/month with full access. No card required.',
+                q: 'Can I connect my GitHub repo?',
+                a: 'Yes! Connect GitHub for deeper code analysis. Or keep code local — devs can enrich via CLI instead.',
               },
             ].map((item, idx) => (
               <div key={idx}>
@@ -245,12 +239,14 @@ export default function PricingPage() {
       <div className="border-t border-[var(--border)]/20 bg-gradient-to-b from-transparent to-[var(--bg-subtle)]">
         <div className="max-w-2xl mx-auto px-6 py-10 text-center">
           <h2 className="text-xl font-bold text-[var(--text)] mb-2">
-            Ready to get started?
+            Ready to ship faster?
           </h2>
           <p className="text-xs text-[var(--text-secondary)] mb-6">
-            Join teams using Forge to generate better technical specifications.
+            Join teams using Forge as their AI-native project management platform.
           </p>
-          <Button size="sm" className="h-9">Start Free</Button>
+          <Link href="/tickets">
+            <Button size="sm" className="h-9">Try for Free</Button>
+          </Link>
         </div>
       </div>
     </div>

@@ -16,7 +16,6 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { createOllamaProvider } from '../../../shared/infrastructure/mastra/providers/ollama.provider';
 import {
   PRDBreakdownCommand,
   PRDBreakdownResult,
@@ -64,14 +63,12 @@ export class PRDBreakdownService implements OnModuleInit {
    * Follows same pattern as TechSpecGeneratorImpl
    */
   private initializeLLM(): void {
-    const nodeEnv = this.configService.get<string>('NODE_ENV');
-    const defaultProvider = nodeEnv === 'production' ? 'anthropic' : 'ollama';
-    const provider = this.configService.get<string>('LLM_PROVIDER') || defaultProvider;
+    const provider = this.configService.get<string>('LLM_PROVIDER') || 'anthropic';
 
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       const modelId =
-        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-5-haiku-20241022';
+        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
@@ -81,11 +78,9 @@ export class PRDBreakdownService implements OnModuleInit {
         this.providerName = 'mock (ANTHROPIC_API_KEY not set)';
       }
     } else {
-      // Ollama (default) — local, free
-      const modelId = this.configService.get<string>('OLLAMA_MODEL') || 'qwen2.5-coder:latest';
-      const ollamaProvider = createOllamaProvider();
-      this.llmModel = ollamaProvider.chat(modelId);
-      this.providerName = `Ollama (${modelId})`;
+      // Fallback: require Anthropic
+      this.llmModel = null;
+      this.providerName = 'none (LLM_PROVIDER must be anthropic)';
     }
 
     this.logger.log(`📊 PRD Breakdown LLM ready: ${this.providerName}`);

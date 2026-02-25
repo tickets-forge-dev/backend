@@ -5,7 +5,7 @@ import { FetchDesignMetadataUseCase } from './FetchDesignMetadataUseCase';
 export interface RefreshDesignMetadataCommand {
   ticketId: string;
   referenceId: string;
-  workspaceId: string;
+  teamId: string;
 }
 
 /**
@@ -27,7 +27,7 @@ export class RefreshDesignMetadataUseCase {
   ) {}
 
   async execute(command: RefreshDesignMetadataCommand) {
-    const { ticketId, referenceId, workspaceId } = command;
+    const { ticketId, referenceId, teamId } = command;
 
     // Fetch ticket
     const aec = await this.aecRepository.findById(ticketId);
@@ -36,7 +36,7 @@ export class RefreshDesignMetadataUseCase {
     }
 
     // Verify workspace ownership
-    if (aec.workspaceId !== workspaceId) {
+    if (aec.teamId !== teamId) {
       throw new BadRequestException('Cannot modify ticket from different workspace');
     }
 
@@ -51,7 +51,7 @@ export class RefreshDesignMetadataUseCase {
     // Re-fetch metadata (will update tokens, thumbnails, etc.)
     const enrichedReference = await this.fetchDesignMetadataUseCase.execute(
       designRef,
-      workspaceId,
+      teamId,
     );
 
     if (!enrichedReference) {

@@ -41,6 +41,7 @@
   /* Borders */
   --border: #e4e4e7;    /* Very subtle borders */
   --border-hover: #d4d4d8;
+  --border-subtle: rgba(0, 0, 0, 0.08);  /* Hairline border for cards/grids in light mode */
 
   /* Text */
   --text: #18181b;
@@ -127,6 +128,7 @@
     --bg-active: #3f3f46;
     --border: #27272a;
     --border-hover: #3f3f46;
+    --border-subtle: rgba(255, 255, 255, 0.06);  /* Hairline border for cards/grids in dark mode */
 
     /* Popover/Dropdown backgrounds */
     --popover: #18181b;
@@ -163,6 +165,7 @@
   --bg-active: #3f3f46;
   --border: #27272a;
   --border-hover: #3f3f46;
+  --border-subtle: rgba(255, 255, 255, 0.06);  /* Hairline border for cards/grids in dark mode */
 
   /* Popover/Dropdown backgrounds */
   --popover: #18181b;
@@ -196,6 +199,7 @@
   --bg-active: #e4e4e7;
   --border: #e4e4e7;
   --border-hover: #d4d4d8;
+  --border-subtle: rgba(0, 0, 0, 0.08);  /* Hairline border for cards/grids in light mode */
 
   /* Popover/Dropdown backgrounds */
   --popover: #ffffff;
@@ -486,4 +490,22 @@ input[type="checkbox"]:checked:hover {
 
 .skip-link:focus {
   left: 16px;
+}
+
+/* ============================================ */
+/* ANIMATIONS */
+/* ============================================ */
+
+/* AC#4: Smooth fade transition for analysis loader messages (150ms) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 150ms ease-in-out;
 }

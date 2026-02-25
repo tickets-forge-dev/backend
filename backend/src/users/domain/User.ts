@@ -171,7 +171,25 @@ export class User {
     );
   }
 
-  switchTeam(teamId: TeamId): User {
+  switchTeam(teamId: TeamId | null): User {
+    // Switching to personal workspace (null)
+    if (teamId === null) {
+      if (this.currentTeamId === null) {
+        return this; // Already on personal workspace
+      }
+      return new User(
+        this.userId,
+        this.email,
+        this.displayName,
+        this.photoURL,
+        null,
+        this.teams,
+        this.createdAt,
+        new Date(),
+      );
+    }
+
+    // Switching to a team
     if (!this.isMemberOfTeam(teamId)) {
       throw new Error(
         `Cannot switch to team ${teamId.getValue()}: User is not a member`,

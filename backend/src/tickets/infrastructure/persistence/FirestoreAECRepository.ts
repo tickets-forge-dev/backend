@@ -37,22 +37,30 @@ export class FirestoreAECRepository implements AECRepository {
     const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
 
-    const path = `workspaces/${aec.workspaceId}/aecs/${aec.id}`;
+    const path = `teams/${aec.teamId}/aecs/${aec.id}`;
     console.log(`📝 [FirestoreAECRepository] Saving AEC to path: ${path}`);
     console.log(`📝 [FirestoreAECRepository] Document data:`, {
       id: doc.id,
-      workspaceId: doc.workspaceId,
+      teamId: doc.teamId,
       title: doc.title,
       status: doc.status,
     });
 
+    const batch = firestore.batch();
+
+    // Write ticket document
     const docRef = firestore
-      .collection('workspaces')
-      .doc(aec.workspaceId)
+      .collection('teams')
+      .doc(aec.teamId)
       .collection('aecs')
       .doc(aec.id);
+    batch.set(docRef, stripUndefined(doc));
 
-    await docRef.set(stripUndefined(doc));
+    // Write lookup index so findById can resolve teamId without a collectionGroup query
+    const lookupRef = firestore.collection('aec_lookup').doc(aec.id);
+    batch.set(lookupRef, { teamId: aec.teamId });
+
+    await batch.commit();
 
     console.log(`✅ AEC saved successfully to Firestore at ${path}`);
   }
@@ -60,36 +68,88 @@ export class FirestoreAECRepository implements AECRepository {
   async findById(id: string): Promise<AEC | null> {
     const firestore = this.getFirestore();
 
-    // Note: We use collectionGroup to find across all workspaces
-    // This requires the workspaceId to be validated by auth guards
-    // For now, we need to scan all workspaces (not ideal but works)
-
     try {
-      // Get all workspaces
-      const workspacesSnapshot = await firestore.collection('workspaces').listDocuments();
+      // Step 1: Resolve teamId from lightweight lookup index (avoids collectionGroup index requirement)
+      const lookupDoc = await firestore.collection('aec_lookup').doc(id).get();
 
-      // Try to find the AEC in each workspace
-      for (const workspaceRef of workspacesSnapshot) {
-        const aecRef = workspaceRef.collection('aecs').doc(id);
-        const aecDoc = await aecRef.get();
+      let teamId: string;
 
-        if (aecDoc.exists) {
-          return AECMapper.toDomain(aecDoc.data() as AECDocument);
+      if (lookupDoc.exists) {
+        teamId = (lookupDoc.data() as { teamId: string }).teamId;
+      } else {
+        // Fallback: lookup missing (ticket predates lookup migration) — collectionGroup query
+        console.warn(`⚠️ [FirestoreAECRepository] Lookup missing for ${id}, falling back to collectionGroup`);
+        const snapshot = await firestore
+          .collectionGroup('aecs')
+          .where('id', '==', id)
+          .limit(1)
+          .get();
+
+        if (snapshot.empty) {
+          return null;
         }
+
+        const data = snapshot.docs[0].data() as AECDocument;
+        teamId = data.teamId;
+
+        // Self-heal: write the missing lookup so future requests are fast
+        await firestore.collection('aec_lookup').doc(id).set({ teamId });
+        console.log(`✅ [FirestoreAECRepository] Healed missing lookup for ${id} → team ${teamId}`);
       }
 
-      return null;
+      // Step 2: Fetch full ticket document using known path
+      const docRef = firestore
+        .collection('teams')
+        .doc(teamId)
+        .collection('aecs')
+        .doc(id);
+      const snap = await docRef.get();
+
+      if (!snap.exists) {
+        return null;
+      }
+
+      return AECMapper.toDomain(snap.data() as AECDocument);
     } catch (error) {
       console.error('❌ [FirestoreAECRepository] findById error:', error);
       return null;
     }
   }
 
-  async countByWorkspace(workspaceId: string): Promise<number> {
+  async findByIdInTeam(id: string, teamId: string): Promise<AEC | null> {
+    const firestore = this.getFirestore();
+
+    try {
+      const docRef = firestore
+        .collection('teams')
+        .doc(teamId)
+        .collection('aecs')
+        .doc(id);
+      const snap = await docRef.get();
+
+      if (!snap.exists) {
+        return null;
+      }
+
+      // Self-heal: ensure lookup index exists for future findById calls
+      const lookupRef = firestore.collection('aec_lookup').doc(id);
+      const lookupDoc = await lookupRef.get();
+      if (!lookupDoc.exists) {
+        await lookupRef.set({ teamId });
+      }
+
+      return AECMapper.toDomain(snap.data() as AECDocument);
+    } catch (error) {
+      console.error('❌ [FirestoreAECRepository] findByIdInTeam error:', error);
+      return null;
+    }
+  }
+
+  async countByTeam(teamId: string): Promise<number> {
     const firestore = this.getFirestore();
     const snapshot = await firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .count()
       .get();
@@ -97,11 +157,11 @@ export class FirestoreAECRepository implements AECRepository {
     return snapshot.data().count;
   }
 
-  async countByWorkspaceAndCreator(workspaceId: string, createdBy: string): Promise<number> {
+  async countByTeamAndCreator(teamId: string, createdBy: string): Promise<number> {
     const firestore = this.getFirestore();
     const snapshot = await firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .where('createdBy', '==', createdBy)
       .count()
@@ -110,11 +170,11 @@ export class FirestoreAECRepository implements AECRepository {
     return snapshot.data().count;
   }
 
-  async findByWorkspace(workspaceId: string): Promise<AEC[]> {
+  async findByTeam(teamId: string): Promise<AEC[]> {
     const firestore = this.getFirestore();
     const snapshot = await firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .orderBy('updatedAt', 'desc')
       .get();
@@ -126,8 +186,8 @@ export class FirestoreAECRepository implements AECRepository {
     const firestore = this.getFirestore();
     const doc = AECMapper.toFirestore(aec);
     const docRef = firestore
-      .collection('workspaces')
-      .doc(aec.workspaceId)
+      .collection('teams')
+      .doc(aec.teamId)
       .collection('aecs')
       .doc(aec.id);
 
@@ -139,14 +199,14 @@ export class FirestoreAECRepository implements AECRepository {
     await docRef.update(stripUndefined(doc) as any);
   }
 
-  async delete(aecId: string, workspaceId: string): Promise<void> {
+  async delete(aecId: string, teamId: string): Promise<void> {
     const firestore = this.getFirestore();
-    const path = `workspaces/${workspaceId}/aecs/${aecId}`;
+    const path = `teams/${teamId}/aecs/${aecId}`;
     console.log(`🗑️ [FirestoreAECRepository] Deleting AEC from path: ${path}`);
 
     const docRef = firestore
-      .collection('workspaces')
-      .doc(workspaceId)
+      .collection('teams')
+      .doc(teamId)
       .collection('aecs')
       .doc(aecId);
 

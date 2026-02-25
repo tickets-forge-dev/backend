@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useServices } from '@/hooks/useServices';
 import { auth } from '@/lib/firebase';
 import { useSearchParams } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth.store';
 
 /**
  * FigmaIntegration Component
@@ -11,7 +11,7 @@ import { useSearchParams } from 'next/navigation';
  * Supports both OAuth (requires public app approval) and Personal Access Tokens (immediate)
  */
 export function FigmaIntegration() {
-  const { ticketService } = useServices();
+  const currentTeamId = useAuthStore((state) => state.currentTeamId);
   const searchParams = useSearchParams();
   const [isConnected, setIsConnected] = useState(false);
   const [connectionMethod, setConnectionMethod] = useState<'oauth' | 'personal_token' | null>(null);
@@ -21,16 +21,15 @@ export function FigmaIntegration() {
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [personalToken, setPersonalToken] = useState('');
 
-  // Get workspace ID and check if Figma is already connected
+  // Derive workspace ID from current team and check if Figma is already connected
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Try to get workspace ID from the first ticket
-        const tickets = await ticketService.list();
-        if (tickets.length > 0) {
-          setWorkspaceId(tickets[0].workspaceId);
+        // Derive legacy workspaceId from teamId (matches WorkspaceGuard derivation)
+        if (currentTeamId) {
+          setWorkspaceId(`ws_team_${currentTeamId.substring(5, 17)}`);
         } else {
-          setWorkspaceId('current');
+          setWorkspaceId(null);
         }
 
         // Check if we're returning from OAuth callback
@@ -81,7 +80,7 @@ export function FigmaIntegration() {
     };
 
     initialize();
-  }, [ticketService, searchParams]);
+  }, [currentTeamId, searchParams]);
 
   const handleConnectOAuth = async () => {
     if (!workspaceId) {
@@ -223,22 +222,23 @@ export function FigmaIntegration() {
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            🎨 Figma
-            {isConnected && (
+    <div className="rounded-lg bg-[var(--bg-hover)] p-6">
+      <div className="text-center">
+        <div>
+          <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] mb-1">
+            Figma
+          </h3>
+          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">
+            Connect Figma to fetch design file metadata, thumbnails, and extract design tokens to enrich ticket specifications with design context.
+          </p>
+
+          {isConnected && (
+            <div className="mb-3">
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium">
                 ✓ Connected ({connectionMethod === 'oauth' ? 'OAuth' : 'Token'})
               </span>
-            )}
-          </h3>
-
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-            Connect Figma to fetch design file metadata, thumbnails, and extract design tokens to enrich ticket
-            specifications with design context.
-          </p>
+            </div>
+          )}
 
           {isConnected && (
             <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
@@ -255,14 +255,8 @@ export function FigmaIntegration() {
             </div>
           )}
 
-          {!isConnected && (
+          {!isConnected && showTokenInput && (
             <div className="mt-4 space-y-3">
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
-                <p className="text-sm text-yellow-900 dark:text-yellow-200">
-                  <strong>Note:</strong> OAuth requires public app approval (several days). Use Personal Access Token for immediate access.
-                </p>
-              </div>
-
               {showTokenInput && (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -296,7 +290,7 @@ export function FigmaIntegration() {
         </div>
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div className="flex gap-3 mt-6 justify-center">
         {isConnected ? (
           <button
             onClick={handleDisconnect}
@@ -308,28 +302,19 @@ export function FigmaIntegration() {
         ) : (
           <>
             {!showTokenInput ? (
-              <>
-                <button
-                  onClick={() => setShowTokenInput(true)}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
-                >
-                  Use Personal Access Token (Recommended)
-                </button>
-                <button
-                  onClick={handleConnectOAuth}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
-                >
-                  {isLoading ? 'Loading...' : 'Connect with OAuth (requires approval)'}
-                </button>
-              </>
+              <button
+                onClick={() => setShowTokenInput(true)}
+                disabled={isLoading}
+                className="px-4 py-2 bg-transparent hover:bg-[var(--bg-hover)] border border-white hover:border-white/80 text-green-500 hover:text-green-400 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+              >
+                Connect Figma
+              </button>
             ) : (
               <>
                 <button
                   onClick={handleSaveToken}
                   disabled={isLoading || !personalToken.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 bg-[var(--bg)] hover:bg-[var(--bg-hover)] border border-[var(--border)] hover:border-[var(--border-hover)] text-[var(--text)] rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
                 >
                   {isLoading ? 'Saving...' : 'Save Token'}
                 </button>
@@ -340,7 +325,7 @@ export function FigmaIntegration() {
                     setError(null);
                   }}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 bg-[var(--bg-hover)] hover:bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)] rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
                 >
                   Cancel
                 </button>

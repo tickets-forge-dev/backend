@@ -5,19 +5,20 @@ import { FirestoreUserRepository } from '../../../users/infrastructure/persisten
 
 export interface SwitchTeamCommand {
   userId: string;
-  teamId: string;
+  teamId: string | null;
 }
 
 export interface SwitchTeamResult {
-  currentTeamId: string;
-  teamName: string;
+  currentTeamId: string | null;
+  teamName: string | null;
 }
 
 /**
  * SwitchTeamUseCase
  *
  * Business logic for switching user's current team.
- * - User must be a member of target team
+ * - Pass teamId to switch to a team (user must be a member)
+ * - Pass null to switch to personal workspace
  */
 @Injectable()
 export class SwitchTeamUseCase {
@@ -27,10 +28,20 @@ export class SwitchTeamUseCase {
   ) {}
 
   async execute(command: SwitchTeamCommand): Promise<SwitchTeamResult> {
-    // BUG FIX: Check user exists FIRST
+    // Check user exists FIRST
     const user = await this.userRepository.getById(command.userId);
     if (!user) {
       throw new Error(`User ${command.userId} not found`);
+    }
+
+    // Switch to personal workspace if teamId is null
+    if (!command.teamId) {
+      const updatedUser = user.switchTeam(null);
+      await this.userRepository.save(updatedUser);
+      return {
+        currentTeamId: null,
+        teamName: null,
+      };
     }
 
     // Load team

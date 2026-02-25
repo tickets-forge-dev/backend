@@ -53,8 +53,7 @@ export function InviteMemberDialog({
       await inviteMember(teamId, { email, role });
 
       toast({
-        title: 'Invitation Sent',
-        description: `Invite sent to ${email}`,
+        title: 'Invite sent!',
       });
 
       // Reset form and close
@@ -63,9 +62,10 @@ export function InviteMemberDialog({
       onOpenChange(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to invite member';
+      const isPending = message.toLowerCase().includes('pending invitation');
       toast({
-        title: 'Invitation Failed',
-        description: message,
+        title: isPending ? 'Already invited' : 'Invitation Failed',
+        description: isPending ? `${email} already has a pending invite.` : message,
         variant: 'destructive',
       });
     } finally {

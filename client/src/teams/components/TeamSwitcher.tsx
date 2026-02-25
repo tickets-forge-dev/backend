@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 export function TeamSwitcher() {
   const router = useRouter();
   const { sidebarCollapsed } = useUIStore();
-  const { teams, currentTeam, isLoading, isSwitching, error, loadTeams, switchTeam } = useTeamStore();
+  const { teams, currentTeam, isLoading, isSwitching, error, loadTeams, switchTeam, switchToPersonal } = useTeamStore();
 
   // Get currentTeamId from currentTeam (ensures reactivity)
   const currentTeamId = currentTeam?.id || null;
@@ -56,25 +56,14 @@ export function TeamSwitcher() {
     }
   };
 
-  const handleSwitchToPersonal = () => {
-    // Switch to personal workspace by clearing current team
-    const store = useTeamStore.getState();
-
-    // Update teams array to mark all as not current
-    const updatedTeams = store.teams.map((t) => ({ ...t, isCurrent: false }));
-
-    // Clear current team and update teams list
-    useTeamStore.setState({
-      currentTeam: null,
-      teams: updatedTeams,
-    });
-
-    // Clear from localStorage
-    localStorage.removeItem('forge_currentTeamId');
-
-    setDropdownOpen(false);
-    // Navigate to tickets page
-    router.push('/tickets');
+  const handleSwitchToPersonal = async () => {
+    try {
+      await switchToPersonal();
+      setDropdownOpen(false);
+      router.push('/tickets');
+    } catch (err) {
+      console.error('Failed to switch to personal workspace:', err);
+    }
   };
 
   // Don't render if no teams loaded yet
@@ -156,7 +145,7 @@ export function TeamSwitcher() {
             className="cursor-pointer flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 min-w-0">
-              {!currentTeamId && <Check className="h-4 w-4 text-[var(--primary)]" />}
+              {!teams.some((t) => t.isCurrent) && <Check className="h-4 w-4 text-[var(--primary)]" />}
               <span className="text-[var(--text-sm)] truncate">Personal Workspace</span>
             </div>
             <Badge

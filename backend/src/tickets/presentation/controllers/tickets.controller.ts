@@ -40,10 +40,11 @@ import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort'
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectStackDetector';
-import { Inject, BadRequestException, ForbiddenException, Req } from '@nestjs/common';
+import { Inject, BadRequestException, ForbiddenException, Req, Query } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
+import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { UserEmail } from '../../../shared/presentation/decorators/UserEmail.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
@@ -86,6 +87,12 @@ import {
   BulkCreateFromBreakdownResponseDto,
 } from '../dto/PRDBreakdownDto';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { AssignTicketUseCase } from '../../application/use-cases/AssignTicketUseCase';
+import { AssignTicketDto } from '../dto/AssignTicketDto';
+import { SubmitReviewSessionUseCase } from '../../application/use-cases/SubmitReviewSessionUseCase';
+import { SubmitReviewSessionDto } from '../dto/SubmitReviewSessionDto';
+import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQAUseCase';
+import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -128,6 +135,10 @@ export class TicketsController {
     private readonly addDesignReferenceUseCase: AddDesignReferenceUseCase,
     private readonly removeDesignReferenceUseCase: RemoveDesignReferenceUseCase,
     private readonly refreshDesignMetadataUseCase: RefreshDesignMetadataUseCase,
+    private readonly assignTicketUseCase: AssignTicketUseCase,
+    private readonly submitReviewSessionUseCase: SubmitReviewSessionUseCase,
+    private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
+    private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -142,14 +153,11 @@ export class TicketsController {
   @UseGuards(RateLimitGuard)
   @Post('analyze-repo')
   async analyzeRepository(
+    @TeamId() teamId: string,
     @WorkspaceId() workspaceId: string,
     @Body() dto: AnalyzeRepositoryDto,
     @Res() res: Response,
   ) {
-    this.logger.log(
-      `Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`,
-    );
-
     // Set SSE headers and start streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -159,6 +167,26 @@ export class TicketsController {
     const send = (data: Record<string, any>) => {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
+
+    // Story 3.5-2: Handle no-repository case (skip analysis)
+    if (!dto.owner || !dto.repo || dto.owner === '' || dto.repo === '') {
+      this.logger.log(
+        `No repository provided for ticket "${dto.title}" — skipping analysis`,
+      );
+
+      send({
+        phase: 'complete',
+        message: 'No repository selected — analysis skipped',
+        percent: 100,
+        result: { context: null },
+      });
+      res.end();
+      return;
+    }
+
+    this.logger.log(
+      `Analyzing repository: ${dto.owner}/${dto.repo} (branch: ${dto.branch || 'main'}) — "${dto.title}"`,
+    );
 
     try {
       // 1. Auth: fetch integration, decrypt token, create Octokit
@@ -280,16 +308,18 @@ export class TicketsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createTicket(
+    @TeamId() teamId: string,
     @WorkspaceId() workspaceId: string,
     @UserEmail() userEmail: string,
     @UserId() userId: string,
     @Body() dto: CreateTicketDto,
   ) {
     try {
-      this.logger.log(`[createTicket] userId: ${userId}, workspaceId: ${workspaceId}, title: ${dto.title}`);
-      this.telemetry.trackTicketCreationStarted(userId, workspaceId, 'create_new');
+      this.logger.log(`[createTicket] userId: ${userId}, teamId: ${teamId}, title: ${dto.title}`);
+      this.telemetry.trackTicketCreationStarted(userId, teamId, 'create_new');
 
       const aec = await this.createTicketUseCase.execute({
+        teamId,
         workspaceId,
         userId,
         userEmail,
@@ -314,35 +344,39 @@ export class TicketsController {
 
   @Get('quota')
   async getQuota(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
     @UserEmail() userEmail: string,
   ) {
     const limit = TICKET_LIMITS[userEmail] ?? DEFAULT_TICKET_LIMIT;
-    const used = await this.aecRepository.countByWorkspaceAndCreator(workspaceId, userId);
+    const used = await this.aecRepository.countByTeamAndCreator(teamId, userId);
     return { used, limit, canCreate: used < limit };
   }
 
   @Get(':id(aec_[a-f0-9\\-]+)')
-  async getTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    const aec = await this.aecRepository.findById(id);
+  async getTicket(@TeamId() teamId: string, @Param('id') id: string) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
     if (!aec) {
-      throw new Error('AEC not found');
-    }
-
-    // Verify AEC belongs to user's workspace
-    if (aec.workspaceId !== workspaceId) {
-      throw new Error('AEC not found'); // Don't reveal it exists in another workspace
+      throw new NotFoundException('Ticket not found');
     }
 
     return this.mapToResponse(aec);
   }
 
   @Get()
-  async listTickets(@WorkspaceId() workspaceId: string) {
-    const aecs = await this.aecRepository.findByWorkspace(workspaceId);
-    this.logger.log(`[listTickets] workspaceId: ${workspaceId}, found ${aecs.length} tickets`);
-    return aecs.map((aec) => this.mapToResponse(aec));
+  async listTickets(
+    @TeamId() teamId: string,
+    @UserId() userId: string,
+    @Query('assignedToMe') assignedToMe?: string,
+  ) {
+    const aecs = await this.aecRepository.findByTeam(teamId);
+    this.logger.log(`[listTickets] teamId: ${teamId}, found ${aecs.length} tickets`);
+
+    const filtered = assignedToMe === 'true'
+      ? aecs.filter((aec) => aec.assignedTo === userId)
+      : aecs;
+
+    return filtered.map((aec) => this.mapToResponse(aec));
   }
 
   @Patch(':id')
@@ -350,6 +384,7 @@ export class TicketsController {
     try {
       const aec = await this.updateAECUseCase.execute({
         aecId: id,
+        title: dto.title,
         description: dto.description,
         acceptanceCriteria: dto.acceptanceCriteria,
         assumptions: dto.assumptions,
@@ -368,8 +403,79 @@ export class TicketsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteTicket(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    await this.deleteAECUseCase.execute(id, workspaceId);
+  async deleteTicket(@TeamId() teamId: string, @Param('id') id: string) {
+    await this.deleteAECUseCase.execute(id, teamId);
+  }
+
+  /**
+   * Assign or unassign a ticket to a team member (Story 3.5-5: AC#3)
+   * Authorization: PM and Admin roles only (enforced in use case)
+   */
+  @Patch(':id/assign')
+  async assignTicket(
+    @TeamId() teamId: string,
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() dto: AssignTicketDto,
+  ) {
+    await this.assignTicketUseCase.execute({
+      ticketId: id,
+      userId: dto.userId,
+      requestingUserId: userId,
+      teamId,
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Submit a review session from the CLI reviewer agent (Story 6-12)
+   * Stores Q&A pairs and transitions ticket to WAITING_FOR_APPROVAL.
+   */
+  @Post(':id/review-session')
+  async submitReviewSession(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: SubmitReviewSessionDto,
+  ) {
+    return this.submitReviewSessionUseCase.execute({
+      ticketId: id,
+      teamId,
+      qaItems: dto.qaItems,
+    });
+  }
+
+  /**
+   * Re-enrich ticket using developer Q&A review session (Story 7-7)
+   *
+   * PM triggers this after reviewing the developer's Q&A answers.
+   * Calls TechSpecGenerator.generateWithAnswers() with stored Q&A as context,
+   * then updates ticket's techSpec and acceptanceCriteria.
+   * Status stays WAITING_FOR_APPROVAL (approve is Story 7-8).
+   */
+  @Post(':id/re-enrich')
+  async reEnrichTicket(
+    @TeamId() teamId: string,
+    @UserId() userId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.reEnrichWithQAUseCase.execute({ ticketId: id, teamId, requestingUserId: userId });
+    return this.mapToResponse(aec);
+  }
+
+  /**
+   * Approve ticket after PM reviews developer Q&A and re-baked spec (Story 7-8)
+   *
+   * Transitions WAITING_FOR_APPROVAL → READY so the developer can execute the ticket.
+   * Returns 400 if ticket is not in WAITING_FOR_APPROVAL status.
+   */
+  @Post(':id/approve')
+  async approveTicket(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+  ) {
+    const aec = await this.approveTicketUseCase.execute({ ticketId: id, teamId });
+    return this.mapToResponse(aec);
   }
 
   /**
@@ -377,13 +483,13 @@ export class TicketsController {
    */
   @Post(':id(aec_[a-f0-9\\-]+)/generate-questions')
   async generateQuestions(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @UserId() userId: string,
   ) {
     const questions = await this.generateQuestionsUseCase.execute({
       aecId: id,
-      workspaceId,
+      teamId,
     });
 
     this.telemetry.trackQuestionsGenerated(userId, id, questions.length);
@@ -396,14 +502,14 @@ export class TicketsController {
    */
   @Post(':id(aec_[a-f0-9\\-]+)/submit-answers')
   async submitQuestionAnswers(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @UserId() userId: string,
     @Body() dto: SubmitAnswersDto,
   ) {
     const aec = await this.submitQuestionAnswersUseCase.execute({
       aecId: id,
-      workspaceId,
+      teamId,
       answers: dto.answers ?? {},
     });
 
@@ -431,10 +537,10 @@ export class TicketsController {
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
   @Post(':id(aec_[a-f0-9\\-]+)/finalize')
-  async finalizeSpec(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+  async finalizeSpec(@TeamId() teamId: string, @Param('id') id: string) {
     const aec = await this.finalizeSpecUseCase.execute({
       aecId: id,
-      workspaceId,
+      teamId,
     });
 
     return this.mapToResponse(aec);
@@ -446,13 +552,13 @@ export class TicketsController {
    */
   @Get(':id(aec_[a-f0-9\\-]+)/export/markdown')
   async exportMarkdown(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @Res() res: Response,
   ) {
     try {
-      const aec = await this.aecRepository.findById(id);
-      if (!aec || aec.workspaceId !== workspaceId) {
+      const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+      if (!aec) {
         res.status(400).json({ message: 'Ticket not found' });
         return;
       }
@@ -479,13 +585,13 @@ export class TicketsController {
    */
   @Get(':id(aec_[a-f0-9\\-]+)/export/xml')
   async exportXml(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @Res() res: Response,
   ) {
     try {
-      const aec = await this.aecRepository.findById(id);
-      if (!aec || aec.workspaceId !== workspaceId) {
+      const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+      if (!aec) {
         res.status(400).json({ message: 'Ticket not found' });
         return;
       }
@@ -511,9 +617,9 @@ export class TicketsController {
    * Resolves per-user GitHub token (same pattern as analyzeRepository).
    */
   @Post(':id(aec_[a-f0-9\\-]+)/detect-apis')
-  async detectApis(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.workspaceId !== workspaceId) {
+  async detectApis(@TeamId() teamId: string, @WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 
@@ -615,7 +721,7 @@ export class TicketsController {
     limits: { fileSize: MAX_FILE_SIZE },
   }))
   async uploadAttachment(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserEmail() userEmail: string,
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
@@ -634,8 +740,8 @@ export class TicketsController {
       );
     }
 
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.workspaceId !== workspaceId) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 
@@ -645,7 +751,7 @@ export class TicketsController {
 
     try {
       const attachment = await this.attachmentStorageService.upload(
-        workspaceId,
+        teamId,
         id,
         file,
         userEmail,
@@ -667,12 +773,12 @@ export class TicketsController {
   @Delete(':id/attachments/:attachmentId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteAttachment(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
   ) {
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.workspaceId !== workspaceId) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 
@@ -691,11 +797,11 @@ export class TicketsController {
    */
   @Get(':id(aec_[a-f0-9\\-]+)/attachments')
   async listAttachments(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
   ) {
-    const aec = await this.aecRepository.findById(id);
-    if (!aec || aec.workspaceId !== workspaceId) {
+    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
+    if (!aec) {
       throw new BadRequestException('Ticket not found');
     }
 
@@ -711,7 +817,7 @@ export class TicketsController {
   @Post(':id(aec_[a-f0-9\\-]+)/design-references')
   @HttpCode(HttpStatus.CREATED)
   async addDesignReference(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
     @UserEmail() userEmail: string,
     @Param('id') id: string,
@@ -719,7 +825,7 @@ export class TicketsController {
   ) {
     const result = await this.addDesignReferenceUseCase.execute({
       ticketId: id,
-      workspaceId,
+      teamId,
       userId,
       userEmail,
       url: dto.url,
@@ -735,14 +841,14 @@ export class TicketsController {
   @Delete(':id/design-references/:referenceId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeDesignReference(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @Param('referenceId') referenceId: string,
   ) {
     await this.removeDesignReferenceUseCase.execute({
       ticketId: id,
       referenceId,
-      workspaceId,
+      teamId,
     });
   }
 
@@ -752,14 +858,14 @@ export class TicketsController {
    */
   @Post(':id/design-references/:referenceId/refresh')
   async refreshDesignMetadata(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @Param('referenceId') referenceId: string,
   ) {
     const result = await this.refreshDesignMetadataUseCase.execute({
       ticketId: id,
       referenceId,
-      workspaceId,
+      teamId,
     });
     return result;
   }
@@ -769,15 +875,15 @@ export class TicketsController {
    */
   @Post(':id(aec_[a-f0-9\\-]+)/export/linear')
   async exportToLinear(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @Body() body: { teamId: string },
   ) {
     try {
       const result = await this.exportToLinearUseCase.execute({
         aecId: id,
-        workspaceId,
-        teamId: body.teamId,
+        forgeTeamId: teamId,
+        linearTeamId: body.teamId,
       });
       return result;
     } catch (error: any) {
@@ -790,7 +896,7 @@ export class TicketsController {
    */
   @Post(':id(aec_[a-f0-9\\-]+)/export/jira')
   async exportToJira(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Param('id') id: string,
     @Body() body: { projectKey: string; sections?: string[] },
     @Req() req: any,
@@ -801,7 +907,7 @@ export class TicketsController {
     try {
       const result = await this.exportToJiraUseCase.execute({
         aecId: id,
-        workspaceId,
+        teamId,
         userId,
         projectKey: body.projectKey,
         sections: body.sections,
@@ -815,7 +921,7 @@ export class TicketsController {
   private mapToResponse(aec: any) {
     return {
       id: aec.id,
-      workspaceId: aec.workspaceId,
+      teamId: aec.teamId,
       status: aec.status,
       title: aec.title,
       description: aec.description,
@@ -849,6 +955,8 @@ export class TicketsController {
       maxRounds: aec.maxRounds,
       attachments: aec.attachments ?? [],
       designReferences: aec.designReferences ?? [],
+      assignedTo: aec.assignedTo ?? null,
+      reviewSession: aec.reviewSession ?? null, // Story 6-12
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };
@@ -861,11 +969,11 @@ export class TicketsController {
   @Get('import/availability')
   @HttpCode(HttpStatus.OK)
   async getImportAvailability(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserEmail() userId: string,
   ) {
     return await this.getImportAvailabilityUseCase.execute({
-      workspaceId,
+      teamId,
       userId,
     });
   }
@@ -878,12 +986,12 @@ export class TicketsController {
   @HttpCode(HttpStatus.CREATED)
   async importFromJira(
     @Body() dto: ImportFromJiraDto,
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
   ) {
     try {
       const result = await this.importFromJiraUseCase.execute({
-        workspaceId,
+        teamId,
         userId,
         issueKey: dto.issueKey,
       });
@@ -913,12 +1021,12 @@ export class TicketsController {
   @HttpCode(HttpStatus.CREATED)
   async importFromLinear(
     @Body() dto: ImportFromLinearDto,
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
   ) {
     try {
       const result = await this.importFromLinearUseCase.execute({
-        workspaceId,
+        teamId,
         userId,
         issueId: dto.issueId,
       });
@@ -963,7 +1071,7 @@ export class TicketsController {
   @UseGuards(RateLimitGuard)
   @Post('breakdown/prd')
   async breakdownPRD(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
     @Body() dto: PRDBreakdownRequestDto,
     @Res() res: Response,
@@ -988,7 +1096,7 @@ export class TicketsController {
         repositoryOwner: dto.repositoryOwner,
         repositoryName: dto.repositoryName,
         projectName: dto.projectName,
-        workspaceId,
+        workspaceId: teamId, teamId,
         onProgress: (step: string, message: string) => {
           // Stream progress events as analysis proceeds
           res.write(`data: ${JSON.stringify({
@@ -1034,7 +1142,7 @@ export class TicketsController {
   @Post('breakdown/bulk-create')
   @HttpCode(HttpStatus.CREATED)
   async bulkCreateFromBreakdown(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserEmail() userEmail: string,
     @UserId() userId: string,
     @Body() dto: BulkCreateFromBreakdownRequestDto,
@@ -1043,7 +1151,7 @@ export class TicketsController {
       this.logger.log(`📦 Bulk creating ${dto.tickets.length} tickets from PRD breakdown`);
 
       const result = await this.bulkCreateFromBreakdownUseCase.execute({
-        workspaceId,
+        teamId,
         userEmail,
         userId,
         tickets: dto.tickets,
@@ -1086,7 +1194,7 @@ export class TicketsController {
   @UseGuards(RateLimitGuard)
   @Post('bulk/enrich')
   async enrichMultipleTickets(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Body() dto: BulkEnrichDto,
     @Res() res: Response,
   ) {
@@ -1101,7 +1209,7 @@ export class TicketsController {
 
     try {
       const result = await this.enrichMultipleTicketsUseCase.execute({
-        workspaceId,
+        teamId,
         ticketIds: dto.ticketIds,
         onProgress: (event) => {
           // Send progress event via SSE
@@ -1142,7 +1250,7 @@ export class TicketsController {
   @UseGuards(RateLimitGuard)
   @Post('bulk/finalize')
   async finalizeMultipleTickets(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @Body() dto: BulkFinalizeDto,
     @Res() res: Response,
   ) {
@@ -1157,7 +1265,7 @@ export class TicketsController {
 
     try {
       const result = await this.finalizeMultipleTicketsUseCase.execute({
-        workspaceId,
+        teamId,
         answers: dto.answers,
         onProgress: (event) => {
           // Send progress event via SSE
@@ -1194,11 +1302,11 @@ export class TicketsController {
   @Post('breakdown/draft/save')
   @HttpCode(HttpStatus.OK)
   async saveBreakdownDraft(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
     @Body() _dto: any, // SaveBreakdownDraftDto
   ) {
-    if (!workspaceId || !userId) {
+    if (!teamId || !userId) {
       throw new BadRequestException('Workspace and user IDs are required');
     }
 
@@ -1222,10 +1330,10 @@ export class TicketsController {
    */
   @Get('breakdown/draft/latest')
   async getLatestBreakdownDraft(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
   ) {
-    if (!workspaceId || !userId) {
+    if (!teamId || !userId) {
       throw new BadRequestException('Workspace and user IDs are required');
     }
 
@@ -1251,11 +1359,11 @@ export class TicketsController {
   @Delete('breakdown/draft/:id')
   @HttpCode(HttpStatus.OK)
   async deleteBreakdownDraft(
-    @WorkspaceId() workspaceId: string,
+    @TeamId() teamId: string,
     @UserId() userId: string,
     @Param('id') draftId: string,
   ) {
-    if (!workspaceId || !userId || !draftId) {
+    if (!teamId || !userId || !draftId) {
       throw new BadRequestException('Workspace, user, and draft IDs are required');
     }
 

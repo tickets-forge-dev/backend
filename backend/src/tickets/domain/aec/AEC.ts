@@ -21,10 +21,20 @@ import {
 } from '../../../shared/domain/exceptions/DomainExceptions';
 import { randomUUID } from 'crypto';
 
+export interface ReviewQAItem {
+  question: string;
+  answer: string;
+}
+
+export interface ReviewSession {
+  qaItems: ReviewQAItem[];
+  submittedAt: Date;
+}
+
 export class AEC {
   private constructor(
     public readonly id: string,
-    public readonly workspaceId: string,
+    public readonly teamId: string,
     public readonly createdBy: string, // userId of ticket creator
     private _status: AECStatus,
     private _title: string,
@@ -55,17 +65,20 @@ export class AEC {
     private _taskAnalysis: any = null,
     private _attachments: Attachment[] = [],
     private _designReferences: DesignReference[] = [],
+    private _assignedTo: string | null = null, // userId of assigned team member
+    private _reviewSession: ReviewSession | null = null, // Story 6-12: CLI review Q&A
   ) {}
 
   // Factory method for creating new draft
   static createDraft(
-    workspaceId: string,
+    teamId: string,
     createdBy: string,
     title: string,
     description?: string,
     repositoryContext?: RepositoryContext,
     type?: TicketType,
     priority?: TicketPriority,
+    assignedTo?: string | null,
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -74,7 +87,7 @@ export class AEC {
 
     return new AEC(
       `aec_${randomUUID()}`,
-      workspaceId,
+      teamId,
       createdBy,
       AECStatus.DRAFT,
       title,
@@ -104,13 +117,14 @@ export class AEC {
       null, // _taskAnalysis
       [], // _attachments
       [], // _designReferences
+      assignedTo ?? null, // _assignedTo
     );
   }
 
   // Factory method for reconstitution from persistence
   static reconstitute(
     id: string,
-    workspaceId: string,
+    teamId: string,
     createdBy: string,
     status: AECStatus,
     title: string,
@@ -140,10 +154,12 @@ export class AEC {
     taskAnalysis?: any,
     attachments?: Attachment[],
     designReferences?: DesignReference[],
+    assignedTo?: string | null,
+    reviewSession?: ReviewSession | null,
   ): AEC {
     return new AEC(
       id,
-      workspaceId,
+      teamId,
       createdBy,
       status,
       title,
@@ -173,6 +189,8 @@ export class AEC {
       taskAnalysis ?? null,
       attachments ?? [],
       designReferences ?? [],
+      assignedTo ?? null,
+      reviewSession ?? null,
     );
   }
 
@@ -281,6 +299,82 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  // Assignment methods (Story 3.5-5: AC#1)
+  assign(userId: string): void {
+    if (this._status === AECStatus.COMPLETE) {
+      throw new InvalidStateTransitionError(
+        'Cannot assign a completed ticket. Revert to draft first.',
+      );
+    }
+    this._assignedTo = userId;
+    this._updatedAt = new Date();
+  }
+
+  unassign(): void {
+    this._assignedTo = null;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Submit a review session with Q&A pairs from the CLI reviewer agent.
+   * Transitions the ticket to WAITING_FOR_APPROVAL so the PM can review.
+   */
+  submitReviewSession(qaItems: ReviewQAItem[]): void {
+    this._reviewSession = {
+      qaItems,
+      submittedAt: new Date(),
+    };
+    this._status = AECStatus.WAITING_FOR_APPROVAL;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Move the ticket backward in the lifecycle.
+   * Lifecycle order: draft(0) → validated(1) → waiting-for-approval(2) → ready(3)
+   * Statuses 'created' and 'drifted' map to the same level as 'ready' (3).
+   */
+  sendBack(targetStatus: AECStatus): void {
+    const lifecycleOrder: Record<string, number> = {
+      [AECStatus.DRAFT]: 0,
+      [AECStatus.VALIDATED]: 1,
+      [AECStatus.WAITING_FOR_APPROVAL]: 2,
+      [AECStatus.READY]: 3,
+      [AECStatus.CREATED]: 3,
+      [AECStatus.DRIFTED]: 3,
+    };
+
+    const currentLevel = lifecycleOrder[this._status];
+    const targetLevel = lifecycleOrder[targetStatus];
+
+    if (currentLevel === undefined || targetLevel === undefined) {
+      throw new InvalidStateTransitionError(
+        `Cannot send back from ${this._status} to ${targetStatus}`,
+      );
+    }
+
+    if (targetLevel >= currentLevel) {
+      throw new InvalidStateTransitionError(
+        `Cannot send back to ${targetStatus} — it is not before ${this._status}`,
+      );
+    }
+
+    // Clear data depending on how far back we go
+    if (targetLevel <= 0) {
+      // Reverting to draft: clear validation and snapshot
+      this._validationResults = [];
+      this._readinessScore = 0;
+      this._codeSnapshot = null;
+      this._apiSnapshot = null;
+    } else if (targetLevel <= 1) {
+      // Reverting to validated: keep validation, clear snapshot
+      this._codeSnapshot = null;
+      this._apiSnapshot = null;
+    }
+
+    this._status = targetStatus;
+    this._updatedAt = new Date();
+  }
+
   detectDrift(_reason: string): void {
     if (![AECStatus.READY, AECStatus.CREATED].includes(this._status)) {
       return;
@@ -351,11 +445,45 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Re-enrich ticket from developer Q&A review session (Story 7-7)
+   *
+   * Updates techSpec and acceptanceCriteria from the AI-generated spec.
+   * Does NOT change status — intentionally stays WAITING_FOR_APPROVAL
+   * until PM approves (Story 7-8).
+   */
+  reEnrichFromQA(techSpec: TechSpec): void {
+    this._techSpec = techSpec;
+    this._acceptanceCriteria = techSpec.acceptanceCriteria.map(
+      (ac) => `Given ${ac.given} When ${ac.when} Then ${ac.then}`,
+    );
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * PM approves the ticket after reviewing developer Q&A and re-baked spec (Story 7-8)
+   *
+   * Transitions WAITING_FOR_APPROVAL → READY.
+   * Precondition check (status === WAITING_FOR_APPROVAL) is the use case's responsibility.
+   */
+  approve(): void {
+    this._status = AECStatus.READY;
+    this._updatedAt = new Date();
+  }
+
   // Import ClarificationQuestion for type safety
   // Note: This is typed in QuestionRound import
 
   setEstimate(estimate: Estimate): void {
     this._estimate = estimate;
+    this._updatedAt = new Date();
+  }
+
+  updateTitle(title: string): void {
+    if (!title || title.trim().length === 0) {
+      throw new Error('Title cannot be empty');
+    }
+    this._title = title.trim();
     this._updatedAt = new Date();
   }
 
@@ -468,6 +596,14 @@ export class AEC {
   }
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  get assignedTo(): string | null {
+    return this._assignedTo;
+  }
+
+  get reviewSession(): ReviewSession | null {
+    return this._reviewSession;
   }
 
   // Getters for clarification questions (simple, single-set)

@@ -13,7 +13,9 @@ import { Loader2 } from 'lucide-react';
  */
 export default function TeamsIndexPage() {
   const router = useRouter();
-  const { currentTeamId, teams, loadTeams } = useTeamStore();
+  const { currentTeam, teams, loadTeams } = useTeamStore();
+  // Derive currentTeamId from currentTeam (Zustand getters don't work with selectors)
+  const currentTeamId = currentTeam?.id || null;
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,13 +31,15 @@ export default function TeamsIndexPage() {
         await new Promise(resolve => setTimeout(resolve, 100));
 
         const state = useTeamStore.getState();
+        // Derive currentTeamId from currentTeam (Zustand getters don't work)
+        const stateCurrentTeamId = state.currentTeam?.id || null;
         console.log('[TeamsIndexPage] Current state:', {
-          currentTeamId: state.currentTeamId,
+          currentTeamId: stateCurrentTeamId,
           teamsCount: state.teams.length,
           teams: state.teams,
         });
 
-        const teamId = state.currentTeamId || (state.teams.length > 0 ? state.teams[0].id : null);
+        const teamId = stateCurrentTeamId || (state.teams.length > 0 ? state.teams[0].id : null);
         console.log('[TeamsIndexPage] Team ID to redirect to:', teamId);
 
         setIsLoading(false);

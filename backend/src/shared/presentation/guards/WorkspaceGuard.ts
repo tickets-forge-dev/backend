@@ -17,43 +17,48 @@ export class WorkspaceGuard implements CanActivate {
       throw new UnauthorizedException('User not authenticated');
     }
 
-    let workspaceId: string;
-    let currentTeamId: string | null = null;
+    // --- Resolve teamId ---
+    // Priority 1: explicit x-team-id header (used by CLI and web client)
+    const headerTeamId = request.headers['x-team-id'] as string | undefined;
+
+    let resolvedTeamId: string | null = null;
+    let workspaceId: string; // kept for backward-compat (GitHub/Jira/Linear integrations)
+
+    if (headerTeamId) {
+      resolvedTeamId = headerTeamId;
+    }
 
     try {
-      // Get user document from Firestore to check current team
       const user = await this.userRepository.getById(firebaseUser.uid);
-      currentTeamId = user?.getCurrentTeamId()?.getValue() || null;
+      const currentTeamId = user?.getCurrentTeamId()?.getValue() || null;
 
-      if (user && user.getCurrentTeamId()) {
-        // User has a current team - use team's workspace
-        const teamId = user.getCurrentTeamId();
-        const team = await this.teamRepository.getById(teamId!);
+      // Fallback Priority 2: user's current team from Firestore
+      if (!resolvedTeamId) {
+        resolvedTeamId = currentTeamId;
+      }
 
-        if (team) {
-          // ALWAYS use team-specific workspace (ignore defaultWorkspaceId to prevent sharing owner's workspace)
-          // This ensures each team has its own isolated workspace
-          const teamIdStr = team.getId().getValue();
-          workspaceId = `ws_team_${teamIdStr.substring(5, 17)}`; // Extract 12 chars from team ID
-        } else {
-          // Team not found - fallback to personal workspace
-          workspaceId = `ws_${firebaseUser.uid.substring(0, 12)}`;
-        }
+      if (resolvedTeamId) {
+        // Derive legacy workspaceId for integrations stored under old keys
+        workspaceId = `ws_team_${resolvedTeamId.substring(5, 17)}`;
       } else {
-        // No current team - use personal workspace
+        // No team context — personal workspace fallback
         workspaceId = `ws_${firebaseUser.uid.substring(0, 12)}`;
       }
     } catch (error) {
-      // Fallback to personal workspace on error
-      console.warn('[WorkspaceGuard] Error fetching user/team, using personal workspace:', error);
+      console.warn('[WorkspaceGuard] Error fetching user/team:', error);
       workspaceId = `ws_${firebaseUser.uid.substring(0, 12)}`;
     }
 
-    // Attach workspaceId to request for controllers
-    request.workspaceId = workspaceId;
+    if (!resolvedTeamId) {
+      // Personal workspace: scope data to the authenticated user
+      resolvedTeamId = `personal_${firebaseUser.uid}`;
+    }
 
-    // DIAGNOSTIC: Log workspace determination for debugging
-    console.log(`[WorkspaceGuard] userId: ${firebaseUser.uid}, currentTeamId: ${currentTeamId || 'none'}, workspaceId: ${workspaceId}`);
+    // Attach both to request
+    request.teamId = resolvedTeamId;
+    request.workspaceId = workspaceId; // backward-compat for non-ticket endpoints
+
+    console.log(`[WorkspaceGuard] userId: ${firebaseUser.uid}, teamId: ${resolvedTeamId}, workspaceId: ${workspaceId}`);
 
     return true;
   }

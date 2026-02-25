@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import { PostHogProvider } from '@/src/components/PostHogProvider';
 import { DevStartupHealthCheck } from '@/core/components/dev/DevStartupHealthCheck';
@@ -57,6 +58,7 @@ export default function RootLayout({
           <AuthInitializer />
           {process.env.NODE_ENV === 'development' && <DevStartupHealthCheck />}
           <div id="main-content">{children}</div>
+          <Toaster position="bottom-right" richColors />
         </PostHogProvider>
         <Script id="remove-preload" strategy="afterInteractive">
           {`

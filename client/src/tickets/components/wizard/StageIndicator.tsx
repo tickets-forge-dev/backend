@@ -9,39 +9,43 @@ import React from 'react';
  * - Current stage progress (1/4, 2/4, etc.)
  * - Visual indicators (4 circles/boxes)
  * - Current stage highlighted/filled
+ * - Optional Next button inline with progress
  */
-export function StageIndicator({ currentStage }: { currentStage: number }) {
-  // Map internal stage numbers (1, 3, 4) to display numbers (1, 2, 3) - Stage 2 (context) is skipped
-  const stageMap: Record<number, number> = { 1: 1, 3: 2, 4: 3 };
+interface StageIndicatorProps {
+  currentStage: number;
+  nextButton?: React.ReactNode;
+}
+
+export function StageIndicator({ currentStage, nextButton }: StageIndicatorProps) {
+  // Map internal stage numbers to display numbers — Stage 2 (context) removed, Stage 4 (review) merged into Stage 3
+  const stageMap: Record<number, number> = { 1: 1, 3: 2 };
   const displayStage = stageMap[currentStage] || 1;
 
   const stages = [
     { number: 1, label: 'Input', description: 'Enter title & repository' },
-    { number: 2, label: 'Draft', description: 'Review spec & questions' },
-    { number: 3, label: 'Review', description: 'Final review & create' },
+    { number: 2, label: 'Generate', description: 'Questions & spec' },
   ];
 
   return (
     <div className="space-y-3">
       {/* Progress Summary */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h3 className="text-sm font-medium text-[var(--text)]">
-          Stage {displayStage} of 3
+          Stage {displayStage} of 2
         </h3>
-        <p className="text-sm text-[var(--text-secondary)]">
-          {Math.round((displayStage / 3) * 100)}% complete
-        </p>
+        <div className="flex items-center gap-3">
+          {nextButton}
+        </div>
       </div>
 
       {/* Steps with aligned labels */}
       <div className="relative">
         {/* Connector line behind circles */}
-        <div className="absolute top-4 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-0.5 bg-[var(--border)]" />
+        <div className="absolute top-4 left-[calc(25%+16px)] right-[calc(25%+16px)] h-0.5 bg-[var(--border)]" />
         {/* Completed portion of connector */}
         {displayStage > 1 && (
           <div
-            className="absolute top-4 left-[calc(16.67%+16px)] h-0.5 bg-green-600 dark:bg-green-500"
-            style={{ width: `${((Math.min(displayStage, 3) - 1) / 2) * (100 - 33.34)}%` }}
+            className="absolute top-4 left-[calc(25%+16px)] right-[calc(25%+16px)] h-0.5 bg-green-600 dark:bg-green-500"
           />
         )}
 
@@ -52,7 +56,7 @@ export function StageIndicator({ currentStage }: { currentStage: number }) {
             const isCurrent = stage.number === displayStage;
 
             return (
-              <div key={stage.number} className="flex flex-col items-center w-1/3">
+              <div key={stage.number} className="flex flex-col items-center w-1/2">
                 {/* Circle */}
                 <div
                   className={`

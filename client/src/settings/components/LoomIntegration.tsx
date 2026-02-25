@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useServices } from '@/hooks/useServices';
 import { auth } from '@/lib/firebase';
+import { useAuthStore } from '@/stores/auth.store';
 
 /**
  * LoomIntegration Component
@@ -21,33 +21,20 @@ import { auth } from '@/lib/firebase';
  * (thumbnails, duration, titles)
  */
 export function LoomIntegration() {
-  const { ticketService } = useServices();
+  const currentTeamId = useAuthStore((state) => state.currentTeamId);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
 
-  // Get workspace ID from first ticket or use a default
+  // Derive workspace ID from current team
   useEffect(() => {
-    const getWorkspaceId = async () => {
-      try {
-        // Try to get workspace ID from the first ticket
-        const tickets = await ticketService.list();
-        if (tickets.length > 0) {
-          setWorkspaceId(tickets[0].workspaceId);
-        } else {
-          // Fallback: use a temporary workspace ID that will be validated by backend
-          // Backend will extract the actual workspace from the JWT token
-          setWorkspaceId('current');
-        }
-      } catch (err) {
-        console.warn('Failed to get workspace ID, using fallback', err);
-        setWorkspaceId('current');
-      }
-    };
-
-    getWorkspaceId();
-  }, [ticketService]);
+    if (currentTeamId) {
+      setWorkspaceId(`ws_team_${currentTeamId.substring(5, 17)}`);
+    } else {
+      setWorkspaceId(null);
+    }
+  }, [currentTeamId]);
 
   const handleConnect = async () => {
     if (!workspaceId) {

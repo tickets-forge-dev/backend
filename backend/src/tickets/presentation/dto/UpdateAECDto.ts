@@ -1,6 +1,11 @@
 import { IsArray, IsString, IsOptional, IsIn, IsObject } from 'class-validator';
+import { AECStatus } from '../../domain/value-objects/AECStatus';
 
 export class UpdateAECDto {
+  @IsString()
+  @IsOptional()
+  title?: string;
+
   @IsString()
   @IsOptional()
   description?: string;
@@ -15,9 +20,9 @@ export class UpdateAECDto {
   @IsOptional()
   assumptions?: string[];
 
-  @IsIn(['draft', 'complete'])
+  @IsIn(Object.values(AECStatus))
   @IsOptional()
-  status?: 'draft' | 'complete';
+  status?: AECStatus;
 
   @IsObject()
   @IsOptional()
