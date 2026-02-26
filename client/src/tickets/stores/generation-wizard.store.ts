@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound } from '@/types/question-refinement';
+import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestionRound, ReproductionStepSpec } from '@/types/question-refinement';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTeamStore } from '@/teams/stores/team.store';
@@ -18,6 +18,7 @@ interface WizardSnapshot {
   draftAecId: string | null;
   maxRounds: number;
   context: WizardState['context'];
+  reproductionSteps: ReproductionStepSpec[];
   timestamp: number;
   includeRepository: boolean; // AC#3: Persist repository inclusion preference
 }
@@ -32,6 +33,7 @@ function saveSnapshot(state: WizardState): void {
       draftAecId: state.draftAecId,
       maxRounds: state.maxRounds,
       context: state.context,
+      reproductionSteps: state.reproductionSteps,
       timestamp: Date.now(),
       includeRepository: state.includeRepository, // AC#3: Persist repository inclusion
     };
@@ -157,6 +159,9 @@ export interface WizardState {
   // AC#3: Repository inclusion flag (default: true for backward compatibility)
   includeRepository: boolean;
 
+  // Bug reproduction steps (user-provided, optional)
+  reproductionSteps: ReproductionStepSpec[];
+
   context: {
     stack: any;
     analysis: any;
@@ -218,6 +223,11 @@ export interface WizardActions {
   setPriority: (priority: string) => void;
   setIncludeRepository: (include: boolean) => void; // AC#3: Toggle repository inclusion
 
+  // Bug reproduction steps
+  addReproductionStep: () => void;
+  updateReproductionStep: (index: number, updates: Partial<ReproductionStepSpec>) => void;
+  removeReproductionStep: (index: number) => void;
+
   // Context stage
   analyzeRepository: () => Promise<void>;
   editStack: (updates: any) => void; // Legacy: ProjectStack type
@@ -254,6 +264,7 @@ export interface WizardActions {
   resumeDraft: (aecId: string) => Promise<void>;
 
   // Navigation
+  goToReproSteps: () => void;
   goBackToInput: () => void;
   goBackToContext: () => void;
   goBackToSpec: () => void;
@@ -298,6 +309,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // If GitHub not connected, default to false (PMs without GitHub shouldn't see repo as default)
   // If GitHub connected, default to true (backward compatibility for developers)
   includeRepository: useSettingsStore.getState().githubConnected,
+  reproductionSteps: [],
   context: null,
   spec: null,
   answers: {},
@@ -387,6 +399,32 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // AC#3: Toggle repository inclusion
   setIncludeRepository: (include: boolean) => set({ includeRepository: include }),
 
+  // Bug reproduction steps
+  addReproductionStep: () =>
+    set((state) => {
+      const nextOrder = state.reproductionSteps.length + 1;
+      return {
+        reproductionSteps: [
+          ...state.reproductionSteps,
+          { order: nextOrder, action: '' },
+        ],
+      };
+    }),
+
+  updateReproductionStep: (index: number, updates: Partial<ReproductionStepSpec>) =>
+    set((state) => ({
+      reproductionSteps: state.reproductionSteps.map((step, i) =>
+        i === index ? { ...step, ...updates } : step
+      ),
+    })),
+
+  removeReproductionStep: (index: number) =>
+    set((state) => ({
+      reproductionSteps: state.reproductionSteps
+        .filter((_, i) => i !== index)
+        .map((step, i) => ({ ...step, order: i + 1 })),
+    })),
+
   // ============================================================================
   // RECOVERY
   // ============================================================================
@@ -420,6 +458,15 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return {
         canRecover: true,
         stage: 3,
+        title: snapshot.input.title,
+      };
+    }
+
+    // Stage 2: Bug reproduction steps (no context yet)
+    if (snapshot.currentStage === 2 && snapshot.type === 'bug' && !snapshot.context) {
+      return {
+        canRecover: true,
+        stage: 2,
         title: snapshot.input.title,
       };
     }
@@ -460,6 +507,19 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
+    // Stage 2: Bug reproduction steps (no context yet)
+    if (snapshot.currentStage === 2 && snapshot.type === 'bug' && !snapshot.context) {
+      set({
+        currentStage: 2,
+        input: snapshot.input,
+        type: snapshot.type,
+        priority: snapshot.priority,
+        reproductionSteps: snapshot.reproductionSteps ?? [],
+        includeRepository: snapshot.includeRepository ?? true,
+      });
+      return;
+    }
+
     // Stage 3: restore context + form (skip Stage 2 context review)
     if ((snapshot.currentStage === 2 || snapshot.currentStage === 3) && snapshot.context) {
       set({
@@ -469,6 +529,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         priority: snapshot.priority,
         maxRounds: snapshot.maxRounds,
         context: snapshot.context,
+        reproductionSteps: snapshot.reproductionSteps ?? [],
         includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference (default true)
       });
       return;
@@ -480,6 +541,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         input: snapshot.input,
         type: snapshot.type,
         priority: snapshot.priority,
+        reproductionSteps: snapshot.reproductionSteps ?? [],
         includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference
       });
     }
@@ -735,6 +797,14 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         maxRounds: state.maxRounds,
         taskAnalysis: state.context?.taskAnalysis ?? undefined,
       };
+
+      // Include user-provided reproduction steps for bug tickets
+      if (state.type === 'bug' && state.reproductionSteps.length > 0) {
+        const validSteps = state.reproductionSteps.filter(s => s.action.trim());
+        if (validSteps.length > 0) {
+          requestBody.reproductionSteps = validSteps;
+        }
+      }
 
       // Only include repository fields if we have a repository
       if (state.hasRepository && repoOwner && repoName) {
@@ -1335,6 +1405,11 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // NAVIGATION ACTIONS
   // ============================================================================
 
+  goToReproSteps: () => {
+    set({ currentStage: 2, error: null });
+    saveSnapshot(get());
+  },
+
   goBackToInput: () =>
     set({
       currentStage: 1,
@@ -1385,6 +1460,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       type: 'feature',
       priority: 'low',
       includeRepository: true, // AC#3: Reset to default (true)
+      reproductionSteps: [],
       context: null,
       spec: null,
       answers: {},

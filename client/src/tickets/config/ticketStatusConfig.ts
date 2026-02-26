@@ -21,37 +21,37 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     textClass: 'text-[var(--text-tertiary)]',
     cliIcon: '⬜',
   },
-  validated: {
+  'dev-refining': {
     label: 'Dev-Refine',
     description: 'Developer reviews and refines the spec',
     badgeClass: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     dotClass: 'bg-purple-500',
     textClass: 'text-purple-500',
-    cliIcon: '✅',
+    cliIcon: '🔧',
   },
-  'waiting-for-approval': {
-    label: 'Approve (PM)',
+  review: {
+    label: 'Review (PM)',
     description: "PM reviews the developer's changes",
     badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     dotClass: 'bg-amber-500',
     textClass: 'text-amber-500',
     cliIcon: '⏳',
   },
-  ready: {
-    label: 'Execute',
-    description: 'Spec is final, ready to build',
-    badgeClass: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    dotClass: 'bg-green-500',
-    textClass: 'text-green-500',
-    cliIcon: '🚀',
+  forged: {
+    label: 'Forged',
+    description: 'AEC is final, ready to execute',
+    badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+    dotClass: 'bg-amber-500',
+    textClass: 'text-amber-500',
+    cliIcon: '🛡️',
   },
-  created: {
-    label: 'Exported',
-    description: 'Sent to your issue tracker',
-    badgeClass: 'bg-green-500/15 text-green-600 dark:text-green-400',
-    dotClass: 'bg-purple-500',
-    textClass: 'text-purple-500',
-    cliIcon: '📝',
+  executing: {
+    label: 'Executing',
+    description: 'Being built or sent to issue tracker',
+    badgeClass: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+    dotClass: 'bg-blue-500',
+    textClass: 'text-blue-500',
+    cliIcon: '🚀',
   },
   complete: {
     label: 'Done',
@@ -61,26 +61,18 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     textClass: 'text-green-500',
     cliIcon: '✅',
   },
-  drifted: {
-    label: 'Execute',
-    description: 'Spec is final, ready to build',
-    badgeClass: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    dotClass: 'bg-green-500',
-    textClass: 'text-green-500',
-    cliIcon: '🚀',
-  },
 };
 
-/** The 4-step lifecycle shown in the lifecycle panel. */
+/** The lifecycle steps shown in the lifecycle panel. */
 export const LIFECYCLE_STEPS: Array<{ key: string; label: string; description: string; note?: string }> = [
   { key: 'draft', label: 'Define', description: 'PM creates the ticket' },
-  { key: 'validated', label: 'Dev-Refine', description: 'Developer reviews and refines the spec' },
-  { key: 'waiting-for-approval', label: 'Approve (PM)', description: "PM reviews the developer's changes", note: 'Skipped unless approval is required' },
-  { key: 'ready', label: 'Execute', description: 'Spec is final, ready to build' },
+  { key: 'dev-refining', label: 'Dev-Refine', description: 'Developer reviews and refines the spec' },
+  { key: 'review', label: 'Review (PM)', description: "PM reviews the developer's changes", note: 'Skipped unless approval is required' },
+  { key: 'forged', label: 'Forged', description: 'AEC is final, ready to execute' },
 ];
 
-/** Statuses that map to the "Execute" lifecycle step for highlighting. */
-export const EXECUTE_STATUSES = new Set(['ready', 'created', 'complete', 'drifted']);
+/** Statuses that map to the final "Forged" lifecycle step for highlighting. */
+export const EXECUTE_STATUSES = new Set(['forged', 'executing', 'complete']);
 
 export function getStatusLabel(status: string): string {
   return TICKET_STATUS_CONFIG[status]?.label ?? status;

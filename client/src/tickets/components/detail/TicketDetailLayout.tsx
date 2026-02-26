@@ -11,8 +11,9 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
+import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
 import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
@@ -89,8 +90,12 @@ export function TicketDetailLayout({
   const router = useRouter();
   const hasTechSpec = !!ticket.techSpec;
   const { approveTicket, reEnrichTicket } = useTicketsStore();
+  const { ticketService } = useServices();
   const [isApproving, setIsApproving] = useState(false);
   const [isReEnriching, setIsReEnriching] = useState(false);
+  const [isAecExpanded, setIsAecExpanded] = useState(false);
+  const [aecXml, setAecXml] = useState<string | null>(null);
+  const [isLoadingXml, setIsLoadingXml] = useState(false);
 
   const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -153,14 +158,23 @@ export function TicketDetailLayout({
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
-  const isWaitingForApproval = ticket.status === 'waiting-for-approval';
+  const isWaitingForApproval = ticket.status === 'review';
 
   const handleApprove = async () => {
     setIsApproving(true);
     try {
+      // Re-enrich first (re-bake spec + AEC with developer context), then approve
+      const reEnrichSuccess = await reEnrichTicket(ticketId);
+      if (!reEnrichSuccess) {
+        toast.error('Failed to re-bake the ticket. Please try again.');
+        setIsApproving(false);
+        return;
+      }
+
       const success = await approveTicket(ticketId);
       if (success) {
-        toast.success('Ticket approved — status is now READY');
+        await fetchTicket(ticketId);
+        toast.success('AEC forged — ticket is ready for execution');
       } else {
         toast.error('Failed to approve ticket. Please try again.');
       }
@@ -286,28 +300,23 @@ export function TicketDetailLayout({
               qaItems={ticket.reviewSession!.qaItems}
               submittedAt={ticket.reviewSession!.submittedAt}
             />
-            {/* Story 7-8 + 7-10: Regenerate + Approve buttons — shown when ticket is awaiting PM approval */}
+            {/* Approve & Forge — single action: re-bake with dev context + approve */}
             {isWaitingForApproval && (
-              <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
-                <Button
-                  onClick={handleReEnrich}
-                  disabled={isReEnriching}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {!isReEnriching && <RefreshCw className="h-4 w-4 mr-2" />}
-                  Regenerate with Developer Insights
-                </Button>
+              <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                <p className="text-xs text-[var(--text-tertiary)] mb-3">
+                  Approving will re-bake the ticket with the developer&apos;s insights and forge the final AEC.
+                </p>
                 <Button
                   onClick={handleApprove}
                   disabled={isApproving}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   {isApproving ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <ShieldCheck className="h-4 w-4 mr-2" />
                   )}
-                  {isApproving ? 'Approving...' : 'Approve Ticket'}
+                  {isApproving ? 'Forging AEC...' : 'Approve & Forge AEC'}
                 </Button>
               </div>
             )}
@@ -348,40 +357,178 @@ export function TicketDetailLayout({
         onAssignDialogOpenChange={onAssignDialogOpenChange}
       />
 
+      {/* AEC Crown Card — the first-class artifact */}
+      {(() => {
+        const techSpec = ticket.techSpec;
+        const acCount = techSpec?.acceptanceCriteria?.length || 0;
+        const apiCount = techSpec?.apiChanges?.endpoints?.length || 0;
+        const fileCount = techSpec?.fileChanges?.length || 0;
+        const testCount = (techSpec?.testPlan?.unitTests?.length || 0) +
+          (techSpec?.testPlan?.integrationTests?.length || 0) +
+          (techSpec?.testPlan?.edgeCases?.length || 0);
+        const hasScope = (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0);
+        const isForged = ticket.status === 'forged' || ticket.status === 'complete';
+
+        return (
+          <div className={`relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
+            {/* Header */}
+            <div className="px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isForged ? 'bg-amber-500/10' : 'bg-[var(--bg-hover)]'}`}>
+                  <ShieldCheck className={`w-4.5 h-4.5 ${isForged ? 'text-amber-500/60' : 'text-[var(--text-tertiary)]'}`} />
+                </div>
+                <div>
+                  <p className={`text-sm font-semibold ${isForged ? 'text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>
+                    Agent Execution Contract
+                  </p>
+                  <p className="text-[10px] text-[var(--text-tertiary)]">
+                    {isForged ? 'Verified and ready for execution' : 'Draft — pending approval'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    if (isAecExpanded) {
+                      setIsAecExpanded(false);
+                      return;
+                    }
+                    if (!aecXml) {
+                      setIsLoadingXml(true);
+                      try {
+                        const xml = await ticketService.exportXml(ticketId);
+                        setAecXml(xml);
+                      } catch {
+                        toast.error('Failed to load AEC XML');
+                      } finally {
+                        setIsLoadingXml(false);
+                      }
+                    }
+                    setIsAecExpanded(true);
+                  }}
+                  disabled={isLoadingXml}
+                  className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  {isLoadingXml ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : isAecExpanded ? (
+                    <>Hide <ChevronUp className="w-3.5 h-3.5" /></>
+                  ) : (
+                    <>Show <ChevronDown className="w-3.5 h-3.5" /></>
+                  )}
+                </button>
+                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
+                  isForged
+                    ? 'bg-amber-500/8 text-amber-500/70 border-amber-500/15'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] border-[var(--border-subtle)]'
+                }`}>
+                  {isForged ? 'FORGED' : 'DRAFT'}
+                </span>
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="px-5 pb-4 flex flex-wrap gap-x-5 gap-y-2">
+              {acCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{acCount} acceptance criteria</span>
+                </div>
+              )}
+              {apiCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <GitPullRequest className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{apiCount} API endpoints</span>
+                </div>
+              )}
+              {fileCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <FileCode2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{fileCount} files affected</span>
+                </div>
+              )}
+              {testCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <TestTube className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{testCount} tests</span>
+                </div>
+              )}
+              {hasScope && (
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">Scope defined</span>
+                </div>
+              )}
+            </div>
+
+            {/* Expanded AEC XML Viewer */}
+            {isAecExpanded && aecXml && (
+              <div className="border-t border-[var(--border-subtle)]">
+                <div className="relative">
+                  <pre className="px-5 py-4 overflow-x-auto text-[12px] leading-relaxed font-mono max-h-[500px] overflow-y-auto scrollbar-thin">
+                    {aecXml.split('\n').map((line, i) => {
+                      // Syntax highlight XML
+                      const highlighted = line
+                        // Processing instructions
+                        .replace(/(<\?.*?\?>)/g, '<span class="text-[#71717a]">$1</span>')
+                        // Comments
+                        .replace(/(<!--.*?-->)/g, '<span class="text-[#525252]">$1</span>')
+                        // CDATA
+                        .replace(/(<!\[CDATA\[)(.*?)(\]\]>)/g, '<span class="text-[#71717a]">$1</span><span class="text-amber-300/80">$2</span><span class="text-[#71717a]">$3</span>')
+                        // Closing tags
+                        .replace(/(<\/)([\w-]+)(>)/g, '<span class="text-[#525252]">$1</span><span class="text-blue-400/80">$2</span><span class="text-[#525252]">$3</span>')
+                        // Opening tags with attributes
+                        .replace(/(<)([\w-]+)((?:\s+[\w-]+="[^"]*")*)(\/?>)/g, (_m, lt, tag, attrs, gt) => {
+                          const highlightedAttrs = attrs.replace(/([\w-]+)=("(?:[^"])*")/g, '<span class="text-purple-400/70">$1</span>=<span class="text-green-400/70">$2</span>');
+                          return `<span class="text-[#525252]">${lt}</span><span class="text-blue-400/80">${tag}</span>${highlightedAttrs}<span class="text-[#525252]">${gt}</span>`;
+                        })
+                        // Text content between tags (already handled by above, just color remaining text)
+                        ;
+
+                      return (
+                        <div key={i} className="flex">
+                          <span className="select-none text-[#3f3f46] w-8 text-right mr-4 flex-shrink-0">{i + 1}</span>
+                          <span className="text-[var(--text-secondary)]" dangerouslySetInnerHTML={{ __html: highlighted }} />
+                        </div>
+                      );
+                    })}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Review Session Q&A (Story 6-12 / 7-6) — shown above tabs when present */}
       {hasReviewSession && (
         <CollapsibleSection
           id="review-session"
           title="Developer Review Q&A"
           badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
-          defaultExpanded={true}
+          defaultExpanded={false}
         >
           <ReviewSessionSection
             qaItems={ticket.reviewSession!.qaItems}
             submittedAt={ticket.reviewSession!.submittedAt}
           />
-          {/* Story 7-8 + 7-10: Regenerate + Approve buttons — shown when ticket is awaiting PM approval */}
+          {/* Approve & Forge — single action: re-bake with dev context + approve */}
           {isWaitingForApproval && (
-            <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
-              <Button
-                onClick={handleReEnrich}
-                disabled={isReEnriching}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {!isReEnriching && <RefreshCw className="h-4 w-4 mr-2" />}
-                Regenerate with Developer Insights
-              </Button>
+            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+              <p className="text-xs text-[var(--text-tertiary)] mb-3">
+                Approving will re-bake the ticket with the developer&apos;s insights and forge the final AEC.
+              </p>
               <Button
                 onClick={handleApprove}
                 disabled={isApproving}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
                 {isApproving ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  <ShieldCheck className="h-4 w-4 mr-2" />
                 )}
-                {isApproving ? 'Approving...' : 'Approve Ticket'}
+                {isApproving ? 'Forging AEC...' : 'Approve & Forge AEC'}
               </Button>
             </div>
           )}

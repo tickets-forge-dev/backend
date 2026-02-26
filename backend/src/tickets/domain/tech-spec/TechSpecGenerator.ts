@@ -545,5 +545,7 @@ export interface TechSpecGenerator {
     description?: string;
     context: CodebaseContext | null;  // Null when no repository provided (PM without GitHub)
     answers: AnswerContext[];
+    ticketType?: 'feature' | 'bug' | 'task';
+    reproductionSteps?: ReproductionStep[];
   }): Promise<TechSpec>;
 }

@@ -20,7 +20,7 @@ function makeMockAEC(overrides: {
   return {
     id: TICKET_ID,
     teamId: overrides.teamId ?? TEAM_ID,
-    status: overrides.status ?? AECStatus.READY,
+    status: overrides.status ?? AECStatus.DEV_REFINING,
     submitReviewSession: jest.fn(),
   };
 }
@@ -76,7 +76,7 @@ describe('SubmitReviewSessionUseCase', () => {
     });
 
     it('returns ticketId and status in result', async () => {
-      const mockAEC = makeMockAEC({ status: AECStatus.READY });
+      const mockAEC = makeMockAEC({ status: AECStatus.DEV_REFINING });
       aecRepository.findById.mockResolvedValue(mockAEC);
 
       const result = await useCase.execute({
@@ -86,7 +86,7 @@ describe('SubmitReviewSessionUseCase', () => {
       });
 
       expect(result.ticketId).toBe(TICKET_ID);
-      expect(result.status).toBe(AECStatus.READY);
+      expect(result.status).toBe(AECStatus.DEV_REFINING);
     });
   });
 

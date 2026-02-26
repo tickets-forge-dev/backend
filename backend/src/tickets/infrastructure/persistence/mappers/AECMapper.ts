@@ -79,11 +79,21 @@ export interface AECDocument {
   designReferences?: any[];
   assignedTo?: string | null; // Story 3.5-5: userId of assigned team member
   reviewSession?: { qaItems: { question: string; answer: string }[]; submittedAt: Timestamp } | null; // Story 6-12
+  reproductionSteps?: any[]; // User-provided bug reproduction steps
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
   maxRounds?: number;
 }
+
+/** Migration map: old Firestore status values → new AECStatus values */
+const STATUS_MIGRATION: Record<string, string> = {
+  'validated': 'dev-refining',
+  'waiting-for-approval': 'review',
+  'ready': 'forged',
+  'created': 'executing',
+  // 'drifted' handled separately below (depends on externalIssue)
+};
 
 export class AECMapper {
   static toDomain(doc: AECDocument): AEC {
@@ -165,11 +175,19 @@ export class AECMapper {
         metadata: ref.metadata ? { ...ref.metadata } : undefined,
       })) as DesignReference[];
 
+    // Migrate old status values to new AECStatus enum
+    let migratedStatus: string;
+    if (doc.status === 'drifted') {
+      migratedStatus = doc.externalIssue ? 'executing' : 'forged';
+    } else {
+      migratedStatus = STATUS_MIGRATION[doc.status] ?? doc.status;
+    }
+
     return AEC.reconstitute(
       doc.id,
       doc.teamId,
       doc.createdBy || 'unknown', // Backward compatibility: fallback for old documents
-      doc.status as AECStatus,
+      migratedStatus as AECStatus,
       doc.title,
       doc.description,
       doc.type as TicketType | null,
@@ -207,6 +225,7 @@ export class AECMapper {
             submittedAt: toDate(doc.reviewSession.submittedAt),
           }
         : null, // Story 6-12: backward compatible (null for old tickets)
+      doc.reproductionSteps ?? [],
     );
   }
 
@@ -269,6 +288,7 @@ export class AECMapper {
             submittedAt: Timestamp.fromDate(aec.reviewSession.submittedAt),
           }
         : null, // Story 6-12
+      reproductionSteps: aec.reproductionSteps.length > 0 ? aec.reproductionSteps : undefined,
     };
   }
 }

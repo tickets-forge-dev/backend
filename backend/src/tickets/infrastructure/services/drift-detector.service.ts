@@ -92,7 +92,7 @@ export class DriftDetectorService implements IDriftDetector {
       .collection('workspaces')
       .doc(workspaceId)
       .collection('aecs')
-      .where('status', 'in', [AECStatus.READY, AECStatus.CREATED])
+      .where('status', 'in', [AECStatus.FORGED, AECStatus.EXECUTING, 'ready', 'created'])
       .where('repositoryContext.repositoryName', '==', repositoryName)
       .get();
 

@@ -5,9 +5,9 @@ import { createPortal } from 'react-dom';
 import { LIFECYCLE_STEPS, EXECUTE_STATUSES, TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
 
 function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string; onTransition?: (status: string) => void }) {
-  // Always 4 fixed steps. Drifted/created/complete all map to the "Execute" step.
+  // Always 4 fixed steps. Executing/complete all map to the "Forged" step.
   const currentIdx = LIFECYCLE_STEPS.findIndex(
-    (s) => s.key === currentStatus || (s.key === 'ready' && EXECUTE_STATUSES.has(currentStatus)),
+    (s) => s.key === currentStatus || (s.key === 'forged' && EXECUTE_STATUSES.has(currentStatus)),
   );
 
   return (
@@ -18,7 +18,7 @@ function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string
         {LIFECYCLE_STEPS.map((step, i) => {
           const isCurrent =
             step.key === currentStatus ||
-            (step.key === 'ready' && EXECUTE_STATUSES.has(currentStatus));
+            (step.key === 'forged' && EXECUTE_STATUSES.has(currentStatus));
           const isLast = i === LIFECYCLE_STEPS.length - 1;
           const statusCfg = TICKET_STATUS_CONFIG[step.key];
           const isClickable = onTransition && !isCurrent;
