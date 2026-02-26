@@ -67,6 +67,7 @@ export class AEC {
     private _designReferences: DesignReference[] = [],
     private _assignedTo: string | null = null, // userId of assigned team member
     private _reviewSession: ReviewSession | null = null, // Story 6-12: CLI review Q&A
+    private _reproductionSteps: any[] = [], // User-provided bug reproduction steps
   ) {}
 
   // Factory method for creating new draft
@@ -118,6 +119,8 @@ export class AEC {
       [], // _attachments
       [], // _designReferences
       assignedTo ?? null, // _assignedTo
+      null, // _reviewSession
+      [], // _reproductionSteps
     );
   }
 
@@ -156,6 +159,7 @@ export class AEC {
     designReferences?: DesignReference[],
     assignedTo?: string | null,
     reviewSession?: ReviewSession | null,
+    reproductionSteps?: any[],
   ): AEC {
     return new AEC(
       id,
@@ -191,6 +195,7 @@ export class AEC {
       designReferences ?? [],
       assignedTo ?? null,
       reviewSession ?? null,
+      reproductionSteps ?? [],
     );
   }
 
@@ -633,6 +638,15 @@ export class AEC {
 
   setTaskAnalysis(taskAnalysis: any): void {
     this._taskAnalysis = taskAnalysis;
+    this._updatedAt = new Date();
+  }
+
+  get reproductionSteps(): any[] {
+    return [...this._reproductionSteps];
+  }
+
+  setReproductionSteps(steps: any[]): void {
+    this._reproductionSteps = steps;
     this._updatedAt = new Date();
   }
 

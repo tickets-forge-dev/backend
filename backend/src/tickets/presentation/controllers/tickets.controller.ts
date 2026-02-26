@@ -331,6 +331,7 @@ export class TicketsController {
         type: dto.type,
         priority: dto.priority,
         taskAnalysis: dto.taskAnalysis,
+        reproductionSteps: dto.reproductionSteps,
       });
 
       return this.mapToResponse(aec);

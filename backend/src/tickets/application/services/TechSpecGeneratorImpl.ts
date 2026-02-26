@@ -34,6 +34,7 @@ import {
   TestPlan,
   VisualExpectations,
   PackageDependency,
+  BugDetails,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
 
 /**
@@ -432,6 +433,51 @@ Return ONLY valid JSON:
   "suggestedFix": "High-level guidance on how to approach the fix"
 }`;
   }
+
+  static bugDetailsFromDescriptionPrompt(
+    title: string,
+    description: string,
+    detectedFiles: string[],
+    directoryStructure: string,
+  ): string {
+    return `You are analyzing a bug ticket to generate structured reproduction steps and analysis.
+
+BUG TICKET:
+Title: ${title}
+Description: ${description}
+
+CODEBASE CONTEXT:
+Key Directories: ${directoryStructure.split('\n').slice(0, 5).join(', ')}
+
+LIKELY AFFECTED FILES:
+${detectedFiles.slice(0, 10).map((f) => `  - ${f}`).join('\n')}
+
+Your task:
+1. Generate 3-7 ordered reproduction steps (reproductionSteps) based on the bug description
+2. For each step include: order, action, expectedBehavior, actualBehavior
+3. Identify 1-3 files most likely to contain the bug (relatedFiles)
+4. Generate a root cause hypothesis (suspectedCause) - 1-2 sentences
+5. Suggest a high-level fix approach (suggestedFix)
+6. If possible, infer environment details (browser, os, viewport, userRole)
+7. Estimate frequency: "always", "sometimes", or "rarely"
+
+Return ONLY valid JSON:
+{
+  "reproductionSteps": [
+    {
+      "order": 1,
+      "action": "What the user does",
+      "expectedBehavior": "What should happen",
+      "actualBehavior": "What actually happens (the bug)"
+    }
+  ],
+  "environment": { "browser": "...", "os": "...", "viewport": "...", "userRole": "..." },
+  "frequency": "always",
+  "relatedFiles": ["path/to/file.ts"],
+  "suspectedCause": "Root cause hypothesis",
+  "suggestedFix": "High-level fix approach"
+}`;
+  }
 }
 
 /**
@@ -572,14 +618,26 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     };
 
     // Bug-specific analysis: runs in parallel with other sections, non-blocking
-    if (input.ticketType === 'bug' && input.reproductionSteps && input.reproductionSteps.length > 0) {
-      const bugAnalysis = await this.generateBugAnalysis(input.reproductionSteps, context);
-      techSpec.bugDetails = {
-        reproductionSteps: input.reproductionSteps,
-        relatedFiles: bugAnalysis.relatedFiles,
-        suspectedCause: bugAnalysis.suspectedCause,
-        suggestedFix: bugAnalysis.suggestedFix,
-      };
+    if (input.ticketType === 'bug') {
+      if (input.reproductionSteps && input.reproductionSteps.length > 0) {
+        const bugAnalysis = await this.generateBugAnalysis(input.reproductionSteps, context);
+        techSpec.bugDetails = {
+          reproductionSteps: input.reproductionSteps,
+          relatedFiles: bugAnalysis.relatedFiles,
+          suspectedCause: bugAnalysis.suspectedCause,
+          suggestedFix: bugAnalysis.suggestedFix,
+        };
+      } else {
+        // No explicit reproduction steps — generate from description
+        const bugDetails = await this.generateBugDetailsFromDescription(
+          input.title,
+          input.description || '',
+          context,
+        );
+        if (bugDetails) {
+          techSpec.bugDetails = bugDetails;
+        }
+      }
     }
 
     // Detect and remove ambiguities
@@ -1343,6 +1401,88 @@ Return an empty array [] if no new dependencies are required.
       this.logger.warn(`Bug analysis generation failed: ${String(error)}`);
       // Return empty analysis on error - don't block spec generation
       return {};
+    }
+  }
+
+  /**
+   * Generates full bug details (reproduction steps + analysis) from description.
+   *
+   * Called for bug-type tickets when no explicit reproduction steps are provided.
+   * The AI infers steps, environment, frequency, and root cause from the description.
+   */
+  private async generateBugDetailsFromDescription(
+    title: string,
+    description: string,
+    context: CodebaseContext,
+  ): Promise<BugDetails | undefined> {
+    try {
+      const detectedFiles =
+        (context as any)?.taskAnalysis?.filesToModify ||
+        Array.from(context.files.keys())
+          .filter(
+            (f) =>
+              f.endsWith('.controller.ts') ||
+              f.endsWith('.service.ts') ||
+              f.includes('/api/') ||
+              f.includes('/services/'),
+          )
+          .slice(0, 20);
+
+      const directoryStructure = this.buildDirectoryStructure(context);
+      const systemPrompt = PromptTemplates.systemPrompt(context);
+      const userPrompt = PromptTemplates.bugDetailsFromDescriptionPrompt(
+        title,
+        description || '',
+        detectedFiles,
+        directoryStructure,
+      );
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<{
+        reproductionSteps?: any[];
+        environment?: any;
+        frequency?: string;
+        relatedFiles?: string[];
+        suspectedCause?: string;
+        suggestedFix?: string;
+      }>(response);
+
+      const steps = Array.isArray(parsed.reproductionSteps)
+        ? parsed.reproductionSteps
+            .filter((s) => s && typeof s.action === 'string')
+            .map((s, i) => ({
+              order: s.order || i + 1,
+              action: String(s.action),
+              expectedBehavior: s.expectedBehavior ? String(s.expectedBehavior) : undefined,
+              actualBehavior: s.actualBehavior ? String(s.actualBehavior) : undefined,
+            }))
+        : [];
+
+      if (steps.length === 0) {
+        this.logger.warn('Bug details generation produced no reproduction steps');
+        return undefined;
+      }
+
+      const relatedFiles = Array.isArray(parsed.relatedFiles)
+        ? parsed.relatedFiles.filter((f) => typeof f === 'string' && f.length > 0).slice(0, 5)
+        : undefined;
+
+      const validFrequencies = ['always', 'sometimes', 'rarely'] as const;
+      const frequency = validFrequencies.includes(parsed.frequency as any)
+        ? (parsed.frequency as 'always' | 'sometimes' | 'rarely')
+        : undefined;
+
+      return {
+        reproductionSteps: steps,
+        environment: parsed.environment || undefined,
+        frequency,
+        relatedFiles: relatedFiles && relatedFiles.length > 0 ? relatedFiles : undefined,
+        suspectedCause: parsed.suspectedCause ? String(parsed.suspectedCause).trim() : undefined,
+        suggestedFix: parsed.suggestedFix ? String(parsed.suggestedFix).trim() : undefined,
+      };
+    } catch (error) {
+      this.logger.warn(`Bug details generation from description failed: ${String(error)}`);
+      return undefined;
     }
   }
 
@@ -2295,14 +2435,25 @@ Rewritten text (definitive, unambiguous):`;
         };
 
       // Bug-specific analysis: runs in parallel with other sections, non-blocking
-      if (input.ticketType === 'bug' && input.reproductionSteps && input.reproductionSteps.length > 0) {
-        const bugAnalysis = await this.generateBugAnalysis(input.reproductionSteps, context);
-        techSpec.bugDetails = {
-          reproductionSteps: input.reproductionSteps,
-          relatedFiles: bugAnalysis.relatedFiles,
-          suspectedCause: bugAnalysis.suspectedCause,
-          suggestedFix: bugAnalysis.suggestedFix,
-        };
+      if (input.ticketType === 'bug') {
+        if (input.reproductionSteps && input.reproductionSteps.length > 0) {
+          const bugAnalysis = await this.generateBugAnalysis(input.reproductionSteps, context);
+          techSpec.bugDetails = {
+            reproductionSteps: input.reproductionSteps,
+            relatedFiles: bugAnalysis.relatedFiles,
+            suspectedCause: bugAnalysis.suspectedCause,
+            suggestedFix: bugAnalysis.suggestedFix,
+          };
+        } else {
+          const bugDetails = await this.generateBugDetailsFromDescription(
+            input.title,
+            input.description || '',
+            context,
+          );
+          if (bugDetails) {
+            techSpec.bugDetails = bugDetails;
+          }
+        }
       }
 
       // Detect and remove remaining ambiguities

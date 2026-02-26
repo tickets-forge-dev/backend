@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo } from '@/tickets/stores/generation-wizard.store';
 import { Stage1Input } from './wizard/Stage1Input';
+import { Stage2ReproSteps } from './wizard/Stage2ReproSteps';
 import { Stage3Draft } from './wizard/Stage3Draft';
 import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
@@ -43,10 +44,13 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     draftAecId,
     showCelebration,
     closeCelebration,
+    type,
     input,
     includeRepository,
     analyzeRepository,
     hasRepository,
+    goBackToInput,
+    goToReproSteps,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -130,7 +134,12 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           onClick={(e) => {
             e.preventDefault();
             if (isFormValid) {
-              analyzeRepository();
+              if (type === 'bug') {
+                // Bug tickets go to reproduction steps first
+                goToReproSteps();
+              } else {
+                analyzeRepository();
+              }
             }
           }}
           disabled={!isFormValid || loading}
@@ -141,7 +150,33 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         </Button>
       );
     }
-    // Add other stages as needed
+
+    if (currentStage === 2) {
+      // Stage 2: Repro Steps — Back + Next buttons
+      return (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goBackToInput()}
+          >
+            Back
+          </Button>
+          <Button
+            onClick={(e) => {
+              e.preventDefault();
+              analyzeRepository();
+            }}
+            disabled={loading}
+            size="sm"
+            className="min-w-[96px]"
+          >
+            {loading ? 'Analyzing...' : 'Next'}
+          </Button>
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -151,7 +186,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       {!draftAecId && (
         <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
-            <StageIndicator currentStage={currentStage} nextButton={getNextButton()} />
+            <StageIndicator currentStage={currentStage} nextButton={getNextButton()} ticketType={type} />
           </div>
         </div>
       )}
@@ -185,6 +220,9 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6">
         {/* Stage 1: Input */}
         {currentStage === 1 && <Stage1Input />}
+
+        {/* Stage 2: Reproduction Steps (Bug only) */}
+        {currentStage === 2 && <Stage2ReproSteps />}
 
         {/* Stage 3: Draft Review, Questions & Unified Summary */}
         {currentStage === 3 && <Stage3Draft />}

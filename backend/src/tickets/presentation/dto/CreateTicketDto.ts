@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsInt,
   IsIn,
+  IsArray,
   Min,
   Max,
   MinLength,
@@ -50,4 +51,8 @@ export class CreateTicketDto {
 
   @IsOptional()
   taskAnalysis?: any;
+
+  @IsOptional()
+  @IsArray()
+  reproductionSteps?: any[];
 }
