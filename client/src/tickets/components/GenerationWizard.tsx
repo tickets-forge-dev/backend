@@ -185,7 +185,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       {/* Stage Indicator - Hide after ticket is created */}
       {!draftAecId && (
         <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
+          <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6">
             <StageIndicator currentStage={currentStage} nextButton={getNextButton()} ticketType={type} />
           </div>
         </div>
