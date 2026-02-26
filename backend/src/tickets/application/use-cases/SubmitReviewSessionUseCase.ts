@@ -18,7 +18,7 @@ export interface SubmitReviewSessionResult {
  * SubmitReviewSessionUseCase (Story 6-12)
  *
  * Stores Q&A pairs from the CLI reviewer agent on the ticket
- * and transitions status to WAITING_FOR_APPROVAL so the PM
+ * and transitions status to REVIEW so the PM
  * can review the answers and trigger a re-bake.
  */
 @Injectable()
@@ -40,7 +40,7 @@ export class SubmitReviewSessionUseCase {
       throw new ForbiddenException('Ticket does not belong to your workspace');
     }
 
-    // 3. Submit review session (transitions to WAITING_FOR_APPROVAL)
+    // 3. Submit review session (transitions to REVIEW)
     aec.submitReviewSession(command.qaItems);
 
     // 4. Persist

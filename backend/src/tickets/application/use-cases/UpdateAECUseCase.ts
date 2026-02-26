@@ -69,11 +69,10 @@ export class UpdateAECUseCase {
     // Determine if this is a backward transition
     const lifecycleOrder: Record<string, number> = {
       [AECStatus.DRAFT]: 0,
-      [AECStatus.VALIDATED]: 1,
-      [AECStatus.WAITING_FOR_APPROVAL]: 2,
-      [AECStatus.READY]: 3,
-      [AECStatus.CREATED]: 3,
-      [AECStatus.DRIFTED]: 3,
+      [AECStatus.DEV_REFINING]: 1,
+      [AECStatus.REVIEW]: 2,
+      [AECStatus.FORGED]: 3,
+      [AECStatus.EXECUTING]: 3,
     };
 
     const currentLevel = lifecycleOrder[aec.status];
@@ -96,26 +95,23 @@ export class UpdateAECUseCase {
       case AECStatus.COMPLETE:
         aec.markComplete();
         break;
-      case AECStatus.VALIDATED:
-        aec.validate(this.createAutoPassValidation());
+      case AECStatus.DEV_REFINING:
+        aec.startDevRefine(this.createAutoPassValidation());
         break;
-      case AECStatus.WAITING_FOR_APPROVAL:
+      case AECStatus.REVIEW:
         // Forward: submit an empty review session to transition
         aec.submitReviewSession([]);
         break;
-      case AECStatus.READY:
-        // If draft, validate first then mark ready
+      case AECStatus.FORGED:
+        // If draft, start dev-refine first then forge
         if (aec.status === AECStatus.DRAFT) {
-          aec.validate(this.createAutoPassValidation());
+          aec.startDevRefine(this.createAutoPassValidation());
         }
-        if (aec.status === AECStatus.WAITING_FOR_APPROVAL) {
+        if (aec.status === AECStatus.REVIEW) {
           aec.approve();
         } else {
-          aec.markReady({ commitSha: 'manual', indexId: 'manual' });
+          aec.forge({ commitSha: 'manual', indexId: 'manual' });
         }
-        break;
-      case AECStatus.DRIFTED:
-        aec.detectDrift('Manual status change');
         break;
       default:
         throw new InvalidStateTransitionError(

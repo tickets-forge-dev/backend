@@ -85,6 +85,15 @@ export interface AECDocument {
   maxRounds?: number;
 }
 
+/** Migration map: old Firestore status values → new AECStatus values */
+const STATUS_MIGRATION: Record<string, string> = {
+  'validated': 'dev-refining',
+  'waiting-for-approval': 'review',
+  'ready': 'forged',
+  'created': 'executing',
+  // 'drifted' handled separately below (depends on externalIssue)
+};
+
 export class AECMapper {
   static toDomain(doc: AECDocument): AEC {
     // Reconstitute repository context if present
@@ -165,11 +174,19 @@ export class AECMapper {
         metadata: ref.metadata ? { ...ref.metadata } : undefined,
       })) as DesignReference[];
 
+    // Migrate old status values to new AECStatus enum
+    let migratedStatus: string;
+    if (doc.status === 'drifted') {
+      migratedStatus = doc.externalIssue ? 'executing' : 'forged';
+    } else {
+      migratedStatus = STATUS_MIGRATION[doc.status] ?? doc.status;
+    }
+
     return AEC.reconstitute(
       doc.id,
       doc.teamId,
       doc.createdBy || 'unknown', // Backward compatibility: fallback for old documents
-      doc.status as AECStatus,
+      migratedStatus as AECStatus,
       doc.title,
       doc.description,
       doc.type as TicketType | null,

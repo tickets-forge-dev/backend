@@ -30,7 +30,7 @@ export interface ReEnrichWithQACommand {
  * developer's Q&A answers stored in reviewSession.qaItems.
  *
  * Called when the PM clicks "Re-bake Ticket" after reviewing developer Q&A.
- * Status stays WAITING_FOR_APPROVAL — approve is handled by Story 7-8.
+ * Status stays REVIEW — approve is handled by Story 7-8.
  *
  * Pattern mirrors FinalizeSpecUseCase: builds codebase context from
  * repositoryContext (if present), then calls generateWithAnswers().

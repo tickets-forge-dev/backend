@@ -15,9 +15,9 @@ interface OverviewCardProps {
   onAssignDialogOpenChange?: (open: boolean) => void;
 }
 
-/** Resolve display status: drifted/created/complete all show as "ready" config */
+/** Resolve display status: executing/complete all show as "forged" config */
 function getDisplayStatus(status: string): string {
-  if (EXECUTE_STATUSES.has(status)) return 'ready';
+  if (EXECUTE_STATUSES.has(status)) return 'forged';
   return status;
 }
 

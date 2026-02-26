@@ -16,7 +16,7 @@ interface ReviewSessionSectionProps {
  * ReviewSessionSection (Story 6-12 / 7-6)
  *
  * Displays the Q&A pairs submitted by a developer via `forge review`.
- * Shown when ticket status is WAITING_FOR_APPROVAL.
+ * Shown when ticket status is REVIEW.
  * Read-only — the PM reviews these answers before re-baking.
  */
 export function ReviewSessionSection({ qaItems, submittedAt }: ReviewSessionSectionProps) {

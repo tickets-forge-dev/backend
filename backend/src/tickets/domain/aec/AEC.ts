@@ -195,13 +195,13 @@ export class AEC {
   }
 
   // State machine transitions
-  validate(validationResults: ValidationResult[]): void {
+  startDevRefine(validationResults: ValidationResult[]): void {
     if (this._status !== AECStatus.DRAFT) {
-      throw new InvalidStateTransitionError(`Cannot validate from ${this._status}`);
+      throw new InvalidStateTransitionError(`Cannot start dev-refine from ${this._status}`);
     }
     this._validationResults = validationResults;
     this._readinessScore = this.calculateReadinessScore(validationResults);
-    this._status = AECStatus.VALIDATED;
+    this._status = AECStatus.DEV_REFINING;
     this._updatedAt = new Date();
   }
 
@@ -233,25 +233,25 @@ export class AEC {
     return this._validationResults.some((r) => r.hasCriticalIssues());
   }
 
-  markReady(codeSnapshot: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
-    if (this._status !== AECStatus.VALIDATED) {
-      throw new InvalidStateTransitionError(`Cannot mark ready from ${this._status}`);
+  forge(codeSnapshot: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
+    if (this._status !== AECStatus.DEV_REFINING) {
+      throw new InvalidStateTransitionError(`Cannot forge from ${this._status}`);
     }
     if (this._readinessScore < 75) {
       throw new InsufficientReadinessError(`Score ${this._readinessScore} < 75`);
     }
     this._codeSnapshot = codeSnapshot;
     this._apiSnapshot = apiSnapshot ?? null;
-    this._status = AECStatus.READY;
+    this._status = AECStatus.FORGED;
     this._updatedAt = new Date();
   }
 
   export(externalIssue: ExternalIssue): void {
-    if (this._status !== AECStatus.READY) {
+    if (this._status !== AECStatus.FORGED) {
       throw new InvalidStateTransitionError(`Cannot export from ${this._status}`);
     }
     this._externalIssue = externalIssue;
-    this._status = AECStatus.CREATED;
+    this._status = AECStatus.EXECUTING;
     this._updatedAt = new Date();
   }
 
@@ -278,9 +278,9 @@ export class AEC {
   }
 
   markComplete(): void {
-    if (this._status !== AECStatus.DRAFT) {
+    if (this._status !== AECStatus.DRAFT && this._status !== AECStatus.EXECUTING) {
       throw new InvalidStateTransitionError(
-        `Cannot mark complete from ${this._status}. Only draft tickets can be marked complete.`,
+        `Cannot mark complete from ${this._status}. Only draft or executing tickets can be marked complete.`,
       );
     }
     this._status = AECStatus.COMPLETE;
@@ -317,30 +317,29 @@ export class AEC {
 
   /**
    * Submit a review session with Q&A pairs from the CLI reviewer agent.
-   * Transitions the ticket to WAITING_FOR_APPROVAL so the PM can review.
+   * Transitions the ticket to REVIEW so the PM can review.
    */
   submitReviewSession(qaItems: ReviewQAItem[]): void {
     this._reviewSession = {
       qaItems,
       submittedAt: new Date(),
     };
-    this._status = AECStatus.WAITING_FOR_APPROVAL;
+    this._status = AECStatus.REVIEW;
     this._updatedAt = new Date();
   }
 
   /**
    * Move the ticket backward in the lifecycle.
-   * Lifecycle order: draft(0) → validated(1) → waiting-for-approval(2) → ready(3)
-   * Statuses 'created' and 'drifted' map to the same level as 'ready' (3).
+   * Lifecycle order: draft(0) → dev-refining(1) → review(2) → forged(3)
+   * Status 'executing' maps to the same level as 'forged' (3).
    */
   sendBack(targetStatus: AECStatus): void {
     const lifecycleOrder: Record<string, number> = {
       [AECStatus.DRAFT]: 0,
-      [AECStatus.VALIDATED]: 1,
-      [AECStatus.WAITING_FOR_APPROVAL]: 2,
-      [AECStatus.READY]: 3,
-      [AECStatus.CREATED]: 3,
-      [AECStatus.DRIFTED]: 3,
+      [AECStatus.DEV_REFINING]: 1,
+      [AECStatus.REVIEW]: 2,
+      [AECStatus.FORGED]: 3,
+      [AECStatus.EXECUTING]: 3,
     };
 
     const currentLevel = lifecycleOrder[this._status];
@@ -366,7 +365,7 @@ export class AEC {
       this._codeSnapshot = null;
       this._apiSnapshot = null;
     } else if (targetLevel <= 1) {
-      // Reverting to validated: keep validation, clear snapshot
+      // Reverting to dev-refining: keep validation, clear snapshot
       this._codeSnapshot = null;
       this._apiSnapshot = null;
     }
@@ -376,11 +375,12 @@ export class AEC {
   }
 
   detectDrift(_reason: string): void {
-    if (![AECStatus.READY, AECStatus.CREATED].includes(this._status)) {
+    if (![AECStatus.FORGED, AECStatus.EXECUTING].includes(this._status)) {
       return;
     }
-    this._status = AECStatus.DRIFTED;
+    // Drift is tracked as a property, not a status change
     this._driftDetectedAt = new Date();
+    this._driftReason = _reason;
     this._updatedAt = new Date();
   }
 
@@ -449,7 +449,7 @@ export class AEC {
    * Re-enrich ticket from developer Q&A review session (Story 7-7)
    *
    * Updates techSpec and acceptanceCriteria from the AI-generated spec.
-   * Does NOT change status — intentionally stays WAITING_FOR_APPROVAL
+   * Does NOT change status — intentionally stays REVIEW
    * until PM approves (Story 7-8).
    */
   reEnrichFromQA(techSpec: TechSpec): void {
@@ -463,11 +463,11 @@ export class AEC {
   /**
    * PM approves the ticket after reviewing developer Q&A and re-baked spec (Story 7-8)
    *
-   * Transitions WAITING_FOR_APPROVAL → READY.
-   * Precondition check (status === WAITING_FOR_APPROVAL) is the use case's responsibility.
+   * Transitions REVIEW → FORGED.
+   * Precondition check (status === REVIEW) is the use case's responsibility.
    */
   approve(): void {
-    this._status = AECStatus.READY;
+    this._status = AECStatus.FORGED;
     this._updatedAt = new Date();
   }
 
@@ -518,11 +518,11 @@ export class AEC {
   }
 
   markDrifted(reason: string): void {
-    if (this._status !== AECStatus.READY && this._status !== AECStatus.CREATED) {
-      // Only mark open tickets as drifted
+    if (this._status !== AECStatus.FORGED && this._status !== AECStatus.EXECUTING) {
+      // Only mark forged/executing tickets as drifted
       return;
     }
-    this._status = AECStatus.DRIFTED;
+    // Drift is tracked as a property, not a status change
     this._driftDetectedAt = new Date();
     this._driftReason = reason;
     this._updatedAt = new Date();

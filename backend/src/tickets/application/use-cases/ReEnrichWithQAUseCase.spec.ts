@@ -45,7 +45,7 @@ function makeMockAEC(overrides: {
   return {
     id: TICKET_ID,
     teamId: overrides.teamId ?? TEAM_ID,
-    status: overrides.status ?? AECStatus.WAITING_FOR_APPROVAL,
+    status: overrides.status ?? AECStatus.REVIEW,
     title: 'Add login rate limiting',
     description: 'Prevent brute force attacks',
     reviewSession: overrides.reviewSession !== undefined
@@ -134,7 +134,7 @@ describe('ReEnrichWithQAUseCase', () => {
       expect(result).toBe(mockAEC);
     });
 
-    it('status remains WAITING_FOR_APPROVAL — use case does not change status directly', async () => {
+    it('status remains REVIEW — use case does not change status directly', async () => {
       const mockAEC = makeMockAEC({});
       aecRepository.findById.mockResolvedValue(mockAEC);
 
@@ -143,7 +143,7 @@ describe('ReEnrichWithQAUseCase', () => {
       // reEnrichFromQA was called once (domain method responsible for not changing status)
       expect(mockAEC.reEnrichFromQA).toHaveBeenCalledTimes(1);
       // Status not mutated at use case level
-      expect(mockAEC.status).toBe(AECStatus.WAITING_FOR_APPROVAL);
+      expect(mockAEC.status).toBe(AECStatus.REVIEW);
     });
 
     it('passes minimal context when ticket has no repositoryContext', async () => {

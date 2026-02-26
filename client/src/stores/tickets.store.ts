@@ -497,7 +497,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     }
   },
 
-  // Story 7-8: PM approves ticket — transitions WAITING_FOR_APPROVAL → READY
+  // Story 7-8: PM approves ticket — transitions REVIEW → FORGED
   approveTicket: async (ticketId: string) => {
     try {
       const { ticketService } = useServices();

@@ -430,7 +430,7 @@ export class TicketsController {
 
   /**
    * Submit a review session from the CLI reviewer agent (Story 6-12)
-   * Stores Q&A pairs and transitions ticket to WAITING_FOR_APPROVAL.
+   * Stores Q&A pairs and transitions ticket to REVIEW.
    */
   @Post(':id/review-session')
   async submitReviewSession(
@@ -451,7 +451,7 @@ export class TicketsController {
    * PM triggers this after reviewing the developer's Q&A answers.
    * Calls TechSpecGenerator.generateWithAnswers() with stored Q&A as context,
    * then updates ticket's techSpec and acceptanceCriteria.
-   * Status stays WAITING_FOR_APPROVAL (approve is Story 7-8).
+   * Status stays REVIEW (approve is Story 7-8).
    */
   @Post(':id/re-enrich')
   async reEnrichTicket(
@@ -466,8 +466,8 @@ export class TicketsController {
   /**
    * Approve ticket after PM reviews developer Q&A and re-baked spec (Story 7-8)
    *
-   * Transitions WAITING_FOR_APPROVAL → READY so the developer can execute the ticket.
-   * Returns 400 if ticket is not in WAITING_FOR_APPROVAL status.
+   * Transitions REVIEW → FORGED so the developer can execute the ticket.
+   * Returns 400 if ticket is not in REVIEW status.
    */
   @Post(':id/approve')
   async approveTicket(

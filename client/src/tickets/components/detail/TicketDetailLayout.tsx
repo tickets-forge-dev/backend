@@ -158,7 +158,7 @@ export function TicketDetailLayout({
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
-  const isWaitingForApproval = ticket.status === 'waiting-for-approval';
+  const isWaitingForApproval = ticket.status === 'review';
 
   const handleApprove = async () => {
     setIsApproving(true);
@@ -367,7 +367,7 @@ export function TicketDetailLayout({
           (techSpec?.testPlan?.integrationTests?.length || 0) +
           (techSpec?.testPlan?.edgeCases?.length || 0);
         const hasScope = (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0);
-        const isForged = ticket.status === 'ready' || ticket.status === 'done';
+        const isForged = ticket.status === 'forged' || ticket.status === 'complete';
 
         return (
           <div className={`relative rounded-xl border-2 ${isForged ? 'border-amber-500/60' : 'border-amber-500/25'} bg-gradient-to-r ${isForged ? 'from-amber-500/[0.06] via-transparent to-amber-500/[0.06]' : 'from-amber-500/[0.03] via-transparent to-amber-500/[0.03]'} overflow-hidden`}>
