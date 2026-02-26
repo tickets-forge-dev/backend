@@ -37,6 +37,12 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-6">
             <Link
+              href="/docs"
+              className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
+            >
+              Docs
+            </Link>
+            <Link
               href="/login"
               className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
             >

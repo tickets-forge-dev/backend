@@ -158,7 +158,7 @@ export function TicketDetailLayout({
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
-  const isWaitingForApproval = ticket.status === 'waiting-for-approval';
+  const isWaitingForApproval = ticket.status === 'review';
 
   const handleApprove = async () => {
     setIsApproving(true);
@@ -367,18 +367,18 @@ export function TicketDetailLayout({
           (techSpec?.testPlan?.integrationTests?.length || 0) +
           (techSpec?.testPlan?.edgeCases?.length || 0);
         const hasScope = (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0);
-        const isForged = ticket.status === 'ready' || ticket.status === 'done';
+        const isForged = ticket.status === 'forged' || ticket.status === 'complete';
 
         return (
-          <div className={`relative rounded-xl border-2 ${isForged ? 'border-amber-500/60' : 'border-amber-500/25'} bg-gradient-to-r ${isForged ? 'from-amber-500/[0.06] via-transparent to-amber-500/[0.06]' : 'from-amber-500/[0.03] via-transparent to-amber-500/[0.03]'} overflow-hidden`}>
+          <div className={`relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
             {/* Header */}
             <div className="px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isForged ? 'bg-amber-500/20' : 'bg-amber-500/10'}`}>
-                  <ShieldCheck className={`w-4.5 h-4.5 ${isForged ? 'text-amber-400' : 'text-amber-500/60'}`} />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isForged ? 'bg-amber-500/10' : 'bg-[var(--bg-hover)]'}`}>
+                  <ShieldCheck className={`w-4.5 h-4.5 ${isForged ? 'text-amber-500/60' : 'text-[var(--text-tertiary)]'}`} />
                 </div>
                 <div>
-                  <p className={`text-sm font-semibold ${isForged ? 'text-amber-400' : 'text-amber-500/70'}`}>
+                  <p className={`text-sm font-semibold ${isForged ? 'text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>
                     Agent Execution Contract
                   </p>
                   <p className="text-[10px] text-[var(--text-tertiary)]">
@@ -407,11 +407,7 @@ export function TicketDetailLayout({
                     setIsAecExpanded(true);
                   }}
                   disabled={isLoadingXml}
-                  className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-                    isForged
-                      ? 'border-amber-500/20 text-amber-400 hover:bg-amber-500/10'
-                      : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
-                  }`}
+                  className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   {isLoadingXml ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -421,9 +417,9 @@ export function TicketDetailLayout({
                     <>Show <ChevronDown className="w-3.5 h-3.5" /></>
                   )}
                 </button>
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
                   isForged
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    ? 'bg-amber-500/8 text-amber-500/70 border-amber-500/15'
                     : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] border-[var(--border-subtle)]'
                 }`}>
                   {isForged ? 'FORGED' : 'DRAFT'}
@@ -435,39 +431,39 @@ export function TicketDetailLayout({
             <div className="px-5 pb-4 flex flex-wrap gap-x-5 gap-y-2">
               {acCount > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-purple-400/70" />
-                  <span className="text-[11px] text-[var(--text-secondary)]">{acCount} acceptance criteria</span>
+                  <Target className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{acCount} acceptance criteria</span>
                 </div>
               )}
               {apiCount > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <GitPullRequest className="w-3.5 h-3.5 text-blue-400/70" />
-                  <span className="text-[11px] text-[var(--text-secondary)]">{apiCount} API endpoints</span>
+                  <GitPullRequest className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{apiCount} API endpoints</span>
                 </div>
               )}
               {fileCount > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <FileCode2 className="w-3.5 h-3.5 text-green-400/70" />
-                  <span className="text-[11px] text-[var(--text-secondary)]">{fileCount} files affected</span>
+                  <FileCode2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{fileCount} files affected</span>
                 </div>
               )}
               {testCount > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <TestTube className="w-3.5 h-3.5 text-amber-400/70" />
-                  <span className="text-[11px] text-[var(--text-secondary)]">{testCount} tests</span>
+                  <TestTube className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">{testCount} tests</span>
                 </div>
               )}
               {hasScope && (
                 <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400/70" />
-                  <span className="text-[11px] text-[var(--text-secondary)]">Scope defined</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">Scope defined</span>
                 </div>
               )}
             </div>
 
             {/* Expanded AEC XML Viewer */}
             {isAecExpanded && aecXml && (
-              <div className="border-t border-amber-500/15">
+              <div className="border-t border-[var(--border-subtle)]">
                 <div className="relative">
                   <pre className="px-5 py-4 overflow-x-auto text-[12px] leading-relaxed font-mono max-h-[500px] overflow-y-auto scrollbar-thin">
                     {aecXml.split('\n').map((line, i) => {
@@ -510,7 +506,7 @@ export function TicketDetailLayout({
           id="review-session"
           title="Developer Review Q&A"
           badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
-          defaultExpanded={true}
+          defaultExpanded={false}
         >
           <ReviewSessionSection
             qaItems={ticket.reviewSession!.qaItems}

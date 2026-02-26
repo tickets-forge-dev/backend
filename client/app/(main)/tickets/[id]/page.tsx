@@ -681,7 +681,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
   const handleMarkAsReady = async () => {
     if (!ticketId) return;
-    const success = await updateTicket(ticketId, { status: 'ready' });
+    const success = await updateTicket(ticketId, { status: 'forged' });
     if (success) {
       setShowStatusConfirm(false);
     }
@@ -689,7 +689,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
   const handleStatusTransition = (status: string) => {
     if (!ticketId) return;
-    if (status === 'validated') {
+    if (status === 'dev-refining') {
       // Re-fetch fresh ticket to get latest assignedTo
       const fresh = useTicketsStore.getState().currentTicket;
       console.log('[lifecycle] assignedTo =', JSON.stringify(fresh?.assignedTo));

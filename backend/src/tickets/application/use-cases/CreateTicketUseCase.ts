@@ -28,6 +28,7 @@ export interface CreateTicketCommand {
   type?: 'feature' | 'bug' | 'task';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   taskAnalysis?: any;
+  reproductionSteps?: any[];
 }
 
 @Injectable()
@@ -86,6 +87,11 @@ export class CreateTicketUseCase {
     // Persist taskAnalysis from deep analysis if provided
     if (command.taskAnalysis) {
       aec.setTaskAnalysis(command.taskAnalysis);
+    }
+
+    // Persist user-provided reproduction steps for bug tickets
+    if (command.reproductionSteps && command.reproductionSteps.length > 0) {
+      aec.setReproductionSteps(command.reproductionSteps);
     }
 
     // Persist draft

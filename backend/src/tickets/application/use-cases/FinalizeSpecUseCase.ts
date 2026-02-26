@@ -95,6 +95,8 @@ export class FinalizeSpecUseCase {
       aec.description,
       codebaseContext,
       allAnswers,
+      (aec.type as 'feature' | 'bug' | 'task') ?? undefined,
+      aec.reproductionSteps.length > 0 ? aec.reproductionSteps : undefined,
     );
 
     console.log(
@@ -256,6 +258,8 @@ export class FinalizeSpecUseCase {
     description: string | null,
     context: any,
     allAnswers: Array<{ questionId: string; answer: string | string[] }>,
+    ticketType?: 'feature' | 'bug' | 'task',
+    reproductionSteps?: any[],
   ): Promise<any> {
     let lastError: Error | null = null;
 
@@ -270,6 +274,8 @@ export class FinalizeSpecUseCase {
           description: description ?? undefined,
           context,
           answers: allAnswers,
+          ticketType,
+          reproductionSteps,
         });
 
         console.log(`✨ [FinalizeSpecUseCase] Successfully generated final spec`);
