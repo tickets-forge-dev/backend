@@ -123,6 +123,9 @@ const components: Components = {
   hr: () => (
     <hr className="border-[var(--border-subtle)] my-8" />
   ),
+  img: ({ src, alt }) => (
+    <img src={src} alt={alt || ''} className="rounded-xl border border-[var(--border-subtle)] my-6 w-full" />
+  ),
   strong: ({ children }) => (
     <strong className="font-semibold text-[var(--text)]">{children}</strong>
   ),
