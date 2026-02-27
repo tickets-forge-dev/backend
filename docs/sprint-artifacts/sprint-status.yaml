@@ -42,7 +42,7 @@ development_status:
 
   # ============================================================================
   # FORGE TEAMS + CLI + MCP IMPLEMENTATION PLAN
-  # Duration: 8-15 weeks | 9 Epics | 71 Stories
+  # Duration: 8-15 weeks | 10 Epics | 75 Stories
   # Goal: Multi-team collaborative platform with developer CLI + MCP
   # Updated: 2026-02-18 - Full plan with interactive CLI & BMAD integration
   # ============================================================================
@@ -195,6 +195,19 @@ development_status:
   8-6-architecture-update: backlog
   8-7-cli-publish: drafted
   epic-8-testing-documentation-retrospective: optional
+
+  # EPIC 10: Forge Developer Agent (P0) - 4 stories
+  # Status: ⬜ NOT STARTED — contexted (tech spec created)
+  # Goal: Developer agent that guides implementation start — Q&A + auto branch creation
+  # Key: forge develop <ticketId> → Forgy asks questions → creates forge/<aec-id>-slug branch
+  # Flow: 10.1 → 10.2 → 10.3 → 10.4 (strictly sequential)
+  # Tech Spec: docs/sprint-artifacts/tech-spec-epic-10-spec-to-pr-loop.md
+  epic-10-forge-developer-agent: done
+  10-1-domain-foundation: done
+  10-2-start-implementation-use-case: done
+  10-3-mcp-cli-forge-develop: done
+  10-4-bmad-forge-developer-agent: done
+  epic-10-forge-developer-agent-retrospective: optional
 
   # EPIC 9: Notifications & Alerts (P1) - 1 story, ~3 days
   # Status: ⬜ NOT STARTED

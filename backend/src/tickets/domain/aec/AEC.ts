@@ -31,6 +31,12 @@ export interface ReviewSession {
   submittedAt: Date;
 }
 
+export interface ImplementationSession {
+  qaItems: ReviewQAItem[];
+  branchName: string;
+  startedAt: Date;
+}
+
 export class AEC {
   private constructor(
     public readonly id: string,
@@ -68,6 +74,8 @@ export class AEC {
     private _assignedTo: string | null = null, // userId of assigned team member
     private _reviewSession: ReviewSession | null = null, // Story 6-12: CLI review Q&A
     private _reproductionSteps: any[] = [], // User-provided bug reproduction steps
+    private _implementationBranch: string | null = null, // Story 10-1: forge develop branch
+    private _implementationSession: ImplementationSession | null = null, // Story 10-1: implementation Q&A
   ) {}
 
   // Factory method for creating new draft
@@ -121,6 +129,8 @@ export class AEC {
       assignedTo ?? null, // _assignedTo
       null, // _reviewSession
       [], // _reproductionSteps
+      null, // _implementationBranch
+      null, // _implementationSession
     );
   }
 
@@ -160,6 +170,8 @@ export class AEC {
     assignedTo?: string | null,
     reviewSession?: ReviewSession | null,
     reproductionSteps?: any[],
+    implementationBranch?: string | null,
+    implementationSession?: ImplementationSession | null,
   ): AEC {
     return new AEC(
       id,
@@ -196,6 +208,8 @@ export class AEC {
       assignedTo ?? null,
       reviewSession ?? null,
       reproductionSteps ?? [],
+      implementationBranch ?? null,
+      implementationSession ?? null,
     );
   }
 
@@ -256,6 +270,27 @@ export class AEC {
       throw new InvalidStateTransitionError(`Cannot export from ${this._status}`);
     }
     this._externalIssue = externalIssue;
+    this._status = AECStatus.EXECUTING;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Start implementation via the Forge Developer Agent (Story 10-1).
+   * Transitions FORGED → EXECUTING without requiring an ExternalIssue.
+   * Stores the branch name and implementation Q&A session.
+   */
+  startImplementation(branchName: string, qaItems?: ReviewQAItem[]): void {
+    if (this._status !== AECStatus.FORGED) {
+      throw new InvalidStateTransitionError(
+        `Cannot start implementation from ${this._status}. Ticket must be in FORGED status.`,
+      );
+    }
+    this._implementationBranch = branchName;
+    this._implementationSession = {
+      qaItems: qaItems ?? [],
+      branchName,
+      startedAt: new Date(),
+    };
     this._status = AECStatus.EXECUTING;
     this._updatedAt = new Date();
   }
@@ -609,6 +644,14 @@ export class AEC {
 
   get reviewSession(): ReviewSession | null {
     return this._reviewSession;
+  }
+
+  get implementationBranch(): string | null {
+    return this._implementationBranch;
+  }
+
+  get implementationSession(): ImplementationSession | null {
+    return this._implementationSession;
   }
 
   // Getters for clarification questions (simple, single-set)

@@ -236,7 +236,7 @@ export function OnboardingDialog() {
                   </p>
                   <CopyCommand command="npm install -g @anthropic/forge-cli" />
                   <p className="text-[10px] text-[var(--text-tertiary)] mt-1.5">
-                    Developers run <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge review</code> to add code context before you approve.
+                    Developers run <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge review</code> to add context, then <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge develop</code> to start building — AI creates the branch and guides implementation prep.
                   </p>
                 </div>
               </div>

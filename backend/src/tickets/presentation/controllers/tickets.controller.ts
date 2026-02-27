@@ -93,6 +93,8 @@ import { SubmitReviewSessionUseCase } from '../../application/use-cases/SubmitRe
 import { SubmitReviewSessionDto } from '../dto/SubmitReviewSessionDto';
 import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQAUseCase';
 import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketUseCase';
+import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
+import { StartImplementationDto } from '../dto/StartImplementationDto';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -139,6 +141,7 @@ export class TicketsController {
     private readonly submitReviewSessionUseCase: SubmitReviewSessionUseCase,
     private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
     private readonly approveTicketUseCase: ApproveTicketUseCase,
+    private readonly startImplementationUseCase: StartImplementationUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -442,6 +445,24 @@ export class TicketsController {
     return this.submitReviewSessionUseCase.execute({
       ticketId: id,
       teamId,
+      qaItems: dto.qaItems,
+    });
+  }
+
+  /**
+   * Start implementation via the Forge Developer Agent (Story 10-2)
+   * Records branch name and optional Q&A, transitions FORGED → EXECUTING.
+   */
+  @Post(':id/start-implementation')
+  async startImplementation(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: StartImplementationDto,
+  ) {
+    return this.startImplementationUseCase.execute({
+      ticketId: id,
+      teamId,
+      branchName: dto.branchName,
       qaItems: dto.qaItems,
     });
   }
