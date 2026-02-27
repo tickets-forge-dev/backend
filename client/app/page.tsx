@@ -124,49 +124,16 @@ export default function LandingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Web App — PM: browser chrome mockup */}
+              {/* Web App — PM */}
               <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left overflow-hidden">
-                {/* Browser chrome */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1e] border-b border-[var(--border-subtle)]">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-                    <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-                    <div className="w-3 h-3 rounded-full bg-[#28c840]" />
-                  </div>
-                  <div className="flex-1 mx-2">
-                    <div className="bg-[#27272a] rounded-md px-3 py-1 text-[11px] text-[#71717a] text-center truncate">
-                      forge-ai.dev/tickets
-                    </div>
-                  </div>
-                </div>
-                {/* Dashboard mockup */}
-                <div className="px-5 pt-4 pb-2">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-5 h-5 rounded bg-purple-500/20 flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 rounded-sm bg-purple-400" />
-                    </div>
-                    <span className="text-[11px] text-[#71717a] font-medium">MY TICKETS</span>
-                  </div>
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#27272a]/60">
-                      <div className="w-2 h-2 rounded-full bg-amber-400" />
-                      <span className="text-[12px] text-[#a1a1aa] flex-1 truncate">Add user auth flow</span>
-                      <span className="text-[10px] text-amber-400/70 font-medium">REVIEW</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#27272a]/60">
-                      <div className="w-2 h-2 rounded-full bg-green-400" />
-                      <span className="text-[12px] text-[#a1a1aa] flex-1 truncate">Refactor payment module</span>
-                      <span className="text-[10px] text-green-400/70 font-medium">READY</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#27272a]/60">
-                      <div className="w-2 h-2 rounded-full bg-purple-400" />
-                      <span className="text-[12px] text-[#a1a1aa] flex-1 truncate">Dashboard analytics page</span>
-                      <span className="text-[10px] text-purple-400/70 font-medium">DRAFT</span>
-                    </div>
-                  </div>
-                </div>
-                {/* Description */}
-                <div className="px-5 pb-6 pt-2 border-t border-[var(--border-subtle)]">
+                <Image
+                  src="/images/ticket-screenshot.png"
+                  alt="Forge web app showing the ticket list with statuses, priorities, and quality scores"
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto"
+                />
+                <div className="px-5 py-5 border-t border-[var(--border-subtle)]">
                   <h3 className="font-semibold text-lg mb-2">Web App</h3>
                   <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
                     Create tickets, add context, review answers, and approve — all from the browser. For PMs, QA, and anyone on the team.
@@ -174,33 +141,16 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* CLI — Developer: terminal mockup */}
+              {/* CLI — Developer */}
               <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left overflow-hidden">
-                {/* Terminal chrome */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-[#0c0c0e] border-b border-[var(--border-subtle)]">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-                    <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-                    <div className="w-3 h-3 rounded-full bg-[#28c840]" />
-                  </div>
-                  <span className="text-[11px] text-[#71717a] font-medium ml-2">Terminal</span>
-                </div>
-                {/* Terminal content */}
-                <div className="px-5 pt-4 pb-2 bg-[#0c0c0e] font-mono text-[12px] leading-relaxed">
-                  <p><span className="text-green-400">$</span> <span className="text-[#e4e4e7]">npm install -g @anthropic-forge/cli</span></p>
-                  <p className="text-[#71717a]">added 42 packages in 3s</p>
-                  <p className="mt-2"><span className="text-green-400">$</span> <span className="text-[#e4e4e7]">forge login</span></p>
-                  <p className="text-[#71717a]">Open browser: https://forge-ai.dev/device</p>
-                  <p className="text-green-400">Logged in as dev@team.com</p>
-                  <p className="mt-2"><span className="text-green-400">$</span> <span className="text-[#e4e4e7]">forge mcp install</span></p>
-                  <p className="text-green-400">MCP server registered for Claude Code</p>
-                  <p className="mt-2"><span className="text-green-400">$</span> <span className="text-[#e4e4e7]">forge develop aec_2847...</span></p>
-                  <p className="text-[#71717a]">Loaded: [AEC-2847] Add User Auth — 4 files, 3 ACs</p>
-                  <p className="text-cyan-400">Starting implementation prep...</p>
-                  <p className="mt-2 text-[#525252]">{/* cursor blink */}<span className="inline-block w-2 h-4 bg-green-400/70 animate-pulse" /></p>
-                </div>
-                {/* Description */}
-                <div className="px-5 pb-6 pt-4 border-t border-[var(--border-subtle)]">
+                <Image
+                  src="/images/cli-screenshot.png"
+                  alt="Claude Code terminal with Forge MCP integration listing tickets and running review"
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto"
+                />
+                <div className="px-5 py-5 border-t border-[var(--border-subtle)]">
                   <h3 className="font-semibold text-lg mb-2">CLI</h3>
                   <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-4">
                     Install, authenticate, and your AI assistant gets full ticket context. Run <code className="text-cyan-400">forge develop</code> for guided implementation prep — Forgy asks the right questions and creates your branch automatically.
