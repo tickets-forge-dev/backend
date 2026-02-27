@@ -80,6 +80,8 @@ export interface AECDocument {
   assignedTo?: string | null; // Story 3.5-5: userId of assigned team member
   reviewSession?: { qaItems: { question: string; answer: string }[]; submittedAt: Timestamp } | null; // Story 6-12
   reproductionSteps?: any[]; // User-provided bug reproduction steps
+  implementationBranch?: string | null; // Story 10-1: forge develop branch
+  implementationSession?: { qaItems: { question: string; answer: string }[]; branchName: string; startedAt: Timestamp } | null; // Story 10-1
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -226,6 +228,14 @@ export class AECMapper {
           }
         : null, // Story 6-12: backward compatible (null for old tickets)
       doc.reproductionSteps ?? [],
+      doc.implementationBranch ?? null, // Story 10-1
+      doc.implementationSession
+        ? {
+            qaItems: doc.implementationSession.qaItems,
+            branchName: doc.implementationSession.branchName,
+            startedAt: toDate(doc.implementationSession.startedAt),
+          }
+        : null, // Story 10-1
     );
   }
 
@@ -289,6 +299,14 @@ export class AECMapper {
           }
         : null, // Story 6-12
       reproductionSteps: aec.reproductionSteps.length > 0 ? aec.reproductionSteps : undefined,
+      implementationBranch: aec.implementationBranch ?? null, // Story 10-1
+      implementationSession: aec.implementationSession
+        ? {
+            qaItems: aec.implementationSession.qaItems,
+            branchName: aec.implementationSession.branchName,
+            startedAt: Timestamp.fromDate(aec.implementationSession.startedAt),
+          }
+        : null, // Story 10-1
     };
   }
 }

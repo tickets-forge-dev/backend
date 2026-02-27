@@ -3,7 +3,7 @@
 import { Bug, ClipboardList, Lightbulb } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
-import { TICKET_STATUS_CONFIG, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
+import { TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
 import type { AECResponse } from '@/services/ticket.service';
 
 interface OverviewCardProps {
@@ -15,12 +15,6 @@ interface OverviewCardProps {
   onAssignDialogOpenChange?: (open: boolean) => void;
 }
 
-/** Resolve display status: executing/complete all show as "forged" config */
-function getDisplayStatus(status: string): string {
-  if (EXECUTE_STATUSES.has(status)) return 'forged';
-  return status;
-}
-
 export function OverviewCard({
   ticket,
   onAssignTicket,
@@ -29,8 +23,7 @@ export function OverviewCard({
   assignDialogOpen,
   onAssignDialogOpenChange,
 }: OverviewCardProps) {
-  const displayStatus = getDisplayStatus(ticket.status);
-  const cfg = TICKET_STATUS_CONFIG[displayStatus] ?? TICKET_STATUS_CONFIG.draft;
+  const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
 
   return (
     <div className="flex items-center justify-between gap-4 py-2">
