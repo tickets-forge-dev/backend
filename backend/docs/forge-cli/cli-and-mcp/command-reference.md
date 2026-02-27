@@ -230,6 +230,8 @@ If the ticket isn't assigned to anyone when you run `forge execute`, it's automa
 
 Start a guided implementation preparation session. An AI agent (Forgy) loads the ticket, asks targeted questions about your approach, and auto-creates the implementation branch.
 
+> :construction: **Prerequisites:** You must be authenticated (`forge login`) and have MCP installed (`forge mcp install`) before running this command.
+
 ```bash
 forge develop aec_8f3a2b1c-...
 ```

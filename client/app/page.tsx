@@ -2,14 +2,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CopyCommand } from '@/core/components/CopyCommand';
 
-function PlayIcon() {
-  return (
-    <svg className="w-8 h-8 text-[var(--text)] ml-1" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
-
 
 function ArrowDownIcon() {
   return (
@@ -70,17 +62,6 @@ export default function LandingPage() {
           <p className="text-lg sm:text-xl text-[var(--text-secondary)] mb-12 max-w-2xl leading-relaxed mx-auto">
             Forge turns messy ideas into verified execution contracts — so developers know exactly what to build.
           </p>
-
-          {/* Video Placeholder */}
-          <div className="relative w-full max-w-4xl mx-auto aspect-video rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] overflow-hidden mb-10">
-            {/* Replace this div with <video> when ready */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-[var(--text)]/10 flex items-center justify-center">
-                <PlayIcon />
-              </div>
-              <p className="text-[var(--text-secondary)] text-sm">Demo video coming soon</p>
-            </div>
-          </div>
 
           <Link
             href="/tickets"
@@ -153,7 +134,7 @@ export default function LandingPage() {
                 <div className="px-5 py-5 border-t border-[var(--border-subtle)]">
                   <h3 className="font-semibold text-lg mb-2">CLI</h3>
                   <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-4">
-                    Install, authenticate, and your AI assistant gets full ticket context. Run <code className="text-cyan-400">forge develop</code> for guided implementation prep — Forgy asks the right questions and creates your branch automatically.
+                    Run <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">forge login</code> to authenticate, then <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">forge mcp install</code> to connect your AI assistant. Once connected, run <code className="text-cyan-400">forge develop</code> for guided implementation prep — Forgy asks the right questions and creates your branch automatically.
                   </p>
                   <CopyCommand command="npm install -g @anthropic-forge/cli" />
                 </div>

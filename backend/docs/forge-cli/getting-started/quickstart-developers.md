@@ -129,6 +129,8 @@ Your answers are submitted to the PM. They can re-bake the spec with your contex
 
 ## Step 5.5: Start Implementation
 
+> :blue_book: Make sure you've completed **Step 2** (`forge login`) and **Step 4** (`forge mcp install`) before running this command. The developer agent needs authentication and MCP to function.
+
 Once the PM approves and the ticket is **Forged**, prepare for implementation:
 
 ```bash
