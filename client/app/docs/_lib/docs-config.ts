@@ -34,7 +34,7 @@ export const docsConfig: DocCategory[] = [
     slug: 'cli-and-mcp',
     pages: [
       { title: 'Installation & Auth', slug: 'installation-and-auth', description: 'Install, authenticate, and verify your setup' },
-      { title: 'Command Reference', slug: 'command-reference', description: 'Every CLI command explained' },
+      { title: 'Command Reference', slug: 'command-reference', description: 'Every CLI command explained — login, review, develop, execute, and more' },
       { title: 'MCP Integration', slug: 'mcp-integration', description: 'Connect Forge to Claude Code, Cursor, or Windsurf' },
     ],
   },

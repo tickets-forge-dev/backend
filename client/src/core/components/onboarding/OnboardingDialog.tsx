@@ -232,11 +232,11 @@ export function OnboardingDialog() {
                     </p>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
-                    They install the Forge CLI to review and execute specs with AI assistance.
+                    They install the Forge CLI, run <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge login</code> to authenticate, and <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge mcp install</code> to connect their AI assistant.
                   </p>
                   <CopyCommand command="npm install -g @anthropic/forge-cli" />
                   <p className="text-[10px] text-[var(--text-tertiary)] mt-1.5">
-                    Developers run <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge review</code> to add code context before you approve.
+                    Then they run <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge review</code> to add context, and <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge develop</code> to start building — AI creates the branch and guides implementation prep.
                   </p>
                 </div>
               </div>

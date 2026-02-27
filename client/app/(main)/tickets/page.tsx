@@ -21,6 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { TicketLifecycleInfo } from '@/tickets/components/detail/TicketLifecycleInfo';
+import { TICKET_STATUS_CONFIG } from '@/tickets/config/ticketStatusConfig';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
 type SortDirection = 'desc' | 'asc';
@@ -426,15 +427,8 @@ function StatusCell({ ticket }: { ticket: any }) {
       <span className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0" />In Progress
     </span>
   );
-  const map: Record<string, { dot: string; label: string; text: string }> = {
-    complete:             { dot: 'bg-green-500',  label: 'Done',           text: 'text-green-500'  },
-    forged:               { dot: 'bg-amber-500',  label: 'Forged',         text: 'text-amber-500'  },
-    review:               { dot: 'bg-amber-500',  label: 'Review (PM)',    text: 'text-amber-500'  },
-    executing:            { dot: 'bg-blue-500',   label: 'Executing',      text: 'text-blue-500'   },
-    draft:                { dot: 'bg-[var(--text-tertiary)]/50', label: 'Define', text: 'text-[var(--text-tertiary)]' },
-    'dev-refining':       { dot: 'bg-purple-500', label: 'Dev-Refine',     text: 'text-purple-500' },
-  };
-  const cfg = map[ticket.status] ?? map.draft;
+  const statusCfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
+  const cfg = { dot: statusCfg.dotClass, label: statusCfg.label, text: statusCfg.textClass };
   return (
     <span className={`inline-flex items-center gap-1.5 text-[11px] truncate ${cfg.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />{cfg.label}
