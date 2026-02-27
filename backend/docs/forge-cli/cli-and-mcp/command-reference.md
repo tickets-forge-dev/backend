@@ -4,8 +4,6 @@ excerpt: "Complete reference for every Forge CLI command — usage, flags, and e
 category: "CLI & MCP"
 ---
 
-# CLI Command Reference
-
 ## Two Ways to Use Forge
 
 Forge gives developers two ways to interact with tickets:
