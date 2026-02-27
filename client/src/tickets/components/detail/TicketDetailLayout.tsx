@@ -17,6 +17,7 @@ import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
 import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
+import { TICKET_STATUS_CONFIG, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { toast } from 'sonner';
 
@@ -367,7 +368,8 @@ export function TicketDetailLayout({
           (techSpec?.testPlan?.integrationTests?.length || 0) +
           (techSpec?.testPlan?.edgeCases?.length || 0);
         const hasScope = (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0);
-        const isForged = ticket.status === 'forged' || ticket.status === 'complete';
+        const isForged = EXECUTE_STATUSES.has(ticket.status);
+        const statusCfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
 
         return (
           <div className={`relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
@@ -417,12 +419,8 @@ export function TicketDetailLayout({
                     <>Show <ChevronDown className="w-3.5 h-3.5" /></>
                   )}
                 </button>
-                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
-                  isForged
-                    ? 'bg-amber-500/8 text-amber-500/70 border-amber-500/15'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] border-[var(--border-subtle)]'
-                }`}>
-                  {isForged ? 'FORGED' : 'DRAFT'}
+                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border border-current/15 ${statusCfg.badgeClass}`}>
+                  {statusCfg.label}
                 </span>
               </div>
             </div>
