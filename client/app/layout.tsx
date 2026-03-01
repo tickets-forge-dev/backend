@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import { PostHogProvider } from '@/src/components/PostHogProvider';
 import { DevStartupHealthCheck } from '@/core/components/dev/DevStartupHealthCheck';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const inter = Inter({
@@ -69,6 +70,7 @@ export default function RootLayout({
           <div id="main-content">{children}</div>
           <Toaster position="bottom-right" richColors />
         </PostHogProvider>
+        <Analytics />
         <Script id="remove-preload" strategy="afterInteractive">
           {`
             window.addEventListener('load', function() {
