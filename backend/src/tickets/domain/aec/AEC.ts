@@ -76,6 +76,7 @@ export class AEC {
     private _reproductionSteps: any[] = [], // User-provided bug reproduction steps
     private _implementationBranch: string | null = null, // Story 10-1: forge develop branch
     private _implementationSession: ImplementationSession | null = null, // Story 10-1: implementation Q&A
+    private _folderId: string | null = null, // Story 12-2: ticket folder organization
   ) {}
 
   // Factory method for creating new draft
@@ -172,6 +173,7 @@ export class AEC {
     reproductionSteps?: any[],
     implementationBranch?: string | null,
     implementationSession?: ImplementationSession | null,
+    folderId?: string | null,
   ): AEC {
     return new AEC(
       id,
@@ -210,6 +212,7 @@ export class AEC {
       reproductionSteps ?? [],
       implementationBranch ?? null,
       implementationSession ?? null,
+      folderId ?? null,
     );
   }
 
@@ -652,6 +655,10 @@ export class AEC {
 
   get implementationSession(): ImplementationSession | null {
     return this._implementationSession;
+  }
+
+  get folderId(): string | null {
+    return this._folderId;
   }
 
   // Getters for clarification questions (simple, single-set)

@@ -11,6 +11,7 @@ import { JiraModule } from './jira/jira.module';
 import { FigmaModule } from './integrations/figma/figma.module';
 import { ConfigModule as ConfigApiModule } from './config/config.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { FoldersModule } from './folders/folders.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     FigmaModule,
     ConfigApiModule,
     FeedbackModule,
+    FoldersModule,
   ],
   controllers: [],
   providers: [],

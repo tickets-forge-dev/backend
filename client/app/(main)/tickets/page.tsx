@@ -5,18 +5,23 @@ import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useFoldersStore } from '@/stores/folders.store';
+import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { useTicketGrouping } from '@/tickets/hooks/useTicketGrouping';
 import { TicketGroupHeader } from '@/tickets/components/TicketGroupHeader';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, Trash2, UserPlus } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/core/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -42,6 +47,10 @@ function getTypeIcon(type: string | null) {
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
   const { currentTeam, loadTeamMembers } = useTeamStore();
+  const { folders, loadFolders, createFolder, renameFolder, deleteFolder, expandedFolders, toggleFolder } = useFoldersStore();
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isSubmittingFolder, setIsSubmittingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(listPreferences?.typeFilter || 'all');
@@ -57,12 +66,15 @@ export default function TicketsListPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reload tickets and members when team changes
+  // Reload tickets, folders, and members when team changes
   useEffect(() => {
     loadTickets();
     fetchQuota();
-    if (currentTeam?.id) loadTeamMembers(currentTeam.id);
-  }, [loadTickets, fetchQuota, loadTeamMembers, currentTeam?.id]);
+    if (currentTeam?.id) {
+      loadTeamMembers(currentTeam.id);
+      loadFolders(currentTeam.id);
+    }
+  }, [loadTickets, fetchQuota, loadTeamMembers, loadFolders, currentTeam?.id]);
 
   const allTickets = tickets;
 
@@ -114,9 +126,26 @@ export default function TicketsListPage() {
       });
   }, [allTickets, debouncedSearch, priorityFilter, typeFilter, sortBy, sortDirection]);
 
-  // Use grouping hook with saved preferences
+  // Separate tickets into folder-grouped and unfiled
+  const { folderTicketsMap, unfiledTickets } = useMemo(() => {
+    const map: Record<string, typeof filteredTickets> = {};
+    const unfiled: typeof filteredTickets = [];
+
+    for (const ticket of filteredTickets) {
+      if (ticket.folderId) {
+        if (!map[ticket.folderId]) map[ticket.folderId] = [];
+        map[ticket.folderId].push(ticket);
+      } else {
+        unfiled.push(ticket);
+      }
+    }
+
+    return { folderTicketsMap: map, unfiledTickets: unfiled };
+  }, [filteredTickets]);
+
+  // Use grouping hook with saved preferences (unfiled tickets only)
   const { groups, collapsedGroups, toggleGroup } = useTicketGrouping(
-    filteredTickets,
+    unfiledTickets,
     listPreferences?.collapsedGroups
   );
 
@@ -141,6 +170,15 @@ export default function TicketsListPage() {
       <div className="space-y-4 sm:space-y-6" style={{ width: '70vw', marginLeft: 'calc(50% - 35vw)' }}>
       {/* Header with Create Button */}
       <div className="flex items-center justify-end gap-2 px-2 sm:px-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCreatingFolder(true)}
+          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text)]"
+        >
+          <FolderPlus className="h-4 w-4 mr-1.5" />
+          <span className="hidden sm:inline">New Folder</span>
+        </Button>
         {quota && !quota.canCreate ? (
           <div className="relative group">
             <CreationMenu disabled={true} />
@@ -295,7 +333,7 @@ export default function TicketsListPage() {
       )}
 
       {/* Tickets list */}
-      {!isLoading && !loadError && filteredTickets.length === 0 && (
+      {!isLoading && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
         <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center mx-2 sm:mx-0">
           <div className="text-center px-4">
             {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
@@ -325,42 +363,134 @@ export default function TicketsListPage() {
         </div>
       )}
 
-      {!isLoading && !loadError && filteredTickets.length > 0 && (
+      {!isLoading && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
         <div className="rounded-lg overflow-hidden mx-2 sm:mx-0 border border-[var(--border-subtle)]">
           {/* Column headers */}
           <TicketGridHeader />
 
-          {groups.length > 1 ? (
-            // Grouped view
-            <div>
-              {groups.map((group) => {
-                const isCollapsed = collapsedGroups.has(group.key);
-                return (
-                  <div key={group.key}>
-                    <TicketGroupHeader
-                      label={group.label}
-                      count={group.tickets.length}
-                      isCollapsed={isCollapsed}
-                      onToggle={() => toggleGroup(group.key)}
-                    />
-                    {!isCollapsed && (
-                      <div>
-                        {group.tickets.map((ticket) => (
-                          <TicketRow key={ticket.id} ticket={ticket} />
-                        ))}
+          {/* Inline folder creation */}
+          {isCreatingFolder && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]">
+              <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              <input
+                autoFocus
+                placeholder="Folder name..."
+                className="flex-1 text-sm bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-tertiary)]"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newFolderName.trim() && currentTeam?.id && !isSubmittingFolder) {
+                    e.preventDefault();
+                    const name = newFolderName.trim();
+                    setIsSubmittingFolder(true);
+                    createFolder(currentTeam.id, name).then(
+                      (result) => {
+                        if (result) toast.success('Folder created');
+                        setNewFolderName('');
+                        setIsCreatingFolder(false);
+                        setIsSubmittingFolder(false);
+                      },
+                      () => {
+                        toast.error('Failed to create folder');
+                        setIsSubmittingFolder(false);
+                      },
+                    );
+                  }
+                  if (e.key === 'Escape') {
+                    setNewFolderName('');
+                    setIsCreatingFolder(false);
+                  }
+                }}
+                onBlur={() => {
+                  if (!isSubmittingFolder) {
+                    setNewFolderName('');
+                    setIsCreatingFolder(false);
+                  }
+                }}
+              />
+              <span className="text-[10px] text-[var(--text-tertiary)]">Enter to create</span>
+            </div>
+          )}
+
+          {/* Folder sections (always on top, alphabetical) */}
+          {folders.map((folder) => {
+            const folderTickets = folderTicketsMap[folder.id] || [];
+            const isExpanded = expandedFolders.has(folder.id);
+            return (
+              <div key={folder.id}>
+                <FolderHeader
+                  folder={folder}
+                  ticketCount={folderTickets.length}
+                  isExpanded={isExpanded}
+                  onToggle={() => toggleFolder(folder.id)}
+                  onRename={async (name) => {
+                    if (currentTeam?.id) {
+                      const ok = await renameFolder(currentTeam.id, folder.id, name);
+                      if (ok) toast.success('Folder renamed');
+                      else toast.error('Failed to rename folder');
+                    }
+                  }}
+                  onDelete={async () => {
+                    if (confirm(`Delete folder "${folder.name}"? Tickets inside will move to root.`)) {
+                      if (currentTeam?.id) {
+                        const ok = await deleteFolder(currentTeam.id, folder.id);
+                        if (ok) { toast.success('Folder deleted'); loadTickets(); }
+                        else toast.error('Failed to delete folder');
+                      }
+                    }
+                  }}
+                />
+                {isExpanded && (
+                  folderTickets.length > 0 ? (
+                    <div className="bg-[var(--bg)]/50">
+                      {folderTickets.map((ticket) => (
+                        <TicketRow key={ticket.id} ticket={ticket} folders={folders} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 text-xs text-[var(--text-tertiary)] bg-[var(--bg)]/50 border-b border-[var(--border-subtle)]">
+                      No tickets in this folder
+                    </div>
+                  )
+                )}
+              </div>
+            );
+          })}
+
+          {/* Unfiled tickets below folders */}
+          {unfiledTickets.length > 0 && (
+            <>
+              {groups.length > 1 ? (
+                <div>
+                  {groups.map((group) => {
+                    const isCollapsed = collapsedGroups.has(group.key);
+                    return (
+                      <div key={group.key}>
+                        <TicketGroupHeader
+                          label={group.label}
+                          count={group.tickets.length}
+                          isCollapsed={isCollapsed}
+                          onToggle={() => toggleGroup(group.key)}
+                        />
+                        {!isCollapsed && (
+                          <div>
+                            {group.tickets.map((ticket) => (
+                              <TicketRow key={ticket.id} ticket={ticket} folders={folders} />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            // Flat view
-            <div>
-              {filteredTickets.map((ticket) => (
-                <TicketRow key={ticket.id} ticket={ticket} />
-              ))}
-            </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div>
+                  {unfiledTickets.map((ticket) => (
+                    <TicketRow key={ticket.id} ticket={ticket} folders={folders} />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -380,6 +510,85 @@ function TicketGridHeader() {
       <span className="hidden md:block">Updated</span>
       <span className="text-center">Score</span>
       <span />
+    </div>
+  );
+}
+
+// Folder section header with collapse, rename, delete
+function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onDelete }: {
+  folder: FolderResponse;
+  ticketCount: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onRename: (name: string) => void;
+  onDelete: () => void;
+}) {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(folder.name);
+
+  const handleRenameSubmit = () => {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== folder.name) {
+      onRename(trimmed);
+    }
+    setIsRenaming(false);
+  };
+
+  const handleRenameCancel = () => {
+    setRenameValue(folder.name);
+    setIsRenaming(false);
+  };
+
+  return (
+    <div className="group/folder sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)]">
+      <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={onToggle}>
+        <ChevronDown
+          className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform flex-shrink-0 ${
+            !isExpanded ? '-rotate-90' : ''
+          }`}
+        />
+        <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
+        {isRenaming ? (
+          <input
+            autoFocus
+            className="text-sm font-medium bg-transparent border-b border-[var(--primary)] outline-none text-[var(--text)] px-0 py-0"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={handleRenameCancel}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); handleRenameSubmit(); }
+              if (e.key === 'Escape') handleRenameCancel();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] truncate">{folder.name}</h3>
+        )}
+      </div>
+      <span className="text-xs font-medium text-[var(--text-tertiary)] flex-shrink-0 tabular-nums">
+        {ticketCount}
+      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="p-1 rounded-md opacity-0 group-hover/folder:opacity-100 hover:bg-[var(--bg-hover)] transition-all focus:opacity-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreVertical className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuItem onClick={() => { setRenameValue(folder.name); setIsRenaming(true); }}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onDelete} className="text-red-500 focus:text-red-500">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -454,10 +663,11 @@ function PriorityCell({ priority }: { priority: string | null }) {
 }
 
 // Grid-based ticket row
-function TicketRow({ ticket }: { ticket: any }) {
+function TicketRow({ ticket, folders = [] }: { ticket: any; folders?: FolderResponse[] }) {
   const router = useRouter();
-  const { deleteTicket } = useTicketsStore();
-  const { teamMembers } = useTeamStore();
+  const { deleteTicket, loadTickets } = useTicketsStore();
+  const { teamMembers, currentTeam } = useTeamStore();
+  const { moveTicket } = useFoldersStore();
   const ticketStatus = getTicketStatusKey(ticket);
   const inProgress = isTicketInProgress(ticket);
   const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
@@ -539,6 +749,42 @@ function TicketRow({ ticket }: { ticket: any }) {
               <UserPlus className="h-4 w-4 mr-2" />
               Assign
             </DropdownMenuItem>
+            {folders.length > 0 && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FolderInput className="h-4 w-4 mr-2" />
+                  Move to...
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-40">
+                  {ticket.folderId && (
+                    <DropdownMenuItem onClick={async () => {
+                      if (currentTeam?.id) {
+                        const ok = await moveTicket(currentTeam.id, ticket.id, null);
+                        if (ok) { loadTickets(); toast.success('Moved to root'); }
+                        else toast.error('Failed to move ticket');
+                      }
+                    }}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Unfiled
+                    </DropdownMenuItem>
+                  )}
+                  {folders
+                    .filter((f) => f.id !== ticket.folderId)
+                    .map((folder) => (
+                      <DropdownMenuItem key={folder.id} onClick={async () => {
+                        if (currentTeam?.id) {
+                          const ok = await moveTicket(currentTeam.id, ticket.id, folder.id);
+                          if (ok) { loadTickets(); toast.success(`Moved to ${folder.name}`); }
+                          else toast.error('Failed to move ticket');
+                        }
+                      }}>
+                        <FolderOpen className="h-4 w-4 mr-2" />
+                        {folder.name}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => toast.info('Archive feature coming soon')}>
               <Archive className="h-4 w-4 mr-2" />

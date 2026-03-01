@@ -82,6 +82,7 @@ export interface AECDocument {
   reproductionSteps?: any[]; // User-provided bug reproduction steps
   implementationBranch?: string | null; // Story 10-1: forge develop branch
   implementationSession?: { qaItems: { question: string; answer: string }[]; branchName: string; startedAt: Timestamp } | null; // Story 10-1
+  folderId?: string | null; // Story 12-2: ticket folder organization
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -236,6 +237,7 @@ export class AECMapper {
             startedAt: toDate(doc.implementationSession.startedAt),
           }
         : null, // Story 10-1
+      doc.folderId ?? null, // Story 12-2
     );
   }
 
@@ -307,6 +309,7 @@ export class AECMapper {
             startedAt: Timestamp.fromDate(aec.implementationSession.startedAt),
           }
         : null, // Story 10-1
+      folderId: aec.folderId ?? null, // Story 12-2
     };
   }
 }

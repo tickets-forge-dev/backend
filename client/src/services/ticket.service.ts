@@ -70,6 +70,7 @@ export interface AECResponse {
     qaItems: Array<{ question: string; answer: string }>;
     submittedAt: string;
   } | null;
+  folderId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
