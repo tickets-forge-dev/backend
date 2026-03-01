@@ -29,11 +29,13 @@ const unbounded = Unbounded({
 export const metadata: Metadata = {
   title: 'Forge',
   description: 'Stop shipping half-baked tickets. Forge turns ideas into verified execution contracts.',
+  manifest: '/manifest.json',
   icons: {
     icon: '/forge-icon.png',
     shortcut: '/forge-icon.png',
     apple: '/forge-icon.png',
   },
+  themeColor: '#111111',
 };
 
 export default function RootLayout({

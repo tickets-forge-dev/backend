@@ -17,28 +17,7 @@ export function SidebarFooter() {
 
   return (
     <div className="mt-auto border-t border-[var(--border)] p-2 space-y-2">
-      {/* Quota banner */}
-      {!sidebarCollapsed && quota && (
-        <div className="px-2 py-1.5 rounded-md bg-[var(--bg-subtle)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[var(--text-tertiary)]">
-              {quota.used} of {quota.limit} tickets used
-            </span>
-          </div>
-          {/* Progress bar */}
-          <div className="mt-1 h-1 rounded-full bg-[var(--border)]/30 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${quota.canCreate ? 'bg-[var(--primary)]' : 'bg-red-500'}`}
-              style={{ width: `${Math.min((quota.used / quota.limit) * 100, 100)}%` }}
-            />
-          </div>
-          {!quota.canCreate && (
-            <p className="mt-1 text-[10px] text-red-500">
-              Limit reached — upgrade to create more
-            </p>
-          )}
-        </div>
-      )}
+      {/* Quota banner — hidden while free, re-enable when paid tiers launch */}
 
       <div className="flex items-center justify-between gap-1">
         {/* Theme toggle */}

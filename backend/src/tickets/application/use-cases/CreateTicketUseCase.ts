@@ -10,10 +10,13 @@ import { GitHubTokenService } from '../../../github/application/services/github-
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
 import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
 
-export const TICKET_LIMITS: Record<string, number> = {
-  'bar.idan@gmail.com': 99999,
-};
-export const DEFAULT_TICKET_LIMIT = 3;
+// TODO: Re-enable ticket limits when paid tiers launch
+// export const TICKET_LIMITS: Record<string, number> = {
+//   'bar.idan@gmail.com': 99999,
+// };
+// export const DEFAULT_TICKET_LIMIT = 3;
+export const TICKET_LIMITS: Record<string, number> = {};
+export const DEFAULT_TICKET_LIMIT = Infinity;
 
 export interface CreateTicketCommand {
   teamId: string;

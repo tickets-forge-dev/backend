@@ -54,9 +54,7 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="flex flex-col items-center justify-center text-center px-4 py-24 sm:py-32 border-b border-[var(--border-subtle)]">
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6 max-w-4xl text-[var(--text)]">
-            <span className="bg-gradient-to-r from-[var(--primary)] via-blue-500 to-purple-500 text-transparent bg-clip-text">
-              Stop shipping half-baked tickets.
-            </span>
+            Stop shipping half-baked tickets.
           </h1>
 
           <p className="text-lg sm:text-xl text-[var(--text-secondary)] mb-12 max-w-2xl leading-relaxed mx-auto">
@@ -98,46 +96,81 @@ export default function LandingPage() {
 
         {/* Two Interfaces */}
         <section className="py-24 border-b border-[var(--border-subtle)]">
-          <div className="container mx-auto px-4 max-w-4xl">
+          <div className="container mx-auto px-4 max-w-5xl">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4">Two interfaces, one platform</h2>
               <p className="text-[var(--text-secondary)]">PMs work in the browser. Developers work in the terminal.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Web App — PM */}
-              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left overflow-hidden">
-                <Image
-                  src="/images/ticket-screenshot.png"
-                  alt="Forge web app showing the ticket list with statuses, priorities, and quality scores"
-                  width={1200}
-                  height={800}
-                  className="w-full h-auto"
-                />
+              <div className="flex flex-col rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] overflow-hidden shadow-[0_0_20px_rgba(var(--primary-rgb,234,88,12),0.08)]">
+                <div className="aspect-[16/10] overflow-hidden relative">
+                  <Image
+                    src="/images/ticket-screenshot.png"
+                    alt="Forge web app showing the ticket list with statuses, priorities, and quality scores"
+                    width={1200}
+                    height={800}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 shadow-[inset_0_0_30px_rgba(234,88,12,0.06)] pointer-events-none" />
+                </div>
                 <div className="px-5 py-5 border-t border-[var(--border-subtle)]">
-                  <h3 className="font-semibold text-lg mb-2">Web App</h3>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--primary)]">For PMs & Teams</span>
+                  <h3 className="font-semibold text-lg mt-1 mb-2">Web App</h3>
                   <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                    Create tickets, add context, review answers, and approve — all from the browser. For PMs, QA, and anyone on the team.
+                    Create tickets, add context, review answers, and approve — all from the browser.
                   </p>
                 </div>
               </div>
 
               {/* CLI — Developer */}
-              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left overflow-hidden">
-                <Image
-                  src="/images/cli-screenshot.png"
-                  alt="Claude Code terminal with Forge MCP integration listing tickets and running review"
-                  width={1200}
-                  height={800}
-                  className="w-full h-auto"
-                />
+              <div className="flex flex-col rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.07)]">
+                <div className="aspect-[16/10] overflow-hidden relative">
+                  <Image
+                    src="/images/cli-screenshot.png"
+                    alt="Claude Code terminal with Forge MCP integration listing tickets and running review"
+                    width={1200}
+                    height={800}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 shadow-[inset_0_0_30px_rgba(6,182,212,0.06)] pointer-events-none" />
+                </div>
                 <div className="px-5 py-5 border-t border-[var(--border-subtle)]">
-                  <h3 className="font-semibold text-lg mb-2">CLI</h3>
-                  <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-4">
-                    Run <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">forge login</code> to authenticate, then <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">forge mcp install</code> to connect your AI assistant. Once connected, run <code className="text-cyan-400">forge develop</code> for guided implementation prep — Forgy asks the right questions and creates your branch automatically.
+                  <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">For Developers</span>
+                  <h3 className="font-semibold text-lg mt-1 mb-2">CLI</h3>
+                  <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                    Authenticate, connect your AI assistant, and run <code className="text-cyan-400 font-mono text-xs">forge develop</code> — Forgy asks the right questions and creates your branch automatically.
                   </p>
                   <CopyCommand command="npm install -g @anthropic-forge/cli" />
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Powered by AI */}
+        <section className="py-20 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
+          <div className="container mx-auto px-4 max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-3">Powered by</p>
+            <h2 className="text-3xl font-bold mb-4">Cutting-edge AI, built in</h2>
+            <p className="text-[var(--text-secondary)] leading-relaxed max-w-xl mx-auto mb-10">
+              Forge runs on <span className="text-[var(--text)] font-medium">Claude Opus 4.6</span> — Anthropic{"'"}s most capable model — to analyze requirements, detect gaps, and generate verified execution contracts. Lighter models handle smaller tasks for speed and efficiency. <span className="text-[var(--text)] font-medium">No API keys needed — AI is included.</span>
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="inline-flex items-center gap-3 rounded-full border border-[var(--border-subtle)] bg-[var(--bg)] px-5 py-2.5">
+                <svg className="w-5 h-5 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                </svg>
+                <span className="text-sm font-medium text-[var(--text)]">Opus 4.6</span>
+                <span className="text-xs text-[var(--text-secondary)]">Deep analysis</span>
+              </div>
+              <div className="inline-flex items-center gap-3 rounded-full border border-[var(--border-subtle)] bg-[var(--bg)] px-5 py-2.5">
+                <svg className="w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                <span className="text-sm font-medium text-[var(--text)]">Sonnet & Haiku</span>
+                <span className="text-xs text-[var(--text-secondary)]">Fast tasks</span>
               </div>
             </div>
           </div>
@@ -405,12 +438,151 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Security */}
+        <section className="py-20 border-b border-[var(--border-subtle)]">
+          <div className="container mx-auto px-4 max-w-3xl text-center">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mx-auto mb-5">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold mb-4">Forge is secure</h2>
+            <p className="text-[var(--text-secondary)] leading-relaxed max-w-xl mx-auto mb-6">
+              Your data never leaves your workspace. Every ticket is generated in an isolated pipeline — user input is boundary-separated from AI instructions, and all AI output passes 7 independent validators before it reaches your board.
+            </p>
+            <Link
+              href="/docs/security/security-model"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
+            >
+              See how?
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="py-24 border-b border-[var(--border-subtle)]">
+          <div className="container mx-auto px-4 max-w-3xl">
+            <h2 className="text-3xl font-bold mb-12 text-center">Questions & Answers</h2>
+
+            <div className="divide-y divide-[var(--border-subtle)]">
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  Is Forge free?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Yes. Forge is completely free right now — unlimited tickets, full AI enrichment, CLI access, everything. No credit card required.
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  Does Forge replace Jira or Linear?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  It can. For small teams, Forge works as a complete end-to-end ticketing system. For larger teams, it integrates with Jira and Linear as a pre-execution layer — tickets get refined in Forge, then exported to your existing tracker.{' '}
+                  <Link href="/docs/platform/aec" className="text-[var(--primary)] hover:underline">Learn about the AEC</Link>
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  Do I need my own API key?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  No. AI is built into Forge — no API keys, no configuration, no usage billing. You write the ticket, Forge handles the rest.
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  What AI models power Forge?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Claude Opus 4.6 for deep analysis and AEC generation. Lighter models (Sonnet, Haiku) for fast tasks like validation and scoring. Forge picks the right model for each step automatically.
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  Can I use Forge solo?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Absolutely. Forge works for individual developers, not just teams. Create tickets, enrich them with your own code context, and use the CLI to execute.{' '}
+                  <Link href="/docs/getting-started/quickstart-developers" className="text-[var(--primary)] hover:underline">Quickstart for developers</Link>
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  What does the quality score mean?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Every AEC is scored 0–100 by 7 independent validators checking clarity, completeness, consistency, feasibility, scope, testability, and context alignment. A ticket needs 75+ to be forged. This prevents vague specs from reaching developers.{' '}
+                  <Link href="/docs/platform/aec" className="text-[var(--primary)] hover:underline">How the AEC works</Link>
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  How does the CLI connect to my codebase?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  The Forge CLI integrates with Claude Code through the Model Context Protocol (MCP). Run <code className="text-[var(--text)] font-mono text-xs bg-[var(--bg-subtle)] px-1 py-0.5 rounded">forge mcp install</code> and your AI assistant gets direct access to Forge tickets.{' '}
+                  <Link href="/docs/cli-and-mcp/mcp-integration" className="text-[var(--primary)] hover:underline">MCP setup guide</Link>
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  Is my code safe?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Your data never leaves your workspace. All requests are scoped to your authenticated team — no cross-workspace access is possible. Repository context is used only for your tickets and is never shared or used for training.{' '}
+                  <Link href="/docs/security/security-model" className="text-[var(--primary)] hover:underline">Security model</Link>
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  Can someone inject malicious instructions into a ticket?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Forge defends against prompt injection at multiple layers. User input is boundary-isolated from AI instructions, all AI output must conform to a strict JSON schema, and 7 validators score every result before storage. Even in a worst case, the AI has no execution capabilities during ticket generation — it can only return structured text.{' '}
+                  <Link href="/docs/security/security-model" className="text-[var(--primary)] hover:underline">Full security details</Link>
+                </p>
+              </details>
+
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-5 text-left font-medium hover:text-[var(--primary)] transition-colors">
+                  Who can see my tickets?
+                  <svg className="w-5 h-5 shrink-0 text-[var(--text-secondary)] group-open:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </summary>
+                <p className="pb-5 text-[var(--text-secondary)] text-sm leading-relaxed">
+                  Only members of your workspace. Every API request is authenticated with Firebase and scoped to your team. There is no public access to any ticket data.
+                </p>
+              </details>
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="py-24">
           <div className="container mx-auto px-4 max-w-3xl text-center">
             <h2 className="text-3xl font-bold mb-4">Stop wasting time on bad tickets</h2>
             <p className="text-[var(--text-secondary)] mb-8 text-lg">
-              Forge your first AEC in minutes. Free forever for individuals.
+              Forge your first AEC in minutes. Completely free — no limits.
             </p>
             <Link
               href="/tickets"

@@ -39,12 +39,18 @@ export const docsConfig: DocCategory[] = [
     ],
   },
   {
-    title: 'Troubleshooting',
+    title: 'Security',
+    slug: 'security',
+    pages: [
+      { title: 'Security Model', slug: 'security-model', description: 'How Forge protects your data and defends against prompt injection' },
+    ],
+  },
+  {
+    title: 'Support',
     slug: 'troubleshooting',
     pages: [
-      { title: 'Common Issues', slug: 'common-issues', description: 'Solutions for the most frequent problems' },
-      { title: 'Error Reference', slug: 'error-reference', description: 'Every error code with causes and fixes' },
-      { title: 'Configuration', slug: 'configuration', description: 'Config files, env vars, and debug logging' },
+      { title: 'Common Questions', slug: 'common-issues', description: 'Quick answers to frequently asked questions' },
+      { title: 'Configuration', slug: 'configuration', description: 'Config files, environment variables, and debug logging' },
     ],
   },
 ];

@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide default details marker — FAQ uses custom +/× icon */
+details summary { list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+
 /* ============================================ */
 /* FORGE DESIGN TOKENS - Linear + GitHub Style */
 /* ============================================ */
