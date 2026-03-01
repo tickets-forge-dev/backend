@@ -4,6 +4,22 @@ excerpt: "Complete reference for every Forge CLI command — usage, flags, and e
 category: "CLI & MCP"
 ---
 
+## Installation
+
+Install the Forge CLI globally via npm:
+
+```bash
+npm install -g @anthropic-forge/cli
+```
+
+Once installed, verify it's working:
+
+```bash
+forge --version
+```
+
+---
+
 ## Two Ways to Use Forge
 
 Forge gives developers two ways to interact with tickets:
