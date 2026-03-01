@@ -401,14 +401,43 @@ export default function TicketsListPage() {
                     setIsCreatingFolder(false);
                   }
                 }}
-                onBlur={() => {
-                  if (!isSubmittingFolder) {
-                    setNewFolderName('');
-                    setIsCreatingFolder(false);
+              />
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  if (newFolderName.trim() && currentTeam?.id && !isSubmittingFolder) {
+                    const name = newFolderName.trim();
+                    setIsSubmittingFolder(true);
+                    createFolder(currentTeam.id, name).then(
+                      (result) => {
+                        if (result) toast.success('Folder created');
+                        setNewFolderName('');
+                        setIsCreatingFolder(false);
+                        setIsSubmittingFolder(false);
+                      },
+                      () => {
+                        toast.error('Failed to create folder');
+                        setIsSubmittingFolder(false);
+                      },
+                    );
                   }
                 }}
-              />
-              <span className="text-[10px] text-[var(--text-tertiary)]">Enter to create</span>
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 transition-colors"
+                aria-label="Create folder"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </button>
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setNewFolderName('');
+                  setIsCreatingFolder(false);
+                }}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                aria-label="Cancel"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
           )}
 
