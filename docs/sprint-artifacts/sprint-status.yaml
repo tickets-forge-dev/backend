@@ -1,4 +1,4 @@
-# generated: 2026-02-22
+# generated: 2026-03-01
 # project: forge
 # project_key: FORGE
 # tracking_system: file-system
@@ -32,7 +32,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-02-22
+generated: 2026-03-01
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -42,7 +42,7 @@ development_status:
 
   # ============================================================================
   # FORGE TEAMS + CLI + MCP IMPLEMENTATION PLAN
-  # Duration: 8-15 weeks | 10 Epics | 75 Stories
+  # Duration: 8-15 weeks | 11 Epics | 85 Stories
   # Goal: Multi-team collaborative platform with developer CLI + MCP
   # Updated: 2026-02-18 - Full plan with interactive CLI & BMAD integration
   # ============================================================================
@@ -217,6 +217,29 @@ development_status:
   epic-9-notifications: backlog
   9-1-developer-notifications: drafted
   epic-9-notifications-retrospective: optional
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHASE 6: Growth & Engagement
+  # ──────────────────────────────────────────────────────────────────────────
+
+  # EPIC 11: Forge Academy Video Course (P1) - 10 stories
+  # Status: ⬜ NOT STARTED
+  # Goal: Free 10-video Coursera-style tutorial course to drive engagement and onboarding
+  # Format: Short videos (3-8 min each), ~50 min total runtime
+  # Style: Screen recording + face cam, chapter markers, learning objectives, mini quizzes
+  # Deliverable: Complete course published on YouTube/course platform
+  epic-11-forge-academy-video-course: backlog
+  11-1-what-is-forge-intro: backlog
+  11-2-getting-started-setup: backlog
+  11-3-navigating-tickets: backlog
+  11-4-review-workflow: backlog
+  11-5-develop-preparation: backlog
+  11-6-develop-execution: backlog
+  11-7-mcp-integration: backlog
+  11-8-team-workflows-collaboration: backlog
+  11-9-troubleshooting-best-practices: backlog
+  11-10-end-to-end-walkthrough: backlog
+  epic-11-forge-academy-video-course-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)
