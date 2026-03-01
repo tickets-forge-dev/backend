@@ -370,7 +370,25 @@ export default function TicketsListPage() {
 
           {/* Inline folder creation */}
           {isCreatingFolder && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]">
+            <form
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
+                const name = newFolderName.trim();
+                setIsSubmittingFolder(true);
+                try {
+                  const result = await createFolder(currentTeam.id, name);
+                  if (result) toast.success('Folder created');
+                  setNewFolderName('');
+                  setIsCreatingFolder(false);
+                } catch {
+                  toast.error('Failed to create folder');
+                } finally {
+                  setIsSubmittingFolder(false);
+                }
+              }}
+            >
               <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
               <input
                 autoFocus
@@ -379,23 +397,6 @@ export default function TicketsListPage() {
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newFolderName.trim() && currentTeam?.id && !isSubmittingFolder) {
-                    e.preventDefault();
-                    const name = newFolderName.trim();
-                    setIsSubmittingFolder(true);
-                    createFolder(currentTeam.id, name).then(
-                      (result) => {
-                        if (result) toast.success('Folder created');
-                        setNewFolderName('');
-                        setIsCreatingFolder(false);
-                        setIsSubmittingFolder(false);
-                      },
-                      () => {
-                        toast.error('Failed to create folder');
-                        setIsSubmittingFolder(false);
-                      },
-                    );
-                  }
                   if (e.key === 'Escape') {
                     setNewFolderName('');
                     setIsCreatingFolder(false);
@@ -403,32 +404,15 @@ export default function TicketsListPage() {
                 }}
               />
               <button
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  if (newFolderName.trim() && currentTeam?.id && !isSubmittingFolder) {
-                    const name = newFolderName.trim();
-                    setIsSubmittingFolder(true);
-                    createFolder(currentTeam.id, name).then(
-                      (result) => {
-                        if (result) toast.success('Folder created');
-                        setNewFolderName('');
-                        setIsCreatingFolder(false);
-                        setIsSubmittingFolder(false);
-                      },
-                      () => {
-                        toast.error('Failed to create folder');
-                        setIsSubmittingFolder(false);
-                      },
-                    );
-                  }
-                }}
-                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 transition-colors"
+                type="submit"
+                disabled={!newFolderName.trim() || isSubmittingFolder}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
                 aria-label="Create folder"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
               </button>
               <button
-                onMouseDown={(e) => e.preventDefault()}
+                type="button"
                 onClick={() => {
                   setNewFolderName('');
                   setIsCreatingFolder(false);
@@ -438,7 +422,7 @@ export default function TicketsListPage() {
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
-            </div>
+            </form>
           )}
 
           {/* Folder sections (always on top, alphabetical) */}
