@@ -42,7 +42,7 @@ development_status:
 
   # ============================================================================
   # FORGE TEAMS + CLI + MCP IMPLEMENTATION PLAN
-  # Duration: 8-15 weeks | 11 Epics | 85 Stories
+  # Duration: 8-15 weeks | 12 Epics | 91 Stories
   # Goal: Multi-team collaborative platform with developer CLI + MCP
   # Updated: 2026-02-18 - Full plan with interactive CLI & BMAD integration
   # ============================================================================
@@ -240,6 +240,21 @@ development_status:
   11-9-troubleshooting-best-practices: backlog
   11-10-end-to-end-walkthrough: backlog
   epic-11-forge-academy-video-course-retrospective: optional
+
+  # EPIC 12: Ticket Folders (P1) - 6 stories
+  # Status: ⬜ NOT STARTED
+  # Goal: Inline collapsible folder organization for the ticket feed
+  # Key: Team-scoped folders, user-scoped expand/collapse state, 2-level max hierarchy
+  # Product Brief: docs/product-brief-forge-ticket-folders-2026-03-01.md
+  # Epic File: docs/epic-12-ticket-folders.md
+  epic-12-ticket-folders: backlog
+  12-1-folder-domain-model-backend-api: backlog
+  12-2-ticket-folder-relationship-move-api: backlog
+  12-3-folder-ui-inline-collapsible-feed: backlog
+  12-4-folder-crud-ui: backlog
+  12-5-ticket-move-ux: backlog
+  12-6-user-expand-collapse-state-persistence: backlog
+  epic-12-ticket-folders-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)
