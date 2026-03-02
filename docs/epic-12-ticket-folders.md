@@ -86,10 +86,12 @@ The ticket feed is currently flat — all tickets at the same level regardless o
 
 **Acceptance Criteria:**
 - Context menu on ticket: "Move to..." → shows list of team's folders + "Root (unfiled)" option
+- **Drag-and-drop**: Drag ticket row to folder header or "Unfiled" drop zone to move
 - Ticket moved into a folder disappears from root view (file-system model)
 - Ticket moved out of a folder reappears in root view
 - When creating a new ticket while a folder is expanded, offer option to create inside that folder
-- Visual feedback on successful move (brief animation or toast)
+- Visual feedback on successful move (toast notification)
+- Drag feedback: grab cursor on hover, ghost preview while dragging, blue ring on valid drop targets
 - Works for tickets at root level and tickets already inside a folder (move between folders)
 
 ---
@@ -114,10 +116,24 @@ The ticket feed is currently flat — all tickets at the same level regardless o
 - Existing team infrastructure (Epic 1, Epic 3)
 - Existing ticket CRUD and feed UI (Epic 7)
 
+## Implementation Notes (2026-03-02)
+
+All 6 stories implemented on branch `feat/epic-12-ticket-folders`.
+
+**Beyond-MVP additions:**
+- **Drag-and-drop tickets to folders** — HTML5 Drag and Drop API. Ticket rows are draggable; folder headers and an "Unfiled" drop zone are drop targets. Visual feedback: grab cursor on hover, ghost preview while dragging, blue ring highlight on valid drop targets.
+- **Nested ticket visual hierarchy** — Tickets inside folders render with indented title cell (`pl-6`), horizontal dash connector, and subtle background tint to visually connect them to the parent folder.
+
+**Backend fixes discovered during implementation:**
+- NestJS route ordering: literal `move-ticket/:ticketId` route declared before generic `:folderId` parameterized route
+- Firestore Timestamp conversion: duck-typed `toDate()` helper instead of `instanceof Timestamp` (fails across package versions)
+- Added `folderId` to ticket API response mapping
+
+---
+
 ## Future (Not in this Epic)
 
 - Firebase real-time sync (separate gated epic — pending cost analysis)
-- Drag-and-drop ticket reordering within folders
 - Bulk move operations
 - Folder colors, icons, or emoji customization
 - Custom folder ordering (non-alphabetical)

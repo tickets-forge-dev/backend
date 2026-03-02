@@ -117,7 +117,7 @@ export default function LandingPage() {
                 <div className="px-5 py-5 border-t border-[var(--border-subtle)]">
                   <h3 className="font-semibold text-lg mb-2">Web App</h3>
                   <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                    Create tickets, add context, review answers, and approve — all from the browser. For PMs, QA, and anyone on the team.
+                    Create tickets, organize them into folders, review answers, and approve — all from the browser. Drag-and-drop tickets between folders to keep your feed clean.
                   </p>
                 </div>
               </div>

@@ -159,6 +159,9 @@ export interface WizardState {
   // AC#3: Repository inclusion flag (default: true for backward compatibility)
   includeRepository: boolean;
 
+  // Folder assignment (optional — ticket goes to feed if null)
+  folderId: string | null;
+
   // Bug reproduction steps (user-provided, optional)
   reproductionSteps: ReproductionStepSpec[];
 
@@ -222,6 +225,7 @@ export interface WizardActions {
   setType: (type: string) => void;
   setPriority: (priority: string) => void;
   setIncludeRepository: (include: boolean) => void; // AC#3: Toggle repository inclusion
+  setFolderId: (folderId: string | null) => void;
 
   // Bug reproduction steps
   addReproductionStep: () => void;
@@ -309,6 +313,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // If GitHub not connected, default to false (PMs without GitHub shouldn't see repo as default)
   // If GitHub connected, default to true (backward compatibility for developers)
   includeRepository: useSettingsStore.getState().githubConnected,
+  folderId: null,
   reproductionSteps: [],
   context: null,
   spec: null,
@@ -398,6 +403,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
   // AC#3: Toggle repository inclusion
   setIncludeRepository: (include: boolean) => set({ includeRepository: include }),
+
+  setFolderId: (folderId: string | null) => set({ folderId }),
 
   // Bug reproduction steps
   addReproductionStep: () =>
@@ -823,6 +830,22 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       }
 
       const aec = await createResponse.json();
+
+      // Move ticket to folder if one was selected
+      const selectedFolderId = get().folderId;
+      if (selectedFolderId) {
+        try {
+          const teamId = useTeamStore.getState().currentTeam?.id;
+          if (teamId) {
+            await authFetch(`/teams/${teamId}/folders/move-ticket/${aec.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ folderId: selectedFolderId }),
+            });
+          }
+        } catch (moveError) {
+          console.warn('Failed to move ticket to folder:', moveError);
+        }
+      }
 
       // If maxRounds is 0 (trivial task), auto-finalize: skip questions entirely
       if (state.maxRounds === 0) {
@@ -1460,6 +1483,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       type: 'feature',
       priority: 'low',
       includeRepository: true, // AC#3: Reset to default (true)
+      folderId: null,
       reproductionSteps: [],
       context: null,
       spec: null,

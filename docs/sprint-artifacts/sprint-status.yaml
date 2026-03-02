@@ -242,18 +242,19 @@ development_status:
   epic-11-forge-academy-video-course-retrospective: optional
 
   # EPIC 12: Ticket Folders (P1) - 6 stories
-  # Status: ⬜ NOT STARTED
+  # Status: ✅ DONE - All 6 stories complete (2026-03-02)
   # Goal: Inline collapsible folder organization for the ticket feed
   # Key: Team-scoped folders, user-scoped expand/collapse state, 2-level max hierarchy
+  # Bonus: Drag-and-drop tickets to folders implemented (beyond original MVP scope)
   # Product Brief: docs/product-brief-forge-ticket-folders-2026-03-01.md
   # Epic File: docs/epic-12-ticket-folders.md
-  epic-12-ticket-folders: backlog
-  12-1-folder-domain-model-backend-api: backlog
-  12-2-ticket-folder-relationship-move-api: backlog
-  12-3-folder-ui-inline-collapsible-feed: backlog
-  12-4-folder-crud-ui: backlog
-  12-5-ticket-move-ux: backlog
-  12-6-user-expand-collapse-state-persistence: backlog
+  epic-12-ticket-folders: done
+  12-1-folder-domain-model-backend-api: done
+  12-2-ticket-folder-relationship-move-api: done
+  12-3-folder-ui-inline-collapsible-feed: done
+  12-4-folder-crud-ui: done
+  12-5-ticket-move-ux: done
+  12-6-user-expand-collapse-state-persistence: done
   epic-12-ticket-folders-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────

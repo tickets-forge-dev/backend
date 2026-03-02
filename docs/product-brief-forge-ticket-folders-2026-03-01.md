@@ -84,7 +84,8 @@ Add a folder system directly into the existing ticket feed. Folders appear as co
 - Click chevron to collapse → hides tickets, shows only folder row with count
 
 **Feature C: Ticket Organization**
-- Move ticket into a folder (drag-and-drop and/or right-click → "Move to folder..." submenu)
+- Move ticket into a folder via right-click → "Move to folder..." submenu
+- **Drag-and-drop**: Drag ticket rows to folder headers or "Unfiled" drop zone (grab cursor, ghost preview, blue ring highlight on targets)
 - Move ticket out of a folder back to root
 - Create a new ticket directly inside a folder
 - A ticket lives in exactly one place: root OR one folder (file-system model)
@@ -116,6 +117,8 @@ Add a folder system directly into the existing ticket feed. Folders appear as co
 - **Drag-and-drop reordering of folders** — Alphabetical sort for MVP. Custom ordering is a future enhancement.
 - **Bulk ticket operations** — Moving multiple tickets at once. Single-ticket moves for MVP.
 - **Folder colors or icons** — Plain folder icon for MVP. Customization later.
+
+> **Note (2026-03-02):** Drag-and-drop for moving tickets into folders was implemented as part of the MVP delivery, exceeding the original scope. Folder reordering via drag-and-drop remains out of scope.
 
 ### MVP Success Criteria
 

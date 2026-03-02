@@ -9,7 +9,9 @@ import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
-import { Lightbulb, Bug, ClipboardList, Github, Paperclip } from 'lucide-react';
+import { Lightbulb, Bug, ClipboardList, Github, Paperclip, Folder } from 'lucide-react';
+import { useFoldersStore } from '@/stores/folders.store';
+import { useTeamStore } from '@/teams/stores/team.store';
 import { RepositorySelector } from '../RepositorySelector';
 import { RepositoryToggle } from '../RepositoryToggle'; // AC#1: Import toggle component
 import { BranchSelector } from '../BranchSelector';
@@ -39,16 +41,21 @@ export function Stage1Input() {
     loadingMessage,
     progressPercent,
     includeRepository, // AC#3: Get repository inclusion flag
+    folderId,
     setTitle,
     setDescription,
     setRepository,
     setType,
     setPriority,
+    setFolderId,
     analyzeRepository,
     pendingFiles,
     addPendingFile,
     removePendingFile,
   } = useWizardStore();
+
+  const { currentTeam } = useTeamStore();
+  const { folders, loadFolders } = useFoldersStore();
 
   // Validation state
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
@@ -79,6 +86,13 @@ export function Stage1Input() {
   React.useEffect(() => {
     loadGitHubStatus(gitHubService);
   }, []);
+
+  // Load folders on mount
+  React.useEffect(() => {
+    if (currentTeam?.id) {
+      loadFolders(currentTeam.id);
+    }
+  }, [currentTeam?.id, loadFolders]);
 
   // Sync tickets store repository selection to wizard store
   // Fires when: (a) user picks a different repo, (b) reset() clears wizard values
@@ -190,6 +204,35 @@ export function Stage1Input() {
           </Select>
         </div>
       </div>
+
+      {/* Folder */}
+      {folders.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
+            Folder
+          </label>
+          <Select value={folderId ?? '__none__'} onValueChange={(val) => setFolderId(val === '__none__' ? null : val)}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">
+                <span className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  No folder (feed)
+                </span>
+              </SelectItem>
+              {folders.map((folder) => (
+                <SelectItem key={folder.id} value={folder.id}>
+                  <span className="inline-flex items-center gap-2">
+                    <Folder className="h-3.5 w-3.5 text-gray-500" />
+                    {folder.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Form */}
       <form
