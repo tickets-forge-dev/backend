@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
@@ -8,8 +8,6 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useFoldersStore } from '@/stores/folders.store';
 import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
-import { useTicketGrouping } from '@/tickets/hooks/useTicketGrouping';
-import { TicketGroupHeader } from '@/tickets/components/TicketGroupHeader';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput } from 'lucide-react';
@@ -47,7 +45,7 @@ function getTypeIcon(type: string | null) {
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
   const { currentTeam, loadTeamMembers } = useTeamStore();
-  const { folders, loadFolders, createFolder, renameFolder, deleteFolder, expandedFolders, toggleFolder } = useFoldersStore();
+  const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder } = useFoldersStore();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isSubmittingFolder, setIsSubmittingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -59,6 +57,26 @@ export default function TicketsListPage() {
   const [sortBy, setSortBy] = useState<SortBy>((listPreferences?.sortBy as any) || 'updated');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [draggingTicketId, setDraggingTicketId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((ticketId: string) => {
+    setDraggingTicketId(ticketId);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingTicketId(null);
+  }, []);
+
+  const handleTicketDrop = useCallback(async (ticketId: string, folderId: string | null) => {
+    if (!currentTeam?.id) return;
+    const ok = await moveTicket(currentTeam.id, ticketId, folderId);
+    if (ok) {
+      loadTickets();
+      toast.success(folderId ? `Moved to folder` : 'Moved to unfiled');
+    } else {
+      toast.error('Failed to move ticket');
+    }
+  }, [currentTeam?.id, moveTicket, loadTickets]);
 
   // Debounce search input
   useEffect(() => {
@@ -143,21 +161,14 @@ export default function TicketsListPage() {
     return { folderTicketsMap: map, unfiledTickets: unfiled };
   }, [filteredTickets]);
 
-  // Use grouping hook with saved preferences (unfiled tickets only)
-  const { groups, collapsedGroups, toggleGroup } = useTicketGrouping(
-    unfiledTickets,
-    listPreferences?.collapsedGroups
-  );
-
   // Save preferences when they change
   useEffect(() => {
     setListPreferences({
       sortBy,
       priorityFilter,
       typeFilter,
-      collapsedGroups: Array.from(collapsedGroups),
     });
-  }, [sortBy, priorityFilter, typeFilter, collapsedGroups, setListPreferences]);
+  }, [sortBy, priorityFilter, typeFilter, setListPreferences]);
 
   const sortLabel = {
       updated: 'Recently updated',
@@ -452,16 +463,19 @@ export default function TicketsListPage() {
                       }
                     }
                   }}
+                  isDragActive={!!draggingTicketId}
+                  draggingTicketId={draggingTicketId}
+                  onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
                 />
                 {isExpanded && (
                   folderTickets.length > 0 ? (
-                    <div className="bg-[var(--bg)]/50">
+                    <div>
                       {folderTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} folders={folders} />
+                        <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested />
                       ))}
                     </div>
                   ) : (
-                    <div className="px-4 py-3 text-xs text-[var(--text-tertiary)] bg-[var(--bg)]/50 border-b border-[var(--border-subtle)]">
+                    <div className="pl-10 py-3 text-xs text-[var(--text-tertiary)] bg-[var(--bg-subtle)]/30 border-b border-[var(--border-subtle)]">
                       No tickets in this folder
                     </div>
                   )
@@ -470,43 +484,51 @@ export default function TicketsListPage() {
             );
           })}
 
+          {/* Unfiled drop zone — only visible during active drag */}
+          {draggingTicketId && folders.length > 0 && (
+            <UnfiledDropZone draggingTicketId={draggingTicketId} onTicketDrop={(ticketId) => handleTicketDrop(ticketId, null)} />
+          )}
+
           {/* Unfiled tickets below folders */}
           {unfiledTickets.length > 0 && (
-            <>
-              {groups.length > 1 ? (
-                <div>
-                  {groups.map((group) => {
-                    const isCollapsed = collapsedGroups.has(group.key);
-                    return (
-                      <div key={group.key}>
-                        <TicketGroupHeader
-                          label={group.label}
-                          count={group.tickets.length}
-                          isCollapsed={isCollapsed}
-                          onToggle={() => toggleGroup(group.key)}
-                        />
-                        {!isCollapsed && (
-                          <div>
-                            {group.tickets.map((ticket) => (
-                              <TicketRow key={ticket.id} ticket={ticket} folders={folders} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div>
-                  {unfiledTickets.map((ticket) => (
-                    <TicketRow key={ticket.id} ticket={ticket} folders={folders} />
-                  ))}
-                </div>
-              )}
-            </>
+            <div>
+              {unfiledTickets.map((ticket) => (
+                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+              ))}
+            </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Drop zone for removing tickets from folders
+function UnfiledDropZone({ draggingTicketId, onTicketDrop }: { draggingTicketId: string | null; onTicketDrop: (ticketId: string) => void }) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  return (
+    <div
+      className={`flex items-center justify-center px-4 py-2.5 border-b border-dashed border-[var(--border-subtle)] transition-all text-xs ${
+        isDragOver
+          ? 'border-[var(--blue)] bg-[var(--bg-active)] text-[var(--text-secondary)]'
+          : 'text-[var(--text-tertiary)]'
+      }`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setIsDragOver(true);
+      }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
+        if (ticketId) onTicketDrop(ticketId);
+      }}
+    >
+      <FileText className="h-3.5 w-3.5 mr-1.5" />
+      Drop here to unfile
     </div>
   );
 }
@@ -527,17 +549,21 @@ function TicketGridHeader() {
   );
 }
 
-// Folder section header with collapse, rename, delete
-function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onDelete }: {
+// Folder section header with collapse, rename, delete + drop target
+function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onDelete, isDragActive, draggingTicketId, onTicketDrop }: {
   folder: FolderResponse;
   ticketCount: number;
   isExpanded: boolean;
   onToggle: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
+  isDragActive?: boolean;
+  draggingTicketId?: string | null;
+  onTicketDrop?: (ticketId: string) => void;
 }) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const handleRenameSubmit = () => {
     const trimmed = renameValue.trim();
@@ -553,7 +579,24 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
   };
 
   return (
-    <div className="group/folder sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)]">
+    <div
+      className={`group/folder sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] ${
+        isDragOver ? 'ring-2 ring-[var(--blue)] ring-inset bg-[var(--bg-active)]' : ''
+      }`}
+      onDragOver={(e) => {
+        if (!isDragActive) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setIsDragOver(true);
+      }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
+        if (ticketId && onTicketDrop) onTicketDrop(ticketId);
+      }}
+    >
       <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={onToggle}>
         <ChevronDown
           className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform flex-shrink-0 ${
@@ -676,7 +719,13 @@ function PriorityCell({ priority }: { priority: string | null }) {
 }
 
 // Grid-based ticket row
-function TicketRow({ ticket, folders = [] }: { ticket: any; folders?: FolderResponse[] }) {
+function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
+  ticket: any;
+  folders?: FolderResponse[];
+  onDragStart?: (ticketId: string) => void;
+  onDragEnd?: () => void;
+  nested?: boolean;
+}) {
   const router = useRouter();
   const { deleteTicket, loadTickets } = useTicketsStore();
   const { teamMembers, currentTeam } = useTeamStore();
@@ -684,6 +733,7 @@ function TicketRow({ ticket, folders = [] }: { ticket: any; folders?: FolderResp
   const ticketStatus = getTicketStatusKey(ticket);
   const inProgress = isTicketInProgress(ticket);
   const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleOpen = () => router.push(href);
 
@@ -697,13 +747,39 @@ function TicketRow({ ticket, folders = [] }: { ticket: any; folders?: FolderResp
 
   return (
     <div
-      className={`group grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors ${
+      draggable
+      onDragStart={(e) => {
+        // Create a semi-transparent ghost of the row
+        const row = e.currentTarget;
+        const ghost = row.cloneNode(true) as HTMLElement;
+        ghost.style.width = `${row.offsetWidth}px`;
+        ghost.style.opacity = '0.35';
+        ghost.style.position = 'absolute';
+        ghost.style.top = '-9999px';
+        ghost.style.left = '-9999px';
+        ghost.style.pointerEvents = 'none';
+        document.body.appendChild(ghost);
+        const rect = row.getBoundingClientRect();
+        e.dataTransfer.setDragImage(ghost, e.clientX - rect.left, e.clientY - rect.top);
+        requestAnimationFrame(() => document.body.removeChild(ghost));
+
+        e.dataTransfer.setData('text/plain', ticket.id);
+        e.dataTransfer.effectAllowed = 'move';
+        setIsDragging(true);
+        onDragStart?.(ticket.id);
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+        onDragEnd?.();
+      }}
+      className={`group grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
-      }`}
+      } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-[var(--bg-subtle)]/30' : ''}`}
       style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}
     >
       {/* Title cell */}
-      <Link href={href} className="flex items-center gap-2 py-3 min-w-0 pr-3">
+      <Link href={href} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>
+        {nested && <span className="w-3 h-px bg-[var(--border-subtle)] flex-shrink-0 -ml-3" />}
         <span className="flex-shrink-0">{getTypeIcon(ticket.type)}</span>
         <span className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
           ticketStatus === 'needs-input' || ticketStatus === 'needs-resume'

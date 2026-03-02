@@ -979,6 +979,7 @@ export class TicketsController {
       designReferences: aec.designReferences ?? [],
       assignedTo: aec.assignedTo ?? null,
       reviewSession: aec.reviewSession ?? null, // Story 6-12
+      folderId: aec.folderId ?? null, // Story 12-2: ticket folder organization
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };

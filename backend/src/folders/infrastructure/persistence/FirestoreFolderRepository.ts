@@ -57,7 +57,6 @@ export class FirestoreFolderRepository implements FolderRepository {
       .collection('teams')
       .doc(teamId)
       .collection('folders')
-      .orderBy('name', 'asc')
       .get();
 
     return snapshot.docs.map((doc) => this.mapToFolder(doc.data() as FolderDocument));
@@ -113,21 +112,21 @@ export class FirestoreFolderRepository implements FolderRepository {
     return snapshot.data().count;
   }
 
-  private mapToFolder(data: FolderDocument): Folder {
-    const createdAt = data.createdAt instanceof Timestamp
-      ? data.createdAt.toDate()
-      : data.createdAt;
-    const updatedAt = data.updatedAt instanceof Timestamp
-      ? data.updatedAt.toDate()
-      : data.updatedAt;
+  private toDate(val: Timestamp | Date | any): Date {
+    if (val instanceof Date) return val;
+    if (val && typeof val.toDate === 'function') return val.toDate();
+    if (val && val._seconds !== undefined) return new Date(val._seconds * 1000);
+    return new Date(val);
+  }
 
+  private mapToFolder(data: FolderDocument): Folder {
     return Folder.reconstitute(
       data.id,
       data.teamId,
       data.name,
       data.createdBy,
-      createdAt,
-      updatedAt,
+      this.toDate(data.createdAt),
+      this.toDate(data.updatedAt),
     );
   }
 }

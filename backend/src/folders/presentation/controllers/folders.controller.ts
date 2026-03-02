@@ -81,6 +81,38 @@ export class FoldersController {
   }
 
   /**
+   * PATCH /teams/:teamId/folders/move-ticket/:ticketId
+   * Move a ticket into a folder or back to root
+   *
+   * IMPORTANT: This route MUST be declared before the generic :folderId route
+   * so NestJS matches the literal "move-ticket" segment instead of treating it
+   * as a folderId parameter.
+   */
+  @Patch('move-ticket/:ticketId')
+  async moveTicket(
+    @Param('teamId') teamId: string,
+    @Param('ticketId') ticketId: string,
+    @Body() dto: MoveTicketDto,
+  ) {
+    try {
+      await this.moveTicketToFolderUseCase.execute({
+        teamId,
+        ticketId,
+        folderId: dto.folderId ?? null,
+      });
+      return { success: true };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * PATCH /teams/:teamId/folders/:folderId
    * Rename a folder
    */
@@ -126,34 +158,6 @@ export class FoldersController {
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
         throw new NotFoundException(error.message);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * PATCH /teams/:teamId/folders/move-ticket/:ticketId
-   * Move a ticket into a folder or back to root
-   */
-  @Patch('move-ticket/:ticketId')
-  async moveTicket(
-    @Param('teamId') teamId: string,
-    @Param('ticketId') ticketId: string,
-    @Body() dto: MoveTicketDto,
-  ) {
-    try {
-      await this.moveTicketToFolderUseCase.execute({
-        teamId,
-        ticketId,
-        folderId: dto.folderId ?? null,
-      });
-      return { success: true };
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        throw new NotFoundException(error.message);
-      }
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
       }
       throw error;
     }
