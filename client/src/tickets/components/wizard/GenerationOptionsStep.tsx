@@ -32,8 +32,7 @@ export function GenerationOptionsStep() {
     setApiSpecDeferred,
     setApiContext,
     analyzeRepository,
-    goBackToInput,
-    goBackToContext,
+    prevStage,
     loading,
   } = useWizardStore();
 
@@ -278,8 +277,8 @@ export function GenerationOptionsStep() {
 
       {/* Footer Actions */}
       <div className="flex items-center justify-between pt-2">
-        <Button variant="ghost" size="sm" onClick={isBug ? goBackToContext : goBackToInput} disabled={loading}>
-          ← {isBug ? 'Back to Repro Steps' : 'Back'}
+        <Button variant="ghost" size="sm" onClick={prevStage} disabled={loading}>
+          ← Back
         </Button>
         <div className="flex items-center gap-4">
           <button

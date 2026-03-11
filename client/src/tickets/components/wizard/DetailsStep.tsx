@@ -1,0 +1,191 @@
+'use client';
+
+import React, { useCallback, useEffect, useState } from 'react';
+import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
+import { Lightbulb, Bug, ClipboardList, Folder, PenLine } from 'lucide-react';
+import { useFoldersStore } from '@/stores/folders.store';
+import { useTeamStore } from '@/teams/stores/team.store';
+import { MarkdownInput } from './MarkdownInput';
+
+/**
+ * DetailsStep — First step in the wizard.
+ *
+ * Captures: ticket type, priority, folder (optional), and description.
+ * No repository or file upload — those are in separate steps.
+ */
+export function DetailsStep() {
+  const {
+    input,
+    type,
+    priority,
+    folderId,
+    setTitle,
+    setType,
+    setPriority,
+    setFolderId,
+  } = useWizardStore();
+
+  const { currentTeam } = useTeamStore();
+  const { folders, loadFolders } = useFoldersStore();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const handleEditorClose = useCallback(() => setEditorOpen(false), []);
+
+  // Load folders on mount
+  useEffect(() => {
+    if (currentTeam?.id) {
+      loadFolders(currentTeam.id);
+    }
+  }, [currentTeam?.id, loadFolders]);
+
+  return (
+    <div className="space-y-5">
+      {/* Type & Priority */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
+            Type
+          </label>
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="feature">
+                <span className="inline-flex items-center gap-2">
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                  Feature
+                </span>
+              </SelectItem>
+              <SelectItem value="bug">
+                <span className="inline-flex items-center gap-2">
+                  <Bug className="h-3.5 w-3.5 text-red-500" />
+                  Bug
+                </span>
+              </SelectItem>
+              <SelectItem value="task">
+                <span className="inline-flex items-center gap-2">
+                  <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
+                  Task
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
+            Priority
+          </label>
+          <Select value={priority} onValueChange={setPriority}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Low
+                </span>
+              </SelectItem>
+              <SelectItem value="medium">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                  Medium
+                </span>
+              </SelectItem>
+              <SelectItem value="high">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-orange-500" />
+                  High
+                </span>
+              </SelectItem>
+              <SelectItem value="urgent">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  Urgent
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Folder */}
+      {folders.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-400 uppercase tracking-wide">
+            Folder
+            <span className="ml-1.5 normal-case font-normal text-[var(--text-tertiary)]">— optionally group this ticket into a folder</span>
+          </label>
+          <Select value={folderId ?? '__none__'} onValueChange={(val) => setFolderId(val === '__none__' ? null : val)}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">
+                <span className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  No folder (feed)
+                </span>
+              </SelectItem>
+              {folders.map((folder) => (
+                <SelectItem key={folder.id} value={folder.id}>
+                  <span className="inline-flex items-center gap-2">
+                    <Folder className="h-3.5 w-3.5 text-gray-500" />
+                    {folder.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Description — Primary focus area */}
+      <div className="space-y-3 p-5 rounded-lg border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/10 shadow-sm">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Ticket Description
+          </label>
+          <button
+            type="button"
+            onClick={() => setEditorOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--purple)] hover:text-[var(--text)] border border-[var(--purple)]/40 hover:border-[var(--purple)] rounded-md transition-colors hover:bg-[var(--purple)]/10"
+            title="Open full markdown editor"
+          >
+            <PenLine className="h-3.5 w-3.5" />
+            Open Editor
+          </button>
+        </div>
+        <MarkdownInput
+          value={input.title}
+          onChange={setTitle}
+          placeholder="e.g. As a user, I want to reset my password so that I can regain access to my account if I forget it."
+          maxLength={2000}
+          rows={8}
+          autoFocus={true}
+          externalEditorButton
+          fullscreenOpen={editorOpen}
+          onFullscreenClose={handleEditorClose}
+        />
+        {input.title.length > 0 && input.title.trim().split(/\s+/).filter(Boolean).length < 2 && (
+          <span
+            role="alert"
+            className="text-xs text-amber-600 dark:text-amber-400"
+          >
+            Description must be at least 2 words
+          </span>
+        )}
+        {input.title.length > 2000 && (
+          <span
+            id="title-error"
+            role="alert"
+            className="text-xs text-red-600 dark:text-red-400"
+          >
+            Description must be 2000 characters or less
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,159 @@
+<story-context id="14-5-wizard-step-refactor-split-stage1" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>5</storyId>
+    <title>Wizard Step Refactor — Split Stage 1 into Separate Steps</title>
+    <status>drafted</status>
+    <generatedAt>2026-03-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/14-5-wizard-step-refactor-split-stage1.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a ticket creator</asA>
+    <iWant>the wizard steps broken into focused, single-purpose screens (Details, Codebase, References)</iWant>
+    <soThat>each step is less overwhelming and I can skip sections that don't apply to my ticket</soThat>
+    <tasks>
+      <task id="1" ac="1,2,6,8">Refactor generation-wizard.store.ts stage management
+        <subtask>Replace numeric currentStage (1-4) with named stage enum: details, reproduce, codebase, references, options, generate</subtask>
+        <subtask>Add getStageOrder() helper returning ordered stages based on ticket type</subtask>
+        <subtask>Add nextStage() and prevStage() navigation actions using the stage order</subtask>
+        <subtask>Update snapshot persistence to use named stages (backward-compatible: map old numeric stages)</subtask>
+        <subtask>Update goBackToInput → goToStage('details'), goToReproSteps → goToStage('reproduce'), etc.</subtask>
+      </task>
+      <task id="2" ac="3">Create DetailsStep component
+        <subtask>Extract Type selector, Priority selector, Folder selector, Description input from Stage1Input</subtask>
+        <subtask>Create client/src/tickets/components/wizard/DetailsStep.tsx</subtask>
+        <subtask>Validation: type required, description >= 2 words</subtask>
+        <subtask>Footer: [Next →] button right-aligned</subtask>
+      </task>
+      <task id="3" ac="4">Create CodebaseStep component
+        <subtask>Extract RepositoryToggle, RepoSelector, BranchSelector from Stage1Input</subtask>
+        <subtask>Create client/src/tickets/components/wizard/CodebaseStep.tsx</subtask>
+        <subtask>Repository toggle checked by default if GitHub connected</subtask>
+        <subtask>When unchecked: show "You can create tickets without a repository" message</subtask>
+        <subtask>Footer: [← Back] left, [Next →] right</subtask>
+      </task>
+      <task id="4" ac="5">Create ReferencesStep component
+        <subtask>Extract file upload zone and design links from Stage1Input</subtask>
+        <subtask>Create client/src/tickets/components/wizard/ReferencesStep.tsx</subtask>
+        <subtask>"No references? Skip to next step →" subtle link</subtask>
+        <subtask>Footer: [← Back] left, [Next →] right</subtask>
+      </task>
+      <task id="5" ac="7">Update StageIndicator for new flow
+        <subtask>Accept stage names instead of numeric indices</subtask>
+        <subtask>Render correct labels: Details, Reproduce (bug only), Codebase, References, Options, Generate</subtask>
+        <subtask>5 circles for non-bug, 6 circles for bug</subtask>
+      </task>
+      <task id="6" ac="1,2,6">Update GenerationWizard.tsx routing
+        <subtask>Replace stage number switch with named stage routing</subtask>
+        <subtask>Render DetailsStep, CodebaseStep, ReferencesStep, Stage2ReproSteps, GenerationOptionsStep, DraftStage</subtask>
+        <subtask>Ensure loading overlay and recovery banner still work</subtask>
+      </task>
+      <task id="7" ac="9">Remove or deprecate Stage1Input
+        <subtask>Verify all functionality covered by new step components</subtask>
+        <subtask>Remove Stage1Input.tsx or mark deprecated</subtask>
+        <subtask>Update any imports referencing Stage1Input</subtask>
+      </task>
+      <task id="8" ac="8">Snapshot backward compatibility
+        <subtask>Migration logic: if snapshot has numeric currentStage, map to named stage</subtask>
+        <subtask>Test: old snapshot with currentStage: 1 → restores to 'details'</subtask>
+        <subtask>Test: old snapshot with currentStage: 2 on bug type → restores to 'reproduce'</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1">Given a non-bug ticket When the user starts the wizard Then the flow is: Details → Codebase → References → Options → Generate (5 steps)</ac>
+    <ac id="2">Given a bug ticket When the user starts the wizard Then the flow is: Details → Reproduce → Codebase → References → Options → Generate (6 steps)</ac>
+    <ac id="3">Given the user is on the Details step When it renders Then it shows only: Type dropdown, Priority dropdown, Folder dropdown (if folders exist), and Description markdown input — no repository or file upload sections</ac>
+    <ac id="4">Given the user is on the Codebase step When it renders Then it shows the repository toggle, repository selector, branch selector, and info box — matching the existing RepositoryToggle + repo/branch UI from Stage1Input</ac>
+    <ac id="5">Given the user is on the References step When it renders Then it shows file attachments upload zone and design links input — matching the existing "Reference Materials" tab content from Stage1Input</ac>
+    <ac id="6">Given any step When the user clicks Back Then they return to the previous step; when they click Next Then they advance to the next step</ac>
+    <ac id="7">Given the StageIndicator When it renders Then it shows the correct number of steps (5 or 6) with labels matching the new flow, completed steps show checkmarks, current step is highlighted</ac>
+    <ac id="8">Given the user has a saved snapshot from a previous session When they resume Then the wizard restores to the correct step in the new flow without data loss</ac>
+    <ac id="9">Given the existing Stage1Input component When the refactor is complete Then it is decomposed into DetailsStep, CodebaseStep, and ReferencesStep — each self-contained and independently testable</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epic-14-optional-generation-steps.md" title="Epic 14: Optional Wireframe &amp; API Generation" section="Stories 14.1-14.4, Implementation Notes" snippet="Defines the generation options step and wizard store modifications. Story 14.5 extends this by refactoring the wizard step structure." />
+      <doc path="docs/wireframes/wireframe-wizard-step-refactor.excalidraw" title="Wizard Step Refactor Wireframes" section="All screens" snippet="7-screen wireframe (4 desktop + 3 mobile) showing Details, Codebase, References, and Reproduce steps with stage indicators." />
+    </docs>
+
+    <code>
+      <!-- Primary files to modify -->
+      <file path="client/src/tickets/components/GenerationWizard.tsx" kind="component" symbol="GenerationWizard" lines="1-274" reason="Main wizard orchestrator — stage routing logic (lines 127-184) must be rewritten from numeric stages to named stage enum routing" />
+      <file path="client/src/tickets/stores/generation-wizard.store.ts" kind="store" symbol="useWizardStore" lines="1-1619" reason="Central state management — currentStage (numeric 1-4) must become named enum; navigation actions must use stage order; snapshot persistence must handle backward compatibility" />
+      <file path="client/src/tickets/components/wizard/Stage1Input.tsx" kind="component" symbol="Stage1Input" lines="1-351" reason="Monolithic input step to be decomposed into DetailsStep (type/priority/folder/description), CodebaseStep (repo toggle/selector/branch), ReferencesStep (file upload/design links)" />
+      <file path="client/src/tickets/components/wizard/StageIndicator.tsx" kind="component" symbol="StageIndicator" lines="1-100" reason="Stage labels and circles — must support 5-6 steps with named labels instead of 3-4 numeric stages" />
+
+      <!-- Components to extract/reuse (no modification needed) -->
+      <file path="client/src/tickets/components/RepositoryToggle.tsx" kind="component" symbol="RepositoryToggle" lines="1-104" reason="Checkbox + warning banner for repository inclusion — moves from Stage1Input to new CodebaseStep (reused as-is)" />
+      <file path="client/src/tickets/components/wizard/WizardFileUpload.tsx" kind="component" symbol="WizardFileUpload" lines="1-134" reason="Drag-and-drop file upload (max 5 files, 5MB) — moves from Stage1Input to new ReferencesStep (reused as-is)" />
+      <file path="client/src/tickets/components/wizard/GenerationOptionsStep.tsx" kind="component" symbol="GenerationOptionsStep" lines="1-300" reason="Options step (wireframes + API toggles) — unchanged but renumbered in flow. Back button label logic may need update." />
+      <file path="client/src/tickets/components/wizard/Stage2ReproSteps.tsx" kind="component" symbol="Stage2ReproSteps" lines="1-122" reason="Bug reproduction steps — unchanged but renumbered from Stage 2 to its named position in flow" />
+      <file path="client/src/tickets/components/wizard/Stage3Draft.tsx" kind="component" symbol="Stage3Draft" reason="Draft/clarification stage — unchanged, renumbered to final position" />
+
+      <!-- Sub-components reused by new steps -->
+      <file path="client/src/tickets/components/wizard/MarkdownInput.tsx" kind="component" symbol="MarkdownInput" lines="1-103" reason="Write/preview textarea used in DetailsStep for description input" />
+      <file path="client/src/tickets/components/wizard/RepositorySelector.tsx" kind="component" symbol="RepositorySelector" reason="GitHub repo dropdown — used in CodebaseStep" />
+      <file path="client/src/tickets/components/wizard/BranchSelector.tsx" kind="component" symbol="BranchSelector" reason="Branch dropdown with metadata — used in CodebaseStep" />
+      <file path="client/src/tickets/components/wizard/ToggleOptionCard.tsx" kind="component" symbol="ToggleOptionCard" lines="1-139" reason="Reusable toggle card — used in GenerationOptionsStep, pattern reference for new steps" />
+
+      <!-- Types -->
+      <file path="client/src/types/question-refinement.ts" kind="types" symbol="ReproductionStepSpec, ClarificationQuestion, TechSpec" reason="Type definitions for wizard state — ReproductionStepSpec for bug flow, TechSpec for generated spec" />
+    </code>
+
+    <dependencies>
+      <node>
+        <pkg name="react" version="^19.0.0" />
+        <pkg name="react-dom" version="^19.0.0" />
+        <pkg name="next" version="^15.5.11" />
+        <pkg name="zustand" version="^4.5.0" />
+        <pkg name="lucide-react" version="^0.563.0" />
+        <pkg name="react-markdown" version="^10.1.0" />
+        <pkg name="@radix-ui/react-tabs" version="^1.1.13" />
+        <pkg name="@radix-ui/react-select" version="^2.1.15" />
+        <pkg name="@radix-ui/react-label" version="^2.1.8" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="CLAUDE.md">Clean Architecture: UI renders state and triggers actions only. Business logic MUST live in Zustand store actions.</constraint>
+    <constraint source="CLAUDE.md">NEVER implement business logic inside React hooks or components. Hooks are lifecycle/subscription only.</constraint>
+    <constraint source="CLAUDE.md">UI must remain minimalistic and calm (Linear-inspired). Avoid extra visual containers.</constraint>
+    <constraint source="CLAUDE.md">ALL card/grid/container borders MUST use border border-[var(--border-subtle)] — never hardcoded border-white/[0.XX].</constraint>
+    <constraint source="CLAUDE.md">Atomic Design: new step components are Organisms (feature-level UI blocks).</constraint>
+    <constraint source="story">Stage1Input must be fully decomposed — no partial extraction leaving dead code.</constraint>
+    <constraint source="store">Snapshot backward compatibility: old numeric currentStage values from localStorage must map to new named stages without data loss.</constraint>
+    <constraint source="store">analyzeRepository() SSE call should trigger from CodebaseStep (where user commits to including a repo), not from DetailsStep.</constraint>
+    <constraint source="epic-14">GenerationOptionsStep stays unchanged — only renumbered in the flow.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="WizardState.currentStage" kind="store-field" signature="currentStage: number (currently 1-4)" path="client/src/tickets/stores/generation-wizard.store.ts">Must change to named enum type: 'details' | 'reproduce' | 'codebase' | 'references' | 'options' | 'generate'</interface>
+    <interface name="WizardActions navigation" kind="store-actions" signature="goBackToInput(), goToReproSteps(), goToGenerationOptions()" path="client/src/tickets/stores/generation-wizard.store.ts">Replace with generic goToStage(stage), nextStage(), prevStage() using getStageOrder(type)</interface>
+    <interface name="StageIndicator props" kind="component-props" signature="{ currentStage: number, nextButton?: ReactNode, ticketType?: string }" path="client/src/tickets/components/wizard/StageIndicator.tsx">Must accept named stages and render 5-6 step labels</interface>
+    <interface name="WizardSnapshot" kind="store-persistence" signature="localStorage key 'wizard-snapshot', 24hr TTL, includes currentStage + all input fields" path="client/src/tickets/stores/generation-wizard.store.ts">Must persist named stage and include migration from numeric stages</interface>
+    <interface name="useWizardStore selectors" kind="store-selectors" signature="useWizardStore(s => s.currentStage), s.input, s.type, etc." path="client/src/tickets/components/GenerationWizard.tsx">All consumers reading currentStage must handle named enum instead of number</interface>
+  </interfaces>
+
+  <tests>
+    <standards>No existing frontend test files found in client/src/tickets/. Testing framework not configured for client tests. Backend uses Jest. Any new tests would use Vitest or Jest with React Testing Library given the Next.js 15 + React 19 stack.</standards>
+    <locations>
+      <location>client/src/tickets/**/*.test.ts (none exist yet)</location>
+      <location>client/src/tickets/**/*.test.tsx (none exist yet)</location>
+    </locations>
+    <ideas>
+      <idea ac="1,2">Test getStageOrder() returns correct stage sequence for feature, bug, and task types</idea>
+      <idea ac="6">Test nextStage() and prevStage() navigate correctly through the full flow for each type</idea>
+      <idea ac="8">Test snapshot migration: numeric currentStage values map to correct named stages</idea>
+      <idea ac="3">Test DetailsStep renders only type/priority/folder/description — no repo or upload UI</idea>
+      <idea ac="4">Test CodebaseStep renders repo toggle + selectors when includeRepository=true, message when false</idea>
+      <idea ac="5">Test ReferencesStep renders file upload zone and design links input</idea>
+      <idea ac="7">Test StageIndicator renders 5 steps for feature, 6 steps for bug, with correct labels</idea>
+    </ideas>
+  </tests>
+</story-context>

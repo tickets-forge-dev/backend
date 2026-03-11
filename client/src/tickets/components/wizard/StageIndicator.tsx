@@ -1,43 +1,35 @@
 'use client';
 
 import React from 'react';
+import { type WizardStage, getStageOrder } from '@/tickets/stores/generation-wizard.store';
+
+const STAGE_LABELS: Record<WizardStage, string> = {
+  details: 'Details',
+  reproduce: 'Reproduce',
+  codebase: 'Codebase',
+  references: 'References',
+  options: 'Options',
+  generate: 'Generate',
+};
 
 /**
  * Stage Indicator Component — responsive single-row layout
  *
  * Desktop: circles + labels + connector lines
- * Mobile: circles only + current step label below (saves horizontal space for 5-6 steps)
+ * Mobile: circles only + current step label below (5-6 steps need compact layout)
+ *
+ * Non-bug: Details → Codebase → References → Options → Generate (5)
+ * Bug:     Details → Reproduce → Codebase → References → Options → Generate (6)
  */
 interface StageIndicatorProps {
-  currentStage: number;
+  currentStage: WizardStage;
   nextButton?: React.ReactNode;
   ticketType?: string;
 }
 
 export function StageIndicator({ currentStage, nextButton, ticketType }: StageIndicatorProps) {
-  const isBug = ticketType === 'bug';
-
-  // Bug: 1=Input, 2=Repro, 3=Options, 4=Generate
-  // Non-bug: 1=Input, 2=Options, 3=Generate
-  const stageMap: Record<number, number> = isBug
-    ? { 1: 1, 2: 2, 3: 3, 4: 4 }
-    : { 1: 1, 2: 2, 3: 3 };
-  const displayStage = stageMap[currentStage] || 1;
-
-  const stages = isBug
-    ? [
-        { number: 1, label: 'Input' },
-        { number: 2, label: 'Repro Steps' },
-        { number: 3, label: 'Options' },
-        { number: 4, label: 'Generate' },
-      ]
-    : [
-        { number: 1, label: 'Input' },
-        { number: 2, label: 'Options' },
-        { number: 3, label: 'Generate' },
-      ];
-
-  const currentLabel = stages.find((s) => s.number === displayStage)?.label;
+  const stages = getStageOrder(ticketType ?? 'feature');
+  const currentIdx = stages.indexOf(currentStage);
 
   return (
     <div className="flex flex-col gap-2">
@@ -45,16 +37,16 @@ export function StageIndicator({ currentStage, nextButton, ticketType }: StageIn
         {/* Steps */}
         <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
           {stages.map((stage, i) => {
-            const isCompleted = stage.number < displayStage;
-            const isCurrent = stage.number === displayStage;
+            const isCompleted = i < currentIdx;
+            const isCurrent = i === currentIdx;
 
             return (
-              <React.Fragment key={stage.number}>
+              <React.Fragment key={stage}>
                 {/* Connector line */}
                 {i > 0 && (
                   <div
                     className={`w-3 sm:w-6 h-px flex-shrink-0 ${
-                      stage.number <= displayStage
+                      i <= currentIdx
                         ? 'bg-green-600 dark:bg-green-500'
                         : 'bg-[var(--border)]'
                     }`}
@@ -75,7 +67,7 @@ export function StageIndicator({ currentStage, nextButton, ticketType }: StageIn
                       }
                     `}
                   >
-                    {isCompleted ? '\u2713' : stage.number}
+                    {isCompleted ? '\u2713' : i + 1}
                   </div>
                   {/* Labels hidden on mobile, visible on sm+ */}
                   <span
@@ -85,7 +77,7 @@ export function StageIndicator({ currentStage, nextButton, ticketType }: StageIn
                         : 'text-[var(--text-secondary)]'
                     }`}
                   >
-                    {stage.label}
+                    {STAGE_LABELS[stage]}
                   </span>
                 </div>
               </React.Fragment>
@@ -102,11 +94,9 @@ export function StageIndicator({ currentStage, nextButton, ticketType }: StageIn
       </div>
 
       {/* Mobile: show current step label below the circles */}
-      {currentLabel && (
-        <p className="text-xs font-medium text-[var(--text)] sm:hidden">
-          Step {displayStage}: {currentLabel}
-        </p>
-      )}
+      <p className="text-xs font-medium text-[var(--text)] sm:hidden">
+        Step {currentIdx + 1}: {STAGE_LABELS[currentStage]}
+      </p>
     </div>
   );
 }
