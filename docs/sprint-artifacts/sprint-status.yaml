@@ -271,6 +271,18 @@ development_status:
   13-6-responsive-navigation-polish: backlog
   epic-13-mobile-support-ui-simplification-retrospective: optional
 
+  # EPIC 14: Optional Wireframe & API Generation (P1) - 4 stories
+  # Status: 🔄 IN PROGRESS — All 4 stories drafted
+  # Goal: Make wireframe and API spec generation optional in ticket creation wizard
+  # Key: Smart defaults by type, context input (text/image), conditional LLM prompts
+  # Epic File: docs/epic-14-optional-generation-steps.md
+  epic-14-optional-generation-steps: in-progress
+  14-1-optional-wireframe-ui-generation-step: drafted
+  14-2-optional-api-spec-generation-step: drafted
+  14-3-backend-conditional-spec-generation: drafted
+  14-4-wizard-ux-combined-generation-options: drafted
+  epic-14-optional-generation-steps-retrospective: optional
+
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)
   # ──────────────────────────────────────────────────────────────────────────
