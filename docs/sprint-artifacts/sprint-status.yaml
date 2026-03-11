@@ -1,4 +1,4 @@
-# generated: 2026-03-01
+# generated: 2026-03-10
 # project: forge
 # project_key: FORGE
 # tracking_system: file-system
@@ -32,7 +32,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2026-03-01
+generated: 2026-03-10
 project: forge
 project_key: FORGE
 tracking_system: file-system
@@ -187,9 +187,9 @@ development_status:
   # Status: 🔄 IN PROGRESS - Starting with CLI command test coverage (8-3)
   # Note: Can be worked on incrementally alongside feature development
   epic-8-testing-documentation: in-progress
-  8-1-backend-unit-tests: review
+  8-1-backend-unit-tests: done
   8-2-frontend-component-tests: backlog
-  8-3-cli-integration-tests: review
+  8-3-cli-integration-tests: done
   8-4-user-documentation: backlog
   8-5-api-documentation: backlog
   8-6-architecture-update: backlog
@@ -256,6 +256,20 @@ development_status:
   12-5-ticket-move-ux: done
   12-6-user-expand-collapse-state-persistence: done
   epic-12-ticket-folders-retrospective: optional
+
+  # EPIC 13: Mobile Support & Ticket UI Simplification (P1) - 6 stories
+  # Status: 🔄 IN PROGRESS — Story 13.1 done (feed layout fix)
+  # Goal: Make ticket experience fully functional on mobile, simplify UI
+  # Key: Responsive grid, touch-friendly interactions, simplified creation flow
+  # Epic File: docs/epic-13-mobile-support-ui-simplification.md
+  epic-13-mobile-support-ui-simplification: in-progress
+  13-1-mobile-first-ticket-feed-layout: done
+  13-2-simplified-ticket-card-design: backlog
+  13-3-touch-friendly-interactions: backlog
+  13-4-mobile-ticket-creation-flow: backlog
+  13-5-mobile-ticket-detail-view: backlog
+  13-6-responsive-navigation-polish: backlog
+  epic-13-mobile-support-ui-simplification-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)

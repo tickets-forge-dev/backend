@@ -1,6 +1,6 @@
 'use client';
 
-import { Bug, ClipboardList, Lightbulb } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
@@ -24,65 +24,30 @@ export function OverviewCard({
   onAssignDialogOpenChange,
 }: OverviewCardProps) {
   const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
+  const isUnassigned = !ticket.assignedTo;
 
   return (
-    <div className="flex items-center justify-between gap-4 py-2">
-      {/* Left side: Assign + Type + Priority */}
-      <div className="flex items-center gap-4">
-        <AssigneeSelector
-          assignedTo={ticket.assignedTo}
-          onAssign={onAssignTicket}
-          externalOpen={assignDialogOpen}
-          onExternalOpenChange={onAssignDialogOpenChange}
-        />
-
-        {/* Divider */}
-        <span className="h-4 w-px bg-[var(--border)]" />
-
-        {/* Type */}
-        {ticket.type && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-            {ticket.type === 'bug' ? <Bug className="h-3.5 w-3.5 text-red-500" />
-              : ticket.type === 'task' ? <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
-              : <Lightbulb className="h-3.5 w-3.5 text-amber-500" />}
-            <span className="capitalize">{ticket.type}</span>
-          </span>
-        )}
-
-        {/* Priority */}
-        {ticket.priority && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-            <span className={`h-2 w-2 rounded-full ${
-              ticket.priority === 'urgent' ? 'bg-red-500'
-                : ticket.priority === 'high' ? 'bg-orange-500'
-                : ticket.priority === 'medium' ? 'bg-yellow-500'
-                : 'bg-green-500'
-            }`} />
-            <span className="capitalize">{ticket.priority}</span>
-          </span>
-        )}
-      </div>
-
-      {/* Right side: Quality Score + Status badge (clickable lifecycle) */}
-      <div className="flex items-center gap-3">
-        {/* Quality score */}
-        {qualityScore !== undefined && (
-          <span
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-              qualityScore >= 75
-                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                : qualityScore >= 50
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                  : 'bg-red-500/10 text-red-600 dark:text-red-400'
-            }`}
-            title="Spec quality score — how complete and detailed the ticket specification is"
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${
-              qualityScore >= 75 ? 'bg-green-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
-            }`} />
-            Quality {qualityScore}%
-          </span>
-        )}
+    <div className="py-2">
+      {/* Assign To Developer ... [spacer] ... Status badge */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative">
+          <AssigneeSelector
+            assignedTo={ticket.assignedTo}
+            onAssign={onAssignTicket}
+            externalOpen={assignDialogOpen}
+            onExternalOpenChange={onAssignDialogOpenChange}
+          />
+          {/* Unassigned warning */}
+          {isUnassigned && (
+            <div className="group/warn absolute -top-1 -right-1">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/warn:block z-50 w-52 rounded-md bg-[var(--bg-secondary)] border border-[var(--border)] px-3 py-2 shadow-xl">
+                <p className="text-[11px] font-medium text-amber-500">No developer assigned</p>
+                <p className="mt-0.5 text-[10px] text-[var(--text-tertiary)] leading-tight">Assign a developer to move this ticket to Dev Refine phase</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Status badge — clicking opens lifecycle panel */}
         {ticket.status && (
@@ -93,7 +58,6 @@ export function OverviewCard({
             </span>
           </TicketLifecycleInfo>
         )}
-
       </div>
     </div>
   );

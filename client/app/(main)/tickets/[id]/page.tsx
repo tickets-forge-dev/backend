@@ -847,6 +847,46 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
+      {/* Metadata chips: Type + Priority + Quality — above title */}
+      <div className="flex items-center gap-4 -mb-4">
+        {currentTicket.type && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+            {currentTicket.type === 'bug' ? <Bug className="h-3.5 w-3.5 text-red-500" />
+              : currentTicket.type === 'task' ? <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
+              : <Lightbulb className="h-3.5 w-3.5 text-amber-500" />}
+            <span className="capitalize">{currentTicket.type}</span>
+          </span>
+        )}
+        {currentTicket.priority && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+            <span className={`h-2 w-2 rounded-full ${
+              currentTicket.priority === 'urgent' ? 'bg-red-500'
+                : currentTicket.priority === 'high' ? 'bg-orange-500'
+                : currentTicket.priority === 'medium' ? 'bg-yellow-500'
+                : 'bg-green-500'
+            }`} />
+            <span className="capitalize">{currentTicket.priority}</span>
+          </span>
+        )}
+        {currentTicket.techSpec?.qualityScore !== undefined && (
+          <span
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
+              currentTicket.techSpec.qualityScore >= 75
+                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                : currentTicket.techSpec.qualityScore >= 50
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                  : 'bg-red-500/10 text-red-600 dark:text-red-400'
+            }`}
+            title="Spec quality score"
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${
+              currentTicket.techSpec.qualityScore >= 75 ? 'bg-green-500' : currentTicket.techSpec.qualityScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
+            }`} />
+            Quality {currentTicket.techSpec.qualityScore}%
+          </span>
+        )}
+      </div>
+
       {/* Hero Header — Title */}
       <div className="flex items-start gap-4 py-2">
         {/* Title - editable with max 2 lines, full width */}

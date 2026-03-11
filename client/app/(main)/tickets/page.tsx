@@ -178,7 +178,7 @@ export default function TicketsListPage() {
     }[sortBy];
 
     return (
-      <div className="space-y-4 sm:space-y-6" style={{ width: '70vw', marginLeft: 'calc(50% - 35vw)' }}>
+      <div className="space-y-4 sm:space-y-6 w-full max-w-5xl mx-auto px-3 sm:px-6">
       {/* Header with Create Button */}
       <div className="flex items-center justify-end gap-2 px-2 sm:px-0">
         <Button
@@ -281,7 +281,7 @@ export default function TicketsListPage() {
           {showFilter && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
-              <div className="absolute left-0 sm:right-0 right-0 top-full mt-1 z-50 w-screen sm:w-auto sm:min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
+              <div className="absolute right-0 top-full mt-1 z-50 w-56 sm:w-auto sm:min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
                 {/* Priority */}
                 <div>
                   <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Priority</p>
@@ -345,7 +345,7 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isLoading && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
-        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center mx-2 sm:mx-0">
+        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center ">
           <div className="text-center px-4">
             {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
               <>
@@ -375,7 +375,7 @@ export default function TicketsListPage() {
       )}
 
       {!isLoading && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
-        <div className="rounded-lg overflow-hidden mx-2 sm:mx-0 border border-[var(--border-subtle)]">
+        <div className="rounded-lg overflow-hidden  border border-[var(--border-subtle)]">
           {/* Column headers */}
           <TicketGridHeader />
 
@@ -536,8 +536,7 @@ function UnfiledDropZone({ draggingTicketId, onTicketDrop }: { draggingTicketId:
 // Grid column header row
 function TicketGridHeader() {
   return (
-    <div className="grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
-      style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}>
+    <div className="ticket-grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none">
       <span className="pl-6">Title</span>
       <span className="hidden sm:block">Status</span>
       <span className="hidden sm:block">Priority</span>
@@ -627,7 +626,7 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="p-1 rounded-md opacity-0 group-hover/folder:opacity-100 hover:bg-[var(--bg-hover)] transition-all focus:opacity-100"
+            className="p-1 rounded-md sm:opacity-0 sm:group-hover/folder:opacity-100 hover:bg-[var(--bg-hover)] transition-all focus:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
             <MoreVertical className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
@@ -734,6 +733,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
   const inProgress = isTicketInProgress(ticket);
   const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
   const [isDragging, setIsDragging] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
   const handleOpen = () => router.push(href);
 
@@ -747,7 +747,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
 
   return (
     <div
-      draggable
+      draggable={!isMobile}
       onDragStart={(e) => {
         // Create a semi-transparent ghost of the row
         const row = e.currentTarget;
@@ -772,10 +772,9 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
         setIsDragging(false);
         onDragEnd?.();
       }}
-      className={`group grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing ${
+      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
       } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-[var(--bg-subtle)]/30' : ''}`}
-      style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}
     >
       {/* Title cell */}
       <Link href={href} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>
@@ -823,7 +822,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-subtle)] transition-all focus:opacity-100"
+              className="p-1 rounded-md sm:opacity-0 sm:group-hover:opacity-100 hover:bg-[var(--bg-subtle)] transition-all focus:opacity-100"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreVertical className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
@@ -846,11 +845,12 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-40">
                   {ticket.folderId && (
-                    <DropdownMenuItem onClick={async () => {
+                    <DropdownMenuItem onSelect={() => {
                       if (currentTeam?.id) {
-                        const ok = await moveTicket(currentTeam.id, ticket.id, null);
-                        if (ok) { loadTickets(); toast.success('Moved to root'); }
-                        else toast.error('Failed to move ticket');
+                        moveTicket(currentTeam.id, ticket.id, null).then((ok) => {
+                          if (ok) { loadTickets(); toast.success('Moved to root'); }
+                          else toast.error('Failed to move ticket');
+                        });
                       }
                     }}>
                       <FileText className="h-4 w-4 mr-2" />
@@ -860,11 +860,14 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
                   {folders
                     .filter((f) => f.id !== ticket.folderId)
                     .map((folder) => (
-                      <DropdownMenuItem key={folder.id} onClick={async () => {
+                      <DropdownMenuItem key={folder.id} onSelect={() => {
+                        const targetFolderId = folder.id;
+                        const targetFolderName = folder.name;
                         if (currentTeam?.id) {
-                          const ok = await moveTicket(currentTeam.id, ticket.id, folder.id);
-                          if (ok) { loadTickets(); toast.success(`Moved to ${folder.name}`); }
-                          else toast.error('Failed to move ticket');
+                          moveTicket(currentTeam.id, ticket.id, targetFolderId).then((ok) => {
+                            if (ok) { loadTickets(); toast.success(`Moved to ${targetFolderName}`); }
+                            else toast.error('Failed to move ticket');
+                          });
                         }
                       }}>
                         <FolderOpen className="h-4 w-4 mr-2" />

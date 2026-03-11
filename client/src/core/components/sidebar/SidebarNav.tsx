@@ -10,7 +10,13 @@ import { useTeamStore } from '@/teams/stores/team.store';
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const { sidebarCollapsed } = useUIStore();
+  const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
+
+  const closeMobileSidebar = () => {
+    if (window.innerWidth < 768) {
+      setSidebarCollapsed(true);
+    }
+  };
   const { openFeedback } = useFeedbackStore();
   const { currentTeam } = useTeamStore();
 
@@ -57,6 +63,7 @@ export function SidebarNav() {
             <li key={item.href}>
               <Link
                 href={item.href}
+                onClick={closeMobileSidebar}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
@@ -81,7 +88,7 @@ export function SidebarNav() {
         {/* Feedback button */}
         <li>
           <button
-            onClick={openFeedback}
+            onClick={() => { openFeedback(); closeMobileSidebar(); }}
             title="Send feedback"
             className={cn(
               'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',

@@ -558,3 +558,27 @@ input[type="checkbox"]:checked:hover {
   image-rendering: pixelated;
   animation: ember-rise-slow var(--ember-duration) var(--ember-delay) infinite;
 }
+
+/* ============================================ */
+/* RESPONSIVE TICKET GRID                       */
+/* ============================================ */
+
+/* Mobile: Title + Score + Actions only */
+.ticket-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 32px;
+}
+
+/* sm (640px+): Add Status + Priority */
+@media (min-width: 640px) {
+  .ticket-grid {
+    grid-template-columns: minmax(0, 1fr) 110px 72px 44px 32px;
+  }
+}
+
+/* md (768px+): Add Assignee + Updated */
+@media (min-width: 768px) {
+  .ticket-grid {
+    grid-template-columns: minmax(0, 1fr) 120px 72px 100px 64px 44px 32px;
+  }
+}
