@@ -71,6 +71,13 @@ export interface AECResponse {
     submittedAt: string;
   } | null;
   folderId?: string | null;
+  // Story 14-3: Generation preferences
+  includeWireframes?: boolean;
+  includeApiSpec?: boolean;
+  apiSpecDeferred?: boolean;
+  wireframeContext?: string | null;
+  wireframeImageAttachmentIds?: string[];
+  apiContext?: string | null;
   createdAt: string;
   updatedAt: string;
 }

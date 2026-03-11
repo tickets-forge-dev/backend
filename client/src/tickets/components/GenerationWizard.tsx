@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo } from '@/tickets/stores/generation-wizard.store';
 import { Stage1Input } from './wizard/Stage1Input';
 import { Stage2ReproSteps } from './wizard/Stage2ReproSteps';
+import { GenerationOptionsStep } from './wizard/GenerationOptionsStep';
 import { Stage3Draft } from './wizard/Stage3Draft';
 import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
@@ -51,6 +52,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     hasRepository,
     goBackToInput,
     goToReproSteps,
+    goToGenerationOptions,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -138,7 +140,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
                 // Bug tickets go to reproduction steps first
                 goToReproSteps();
               } else {
-                analyzeRepository();
+                // Non-bug: go to generation options step
+                goToGenerationOptions();
               }
             }
           }}
@@ -151,8 +154,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       );
     }
 
-    if (currentStage === 2) {
-      // Stage 2: Repro Steps — Back + Next buttons
+    if (currentStage === 2 && type === 'bug') {
+      // Stage 2: Repro Steps (bug only) — Back + Next to generation options
       return (
         <div className="flex items-center gap-2">
           <Button
@@ -165,13 +168,13 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           <Button
             onClick={(e) => {
               e.preventDefault();
-              analyzeRepository();
+              goToGenerationOptions();
             }}
             disabled={loading}
             size="sm"
             className="min-w-[96px]"
           >
-            {loading ? 'Analyzing...' : 'Next'}
+            Next
           </Button>
         </div>
       );
@@ -221,11 +224,16 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {/* Stage 1: Input */}
         {currentStage === 1 && <Stage1Input />}
 
-        {/* Stage 2: Reproduction Steps (Bug only) */}
-        {currentStage === 2 && <Stage2ReproSteps />}
+        {/* Stage 2: Reproduction Steps (Bug only) OR Generation Options (non-bug) */}
+        {currentStage === 2 && type === 'bug' && <Stage2ReproSteps />}
+        {currentStage === 2 && type !== 'bug' && <GenerationOptionsStep />}
 
-        {/* Stage 3: Draft Review, Questions & Unified Summary */}
-        {currentStage === 3 && <Stage3Draft />}
+        {/* Stage 3: Generation Options (Bug) OR Draft (non-bug) */}
+        {currentStage === 3 && type === 'bug' && <GenerationOptionsStep />}
+        {currentStage === 3 && type !== 'bug' && <Stage3Draft />}
+
+        {/* Stage 4: Draft Review (Bug only) */}
+        {currentStage === 4 && <Stage3Draft />}
       </div>
 
       {/* Analysis Progress Dialog */}

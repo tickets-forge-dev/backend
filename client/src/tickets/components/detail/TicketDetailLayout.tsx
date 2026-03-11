@@ -119,7 +119,6 @@ export function TicketDetailLayout({
     { id: 'reproduction-steps', label: 'Reproduction Steps', short: 'Repro', bugOnly: true },
     { id: 'problem-statement', label: 'Problem Statement', short: 'Problem' },
     { id: 'acceptance-criteria', label: 'Acceptance Criteria', short: 'AC' },
-    { id: 'visual-qa', label: 'Visual QA Expectations', short: 'Visual QA' },
     { id: 'scope', label: 'Scope', short: 'Scope' },
     { id: 'solution', label: 'Solution', short: 'Solution' },
     { id: 'assets', label: 'Assets', short: 'Assets' },
@@ -670,6 +669,7 @@ export function TicketDetailLayout({
               <DesignTab
                 ticketId={ticketId}
                 references={ticket.designReferences || []}
+                visualExpectations={ticket.techSpec?.visualExpectations}
                 onAddDesignReference={onAddDesignReference}
                 onRemoveDesignReference={onRemoveDesignReference}
                 onRefreshDesignReference={onRefreshDesignReference}

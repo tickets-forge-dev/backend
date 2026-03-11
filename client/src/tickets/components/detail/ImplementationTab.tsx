@@ -179,6 +179,40 @@ export function ImplementationTab({
             />
           </CollapsibleSection>
         </div>
+      ) : ticket.apiSpecDeferred ? (
+        <div id="technical-api-endpoints">
+          <CollapsibleSection
+            id="api-endpoints"
+            title="API Endpoints"
+            badge="Deferred"
+            defaultExpanded={true}
+          >
+            <div className="rounded-lg border border-blue-500/20 bg-blue-50/30 dark:bg-blue-950/10 p-4 space-y-2">
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                API spec deferred to developer
+              </p>
+              <p className="text-xs text-[var(--text-secondary)]">
+                The ticket creator chose to let the developer decide which API endpoints are needed.
+                Use the &quot;Scan APIs&quot; button below to auto-detect endpoints from the codebase, or add them manually.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={onScanApis}
+                  disabled={isScanningApis}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {isScanningApis ? 'Scanning...' : 'Scan APIs'}
+                </button>
+                <button
+                  onClick={onAddApiEndpoint}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  + Add Manually
+                </button>
+              </div>
+            </div>
+          </CollapsibleSection>
+        </div>
       ) : !ticket.repositoryContext && techSpec && (
         <div id="technical-api-endpoints">
           <CollapsibleSection
