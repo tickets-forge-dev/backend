@@ -277,10 +277,11 @@ development_status:
   # Key: Smart defaults by type, context input (text/image), conditional LLM prompts
   # Epic File: docs/epic-14-optional-generation-steps.md
   epic-14-optional-generation-steps: in-progress
-  14-1-optional-wireframe-ui-generation-step: drafted
-  14-2-optional-api-spec-generation-step: drafted
-  14-3-backend-conditional-spec-generation: drafted
-  14-4-wizard-ux-combined-generation-options: drafted
+  14-1-optional-wireframe-ui-generation-step: ready-for-dev
+  14-2-optional-api-spec-generation-step: ready-for-dev
+  14-3-backend-conditional-spec-generation: ready-for-dev
+  14-4-wizard-ux-combined-generation-options: ready-for-dev
+  14-5-wizard-step-refactor-split-stage1: ready-for-dev
   epic-14-optional-generation-steps-retrospective: optional
 
   # ──────────────────────────────────────────────────────────────────────────

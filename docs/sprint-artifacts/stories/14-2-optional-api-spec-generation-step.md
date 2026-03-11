@@ -1,6 +1,6 @@
 # Story 14.2: Optional API Spec Generation Step
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -20,24 +20,33 @@ so that non-API tickets (UI-only changes, config changes, docs) don't include ir
 
 5. **Given** both toggles are OFF **When** the user proceeds **Then** the wizard skips directly to draft generation without generating wireframes or API specs
 
+6. **Given** the API toggle card **When** the user selects "Let developer decide" **Then** the API spec is NOT generated during ticket creation, and a flag `apiSpecDeferred=true` is stored on the ticket so the developer can decide during the dev-refine phase
+
+7. **Given** a ticket with `apiSpecDeferred=true` **When** a developer opens the ticket in dev-refine **Then** they see a prompt asking whether to generate API specs (with optional context input) before proceeding
+
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add API toggle state to generation wizard store (AC: 1, 5)
+- [ ] Task 1: Add API toggle state to generation wizard store (AC: 1, 5, 6)
   - [ ] Add `includeApiSpec: boolean` field to `generation-wizard.store.ts`
+  - [ ] Add `apiSpecDeferred: boolean` field (default: false)
   - [ ] Add `apiContext: string` field
   - [ ] Initialize defaults based on ticket type in `setType()` action
-  - [ ] Add `setIncludeApiSpec()`, `setApiContext()` actions
+  - [ ] Add `setIncludeApiSpec()`, `setApiSpecDeferred()`, `setApiContext()` actions
+  - [ ] When `apiSpecDeferred=true`, treat as `includeApiSpec=false` for generation
 
-- [ ] Task 2: Add API toggle card to GenerationOptionsStep (AC: 1, 2)
+- [ ] Task 2: Add API toggle card to GenerationOptionsStep (AC: 1, 2, 6)
   - [ ] Add second toggle card to `GenerationOptionsStep.tsx` (created in 14.1)
   - [ ] Side-by-side layout on desktop, stacked on mobile
+  - [ ] Three-state UX: ON (generate now) / OFF (skip) / "Let developer decide" checkbox or radio
   - [ ] Progressive disclosure: show API context input only when toggle is ON
   - [ ] Text field with placeholder for API description
   - [ ] No image upload for API (text-only context)
+  - [ ] "Let developer decide" disables context input and shows hint: "Developer will choose during dev-refine"
 
-- [ ] Task 3: Wire API preferences through wizard (AC: 3, 4, 5)
-  - [ ] Pass `includeApiSpec` and `apiContext` to `confirmContextContinue()`
-  - [ ] Ensure the `detect-apis` call is skipped when `includeApiSpec=false`
+- [ ] Task 3: Wire API preferences through wizard (AC: 3, 4, 5, 6)
+  - [ ] Pass `includeApiSpec`, `apiSpecDeferred`, and `apiContext` to `confirmContextContinue()`
+  - [ ] Ensure the `detect-apis` call is skipped when `includeApiSpec=false` or `apiSpecDeferred=true`
+  - [ ] Store `apiSpecDeferred` flag on the ticket/AEC for downstream consumption in dev-refine
 
 ## Dev Notes
 
@@ -45,6 +54,7 @@ so that non-API tickets (UI-only changes, config changes, docs) don't include ir
 - The `detect-apis` endpoint (`POST /tickets/{aecId}/detect-apis`) should be conditionally called only when `includeApiSpec=true`.
 - API context is text-only (no image upload) since API specs are described textually.
 - Smart defaults: Feature → ON, Bug → OFF, Task → OFF. Same pattern as wireframes but independently controlled.
+- "Let developer decide" is a PM-friendly escape hatch — the PM may not know if APIs are needed, so the developer gets asked during dev-refine (via the review/develop agent flow). The flag is stored on the AEC so it survives through the lifecycle.
 
 ### Project Structure Notes
 
@@ -62,6 +72,7 @@ so that non-API tickets (UI-only changes, config changes, docs) don't include ir
 ## Dev Agent Record
 
 ### Context Reference
+- docs/sprint-artifacts/stories/14-2-optional-api-spec-generation-step.context.xml
 
 ### Agent Model Used
 

@@ -98,6 +98,24 @@ The ticket creation wizard currently auto-generates everything in the tech spec:
 - The wizard store (`generation-wizard.store.ts`) needs new state fields for the toggles and context
 - The backend `CreateTicketDto` and `FinalizeSpecUseCase` need conditional prompt logic
 - LLM prompt engineering is critical — explicitly excluding sections produces better focused specs than generating everything and hiding unwanted parts
+- Visual QA Expectations are rendered in the **Design tab** (alongside Figma/Loom references), not the Spec tab — clearly labeled as "AI-generated wireframes" with a purple icon to distinguish from external design references (blue Figma icon)
+- Wireframe image attachments are resolved from `wireframeImageAttachmentIds` → public `storageUrl` and injected into the LLM prompt as reference mockup images
+- When `apiSpecDeferred=true`, the Technical tab shows a blue "deferred" banner with Scan APIs / Add Manually actions
+- MCP `get_ticket_context` tool includes generation preferences and visual expectations in its output
+- `AecXmlSerializer` includes `<generationPreferences>` in metadata and `<visualExpectations>` in implementation section
+
+---
+
+## Integration Points
+
+### MCP Server (forge-cli)
+- `get_ticket_context` outputs generation preferences (excluded sections, deferred flags) and visual QA wireframes
+- When `apiSpecDeferred=true`, the tool output explicitly tells the developer to determine API endpoints
+- Visual expectations are rendered with ASCII wireframes inline in the tool response
+
+### XML Export (AecXmlSerializer)
+- `<generationPreferences>` block added to `<metadata>` with `includeWireframes`, `includeApiSpec`, `apiSpecDeferred`, optional context fields
+- `<visualExpectations>` block added to `<implementation>` with per-screen expectations, ASCII wireframes (CDATA), steps, and flow diagram
 
 ---
 

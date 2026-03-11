@@ -939,7 +939,10 @@ Generate valid JSON object:
    * Extracts API changes from deep analysis taskAnalysis, or generates via LLM fallback.
    * Ensures API-related tasks always get endpoint documentation.
    */
-  async extractApiChanges(context: CodebaseContext): Promise<ApiChanges | undefined> {
+  async extractApiChanges(
+    context: CodebaseContext,
+    apiContext?: string, // Story 14-3: User-provided API context hints
+  ): Promise<ApiChanges | undefined> {
     // First: try to extract from deep analysis results
     const taskAnalysis = (context as any)?.taskAnalysis;
     if (taskAnalysis?.apiChanges) {
@@ -970,7 +973,7 @@ Generate valid JSON object:
 
     // Fallback: generate API endpoints via LLM if context suggests API work
     try {
-      return await this.generateApiChanges(context);
+      return await this.generateApiChanges(context, apiContext);
     } catch (error) {
       console.warn(
         '[TechSpecGenerator] API generation fallback failed:',
@@ -983,7 +986,10 @@ Generate valid JSON object:
   /**
    * LLM fallback: generate API endpoint suggestions from the task context.
    */
-  private async generateApiChanges(context: CodebaseContext): Promise<ApiChanges | undefined> {
+  private async generateApiChanges(
+    context: CodebaseContext,
+    apiContext?: string, // Story 14-3: User-provided API context hints
+  ): Promise<ApiChanges | undefined> {
     const systemPrompt = PromptTemplates.systemPrompt(context);
     const directoryStructure = this.buildDirectoryStructure(context);
 
@@ -999,7 +1005,13 @@ Generate valid JSON object:
             .join('\n')}\n`
         : '';
 
+    // Story 14-3: Inject user-provided API context hints
+    const apiContextBlock = apiContext
+      ? `\nUser-Provided API Context:\n${apiContext}\n\nUse the above hints to guide endpoint specification.\n`
+      : '';
+
     const userPrompt = `CRITICAL: Analyze this task to determine if it is API-oriented (requires backend endpoints, external API integration, or data fetching).
+${apiContextBlock}
 
 **Common API-Oriented Features:**
 - Data fetching/syncing from external services (GitHub, Jira, Linear, etc.)
@@ -1495,6 +1507,8 @@ Return an empty array [] if no new dependencies are required.
     fileChanges: FileChange[],
     apiChanges: ApiChanges | undefined,
     context: CodebaseContext,
+    wireframeContext?: string, // Story 14-3: User-provided wireframe/design context
+    wireframeImageUrls?: string[], // Story 14-3: User-uploaded wireframe/mockup image URLs
   ): Promise<VisualExpectations | undefined> {
     try {
       const systemPrompt = PromptTemplates.systemPrompt(context);
@@ -1520,10 +1534,20 @@ Return an empty array [] if no new dependencies are required.
           .slice(0, 10)
           .join('\n') || 'None';
 
+      // Story 14-3: Inject user-provided wireframe/design context
+      const designContextSection = wireframeContext
+        ? `\nUser-Provided Design Context:\n${wireframeContext}\n\nUse the above design context to inform the wireframes and visual expectations.\n`
+        : '';
+
+      // Story 14-3: Reference uploaded wireframe/mockup images
+      const imageReferenceSection = wireframeImageUrls?.length
+        ? `\nReference Mockup Images (${wireframeImageUrls.length} uploaded):\n${wireframeImageUrls.map((url, i) => `  ${i + 1}. ${url}`).join('\n')}\n\nThe user has uploaded mockup/wireframe images. Use them as reference for the expected layout and visual structure.\n`
+        : '';
+
       const userPrompt = `Generate visual QA expectations for manual testing. For each key screen state, create an ASCII wireframe showing what the tester should see.
 
 Solution: ${solution.overview}
-
+${designContextSection}${imageReferenceSection}
 Acceptance Criteria:
 ${acText}
 
@@ -1822,8 +1846,11 @@ Rewritten text (definitive, unambiguous):`;
       maxScore += 5;
 
       // Epic 20: API Changes (0-5)
-      if (spec.apiChanges) score += this.scoreApiChanges(spec.apiChanges);
-      maxScore += 5;
+      // Story 14-3: Only include in maxScore when API section is present (not disabled by user)
+      if (spec.apiChanges) {
+        score += this.scoreApiChanges(spec.apiChanges);
+        maxScore += 5;
+      }
     }
 
     // AC#3: Re-normalize score to 0-100 scale based on available sections
@@ -2371,16 +2398,43 @@ Rewritten text (definitive, unambiguous):`;
     answers: Array<{ questionId: string; answer: string | string[] }>;
     ticketType?: 'feature' | 'bug' | 'task';
     reproductionSteps?: any[];
+    // Story 14-3: Generation preferences
+    includeWireframes?: boolean;
+    includeApiSpec?: boolean;
+    wireframeContext?: string;
+    wireframeImageUrls?: string[];
+    apiContext?: string;
   }): Promise<TechSpec> {
     try {
       const context = input.context;
       const hasRepository = context !== null;
+      // Story 14-3: Default to true for backward compatibility
+      const includeWireframes = input.includeWireframes ?? true;
+      const includeApiSpec = input.includeApiSpec ?? true;
+
+      // Story 14-3: Build exclusion instructions for disabled sections
+      const exclusionParts: string[] = [];
+      if (!includeWireframes) {
+        exclusionParts.push('Do NOT generate or reference UI wireframes, visual QA expectations, or layout guidance.');
+      }
+      if (!includeApiSpec) {
+        exclusionParts.push('Do NOT generate or reference API endpoint specifications.');
+      }
+      const exclusionSuffix = exclusionParts.length > 0
+        ? `\n\nIMPORTANT SCOPE EXCLUSIONS:\n${exclusionParts.join('\n')}`
+        : '';
+
+      // Enrich description with exclusion instructions and user-provided context
+      const enrichedDescription = (input.description || '')
+        + exclusionSuffix
+        + (input.wireframeContext && includeWireframes ? `\n\nDesign Context: ${input.wireframeContext}` : '')
+        + (input.apiContext && includeApiSpec ? `\n\nAPI Context: ${input.apiContext}` : '');
 
       // Generate each section with answer context
       // AC#2: When no repository, pass null and skip code-specific generation
       const problemStatement = await this.generateProblemStatementWithAnswers(
         input.title,
-        input.description || '',
+        enrichedDescription,
         context,
         input.answers,
       );
@@ -2389,28 +2443,35 @@ Rewritten text (definitive, unambiguous):`;
 
       // AC#2: Generate code-specific sections only when repository provided
       if (hasRepository) {
-        const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all([
+        // Story 14-3: Conditionally generate API and wireframe sections
+        const parallelGenerators: Promise<any>[] = [
           this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
           this.generateFileChanges(solution, context),
           this.generateScope(input.title, input.description || '', true),
           this.generateScope(input.title, input.description || '', false),
-          this.extractApiChanges(context),
+          includeApiSpec ? this.extractApiChanges(context, input.apiContext) : Promise.resolve({ endpoints: [] }),
           this.detectDependencies(input.title, input.description || '', solution, context),
-        ]);
+        ];
+        const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all(parallelGenerators);
 
         // Generate sections that depend on fileChanges (parallel)
-        // Note: We're inside hasRepository check, so context is guaranteed non-null
-        const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
+        // Story 14-3: Skip visualExpectations when includeWireframes=false
+        const secondaryGenerators: Promise<any>[] = [
           this.generateTestPlan(solution, acceptanceCriteria, fileChanges, context),
           this.categorizeFilesByLayer(fileChanges, context),
-          this.generateVisualExpectations(
-            solution,
-            acceptanceCriteria,
-            fileChanges,
-            apiChanges,
-            context,
-          ),
-        ]);
+          includeWireframes
+            ? this.generateVisualExpectations(
+                solution,
+                acceptanceCriteria,
+                fileChanges,
+                apiChanges,
+                context,
+                input.wireframeContext,
+                input.wireframeImageUrls,
+              )
+            : Promise.resolve(undefined),
+        ];
+        const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all(secondaryGenerators);
 
         // Assemble final tech spec (WITH repository)
         const techSpec: TechSpec = {
@@ -2427,10 +2488,10 @@ Rewritten text (definitive, unambiguous):`;
           qualityScore: 0,
           ambiguityFlags: [],
           stack: this.resolveStack(context),
-          apiChanges,
+          apiChanges: includeApiSpec ? apiChanges : undefined,
           layeredFileChanges,
           testPlan,
-          visualExpectations,
+          visualExpectations: includeWireframes ? visualExpectations : undefined,
           dependencies: dependencies && dependencies.length > 0 ? dependencies : undefined, // Only include if dependencies exist
         };
 

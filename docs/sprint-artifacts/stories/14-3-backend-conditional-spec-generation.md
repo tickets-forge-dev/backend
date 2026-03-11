@@ -1,6 +1,6 @@
 # Story 14.3: Backend — Conditional Spec Generation
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -86,6 +86,7 @@ so that generated specs are focused and relevant to what the ticket actually nee
 ## Dev Agent Record
 
 ### Context Reference
+- docs/sprint-artifacts/stories/14-3-backend-conditional-spec-generation.context.xml
 
 ### Agent Model Used
 

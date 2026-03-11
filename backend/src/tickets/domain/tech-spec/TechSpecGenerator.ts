@@ -547,5 +547,11 @@ export interface TechSpecGenerator {
     answers: AnswerContext[];
     ticketType?: 'feature' | 'bug' | 'task';
     reproductionSteps?: ReproductionStep[];
+    // Story 14-3: Generation preferences
+    includeWireframes?: boolean;
+    includeApiSpec?: boolean;
+    wireframeContext?: string;
+    wireframeImageUrls?: string[];
+    apiContext?: string;
   }): Promise<TechSpec>;
 }

@@ -89,7 +89,20 @@ export class FinalizeSpecUseCase {
     // Build codebase context (fetches from GitHub and analyzes)
     const codebaseContext = await this.buildCodebaseContext(aec);
 
+    // Story 14-3: Resolve wireframe image attachment IDs to public URLs
+    const wireframeImageUrls: string[] = [];
+    if (aec.includeWireframes && aec.wireframeImageAttachmentIds.length > 0) {
+      const attachments = aec.attachments;
+      for (const id of aec.wireframeImageAttachmentIds) {
+        const attachment = attachments.find((a) => a.id === id);
+        if (attachment?.storageUrl) {
+          wireframeImageUrls.push(attachment.storageUrl);
+        }
+      }
+    }
+
     // Generate final spec with retry logic
+    // Story 14-3: Pass generation preferences to spec generator
     const techSpec = await this.generateSpecWithRetry(
       aec.title,
       aec.description,
@@ -97,6 +110,11 @@ export class FinalizeSpecUseCase {
       allAnswers,
       (aec.type as 'feature' | 'bug' | 'task') ?? undefined,
       aec.reproductionSteps.length > 0 ? aec.reproductionSteps : undefined,
+      aec.includeWireframes,
+      aec.includeApiSpec,
+      aec.wireframeContext ?? undefined,
+      wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
+      aec.apiContext ?? undefined,
     );
 
     console.log(
@@ -260,6 +278,12 @@ export class FinalizeSpecUseCase {
     allAnswers: Array<{ questionId: string; answer: string | string[] }>,
     ticketType?: 'feature' | 'bug' | 'task',
     reproductionSteps?: any[],
+    // Story 14-3: Generation preferences
+    includeWireframes?: boolean,
+    includeApiSpec?: boolean,
+    wireframeContext?: string,
+    wireframeImageUrls?: string[],
+    apiContext?: string,
   ): Promise<any> {
     let lastError: Error | null = null;
 
@@ -276,6 +300,12 @@ export class FinalizeSpecUseCase {
           answers: allAnswers,
           ticketType,
           reproductionSteps,
+          // Story 14-3: Generation preferences
+          includeWireframes,
+          includeApiSpec,
+          wireframeContext,
+          wireframeImageUrls,
+          apiContext,
         });
 
         console.log(`✨ [FinalizeSpecUseCase] Successfully generated final spec`);

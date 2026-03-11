@@ -335,6 +335,13 @@ export class TicketsController {
         priority: dto.priority,
         taskAnalysis: dto.taskAnalysis,
         reproductionSteps: dto.reproductionSteps,
+        // Story 14-3: Generation preferences
+        includeWireframes: dto.includeWireframes,
+        includeApiSpec: dto.includeApiSpec,
+        apiSpecDeferred: dto.apiSpecDeferred,
+        wireframeContext: dto.wireframeContext,
+        wireframeImageAttachmentIds: dto.wireframeImageAttachmentIds,
+        apiContext: dto.apiContext,
       });
 
       return this.mapToResponse(aec);
@@ -980,6 +987,13 @@ export class TicketsController {
       assignedTo: aec.assignedTo ?? null,
       reviewSession: aec.reviewSession ?? null, // Story 6-12
       folderId: aec.folderId ?? null, // Story 12-2: ticket folder organization
+      // Story 14-3: Generation preferences
+      includeWireframes: aec.includeWireframes ?? true,
+      includeApiSpec: aec.includeApiSpec ?? true,
+      apiSpecDeferred: aec.apiSpecDeferred ?? false,
+      wireframeContext: aec.wireframeContext ?? null,
+      wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds ?? [],
+      apiContext: aec.apiContext ?? null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };

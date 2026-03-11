@@ -29,6 +29,13 @@ export interface CreateTicketCommand {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   taskAnalysis?: any;
   reproductionSteps?: any[];
+  // Story 14-3: Generation preferences
+  includeWireframes?: boolean;
+  includeApiSpec?: boolean;
+  apiSpecDeferred?: boolean;
+  wireframeContext?: string;
+  wireframeImageAttachmentIds?: string[];
+  apiContext?: string;
 }
 
 @Injectable()
@@ -82,6 +89,16 @@ export class CreateTicketUseCase {
       repositoryContext,
       command.type,
       command.priority,
+      undefined, // assignedTo
+      // Story 14-3: Generation preferences
+      {
+        includeWireframes: command.includeWireframes,
+        includeApiSpec: command.includeApiSpec,
+        apiSpecDeferred: command.apiSpecDeferred,
+        wireframeContext: command.wireframeContext,
+        wireframeImageAttachmentIds: command.wireframeImageAttachmentIds,
+        apiContext: command.apiContext,
+      },
     );
 
     // Persist taskAnalysis from deep analysis if provided

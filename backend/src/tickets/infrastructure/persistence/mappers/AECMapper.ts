@@ -83,6 +83,13 @@ export interface AECDocument {
   implementationBranch?: string | null; // Story 10-1: forge develop branch
   implementationSession?: { qaItems: { question: string; answer: string }[]; branchName: string; startedAt: Timestamp } | null; // Story 10-1
   folderId?: string | null; // Story 12-2: ticket folder organization
+  // Story 14-3: Generation preferences
+  includeWireframes?: boolean;
+  includeApiSpec?: boolean;
+  apiSpecDeferred?: boolean;
+  wireframeContext?: string | null;
+  wireframeImageAttachmentIds?: string[];
+  apiContext?: string | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -238,6 +245,13 @@ export class AECMapper {
           }
         : null, // Story 10-1
       doc.folderId ?? null, // Story 12-2
+      // Story 14-3: Generation preferences (default true for backward compat)
+      doc.includeWireframes ?? true,
+      doc.includeApiSpec ?? true,
+      doc.apiSpecDeferred ?? false,
+      doc.wireframeContext ?? null,
+      doc.wireframeImageAttachmentIds ?? [],
+      doc.apiContext ?? null,
     );
   }
 
@@ -310,6 +324,13 @@ export class AECMapper {
           }
         : null, // Story 10-1
       folderId: aec.folderId ?? null, // Story 12-2
+      // Story 14-3: Generation preferences
+      includeWireframes: aec.includeWireframes,
+      includeApiSpec: aec.includeApiSpec,
+      apiSpecDeferred: aec.apiSpecDeferred,
+      wireframeContext: aec.wireframeContext ?? null,
+      wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds.length > 0 ? aec.wireframeImageAttachmentIds : undefined,
+      apiContext: aec.apiContext ?? null,
     };
   }
 }

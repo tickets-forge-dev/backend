@@ -1,0 +1,116 @@
+<story-context id="14-2-optional-api-spec-generation-step" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>2</storyId>
+    <title>Optional API Spec Generation Step</title>
+    <status>drafted</status>
+    <generatedAt>2026-03-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/14-2-optional-api-spec-generation-step.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a ticket creator</asA>
+    <iWant>to choose whether API endpoint specs are generated for my ticket</iWant>
+    <soThat>non-API tickets (UI-only changes, config changes, docs) don't include irrelevant endpoint definitions</soThat>
+    <tasks>
+      <task id="1" acs="1,5">Add API toggle state to generation wizard store
+        <subtask>Add `includeApiSpec: boolean` field to `generation-wizard.store.ts`</subtask>
+        <subtask>Add `apiContext: string` field</subtask>
+        <subtask>Initialize defaults based on ticket type in `setType()` action</subtask>
+        <subtask>Add `setIncludeApiSpec()`, `setApiContext()` actions</subtask>
+      </task>
+      <task id="2" acs="1,2">Add API toggle card to GenerationOptionsStep
+        <subtask>Add second toggle card to `GenerationOptionsStep.tsx` (created in 14.1)</subtask>
+        <subtask>Side-by-side layout on desktop, stacked on mobile</subtask>
+        <subtask>Progressive disclosure: show API context input only when toggle is ON</subtask>
+        <subtask>Text field with placeholder for API description</subtask>
+        <subtask>No image upload for API (text-only context)</subtask>
+      </task>
+      <task id="3" acs="3,4,5">Wire API preferences through wizard
+        <subtask>Pass `includeApiSpec` and `apiContext` to `confirmContextContinue()`</subtask>
+        <subtask>Ensure the `detect-apis` call is skipped when `includeApiSpec=false`</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1">Given a user on the generation options step When the step renders Then an "Include API Endpoint Spec?" toggle card is shown alongside the wireframe toggle, with smart default based on ticket type (ON for `feature`, OFF for `bug` and `task`)</ac>
+    <ac id="2">Given the API toggle is ON When the user expands the context section Then they see a text field ("Describe endpoints, methods, payloads...") for optional API context hints</ac>
+    <ac id="3">Given the API toggle is OFF When the spec is finalized Then `techSpec.apiChanges` is empty/null and no API endpoint definitions appear in the generated spec</ac>
+    <ac id="4">Given the user provides API context text When the spec is finalized Then the LLM receives this context and produces more accurate endpoint specifications</ac>
+    <ac id="5">Given both toggles are OFF When the user proceeds Then the wizard skips directly to draft generation without generating wireframes or API specs</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epic-14-optional-generation-steps.md" title="Epic 14: Optional Wireframe and API Generation" section="Story 14.2 / Implementation Notes" snippet="Defines the API toggle acceptance criteria: toggle Yes/No with type-based defaults, context text input, conditional exclusion of apiChanges in techSpec output." />
+      <doc path="docs/sprint-artifacts/stories/14-1-optional-wireframe-ui-generation-step.md" title="Story 14.1: Optional Wireframe/UI Generation Step" section="Full story" snippet="Sibling story that creates GenerationOptionsStep.tsx component with wireframe toggle. Story 14.2 extends this same component with an API toggle card." />
+      <doc path="docs/sprint-artifacts/stories/14-3-backend-conditional-spec-generation.md" title="Story 14.3: Backend Conditional Spec Generation" section="Full story" snippet="Downstream story that modifies CreateTicketDto and FinalizeSpecUseCase to conditionally include/exclude API sections based on includeApiSpec flag. Story 14.2 wires the frontend toggle; 14.3 handles backend logic." />
+    </docs>
+
+    <code>
+      <file path="client/src/tickets/stores/generation-wizard.store.ts" kind="store" symbol="WizardState, WizardActions, useWizardStore" lines="147-336" reason="Primary modification target. Must add includeApiSpec:boolean, apiContext:string to WizardState; add setIncludeApiSpec(), setApiContext() to WizardActions; initialize defaults in setType(); pass values through confirmContextContinue()." />
+      <file path="client/src/tickets/components/GenerationWizard.tsx" kind="component" symbol="GenerationWizard" lines="1-266" reason="Container component orchestrating wizard stages. May need to render GenerationOptionsStep at the appropriate stage and pass API preferences. Currently renders Stage1Input, Stage2ReproSteps, Stage3Draft." />
+      <file path="client/src/tickets/components/wizard/Stage1Input.tsx" kind="component" symbol="Stage1Input" lines="all" reason="Reference for existing wizard step pattern — input fields, store bindings, layout conventions." />
+      <file path="client/src/tickets/components/wizard/Stage3Draft.tsx" kind="component" symbol="Stage3Draft" lines="all" reason="Reference for how confirmContextContinue() is invoked and how wizard transitions to draft generation stage." />
+      <file path="client/src/tickets/components/wizard/StageIndicator.tsx" kind="component" symbol="StageIndicator" lines="all" reason="May need update if GenerationOptionsStep adds a new visible stage to the wizard flow indicator." />
+      <file path="backend/src/tickets/presentation/controllers/tickets.controller.ts" kind="controller" symbol="detectApis" lines="641-726" reason="The detect-apis endpoint (POST :id/detect-apis) that should be conditionally skipped when includeApiSpec=false. Understanding its current invocation pattern is needed for Task 3." />
+      <file path="backend/src/tickets/application/services/ApiDetectionService.ts" kind="service" symbol="ApiDetectionService" lines="all" reason="Service that performs API detection from file contents. Called by detectApis controller method. Skipping this call is the backend optimization when API spec is disabled." />
+      <file path="backend/src/tickets/presentation/dto/CreateTicketDto.ts" kind="dto" symbol="CreateTicketDto" lines="all" reason="Will need includeApiSpec and apiContext fields added (story 14.3 scope, but 14.2 must send compatible data)." />
+    </code>
+
+    <dependencies>
+      <client>
+        <package name="zustand" version="^4.5.0" reason="State management for generation-wizard.store.ts" />
+        <package name="react" version="^19.0.0" />
+        <package name="next" version="^15.5.11" />
+        <package name="lucide-react" version="^0.563.0" reason="Icons for toggle cards" />
+        <package name="class-variance-authority" version="^0.7.1" reason="UI component variants" />
+        <package name="tailwindcss" version="^3.4.1" reason="Styling — responsive grid for side-by-side cards" />
+      </client>
+      <backend>
+        <package name="@nestjs/common" version="^10.3.0" />
+        <package name="class-validator" version="^0.14.1" reason="DTO validation for new fields" />
+        <package name="class-transformer" version="^0.5.1" reason="DTO transformation" />
+      </backend>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="CLAUDE.md" rule="Business logic MUST live in Zustand store actions — NEVER in React hooks or components. The toggle state, defaults logic, and conditional API call skipping belong in the store." />
+    <constraint source="CLAUDE.md" rule="UI must remain minimalistic and calm (Linear-inspired). Toggle cards should use progressive disclosure — API context input only visible when toggle is ON." />
+    <constraint source="CLAUDE.md" rule="Atomic Design: GenerationOptionsStep is an organism (feature-level UI block). Toggle cards are molecules." />
+    <constraint source="CLAUDE.md" rule="ALL card borders MUST use `border border-[var(--border-subtle)]` — never hardcoded border-white/[0.XX]." />
+    <constraint source="CLAUDE.md" rule="No hidden side effects. Store actions must be deterministic and testable." />
+    <constraint source="CLAUDE.md" rule="Strong typing: avoid `any`. The includeApiSpec and apiContext fields must have explicit types." />
+    <constraint source="dev-notes" rule="This story extends GenerationOptionsStep created in 14.1. Two toggle cards share the same step." />
+    <constraint source="dev-notes" rule="Smart defaults: Feature -> ON, Bug -> OFF, Task -> OFF. Same pattern as wireframes but independently controlled." />
+    <constraint source="dev-notes" rule="API context is text-only (no image upload). Unlike wireframes which accept image uploads." />
+    <constraint source="epic-14" rule="detect-apis endpoint (POST /tickets/{aecId}/detect-apis) should be conditionally called only when includeApiSpec=true." />
+  </constraints>
+
+  <interfaces>
+    <interface name="WizardState" kind="TypeScript interface" signature="interface WizardState { includeApiSpec: boolean; apiContext: string; /* ...existing fields */ }" path="client/src/tickets/stores/generation-wizard.store.ts" />
+    <interface name="WizardActions" kind="TypeScript interface" signature="interface WizardActions { setIncludeApiSpec: (include: boolean) => void; setApiContext: (context: string) => void; /* ...existing actions */ }" path="client/src/tickets/stores/generation-wizard.store.ts" />
+    <interface name="confirmContextContinue" kind="store action" signature="confirmContextContinue: () => Promise&lt;void&gt;" path="client/src/tickets/stores/generation-wizard.store.ts" />
+    <interface name="detect-apis" kind="REST endpoint" signature="POST /api/tickets/:id(aec_[a-f0-9\\-]+)/detect-apis" path="backend/src/tickets/presentation/controllers/tickets.controller.ts" />
+    <interface name="setType" kind="store action" signature="setType: (type: string) => void" path="client/src/tickets/stores/generation-wizard.store.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>Backend use-case tests use Jest with `.spec.ts` suffix, located alongside source files in the use-cases directory. Tests mock infrastructure adapters (repositories, services) and test use-case behavior directly. Client-side tests are not yet established in the tickets module — store actions should be testable by mocking authFetch and verifying state transitions.</standards>
+    <locations>
+      <location>backend/src/tickets/application/use-cases/*.spec.ts</location>
+      <location>client/src/tickets/stores/*.test.ts (to be created)</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Verify that setType('feature') sets includeApiSpec=true and setType('bug')/setType('task') sets includeApiSpec=false</idea>
+      <idea ac="1">Verify GenerationOptionsStep renders API toggle card with correct default state based on ticket type</idea>
+      <idea ac="2">Verify API context text field appears only when includeApiSpec toggle is ON (progressive disclosure)</idea>
+      <idea ac="3">Verify that when includeApiSpec=false, the detect-apis call is not made during confirmContextContinue</idea>
+      <idea ac="4">Verify that apiContext string is included in the request body when both includeApiSpec=true and apiContext is non-empty</idea>
+      <idea ac="5">Verify that when both includeWireframes=false and includeApiSpec=false, wizard proceeds directly to draft generation</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,214 @@
+<story-context id="14-1-optional-wireframe-ui-generation-step" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>1</storyId>
+    <title>Optional Wireframe/UI Generation Step</title>
+    <status>drafted</status>
+    <generatedAt>2026-03-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/14-1-optional-wireframe-ui-generation-step.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>ticket creator</asA>
+    <iWant>to choose whether wireframe/UI guidance is generated for my ticket</iWant>
+    <soThat>backend-only or non-UI tickets don't get cluttered with irrelevant design specs</soThat>
+    <tasks>
+      <task id="1" acs="1,6">Add wireframe toggle state to generation wizard store
+        <subtask>Add `includeWireframes: boolean` field to `generation-wizard.store.ts`</subtask>
+        <subtask>Add `wireframeContext: string` field</subtask>
+        <subtask>Add `wireframeImageIds: string[]` field</subtask>
+        <subtask>Initialize defaults based on ticket type in `setType()` action</subtask>
+        <subtask>Add `setIncludeWireframes()`, `setWireframeContext()`, `addWireframeImage()` actions</subtask>
+      </task>
+      <task id="2" acs="1,2,6">Create GenerationOptionsStep component
+        <subtask>Create `client/src/tickets/components/wizard/GenerationOptionsStep.tsx`</subtask>
+        <subtask>Render toggle card for wireframe with ON/OFF state</subtask>
+        <subtask>Progressive disclosure: show context inputs only when toggle is ON</subtask>
+        <subtask>Text field with placeholder text for wireframe description</subtask>
+        <subtask>Image upload area using existing attachment upload infrastructure</subtask>
+        <subtask>"Continue with defaults" skip link at bottom</subtask>
+        <subtask>Mobile-responsive: single column on small screens</subtask>
+      </task>
+      <task id="3" acs="4">Integrate image upload
+        <subtask>Reuse existing `onUploadAttachment` infrastructure from ticket detail</subtask>
+        <subtask>Show thumbnail preview after upload</subtask>
+        <subtask>Store attachment IDs in wizard store for later use</subtask>
+        <subtask>Support drag-and-drop and click-to-upload</subtask>
+      </task>
+      <task id="4" acs="1,6">Wire step into GenerationWizard flow
+        <subtask>Add new stage between Stage 1 (Input) and Stage 3 (Draft) in `GenerationWizard.tsx`</subtask>
+        <subtask>Pass wireframe preferences to `confirmContextContinue()` call</subtask>
+        <subtask>Ensure Back button from this step returns to Stage 1</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1">Given a user in the creation wizard at Stage 1 When they proceed to the generation options step Then a "Include UI/Wireframe Guidance?" toggle card is shown with smart default based on ticket type (ON for `feature`, OFF for `bug` and `task`)</ac>
+    <ac id="2">Given the wireframe toggle is ON When the user expands the context section Then they see a text field ("Describe the layout, components, interactions...") and an image upload area (drag-and-drop or click) — both optional</ac>
+    <ac id="3">Given the wireframe toggle is OFF When the spec is finalized Then `techSpec.visualQaExpectations` is empty/null and no wireframe guidance appears in the generated spec</ac>
+    <ac id="4">Given the user uploads a mockup image When the image is accepted Then a thumbnail preview appears, and the image attachment ID is stored for passing to the LLM during spec generation</ac>
+    <ac id="5">Given the user provides wireframe context text and/or image When the spec is finalized Then the LLM receives this context and produces more targeted wireframe/UI guidance</ac>
+    <ac id="6">Given a user who wants to skip this step entirely When they click "Continue with defaults" Then the wizard proceeds using type-based defaults without requiring interaction</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epic-14-optional-generation-steps.md</path>
+        <title>Epic 14: Optional Wireframe and API Generation</title>
+        <section>Story 14.1 + Implementation Notes</section>
+        <snippet>Adds explicit opt-in steps so the LLM focuses on what matters. Toggle Yes/No default based on ticket type. Context input (text/image) passed to LLM. The wizard store needs new state fields for toggles and context.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/stories/14-4-wizard-ux-combined-generation-options.md</path>
+        <title>Story 14.4: Wizard UX Combined Generation Options</title>
+        <section>Full story</section>
+        <snippet>Defines the combined "Generation Options" step with two toggle cards (wireframe + API). Story 14.1 handles the wireframe portion; 14.4 will merge both into a single step. Smart defaults by type, progressive disclosure, skip link.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>client/src/tickets/stores/generation-wizard.store.ts</path>
+        <kind>store</kind>
+        <symbol>WizardState, WizardActions, useWizardStore</symbol>
+        <lines>147-280</lines>
+        <reason>Primary modification target. Must add includeWireframes, wireframeContext, wireframeImageIds state fields and corresponding actions (setIncludeWireframes, setWireframeContext, addWireframeImage). Follow existing pattern of includeRepository boolean toggle and setter. Also update setType() to set smart defaults, WizardSnapshot for persistence, saveSnapshot/loadSnapshot, and reset().</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/GenerationWizard.tsx</path>
+        <kind>component</kind>
+        <symbol>GenerationWizard</symbol>
+        <lines>1-266</lines>
+        <reason>Must add new stage rendering for GenerationOptionsStep between Stage 1 (Input) and Stage 3 (Draft). Currently stages are: 1=Input, 2=ReproSteps(bug only), 3=Draft. New step inserts as a new stage. Must update stage routing, StageIndicator, and navigation buttons (Back/Next/Skip).</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/wizard/Stage1Input.tsx</path>
+        <kind>component</kind>
+        <symbol>Stage1Input</symbol>
+        <lines>1-351</lines>
+        <reason>Reference for existing wizard step patterns (form layout, validation, use of store actions, tab structure). The new GenerationOptionsStep should follow same layout and design token conventions.</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/wizard/StageIndicator.tsx</path>
+        <kind>component</kind>
+        <symbol>StageIndicator</symbol>
+        <lines>1-96</lines>
+        <reason>Must be updated to show the new "Options" step in the stage indicator. Currently maps stages differently for bug vs non-bug. Need to add the new step label and adjust display stage mapping.</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/wizard/WizardFileUpload.tsx</path>
+        <kind>component</kind>
+        <symbol>WizardFileUpload</symbol>
+        <lines>1-134</lines>
+        <reason>Existing drag-and-drop file upload component in the wizard. Can be reused or adapted for wireframe image upload in the new GenerationOptionsStep. Supports drag-and-drop, click-to-upload, file preview, and size validation.</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/ImageAttachmentsGrid.tsx</path>
+        <kind>component</kind>
+        <symbol>ImageAttachmentsGrid</symbol>
+        <lines>1-308</lines>
+        <reason>Existing attachment upload infrastructure with thumbnail preview, progress ring, lightbox, and delete. Shows the onUpload interface pattern (file: File, onProgress callback). Can be referenced for thumbnail preview display in the wireframe upload area.</reason>
+      </file>
+      <file>
+        <path>client/src/services/ticket.service.ts</path>
+        <kind>service</kind>
+        <symbol>TicketService.uploadAttachment</symbol>
+        <lines>184</lines>
+        <reason>Backend attachment upload API. Story notes say to reuse this infrastructure. The wireframe image upload needs to store attachment IDs for later LLM consumption — may need a pre-draft upload or use pendingFiles pattern instead.</reason>
+      </file>
+      <file>
+        <path>client/src/tickets/components/wizard/Stage2ReproSteps.tsx</path>
+        <kind>component</kind>
+        <symbol>Stage2ReproSteps</symbol>
+        <reason>Reference for how a conditional wizard step is implemented (only shown for bug tickets). The new GenerationOptionsStep follows similar conditional insertion patterns.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="client-frontend">
+        <package name="next" version="^15.5.11" />
+        <package name="react" version="^19.0.0" />
+        <package name="zustand" version="^4.5.0" />
+        <package name="lucide-react" version="^0.563.0" />
+        <package name="@radix-ui/react-tabs" version="^1.1.13" />
+        <package name="@radix-ui/react-select" version="^2.1.15" />
+        <package name="@radix-ui/react-dialog" version="^1.1.15" />
+        <package name="sonner" version="^2.0.7" />
+        <package name="tailwindcss" version="^3.4.1" />
+        <package name="class-variance-authority" version="^0.7.1" />
+      </ecosystem>
+      <ecosystem name="backend-nestjs">
+        <package name="@nestjs/common" version="^10.3.0" />
+        <package name="@nestjs/core" version="^10.3.0" />
+        <package name="firebase-admin" version="^12.0.0" />
+        <package name="class-validator" version="^0.14.1" />
+        <package name="multer" version="^2.0.2" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Clean Architecture: UI components render state and trigger actions only. Business logic lives in Zustand store actions.</constraint>
+    <constraint>No business logic in React hooks or components — hooks are lifecycle/subscription only.</constraint>
+    <constraint>Atomic Design: New component is a molecule/organism in the wizard namespace.</constraint>
+    <constraint>Design tokens: All borders must use `border border-[var(--border-subtle)]`. Dark mode text uses soft white (#e8e8e8). Follow existing wizard step styling conventions.</constraint>
+    <constraint>This story is frontend-only. The actual LLM prompt modification is in Story 14.3 (backend). This story only handles UI and state.</constraint>
+    <constraint>Strong typing required: avoid `any`. New state fields and actions must have explicit TypeScript types.</constraint>
+    <constraint>Stage numbering: The wizard currently uses numeric stages (1=Input, 2=ReproSteps for bugs, 3=Draft). New step must integrate without breaking existing stage logic.</constraint>
+    <constraint>"Design" in this epic means AI-generated wireframe/UI guidance in the tech spec, NOT the Figma/Loom design references tab.</constraint>
+    <constraint>Image upload should reuse existing attachment infrastructure (WizardFileUpload or ImageAttachmentsGrid patterns). No new upload dependencies.</constraint>
+    <constraint>Mobile responsive: single column on small screens. Minimalistic, Linear-inspired UI.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>WizardState (extended)</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface WizardState { ...existing fields; includeWireframes: boolean; wireframeContext: string; wireframeImageIds: string[]; }</signature>
+      <path>client/src/tickets/stores/generation-wizard.store.ts</path>
+    </interface>
+    <interface>
+      <name>WizardActions (extended)</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface WizardActions { ...existing actions; setIncludeWireframes: (include: boolean) => void; setWireframeContext: (context: string) => void; addWireframeImage: (imageId: string) => void; removeWireframeImage: (imageId: string) => void; }</signature>
+      <path>client/src/tickets/stores/generation-wizard.store.ts</path>
+    </interface>
+    <interface>
+      <name>StageIndicator stages</name>
+      <kind>Component props</kind>
+      <signature>StageIndicator({ currentStage: number, nextButton?: ReactNode, ticketType?: string })</signature>
+      <path>client/src/tickets/components/wizard/StageIndicator.tsx</path>
+    </interface>
+    <interface>
+      <name>WizardFileUpload</name>
+      <kind>Component props</kind>
+      <signature>WizardFileUpload({ files: File[], onAdd: (file: File) => void, onRemove: (index: number) => void })</signature>
+      <path>client/src/tickets/components/wizard/WizardFileUpload.tsx</path>
+    </interface>
+    <interface>
+      <name>ImageAttachmentsGrid</name>
+      <kind>Component props</kind>
+      <signature>ImageAttachmentsGrid({ attachments: AttachmentResponse[], onUpload: (file: File, onProgress?) => Promise&lt;boolean&gt;, onDelete: (id: string) => Promise&lt;boolean&gt;, isUploading: boolean })</signature>
+      <path>client/src/tickets/components/ImageAttachmentsGrid.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Backend use cases have unit tests with Jest (*.spec.ts files). Frontend components do not have established test files yet (Epic 8-2 is backlog). Store actions should be testable by mocking infrastructure adapters. Validation logic must be deterministic and testable. For this frontend-only story, focus on store action unit tests if feasible, and ensure the component is structured for future testing.</standards>
+    <locations>
+      <location>backend/src/tickets/application/use-cases/*.spec.ts</location>
+      <location>client/src/**/*.test.ts (not yet established)</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test that setType('feature') sets includeWireframes=true, setType('bug') sets includeWireframes=false, setType('task') sets includeWireframes=false</idea>
+      <idea ac="1">Test that setIncludeWireframes toggles the boolean state correctly</idea>
+      <idea ac="2">Test that wireframeContext string is stored and retrievable via setWireframeContext</idea>
+      <idea ac="4">Test that addWireframeImage appends to wireframeImageIds array and removeWireframeImage removes correctly</idea>
+      <idea ac="6">Test that reset() clears wireframe state back to defaults</idea>
+      <idea ac="6">Test that WizardSnapshot includes wireframe fields for persistence/recovery</idea>
+    </ideas>
+  </tests>
+</story-context>

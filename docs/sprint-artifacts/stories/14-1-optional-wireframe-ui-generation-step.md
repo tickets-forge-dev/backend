@@ -1,6 +1,6 @@
 # Story 14.1: Optional Wireframe/UI Generation Step
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -74,6 +74,7 @@ so that backend-only or non-UI tickets don't get cluttered with irrelevant desig
 ## Dev Agent Record
 
 ### Context Reference
+- docs/sprint-artifacts/stories/14-1-optional-wireframe-ui-generation-step.context.xml
 
 ### Agent Model Used
 

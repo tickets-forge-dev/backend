@@ -4,6 +4,7 @@ import {
   IsInt,
   IsIn,
   IsArray,
+  IsBoolean,
   Min,
   Max,
   MinLength,
@@ -55,4 +56,30 @@ export class CreateTicketDto {
   @IsOptional()
   @IsArray()
   reproductionSteps?: any[];
+
+  // Story 14-3: Generation preferences
+  @IsOptional()
+  @IsBoolean()
+  includeWireframes?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  includeApiSpec?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  apiSpecDeferred?: boolean;
+
+  @IsOptional()
+  @IsString()
+  wireframeContext?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  wireframeImageAttachmentIds?: string[];
+
+  @IsOptional()
+  @IsString()
+  apiContext?: string;
 }

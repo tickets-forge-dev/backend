@@ -1,0 +1,148 @@
+<story-context id="14-3-backend-conditional-spec-generation" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>3</storyId>
+    <title>Backend -- Conditional Spec Generation</title>
+    <status>drafted</status>
+    <generatedAt>2026-03-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/stories/14-3-backend-conditional-spec-generation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>the spec generation pipeline to conditionally include or exclude wireframe and API sections based on user preferences</iWant>
+    <soThat>generated specs are focused and relevant to what the ticket actually needs</soThat>
+    <tasks>
+      <task id="1" acs="1,2,3,4,5,7">Extend CreateTicketDto
+        <subtask>Add includeWireframes?: boolean (default: true for backward compat)</subtask>
+        <subtask>Add includeApiSpec?: boolean (default: true)</subtask>
+        <subtask>Add wireframeContext?: string</subtask>
+        <subtask>Add wireframeImageAttachmentIds?: string[]</subtask>
+        <subtask>Add apiContext?: string</subtask>
+        <subtask>Add class-validator decorators: @IsOptional(), @IsBoolean(), @IsString(), @IsArray()</subtask>
+      </task>
+      <task id="2" acs="1,2,7">Extend AEC domain entity
+        <subtask>Add _includeWireframes: boolean and _includeApiSpec: boolean to AEC entity</subtask>
+        <subtask>Wire through constructor, createDraft(), and reconstitute() factory methods</subtask>
+        <subtask>Default to true in reconstitute() when fields are missing (backward compat)</subtask>
+      </task>
+      <task id="3" acs="7">Update AECMapper
+        <subtask>Add includeWireframes and includeApiSpec to AECDocument interface</subtask>
+        <subtask>Map in toDomain() and toFirestore()</subtask>
+      </task>
+      <task id="4" acs="1,2,3,4,5">Modify TechSpecGenerator LLM prompts
+        <subtask>In generateQuestionsWithContext(): skip wireframe/API-related questions when disabled</subtask>
+        <subtask>In spec finalization prompt: add conditional exclusion instructions</subtask>
+        <subtask>When includeWireframes=true + wireframeContext provided: inject context into design section of prompt</subtask>
+        <subtask>When includeApiSpec=true + apiContext provided: inject context into API section of prompt</subtask>
+        <subtask>Handle wireframe image attachments: load from storage, include as image context in LLM call</subtask>
+      </task>
+      <task id="5" acs="6">Adjust quality score calculation
+        <subtask>Modify quality score rubric to skip wireframe/API criteria when those sections are disabled</subtask>
+        <subtask>Ensure score reflects completeness of what was requested, not of all possible sections</subtask>
+      </task>
+      <task id="6" acs="1,2">Pass preferences through CreateTicketUseCase
+        <subtask>Thread includeWireframes and includeApiSpec from DTO through use case to AEC creation</subtask>
+        <subtask>Store wireframeContext and apiContext on AEC for use during finalization</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1">Given CreateTicketDto receives includeWireframes=false When the spec is finalized Then the LLM prompt explicitly instructs "Do NOT generate UI wireframes, visual QA expectations, or layout guidance" and techSpec.visualQaExpectations is null/empty</ac>
+    <ac id="2">Given CreateTicketDto receives includeApiSpec=false When the spec is finalized Then the LLM prompt explicitly instructs "Do NOT generate API endpoint specifications" and techSpec.apiChanges is null/empty</ac>
+    <ac id="3">Given wireframeContext is provided in the DTO When the spec is finalized Then the wireframe context text is injected into the LLM prompt as additional design context</ac>
+    <ac id="4">Given wireframeImageAttachmentIds are provided When the spec is finalized Then the image attachments are included in the LLM context (as base64 or URL references depending on model capability)</ac>
+    <ac id="5">Given apiContext is provided in the DTO When the spec is finalized Then the API context text is injected into the LLM prompt as additional API design context</ac>
+    <ac id="6">Given includeWireframes=false and includeApiSpec=false When the quality score is computed Then the score does NOT penalize for missing wireframe or API sections (adjusted rubric)</ac>
+    <ac id="7">Given an existing ticket created before this feature When it is loaded Then it defaults to includeWireframes=true and includeApiSpec=true for backward compatibility</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epic-14-optional-generation-steps.md" title="Epic 14: Optional Wireframe and API Generation" section="Story 14.3" snippet="Modify the spec generation pipeline to conditionally include/exclude wireframe and API sections. CreateTicketDto extended with includeWireframes, includeApiSpec, wireframeContext, apiContext, wireframeImageAttachmentIds. Quality score adjusted." />
+      <doc path="CLAUDE.md" title="Project Development Rules" section="Architecture Rules" snippet="Clean Architecture: presentation -> application -> domain <- infrastructure. Domain must not depend on NestJS, Firebase, HTTP, or external SDKs. Use Cases are the only entry points for business operations." />
+      <doc path="CLAUDE.md" title="Project Development Rules" section="Design Patterns" snippet="Ports and Adapters for external dependencies. Repository pattern for persistence. Mappers for boundary translation (DTO <-> Domain, Domain <-> Persistence)." />
+    </docs>
+
+    <code>
+      <file path="backend/src/tickets/presentation/dto/CreateTicketDto.ts" kind="dto" symbol="CreateTicketDto" lines="1-58" reason="Primary modification target: add includeWireframes, includeApiSpec, wireframeContext, wireframeImageAttachmentIds, apiContext fields with class-validator decorators" />
+      <file path="backend/src/tickets/domain/aec/AEC.ts" kind="domain-entity" symbol="AEC" lines="40-217" reason="Domain entity to extend with _includeWireframes, _includeApiSpec, _wireframeContext, _apiContext, _wireframeImageAttachmentIds fields. Must update constructor, createDraft(), and reconstitute() factory methods." />
+      <file path="backend/src/tickets/domain/aec/AEC.ts" kind="domain-entity" symbol="AEC.createDraft" lines="83-136" reason="Factory method for new drafts; must accept and pass through includeWireframes, includeApiSpec, wireframeContext, apiContext parameters" />
+      <file path="backend/src/tickets/domain/aec/AEC.ts" kind="domain-entity" symbol="AEC.reconstitute" lines="139-217" reason="Reconstitution factory; must accept optional includeWireframes/includeApiSpec params defaulting to true for backward compatibility (AC7)" />
+      <file path="backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts" kind="mapper" symbol="AECMapper" lines="1-315" reason="Persistence mapper: add includeWireframes, includeApiSpec, wireframeContext, apiContext, wireframeImageAttachmentIds to AECDocument interface, toDomain(), and toFirestore()" />
+      <file path="backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts" kind="mapper" symbol="AECDocument" lines="47-90" reason="Firestore document interface: add new optional fields with backward-compatible typing" />
+      <file path="backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts" kind="domain-port" symbol="TechSpecGenerator" lines="382-551" reason="Domain port interface for spec generation. TechSpecInput may need includeWireframes/includeApiSpec fields. generateQuestionsWithContext and generateWithAnswers methods need conditional prompt logic." />
+      <file path="backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts" kind="domain-port" symbol="TechSpec" lines="312-342" reason="TechSpec interface defines apiChanges, visualExpectations, testPlan. These are the sections conditionally included/excluded." />
+      <file path="backend/src/tickets/application/services/TechSpecGeneratorImpl.ts" kind="service" symbol="TechSpecGeneratorImpl" lines="1-100" reason="LLM implementation of TechSpecGenerator. Contains prompt templates, generation methods, and calculateQualityScore. Primary target for conditional prompt injection." />
+      <file path="backend/src/tickets/application/services/TechSpecGeneratorImpl.ts" kind="service" symbol="TechSpecGeneratorImpl.calculateQualityScore" lines="1783-1835" reason="Quality score calculation with section-based scoring. Must skip API Changes (0-5) and visual expectations scoring when those sections are disabled (AC6)." />
+      <file path="backend/src/tickets/application/services/TechSpecGeneratorImpl.ts" kind="service" symbol="TechSpecGeneratorImpl.generateQuestionsWithContext" lines="2267-2309" reason="Question generation method; must skip wireframe/API-related questions when those sections are disabled (AC1, AC2)" />
+      <file path="backend/src/tickets/application/services/TechSpecGeneratorImpl.ts" kind="service" symbol="TechSpecGeneratorImpl.generateWithAnswers" lines="2367-2386" reason="Final spec generation with answers; must inject conditional exclusion instructions and user-provided context into LLM prompts (AC1-5)" />
+      <file path="backend/src/tickets/application/use-cases/CreateTicketUseCase.ts" kind="use-case" symbol="CreateTicketUseCase" lines="1-164" reason="Threads DTO fields to AEC.createDraft(). Must pass includeWireframes, includeApiSpec, wireframeContext, apiContext, wireframeImageAttachmentIds from CreateTicketCommand to domain entity." />
+      <file path="backend/src/tickets/application/use-cases/CreateTicketUseCase.ts" kind="use-case" symbol="CreateTicketCommand" lines="18-32" reason="Command interface: must add includeWireframes, includeApiSpec, wireframeContext, apiContext, wireframeImageAttachmentIds fields" />
+      <file path="backend/src/tickets/application/use-cases/FinalizeSpecUseCase.ts" kind="use-case" symbol="FinalizeSpecUseCase" lines="1-308" reason="Orchestrates spec finalization. Must read includeWireframes/includeApiSpec from AEC and pass to TechSpecGenerator. Must also pass wireframeContext/apiContext for prompt injection." />
+      <file path="backend/src/tickets/application/use-cases/FinalizeSpecUseCase.ts" kind="use-case" symbol="FinalizeSpecUseCase.execute" lines="67-115" reason="Main execution flow: must thread generation preferences from AEC to techSpecGenerator.generateWithAnswers()" />
+      <file path="backend/src/tickets/application/services/DesignContextPromptBuilder.ts" kind="service" symbol="DesignContextPromptBuilder" lines="1" reason="Existing design context prompt builder imported by TechSpecGeneratorImpl. May serve as pattern for wireframe context injection." />
+    </code>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@nestjs/common" version="^10.3.0" />
+        <package name="@nestjs/core" version="^10.3.0" />
+        <package name="class-validator" version="^0.14.1" />
+        <package name="class-transformer" version="^0.5.1" />
+        <package name="firebase-admin" version="^12.0.0" />
+        <package name="ai" version="^6.0.64" />
+        <package name="@ai-sdk/anthropic" version="^3.0.33" />
+        <package name="typescript" version="^5.3.3" />
+        <package name="jest" version="^29.7.0" />
+        <package name="ts-jest" version="^29.1.1" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="CLAUDE.md">Clean Architecture: DTO changes in presentation layer, AEC changes in domain layer, mapper in infrastructure layer. No boundary crossings.</constraint>
+    <constraint source="CLAUDE.md">Domain must not depend on NestJS, Firebase, HTTP, or external SDKs. The AEC entity must remain framework-agnostic.</constraint>
+    <constraint source="CLAUDE.md">Use Cases are the only entry points for business operations. Do not bypass CreateTicketUseCase or FinalizeSpecUseCase with direct repository calls.</constraint>
+    <constraint source="CLAUDE.md">Mappers for boundary translation (DTO to Domain, Domain to Persistence). AECMapper handles all Firestore serialization.</constraint>
+    <constraint source="CLAUDE.md">Strong typing: avoid any. Error handling must be typed.</constraint>
+    <constraint source="story">LLM prompt is the critical piece. Explicitly excluding sections produces better specs than generating everything and filtering.</constraint>
+    <constraint source="story">For wireframe images: if the LLM model supports vision (Claude does), pass images directly. Otherwise describe textually.</constraint>
+    <constraint source="story">Quality score adjustment: when wireframes/API disabled, redistribute weights to remaining sections rather than penalizing for missing sections.</constraint>
+    <constraint source="story">Backward compatibility: existing tickets (pre-migration) must default to includeWireframes=true and includeApiSpec=true.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="CreateTicketDto" kind="class (DTO)" signature="class CreateTicketDto { title: string; description?: string; repositoryFullName?: string; branchName?: string; maxRounds?: number; type?: 'feature'|'bug'|'task'; priority?: 'low'|'medium'|'high'|'urgent'; taskAnalysis?: any; reproductionSteps?: any[]; }" path="backend/src/tickets/presentation/dto/CreateTicketDto.ts" />
+    <interface name="CreateTicketCommand" kind="interface (use-case input)" signature="interface CreateTicketCommand { teamId: string; workspaceId?: string; userId: string; userEmail: string; title: string; description?: string; repositoryFullName?: string; branchName?: string; maxRounds?: number; type?: 'feature'|'bug'|'task'; priority?: 'low'|'medium'|'high'|'urgent'; taskAnalysis?: any; reproductionSteps?: any[]; }" path="backend/src/tickets/application/use-cases/CreateTicketUseCase.ts" />
+    <interface name="AEC.createDraft" kind="static factory method" signature="static createDraft(teamId: string, createdBy: string, title: string, description?: string, repositoryContext?: RepositoryContext, type?: TicketType, priority?: TicketPriority, assignedTo?: string | null): AEC" path="backend/src/tickets/domain/aec/AEC.ts" />
+    <interface name="AEC.reconstitute" kind="static factory method" signature="static reconstitute(id, teamId, createdBy, status, title, description, type, priority, readinessScore, generationState, ...34 more params, folderId?: string | null): AEC" path="backend/src/tickets/domain/aec/AEC.ts" />
+    <interface name="AECDocument" kind="interface (Firestore)" signature="interface AECDocument { id: string; teamId: string; ...fields; folderId?: string | null; }" path="backend/src/tickets/infrastructure/persistence/mappers/AECMapper.ts" />
+    <interface name="TechSpecGenerator.generateQuestionsWithContext" kind="interface method" signature="generateQuestionsWithContext(input: { title: string; description?: string; context: CodebaseContext | null; priorAnswers: AnswerContext[]; roundNumber: number; }): Promise&lt;ClarificationQuestion[]&gt;" path="backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts" />
+    <interface name="TechSpecGenerator.generateWithAnswers" kind="interface method" signature="generateWithAnswers(input: { title: string; description?: string; context: CodebaseContext | null; answers: AnswerContext[]; ticketType?: 'feature'|'bug'|'task'; reproductionSteps?: ReproductionStep[]; }): Promise&lt;TechSpec&gt;" path="backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts" />
+    <interface name="TechSpecGenerator.calculateQualityScore" kind="interface method" signature="calculateQualityScore(spec: TechSpec): number" path="backend/src/tickets/domain/tech-spec/TechSpecGenerator.ts" />
+    <interface name="FinalizeSpecUseCase.execute" kind="use-case method" signature="async execute(command: FinalizeSpecCommand): Promise&lt;AEC&gt;" path="backend/src/tickets/application/use-cases/FinalizeSpecUseCase.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>The project uses Jest with ts-jest for unit testing. Test files follow the *.spec.ts naming convention colocated with source files. Use-case tests mock infrastructure adapters (repositories, external services) via jest.fn(). Existing test patterns can be seen in AssignTicketUseCase.spec.ts, ApproveTicketUseCase.spec.ts, ReEnrichWithQAUseCase.spec.ts, and SubmitReviewSessionUseCase.spec.ts. Tests should be deterministic with no external dependencies.</standards>
+    <locations>
+      <location>backend/src/**/*.spec.ts</location>
+      <location>backend/src/tickets/application/use-cases/*.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test that when AEC has includeWireframes=false, the generated TechSpec has null/empty visualQaExpectations</idea>
+      <idea ac="2">Test that when AEC has includeApiSpec=false, the generated TechSpec has null/empty apiChanges</idea>
+      <idea ac="3">Test that wireframeContext string is passed through CreateTicketDto -> CreateTicketCommand -> AEC -> FinalizeSpec pipeline</idea>
+      <idea ac="4">Test that wireframeImageAttachmentIds are stored on AEC and accessible during finalization</idea>
+      <idea ac="5">Test that apiContext string is passed through the full pipeline and available during spec generation</idea>
+      <idea ac="6">Test calculateQualityScore: when includeWireframes=false and includeApiSpec=false, score is not penalized for missing visual/API sections</idea>
+      <idea ac="6">Test calculateQualityScore: score normalization works correctly with reduced maxScore when sections are disabled</idea>
+      <idea ac="7">Test AEC.reconstitute() defaults includeWireframes=true and includeApiSpec=true when fields are undefined (backward compat)</idea>
+      <idea ac="7">Test AECMapper.toDomain() correctly maps missing includeWireframes/includeApiSpec to true defaults</idea>
+      <idea ac="7">Test AECMapper.toFirestore() includes includeWireframes and includeApiSpec fields</idea>
+    </ideas>
+  </tests>
+</story-context>
