@@ -77,6 +77,19 @@ function MarkdownToolbar({ textareaRef, onChange }: { textareaRef: React.RefObje
   );
 }
 
+const FONT_OPTIONS = [
+  { label: 'Mono', value: 'font-mono', family: 'ui-monospace, monospace' },
+  { label: 'Sans', value: 'font-sans', family: 'ui-sans-serif, system-ui, sans-serif' },
+  { label: 'Serif', value: 'font-serif', family: 'ui-serif, Georgia, serif' },
+];
+
+const SIZE_OPTIONS = [
+  { label: 'S', value: 'text-xs' },
+  { label: 'M', value: 'text-sm' },
+  { label: 'L', value: 'text-base' },
+  { label: 'XL', value: 'text-lg' },
+];
+
 // ── Fullscreen overlay editor ──
 function FullscreenEditor({
   value,
@@ -92,6 +105,8 @@ function FullscreenEditor({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<'write' | 'preview' | 'split'>('write');
+  const [font, setFont] = useState(FONT_OPTIONS[0]);
+  const [fontSize, setFontSize] = useState(SIZE_OPTIONS[1]); // default M
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -124,7 +139,7 @@ function FullscreenEditor({
   }, [mode]);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center">
+    <div className="fixed inset-0 z-[1100] flex justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       {/* Panel */}
@@ -194,8 +209,45 @@ function FullscreenEditor({
 
       {/* Toolbar — shown when write or split */}
       {mode !== 'preview' && (
-        <div className="border-b border-[var(--border)] px-3 py-1.5 bg-[var(--bg-subtle)]">
+        <div className="border-b border-[var(--border)] px-3 py-1.5 bg-[var(--bg-subtle)] flex items-center justify-between">
           <MarkdownToolbar textareaRef={textareaRef} onChange={onChange} />
+          <div className="flex items-center gap-2">
+            {/* Font selector */}
+            <div className="flex items-center gap-0.5 bg-[var(--bg)] rounded-md border border-[var(--border)] p-0.5">
+              {FONT_OPTIONS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setFont(f)}
+                  className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
+                    font.value === f.value
+                      ? 'bg-[var(--bg-hover)] text-[var(--text)]'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                  style={{ fontFamily: f.family }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {/* Size selector */}
+            <div className="flex items-center gap-0.5 bg-[var(--bg)] rounded-md border border-[var(--border)] p-0.5">
+              {SIZE_OPTIONS.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setFontSize(s)}
+                  className={`px-1.5 py-0.5 text-[11px] rounded transition-colors ${
+                    fontSize.value === s.value
+                      ? 'bg-[var(--bg-hover)] text-[var(--text)]'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -210,14 +262,14 @@ function FullscreenEditor({
               onChange={(e) => onChange(e.target.value)}
               placeholder={placeholder}
               maxLength={maxLength}
-              className="flex-1 w-full resize-none font-mono text-sm p-4 bg-transparent text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
+              className={`flex-1 w-full resize-none px-8 py-6 bg-transparent text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none leading-relaxed ${font.value} ${fontSize.value}`}
             />
           </div>
         )}
 
         {/* Preview pane */}
         {(mode === 'preview' || mode === 'split') && (
-          <div className="flex-1 overflow-y-auto p-4 min-w-0">
+          <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
             {mode === 'split' && (
               <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] mb-3 font-medium">Preview</p>
             )}

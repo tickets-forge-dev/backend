@@ -6,14 +6,14 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { RepositorySelector } from '../RepositorySelector';
-import { RepositoryToggle } from '../RepositoryToggle';
 import { BranchSelector } from '../BranchSelector';
+import { GitBranch, Sparkles, Shield, Users } from 'lucide-react';
 
 /**
- * CodebaseStep — Repository selection step.
+ * CodebaseStep — Repository connection step.
  *
- * Shows the repository toggle, repo selector, and branch selector.
- * When the toggle is off, shows a message that code-aware suggestions are disabled.
+ * A friendly toggle card that explains the value of connecting a repo,
+ * followed by repo/branch selectors when enabled.
  */
 export function CodebaseStep() {
   const { gitHubService } = useServices();
@@ -22,6 +22,7 @@ export function CodebaseStep() {
   const {
     input,
     includeRepository,
+    setIncludeRepository,
     setRepository,
   } = useWizardStore();
 
@@ -45,54 +46,85 @@ export function CodebaseStep() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text)]">Codebase</h2>
+        <h2 className="text-lg font-semibold text-[var(--text)]">Connect Your Codebase</h2>
         <p className="text-sm text-[var(--text-secondary)] mt-1">
-          Connect a repository for code-aware ticket generation.
+          Link a repository to get smarter, more accurate tickets.
         </p>
       </div>
 
-      {/* Repository Toggle */}
-      <RepositoryToggle />
+      {/* Toggle Card */}
+      <button
+        type="button"
+        onClick={() => setIncludeRepository(!includeRepository)}
+        className={`w-full text-left rounded-lg border-2 p-5 transition-all ${
+          includeRepository
+            ? 'border-purple-500/50 bg-purple-50/50 dark:bg-purple-950/10 shadow-sm'
+            : 'border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[var(--border)]'
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          <div className={`mt-0.5 flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
+            includeRepository ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'
+          }`}>
+            <div className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+              includeRepository ? 'translate-x-4' : 'translate-x-0.5'
+            }`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <GitBranch className={`h-4 w-4 flex-shrink-0 ${includeRepository ? 'text-purple-500' : 'text-[var(--text-tertiary)]'}`} />
+              <span className="text-sm font-semibold text-[var(--text)]">
+                Analyze my repository
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+              We&apos;ll read your code structure to generate tickets that reference the right files, APIs, and patterns.
+              Your code stays on GitHub — nothing is downloaded or stored.
+            </p>
+          </div>
+        </div>
+      </button>
 
-      {/* Repository & Branch Selection — only when included */}
+      {/* Benefits — shown when enabled */}
       {includeRepository && (
-        <div className="border border-[var(--border-subtle)] rounded-lg bg-gray-50/50 dark:bg-gray-900/30 p-5 space-y-4">
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Codebase to Scan
-            </h3>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Select the repository we&apos;ll analyze to understand your codebase structure, technology stack, and generate implementation-ready tickets based on the actual code.
-            </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="flex items-start gap-2.5 rounded-md bg-[var(--bg-subtle)] p-3">
+            <Sparkles className="h-3.5 w-3.5 text-purple-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Tickets reference actual files and functions in your project</p>
           </div>
-
-          {/* Repository Selection */}
-          <RepositorySelector />
-
-          {/* Branch Selection */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-400">
-              Branch to Analyze
-            </p>
-            <BranchSelector hideLabel={true} />
+          <div className="flex items-start gap-2.5 rounded-md bg-[var(--bg-subtle)] p-3">
+            <Shield className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Read-only access — your code is never cloned or stored</p>
           </div>
-
-          {/* Future multi-repo placeholder */}
-          <button
-            type="button"
-            disabled
-            className="w-full text-center py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            + Add another repository (coming soon)
-          </button>
+          <div className="flex items-start gap-2.5 rounded-md bg-[var(--bg-subtle)] p-3">
+            <Users className="h-3.5 w-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">No access? A team member can connect the repo for everyone</p>
+          </div>
         </div>
       )}
 
-      {/* No repository message */}
+      {/* Repository & Branch Selection — only when enabled */}
+      {includeRepository && (
+        <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-4">
+          <RepositorySelector />
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">
+              Branch
+            </p>
+            <BranchSelector hideLabel={true} />
+          </div>
+        </div>
+      )}
+
+      {/* Off state message */}
       {!includeRepository && (
-        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 text-center">
+        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 text-center space-y-1">
           <p className="text-sm text-[var(--text-secondary)]">
-            You can create tickets without a repository. Code-aware suggestions will be disabled.
+            No problem — you can still create great tickets without a repository.
+          </p>
+          <p className="text-xs text-[var(--text-tertiary)]">
+            Tickets will be based on your description only. You can always connect a repo later.
           </p>
         </div>
       )}
