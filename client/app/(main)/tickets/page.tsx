@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
@@ -563,6 +563,22 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
   const [isDragOver, setIsDragOver] = useState(false);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const blurEnabledRef = useRef(false);
+
+  // Focus and select text when rename mode activates (after dropdown closes)
+  useEffect(() => {
+    if (isRenaming) {
+      blurEnabledRef.current = false;
+      // Delay focus to let the dropdown fully close
+      const timer = setTimeout(() => {
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+        blurEnabledRef.current = true;
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isRenaming]);
 
   const handleRenameSubmit = () => {
     const trimmed = renameValue.trim();
@@ -573,6 +589,7 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
   };
 
   const handleRenameCancel = () => {
+    if (!blurEnabledRef.current) return;
     setRenameValue(folder.name);
     setIsRenaming(false);
   };
@@ -605,7 +622,7 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
         <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
         {isRenaming ? (
           <input
-            autoFocus
+            ref={renameInputRef}
             className="text-sm font-medium bg-transparent border-b border-[var(--primary)] outline-none text-[var(--text)] px-0 py-0"
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}

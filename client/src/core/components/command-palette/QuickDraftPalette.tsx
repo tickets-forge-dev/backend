@@ -8,16 +8,12 @@ import {
   Plus,
   FileText,
   LayoutGrid,
-  Settings,
-  CreditCard,
-  Users,
   Search,
   Loader2,
   ArrowLeft,
 } from 'lucide-react';
 import { useUIStore } from '@/stores/ui.store';
 import { useTicketsStore } from '@/stores/tickets.store';
-import { useTeamStore } from '@/teams/stores/team.store';
 
 interface Command {
   id: string;
@@ -35,8 +31,6 @@ export function QuickDraftPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen } = useUIStore();
   const { isQuickCreating, quickCreateError, quickCreateDraft, clearQuickCreateError } =
     useTicketsStore();
-  const currentTeam = useTeamStore((s) => s.currentTeam);
-
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mode, setMode] = useState<PaletteMode>('commands');
@@ -84,31 +78,7 @@ export function QuickDraftPalette() {
       group: 'Navigation',
       action: () => { close(); router.push('/tickets'); },
     },
-    {
-      id: 'go-teams',
-      label: 'Go to Teams',
-      icon: Users,
-      group: 'Navigation',
-      action: () => {
-        close();
-        router.push(currentTeam?.id ? `/teams/${currentTeam.id}` : '/teams');
-      },
-    },
-    {
-      id: 'go-settings',
-      label: 'Go to Settings',
-      icon: Settings,
-      group: 'Navigation',
-      action: () => { close(); router.push('/settings'); },
-    },
-    {
-      id: 'go-pricing',
-      label: 'Go to Pricing',
-      icon: CreditCard,
-      group: 'Navigation',
-      action: () => { close(); router.push('/pricing'); },
-    },
-  ], [close, router, currentTeam?.id, enterDraftMode]);
+  ], [close, router, enterDraftMode]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return commands;
