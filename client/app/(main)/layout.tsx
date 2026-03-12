@@ -63,7 +63,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           sidebarCollapsed ? 'ml-0 md:ml-16' : 'ml-0 md:ml-[var(--nav-width)]'
         )}
       >
-        <div className="mx-auto max-w-[var(--content-max)] px-6 py-12">
+        <div className="px-6 py-12">
           {children}
         </div>
       </main>

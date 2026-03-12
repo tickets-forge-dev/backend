@@ -14,7 +14,7 @@ import { X, Monitor, Sun, Moon } from 'lucide-react';
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[var(--content-max)] mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

@@ -810,7 +810,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-[var(--content-max)] mx-auto">
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
