@@ -34,6 +34,10 @@ interface TicketsState {
   isAssigning: boolean;
   assignError: string | null;
 
+  // Quick draft
+  isQuickCreating: boolean;
+  quickCreateError: string | null;
+
   // Attachments
   isUploadingAttachment: boolean;
   uploadAttachmentError: string | null;
@@ -64,6 +68,8 @@ interface TicketsState {
   deleteTicket: (id: string) => Promise<boolean>;
   assignTicket: (id: string, userId: string | null) => Promise<boolean>;
   clearCreateError: () => void;
+  quickCreateDraft: (title: string) => Promise<AECResponse | null>;
+  clearQuickCreateError: () => void;
 
   // List preferences
   setListPreferences: (preferences: TicketListPreferences) => void;
@@ -116,6 +122,10 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     deleteError: null,
     isAssigning: false,
     assignError: null,
+
+    // Quick draft
+    isQuickCreating: false,
+    quickCreateError: null,
 
     // Attachments
     isUploadingAttachment: false,
@@ -285,6 +295,32 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
 
   clearCreateError: () => {
     set({ createError: null });
+  },
+
+  quickCreateDraft: async (title: string) => {
+    if (get().isQuickCreating) return null;
+    set({ isQuickCreating: true, quickCreateError: null });
+
+    try {
+      const { ticketService } = useServices();
+      const aec = await ticketService.create({ title, type: 'feature' });
+
+      set((state) => ({
+        tickets: [aec, ...state.tickets],
+        isQuickCreating: false,
+      }));
+
+      get().fetchQuota();
+      return aec;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to create draft';
+      set({ isQuickCreating: false, quickCreateError: errorMessage });
+      return null;
+    }
+  },
+
+  clearQuickCreateError: () => {
+    set({ quickCreateError: null });
   },
 
   exportToLinear: async (ticketId: string, teamId: string) => {

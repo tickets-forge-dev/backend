@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, Settings, CreditCard, MessageCircle, Users } from 'lucide-react';
+import { LayoutGrid, Settings, CreditCard, MessageCircle, Users, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
 import { useTeamStore } from '@/teams/stores/team.store';
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+
 export function SidebarNav() {
   const pathname = usePathname();
-  const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
+  const { sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen } = useUIStore();
 
   const closeMobileSidebar = () => {
     if (window.innerWidth < 768) {
@@ -81,6 +83,29 @@ export function SidebarNav() {
             </li>
           );
         })}
+
+        {/* Command palette trigger */}
+        <li>
+          <button
+            onClick={() => { setCommandPaletteOpen(true); closeMobileSidebar(); }}
+            title={`Command palette (${isMac ? '⌘' : 'Ctrl+'}K)`}
+            className={cn(
+              'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+              'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+              'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]'
+            )}
+          >
+            <Search className="h-4 w-4 flex-shrink-0" />
+            {!sidebarCollapsed && (
+              <span className="flex-1 text-left truncate">Command</span>
+            )}
+            {!sidebarCollapsed && (
+              <kbd className="ml-auto text-[10px] font-medium text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
+                {isMac ? '⌘K' : 'Ctrl K'}
+              </kbd>
+            )}
+          </button>
+        </li>
 
         {/* Feedback button - separator */}
         <li className="my-2 border-t border-[var(--border)]" />
