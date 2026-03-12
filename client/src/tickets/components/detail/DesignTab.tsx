@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { type DesignReference } from '@repo/shared-types';
 import { Eye, Figma } from 'lucide-react';
+import { auth } from '@/lib/firebase';
 import { DesignReferencesSection } from './DesignReferencesSection';
 import { AddDesignLinkDialog } from './AddDesignLinkDialog';
 import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpectationsSection';
@@ -28,6 +29,29 @@ export function DesignTab({
   onRefresh,
 }: DesignTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isFigmaConnected, setIsFigmaConnected] = useState(false);
+
+  // Check Figma connection status on mount
+  useEffect(() => {
+    const checkFigmaStatus = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        const idToken = await user.getIdToken();
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${apiUrl}/integrations/figma/oauth/status`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsFigmaConnected(data.connected === true);
+        }
+      } catch {
+        // Silently fail — default to not connected
+      }
+    };
+    checkFigmaStatus();
+  }, []);
 
   // Poll for metadata updates while any design reference is pending
   useEffect(() => {
@@ -92,7 +116,7 @@ export function DesignTab({
           </div>
           <div>
             <h3 className="text-sm font-medium text-[var(--text)]">Design References</h3>
-            <p className="text-[11px] text-[var(--text-tertiary)]">Figma, Loom, and other external design links</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Link designs to extract colors, themes, layouts, and component specs</p>
           </div>
         </div>
         <DesignReferencesSection
@@ -101,6 +125,7 @@ export function DesignTab({
           onRemove={onRemoveDesignReference}
           onRefresh={onRefreshDesignReference}
           readOnly={false}
+          isFigmaConnected={isFigmaConnected}
         />
       </div>
 

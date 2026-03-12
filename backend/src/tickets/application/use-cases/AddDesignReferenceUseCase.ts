@@ -78,9 +78,31 @@ export class AddDesignReferenceUseCase {
       `Added design reference to ticket ${ticketId}: ${url} (platform: ${designReference.platform})`,
     );
 
-    // Fetch metadata asynchronously (non-blocking)
-    // Design reference is already stored and returned, metadata is enriched in background
-    this.fetchAndUpdateMetadata(ticketId, designReference, teamId);
+    // Fetch metadata and update reference before returning
+    // This ensures the response already has the correct status (success/failed)
+    // instead of always returning 'pending' and relying on polling
+    try {
+      const enrichedReference = await this.fetchDesignMetadataUseCase.execute(
+        designReference,
+        teamId,
+      );
+
+      if (enrichedReference) {
+        aec.updateDesignReferenceStatus(designReference.id, {
+          metadataFetchStatus: enrichedReference.metadataFetchStatus,
+          metadataFetchError: enrichedReference.metadataFetchError,
+          metadata: enrichedReference.metadata,
+        });
+        await this.aecRepository.save(aec);
+        return { designReference: { ...designReference, ...enrichedReference } };
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Metadata fetch failed for ${designReference.platform} link: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
 
     return {
       designReference,

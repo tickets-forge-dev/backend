@@ -178,7 +178,7 @@ export default function TicketsListPage() {
     }[sortBy];
 
     return (
-      <div className="space-y-4 sm:space-y-6 w-full max-w-5xl mx-auto px-3 sm:px-6">
+      <div className="space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
       {/* Header with Create Button */}
       <div className="flex items-center justify-end gap-2 px-2 sm:px-0">
         <Button
@@ -774,7 +774,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
       }}
       className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
-      } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-[var(--bg-subtle)]/30' : ''}`}
+      } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-white/[0.02] dark:bg-white/[0.02]' : ''}`}
     >
       {/* Title cell */}
       <Link href={href} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>

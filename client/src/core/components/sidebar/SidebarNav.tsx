@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Ticket, Settings, CreditCard, MessageCircle, Users } from 'lucide-react';
+import { LayoutGrid, Settings, CreditCard, MessageCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
@@ -24,7 +24,7 @@ export function SidebarNav() {
   const currentTeamId = currentTeam?.id || null;
 
   const navigationItems = [
-    { label: 'Tickets', href: '/tickets', icon: Ticket },
+    { label: 'Workspace', href: '/tickets', icon: LayoutGrid },
     { label: 'Teams', href: currentTeamId ? `/teams/${currentTeamId}` : '/teams', icon: Users },
     { label: 'Pricing', href: '/pricing', icon: CreditCard },
     { label: 'Settings', href: '/settings', icon: Settings },

@@ -284,6 +284,20 @@ development_status:
   14-5-wizard-step-refactor-split-stage1: ready-for-dev
   epic-14-optional-generation-steps-retrospective: optional
 
+  # EPIC 15: Project Initialization & Codebase Profiling (P1) - 6 stories
+  # Status: ⬜ NOT STARTED
+  # Goal: Auto-scan connected repos to build persistent project profiles for smarter ticket generation
+  # Key: Background Octokit scan → .txt profile in Firestore → fed as LLM context per ticket
+  # Epic File: docs/epic-15-project-initialization-codebase-profiling.md
+  epic-15-project-initialization-codebase-profiling: backlog
+  15-1-domain-model-project-profile-entity: backlog
+  15-2-backend-repository-scan-job: backlog
+  15-3-backend-api-endpoints-scan-profile: backlog
+  15-4-client-auto-trigger-scan-on-repo-connect: backlog
+  15-5-integration-feed-profile-into-ticket-generation: backlog
+  15-6-client-project-profile-management-ui: backlog
+  epic-15-project-initialization-codebase-profiling-retrospective: optional
+
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)
   # ──────────────────────────────────────────────────────────────────────────
