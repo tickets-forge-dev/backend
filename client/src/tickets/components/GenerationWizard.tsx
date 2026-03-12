@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo, type WizardStage } from '@/tickets/stores/generation-wizard.store';
 import { DetailsStep } from './wizard/DetailsStep';
 import { CodebaseStep } from './wizard/CodebaseStep';
@@ -13,6 +13,7 @@ import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
 import { FirstTicketCelebrationDialog } from '@/core/components/celebration/FirstTicketCelebrationDialog';
 import { Button } from '@/core/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 /**
  * GenerationWizard Container Component
@@ -23,6 +24,7 @@ import { Button } from '@/core/components/ui/button';
  */
 export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId?: string; initialType?: 'feature' | 'bug' | 'task'; forceNew?: boolean }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     currentStage,
     loading,
@@ -36,6 +38,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     loadingMessage,
     progressPercent,
     setType,
+    setTitle,
     draftAecId,
     showCelebration,
     closeCelebration,
@@ -54,8 +57,13 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   useEffect(() => {
     if (forceNew) {
       reset();
+      // Pre-fill description from query param (e.g., from quick draft)
+      const desc = searchParams.get('description');
+      if (desc) {
+        setTitle(desc);
+      }
     }
-  }, [forceNew, reset]);
+  }, [forceNew, reset, searchParams, setTitle]);
 
   // On mount: set initial type if provided
   useEffect(() => {
@@ -70,12 +78,6 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
 
     if (resumeId) {
       resumeDraft(resumeId);
-      setRecoveryInfo({
-        canRecover: true,
-        stage: 'generate',
-        title: 'Draft Ticket',
-      });
-      setShowRecoveryBanner(true);
       return;
     }
 
@@ -186,11 +188,20 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
 
   return (
     <div className="relative w-full h-full bg-white dark:bg-gray-950">
-      {/* Stage Indicator - Hide after ticket is created */}
-      {!draftAecId && (
+      {/* Stage Indicator - Hide only after ticket is fully generated (generate stage with a draft) */}
+      {!(draftAecId && currentStage === 'generate') && (
         <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6">
-            <StageIndicator currentStage={currentStage} nextButton={getNextButton()} ticketType={type} />
+          <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6 flex items-center gap-3">
+            <button
+              onClick={() => router.push('/tickets')}
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors flex-shrink-0"
+              aria-label="Back to workspace"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <StageIndicator currentStage={currentStage} nextButton={getNextButton()} ticketType={type} />
+            </div>
           </div>
         </div>
       )}

@@ -11,9 +11,32 @@ import {
   Search,
   Loader2,
   ArrowLeft,
+  Lightbulb,
+  Bug,
+  ClipboardList,
+  ChevronDown,
+  FolderOpen,
 } from 'lucide-react';
 import { useUIStore } from '@/stores/ui.store';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useFoldersStore } from '@/stores/folders.store';
+import { useTeamStore } from '@/teams/stores/team.store';
+
+type DraftType = 'feature' | 'bug' | 'task';
+type DraftPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+const TYPE_OPTIONS: { value: DraftType; label: string; icon: React.ElementType; color: string }[] = [
+  { value: 'feature', label: 'Feature', icon: Lightbulb, color: 'text-amber-500' },
+  { value: 'bug', label: 'Bug', icon: Bug, color: 'text-red-500' },
+  { value: 'task', label: 'Task', icon: ClipboardList, color: 'text-blue-500' },
+];
+
+const PRIORITY_OPTIONS: { value: DraftPriority; label: string; color: string }[] = [
+  { value: 'low', label: 'Low', color: 'bg-green-500' },
+  { value: 'medium', label: 'Medium', color: 'bg-yellow-500' },
+  { value: 'high', label: 'High', color: 'bg-orange-500' },
+  { value: 'urgent', label: 'Urgent', color: 'bg-red-500' },
+];
 
 interface Command {
   id: string;
@@ -31,10 +54,18 @@ export function QuickDraftPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen } = useUIStore();
   const { isQuickCreating, quickCreateError, quickCreateDraft, clearQuickCreateError } =
     useTicketsStore();
+  const { folders } = useFoldersStore();
+  const { currentTeam } = useTeamStore();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mode, setMode] = useState<PaletteMode>('commands');
   const [draftTitle, setDraftTitle] = useState('');
+  const [draftType, setDraftType] = useState<DraftType>('feature');
+  const [draftPriority, setDraftPriority] = useState<DraftPriority>('low');
+  const [draftFolderId, setDraftFolderId] = useState<string | null>(null);
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [showPriorityMenu, setShowPriorityMenu] = useState(false);
+  const [showFolderMenu, setShowFolderMenu] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const draftInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -45,12 +76,21 @@ export function QuickDraftPalette() {
     setSelectedIndex(0);
     setMode('commands');
     setDraftTitle('');
+    setDraftType('feature');
+    setDraftPriority('low');
+    setDraftFolderId(null);
+    setShowTypeMenu(false);
+    setShowPriorityMenu(false);
+    setShowFolderMenu(false);
     clearQuickCreateError();
   }, [setCommandPaletteOpen, clearQuickCreateError]);
 
   const enterDraftMode = useCallback(() => {
     setMode('create-draft');
     setDraftTitle('');
+    setDraftType('feature');
+    setDraftPriority('low');
+    setDraftFolderId(null);
     clearQuickCreateError();
   }, [clearQuickCreateError]);
 
@@ -133,6 +173,12 @@ export function QuickDraftPalette() {
       if (e.key === 'Escape') {
         e.preventDefault();
         if (mode === 'create-draft') {
+          if (showTypeMenu || showPriorityMenu || showFolderMenu) {
+            setShowTypeMenu(false);
+            setShowPriorityMenu(false);
+            setShowFolderMenu(false);
+            return;
+          }
           setMode('commands');
           setDraftTitle('');
           clearQuickCreateError();
@@ -159,23 +205,20 @@ export function QuickDraftPalette() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [commandPaletteOpen, mode, filtered, selectedIndex, close, clearQuickCreateError]);
+  }, [commandPaletteOpen, mode, filtered, selectedIndex, close, clearQuickCreateError, showTypeMenu, showPriorityMenu, showFolderMenu]);
 
   const handleDraftSubmit = async () => {
     if (draftTitle.length < 3 || isQuickCreating) return;
 
-    const aec = await quickCreateDraft(draftTitle);
+    const aec = await quickCreateDraft(draftTitle, draftType, draftPriority);
     if (aec) {
-      const createdTitle = draftTitle;
-      const createdId = aec.id;
+      // Move to folder if selected
+      if (draftFolderId && currentTeam?.id) {
+        const { moveTicket } = useFoldersStore.getState();
+        moveTicket(currentTeam.id, aec.id, draftFolderId);
+      }
       close();
-      toast.success('Draft created', {
-        description: createdTitle,
-        action: {
-          label: 'Open',
-          onClick: () => router.push(`/tickets/${createdId}`),
-        },
-      });
+      router.push(`/tickets/create?resume=${aec.id}`);
     }
   };
 
@@ -265,6 +308,9 @@ export function QuickDraftPalette() {
                   onClick={() => {
                     setMode('commands');
                     setDraftTitle('');
+                    setDraftType('feature');
+                    setDraftPriority('low');
+                    setDraftFolderId(null);
                     clearQuickCreateError();
                     requestAnimationFrame(() => inputRef.current?.focus());
                   }}
@@ -277,6 +323,116 @@ export function QuickDraftPalette() {
               <p className="text-xs text-[var(--text-tertiary)] ml-6">
                 Capture an idea fast. You can enrich it later in the full editor.
               </p>
+            </div>
+
+            {/* Type & Priority selectors */}
+            <div className="px-5 pb-3 flex items-center gap-2">
+              {/* Type selector */}
+              <div className="relative">
+                <button
+                  onClick={() => { setShowTypeMenu(!showTypeMenu); setShowPriorityMenu(false); setShowFolderMenu(false); }}
+                  className="flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-xs text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--border)] transition-colors"
+                >
+                  {(() => { const t = TYPE_OPTIONS.find(o => o.value === draftType)!; const Icon = t.icon; return <Icon className={`h-3.5 w-3.5 ${t.color}`} />; })()}
+                  <span>{TYPE_OPTIONS.find(o => o.value === draftType)!.label}</span>
+                  <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" />
+                </button>
+                {showTypeMenu && (
+                  <div className="absolute top-full left-0 mt-1 w-36 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] shadow-lg overflow-hidden z-10">
+                    {TYPE_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setDraftType(opt.value); setShowTypeMenu(false); }}
+                          className={`w-full flex items-center gap-2 px-3 h-8 text-xs transition-colors ${
+                            draftType === opt.value
+                              ? 'bg-[var(--bg-active)] text-[var(--text)]'
+                              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                          }`}
+                        >
+                          <Icon className={`h-3.5 w-3.5 ${opt.color}`} />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Priority selector */}
+              <div className="relative">
+                <button
+                  onClick={() => { setShowPriorityMenu(!showPriorityMenu); setShowTypeMenu(false); setShowFolderMenu(false); }}
+                  className="flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-xs text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--border)] transition-colors"
+                >
+                  <span className={`h-2 w-2 rounded-full ${PRIORITY_OPTIONS.find(o => o.value === draftPriority)!.color}`} />
+                  <span>{PRIORITY_OPTIONS.find(o => o.value === draftPriority)!.label}</span>
+                  <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" />
+                </button>
+                {showPriorityMenu && (
+                  <div className="absolute top-full left-0 mt-1 w-36 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] shadow-lg overflow-hidden z-10">
+                    {PRIORITY_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setDraftPriority(opt.value); setShowPriorityMenu(false); }}
+                        className={`w-full flex items-center gap-2 px-3 h-8 text-xs transition-colors ${
+                          draftPriority === opt.value
+                            ? 'bg-[var(--bg-active)] text-[var(--text)]'
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                        }`}
+                      >
+                        <span className={`h-2 w-2 rounded-full ${opt.color}`} />
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Folder selector */}
+              {folders.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => { setShowFolderMenu(!showFolderMenu); setShowTypeMenu(false); setShowPriorityMenu(false); }}
+                    className="flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-xs text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--border)] transition-colors"
+                  >
+                    <FolderOpen className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                    <span className="max-w-[100px] truncate">
+                      {draftFolderId ? folders.find(f => f.id === draftFolderId)?.name ?? 'Folder' : 'No folder'}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" />
+                  </button>
+                  {showFolderMenu && (
+                    <div className="absolute top-full left-0 mt-1 w-44 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] shadow-lg overflow-hidden z-10 max-h-[200px] overflow-y-auto">
+                      <button
+                        onClick={() => { setDraftFolderId(null); setShowFolderMenu(false); }}
+                        className={`w-full flex items-center gap-2 px-3 h-8 text-xs transition-colors ${
+                          !draftFolderId
+                            ? 'bg-[var(--bg-active)] text-[var(--text)]'
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                        }`}
+                      >
+                        No folder (feed)
+                      </button>
+                      {folders.map((folder) => (
+                        <button
+                          key={folder.id}
+                          onClick={() => { setDraftFolderId(folder.id); setShowFolderMenu(false); }}
+                          className={`w-full flex items-center gap-2 px-3 h-8 text-xs transition-colors ${
+                            draftFolderId === folder.id
+                              ? 'bg-[var(--bg-active)] text-[var(--text)]'
+                              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                          }`}
+                        >
+                          <FolderOpen className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
+                          <span className="truncate">{folder.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Input area */}
@@ -322,7 +478,7 @@ export function QuickDraftPalette() {
             {/* Footer hint */}
             <div className="px-5 py-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
               <span className="text-xs text-[var(--text-tertiary)]">
-                Creates a draft ticket with type &quot;feature&quot;
+                Creates a draft and opens the wizard
               </span>
               <span className="flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                 <kbd className="min-w-[20px] h-5 flex items-center justify-center rounded border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] font-medium px-1.5">

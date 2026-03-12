@@ -345,31 +345,34 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isLoading && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
-        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center ">
-          <div className="text-center px-4">
-            {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
-              <>
-                <Search className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                <p className="text-sm text-[var(--text-secondary)]">No tickets found</p>
-                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  Try adjusting your filters
-                </p>
-              </>
-            ) : (
-              <>
-                <FileText className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                <p className="text-base font-medium text-[var(--text)]">No tickets yet</p>
-                <p className="mt-1 text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
-                  Create your first executable ticket and let AI generate the technical spec
-                </p>
-                <Link href="/tickets/create">
-                  <Button className="mt-4" size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Ticket
-                  </Button>
-                </Link>
-              </>
-            )}
+        <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+          <TicketGridHeader />
+          <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center">
+            <div className="text-center px-4">
+              {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
+                <>
+                  <Search className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                  <p className="text-sm text-[var(--text-secondary)]">No tickets found</p>
+                  <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                    Try adjusting your filters
+                  </p>
+                </>
+              ) : (
+                <>
+                  <FileText className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                  <p className="text-base font-medium text-[var(--text)]">No tickets yet</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
+                    Create your first executable ticket and let AI generate the technical spec
+                  </p>
+                  <Link href="/tickets/create">
+                    <Button className="mt-4" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Ticket
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -678,7 +681,7 @@ function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'draft' |
 }
 
 function isTicketInProgress(ticket: any) {
-  return ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined;
+  return ticket.status === 'draft' && !ticket.techSpec;
 }
 
 function getRelativeTime(date: string | Date) {

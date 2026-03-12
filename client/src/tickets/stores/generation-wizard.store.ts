@@ -1461,6 +1461,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       const repoOwner = repoParts[0] || '';
       const repoName = repoParts[1] || '';
 
+      // Determine the right stage: if the draft has questions/rounds, resume at generate;
+      // otherwise (e.g. quick draft with just a title), start at details
+      const hasProgress = (aec.questions && aec.questions.length > 0) ||
+        (aec.questionRounds && aec.questionRounds.length > 0) ||
+        aec.currentRound > 0;
+      const resumeStage: WizardStage = hasProgress ? 'generate' : 'details';
+
       set({
         draftAecId: aecId,
         // New simplified question fields
@@ -1472,7 +1479,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         maxRounds: aec.maxRounds ?? get().maxRounds,
         type: aec.type || get().type,
         priority: aec.priority || get().priority,
-        currentStage: 'generate' as WizardStage, // Go to question stage
+        currentStage: resumeStage,
         input: {
           title: aec.title,
           repoOwner,
