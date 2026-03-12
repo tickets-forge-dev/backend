@@ -64,6 +64,7 @@ import { SubmitReviewSessionUseCase } from './application/use-cases/SubmitReview
 import { ReEnrichWithQAUseCase } from './application/use-cases/ReEnrichWithQAUseCase';
 import { ApproveTicketUseCase } from './application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from './application/use-cases/StartImplementationUseCase';
+import { RefineWireframeUseCase } from './application/use-cases/RefineWireframeUseCase';
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
 import { TeamsModule } from '../teams/teams.module';
@@ -108,6 +109,7 @@ import { TeamsModule } from '../teams/teams.module';
     ReEnrichWithQAUseCase,
     ApproveTicketUseCase,
     StartImplementationUseCase,
+    RefineWireframeUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,

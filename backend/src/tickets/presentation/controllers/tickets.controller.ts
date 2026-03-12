@@ -19,8 +19,6 @@ import { Response } from 'express';
 import { memoryStorage } from 'multer';
 import {
   CreateTicketUseCase,
-  TICKET_LIMITS,
-  DEFAULT_TICKET_LIMIT,
 } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
@@ -34,7 +32,6 @@ import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import {
   InvalidStateTransitionError,
-  QuotaExceededError,
 } from '../../../shared/domain/exceptions/DomainExceptions';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
@@ -95,6 +92,7 @@ import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQ
 import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
 import { StartImplementationDto } from '../dto/StartImplementationDto';
+import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -142,6 +140,7 @@ export class TicketsController {
     private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
+    private readonly refineWireframeUseCase: RefineWireframeUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -346,9 +345,6 @@ export class TicketsController {
 
       return this.mapToResponse(aec);
     } catch (error) {
-      if (error instanceof QuotaExceededError) {
-        throw new ForbiddenException(error.message);
-      }
       throw error;
     }
   }
@@ -357,11 +353,9 @@ export class TicketsController {
   async getQuota(
     @TeamId() teamId: string,
     @UserId() userId: string,
-    @UserEmail() userEmail: string,
   ) {
-    const limit = TICKET_LIMITS[userEmail] ?? DEFAULT_TICKET_LIMIT;
     const used = await this.aecRepository.countByTeamAndCreator(teamId, userId);
-    return { used, limit, canCreate: used < limit };
+    return { used, limit: Infinity, canCreate: true };
   }
 
   @Get(':id(aec_[a-f0-9\\-]+)')
@@ -472,6 +466,35 @@ export class TicketsController {
       branchName: dto.branchName,
       qaItems: dto.qaItems,
     });
+  }
+
+  /**
+   * AI-powered Excalidraw wireframe refinement
+   *
+   * Takes current Excalidraw elements + natural language instruction,
+   * returns modified elements. Does NOT persist — user must click Save.
+   */
+  @Post(':id/refine-wireframe')
+  @HttpCode(HttpStatus.OK)
+  async refineWireframe(
+    @TeamId() teamId: string,
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() body: { instruction: string; currentElements: any[] },
+  ) {
+    if (!body.instruction || !body.currentElements?.length) {
+      throw new BadRequestException('instruction and currentElements are required');
+    }
+
+    const elements = await this.refineWireframeUseCase.execute({
+      ticketId: id,
+      teamId,
+      userId,
+      instruction: body.instruction,
+      currentElements: body.currentElements,
+    });
+
+    return { elements };
   }
 
   /**

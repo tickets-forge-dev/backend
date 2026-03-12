@@ -33,9 +33,12 @@ import {
   LayeredFileChanges,
   TestPlan,
   VisualExpectations,
+  ExcalidrawData,
   PackageDependency,
   BugDetails,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 /**
  * Prompt templates for each section generation
@@ -2132,6 +2135,224 @@ Rewritten text (definitive, unambiguous):`;
   }
 
   /**
+   * Calls LLM with configurable options (token limits, temperature)
+   *
+   * Used for wireframe generation which needs higher token limits.
+   */
+  private async callLLMWithOptions(
+    systemPrompt: string,
+    userPrompt: string,
+    opts?: { maxOutputTokens?: number; temperature?: number },
+  ): Promise<any> {
+    if (!this.llmModel) {
+      throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
+    }
+
+    const maxOutputTokens = opts?.maxOutputTokens ?? 4096;
+    const temperature = opts?.temperature ?? 0.2;
+    const maxRetries = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const prompt =
+          attempt === 1
+            ? userPrompt
+            : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
+
+        const { text } = await generateText({
+          model: this.llmModel,
+          system: systemPrompt,
+          prompt,
+          maxOutputTokens,
+          temperature,
+        });
+
+        this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
+        return this.parseJSON(text);
+      } catch (error: any) {
+        lastError = error;
+        if (attempt < maxRetries && error.message?.includes('Failed to parse response')) {
+          this.logger.warn(`LLM returned non-JSON (attempt ${attempt}/${maxRetries}), retrying...`);
+          continue;
+        }
+        this.logger.error(`LLM call failed (${this.providerName}): ${error.message}`);
+        throw new Error(`LLM call failed: ${error.message}`);
+      }
+    }
+
+    throw new Error(`LLM call failed after ${maxRetries} attempts: ${lastError?.message}`);
+  }
+
+  /**
+   * Cached Excalidraw BMAD skills content for LLM system prompt injection.
+   * Loaded once from .bmad/ files and cached for subsequent calls.
+   */
+  private excalidrawSkillsCache: string | null = null;
+
+  private getExcalidrawSkills(): string {
+    if (this.excalidrawSkillsCache) return this.excalidrawSkillsCache;
+
+    const basePath = join(process.cwd(), '..', '.bmad', 'bmm', 'workflows', 'frame-expert', '_shared');
+    const parts: string[] = [];
+
+    const helpersPath = join(basePath, 'excalidraw-helpers.md');
+    if (existsSync(helpersPath)) {
+      parts.push(readFileSync(helpersPath, 'utf-8'));
+    }
+
+    const templatesPath = join(basePath, 'excalidraw-templates.yaml');
+    if (existsSync(templatesPath)) {
+      parts.push(readFileSync(templatesPath, 'utf-8'));
+    }
+
+    this.excalidrawSkillsCache = parts.length > 0
+      ? parts.join('\n\n---\n\n')
+      : '';
+
+    return this.excalidrawSkillsCache;
+  }
+
+  /**
+   * Generates Excalidraw wireframe data from visual expectations.
+   *
+   * Uses BMAD Excalidraw skills for proper element creation guidelines.
+   * Returns undefined on failure — ASCII wireframes remain as fallback.
+   */
+  async generateExcalidrawWireframes(
+    expectations: VisualExpectations['expectations'],
+    wireframeContext?: string,
+    wireframeImageUrls?: string[],
+  ): Promise<ExcalidrawData | undefined> {
+    try {
+      const excalidrawSkills = this.getExcalidrawSkills();
+
+      const systemPrompt = `You are a wireframe design agent specialized in Excalidraw JSON output.
+You create clean, professional UI wireframes as Excalidraw elements.
+
+CRITICAL: You MUST respond with ONLY valid JSON. No text before or after.
+
+${excalidrawSkills}`;
+
+      const screensList = expectations
+        .map((e, i) => `Screen ${i + 1}: "${e.screen}" (${e.state})\n  ${e.description}`)
+        .join('\n\n');
+
+      const designContext = wireframeContext
+        ? `\nUser's wireframe description (PRIMARY layout driver):\n${wireframeContext}\n`
+        : '';
+
+      const imageRef = wireframeImageUrls?.length
+        ? `\nReference mockup images: ${wireframeImageUrls.length} uploaded. Use them as visual reference.\n`
+        : '';
+
+      const userPrompt = `Generate an Excalidraw wireframe containing all the following screens laid out side by side with 100px gap between each screen. Add a title text element above each screen.
+${designContext}${imageRef}
+Screens to include:
+${screensList}
+
+For each screen, create:
+- A container rectangle (800x600) with solid border
+- A header bar (full width, 80px tall) with the screen title
+- UI elements matching the description: buttons as rounded rectangles, inputs as rectangles, text elements, tables as grouped rectangles
+- Use the wireframe template sizing from the guidelines
+
+Place screens side by side horizontally, starting at x=0, with 100px gap between each.
+
+Output ONLY valid JSON with this exact structure:
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "forge-wireframe-agent",
+  "elements": [
+    // Array of Excalidraw elements (rectangle, text, arrow, ellipse, etc.)
+    // Each element needs: id, type, x, y, width, height, strokeColor, backgroundColor, etc.
+  ]
+}
+
+RULES:
+- Every element MUST have a unique "id" string
+- Snap coordinates to 20px grid
+- Use strokeColor "#1e1e1e" for borders, backgroundColor "#e8e8e8" for fills
+- Text elements: fontSize 16 for body, 20 for headers
+- Group shape+label pairs with matching groupIds
+- Do NOT include appState, files, or history`;
+
+      const response = await this.callLLMWithOptions(systemPrompt, userPrompt, {
+        maxOutputTokens: 16384,
+        temperature: 0.3,
+      });
+
+      // Validate basic structure
+      if (
+        response &&
+        response.type === 'excalidraw' &&
+        Array.isArray(response.elements) &&
+        response.elements.length > 0
+      ) {
+        return {
+          type: 'excalidraw',
+          version: 2,
+          source: response.source || 'forge-wireframe-agent',
+          elements: response.elements,
+        };
+      }
+
+      this.logger.warn('Excalidraw generation returned invalid structure');
+      return undefined;
+    } catch (error) {
+      this.logger.warn(`Excalidraw wireframe generation failed: ${String(error)}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Refines existing Excalidraw wireframe elements based on user instruction.
+   *
+   * Takes current elements + natural language instruction, returns modified elements.
+   * Preserves element IDs where possible, only changes what the user asked for.
+   */
+  async refineExcalidrawWireframe(
+    currentElements: any[],
+    instruction: string,
+  ): Promise<any[]> {
+    const excalidrawSkills = this.getExcalidrawSkills();
+
+    const systemPrompt = `You are a wireframe refinement agent specialized in modifying Excalidraw JSON elements.
+You receive existing Excalidraw elements and a user's modification request, and return the COMPLETE modified elements array.
+
+CRITICAL: You MUST respond with ONLY a valid JSON array. No text before or after.
+
+${excalidrawSkills}`;
+
+    const userPrompt = `Here is the current Excalidraw wireframe JSON elements array:
+
+${JSON.stringify(currentElements)}
+
+User's modification request: "${instruction}"
+
+Return the COMPLETE modified elements array as valid JSON. Rules:
+- Preserve element IDs where possible — only change what the user asked for
+- If adding new elements, generate unique IDs
+- Snap all coordinates to 20px grid
+- Maintain existing groupings and bindings
+- Return ONLY the JSON array of elements, starting with [`;
+
+    const response = await this.callLLMWithOptions(systemPrompt, userPrompt, {
+      maxOutputTokens: 16384,
+      temperature: 0.3,
+    });
+
+    // Response could be the array directly or wrapped
+    const elements = Array.isArray(response) ? response : response?.elements;
+    if (!Array.isArray(elements) || elements.length === 0) {
+      throw new Error('Refinement returned invalid elements');
+    }
+
+    return elements;
+  }
+
+  /**
    * Generates mock LLM response for testing
    *
    * Used when llmClient is not available or for testing purposes
@@ -2472,6 +2693,22 @@ Rewritten text (definitive, unambiguous):`;
             : Promise.resolve(undefined),
         ];
         const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all(secondaryGenerators);
+
+        // Generate Excalidraw wireframes if visual expectations were generated
+        if (visualExpectations && includeWireframes) {
+          try {
+            const excalidrawData = await this.generateExcalidrawWireframes(
+              visualExpectations.expectations,
+              input.wireframeContext,
+              input.wireframeImageUrls,
+            );
+            if (excalidrawData) {
+              visualExpectations.excalidrawData = excalidrawData;
+            }
+          } catch (error) {
+            this.logger.warn(`Excalidraw generation failed (non-blocking): ${String(error)}`);
+          }
+        }
 
         // Assemble final tech spec (WITH repository)
         const techSpec: TechSpec = {

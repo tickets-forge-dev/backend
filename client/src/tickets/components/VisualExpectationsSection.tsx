@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Eye, Copy, Check, ChevronDown, ArrowRight } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
-import type { VisualExpectationsSpec, VisualExpectationSpec } from '@/types/question-refinement';
+import type { VisualExpectationsSpec, VisualExpectationSpec, ExcalidrawDataSpec } from '@/types/question-refinement';
+import { ExcalidrawEditor } from './ExcalidrawEditor';
 
 const STATE_LABELS: Record<string, { label: string; color: string }> = {
   default: { label: 'Default', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
@@ -122,12 +123,18 @@ interface VisualExpectationsSectionProps {
   summary: string;
   expectations: VisualExpectationSpec[];
   flowDiagram?: string;
+  excalidrawData?: ExcalidrawDataSpec;
+  ticketId?: string;
+  onSaveExcalidraw?: (data: ExcalidrawDataSpec) => Promise<void>;
 }
 
 export function VisualExpectationsSection({
   summary,
   expectations,
   flowDiagram,
+  excalidrawData,
+  ticketId,
+  onSaveExcalidraw,
 }: VisualExpectationsSectionProps) {
   const [showFlow, setShowFlow] = useState(false);
 
@@ -147,6 +154,15 @@ export function VisualExpectationsSection({
 
   return (
     <div className="space-y-4">
+      {/* Excalidraw wireframe (if available) */}
+      {excalidrawData && ticketId && onSaveExcalidraw && (
+        <ExcalidrawEditor
+          excalidrawData={excalidrawData}
+          ticketId={ticketId}
+          onSave={onSaveExcalidraw}
+        />
+      )}
+
       {/* Summary */}
       <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
         {summary}

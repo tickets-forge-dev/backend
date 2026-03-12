@@ -264,6 +264,19 @@ export class TicketService {
     const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/re-enrich`, {});
     return response.data;
   }
+
+  // Excalidraw wireframe refinement via AI
+  async refineWireframe(
+    ticketId: string,
+    instruction: string,
+    currentElements: any[],
+  ): Promise<any[]> {
+    const response = await this.client.post<{ elements: any[] }>(
+      `/tickets/${ticketId}/refine-wireframe`,
+      { instruction, currentElements },
+    );
+    return response.data.elements;
+  }
 }
 
 export interface DetectedApiResponse {

@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { type DesignReference } from '@repo/shared-types';
 import { Eye, Figma } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { DesignReferencesSection } from './DesignReferencesSection';
 import { AddDesignLinkDialog } from './AddDesignLinkDialog';
 import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpectationsSection';
-import type { VisualExpectationsSpec } from '@/types/question-refinement';
+import type { VisualExpectationsSpec, ExcalidrawDataSpec } from '@/types/question-refinement';
+import { TicketService } from '@/services/ticket.service';
 
 interface DesignTabProps {
   ticketId: string;
@@ -30,6 +31,19 @@ export function DesignTab({
 }: DesignTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isFigmaConnected, setIsFigmaConnected] = useState(false);
+  const ticketService = useMemo(() => new TicketService(), []);
+
+  const handleSaveExcalidraw = useCallback(async (data: ExcalidrawDataSpec) => {
+    await ticketService.update(ticketId, {
+      techSpec: {
+        visualExpectations: {
+          ...visualExpectations,
+          excalidrawData: data,
+        },
+      },
+    });
+    if (onRefresh) await onRefresh();
+  }, [ticketId, visualExpectations, ticketService, onRefresh]);
 
   // Check Figma connection status on mount
   useEffect(() => {
@@ -98,6 +112,9 @@ export function DesignTab({
               summary={visualExpectations!.summary}
               expectations={visualExpectations!.expectations}
               flowDiagram={visualExpectations!.flowDiagram}
+              excalidrawData={visualExpectations!.excalidrawData}
+              ticketId={ticketId}
+              onSaveExcalidraw={handleSaveExcalidraw}
             />
           </div>
         </div>
