@@ -179,30 +179,7 @@ export default function TicketsListPage() {
 
     return (
       <div className="space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
-      {/* Header with Create Button */}
-      <div className="flex items-center justify-end gap-2 px-2 sm:px-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsCreatingFolder(true)}
-          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text)]"
-        >
-          <FolderPlus className="h-4 w-4 mr-1.5" />
-          <span className="hidden sm:inline">New Folder</span>
-        </Button>
-        {quota && !quota.canCreate ? (
-          <div className="relative group">
-            <CreationMenu disabled={true} />
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
-              Ticket limit reached ({quota.used}/{quota.limit})
-            </div>
-          </div>
-        ) : (
-          <CreationMenu disabled={false} />
-        )}
-      </div>
-
-      {/* Filter & Sort bar - Responsive */}
+      {/* Filter, Sort & Actions bar */}
       <div className="flex items-center gap-2">
         {/* Search */}
         <div className="relative flex-1 sm:max-w-md">
@@ -325,6 +302,32 @@ export default function TicketsListPage() {
             </>
           )}
         </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* New Folder & Create */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCreatingFolder(true)}
+          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text)] flex-shrink-0"
+        >
+          <FolderPlus className="h-4 w-4 mr-1.5" />
+          <span className="hidden sm:inline">New Folder</span>
+        </Button>
+        {quota && !quota.canCreate ? (
+          <div className="relative group flex-shrink-0">
+            <CreationMenu disabled={true} />
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
+              Ticket limit reached ({quota.used}/{quota.limit})
+            </div>
+          </div>
+        ) : (
+          <div className="flex-shrink-0">
+            <CreationMenu disabled={false} />
+          </div>
+        )}
       </div>
 
       {/* Loading state: Show skeletons when loading (including team switches) */}

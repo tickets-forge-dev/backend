@@ -114,8 +114,8 @@ export function TeamSwitcher() {
             {!sidebarCollapsed && (
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <Badge
-                  variant={currentTeam ? (isOwner ? 'default' : 'secondary') : 'outline'}
-                  className="text-[10px] px-1.5 py-0"
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 text-[var(--text-secondary)]"
                 >
                   {currentTeam ? (isOwner ? 'Owner' : 'Member') : 'Private'}
                 </Badge>
@@ -173,8 +173,8 @@ export function TeamSwitcher() {
                   <span className="text-[var(--text-sm)] truncate">{team.name}</span>
                 </div>
                 <Badge
-                  variant={team.isOwner ? 'default' : 'outline'}
-                  className="text-[10px] px-1.5 py-0 flex-shrink-0"
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 flex-shrink-0 text-[var(--text-secondary)]"
                 >
                   {team.isOwner ? 'Owner' : 'Member'}
                 </Badge>
