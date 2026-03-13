@@ -316,37 +316,33 @@ export class TicketsController {
     @UserId() userId: string,
     @Body() dto: CreateTicketDto,
   ) {
-    try {
-      this.logger.log(`[createTicket] userId: ${userId}, teamId: ${teamId}, title: ${dto.title}`);
-      this.telemetry.trackTicketCreationStarted(userId, teamId, 'create_new');
+    this.logger.log(`[createTicket] userId: ${userId}, teamId: ${teamId}, title: ${dto.title}`);
+    this.telemetry.trackTicketCreationStarted(userId, teamId, 'create_new');
 
-      const aec = await this.createTicketUseCase.execute({
-        teamId,
-        workspaceId,
-        userId,
-        userEmail,
-        title: dto.title,
-        description: dto.description,
-        repositoryFullName: dto.repositoryFullName,
-        branchName: dto.branchName,
-        maxRounds: dto.maxRounds,
-        type: dto.type,
-        priority: dto.priority,
-        taskAnalysis: dto.taskAnalysis,
-        reproductionSteps: dto.reproductionSteps,
-        // Story 14-3: Generation preferences
-        includeWireframes: dto.includeWireframes,
-        includeApiSpec: dto.includeApiSpec,
-        apiSpecDeferred: dto.apiSpecDeferred,
-        wireframeContext: dto.wireframeContext,
-        wireframeImageAttachmentIds: dto.wireframeImageAttachmentIds,
-        apiContext: dto.apiContext,
-      });
+    const aec = await this.createTicketUseCase.execute({
+      teamId,
+      workspaceId,
+      userId,
+      userEmail,
+      title: dto.title,
+      description: dto.description,
+      repositoryFullName: dto.repositoryFullName,
+      branchName: dto.branchName,
+      maxRounds: dto.maxRounds,
+      type: dto.type,
+      priority: dto.priority,
+      taskAnalysis: dto.taskAnalysis,
+      reproductionSteps: dto.reproductionSteps,
+      // Story 14-3: Generation preferences
+      includeWireframes: dto.includeWireframes,
+      includeApiSpec: dto.includeApiSpec,
+      apiSpecDeferred: dto.apiSpecDeferred,
+      wireframeContext: dto.wireframeContext,
+      wireframeImageAttachmentIds: dto.wireframeImageAttachmentIds,
+      apiContext: dto.apiContext,
+    });
 
-      return this.mapToResponse(aec);
-    } catch (error) {
-      throw error;
-    }
+    return this.mapToResponse(aec);
   }
 
   @Get('quota')
