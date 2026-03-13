@@ -17,7 +17,6 @@ import posthog from 'posthog-js';
  */
 
 export const initPostHog = () => {
-  return; // PostHog disabled
   if (typeof window === 'undefined') return;
 
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;

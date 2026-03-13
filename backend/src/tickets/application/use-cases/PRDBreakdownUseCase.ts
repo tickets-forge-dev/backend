@@ -11,9 +11,13 @@
  * after user approval.
  */
 
-import { Injectable, BadRequestException, Logger, Inject } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, Logger, Inject } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { PRDBreakdownService } from '../services/PRDBreakdownService';
+import {
+  UsageBudgetRepository,
+  USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UsageBudgetRepository';
 import {
   PRDBreakdownCommand,
   PRDBreakdownResult,
@@ -44,6 +48,8 @@ export class PRDBreakdownUseCase {
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
     private readonly prdBreakdownService: PRDBreakdownService,
+    @Inject(USAGE_BUDGET_REPOSITORY)
+    private readonly usageBudgetRepository: UsageBudgetRepository,
   ) {}
 
   /**
@@ -67,16 +73,29 @@ export class PRDBreakdownUseCase {
       // Validate command
       this.validateCommand(command);
 
+      // Check token budget before LLM calls
+      const month = new Date().toISOString().slice(0, 7);
+      const budget = await this.usageBudgetRepository.getOrCreate(command.teamId, month);
+      if (budget.tokensUsed >= budget.tokenLimit) {
+        throw new ForbiddenException({
+          message: `Token quota exceeded: ${budget.tokensUsed}/${budget.tokenLimit}`,
+          code: 'QUOTA_EXCEEDED',
+        });
+      }
+
       // Send initial progress event
       if (command.onProgress) {
         command.onProgress('extracting', 'Extracting functional requirements from PRD...');
       }
 
       // Execute breakdown
-      const breakdown = await this.prdBreakdownService.breakdown({
-        ...command,
-        onProgress: command.onProgress,
-      });
+      const breakdown = await this.prdBreakdownService.breakdown(
+        {
+          ...command,
+          onProgress: command.onProgress,
+        },
+        { teamId: command.teamId },
+      );
 
       const analysisTime = Date.now() - startTime;
       const estimatedTicketsCount = breakdown.tickets.length;

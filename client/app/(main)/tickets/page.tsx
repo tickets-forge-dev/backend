@@ -320,7 +320,7 @@ export default function TicketsListPage() {
           <div className="relative group flex-shrink-0">
             <CreationMenu disabled={true} />
             <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
-              Ticket limit reached ({quota.used}/{quota.limit})
+              Ticket limit reached ({quota.ticketsCreatedToday}/{quota.dailyTicketLimit})
             </div>
           </div>
         ) : (

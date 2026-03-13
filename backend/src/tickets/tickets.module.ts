@@ -68,6 +68,8 @@ import { RefineWireframeUseCase } from './application/use-cases/RefineWireframeU
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
 import { TeamsModule } from '../teams/teams.module';
+import { USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UsageBudgetRepository';
+import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUsageBudgetRepository';
 
 @Module({
   imports: [
@@ -146,6 +148,10 @@ import { TeamsModule } from '../teams/teams.module';
       useClass: FirestoreAECRepository,
     },
     {
+      provide: USAGE_BUDGET_REPOSITORY,
+      useClass: FirestoreUsageBudgetRepository,
+    },
+    {
       provide: DRIFT_DETECTOR,
       useClass: DriftDetectorService,
     },
@@ -190,6 +196,7 @@ import { TeamsModule } from '../teams/teams.module';
     UpdateAECUseCase,
     EstimateEffortUseCase,
     AEC_REPOSITORY,
+    USAGE_BUDGET_REPOSITORY,
     DRIFT_DETECTOR,
     ESTIMATION_ENGINE,
   ],

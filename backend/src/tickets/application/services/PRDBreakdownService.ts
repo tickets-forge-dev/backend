@@ -12,10 +12,15 @@
  * 5. Return structured breakdown ready for review and bulk creation
  */
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
+import {
+  UsageBudgetRepository,
+  USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UsageBudgetRepository';
 import {
   PRDBreakdownCommand,
   PRDBreakdownResult,
@@ -52,7 +57,12 @@ export class PRDBreakdownService implements OnModuleInit {
   private llmModel: LanguageModel | null = null;
   private providerName: string = 'uninitialized';
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly telemetryService: TelemetryService,
+    @Inject(USAGE_BUDGET_REPOSITORY)
+    private readonly usageBudgetRepository: UsageBudgetRepository,
+  ) {}
 
   onModuleInit() {
     this.initializeLLM();
@@ -89,7 +99,10 @@ export class PRDBreakdownService implements OnModuleInit {
   /**
    * Execute the PRD breakdown workflow
    */
-  async breakdown(command: PRDBreakdownCommand): Promise<PRDBreakdownResult> {
+  async breakdown(
+    command: PRDBreakdownCommand,
+    trackingContext?: { userId?: string; teamId?: string },
+  ): Promise<PRDBreakdownResult> {
     const repoContext = command.repositoryOwner && command.repositoryName
       ? `repo ${command.repositoryOwner}/${command.repositoryName}`
       : 'no repository context';
@@ -102,7 +115,7 @@ export class PRDBreakdownService implements OnModuleInit {
 
     // Step 1: Extract functional requirements
     this.emitProgress(command, 'extracting', 'Extracting functional requirements from PRD...');
-    const frInventory = await this.extractFunctionalRequirements(command.prdText);
+    const frInventory = await this.extractFunctionalRequirements(command.prdText, trackingContext);
     this.logger.log(`✅ Extracted ${frInventory.length} functional requirements`);
     this.emitProgress(command, 'extracted', `Found ${frInventory.length} functional requirements`);
 
@@ -112,6 +125,7 @@ export class PRDBreakdownService implements OnModuleInit {
       command.prdText,
       frInventory,
       command.projectName,
+      trackingContext,
     );
     this.logger.log(`✅ Proposed ${epicProposals.length} epics`);
     this.emitProgress(command, 'proposed', `Proposed ${epicProposals.length} epics with ${frInventory.length} mapped requirements`);
@@ -132,6 +146,7 @@ export class PRDBreakdownService implements OnModuleInit {
         epicProposal,
         frInventory,
         i + 1,
+        trackingContext,
       );
 
       const tickets = this.convertStoriesToTickets(stories, epicProposal.name, i + 1);
@@ -195,7 +210,10 @@ export class PRDBreakdownService implements OnModuleInit {
   /**
    * Step 1: Extract functional requirements from PRD
    */
-  private async extractFunctionalRequirements(prdText: string): Promise<ExtractedFR[]> {
+  private async extractFunctionalRequirements(
+    prdText: string,
+    trackingContext?: { userId?: string; teamId?: string },
+  ): Promise<ExtractedFR[]> {
     if (!this.llmModel) {
       throw new Error('LLM model not initialized. Check ANTHROPIC_API_KEY or Ollama connection.');
     }
@@ -232,6 +250,8 @@ Guidelines:
         temperature: 0.3, // Low temperature for consistency
       });
 
+      this.trackLLMUsage(result.usage, 'prd_extract_frs', trackingContext);
+
       const parsed = JSON.parse(result.text);
       if (!Array.isArray(parsed)) {
         throw new Error('Expected array of requirements');
@@ -251,6 +271,7 @@ Guidelines:
     prdText: string,
     frInventory: ExtractedFR[],
     projectName?: string,
+    trackingContext?: { userId?: string; teamId?: string },
   ): Promise<EpicProposal[]> {
     if (!this.llmModel) {
       throw new Error('LLM model not initialized. Check ANTHROPIC_API_KEY or Ollama connection.');
@@ -298,6 +319,8 @@ Guidelines:
         temperature: 0.4,
       });
 
+      this.trackLLMUsage(result.usage, 'prd_propose_epics', trackingContext);
+
       const parsed = JSON.parse(result.text);
       if (!Array.isArray(parsed)) {
         throw new Error('Expected array of epic proposals');
@@ -317,6 +340,7 @@ Guidelines:
     epic: EpicProposal,
     allFRs: ExtractedFR[],
     _epicIndex: number,
+    trackingContext?: { userId?: string; teamId?: string },
   ): Promise<GeneratedStory[]> {
     if (!this.llmModel) {
       throw new Error('LLM model not initialized. Check ANTHROPIC_API_KEY or Ollama connection.');
@@ -377,6 +401,8 @@ Guidelines:
         prompt,
         temperature: 0.5,
       });
+
+      this.trackLLMUsage(result.usage, 'prd_generate_stories', trackingContext);
 
       const parsed = JSON.parse(result.text);
       if (!Array.isArray(parsed)) {
@@ -450,6 +476,38 @@ Guidelines:
   /**
    * Validate that all FRs are covered by at least one story
    */
+  /**
+   * Track LLM token usage for cost tracking and budget enforcement
+   */
+  private trackLLMUsage(
+    usage: { inputTokens?: number; outputTokens?: number } | undefined,
+    operation: string,
+    trackingContext?: { userId?: string; teamId?: string },
+  ): void {
+    if (!usage || !trackingContext?.userId) return;
+
+    const inputTokens = usage.inputTokens ?? 0;
+    const outputTokens = usage.outputTokens ?? 0;
+    const model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+    const costUsd = this.telemetryService.computeLLMCost(model, inputTokens, outputTokens);
+    this.telemetryService.trackCost(trackingContext.userId, {
+      service: 'anthropic',
+      tokens_input: inputTokens,
+      tokens_output: outputTokens,
+      cost_usd: costUsd,
+      model,
+      operation,
+    });
+
+    if (trackingContext.teamId) {
+      const month = new Date().toISOString().slice(0, 7);
+      const totalTokens = inputTokens + outputTokens;
+      this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+        this.logger.warn(`Failed to increment token usage: ${err.message}`);
+      });
+    }
+  }
+
   private validateFRCoverage(summary: PRDBreakdownSummary, frInventory: ExtractedFR[]): void {
     const covered = new Set<string>();
     for (const epic of summary.epics) {

@@ -32,7 +32,12 @@ import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import {
   InvalidStateTransitionError,
+  QuotaExceededError,
 } from '../../../shared/domain/exceptions/DomainExceptions';
+import {
+  UsageBudgetRepository,
+  USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UsageBudgetRepository';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -142,6 +147,8 @@ export class TicketsController {
     private readonly startImplementationUseCase: StartImplementationUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
     private readonly telemetry: TelemetryService,
+    @Inject(USAGE_BUDGET_REPOSITORY)
+    private readonly usageBudgetRepository: UsageBudgetRepository,
   ) {}
 
   /**
@@ -319,39 +326,65 @@ export class TicketsController {
     this.logger.log(`[createTicket] userId: ${userId}, teamId: ${teamId}, title: ${dto.title}`);
     this.telemetry.trackTicketCreationStarted(userId, teamId, 'create_new');
 
-    const aec = await this.createTicketUseCase.execute({
-      teamId,
-      workspaceId,
-      userId,
-      userEmail,
-      title: dto.title,
-      description: dto.description,
-      repositoryFullName: dto.repositoryFullName,
-      branchName: dto.branchName,
-      maxRounds: dto.maxRounds,
-      type: dto.type,
-      priority: dto.priority,
-      taskAnalysis: dto.taskAnalysis,
-      reproductionSteps: dto.reproductionSteps,
-      // Story 14-3: Generation preferences
-      includeWireframes: dto.includeWireframes,
-      includeApiSpec: dto.includeApiSpec,
-      apiSpecDeferred: dto.apiSpecDeferred,
-      wireframeContext: dto.wireframeContext,
-      wireframeImageAttachmentIds: dto.wireframeImageAttachmentIds,
-      apiContext: dto.apiContext,
-    });
+    try {
+      const aec = await this.createTicketUseCase.execute({
+        teamId,
+        workspaceId,
+        userId,
+        userEmail,
+        title: dto.title,
+        description: dto.description,
+        repositoryFullName: dto.repositoryFullName,
+        branchName: dto.branchName,
+        maxRounds: dto.maxRounds,
+        type: dto.type,
+        priority: dto.priority,
+        taskAnalysis: dto.taskAnalysis,
+        reproductionSteps: dto.reproductionSteps,
+        // Story 14-3: Generation preferences
+        includeWireframes: dto.includeWireframes,
+        includeApiSpec: dto.includeApiSpec,
+        apiSpecDeferred: dto.apiSpecDeferred,
+        wireframeContext: dto.wireframeContext,
+        wireframeImageAttachmentIds: dto.wireframeImageAttachmentIds,
+        apiContext: dto.apiContext,
+      });
 
-    return this.mapToResponse(aec);
+      return this.mapToResponse(aec);
+    } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        throw new ForbiddenException({
+          message: error.message,
+          code: 'QUOTA_EXCEEDED',
+          used: error.used,
+          limit: error.limit,
+        });
+      }
+      throw error;
+    }
   }
 
   @Get('quota')
   async getQuota(
     @TeamId() teamId: string,
-    @UserId() userId: string,
   ) {
-    const used = await this.aecRepository.countByTeamAndCreator(teamId, userId);
-    return { used, limit: Infinity, canCreate: true };
+    const month = new Date().toISOString().slice(0, 7);
+    const budget = await this.usageBudgetRepository.getOrCreate(teamId, month);
+    const usagePercent = budget.tokenLimit > 0
+      ? Math.round((budget.tokensUsed / budget.tokenLimit) * 100)
+      : 0;
+    const canCreate =
+      budget.tokensUsed < budget.tokenLimit &&
+      budget.ticketsCreatedToday < budget.dailyTicketLimit;
+
+    return {
+      tokensUsed: budget.tokensUsed,
+      tokenLimit: budget.tokenLimit,
+      ticketsCreatedToday: budget.ticketsCreatedToday,
+      dailyTicketLimit: budget.dailyTicketLimit,
+      canCreate,
+      usagePercent,
+    };
   }
 
   @Get(':id(aec_[a-f0-9\\-]+)')

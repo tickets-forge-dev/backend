@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { TechSpecGenerator, CodebaseContext } from '../../domain/tech-spec/TechSpecGenerator';
@@ -9,6 +9,10 @@ import { GitHubFileService } from '@github/domain/github-file.service';
 import { CODEBASE_ANALYZER } from '../ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../ports/ProjectStackDetectorPort';
 import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
+import {
+  UsageBudgetRepository,
+  USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UsageBudgetRepository';
 
 /**
  * Input command for finalizing the technical specification
@@ -59,6 +63,8 @@ export class FinalizeSpecUseCase {
     private readonly stackDetector: ProjectStackDetector,
     @Inject(GITHUB_FILE_SERVICE)
     private readonly githubFileService: GitHubFileService,
+    @Inject(USAGE_BUDGET_REPOSITORY)
+    private readonly usageBudgetRepository: UsageBudgetRepository,
   ) {}
 
   /**
@@ -66,6 +72,16 @@ export class FinalizeSpecUseCase {
    */
   async execute(command: FinalizeSpecCommand): Promise<AEC> {
     console.log(`✨ [FinalizeSpecUseCase] Finalizing spec for AEC ${command.aecId}`);
+
+    // Check token budget before LLM calls
+    const month = new Date().toISOString().slice(0, 7);
+    const budget = await this.usageBudgetRepository.getOrCreate(command.teamId, month);
+    if (budget.tokensUsed >= budget.tokenLimit) {
+      throw new ForbiddenException({
+        message: `Token quota exceeded: ${budget.tokensUsed}/${budget.tokenLimit}`,
+        code: 'QUOTA_EXCEEDED',
+      });
+    }
 
     // Load AEC
     const aec = await this.aecRepository.findById(command.aecId);

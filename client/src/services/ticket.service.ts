@@ -148,8 +148,22 @@ export class TicketService {
     await this.client.delete(`/tickets/${id}`);
   }
 
-  async getQuota(): Promise<{ used: number; limit: number; canCreate: boolean }> {
-    const response = await this.client.get<{ used: number; limit: number; canCreate: boolean }>('/tickets/quota');
+  async getQuota(): Promise<{
+    tokensUsed: number;
+    tokenLimit: number;
+    ticketsCreatedToday: number;
+    dailyTicketLimit: number;
+    canCreate: boolean;
+    usagePercent: number;
+  }> {
+    const response = await this.client.get<{
+      tokensUsed: number;
+      tokenLimit: number;
+      ticketsCreatedToday: number;
+      dailyTicketLimit: number;
+      canCreate: boolean;
+      usagePercent: number;
+    }>('/tickets/quota');
     return response.data;
   }
 

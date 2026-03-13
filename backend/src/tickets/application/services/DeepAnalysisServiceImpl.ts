@@ -9,10 +9,15 @@
  * Phase 3: LLM performs deep analysis with all file contents
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
+import {
+  UsageBudgetRepository,
+  USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UsageBudgetRepository';
 import {
   DeepAnalysisService,
   DeepAnalysisInput,
@@ -88,6 +93,9 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     private configService: ConfigService,
     private fingerprintService: RepositoryFingerprintService,
     private apiDetectionService: ApiDetectionService,
+    private readonly telemetryService: TelemetryService,
+    @Inject(USAGE_BUDGET_REPOSITORY)
+    private readonly usageBudgetRepository: UsageBudgetRepository,
   ) {
     const provider = this.configService.get<string>('LLM_PROVIDER') || 'anthropic';
 
@@ -627,7 +635,11 @@ QUALITY RULES:
   /**
    * Call LLM with system and user prompts via Vercel AI SDK
    */
-  private async callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
+  private async callLLM(
+    systemPrompt: string,
+    userPrompt: string,
+    trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
+  ): Promise<string> {
     if (!this.llmModel) {
       throw new Error('No LLM model configured. Set LLM_PROVIDER and credentials.');
     }
@@ -638,7 +650,7 @@ QUALITY RULES:
       );
       const startTime = Date.now();
 
-      const { text } = await generateText({
+      const { text, usage } = await generateText({
         model: this.llmModel,
         system: systemPrompt,
         prompt: userPrompt,
@@ -648,6 +660,34 @@ QUALITY RULES:
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       this.logger.log(`LLM responded in ${elapsed}s (${text.length} chars)`);
+
+      // Track cost if context is provided
+      if (trackingContext?.userId && usage) {
+        const model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+        const costUsd = this.telemetryService.computeLLMCost(
+          model,
+          usage.inputTokens ?? 0,
+          usage.outputTokens ?? 0,
+        );
+        this.telemetryService.trackCost(trackingContext.userId, {
+          service: 'anthropic',
+          tokens_input: usage.inputTokens ?? 0,
+          tokens_output: usage.outputTokens ?? 0,
+          cost_usd: costUsd,
+          model,
+          operation: trackingContext.operation || 'deep_analysis',
+          ticket_id: trackingContext.ticketId,
+        });
+
+        if (trackingContext.teamId) {
+          const month = new Date().toISOString().slice(0, 7);
+          const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+          this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+            this.logger.warn(`Failed to increment token usage: ${err.message}`);
+          });
+        }
+      }
+
       return text;
     } catch (error: any) {
       this.logger.error(`LLM call failed (${this.providerName}): ${error.message}`);
