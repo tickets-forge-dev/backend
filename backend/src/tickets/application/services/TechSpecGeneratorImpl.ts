@@ -2198,12 +2198,17 @@ Rewritten text (definitive, unambiguous):`;
 
     const helpersPath = join(basePath, 'excalidraw-helpers.md');
     if (existsSync(helpersPath)) {
-      parts.push(readFileSync(helpersPath, 'utf-8'));
+      parts.push('## ELEMENT CREATION GUIDELINES\n\n' + readFileSync(helpersPath, 'utf-8'));
     }
 
     const templatesPath = join(basePath, 'excalidraw-templates.yaml');
     if (existsSync(templatesPath)) {
-      parts.push(readFileSync(templatesPath, 'utf-8'));
+      parts.push('## TEMPLATES\n\n' + readFileSync(templatesPath, 'utf-8'));
+    }
+
+    const libraryPath = join(basePath, 'excalidraw-library.json');
+    if (existsSync(libraryPath)) {
+      parts.push('## LIBRARY ELEMENT EXAMPLES\n\n' + readFileSync(libraryPath, 'utf-8'));
     }
 
     this.excalidrawSkillsCache = parts.length > 0
@@ -2227,10 +2232,9 @@ Rewritten text (definitive, unambiguous):`;
     try {
       const excalidrawSkills = this.getExcalidrawSkills();
 
-      const systemPrompt = `You are a wireframe design agent specialized in Excalidraw JSON output.
-You create clean, professional UI wireframes as Excalidraw elements.
+      const systemPrompt = `You are BMAD Frame Expert — a wireframe design agent that produces production-quality Excalidraw JSON.
 
-CRITICAL: You MUST respond with ONLY valid JSON. No text before or after.
+CRITICAL: Respond with ONLY valid JSON. No text before or after.
 
 ${excalidrawSkills}`;
 
@@ -2246,37 +2250,137 @@ ${excalidrawSkills}`;
         ? `\nReference mockup images: ${wireframeImageUrls.length} uploaded. Use them as visual reference.\n`
         : '';
 
-      const userPrompt = `Generate an Excalidraw wireframe containing all the following screens laid out side by side with 100px gap between each screen. Add a title text element above each screen.
+      const userPrompt = `Create a medium-fidelity web app wireframe for the following screens.
 ${designContext}${imageRef}
 Screens to include:
 ${screensList}
 
-For each screen, create:
-- A container rectangle (800x600) with solid border
-- A header bar (full width, 80px tall) with the screen title
-- UI elements matching the description: buttons as rounded rectangles, inputs as rectangles, text elements, tables as grouped rectangles
-- Use the wireframe template sizing from the guidelines
+## BUILD ORDER (follow this exactly)
 
-Place screens side by side horizontally, starting at x=0, with 100px gap between each.
+### Step 1: Screen Containers
+For each screen, create a container rectangle:
+- width: 800, height: 600, strokeWidth: 2, strokeColor: "#9e9e9e"
+- backgroundColor: "#ffffff", fillStyle: "solid", roughness: 0
+- Lay out horizontally starting at x=0, y=100, with 100px gap between screens
+- Add a title text element ABOVE each container (y = container.y - 40, fontSize: 24)
 
-Output ONLY valid JSON with this exact structure:
+### Step 2: Layout Sections (inside each container)
+- Header bar: full width (800), height 60, backgroundColor: "#f5f5f5", fillStyle: "solid"
+- Content area: below header, padded 40px from edges
+- Footer/action bar if needed: bottom of container, height 60
+
+### Step 3: Navigation Elements
+- Nav items as text elements in the header
+- Breadcrumbs, tabs, or sidebar as needed by the screen
+
+### Step 4: Content Blocks
+- Cards: rectangle with roundness {"type":3,"value":8}, strokeColor: "#9e9e9e", backgroundColor: "#ffffff"
+- Tables: use grouped rectangles for rows/columns
+- Lists: text elements with consistent spacing (40px vertical gap)
+- Images/placeholders: rectangle with diagonal cross lines
+
+### Step 5: Interactive Elements
+- Buttons: rectangle width 120-200, height 40, roundness {"type":3,"value":4}, backgroundColor: "#e3f2fd", strokeColor: "#1976d2"
+- Primary buttons: backgroundColor: "#1976d2", text strokeColor: "#ffffff"
+- Input fields: rectangle width 300, height 40, roundness {"type":3,"value":4}, backgroundColor: "#ffffff", strokeColor: "#9e9e9e"
+- Checkboxes/toggles: small rectangles (20x20)
+- Dropdowns: input + small chevron indicator
+
+### Step 6: Labels & Annotations
+- Add text labels for all interactive elements
+- Section headings: fontSize 20, bold
+- Body text: fontSize 16
+- Caption/helper text: fontSize 14, strokeColor: "#757575"
+- Annotate key interactions with dashed-line callouts if helpful
+
+### Step 7: Flow Indicators
+- If multiple screens, add arrows between related screens showing navigation flow
+- Arrow strokeColor: "#1976d2", strokeWidth: 2
+
+## ELEMENT STRUCTURE RULES
+
+Every element MUST include ALL these properties:
+\`\`\`json
+{
+  "id": "unique-string-id",
+  "type": "rectangle",
+  "x": 0, "y": 0,
+  "width": 160, "height": 80,
+  "angle": 0,
+  "strokeColor": "#9e9e9e",
+  "backgroundColor": "#ffffff",
+  "fillStyle": "solid",
+  "strokeWidth": 2,
+  "strokeStyle": "solid",
+  "roughness": 0,
+  "opacity": 100,
+  "groupIds": [],
+  "roundness": null,
+  "isDeleted": false,
+  "boundElements": null,
+  "locked": false
+}
+\`\`\`
+
+Text elements MUST include:
+\`\`\`json
+{
+  "id": "unique-text-id",
+  "type": "text",
+  "x": 0, "y": 0,
+  "width": 100, "height": 25,
+  "angle": 0,
+  "strokeColor": "#424242",
+  "backgroundColor": "transparent",
+  "fillStyle": "solid",
+  "strokeWidth": 1,
+  "strokeStyle": "solid",
+  "roughness": 0,
+  "opacity": 100,
+  "groupIds": [],
+  "roundness": null,
+  "isDeleted": false,
+  "boundElements": null,
+  "locked": false,
+  "text": "Label text",
+  "fontSize": 16,
+  "fontFamily": 1,
+  "textAlign": "left",
+  "verticalAlign": "top",
+  "containerId": null,
+  "originalText": "Label text"
+}
+\`\`\`
+
+For labels INSIDE shapes, the text element must have:
+- containerId: "parent-shape-id"
+- textAlign: "center", verticalAlign: "middle"
+- width calculated as: text.length × fontSize × 0.6 + 20 (rounded to nearest 10)
+And the parent shape must have: boundElements: [{"type":"text","id":"text-id"}]
+Both shape and text must share the same groupIds: ["group-id"]
+
+## THEME: Classic Wireframe
+- Background: #ffffff
+- Container fill: #f5f5f5
+- Borders: #9e9e9e
+- Text: #424242
+- Primary accent: #1976d2
+- Primary fill: #e3f2fd
+- Error: #d32f2f
+- Success: #388e3c
+
+## COORDINATE RULES
+- Snap ALL x, y values to 20px grid: Math.round(value / 20) * 20
+- Minimum spacing between elements: 20px
+- Consistent padding inside containers: 40px
+
+Output ONLY this JSON structure:
 {
   "type": "excalidraw",
   "version": 2,
   "source": "forge-wireframe-agent",
-  "elements": [
-    // Array of Excalidraw elements (rectangle, text, arrow, ellipse, etc.)
-    // Each element needs: id, type, x, y, width, height, strokeColor, backgroundColor, etc.
-  ]
-}
-
-RULES:
-- Every element MUST have a unique "id" string
-- Snap coordinates to 20px grid
-- Use strokeColor "#1e1e1e" for borders, backgroundColor "#e8e8e8" for fills
-- Text elements: fontSize 16 for body, 20 for headers
-- Group shape+label pairs with matching groupIds
-- Do NOT include appState, files, or history`;
+  "elements": [/* all elements */]
+}`;
 
       const response = await this.callLLMWithOptions(systemPrompt, userPrompt, {
         maxOutputTokens: 16384,
@@ -2318,25 +2422,31 @@ RULES:
   ): Promise<any[]> {
     const excalidrawSkills = this.getExcalidrawSkills();
 
-    const systemPrompt = `You are a wireframe refinement agent specialized in modifying Excalidraw JSON elements.
-You receive existing Excalidraw elements and a user's modification request, and return the COMPLETE modified elements array.
+    const systemPrompt = `You are BMAD Frame Expert — a wireframe refinement agent that modifies Excalidraw JSON elements.
+You receive existing elements and a modification request. Return the COMPLETE modified elements array.
 
-CRITICAL: You MUST respond with ONLY a valid JSON array. No text before or after.
+CRITICAL: Respond with ONLY a valid JSON array. No text before or after.
 
-${excalidrawSkills}`;
+${excalidrawSkills}
 
-    const userPrompt = `Here is the current Excalidraw wireframe JSON elements array:
+## THEME: Classic Wireframe
+- Background: #ffffff, Container fill: #f5f5f5, Borders: #9e9e9e
+- Text: #424242, Primary accent: #1976d2, Primary fill: #e3f2fd`;
+
+    const userPrompt = `Current Excalidraw elements:
 
 ${JSON.stringify(currentElements)}
 
-User's modification request: "${instruction}"
+Modification request: "${instruction}"
 
-Return the COMPLETE modified elements array as valid JSON. Rules:
+Return the COMPLETE modified elements array. Rules:
 - Preserve element IDs where possible — only change what the user asked for
-- If adding new elements, generate unique IDs
+- If adding new elements, generate unique IDs and include ALL required properties (id, type, x, y, width, height, angle, strokeColor, backgroundColor, fillStyle, strokeWidth, strokeStyle, roughness, opacity, groupIds, roundness, isDeleted, boundElements, locked)
+- Text elements inside shapes must have containerId pointing to parent, textAlign: "center", verticalAlign: "middle"
+- Parent shapes must have boundElements referencing the text
 - Snap all coordinates to 20px grid
-- Maintain existing groupings and bindings
-- Return ONLY the JSON array of elements, starting with [`;
+- Use theme colors: borders #9e9e9e, text #424242, accent #1976d2, fills #f5f5f5
+- Return ONLY the JSON array starting with [`;
 
     const response = await this.callLLMWithOptions(systemPrompt, userPrompt, {
       maxOutputTokens: 16384,

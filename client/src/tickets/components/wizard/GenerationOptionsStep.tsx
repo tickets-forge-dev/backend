@@ -120,9 +120,12 @@ export function GenerationOptionsStep() {
 
   // ── Continue ──
 
+  const wireframeContextMissing = includeWireframes && !wireframeContext.trim();
+
   const handleContinue = useCallback(() => {
+    if (wireframeContextMissing) return;
     analyzeRepository();
-  }, [analyzeRepository]);
+  }, [analyzeRepository, wireframeContextMissing]);
 
   return (
     <div className="space-y-6">
@@ -150,15 +153,20 @@ export function GenerationOptionsStep() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-                Wireframe Context (optional)
+                Describe the UI <span className="text-red-400">*</span>
               </label>
               <textarea
                 value={wireframeContext}
                 onChange={(e) => setWireframeContext(e.target.value)}
-                placeholder="Describe the layout, components, interactions..."
+                placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
                 rows={3}
-                className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none"
+                className={`w-full rounded-md border bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none ${
+                  wireframeContextMissing ? 'border-red-400/50' : 'border-[var(--border-subtle)]'
+                }`}
               />
+              {wireframeContextMissing && (
+                <p className="text-[11px] text-red-400 mt-1">Describe the layout so the AI can generate accurate wireframes</p>
+              )}
             </div>
 
             {/* Image Upload */}

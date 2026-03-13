@@ -105,7 +105,7 @@ export function QuickDraftPalette() {
     },
     {
       id: 'create-wizard',
-      label: 'Create ticket in wizard...',
+      label: 'Create ticket',
       icon: FileText,
       shortcut: ['N'],
       group: 'Tickets',
