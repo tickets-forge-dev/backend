@@ -350,6 +350,58 @@ export default function TicketsListPage() {
       {!isLoading && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
         <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
           <TicketGridHeader />
+          {isCreatingFolder && (
+            <form
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
+                const name = newFolderName.trim();
+                setIsSubmittingFolder(true);
+                try {
+                  const result = await createFolder(currentTeam.id, name);
+                  if (result) toast.success('Folder created');
+                  setNewFolderName('');
+                  setIsCreatingFolder(false);
+                } catch {
+                  toast.error('Failed to create folder');
+                } finally {
+                  setIsSubmittingFolder(false);
+                }
+              }}
+            >
+              <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              <input
+                autoFocus
+                placeholder="Folder name..."
+                className="flex-1 text-sm bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-tertiary)]"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setNewFolderName('');
+                    setIsCreatingFolder(false);
+                  }
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!newFolderName.trim() || isSubmittingFolder}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
+                aria-label="Create folder"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setNewFolderName(''); setIsCreatingFolder(false); }}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                aria-label="Cancel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </form>
+          )}
           <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center">
             <div className="text-center px-4">
               {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
