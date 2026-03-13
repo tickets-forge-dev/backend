@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { EditableItem } from '@/src/tickets/components/EditableItem';
 import { InlineEditableList } from '@/src/tickets/components/InlineEditableList';
-import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpectationsSection';
 import { ReproductionStepsSection } from './ReproductionStepsSection';
 import { AssetsSection } from '@/src/tickets/components/AssetsSection';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
@@ -126,25 +125,7 @@ export function SpecificationTab({
         </div>
       )}
 
-      {/* 4. Visual QA Expectations */}
-      {techSpec?.visualExpectations && (
-        <div id="spec-visual-qa">
-          <CollapsibleSection
-            id="visual-qa"
-            title="Visual QA Expectations"
-            badge={`${techSpec.visualExpectations.expectations?.length || 0} screens`}
-            defaultExpanded={true}
-          >
-            <VisualExpectationsSection
-              summary={techSpec.visualExpectations.summary}
-              expectations={techSpec.visualExpectations.expectations || []}
-              flowDiagram={techSpec.visualExpectations.flowDiagram}
-            />
-          </CollapsibleSection>
-        </div>
-      )}
-
-      {/* 5. Scope */}
+      {/* 4. Scope */}
       {(techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0) && (
         <div id="spec-scope">
           <CollapsibleSection id="scope" title="Scope">

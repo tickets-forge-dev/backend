@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebase';
 import { TeamService, type TeamMember } from '@/services/team.service';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Users, UserPlus, X } from 'lucide-react';
+import { Users, UserPlus, X, Terminal, Copy, Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -171,8 +171,8 @@ export function AssigneeSelector({
 
             {/* No assignable members message */}
             {!isPrivateWorkspace && !isLoading && developers.length === 0 && !error && (
-              <div className="text-center py-6">
-                <UserPlus className="h-10 w-10 text-[var(--blue)] mx-auto mb-3" />
+              <div className="text-center py-4">
+                <UserPlus className="h-8 w-8 text-[var(--blue)] mx-auto mb-2" />
                 <p className="text-sm text-[var(--text)]">
                   No assignable members in your team yet
                 </p>
@@ -184,12 +184,13 @@ export function AssigneeSelector({
                     {allMembers.length} member{allMembers.length !== 1 ? 's' : ''} without assignable role
                   </p>
                 )}
+                <DevCliInfo />
               </div>
             )}
 
             {/* Developer list */}
             {!isPrivateWorkspace && developers.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-1 mb-3">
                 {/* Unassign option */}
                 <button
                   onClick={() => handleAssign(null)}
@@ -225,7 +226,7 @@ export function AssigneeSelector({
                         <p className="text-sm truncate">{dev.displayName || dev.email}</p>
                         <span className="text-xs text-[var(--text-tertiary)] capitalize">{dev.role}</span>
                       </div>
-                      <p className="text-xs text-[var(--text-tertiary)] truncate">{dev.email}</p>
+                      <p className="text-[10px] text-[var(--text-tertiary)] opacity-50 truncate">{dev.email}</p>
                     </div>
                     {dev.userId === assignedTo && (
                       <span className="text-xs text-[var(--blue)]">Current</span>
@@ -233,6 +234,11 @@ export function AssigneeSelector({
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* Developer CLI info — show when there are developers or in empty state */}
+            {!isPrivateWorkspace && !isLoading && developers.length > 0 && (
+              <DevCliInfo />
             )}
 
             {/* Error */}
@@ -248,5 +254,40 @@ export function AssigneeSelector({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** Small info block explaining how assigned devs use the CLI. */
+function DevCliInfo() {
+  const [copied, setCopied] = useState(false);
+  const command = 'npm install -g @anthropic-forge/cli';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(command);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] text-left">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Terminal className="h-3 w-3 text-[var(--text-tertiary)]" />
+        <p className="text-[11px] font-medium text-[var(--text-secondary)]">How it works for developers</p>
+      </div>
+      <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed mb-2">
+        Once assigned, the developer installs the Forge CLI, logs in with <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge login</code>, and runs <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge develop</code> to refine the ticket with real code context.
+      </p>
+      <button
+        onClick={handleCopy}
+        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--border)] transition-colors group"
+      >
+        <code className="flex-1 text-[10px] text-[var(--text-secondary)] text-left font-mono truncate">{command}</code>
+        {copied ? (
+          <Check className="h-3 w-3 text-green-500 shrink-0" />
+        ) : (
+          <Copy className="h-3 w-3 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] shrink-0" />
+        )}
+      </button>
+    </div>
   );
 }

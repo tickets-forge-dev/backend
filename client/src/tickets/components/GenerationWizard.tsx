@@ -1,33 +1,30 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useWizardStore, type RecoveryInfo } from '@/tickets/stores/generation-wizard.store';
-import { Stage1Input } from './wizard/Stage1Input';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useWizardStore, type RecoveryInfo, type WizardStage } from '@/tickets/stores/generation-wizard.store';
+import { DetailsStep } from './wizard/DetailsStep';
+import { CodebaseStep } from './wizard/CodebaseStep';
+import { ReferencesStep } from './wizard/ReferencesStep';
 import { Stage2ReproSteps } from './wizard/Stage2ReproSteps';
+import { GenerationOptionsStep } from './wizard/GenerationOptionsStep';
 import { Stage3Draft } from './wizard/Stage3Draft';
 import { StageIndicator } from './wizard/StageIndicator';
 import { AnalysisProgressDialog } from './wizard/AnalysisProgressDialog';
 import { FirstTicketCelebrationDialog } from '@/core/components/celebration/FirstTicketCelebrationDialog';
 import { Button } from '@/core/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 /**
  * GenerationWizard Container Component
  *
- * Orchestrates the ticket generation wizard:
- * 1. Input: User enters title and selects repository
- * 3. Draft: Answers clarification questions, reviews generated spec, and shows unified summary
- *
- * Manages:
- * - Conditional rendering of stages
- * - Loading overlay during API calls
- * - Error display and retry logic
- * - Stage navigation (forward and backward)
- * - Recovery detection on mount (resume after refresh/navigation)
- * - Overall wizard flow
+ * Orchestrates the ticket generation wizard with named stages:
+ * Non-bug: Details → Codebase → References → Options → Generate
+ * Bug:     Details → Reproduce → Codebase → References → Options → Generate
  */
 export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId?: string; initialType?: 'feature' | 'bug' | 'task'; forceNew?: boolean }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     currentStage,
     loading,
@@ -41,16 +38,16 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     loadingMessage,
     progressPercent,
     setType,
+    setTitle,
     draftAecId,
     showCelebration,
     closeCelebration,
     type,
     input,
     includeRepository,
-    analyzeRepository,
     hasRepository,
-    goBackToInput,
-    goToReproSteps,
+    nextStage,
+    prevStage,
   } = useWizardStore();
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
@@ -60,8 +57,13 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   useEffect(() => {
     if (forceNew) {
       reset();
+      // Pre-fill description from query param (e.g., from quick draft)
+      const desc = searchParams.get('description');
+      if (desc) {
+        setTitle(desc);
+      }
     }
-  }, [forceNew, reset]);
+  }, [forceNew, reset, searchParams, setTitle]);
 
   // On mount: set initial type if provided
   useEffect(() => {
@@ -71,23 +73,11 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   }, [initialType, setType]);
 
   // On mount: handle resume param or detect recoverable state
-  // tryRecover only reads — it does NOT mutate store state
-  // Skip recovery check if forceNew is true
   useEffect(() => {
-    if (forceNew) {
-      // forceNew means start fresh, don't offer recovery
-      return;
-    }
+    if (forceNew) return;
 
     if (resumeId) {
       resumeDraft(resumeId);
-      // Also show banner for resume URL param so user can start fresh if needed
-      setRecoveryInfo({
-        canRecover: true,
-        stage: 2, // Will be updated to correct stage by resumeDraft
-        title: 'Draft Ticket',
-      });
-      setShowRecoveryBanner(true);
       return;
     }
 
@@ -102,9 +92,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   const handleResume = useCallback(async () => {
     setShowRecoveryBanner(false);
     setRecoveryInfo(null);
-    // applyRecovery reads the snapshot and restores state (or calls resumeDraft for Stage 3+)
     await applyRecovery();
-    // Clear resume param from URL so user doesn't auto-resume on next visit
     if (resumeId) {
       router.push('/create');
     }
@@ -114,79 +102,106 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     reset();
     setShowRecoveryBanner(false);
     setRecoveryInfo(null);
-    // Clear the resume param from URL so user doesn't get stuck
     if (resumeId) {
       router.push('/create');
     }
   }, [reset, resumeId, router]);
 
-  // Create Next button for current stage
-  const getNextButton = () => {
-    if (currentStage === 1) {
-      // Stage 1: Input validation
-      const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
-      const isTitleValid = wordCount >= 2 && input.title.length <= 500;
-      const isRepoValid = !includeRepository || (input.repoOwner.length > 0 && input.repoName.length > 0);
-      const isFormValid = isTitleValid && isRepoValid;
+  // Validation for the Details step
+  const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
+  const isTitleValid = wordCount >= 2 && input.title.length <= 2000;
+  const isRepoValid = !includeRepository || (input.repoOwner.length > 0 && input.repoName.length > 0);
 
+  // Next button logic based on current stage
+  const getNextButton = () => {
+    // Details step — validate title
+    if (currentStage === 'details') {
       return (
         <Button
-          onClick={(e) => {
-            e.preventDefault();
-            if (isFormValid) {
-              if (type === 'bug') {
-                // Bug tickets go to reproduction steps first
-                goToReproSteps();
-              } else {
-                analyzeRepository();
-              }
-            }
-          }}
-          disabled={!isFormValid || loading}
+          onClick={() => { if (isTitleValid) nextStage(); }}
+          disabled={!isTitleValid || loading}
           size="sm"
           className="min-w-[96px]"
         >
-          {loading ? 'Analyzing...' : 'Next'}
+          Next
         </Button>
       );
     }
 
-    if (currentStage === 2) {
-      // Stage 2: Repro Steps — Back + Next buttons
+    // Reproduce step (bug only) — Back + Next
+    if (currentStage === 'reproduce') {
       return (
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goBackToInput()}
-          >
-            Back
-          </Button>
-          <Button
-            onClick={(e) => {
-              e.preventDefault();
-              analyzeRepository();
-            }}
-            disabled={loading}
-            size="sm"
-            className="min-w-[96px]"
-          >
-            {loading ? 'Analyzing...' : 'Next'}
+          <Button variant="outline" size="sm" onClick={prevStage}>Back</Button>
+          <Button onClick={nextStage} disabled={loading} size="sm" className="min-w-[96px]">
+            Next
           </Button>
         </div>
       );
     }
 
+    // Codebase step — Back + Next (validate repo if included)
+    if (currentStage === 'codebase') {
+      return (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={prevStage}>Back</Button>
+          <Button
+            onClick={() => { if (isRepoValid) nextStage(); }}
+            disabled={!isRepoValid || loading}
+            size="sm"
+            className="min-w-[96px]"
+          >
+            Next
+          </Button>
+        </div>
+      );
+    }
+
+    // References step — Back + Next (always valid — references are optional)
+    if (currentStage === 'references') {
+      return (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={prevStage}>Back</Button>
+          <Button onClick={nextStage} disabled={loading} size="sm" className="min-w-[96px]">
+            Next
+          </Button>
+        </div>
+      );
+    }
+
+    // Options and Generate steps handle their own navigation
     return null;
+  };
+
+  // Render the current stage component
+  const renderStage = (): React.ReactNode => {
+    const stageMap: Record<WizardStage, React.ReactNode> = {
+      details: <DetailsStep />,
+      reproduce: <Stage2ReproSteps />,
+      codebase: <CodebaseStep />,
+      references: <ReferencesStep />,
+      options: <GenerationOptionsStep />,
+      generate: <Stage3Draft />,
+    };
+    return stageMap[currentStage] ?? <DetailsStep />;
   };
 
   return (
     <div className="relative w-full h-full bg-white dark:bg-gray-950">
-      {/* Stage Indicator - Hide after ticket is created */}
-      {!draftAecId && (
+      {/* Stage Indicator - Hide only after ticket is fully generated (generate stage with a draft) */}
+      {!(draftAecId && currentStage === 'generate') && (
         <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6">
-            <StageIndicator currentStage={currentStage} nextButton={getNextButton()} ticketType={type} />
+          <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6 flex items-center gap-3">
+            <button
+              onClick={() => router.push('/tickets')}
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors flex-shrink-0"
+              aria-label="Back to workspace"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <StageIndicator currentStage={currentStage} nextButton={getNextButton()} ticketType={type} />
+            </div>
           </div>
         </div>
       )}
@@ -218,14 +233,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
 
       {/* Main Content Area */}
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6">
-        {/* Stage 1: Input */}
-        {currentStage === 1 && <Stage1Input />}
-
-        {/* Stage 2: Reproduction Steps (Bug only) */}
-        {currentStage === 2 && <Stage2ReproSteps />}
-
-        {/* Stage 3: Draft Review, Questions & Unified Summary */}
-        {currentStage === 3 && <Stage3Draft />}
+        {renderStage()}
       </div>
 
       {/* Analysis Progress Dialog */}

@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye, ExternalLink, Upload, UserPlus } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -810,7 +810,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 max-w-[var(--content-max)] xl:max-w-[1040px] mx-auto">
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -819,10 +819,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             Back to Tickets
           </Button>
 
-          {/* No code analysis indicator */}
-          {!currentTicket.repositoryContext && (
-            <span className="text-xs text-[var(--text-secondary)]">No code analysis</span>
-          )}
         </div>
         
         {currentTicket?.techSpec && (
@@ -848,7 +844,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       </div>
 
       {/* Hero Header — Title */}
-      <div className="flex items-start gap-4 py-2">
+      <div className="flex items-center justify-center gap-4">
         {/* Title - editable with max 2 lines, full width */}
         <div className="flex-1 min-w-0">
           {isEditingTitle ? (

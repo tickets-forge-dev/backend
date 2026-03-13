@@ -8,13 +8,6 @@ import {
 } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
-import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
-
-// TODO: Re-enable ticket limits when paid tiers launch
-// export const TICKET_LIMITS: Record<string, number> = {
-//   'bar.idan@gmail.com': 99999,
-// };
-// export const DEFAULT_TICKET_LIMIT = 3;
 export const TICKET_LIMITS: Record<string, number> = {};
 export const DEFAULT_TICKET_LIMIT = Infinity;
 
@@ -32,6 +25,13 @@ export interface CreateTicketCommand {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   taskAnalysis?: any;
   reproductionSteps?: any[];
+  // Story 14-3: Generation preferences
+  includeWireframes?: boolean;
+  includeApiSpec?: boolean;
+  apiSpecDeferred?: boolean;
+  wireframeContext?: string;
+  wireframeImageAttachmentIds?: string[];
+  apiContext?: string;
 }
 
 @Injectable()
@@ -46,13 +46,6 @@ export class CreateTicketUseCase {
   ) {}
 
   async execute(command: CreateTicketCommand): Promise<AEC> {
-    // Quota check
-    const limit = TICKET_LIMITS[command.userEmail] ?? DEFAULT_TICKET_LIMIT;
-    const used = await this.aecRepository.countByTeam(command.teamId);
-    if (used >= limit) {
-      throw new QuotaExceededError(used, limit);
-    }
-
     // Build repository context if repository info provided
     let repositoryContext: RepositoryContext | undefined;
 
@@ -85,6 +78,16 @@ export class CreateTicketUseCase {
       repositoryContext,
       command.type,
       command.priority,
+      undefined, // assignedTo
+      // Story 14-3: Generation preferences
+      {
+        includeWireframes: command.includeWireframes,
+        includeApiSpec: command.includeApiSpec,
+        apiSpecDeferred: command.apiSpecDeferred,
+        wireframeContext: command.wireframeContext,
+        wireframeImageAttachmentIds: command.wireframeImageAttachmentIds,
+        apiContext: command.apiContext,
+      },
     );
 
     // Persist taskAnalysis from deep analysis if provided

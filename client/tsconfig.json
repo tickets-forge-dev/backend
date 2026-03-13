@@ -29,6 +29,7 @@
       "@/hooks/*": ["./src/hooks/*"],
       "@/lib/*": ["./src/lib/*"],
       "@/types/*": ["./src/types/*"],
+      "@/landing/*": ["./src/landing/*"],
       "@/src/*": ["./src/*"]
     }
   },

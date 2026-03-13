@@ -121,6 +121,10 @@ Instead of creating from scratch, you can import existing issues:
 
 This lets you take vague tickets from your existing backlog and run them through Forge's enrichment flow.
 
+## Organizing with Folders
+
+As your ticket count grows, use **folders** to group related tickets. Click **"+ Folder"** at the top of the feed to create one, then drag tickets into it — or use the right-click "Move to..." menu. See the [Web App Guide](/docs/platform/web-app-guide#ticket-folders) for details.
+
 ## What's Next?
 
 - [The AEC](/docs/platform/aec) — Understand every section of the Agent Execution Contract

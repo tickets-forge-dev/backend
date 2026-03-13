@@ -19,8 +19,6 @@ import { Response } from 'express';
 import { memoryStorage } from 'multer';
 import {
   CreateTicketUseCase,
-  TICKET_LIMITS,
-  DEFAULT_TICKET_LIMIT,
 } from '../../application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
@@ -34,7 +32,6 @@ import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
 import {
   InvalidStateTransitionError,
-  QuotaExceededError,
 } from '../../../shared/domain/exceptions/DomainExceptions';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
@@ -95,6 +92,7 @@ import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQ
 import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
 import { StartImplementationDto } from '../dto/StartImplementationDto';
+import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -142,6 +140,7 @@ export class TicketsController {
     private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
+    private readonly refineWireframeUseCase: RefineWireframeUseCase,
     private readonly telemetry: TelemetryService,
   ) {}
 
@@ -317,44 +316,42 @@ export class TicketsController {
     @UserId() userId: string,
     @Body() dto: CreateTicketDto,
   ) {
-    try {
-      this.logger.log(`[createTicket] userId: ${userId}, teamId: ${teamId}, title: ${dto.title}`);
-      this.telemetry.trackTicketCreationStarted(userId, teamId, 'create_new');
+    this.logger.log(`[createTicket] userId: ${userId}, teamId: ${teamId}, title: ${dto.title}`);
+    this.telemetry.trackTicketCreationStarted(userId, teamId, 'create_new');
 
-      const aec = await this.createTicketUseCase.execute({
-        teamId,
-        workspaceId,
-        userId,
-        userEmail,
-        title: dto.title,
-        description: dto.description,
-        repositoryFullName: dto.repositoryFullName,
-        branchName: dto.branchName,
-        maxRounds: dto.maxRounds,
-        type: dto.type,
-        priority: dto.priority,
-        taskAnalysis: dto.taskAnalysis,
-        reproductionSteps: dto.reproductionSteps,
-      });
+    const aec = await this.createTicketUseCase.execute({
+      teamId,
+      workspaceId,
+      userId,
+      userEmail,
+      title: dto.title,
+      description: dto.description,
+      repositoryFullName: dto.repositoryFullName,
+      branchName: dto.branchName,
+      maxRounds: dto.maxRounds,
+      type: dto.type,
+      priority: dto.priority,
+      taskAnalysis: dto.taskAnalysis,
+      reproductionSteps: dto.reproductionSteps,
+      // Story 14-3: Generation preferences
+      includeWireframes: dto.includeWireframes,
+      includeApiSpec: dto.includeApiSpec,
+      apiSpecDeferred: dto.apiSpecDeferred,
+      wireframeContext: dto.wireframeContext,
+      wireframeImageAttachmentIds: dto.wireframeImageAttachmentIds,
+      apiContext: dto.apiContext,
+    });
 
-      return this.mapToResponse(aec);
-    } catch (error) {
-      if (error instanceof QuotaExceededError) {
-        throw new ForbiddenException(error.message);
-      }
-      throw error;
-    }
+    return this.mapToResponse(aec);
   }
 
   @Get('quota')
   async getQuota(
     @TeamId() teamId: string,
     @UserId() userId: string,
-    @UserEmail() userEmail: string,
   ) {
-    const limit = TICKET_LIMITS[userEmail] ?? DEFAULT_TICKET_LIMIT;
     const used = await this.aecRepository.countByTeamAndCreator(teamId, userId);
-    return { used, limit, canCreate: used < limit };
+    return { used, limit: Infinity, canCreate: true };
   }
 
   @Get(':id(aec_[a-f0-9\\-]+)')
@@ -465,6 +462,35 @@ export class TicketsController {
       branchName: dto.branchName,
       qaItems: dto.qaItems,
     });
+  }
+
+  /**
+   * AI-powered Excalidraw wireframe refinement
+   *
+   * Takes current Excalidraw elements + natural language instruction,
+   * returns modified elements. Does NOT persist — user must click Save.
+   */
+  @Post(':id/refine-wireframe')
+  @HttpCode(HttpStatus.OK)
+  async refineWireframe(
+    @TeamId() teamId: string,
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() body: { instruction: string; currentElements: any[] },
+  ) {
+    if (!body.instruction || !body.currentElements?.length) {
+      throw new BadRequestException('instruction and currentElements are required');
+    }
+
+    const elements = await this.refineWireframeUseCase.execute({
+      ticketId: id,
+      teamId,
+      userId,
+      instruction: body.instruction,
+      currentElements: body.currentElements,
+    });
+
+    return { elements };
   }
 
   /**
@@ -979,6 +1005,14 @@ export class TicketsController {
       designReferences: aec.designReferences ?? [],
       assignedTo: aec.assignedTo ?? null,
       reviewSession: aec.reviewSession ?? null, // Story 6-12
+      folderId: aec.folderId ?? null, // Story 12-2: ticket folder organization
+      // Story 14-3: Generation preferences
+      includeWireframes: aec.includeWireframes ?? true,
+      includeApiSpec: aec.includeApiSpec ?? true,
+      apiSpecDeferred: aec.apiSpecDeferred ?? false,
+      wireframeContext: aec.wireframeContext ?? null,
+      wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds ?? [],
+      apiContext: aec.apiContext ?? null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };

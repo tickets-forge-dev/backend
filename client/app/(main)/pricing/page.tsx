@@ -30,6 +30,7 @@ const tiers: PricingTier[] = [
     features: [
       { name: 'Unlimited tickets', included: true },
       { name: 'Web UI for PMs', included: true },
+      { name: 'Ticket folders & drag-and-drop organization', included: true },
       { name: 'CLI for developers', included: true },
       { name: 'MCP integration (Cursor, Claude, Windsurf)', included: true },
       { name: 'Basic AI enrichment', included: true },

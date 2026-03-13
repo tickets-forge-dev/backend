@@ -76,6 +76,14 @@ export class AEC {
     private _reproductionSteps: any[] = [], // User-provided bug reproduction steps
     private _implementationBranch: string | null = null, // Story 10-1: forge develop branch
     private _implementationSession: ImplementationSession | null = null, // Story 10-1: implementation Q&A
+    private _folderId: string | null = null, // Story 12-2: ticket folder organization
+    // Story 14-3: Generation preferences
+    private _includeWireframes: boolean = true,
+    private _includeApiSpec: boolean = true,
+    private _apiSpecDeferred: boolean = false,
+    private _wireframeContext: string | null = null,
+    private _wireframeImageAttachmentIds: string[] = [],
+    private _apiContext: string | null = null,
   ) {}
 
   // Factory method for creating new draft
@@ -88,6 +96,14 @@ export class AEC {
     type?: TicketType,
     priority?: TicketPriority,
     assignedTo?: string | null,
+    generationPreferences?: {
+      includeWireframes?: boolean;
+      includeApiSpec?: boolean;
+      apiSpecDeferred?: boolean;
+      wireframeContext?: string;
+      wireframeImageAttachmentIds?: string[];
+      apiContext?: string;
+    },
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -131,6 +147,14 @@ export class AEC {
       [], // _reproductionSteps
       null, // _implementationBranch
       null, // _implementationSession
+      null, // _folderId
+      // Story 14-3: Generation preferences
+      generationPreferences?.includeWireframes ?? true,
+      generationPreferences?.includeApiSpec ?? true,
+      generationPreferences?.apiSpecDeferred ?? false,
+      generationPreferences?.wireframeContext ?? null,
+      generationPreferences?.wireframeImageAttachmentIds ?? [],
+      generationPreferences?.apiContext ?? null,
     );
   }
 
@@ -172,6 +196,14 @@ export class AEC {
     reproductionSteps?: any[],
     implementationBranch?: string | null,
     implementationSession?: ImplementationSession | null,
+    folderId?: string | null,
+    // Story 14-3: Generation preferences
+    includeWireframes?: boolean,
+    includeApiSpec?: boolean,
+    apiSpecDeferred?: boolean,
+    wireframeContext?: string | null,
+    wireframeImageAttachmentIds?: string[],
+    apiContext?: string | null,
   ): AEC {
     return new AEC(
       id,
@@ -210,6 +242,14 @@ export class AEC {
       reproductionSteps ?? [],
       implementationBranch ?? null,
       implementationSession ?? null,
+      folderId ?? null,
+      // Story 14-3: Generation preferences (default true for backward compat)
+      includeWireframes ?? true,
+      includeApiSpec ?? true,
+      apiSpecDeferred ?? false,
+      wireframeContext ?? null,
+      wireframeImageAttachmentIds ?? [],
+      apiContext ?? null,
     );
   }
 
@@ -652,6 +692,35 @@ export class AEC {
 
   get implementationSession(): ImplementationSession | null {
     return this._implementationSession;
+  }
+
+  get folderId(): string | null {
+    return this._folderId;
+  }
+
+  // Story 14-3: Generation preferences getters
+  get includeWireframes(): boolean {
+    return this._includeWireframes;
+  }
+
+  get includeApiSpec(): boolean {
+    return this._includeApiSpec;
+  }
+
+  get apiSpecDeferred(): boolean {
+    return this._apiSpecDeferred;
+  }
+
+  get wireframeContext(): string | null {
+    return this._wireframeContext;
+  }
+
+  get wireframeImageAttachmentIds(): string[] {
+    return [...this._wireframeImageAttachmentIds];
+  }
+
+  get apiContext(): string | null {
+    return this._apiContext;
   }
 
   // Getters for clarification questions (simple, single-set)

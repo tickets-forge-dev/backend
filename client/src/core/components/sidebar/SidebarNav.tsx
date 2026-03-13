@@ -2,15 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Ticket, Settings, CreditCard, MessageCircle, Users } from 'lucide-react';
+import { LayoutGrid, Settings, MessageCircle, Users, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
 import { useTeamStore } from '@/teams/stores/team.store';
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+
 export function SidebarNav() {
   const pathname = usePathname();
-  const { sidebarCollapsed } = useUIStore();
+  const { sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen } = useUIStore();
+
+  const closeMobileSidebar = () => {
+    if (window.innerWidth < 768) {
+      setSidebarCollapsed(true);
+    }
+  };
   const { openFeedback } = useFeedbackStore();
   const { currentTeam } = useTeamStore();
 
@@ -18,9 +26,8 @@ export function SidebarNav() {
   const currentTeamId = currentTeam?.id || null;
 
   const navigationItems = [
-    { label: 'Tickets', href: '/tickets', icon: Ticket },
+    { label: 'Workspace', href: '/tickets', icon: LayoutGrid },
     { label: 'Teams', href: currentTeamId ? `/teams/${currentTeamId}` : '/teams', icon: Users },
-    { label: 'Pricing', href: '/pricing', icon: CreditCard },
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -57,6 +64,7 @@ export function SidebarNav() {
             <li key={item.href}>
               <Link
                 href={item.href}
+                onClick={closeMobileSidebar}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
@@ -75,13 +83,36 @@ export function SidebarNav() {
           );
         })}
 
+        {/* Command palette trigger */}
+        <li>
+          <button
+            onClick={() => { setCommandPaletteOpen(true); closeMobileSidebar(); }}
+            title={`Command palette (${isMac ? '⌘' : 'Ctrl+'}K)`}
+            className={cn(
+              'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+              'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+              'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]'
+            )}
+          >
+            <Search className="h-4 w-4 flex-shrink-0" />
+            {!sidebarCollapsed && (
+              <span className="flex-1 text-left truncate">Command</span>
+            )}
+            {!sidebarCollapsed && (
+              <kbd className="ml-auto text-[10px] font-medium text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
+                {isMac ? '⌘K' : 'Ctrl K'}
+              </kbd>
+            )}
+          </button>
+        </li>
+
         {/* Feedback button - separator */}
         <li className="my-2 border-t border-[var(--border)]" />
 
         {/* Feedback button */}
         <li>
           <button
-            onClick={openFeedback}
+            onClick={() => { openFeedback(); closeMobileSidebar(); }}
             title="Send feedback"
             className={cn(
               'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',

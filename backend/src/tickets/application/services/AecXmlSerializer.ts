@@ -50,6 +50,15 @@ export class AecXmlSerializer {
       b.leaf('branch', aec.repositoryContext.branchName);
     }
 
+    // Story 14: Generation preferences
+    b.open('generationPreferences');
+    b.leaf('includeWireframes', String(aec.includeWireframes));
+    b.leaf('includeApiSpec', String(aec.includeApiSpec));
+    b.leaf('apiSpecDeferred', String(aec.apiSpecDeferred));
+    if (aec.wireframeContext) b.leaf('wireframeContext', aec.wireframeContext);
+    if (aec.apiContext) b.leaf('apiContext', aec.apiContext);
+    b.close('generationPreferences');
+
     if (spec.stack) {
       b.open('stack');
       if (spec.stack.language) b.leaf('language', spec.stack.language);
@@ -189,6 +198,31 @@ export class AecXmlSerializer {
       this.writeTests(b, 'integrationTests', spec.testPlan.integrationTests);
       this.writeTests(b, 'edgeCases', spec.testPlan.edgeCases);
       b.close('testPlan');
+    }
+
+    // Visual QA Expectations
+    if (spec.visualExpectations?.expectations?.length) {
+      b.open('visualExpectations');
+      if (spec.visualExpectations.summary) {
+        b.leaf('summary', spec.visualExpectations.summary);
+      }
+      for (const ve of spec.visualExpectations.expectations) {
+        b.open('expectation', { screen: ve.screen, state: ve.state || 'default' });
+        b.leaf('description', ve.description || '');
+        if (ve.wireframe) b.cdata('wireframe', ve.wireframe);
+        if (ve.steps?.length) {
+          b.open('steps');
+          for (const step of ve.steps) {
+            b.leaf('step', step);
+          }
+          b.close('steps');
+        }
+        b.close('expectation');
+      }
+      if (spec.visualExpectations.flowDiagram) {
+        b.cdata('flowDiagram', spec.visualExpectations.flowDiagram);
+      }
+      b.close('visualExpectations');
     }
 
     b.close('implementation');

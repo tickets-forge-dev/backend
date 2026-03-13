@@ -11,7 +11,7 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -119,7 +119,6 @@ export function TicketDetailLayout({
     { id: 'reproduction-steps', label: 'Reproduction Steps', short: 'Repro', bugOnly: true },
     { id: 'problem-statement', label: 'Problem Statement', short: 'Problem' },
     { id: 'acceptance-criteria', label: 'Acceptance Criteria', short: 'AC' },
-    { id: 'visual-qa', label: 'Visual QA Expectations', short: 'Visual QA' },
     { id: 'scope', label: 'Scope', short: 'Scope' },
     { id: 'solution', label: 'Solution', short: 'Solution' },
     { id: 'assets', label: 'Assets', short: 'Assets' },
@@ -358,146 +357,6 @@ export function TicketDetailLayout({
         onAssignDialogOpenChange={onAssignDialogOpenChange}
       />
 
-      {/* AEC Crown Card — the first-class artifact */}
-      {(() => {
-        const techSpec = ticket.techSpec;
-        const acCount = techSpec?.acceptanceCriteria?.length || 0;
-        const apiCount = techSpec?.apiChanges?.endpoints?.length || 0;
-        const fileCount = techSpec?.fileChanges?.length || 0;
-        const testCount = (techSpec?.testPlan?.unitTests?.length || 0) +
-          (techSpec?.testPlan?.integrationTests?.length || 0) +
-          (techSpec?.testPlan?.edgeCases?.length || 0);
-        const hasScope = (techSpec?.inScope?.length > 0 || techSpec?.outOfScope?.length > 0);
-        const isForged = EXECUTE_STATUSES.has(ticket.status);
-        const statusCfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
-
-        return (
-          <div className={`relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
-            {/* Header */}
-            <div className="px-5 py-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isForged ? 'bg-amber-500/10' : 'bg-[var(--bg-hover)]'}`}>
-                  <ShieldCheck className={`w-4.5 h-4.5 ${isForged ? 'text-amber-500/60' : 'text-[var(--text-tertiary)]'}`} />
-                </div>
-                <div>
-                  <p className={`text-sm font-semibold ${isForged ? 'text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>
-                    Agent Execution Contract
-                  </p>
-                  <p className="text-[10px] text-[var(--text-tertiary)]">
-                    {isForged ? 'Verified and ready for execution' : 'Draft — pending approval'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={async () => {
-                    if (isAecExpanded) {
-                      setIsAecExpanded(false);
-                      return;
-                    }
-                    if (!aecXml) {
-                      setIsLoadingXml(true);
-                      try {
-                        const xml = await ticketService.exportXml(ticketId);
-                        setAecXml(xml);
-                      } catch {
-                        toast.error('Failed to load AEC XML');
-                      } finally {
-                        setIsLoadingXml(false);
-                      }
-                    }
-                    setIsAecExpanded(true);
-                  }}
-                  disabled={isLoadingXml}
-                  className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
-                >
-                  {isLoadingXml ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : isAecExpanded ? (
-                    <>Hide <ChevronUp className="w-3.5 h-3.5" /></>
-                  ) : (
-                    <>Show <ChevronDown className="w-3.5 h-3.5" /></>
-                  )}
-                </button>
-                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border border-current/15 ${statusCfg.badgeClass}`}>
-                  {statusCfg.label}
-                </span>
-              </div>
-            </div>
-
-            {/* Stats row */}
-            <div className="px-5 pb-4 flex flex-wrap gap-x-5 gap-y-2">
-              {acCount > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                  <span className="text-[11px] text-[var(--text-tertiary)]">{acCount} acceptance criteria</span>
-                </div>
-              )}
-              {apiCount > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <GitPullRequest className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                  <span className="text-[11px] text-[var(--text-tertiary)]">{apiCount} API endpoints</span>
-                </div>
-              )}
-              {fileCount > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <FileCode2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                  <span className="text-[11px] text-[var(--text-tertiary)]">{fileCount} files affected</span>
-                </div>
-              )}
-              {testCount > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <TestTube className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                  <span className="text-[11px] text-[var(--text-tertiary)]">{testCount} tests</span>
-                </div>
-              )}
-              {hasScope && (
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                  <span className="text-[11px] text-[var(--text-tertiary)]">Scope defined</span>
-                </div>
-              )}
-            </div>
-
-            {/* Expanded AEC XML Viewer */}
-            {isAecExpanded && aecXml && (
-              <div className="border-t border-[var(--border-subtle)]">
-                <div className="relative">
-                  <pre className="px-5 py-4 overflow-x-auto text-[12px] leading-relaxed font-mono max-h-[500px] overflow-y-auto scrollbar-thin">
-                    {aecXml.split('\n').map((line, i) => {
-                      // Syntax highlight XML
-                      const highlighted = line
-                        // Processing instructions
-                        .replace(/(<\?.*?\?>)/g, '<span class="text-[#71717a]">$1</span>')
-                        // Comments
-                        .replace(/(<!--.*?-->)/g, '<span class="text-[#525252]">$1</span>')
-                        // CDATA
-                        .replace(/(<!\[CDATA\[)(.*?)(\]\]>)/g, '<span class="text-[#71717a]">$1</span><span class="text-amber-300/80">$2</span><span class="text-[#71717a]">$3</span>')
-                        // Closing tags
-                        .replace(/(<\/)([\w-]+)(>)/g, '<span class="text-[#525252]">$1</span><span class="text-blue-400/80">$2</span><span class="text-[#525252]">$3</span>')
-                        // Opening tags with attributes
-                        .replace(/(<)([\w-]+)((?:\s+[\w-]+="[^"]*")*)(\/?>)/g, (_m, lt, tag, attrs, gt) => {
-                          const highlightedAttrs = attrs.replace(/([\w-]+)=("(?:[^"])*")/g, '<span class="text-purple-400/70">$1</span>=<span class="text-green-400/70">$2</span>');
-                          return `<span class="text-[#525252]">${lt}</span><span class="text-blue-400/80">${tag}</span>${highlightedAttrs}<span class="text-[#525252]">${gt}</span>`;
-                        })
-                        // Text content between tags (already handled by above, just color remaining text)
-                        ;
-
-                      return (
-                        <div key={i} className="flex">
-                          <span className="select-none text-[#3f3f46] w-8 text-right mr-4 flex-shrink-0">{i + 1}</span>
-                          <span className="text-[var(--text-secondary)]" dangerouslySetInnerHTML={{ __html: highlighted }} />
-                        </div>
-                      );
-                    })}
-                  </pre>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {/* Review Session Q&A (Story 6-12 / 7-6) — shown above tabs when present */}
       {hasReviewSession && (
         <CollapsibleSection
@@ -535,7 +394,9 @@ export function TicketDetailLayout({
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="w-full grid grid-cols-3 bg-transparent h-auto p-0 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+          <TabsList className="flex bg-transparent h-auto p-0 border-b-0">
+
           <TabsTrigger
             value="spec"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
@@ -543,22 +404,55 @@ export function TicketDetailLayout({
             Spec
           </TabsTrigger>
           <TabsTrigger
-            value="design"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
-          >
-            Design
-          </TabsTrigger>
-          <TabsTrigger
             value="technical"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
           >
             Technical
           </TabsTrigger>
-        </TabsList>
+          <TabsTrigger
+            value="design"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
+          >
+            Design
+          </TabsTrigger>
+          </TabsList>
+
+          {/* Metadata chips — type, priority, quality */}
+          <div className="flex items-center gap-2 pb-1">
+            {ticket.type && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                {ticket.type === 'feature' && <Lightbulb className="h-3 w-3" />}
+                {ticket.type === 'bug' && <Bug className="h-3 w-3" />}
+                {ticket.type === 'task' && <ClipboardList className="h-3 w-3" />}
+                {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
+              </span>
+            )}
+            {ticket.priority && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  ticket.priority === 'critical' ? 'bg-red-500' :
+                  ticket.priority === 'high' ? 'bg-orange-500' :
+                  ticket.priority === 'medium' ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`} />
+                {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
+              </span>
+            )}
+            {qualityScore !== undefined && (
+              <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${
+                qualityScore >= 80 ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+                qualityScore >= 50 ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' :
+                'bg-red-500/10 text-red-600 dark:text-red-400'
+              }`}>
+                {qualityScore}%
+              </span>
+            )}
+          </div>
+        </div>
 
         <TabsContent value="spec" className="mt-6">
           {/* Mobile section pills — shown below xl only */}
-          <div className="xl:hidden flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+          <div className="hidden sm:flex xl:hidden gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
             {specSections.map((s) => (
               <button
                 key={s.id}
@@ -574,7 +468,7 @@ export function TicketDetailLayout({
             ))}
           </div>
 
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <SpecificationTab
               ticket={ticket}
               ticketId={ticketId}
@@ -614,34 +508,145 @@ export function TicketDetailLayout({
           </div>
         </TabsContent>
 
-        <TabsContent value="design" className="mt-6">
-          <div className="max-w-3xl mx-auto">
-            {onAddDesignReference && onRemoveDesignReference ? (
-              <DesignTab
-                ticketId={ticketId}
-                references={ticket.designReferences || []}
-                onAddDesignReference={onAddDesignReference}
-                onRemoveDesignReference={onRemoveDesignReference}
-                onRefreshDesignReference={onRefreshDesignReference}
-              />
-            ) : (
-              <div>
-                <h2 className="text-sm font-medium text-[var(--text)] mb-4">Design References</h2>
-                <div className="flex items-center justify-center min-h-[200px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-secondary)]">
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">🎨</div>
-                    <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
-                    <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
+        <TabsContent value="technical" className="mt-6">
+          {/* AEC Crown Card */}
+          {(() => {
+            const isForged = EXECUTE_STATUSES.has(ticket.status);
+            const statusCfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
+
+            return (
+              <div className={`max-w-3xl xl:max-w-4xl mx-auto mb-6 relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
+                <div className="px-5 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isForged ? 'bg-amber-500/10' : 'bg-[var(--bg-hover)]'}`}>
+                      <ShieldCheck className={`w-4.5 h-4.5 ${isForged ? 'text-amber-500/60' : 'text-[var(--text-tertiary)]'}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-semibold ${isForged ? 'text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>
+                        Agent Execution Contract
+                      </p>
+                      <p className="text-[10px] text-[var(--text-tertiary)]">
+                        {isForged ? 'Verified and ready for execution' : 'Draft — pending approval'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        if (isAecExpanded) {
+                          setIsAecExpanded(false);
+                          return;
+                        }
+                        if (!aecXml) {
+                          setIsLoadingXml(true);
+                          try {
+                            const xml = await ticketService.exportXml(ticketId);
+                            setAecXml(xml);
+                          } catch {
+                            toast.error('Failed to load AEC XML');
+                          } finally {
+                            setIsLoadingXml(false);
+                          }
+                        }
+                        setIsAecExpanded(true);
+                      }}
+                      disabled={isLoadingXml}
+                      className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+                    >
+                      {isLoadingXml ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : isAecExpanded ? (
+                        <>Hide <ChevronUp className="w-3.5 h-3.5" /></>
+                      ) : (
+                        <>Show <ChevronDown className="w-3.5 h-3.5" /></>
+                      )}
+                    </button>
+                    <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border border-current/15 ${statusCfg.badgeClass}`}>
+                      {statusCfg.label}
+                    </span>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="technical" className="mt-6">
+                {isAecExpanded && aecXml && (
+                  <div className="border-t border-[var(--border-subtle)]">
+                    <div className="relative">
+                      <pre className="px-5 py-4 overflow-x-auto text-[12px] leading-relaxed font-mono max-h-[500px] overflow-y-auto scrollbar-thin">
+                        {aecXml.split('\n').map((line, i) => {
+                          const highlighted = line
+                            .replace(/(<\?.*?\?>)/g, '<span class="text-[#71717a]">$1</span>')
+                            .replace(/(<!--.*?-->)/g, '<span class="text-[#525252]">$1</span>')
+                            .replace(/(<!\[CDATA\[)(.*?)(\]\]>)/g, '<span class="text-[#71717a]">$1</span><span class="text-amber-300/80">$2</span><span class="text-[#71717a]">$3</span>')
+                            .replace(/(<\/)([\w-]+)(>)/g, '<span class="text-[#525252]">$1</span><span class="text-blue-400/80">$2</span><span class="text-[#525252]">$3</span>')
+                            .replace(/(<)([\w-]+)((?:\s+[\w-]+="[^"]*")*)(\/?>)/g, (_m, lt, tag, attrs, gt) => {
+                              const highlightedAttrs = attrs.replace(/([\w-]+)=("(?:[^"])*")/g, '<span class="text-purple-400/70">$1</span>=<span class="text-green-400/70">$2</span>');
+                              return `<span class="text-[#525252]">${lt}</span><span class="text-blue-400/80">${tag}</span>${highlightedAttrs}<span class="text-[#525252]">${gt}</span>`;
+                            });
+
+                          return (
+                            <div key={i} className="flex">
+                              <span className="select-none text-[#3f3f46] w-8 text-right mr-4 flex-shrink-0">{i + 1}</span>
+                              <span className="text-[var(--text-secondary)]" dangerouslySetInnerHTML={{ __html: highlighted }} />
+                            </div>
+                          );
+                        })}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Stats summary */}
+          {(() => {
+            const ts = ticket.techSpec;
+            const ac = ts?.acceptanceCriteria?.length || 0;
+            const api = ts?.apiChanges?.endpoints?.length || 0;
+            const files = ts?.fileChanges?.length || 0;
+            const tests = (ts?.testPlan?.unitTests?.length || 0) +
+              (ts?.testPlan?.integrationTests?.length || 0) +
+              (ts?.testPlan?.edgeCases?.length || 0);
+            const scope = (ts?.inScope?.length > 0 || ts?.outOfScope?.length > 0);
+            const hasAny = ac > 0 || api > 0 || files > 0 || tests > 0 || scope;
+            if (!hasAny) return null;
+            return (
+              <div className="max-w-3xl xl:max-w-4xl mx-auto mb-5 flex flex-wrap gap-x-5 gap-y-2 px-1">
+                {ac > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    <span className="text-[11px] text-[var(--text-tertiary)]">{ac} acceptance criteria</span>
+                  </div>
+                )}
+                {api > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <GitPullRequest className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    <span className="text-[11px] text-[var(--text-tertiary)]">{api} API endpoints</span>
+                  </div>
+                )}
+                {files > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <FileCode2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    <span className="text-[11px] text-[var(--text-tertiary)]">{files} files affected</span>
+                  </div>
+                )}
+                {tests > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <TestTube className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    <span className="text-[11px] text-[var(--text-tertiary)]">{tests} tests</span>
+                  </div>
+                )}
+                {scope && (
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    <span className="text-[11px] text-[var(--text-tertiary)]">Scope defined</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Mobile section pills — shown below xl only */}
-          <div className="xl:hidden flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+          <div className="hidden sm:flex xl:hidden gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
             {techSections.map((s) => (
               <button
                 key={s.id}
@@ -657,7 +662,7 @@ export function TicketDetailLayout({
             ))}
           </div>
 
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <ImplementationTab
               ticket={ticket}
               ticketId={ticketId}
@@ -690,6 +695,32 @@ export function TicketDetailLayout({
                 </button>
               ))}
             </nav>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="design" className="mt-6">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
+            {onAddDesignReference && onRemoveDesignReference ? (
+              <DesignTab
+                ticketId={ticketId}
+                references={ticket.designReferences || []}
+                visualExpectations={ticket.techSpec?.visualExpectations}
+                onAddDesignReference={onAddDesignReference}
+                onRemoveDesignReference={onRemoveDesignReference}
+                onRefreshDesignReference={onRefreshDesignReference}
+              />
+            ) : (
+              <div>
+                <h2 className="text-sm font-medium text-[var(--text)] mb-4">Design References</h2>
+                <div className="flex items-center justify-center min-h-[200px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-secondary)]">
+                  <div className="text-center">
+                    <div className="text-4xl mb-3">🎨</div>
+                    <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>

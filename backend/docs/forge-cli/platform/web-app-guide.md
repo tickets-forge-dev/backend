@@ -30,8 +30,49 @@ Each ticket card shows:
 - Assignee avatar
 - Readiness score (when available)
 - Last updated timestamp
+- Folder location (if filed)
+
+Tickets can be organized into **folders** for grouping related work. See [Ticket Folders](#ticket-folders) below.
 
 Click a ticket to open the detail view.
+
+## Ticket Folders
+
+Organize your ticket feed with folders — collapsible inline sections that group related tickets.
+
+### Creating Folders
+
+Click the **"+ Folder"** button near the top of the ticket feed. Enter a name and press Enter or click the checkmark. Folder names must be unique within your team.
+
+### Moving Tickets into Folders
+
+Two ways to move tickets:
+
+| Method | How |
+|--------|-----|
+| **Drag and drop** | Grab any ticket row and drag it onto a folder header. A blue highlight shows valid drop targets. Release to move. |
+| **Context menu** | Right-click a ticket (or click the three-dot menu) → "Move to..." → select a folder or "Unfiled" |
+
+To move a ticket back to the root feed, drag it to the **"Unfiled"** drop zone (appears during drag), or use the context menu and select "Unfiled."
+
+### Folder Display
+
+- Folders appear at the top of the feed, sorted alphabetically
+- Each folder row shows: expand/collapse chevron, folder icon, name, ticket count
+- Click the chevron to expand — tickets inside appear indented with a visual connector
+- Unfiled tickets appear below all folders
+
+### Managing Folders
+
+Right-click a folder (or click the three-dot icon) to:
+- **Rename** — Inline edit the folder name
+- **Delete** — Removes the folder; all tickets inside move back to the root feed
+
+### Expand/Collapse State
+
+Each user's expand/collapse preferences are stored privately and persist across sessions. Other team members see the same folders but control their own expanded/collapsed view.
+
+---
 
 ## Creating a Ticket
 

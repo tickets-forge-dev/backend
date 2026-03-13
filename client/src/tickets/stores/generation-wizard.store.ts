@@ -10,8 +10,40 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 const WIZARD_STORAGE_KEY = 'wizard-snapshot';
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+/**
+ * Named wizard stages — replaces fragile numeric indices.
+ * Stage order depends on ticket type (bug adds 'reproduce').
+ */
+export type WizardStage = 'details' | 'reproduce' | 'codebase' | 'references' | 'options' | 'generate';
+
+const NON_BUG_STAGES: WizardStage[] = ['details', 'codebase', 'references', 'options', 'generate'];
+const BUG_STAGES: WizardStage[] = ['details', 'reproduce', 'codebase', 'references', 'options', 'generate'];
+
+export function getStageOrder(type: string): WizardStage[] {
+  return type === 'bug' ? BUG_STAGES : NON_BUG_STAGES;
+}
+
+/** Map old numeric currentStage to named stage for snapshot backward compatibility */
+function migrateNumericStage(numeric: number, type: string): WizardStage {
+  if (type === 'bug') {
+    // Old bug flow: 1=Input, 2=Repro, 3=Options, 4=Generate
+    switch (numeric) {
+      case 2: return 'reproduce';
+      case 3: return 'options';
+      case 4: return 'generate';
+      default: return 'details';
+    }
+  }
+  // Old non-bug flow: 1=Input, 2=Options, 3=Generate
+  switch (numeric) {
+    case 2: return 'options';
+    case 3: return 'generate';
+    default: return 'details';
+  }
+}
+
 interface WizardSnapshot {
-  currentStage: number;
+  currentStage: number | WizardStage; // number for backward compat, WizardStage for new
   input: WizardState['input'];
   type: string;
   priority: string;
@@ -21,6 +53,12 @@ interface WizardSnapshot {
   reproductionSteps: ReproductionStepSpec[];
   timestamp: number;
   includeRepository: boolean; // AC#3: Persist repository inclusion preference
+  includeWireframes: boolean;
+  wireframeContext: string;
+  wireframeImageIds: string[];
+  includeApiSpec: boolean;
+  apiSpecDeferred: boolean;
+  apiContext: string;
 }
 
 function saveSnapshot(state: WizardState): void {
@@ -36,6 +74,12 @@ function saveSnapshot(state: WizardState): void {
       reproductionSteps: state.reproductionSteps,
       timestamp: Date.now(),
       includeRepository: state.includeRepository, // AC#3: Persist repository inclusion
+      includeWireframes: state.includeWireframes,
+      wireframeContext: state.wireframeContext,
+      wireframeImageIds: state.wireframeImageIds,
+      includeApiSpec: state.includeApiSpec,
+      apiSpecDeferred: state.apiSpecDeferred,
+      apiContext: state.apiContext,
     };
     localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
@@ -53,10 +97,21 @@ function loadSnapshot(): WizardSnapshot | null {
       localStorage.removeItem(WIZARD_STORAGE_KEY);
       return null;
     }
+    // Migrate numeric currentStage → named WizardStage
+    if (typeof snapshot.currentStage === 'number') {
+      snapshot.currentStage = migrateNumericStage(snapshot.currentStage, snapshot.type);
+    }
     return snapshot;
   } catch {
     return null;
   }
+}
+
+/** Resolve named stage to a numeric index for the given type (used by snapshot save) */
+function stageToIndex(stage: WizardStage, type: string): number {
+  const order = getStageOrder(type);
+  const idx = order.indexOf(stage);
+  return idx >= 0 ? idx : 0;
 }
 
 /**
@@ -145,7 +200,7 @@ export interface TaskAnalysis {
  * Wizard state shape
  */
 export interface WizardState {
-  currentStage: number; // 1-4
+  currentStage: WizardStage;
   input: {
     title: string;
     repoOwner: string;
@@ -158,6 +213,17 @@ export interface WizardState {
 
   // AC#3: Repository inclusion flag (default: true for backward compatibility)
   includeRepository: boolean;
+
+  // Epic 14: Generation options
+  includeWireframes: boolean;
+  wireframeContext: string;
+  wireframeImageIds: string[];
+  includeApiSpec: boolean;
+  apiSpecDeferred: boolean;
+  apiContext: string;
+
+  // Folder assignment (optional — ticket goes to feed if null)
+  folderId: string | null;
 
   // Bug reproduction steps (user-provided, optional)
   reproductionSteps: ReproductionStepSpec[];
@@ -207,7 +273,7 @@ export interface WizardState {
  */
 export interface RecoveryInfo {
   canRecover: boolean;
-  stage: number;
+  stage: WizardStage;
   title: string;
 }
 
@@ -222,6 +288,14 @@ export interface WizardActions {
   setType: (type: string) => void;
   setPriority: (priority: string) => void;
   setIncludeRepository: (include: boolean) => void; // AC#3: Toggle repository inclusion
+  setIncludeWireframes: (include: boolean) => void;
+  setWireframeContext: (context: string) => void;
+  addWireframeImage: (imageId: string) => void;
+  removeWireframeImage: (imageId: string) => void;
+  setIncludeApiSpec: (include: boolean) => void;
+  setApiSpecDeferred: (deferred: boolean) => void;
+  setApiContext: (context: string) => void;
+  setFolderId: (folderId: string | null) => void;
 
   // Bug reproduction steps
   addReproductionStep: () => void;
@@ -264,6 +338,11 @@ export interface WizardActions {
   resumeDraft: (aecId: string) => Promise<void>;
 
   // Navigation
+  goToStage: (stage: WizardStage) => void;
+  nextStage: () => void;
+  prevStage: () => void;
+  // Legacy aliases (used by existing components)
+  goToGenerationOptions: () => void;
   goToReproSteps: () => void;
   goBackToInput: () => void;
   goBackToContext: () => void;
@@ -297,7 +376,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // INITIAL STATE
   // ============================================================================
 
-  currentStage: 1,
+  currentStage: 'details' as WizardStage,
   input: {
     title: '',
     repoOwner: '',
@@ -309,6 +388,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // If GitHub not connected, default to false (PMs without GitHub shouldn't see repo as default)
   // If GitHub connected, default to true (backward compatibility for developers)
   includeRepository: useSettingsStore.getState().githubConnected,
+  includeWireframes: true,
+  wireframeContext: '',
+  wireframeImageIds: [],
+  includeApiSpec: true,
+  apiSpecDeferred: false,
+  apiContext: '',
+  folderId: null,
   reproductionSteps: [],
   context: null,
   spec: null,
@@ -392,12 +478,41 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       input: { ...state.input, repoOwner: owner, repoName: name },
     })),
 
-  setType: (type: string) => set({ type }),
+  setType: (type: string) => set({
+    type,
+    includeWireframes: type === 'feature',
+    includeApiSpec: type === 'feature',
+    apiSpecDeferred: false,
+    wireframeContext: '',
+    wireframeImageIds: [],
+    apiContext: '',
+  }),
 
   setPriority: (priority: string) => set({ priority }),
 
   // AC#3: Toggle repository inclusion
   setIncludeRepository: (include: boolean) => set({ includeRepository: include }),
+
+  // Epic 14: Generation options actions
+  setIncludeWireframes: (include: boolean) => set(include
+    ? { includeWireframes: true }
+    : { includeWireframes: false, wireframeContext: '', wireframeImageIds: [] },
+  ),
+  setWireframeContext: (context: string) => set({ wireframeContext: context }),
+  addWireframeImage: (imageId: string) => set((state) => ({
+    wireframeImageIds: [...state.wireframeImageIds, imageId],
+  })),
+  removeWireframeImage: (imageId: string) => set((state) => ({
+    wireframeImageIds: state.wireframeImageIds.filter((id) => id !== imageId),
+  })),
+  setIncludeApiSpec: (include: boolean) => set(include
+    ? { includeApiSpec: true, apiSpecDeferred: false }
+    : { includeApiSpec: false, apiSpecDeferred: false, apiContext: '' },
+  ),
+  setApiSpecDeferred: (deferred: boolean) => set({ apiSpecDeferred: deferred, includeApiSpec: !deferred }),
+  setApiContext: (context: string) => set({ apiContext: context }),
+
+  setFolderId: (folderId: string | null) => set({ folderId }),
 
   // Bug reproduction steps
   addReproductionStep: () =>
@@ -435,56 +550,50 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Actual state restoration happens when the user clicks Resume (via applyRecovery).
    */
   tryRecover: () => {
-    const noRecovery: RecoveryInfo = { canRecover: false, stage: 0, title: '' };
+    const noRecovery: RecoveryInfo = { canRecover: false, stage: 'details', title: '' };
 
     // Don't recover if wizard already has progress
     const state = get();
-    if (state.currentStage > 1 || state.input.title) return noRecovery;
+    if (state.currentStage !== 'details' || state.input.title) return noRecovery;
 
     const snapshot = loadSnapshot();
     if (!snapshot) return noRecovery;
 
-    // Stage 3+ with draftAecId
+    // Resolve stage (loadSnapshot already migrates numeric → named)
+    const stage = snapshot.currentStage as WizardStage;
+
+    // Has draftAecId — recover to wherever they were
     if (snapshot.draftAecId) {
       return {
         canRecover: true,
-        stage: snapshot.currentStage,
+        stage,
         title: snapshot.input.title,
       };
     }
 
-    // Stage 3 with context (skip Stage 2 - context review)
-    if (snapshot.currentStage === 3 && snapshot.context) {
+    // Has context — recover to generate stage
+    if (snapshot.context) {
       return {
         canRecover: true,
-        stage: 3,
+        stage: 'generate',
         title: snapshot.input.title,
       };
     }
 
-    // Stage 2: Bug reproduction steps (no context yet)
-    if (snapshot.currentStage === 2 && snapshot.type === 'bug' && !snapshot.context) {
+    // Bug reproduce step
+    if (stage === 'reproduce' && snapshot.type === 'bug') {
       return {
         canRecover: true,
-        stage: 2,
+        stage: 'reproduce',
         title: snapshot.input.title,
       };
     }
 
-    // Legacy: Stage 2 with context (for old snapshots) - upgrade to stage 3
-    if (snapshot.currentStage === 2 && snapshot.context) {
-      return {
-        canRecover: true,
-        stage: 3,  // Upgrade to stage 3 (skip context review)
-        title: snapshot.input.title,
-      };
-    }
-
-    // Stage 1 with form data
+    // Has form data — recover to whatever stage they were on (or details)
     if (snapshot.input.title) {
       return {
         canRecover: true,
-        stage: 1,
+        stage: stage || 'details',
         title: snapshot.input.title,
       };
     }
@@ -507,42 +616,40 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
-    // Stage 2: Bug reproduction steps (no context yet)
-    if (snapshot.currentStage === 2 && snapshot.type === 'bug' && !snapshot.context) {
-      set({
-        currentStage: 2,
-        input: snapshot.input,
-        type: snapshot.type,
-        priority: snapshot.priority,
-        reproductionSteps: snapshot.reproductionSteps ?? [],
-        includeRepository: snapshot.includeRepository ?? true,
-      });
-      return;
-    }
+    // Resolve stage (loadSnapshot already migrates numeric → named)
+    const stage = snapshot.currentStage as WizardStage;
 
-    // Stage 3: restore context + form (skip Stage 2 context review)
-    if ((snapshot.currentStage === 2 || snapshot.currentStage === 3) && snapshot.context) {
+    // Common fields to restore
+    const commonFields = {
+      input: snapshot.input,
+      type: snapshot.type,
+      priority: snapshot.priority,
+      reproductionSteps: snapshot.reproductionSteps ?? [],
+      includeRepository: snapshot.includeRepository ?? true,
+      includeWireframes: snapshot.includeWireframes ?? true,
+      wireframeContext: snapshot.wireframeContext ?? '',
+      wireframeImageIds: snapshot.wireframeImageIds ?? [],
+      includeApiSpec: snapshot.includeApiSpec ?? true,
+      apiSpecDeferred: snapshot.apiSpecDeferred ?? false,
+      apiContext: snapshot.apiContext ?? '',
+    };
+
+    // Has context — go to generate stage
+    if (snapshot.context) {
       set({
-        currentStage: 3,  // Always use stage 3 (skip context review)
-        input: snapshot.input,
-        type: snapshot.type,
-        priority: snapshot.priority,
+        ...commonFields,
+        currentStage: 'generate' as WizardStage,
         maxRounds: snapshot.maxRounds,
         context: snapshot.context,
-        reproductionSteps: snapshot.reproductionSteps ?? [],
-        includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference (default true)
       });
       return;
     }
 
-    // Stage 1: restore form inputs only
+    // Restore to whatever stage they were on
     if (snapshot.input.title) {
       set({
-        input: snapshot.input,
-        type: snapshot.type,
-        priority: snapshot.priority,
-        reproductionSteps: snapshot.reproductionSteps ?? [],
-        includeRepository: snapshot.includeRepository ?? true, // AC#3: Restore preference
+        ...commonFields,
+        currentStage: stage || ('details' as WizardStage),
       });
     }
   },
@@ -558,12 +665,16 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   analyzeRepository: async () => {
     const state = get();
+    if (state.loading) return; // Guard against double-click / concurrent SSE streams
     const ticketsState = useTicketsStore.getState();
 
     // Determine if repository is being analyzed
     const hasRepo = !!(state.input.repoOwner && state.input.repoName && state.input.repoOwner !== '' && state.input.repoName !== '');
 
-    // If no repository, skip analysis and go directly to Stage 3 (Draft)
+    // Draft stage is always 'generate' (last stage in the flow)
+    const draftStage: WizardStage = 'generate';
+
+    // If no repository, skip analysis and go directly to Draft stage
     if (!hasRepo) {
       set({
         loading: true,
@@ -579,7 +690,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       set({
         context: null, // No repository context
-        currentStage: 3, // Go directly to Stage 3 (Draft)
+        currentStage: draftStage,
         loading: false,
         loadingMessage: null,
         progressPercent: 100,
@@ -632,7 +743,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         }
         // Unexpected non-stream success — handle gracefully
         const { context } = await response.json();
-        set({ context, currentStage: 3, loading: false, loadingMessage: null, progressPercent: 100 });  // Skip Stage 2 (context)
+        set({ context, currentStage: draftStage, loading: false, loadingMessage: null, progressPercent: 100 });
         saveSnapshot(get());
         return;
       }
@@ -678,7 +789,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
             set({
               context: analysisContext,
               maxRounds: rounds,
-              currentStage: 3,  // Skip Stage 2 (context) - go directly to Stage 3 (questions)
+              currentStage: draftStage,
               loading: false,
               loadingMessage: null,
               progressPercent: 100,
@@ -765,6 +876,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   confirmContextContinue: async () => {
     const state = get();
+    if (state.loading) return; // Guard against double-click
     const ticketsState = useTicketsStore.getState();
 
     // Resolve owner/repo with fallback to tickets store
@@ -798,6 +910,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         taskAnalysis: state.context?.taskAnalysis ?? undefined,
       };
 
+      // Include generation options
+      requestBody.includeWireframes = state.includeWireframes;
+      if (state.includeWireframes && state.wireframeContext) {
+        requestBody.wireframeContext = state.wireframeContext;
+      }
+      if (state.includeWireframes && state.wireframeImageIds.length > 0) {
+        requestBody.wireframeImageAttachmentIds = state.wireframeImageIds;
+      }
+      requestBody.includeApiSpec = state.apiSpecDeferred ? false : state.includeApiSpec;
+      requestBody.apiSpecDeferred = state.apiSpecDeferred;
+      if (state.includeApiSpec && !state.apiSpecDeferred && state.apiContext) {
+        requestBody.apiContext = state.apiContext;
+      }
+
       // Include user-provided reproduction steps for bug tickets
       if (state.type === 'bug' && state.reproductionSteps.length > 0) {
         const validSteps = state.reproductionSteps.filter(s => s.action.trim());
@@ -824,6 +950,22 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       const aec = await createResponse.json();
 
+      // Move ticket to folder if one was selected (use state captured at function start)
+      const selectedFolderId = state.folderId;
+      if (selectedFolderId) {
+        try {
+          const teamId = useTeamStore.getState().currentTeam?.id;
+          if (teamId) {
+            await authFetch(`/teams/${teamId}/folders/move-ticket/${aec.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ folderId: selectedFolderId }),
+            });
+          }
+        } catch (moveError) {
+          console.warn('Failed to move ticket to folder:', moveError);
+        }
+      }
+
       // If maxRounds is 0 (trivial task), auto-finalize: skip questions entirely
       if (state.maxRounds === 0) {
         set({
@@ -846,7 +988,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           set({
             draftAecId: aec.id,
             spec: finalizedAec.techSpec,
-            currentStage: 3,
+            currentStage: 'generate' as WizardStage,
             loading: false,
             loadingMessage: null,
           });
@@ -856,7 +998,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           set({
             draftAecId: aec.id,
             maxRounds: 1,
-            currentStage: 3,
+            currentStage: 'generate' as WizardStage,
             loading: false,
             loadingMessage: null,
           });
@@ -866,12 +1008,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       set({
         draftAecId: aec.id,
-        currentStage: 3,
+        currentStage: 'generate' as WizardStage,
         loading: false,
       });
 
       // Upload pending files in background (best-effort, don't block wizard)
-      const filesToUpload = get().pendingFiles;
+      // Use state captured at function start to avoid stale reads
+      const filesToUpload = state.pendingFiles;
       if (filesToUpload.length > 0) {
         set({ pendingFiles: [] });
         for (const file of filesToUpload) {
@@ -896,7 +1039,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       }
 
       // Upload pending design references in background (best-effort, don't block wizard)
-      const linksToUpload = get().pendingDesignLinks;
+      const linksToUpload = state.pendingDesignLinks;
       if (linksToUpload.length > 0) {
         const failedLinks: typeof linksToUpload = [];
 
@@ -982,7 +1125,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   confirmSpecContinue: () =>
     set({
-      currentStage: 4,
+      currentStage: 'generate' as WizardStage,
     }),
 
   // ============================================================================
@@ -1016,7 +1159,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       set({
         clarificationQuestions: questions,
         roundStatus: 'idle',
-        currentStage: 3,
+        currentStage: 'generate' as WizardStage,
       });
 
       // Auto-save to localStorage
@@ -1103,7 +1246,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         questionRounds,
         currentRound,
         roundStatus: 'idle',
-        currentStage: 3, // Ensure we're on stage 3
+        currentStage: 'generate' as WizardStage, // Ensure we're on stage 3
       });
 
       // Auto-save to localStorage
@@ -1318,6 +1461,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       const repoOwner = repoParts[0] || '';
       const repoName = repoParts[1] || '';
 
+      // Determine the right stage: if the draft has questions/rounds, resume at generate;
+      // otherwise (e.g. quick draft with just a title), start at details
+      const hasProgress = (aec.questions && aec.questions.length > 0) ||
+        (aec.questionRounds && aec.questionRounds.length > 0) ||
+        aec.currentRound > 0;
+      const resumeStage: WizardStage = hasProgress ? 'generate' : 'details';
+
       set({
         draftAecId: aecId,
         // New simplified question fields
@@ -1329,7 +1479,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         maxRounds: aec.maxRounds ?? get().maxRounds,
         type: aec.type || get().type,
         priority: aec.priority || get().priority,
-        currentStage: 3, // Go to question stage
+        currentStage: resumeStage,
         input: {
           title: aec.title,
           repoOwner,
@@ -1405,28 +1555,54 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // NAVIGATION ACTIONS
   // ============================================================================
 
-  goToReproSteps: () => {
-    set({ currentStage: 2, error: null });
+  goToStage: (stage: WizardStage) => {
+    if (get().loading) return;
+    set({ currentStage: stage, error: null });
     saveSnapshot(get());
   },
 
-  goBackToInput: () =>
-    set({
-      currentStage: 1,
-      error: null,
-    }),
+  nextStage: () => {
+    const state = get();
+    if (state.loading) return;
+    const order = getStageOrder(state.type);
+    const idx = order.indexOf(state.currentStage);
+    if (idx < order.length - 1) {
+      set({ currentStage: order[idx + 1], error: null });
+      saveSnapshot(get());
+    }
+  },
 
-  goBackToContext: () =>
-    set({
-      currentStage: 2,
-      error: null,
-    }),
+  prevStage: () => {
+    const state = get();
+    if (state.loading) return;
+    const order = getStageOrder(state.type);
+    const idx = order.indexOf(state.currentStage);
+    if (idx > 0) {
+      set({ currentStage: order[idx - 1], error: null });
+      saveSnapshot(get());
+    }
+  },
 
-  goBackToSpec: () =>
-    set({
-      currentStage: 3,
-      error: null,
-    }),
+  // Legacy aliases — delegate to goToStage/prevStage
+  goToGenerationOptions: () => {
+    get().goToStage('options');
+  },
+
+  goToReproSteps: () => {
+    get().goToStage('reproduce');
+  },
+
+  goBackToInput: () => {
+    get().goToStage('details');
+  },
+
+  goBackToContext: () => {
+    get().prevStage();
+  },
+
+  goBackToSpec: () => {
+    get().goToStage('generate');
+  },
 
   // ============================================================================
   // ERROR HANDLING & RESET
@@ -1449,7 +1625,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     localStorage.removeItem(WIZARD_STORAGE_KEY);
 
     set({
-      currentStage: 1,
+      currentStage: 'details' as WizardStage,
       input: {
         title: '',
         repoOwner: '',
@@ -1460,6 +1636,13 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       type: 'feature',
       priority: 'low',
       includeRepository: true, // AC#3: Reset to default (true)
+      includeWireframes: true,
+      wireframeContext: '',
+      wireframeImageIds: [],
+      includeApiSpec: true,
+      apiSpecDeferred: false,
+      apiContext: '',
+      folderId: null,
       reproductionSteps: [],
       context: null,
       spec: null,

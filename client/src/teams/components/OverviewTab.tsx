@@ -1,4 +1,3 @@
-import { Badge } from '@/core/components/ui/badge';
 import { Crown, Users, Calendar } from 'lucide-react';
 import type { Team } from '../services/team.service';
 import { useTeamStore } from '../stores/team.store';
@@ -35,10 +34,10 @@ export function OverviewTab({ team }: OverviewTabProps) {
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-semibold text-[var(--text)]">{team.name}</h2>
             {team.isOwner && (
-              <Badge variant="destructive" className="flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-2.5 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
                 <Crown className="h-3 w-3" />
                 Owner
-              </Badge>
+              </span>
             )}
           </div>
 

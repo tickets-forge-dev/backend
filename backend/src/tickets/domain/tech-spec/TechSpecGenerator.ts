@@ -231,12 +231,23 @@ export interface VisualExpectation {
 }
 
 /**
+ * Excalidraw wireframe data — a complete Excalidraw scene
+ */
+export interface ExcalidrawData {
+  type: 'excalidraw';
+  version: 2;
+  source: string;
+  elements: any[];
+}
+
+/**
  * Visual QA expectations section of a tech spec
  */
 export interface VisualExpectations {
   summary: string; // High-level overview of what to visually verify
   expectations: VisualExpectation[]; // Individual visual expectations
   flowDiagram?: string; // Optional ASCII flow diagram of the happy path
+  excalidrawData?: ExcalidrawData; // Optional Excalidraw wireframe data
 }
 
 /**
@@ -547,5 +558,11 @@ export interface TechSpecGenerator {
     answers: AnswerContext[];
     ticketType?: 'feature' | 'bug' | 'task';
     reproductionSteps?: ReproductionStep[];
+    // Story 14-3: Generation preferences
+    includeWireframes?: boolean;
+    includeApiSpec?: boolean;
+    wireframeContext?: string;
+    wireframeImageUrls?: string[];
+    apiContext?: string;
   }): Promise<TechSpec>;
 }

@@ -6,6 +6,8 @@ import { OnboardingDialog } from '@/core/components/onboarding/OnboardingDialog'
 import { FeedbackDialog } from '@/core/components/feedback/FeedbackDialog';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
+import { useCommandPalette } from '@/core/hooks/useCommandPalette';
+import { QuickDraftPalette } from '@/core/components/command-palette/QuickDraftPalette';
 import { cn } from '@/lib/utils';
 import { Button } from '@/core/components/ui/button';
 import { Menu } from 'lucide-react';
@@ -26,17 +28,19 @@ export default function MainLayout({
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
   const { feedbackOpen, closeFeedback } = useFeedbackStore();
+  useCommandPalette();
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Sidebar />
+      <QuickDraftPalette />
       <OnboardingDialog />
       <FeedbackDialog open={feedbackOpen} onClose={closeFeedback} />
       <Toaster
         position="bottom-right"
         toastOptions={{
           style: {
-            background: 'var(--bg-surface)',
+            background: 'var(--bg-subtle)',
             color: 'var(--text)',
             border: '1px solid var(--border)',
           },
@@ -63,7 +67,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           sidebarCollapsed ? 'ml-0 md:ml-16' : 'ml-0 md:ml-[var(--nav-width)]'
         )}
       >
-        <div className="mx-auto max-w-[var(--content-max)] px-6 py-12">
+        <div className="px-6 py-12">
           {children}
         </div>
       </main>

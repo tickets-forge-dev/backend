@@ -70,6 +70,14 @@ export interface AECResponse {
     qaItems: Array<{ question: string; answer: string }>;
     submittedAt: string;
   } | null;
+  folderId?: string | null;
+  // Story 14-3: Generation preferences
+  includeWireframes?: boolean;
+  includeApiSpec?: boolean;
+  apiSpecDeferred?: boolean;
+  wireframeContext?: string | null;
+  wireframeImageAttachmentIds?: string[];
+  apiContext?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -255,6 +263,19 @@ export class TicketService {
   async reEnrichTicket(ticketId: string): Promise<AECResponse> {
     const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/re-enrich`, {});
     return response.data;
+  }
+
+  // Excalidraw wireframe refinement via AI
+  async refineWireframe(
+    ticketId: string,
+    instruction: string,
+    currentElements: any[],
+  ): Promise<any[]> {
+    const response = await this.client.post<{ elements: any[] }>(
+      `/tickets/${ticketId}/refine-wireframe`,
+      { instruction, currentElements },
+    );
+    return response.data.elements;
   }
 }
 

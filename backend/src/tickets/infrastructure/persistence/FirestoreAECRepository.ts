@@ -218,4 +218,51 @@ export class FirestoreAECRepository implements AECRepository {
     await docRef.delete();
     console.log(`✅ [FirestoreAECRepository] AEC deleted successfully from ${path}`);
   }
+
+  /**
+   * Story 12-2: Update a ticket's folderId (move to folder or back to root)
+   */
+  async updateTicketFolder(
+    ticketId: string,
+    teamId: string,
+    folderId: string | null,
+  ): Promise<void> {
+    const firestore = this.getFirestore();
+    const docRef = firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('aecs')
+      .doc(ticketId);
+
+    const exists = await docRef.get();
+    if (!exists.exists) {
+      throw new AECNotFoundError(ticketId);
+    }
+
+    await docRef.update({
+      folderId: folderId,
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * Story 12-2: Clear folderId from all tickets in a folder (when folder is deleted)
+   */
+  async clearFolderFromTickets(teamId: string, folderId: string): Promise<void> {
+    const firestore = this.getFirestore();
+    const snapshot = await firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('aecs')
+      .where('folderId', '==', folderId)
+      .get();
+
+    if (snapshot.empty) return;
+
+    const batch = firestore.batch();
+    for (const doc of snapshot.docs) {
+      batch.update(doc.ref, { folderId: null, updatedAt: new Date() });
+    }
+    await batch.commit();
+  }
 }

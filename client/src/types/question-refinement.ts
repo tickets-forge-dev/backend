@@ -93,12 +93,23 @@ export interface VisualExpectationSpec {
 }
 
 /**
+ * Excalidraw wireframe data — a complete Excalidraw scene
+ */
+export interface ExcalidrawDataSpec {
+  type: 'excalidraw';
+  version: 2;
+  source: string;
+  elements: any[];
+}
+
+/**
  * Visual QA expectations section
  */
 export interface VisualExpectationsSpec {
   summary: string;
   expectations: VisualExpectationSpec[];
   flowDiagram?: string;
+  excalidrawData?: ExcalidrawDataSpec;
 }
 
 /**

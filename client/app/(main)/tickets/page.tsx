@@ -1,22 +1,25 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useFoldersStore } from '@/stores/folders.store';
+import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
-import { useTicketGrouping } from '@/tickets/hooks/useTicketGrouping';
-import { TicketGroupHeader } from '@/tickets/components/TicketGroupHeader';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, Trash2, UserPlus } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/core/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -42,6 +45,10 @@ function getTypeIcon(type: string | null) {
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
   const { currentTeam, loadTeamMembers } = useTeamStore();
+  const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder } = useFoldersStore();
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isSubmittingFolder, setIsSubmittingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(listPreferences?.typeFilter || 'all');
@@ -50,6 +57,26 @@ export default function TicketsListPage() {
   const [sortBy, setSortBy] = useState<SortBy>((listPreferences?.sortBy as any) || 'updated');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [draggingTicketId, setDraggingTicketId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((ticketId: string) => {
+    setDraggingTicketId(ticketId);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingTicketId(null);
+  }, []);
+
+  const handleTicketDrop = useCallback(async (ticketId: string, folderId: string | null) => {
+    if (!currentTeam?.id) return;
+    const ok = await moveTicket(currentTeam.id, ticketId, folderId);
+    if (ok) {
+      loadTickets();
+      toast.success(folderId ? `Moved to folder` : 'Moved to unfiled');
+    } else {
+      toast.error('Failed to move ticket');
+    }
+  }, [currentTeam?.id, moveTicket, loadTickets]);
 
   // Debounce search input
   useEffect(() => {
@@ -57,12 +84,15 @@ export default function TicketsListPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reload tickets and members when team changes
+  // Reload tickets, folders, and members when team changes
   useEffect(() => {
     loadTickets();
     fetchQuota();
-    if (currentTeam?.id) loadTeamMembers(currentTeam.id);
-  }, [loadTickets, fetchQuota, loadTeamMembers, currentTeam?.id]);
+    if (currentTeam?.id) {
+      loadTeamMembers(currentTeam.id);
+      loadFolders(currentTeam.id);
+    }
+  }, [loadTickets, fetchQuota, loadTeamMembers, loadFolders, currentTeam?.id]);
 
   const allTickets = tickets;
 
@@ -114,11 +144,22 @@ export default function TicketsListPage() {
       });
   }, [allTickets, debouncedSearch, priorityFilter, typeFilter, sortBy, sortDirection]);
 
-  // Use grouping hook with saved preferences
-  const { groups, collapsedGroups, toggleGroup } = useTicketGrouping(
-    filteredTickets,
-    listPreferences?.collapsedGroups
-  );
+  // Separate tickets into folder-grouped and unfiled
+  const { folderTicketsMap, unfiledTickets } = useMemo(() => {
+    const map: Record<string, typeof filteredTickets> = {};
+    const unfiled: typeof filteredTickets = [];
+
+    for (const ticket of filteredTickets) {
+      if (ticket.folderId) {
+        if (!map[ticket.folderId]) map[ticket.folderId] = [];
+        map[ticket.folderId].push(ticket);
+      } else {
+        unfiled.push(ticket);
+      }
+    }
+
+    return { folderTicketsMap: map, unfiledTickets: unfiled };
+  }, [filteredTickets]);
 
   // Save preferences when they change
   useEffect(() => {
@@ -126,9 +167,8 @@ export default function TicketsListPage() {
       sortBy,
       priorityFilter,
       typeFilter,
-      collapsedGroups: Array.from(collapsedGroups),
     });
-  }, [sortBy, priorityFilter, typeFilter, collapsedGroups, setListPreferences]);
+  }, [sortBy, priorityFilter, typeFilter, setListPreferences]);
 
   const sortLabel = {
       updated: 'Recently updated',
@@ -138,22 +178,8 @@ export default function TicketsListPage() {
     }[sortBy];
 
     return (
-      <div className="space-y-4 sm:space-y-6" style={{ width: '70vw', marginLeft: 'calc(50% - 35vw)' }}>
-      {/* Header with Create Button */}
-      <div className="flex items-center justify-end gap-2 px-2 sm:px-0">
-        {quota && !quota.canCreate ? (
-          <div className="relative group">
-            <CreationMenu disabled={true} />
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
-              Ticket limit reached ({quota.used}/{quota.limit})
-            </div>
-          </div>
-        ) : (
-          <CreationMenu disabled={false} />
-        )}
-      </div>
-
-      {/* Filter & Sort bar - Responsive */}
+      <div className="space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
+      {/* Filter, Sort & Actions bar */}
       <div className="flex items-center gap-2">
         {/* Search */}
         <div className="relative flex-1 sm:max-w-md">
@@ -232,7 +258,7 @@ export default function TicketsListPage() {
           {showFilter && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
-              <div className="absolute left-0 sm:right-0 right-0 top-full mt-1 z-50 w-screen sm:w-auto sm:min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
+              <div className="absolute right-0 top-full mt-1 z-50 w-56 sm:w-auto sm:min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
                 {/* Priority */}
                 <div>
                   <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Priority</p>
@@ -276,10 +302,36 @@ export default function TicketsListPage() {
             </>
           )}
         </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* New Folder & Create */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCreatingFolder(true)}
+          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text)] flex-shrink-0"
+        >
+          <FolderPlus className="h-4 w-4 mr-1.5" />
+          <span className="hidden sm:inline">New Folder</span>
+        </Button>
+        {quota && !quota.canCreate ? (
+          <div className="relative group flex-shrink-0">
+            <CreationMenu disabled={true} />
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
+              Ticket limit reached ({quota.used}/{quota.limit})
+            </div>
+          </div>
+        ) : (
+          <div className="flex-shrink-0">
+            <CreationMenu disabled={false} />
+          </div>
+        )}
       </div>
 
-      {/* Loading state: Show skeletons when loading (including team switches) */}
-      {isLoading && (
+      {/* Loading state: Show skeletons on initial load or when loading */}
+      {(isLoading || isInitialLoad) && (
         <div className="space-y-1.5">
           {[...Array(5)].map((_, i) => (
             <TicketSkeletonRow key={i} />
@@ -295,75 +347,248 @@ export default function TicketsListPage() {
       )}
 
       {/* Tickets list */}
-      {!isLoading && !loadError && filteredTickets.length === 0 && (
-        <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center mx-2 sm:mx-0">
-          <div className="text-center px-4">
-            {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
-              <>
-                <Search className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                <p className="text-sm text-[var(--text-secondary)]">No tickets found</p>
-                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  Try adjusting your filters
-                </p>
-              </>
-            ) : (
-              <>
-                <FileText className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                <p className="text-base font-medium text-[var(--text)]">No tickets yet</p>
-                <p className="mt-1 text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
-                  Create your first executable ticket and let AI generate the technical spec
-                </p>
-                <Link href="/tickets/create">
-                  <Button className="mt-4" size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Ticket
-                  </Button>
-                </Link>
-              </>
-            )}
+      {!isLoading && !isInitialLoad && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
+        <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+          <TicketGridHeader />
+          {isCreatingFolder && (
+            <form
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
+                const name = newFolderName.trim();
+                setIsSubmittingFolder(true);
+                try {
+                  const result = await createFolder(currentTeam.id, name);
+                  if (result) toast.success('Folder created');
+                  setNewFolderName('');
+                  setIsCreatingFolder(false);
+                } catch {
+                  toast.error('Failed to create folder');
+                } finally {
+                  setIsSubmittingFolder(false);
+                }
+              }}
+            >
+              <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              <input
+                autoFocus
+                placeholder="Folder name..."
+                className="flex-1 text-sm bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-tertiary)]"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setNewFolderName('');
+                    setIsCreatingFolder(false);
+                  }
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!newFolderName.trim() || isSubmittingFolder}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
+                aria-label="Create folder"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setNewFolderName(''); setIsCreatingFolder(false); }}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                aria-label="Cancel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </form>
+          )}
+          <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center">
+            <div className="text-center px-4">
+              {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
+                <>
+                  <Search className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                  <p className="text-sm text-[var(--text-secondary)]">No tickets found</p>
+                  <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                    Try adjusting your filters
+                  </p>
+                </>
+              ) : (
+                <>
+                  <FileText className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                  <p className="text-base font-medium text-[var(--text)]">No tickets yet</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
+                    Create your first executable ticket and let AI generate the technical spec
+                  </p>
+                  <Link href="/tickets/create">
+                    <Button className="mt-4" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Ticket
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {!isLoading && !loadError && filteredTickets.length > 0 && (
-        <div className="rounded-lg overflow-hidden mx-2 sm:mx-0 border border-[var(--border-subtle)]">
+      {!isLoading && !isInitialLoad && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
+        <div className="rounded-lg overflow-hidden  border border-[var(--border-subtle)]">
           {/* Column headers */}
           <TicketGridHeader />
 
-          {groups.length > 1 ? (
-            // Grouped view
-            <div>
-              {groups.map((group) => {
-                const isCollapsed = collapsedGroups.has(group.key);
-                return (
-                  <div key={group.key}>
-                    <TicketGroupHeader
-                      label={group.label}
-                      count={group.tickets.length}
-                      isCollapsed={isCollapsed}
-                      onToggle={() => toggleGroup(group.key)}
-                    />
-                    {!isCollapsed && (
+          {/* Inline folder creation */}
+          {isCreatingFolder && (
+            <form
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
+                const name = newFolderName.trim();
+                setIsSubmittingFolder(true);
+                try {
+                  const result = await createFolder(currentTeam.id, name);
+                  if (result) toast.success('Folder created');
+                  setNewFolderName('');
+                  setIsCreatingFolder(false);
+                } catch {
+                  toast.error('Failed to create folder');
+                } finally {
+                  setIsSubmittingFolder(false);
+                }
+              }}
+            >
+              <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              <input
+                autoFocus
+                placeholder="Folder name..."
+                className="flex-1 text-sm bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-tertiary)]"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setNewFolderName('');
+                    setIsCreatingFolder(false);
+                  }
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!newFolderName.trim() || isSubmittingFolder}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
+                aria-label="Create folder"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewFolderName('');
+                  setIsCreatingFolder(false);
+                }}
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                aria-label="Cancel"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </form>
+          )}
+
+          {/* Folder sections (always on top, alphabetical) */}
+          {folders.map((folder) => {
+            const folderTickets = folderTicketsMap[folder.id] || [];
+            const isExpanded = expandedFolders.has(folder.id);
+            return (
+              <div key={folder.id}>
+                <FolderHeader
+                  folder={folder}
+                  ticketCount={folderTickets.length}
+                  isExpanded={isExpanded}
+                  onToggle={() => toggleFolder(folder.id)}
+                  onRename={async (name) => {
+                    if (currentTeam?.id) {
+                      const ok = await renameFolder(currentTeam.id, folder.id, name);
+                      if (ok) toast.success('Folder renamed');
+                      else toast.error('Failed to rename folder');
+                    }
+                  }}
+                  onDelete={async () => {
+                    if (confirm(`Delete folder "${folder.name}"? Tickets inside will move to root.`)) {
+                      if (currentTeam?.id) {
+                        const ok = await deleteFolder(currentTeam.id, folder.id);
+                        if (ok) { toast.success('Folder deleted'); loadTickets(); }
+                        else toast.error('Failed to delete folder');
+                      }
+                    }
+                  }}
+                  isDragActive={!!draggingTicketId}
+                  draggingTicketId={draggingTicketId}
+                  onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
+                />
+                {isExpanded && (
+                  <>
+                    {folderTickets.length > 0 && (
                       <div>
-                        {group.tickets.map((ticket) => (
-                          <TicketRow key={ticket.id} ticket={ticket} />
+                        {folderTickets.map((ticket) => (
+                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested />
                         ))}
                       </div>
                     )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            // Flat view
+                    <InlineFolderAdd folderId={folder.id} />
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Unfiled drop zone — only visible during active drag */}
+          {draggingTicketId && folders.length > 0 && (
+            <UnfiledDropZone draggingTicketId={draggingTicketId} onTicketDrop={(ticketId) => handleTicketDrop(ticketId, null)} />
+          )}
+
+          {/* Unfiled tickets below folders */}
+          {unfiledTickets.length > 0 && (
             <div>
-              {filteredTickets.map((ticket) => (
-                <TicketRow key={ticket.id} ticket={ticket} />
+              {unfiledTickets.map((ticket) => (
+                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
               ))}
             </div>
           )}
+
+          {/* Root-level quick add */}
+          <InlineRootAdd />
         </div>
       )}
+    </div>
+  );
+}
+
+// Drop zone for removing tickets from folders
+function UnfiledDropZone({ draggingTicketId, onTicketDrop }: { draggingTicketId: string | null; onTicketDrop: (ticketId: string) => void }) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  return (
+    <div
+      className={`flex items-center justify-center px-4 py-2.5 border-b border-dashed border-[var(--border-subtle)] transition-all text-xs ${
+        isDragOver
+          ? 'border-[var(--blue)] bg-[var(--bg-active)] text-[var(--text-secondary)]'
+          : 'text-[var(--text-tertiary)]'
+      }`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setIsDragOver(true);
+      }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
+        if (ticketId) onTicketDrop(ticketId);
+      }}
+    >
+      <FileText className="h-3.5 w-3.5 mr-1.5" />
+      Drop here to unfile
     </div>
   );
 }
@@ -371,8 +596,7 @@ export default function TicketsListPage() {
 // Grid column header row
 function TicketGridHeader() {
   return (
-    <div className="grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
-      style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}>
+    <div className="ticket-grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none">
       <span className="pl-6">Title</span>
       <span className="hidden sm:block">Status</span>
       <span className="hidden sm:block">Priority</span>
@@ -380,6 +604,123 @@ function TicketGridHeader() {
       <span className="hidden md:block">Updated</span>
       <span className="text-center">Score</span>
       <span />
+    </div>
+  );
+}
+
+// Folder section header with collapse, rename, delete + drop target
+function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onDelete, isDragActive, draggingTicketId, onTicketDrop }: {
+  folder: FolderResponse;
+  ticketCount: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onRename: (name: string) => void;
+  onDelete: () => void;
+  isDragActive?: boolean;
+  draggingTicketId?: string | null;
+  onTicketDrop?: (ticketId: string) => void;
+}) {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(folder.name);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const blurEnabledRef = useRef(false);
+
+  // Focus and select text when rename mode activates (after dropdown closes)
+  useEffect(() => {
+    if (isRenaming) {
+      blurEnabledRef.current = false;
+      // Delay focus to let the dropdown fully close
+      const timer = setTimeout(() => {
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+        blurEnabledRef.current = true;
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isRenaming]);
+
+  const handleRenameSubmit = () => {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== folder.name) {
+      onRename(trimmed);
+    }
+    setIsRenaming(false);
+  };
+
+  const handleRenameCancel = () => {
+    if (!blurEnabledRef.current) return;
+    setRenameValue(folder.name);
+    setIsRenaming(false);
+  };
+
+  return (
+    <div
+      className={`group/folder sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] ${
+        isDragOver ? 'ring-2 ring-[var(--blue)] ring-inset bg-[var(--bg-active)]' : ''
+      }`}
+      onDragOver={(e) => {
+        if (!isDragActive) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setIsDragOver(true);
+      }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
+        if (ticketId && onTicketDrop) onTicketDrop(ticketId);
+      }}
+    >
+      <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={onToggle}>
+        <ChevronDown
+          className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform flex-shrink-0 ${
+            !isExpanded ? '-rotate-90' : ''
+          }`}
+        />
+        <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
+        {isRenaming ? (
+          <input
+            ref={renameInputRef}
+            className="text-sm font-medium bg-transparent border-b border-[var(--primary)] outline-none text-[var(--text)] px-0 py-0"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={handleRenameCancel}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); handleRenameSubmit(); }
+              if (e.key === 'Escape') handleRenameCancel();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] truncate">{folder.name}</h3>
+        )}
+      </div>
+      <span className="text-xs font-medium text-[var(--text-tertiary)] flex-shrink-0 tabular-nums">
+        {ticketCount}
+      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="p-1 rounded-md sm:opacity-0 sm:group-hover/folder:opacity-100 hover:bg-[var(--bg-hover)] transition-all focus:opacity-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreVertical className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuItem onClick={() => { setRenameValue(folder.name); setIsRenaming(true); }}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onDelete} className="text-red-500 focus:text-red-500">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -397,7 +738,150 @@ function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'draft' |
 }
 
 function isTicketInProgress(ticket: any) {
-  return ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined;
+  return ticket.status === 'draft' && !ticket.techSpec;
+}
+
+/** Inline ghost row for quick-adding a ticket inside a folder */
+function InlineFolderAdd({ folderId }: { folderId: string }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const { currentTeam } = useTeamStore();
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
+
+  const handleSubmit = async () => {
+    const trimmed = title.trim();
+    if (trimmed.length < 3 || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const { quickCreateDraft } = useTicketsStore.getState();
+      const { moveTicket } = useFoldersStore.getState();
+      const aec = await quickCreateDraft(trimmed);
+      if (aec && currentTeam?.id) {
+        await moveTicket(currentTeam.id, aec.id, folderId);
+        setTitle('');
+        setIsEditing(false);
+        router.push(`/tickets/create?resume=${aec.id}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    } else if (e.key === 'Escape') {
+      setTitle('');
+      setIsEditing(false);
+    }
+  };
+
+  if (!isEditing) {
+    return (
+      <button
+        onClick={() => setIsEditing(true)}
+        className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+      >
+        <Plus className="h-3 w-3" />
+        <span>New ticket</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 pl-10 pr-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
+      <Plus className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
+      <input
+        ref={inputRef}
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => { if (!title.trim()) { setTitle(''); setIsEditing(false); } }}
+        placeholder="Ticket title… (Enter to create)"
+        disabled={isSubmitting}
+        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-50"
+      />
+      {isSubmitting && <Loader2 className="h-3 w-3 animate-spin text-[var(--text-tertiary)]" />}
+    </div>
+  );
+}
+
+/** Inline ghost row for quick-adding a ticket at the root level (no folder) */
+function InlineRootAdd() {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
+
+  const handleSubmit = async () => {
+    const trimmed = title.trim();
+    if (trimmed.length < 3 || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const { quickCreateDraft } = useTicketsStore.getState();
+      const aec = await quickCreateDraft(trimmed);
+      if (aec) {
+        setTitle('');
+        setIsEditing(false);
+        router.push(`/tickets/create?resume=${aec.id}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    } else if (e.key === 'Escape') {
+      setTitle('');
+      setIsEditing(false);
+    }
+  };
+
+  if (!isEditing) {
+    return (
+      <button
+        onClick={() => setIsEditing(true)}
+        className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+      >
+        <Plus className="h-3 w-3" />
+        <span>New ticket</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
+      <Plus className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
+      <input
+        ref={inputRef}
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => { if (!title.trim()) { setTitle(''); setIsEditing(false); } }}
+        placeholder="Ticket title… (Enter to create)"
+        disabled={isSubmitting}
+        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-50"
+      />
+      {isSubmitting && <Loader2 className="h-3 w-3 animate-spin text-[var(--text-tertiary)]" />}
+    </div>
+  );
 }
 
 function getRelativeTime(date: string | Date) {
@@ -454,13 +938,22 @@ function PriorityCell({ priority }: { priority: string | null }) {
 }
 
 // Grid-based ticket row
-function TicketRow({ ticket }: { ticket: any }) {
+function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
+  ticket: any;
+  folders?: FolderResponse[];
+  onDragStart?: (ticketId: string) => void;
+  onDragEnd?: () => void;
+  nested?: boolean;
+}) {
   const router = useRouter();
-  const { deleteTicket } = useTicketsStore();
-  const { teamMembers } = useTeamStore();
+  const { deleteTicket, loadTickets } = useTicketsStore();
+  const { teamMembers, currentTeam } = useTeamStore();
+  const { moveTicket } = useFoldersStore();
   const ticketStatus = getTicketStatusKey(ticket);
   const inProgress = isTicketInProgress(ticket);
   const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
+  const [isDragging, setIsDragging] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
   const handleOpen = () => router.push(href);
 
@@ -474,13 +967,38 @@ function TicketRow({ ticket }: { ticket: any }) {
 
   return (
     <div
-      className={`group grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors ${
+      draggable={!isMobile}
+      onDragStart={(e) => {
+        // Create a semi-transparent ghost of the row
+        const row = e.currentTarget;
+        const ghost = row.cloneNode(true) as HTMLElement;
+        ghost.style.width = `${row.offsetWidth}px`;
+        ghost.style.opacity = '0.35';
+        ghost.style.position = 'absolute';
+        ghost.style.top = '-9999px';
+        ghost.style.left = '-9999px';
+        ghost.style.pointerEvents = 'none';
+        document.body.appendChild(ghost);
+        const rect = row.getBoundingClientRect();
+        e.dataTransfer.setDragImage(ghost, e.clientX - rect.left, e.clientY - rect.top);
+        requestAnimationFrame(() => document.body.removeChild(ghost));
+
+        e.dataTransfer.setData('text/plain', ticket.id);
+        e.dataTransfer.effectAllowed = 'move';
+        setIsDragging(true);
+        onDragStart?.(ticket.id);
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+        onDragEnd?.();
+      }}
+      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
-      }`}
-      style={{ gridTemplateColumns: 'minmax(0,1fr) 130px 80px 110px 72px 44px 32px' }}
+      } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-white/[0.02] dark:bg-white/[0.02]' : ''}`}
     >
       {/* Title cell */}
-      <Link href={href} className="flex items-center gap-2 py-3 min-w-0 pr-3">
+      <Link href={href} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>
+        {nested && <span className="w-3 h-px bg-[var(--border-subtle)] flex-shrink-0 -ml-3" />}
         <span className="flex-shrink-0">{getTypeIcon(ticket.type)}</span>
         <span className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
           ticketStatus === 'needs-input' || ticketStatus === 'needs-resume'
@@ -524,7 +1042,7 @@ function TicketRow({ ticket }: { ticket: any }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-subtle)] transition-all focus:opacity-100"
+              className="p-1 rounded-md sm:opacity-0 sm:group-hover:opacity-100 hover:bg-[var(--bg-subtle)] transition-all focus:opacity-100"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreVertical className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
@@ -539,6 +1057,46 @@ function TicketRow({ ticket }: { ticket: any }) {
               <UserPlus className="h-4 w-4 mr-2" />
               Assign
             </DropdownMenuItem>
+            {folders.length > 0 && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FolderInput className="h-4 w-4 mr-2" />
+                  Move to...
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-40">
+                  {ticket.folderId && (
+                    <DropdownMenuItem onSelect={() => {
+                      if (currentTeam?.id) {
+                        moveTicket(currentTeam.id, ticket.id, null).then((ok) => {
+                          if (ok) { loadTickets(); toast.success('Moved to root'); }
+                          else toast.error('Failed to move ticket');
+                        });
+                      }
+                    }}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Unfiled
+                    </DropdownMenuItem>
+                  )}
+                  {folders
+                    .filter((f) => f.id !== ticket.folderId)
+                    .map((folder) => (
+                      <DropdownMenuItem key={folder.id} onSelect={() => {
+                        const targetFolderId = folder.id;
+                        const targetFolderName = folder.name;
+                        if (currentTeam?.id) {
+                          moveTicket(currentTeam.id, ticket.id, targetFolderId).then((ok) => {
+                            if (ok) { loadTickets(); toast.success(`Moved to ${targetFolderName}`); }
+                            else toast.error('Failed to move ticket');
+                          });
+                        }
+                      }}>
+                        <FolderOpen className="h-4 w-4 mr-2" />
+                        {folder.name}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => toast.info('Archive feature coming soon')}>
               <Archive className="h-4 w-4 mr-2" />

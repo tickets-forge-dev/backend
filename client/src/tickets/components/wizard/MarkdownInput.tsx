@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Textarea } from '@/core/components/ui/textarea';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Pencil, Eye, Maximize2, Minimize2 } from 'lucide-react';
+import { PenLine, Bold, Italic, List, ListOrdered, Code, Link2, Heading2, X, FileUp } from 'lucide-react';
 
 interface MarkdownInputProps {
   value: string;
@@ -13,7 +13,282 @@ interface MarkdownInputProps {
   maxLength?: number;
   rows?: number;
   autoFocus?: boolean;
+  /** Hide the built-in "Open Editor" button (caller renders their own) */
+  externalEditorButton?: boolean;
+  /** Controlled fullscreen state from parent */
+  fullscreenOpen?: boolean;
+  onFullscreenClose?: () => void;
 }
+
+/** Insert markdown syntax around the current selection or at cursor */
+function insertMarkdown(
+  textarea: HTMLTextAreaElement,
+  prefix: string,
+  suffix: string,
+  onChange: (v: string) => void,
+) {
+  const { selectionStart, selectionEnd, value } = textarea;
+  const selected = value.slice(selectionStart, selectionEnd);
+  const replacement = `${prefix}${selected || 'text'}${suffix}`;
+  const next = value.slice(0, selectionStart) + replacement + value.slice(selectionEnd);
+  onChange(next);
+  // Restore cursor after React re-render
+  requestAnimationFrame(() => {
+    const cursorPos = selectionStart + prefix.length + (selected ? selected.length : 4);
+    textarea.setSelectionRange(
+      selected ? selectionStart + prefix.length : selectionStart + prefix.length,
+      selected ? selectionStart + prefix.length + selected.length : selectionStart + prefix.length + 4,
+    );
+    textarea.focus();
+  });
+}
+
+// ── Toolbar button ──
+function ToolbarBtn({ icon, title, onClick }: { icon: React.ReactNode; title: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// ── Markdown toolbar ──
+function MarkdownToolbar({ textareaRef, onChange }: { textareaRef: React.RefObject<HTMLTextAreaElement | null>; onChange: (v: string) => void }) {
+  const ins = (prefix: string, suffix: string) => {
+    if (textareaRef.current) insertMarkdown(textareaRef.current, prefix, suffix, onChange);
+  };
+
+  return (
+    <div className="flex items-center gap-0.5 px-1">
+      <ToolbarBtn icon={<Bold className="h-3.5 w-3.5" />} title="Bold" onClick={() => ins('**', '**')} />
+      <ToolbarBtn icon={<Italic className="h-3.5 w-3.5" />} title="Italic" onClick={() => ins('_', '_')} />
+      <ToolbarBtn icon={<Code className="h-3.5 w-3.5" />} title="Code" onClick={() => ins('`', '`')} />
+      <div className="w-px h-4 bg-[var(--border)] mx-1" />
+      <ToolbarBtn icon={<Heading2 className="h-3.5 w-3.5" />} title="Heading" onClick={() => ins('## ', '')} />
+      <ToolbarBtn icon={<List className="h-3.5 w-3.5" />} title="Bullet list" onClick={() => ins('- ', '')} />
+      <ToolbarBtn icon={<ListOrdered className="h-3.5 w-3.5" />} title="Numbered list" onClick={() => ins('1. ', '')} />
+      <ToolbarBtn icon={<Link2 className="h-3.5 w-3.5" />} title="Link" onClick={() => ins('[', '](url)')} />
+    </div>
+  );
+}
+
+const FONT_OPTIONS = [
+  { label: 'Mono', value: 'font-mono', family: 'ui-monospace, monospace' },
+  { label: 'Sans', value: 'font-sans', family: 'ui-sans-serif, system-ui, sans-serif' },
+  { label: 'Serif', value: 'font-serif', family: 'ui-serif, Georgia, serif' },
+];
+
+const SIZE_OPTIONS = [
+  { label: 'S', value: 'text-xs' },
+  { label: 'M', value: 'text-sm' },
+  { label: 'L', value: 'text-base' },
+  { label: 'XL', value: 'text-lg' },
+];
+
+// ── Fullscreen overlay editor ──
+function FullscreenEditor({
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+  onClose,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  maxLength: number;
+  onClose: () => void;
+}) {
+  const [mode, setMode] = useState<'write' | 'preview' | 'split'>('write');
+  const [font, setFont] = useState(FONT_OPTIONS[0]);
+  const [fontSize, setFontSize] = useState(SIZE_OPTIONS[1]); // default M
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      // Append to existing content (or replace if empty)
+      onChange(value ? `${value}\n\n${content}` : content);
+    };
+    reader.readAsText(file);
+    // Reset so same file can be re-imported
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [value, onChange]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  // Auto-focus textarea
+  useEffect(() => {
+    if (mode !== 'preview') textareaRef.current?.focus();
+  }, [mode]);
+
+  return (
+    <div className="fixed inset-0 z-[1100] flex justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      {/* Panel */}
+      <div className="relative w-full sm:w-[80%] bg-[var(--bg)] flex flex-col shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2 bg-[var(--bg-subtle)]">
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-semibold text-[var(--text)]">Ticket Description</h3>
+          <div className="flex items-center gap-1 bg-[var(--bg)] rounded-md border border-[var(--border)] p-0.5">
+            <button
+              type="button"
+              onClick={() => setMode('write')}
+              className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                mode === 'write' ? 'bg-[var(--bg-hover)] text-[var(--text)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              Write
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('split')}
+              className={`px-2.5 py-1 text-xs rounded font-medium transition-colors hidden sm:block ${
+                mode === 'split' ? 'bg-[var(--bg-hover)] text-[var(--text)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              Split
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('preview')}
+              className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                mode === 'preview' ? 'bg-[var(--bg-hover)] text-[var(--text)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              Preview
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] transition-colors"
+            title="Import text file"
+          >
+            <FileUp className="h-3.5 w-3.5" />
+            Import
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".md,.txt,.markdown,.text,.csv,.json,.xml,.yaml,.yml"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+          <span className="text-xs text-[var(--text-tertiary)]">{value.length}/{maxLength}</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors"
+            title="Close (Esc)"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Toolbar — shown when write or split */}
+      {mode !== 'preview' && (
+        <div className="border-b border-[var(--border)] px-3 py-1.5 bg-[var(--bg-subtle)] flex items-center justify-between">
+          <MarkdownToolbar textareaRef={textareaRef} onChange={onChange} />
+          <div className="flex items-center gap-2">
+            {/* Font selector */}
+            <div className="flex items-center gap-0.5 bg-[var(--bg)] rounded-md border border-[var(--border)] p-0.5">
+              {FONT_OPTIONS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setFont(f)}
+                  className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
+                    font.value === f.value
+                      ? 'bg-[var(--bg-hover)] text-[var(--text)]'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                  style={{ fontFamily: f.family }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {/* Size selector */}
+            <div className="flex items-center gap-0.5 bg-[var(--bg)] rounded-md border border-[var(--border)] p-0.5">
+              {SIZE_OPTIONS.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setFontSize(s)}
+                  className={`px-1.5 py-0.5 text-[11px] rounded transition-colors ${
+                    fontSize.value === s.value
+                      ? 'bg-[var(--bg-hover)] text-[var(--text)]'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Editor area */}
+      <div className="flex-1 flex min-h-0">
+        {/* Write pane */}
+        {mode !== 'preview' && (
+          <div className={`flex-1 flex flex-col min-w-0 ${mode === 'split' ? 'border-r border-[var(--border)]' : ''}`}>
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder}
+              maxLength={maxLength}
+              className={`flex-1 w-full resize-none px-8 py-6 bg-transparent text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none leading-relaxed ${font.value} ${fontSize.value}`}
+            />
+          </div>
+        )}
+
+        {/* Preview pane */}
+        {(mode === 'preview' || mode === 'split') && (
+          <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
+            {mode === 'split' && (
+              <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] mb-3 font-medium">Preview</p>
+            )}
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              {value ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+              ) : (
+                <p className="text-[var(--text-tertiary)] italic">Nothing to preview</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ──
 
 export function MarkdownInput({
   value,
@@ -22,77 +297,57 @@ export function MarkdownInput({
   maxLength = 2000,
   rows = 4,
   autoFocus = false,
+  externalEditorButton = false,
+  fullscreenOpen,
+  onFullscreenClose,
 }: MarkdownInputProps) {
-  const [mode, setMode] = useState<'write' | 'preview'>('write');
-  const [expanded, setExpanded] = useState(false);
+  const [internalFullscreen, setInternalFullscreen] = useState(false);
 
-  const expandedRows = Math.max(rows * 3, 10);
+  const isFullscreen = fullscreenOpen ?? internalFullscreen;
+  const handleClose = useCallback(() => {
+    setInternalFullscreen(false);
+    onFullscreenClose?.();
+  }, [onFullscreenClose]);
+
+  if (isFullscreen) {
+    return (
+      <FullscreenEditor
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        onClose={handleClose}
+      />
+    );
+  }
 
   return (
     <div className="space-y-2">
-      {/* Toggle tabs + expand button */}
-      <div className="flex items-center justify-between border-b border-[var(--border)]">
-        <div className="flex items-center gap-1">
+      {/* Open Editor button — only when not externally controlled */}
+      {!externalEditorButton && (
+        <div className="flex items-center justify-end">
           <button
             type="button"
-            onClick={() => setMode('write')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
-              mode === 'write'
-                ? 'border-[var(--purple)] text-[var(--text)]'
-                : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-            }`}
+            onClick={() => setInternalFullscreen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--purple)] hover:text-[var(--text)] border border-[var(--purple)]/40 hover:border-[var(--purple)] rounded-md transition-colors hover:bg-[var(--purple)]/10"
+            title="Open full markdown editor"
           >
-            <Pencil className="h-3 w-3" />
-            Write
+            <PenLine className="h-3.5 w-3.5" />
+            Open Editor
           </button>
-          <button
-            type="button"
-            onClick={() => setMode('preview')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
-              mode === 'preview'
-                ? 'border-[var(--purple)] text-[var(--text)]'
-                : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            <Eye className="h-3 w-3" />
-            Preview
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors rounded"
-          title={expanded ? 'Collapse' : 'Expand'}
-        >
-          {expanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
-          {expanded ? 'Collapse' : 'Expand'}
-        </button>
-      </div>
-
-      {/* Content */}
-      {mode === 'write' ? (
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          rows={expanded ? expandedRows : rows}
-          autoFocus={autoFocus}
-          className="w-full resize-none font-mono text-sm transition-[height] duration-300 ease-in-out"
-          style={{ height: expanded ? `${expandedRows * 1.5}em` : `${rows * 1.5}em` }}
-        />
-      ) : (
-        <div
-          className="rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm prose prose-sm dark:prose-invert max-w-none overflow-y-auto transition-[min-height,max-height] duration-300 ease-in-out"
-          style={{ minHeight: expanded ? `${expandedRows * 1.5}em` : '100px', maxHeight: expanded ? `${expandedRows * 1.5}em` : '150px' }}
-        >
-          {value ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
-          ) : (
-            <p className="text-[var(--text-tertiary)] italic">Nothing to preview</p>
-          )}
         </div>
       )}
+
+      {/* Textarea */}
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        rows={rows}
+        autoFocus={autoFocus}
+        className="w-full resize-none font-mono text-sm min-h-[40vh] sm:min-h-[200px]"
+      />
 
       {/* Character count */}
       <span className="text-xs text-[var(--text-tertiary)] block text-right">

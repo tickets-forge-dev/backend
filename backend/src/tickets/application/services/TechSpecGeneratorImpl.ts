@@ -33,9 +33,12 @@ import {
   LayeredFileChanges,
   TestPlan,
   VisualExpectations,
+  ExcalidrawData,
   PackageDependency,
   BugDetails,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 /**
  * Prompt templates for each section generation
@@ -939,7 +942,10 @@ Generate valid JSON object:
    * Extracts API changes from deep analysis taskAnalysis, or generates via LLM fallback.
    * Ensures API-related tasks always get endpoint documentation.
    */
-  async extractApiChanges(context: CodebaseContext): Promise<ApiChanges | undefined> {
+  async extractApiChanges(
+    context: CodebaseContext,
+    apiContext?: string, // Story 14-3: User-provided API context hints
+  ): Promise<ApiChanges | undefined> {
     // First: try to extract from deep analysis results
     const taskAnalysis = (context as any)?.taskAnalysis;
     if (taskAnalysis?.apiChanges) {
@@ -970,7 +976,7 @@ Generate valid JSON object:
 
     // Fallback: generate API endpoints via LLM if context suggests API work
     try {
-      return await this.generateApiChanges(context);
+      return await this.generateApiChanges(context, apiContext);
     } catch (error) {
       console.warn(
         '[TechSpecGenerator] API generation fallback failed:',
@@ -983,7 +989,10 @@ Generate valid JSON object:
   /**
    * LLM fallback: generate API endpoint suggestions from the task context.
    */
-  private async generateApiChanges(context: CodebaseContext): Promise<ApiChanges | undefined> {
+  private async generateApiChanges(
+    context: CodebaseContext,
+    apiContext?: string, // Story 14-3: User-provided API context hints
+  ): Promise<ApiChanges | undefined> {
     const systemPrompt = PromptTemplates.systemPrompt(context);
     const directoryStructure = this.buildDirectoryStructure(context);
 
@@ -999,7 +1008,13 @@ Generate valid JSON object:
             .join('\n')}\n`
         : '';
 
+    // Story 14-3: Inject user-provided API context hints
+    const apiContextBlock = apiContext
+      ? `\nUser-Provided API Context:\n${apiContext}\n\nUse the above hints to guide endpoint specification.\n`
+      : '';
+
     const userPrompt = `CRITICAL: Analyze this task to determine if it is API-oriented (requires backend endpoints, external API integration, or data fetching).
+${apiContextBlock}
 
 **Common API-Oriented Features:**
 - Data fetching/syncing from external services (GitHub, Jira, Linear, etc.)
@@ -1495,6 +1510,8 @@ Return an empty array [] if no new dependencies are required.
     fileChanges: FileChange[],
     apiChanges: ApiChanges | undefined,
     context: CodebaseContext,
+    wireframeContext?: string, // Story 14-3: User-provided wireframe/design context
+    wireframeImageUrls?: string[], // Story 14-3: User-uploaded wireframe/mockup image URLs
   ): Promise<VisualExpectations | undefined> {
     try {
       const systemPrompt = PromptTemplates.systemPrompt(context);
@@ -1520,10 +1537,20 @@ Return an empty array [] if no new dependencies are required.
           .slice(0, 10)
           .join('\n') || 'None';
 
+      // Story 14-3: Inject user-provided wireframe/design context
+      const designContextSection = wireframeContext
+        ? `\nUser-Provided Design Context:\n${wireframeContext}\n\nUse the above design context to inform the wireframes and visual expectations.\n`
+        : '';
+
+      // Story 14-3: Reference uploaded wireframe/mockup images
+      const imageReferenceSection = wireframeImageUrls?.length
+        ? `\nReference Mockup Images (${wireframeImageUrls.length} uploaded):\n${wireframeImageUrls.map((url, i) => `  ${i + 1}. ${url}`).join('\n')}\n\nThe user has uploaded mockup/wireframe images. Use them as reference for the expected layout and visual structure.\n`
+        : '';
+
       const userPrompt = `Generate visual QA expectations for manual testing. For each key screen state, create an ASCII wireframe showing what the tester should see.
 
 Solution: ${solution.overview}
-
+${designContextSection}${imageReferenceSection}
 Acceptance Criteria:
 ${acText}
 
@@ -1822,8 +1849,11 @@ Rewritten text (definitive, unambiguous):`;
       maxScore += 5;
 
       // Epic 20: API Changes (0-5)
-      if (spec.apiChanges) score += this.scoreApiChanges(spec.apiChanges);
-      maxScore += 5;
+      // Story 14-3: Only include in maxScore when API section is present (not disabled by user)
+      if (spec.apiChanges) {
+        score += this.scoreApiChanges(spec.apiChanges);
+        maxScore += 5;
+      }
     }
 
     // AC#3: Re-normalize score to 0-100 scale based on available sections
@@ -2105,6 +2135,334 @@ Rewritten text (definitive, unambiguous):`;
   }
 
   /**
+   * Calls LLM with configurable options (token limits, temperature)
+   *
+   * Used for wireframe generation which needs higher token limits.
+   */
+  private async callLLMWithOptions(
+    systemPrompt: string,
+    userPrompt: string,
+    opts?: { maxOutputTokens?: number; temperature?: number },
+  ): Promise<any> {
+    if (!this.llmModel) {
+      throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
+    }
+
+    const maxOutputTokens = opts?.maxOutputTokens ?? 4096;
+    const temperature = opts?.temperature ?? 0.2;
+    const maxRetries = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const prompt =
+          attempt === 1
+            ? userPrompt
+            : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
+
+        const { text } = await generateText({
+          model: this.llmModel,
+          system: systemPrompt,
+          prompt,
+          maxOutputTokens,
+          temperature,
+        });
+
+        this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
+        return this.parseJSON(text);
+      } catch (error: any) {
+        lastError = error;
+        if (attempt < maxRetries && error.message?.includes('Failed to parse response')) {
+          this.logger.warn(`LLM returned non-JSON (attempt ${attempt}/${maxRetries}), retrying...`);
+          continue;
+        }
+        this.logger.error(`LLM call failed (${this.providerName}): ${error.message}`);
+        throw new Error(`LLM call failed: ${error.message}`);
+      }
+    }
+
+    throw new Error(`LLM call failed after ${maxRetries} attempts: ${lastError?.message}`);
+  }
+
+  /**
+   * Cached Excalidraw BMAD skills content for LLM system prompt injection.
+   * Loaded once from .bmad/ files and cached for subsequent calls.
+   */
+  private excalidrawSkillsCache: string | null = null;
+
+  private getExcalidrawSkills(): string {
+    if (this.excalidrawSkillsCache) return this.excalidrawSkillsCache;
+
+    const basePath = join(process.cwd(), '..', '.bmad', 'bmm', 'workflows', 'frame-expert', '_shared');
+    const parts: string[] = [];
+
+    const helpersPath = join(basePath, 'excalidraw-helpers.md');
+    if (existsSync(helpersPath)) {
+      parts.push('## ELEMENT CREATION GUIDELINES\n\n' + readFileSync(helpersPath, 'utf-8'));
+    }
+
+    const templatesPath = join(basePath, 'excalidraw-templates.yaml');
+    if (existsSync(templatesPath)) {
+      parts.push('## TEMPLATES\n\n' + readFileSync(templatesPath, 'utf-8'));
+    }
+
+    const libraryPath = join(basePath, 'excalidraw-library.json');
+    if (existsSync(libraryPath)) {
+      parts.push('## LIBRARY ELEMENT EXAMPLES\n\n' + readFileSync(libraryPath, 'utf-8'));
+    }
+
+    this.excalidrawSkillsCache = parts.length > 0
+      ? parts.join('\n\n---\n\n')
+      : '';
+
+    return this.excalidrawSkillsCache;
+  }
+
+  /**
+   * Generates Excalidraw wireframe data from visual expectations.
+   *
+   * Uses BMAD Excalidraw skills for proper element creation guidelines.
+   * Returns undefined on failure — ASCII wireframes remain as fallback.
+   */
+  async generateExcalidrawWireframes(
+    expectations: VisualExpectations['expectations'],
+    wireframeContext?: string,
+    wireframeImageUrls?: string[],
+  ): Promise<ExcalidrawData | undefined> {
+    try {
+      const excalidrawSkills = this.getExcalidrawSkills();
+
+      const systemPrompt = `You are BMAD Frame Expert — a wireframe design agent that produces production-quality Excalidraw JSON.
+
+CRITICAL: Respond with ONLY valid JSON. No text before or after.
+
+${excalidrawSkills}`;
+
+      const screensList = expectations
+        .map((e, i) => `Screen ${i + 1}: "${e.screen}" (${e.state})\n  ${e.description}`)
+        .join('\n\n');
+
+      const designContext = wireframeContext
+        ? `\nUser's wireframe description (PRIMARY layout driver):\n${wireframeContext}\n`
+        : '';
+
+      const imageRef = wireframeImageUrls?.length
+        ? `\nReference mockup images: ${wireframeImageUrls.length} uploaded. Use them as visual reference.\n`
+        : '';
+
+      const userPrompt = `Create a medium-fidelity web app wireframe for the following screens.
+${designContext}${imageRef}
+Screens to include:
+${screensList}
+
+## BUILD ORDER (follow this exactly)
+
+### Step 1: Screen Containers
+For each screen, create a container rectangle:
+- width: 800, height: 600, strokeWidth: 2, strokeColor: "#9e9e9e"
+- backgroundColor: "#ffffff", fillStyle: "solid", roughness: 0
+- Lay out horizontally starting at x=0, y=100, with 100px gap between screens
+- Add a title text element ABOVE each container (y = container.y - 40, fontSize: 24)
+
+### Step 2: Layout Sections (inside each container)
+- Header bar: full width (800), height 60, backgroundColor: "#f5f5f5", fillStyle: "solid"
+- Content area: below header, padded 40px from edges
+- Footer/action bar if needed: bottom of container, height 60
+
+### Step 3: Navigation Elements
+- Nav items as text elements in the header
+- Breadcrumbs, tabs, or sidebar as needed by the screen
+
+### Step 4: Content Blocks
+- Cards: rectangle with roundness {"type":3,"value":8}, strokeColor: "#9e9e9e", backgroundColor: "#ffffff"
+- Tables: use grouped rectangles for rows/columns
+- Lists: text elements with consistent spacing (40px vertical gap)
+- Images/placeholders: rectangle with diagonal cross lines
+
+### Step 5: Interactive Elements
+- Buttons: rectangle width 120-200, height 40, roundness {"type":3,"value":4}, backgroundColor: "#e3f2fd", strokeColor: "#1976d2"
+- Primary buttons: backgroundColor: "#1976d2", text strokeColor: "#ffffff"
+- Input fields: rectangle width 300, height 40, roundness {"type":3,"value":4}, backgroundColor: "#ffffff", strokeColor: "#9e9e9e"
+- Checkboxes/toggles: small rectangles (20x20)
+- Dropdowns: input + small chevron indicator
+
+### Step 6: Labels & Annotations
+- Add text labels for all interactive elements
+- Section headings: fontSize 20, bold
+- Body text: fontSize 16
+- Caption/helper text: fontSize 14, strokeColor: "#757575"
+- Annotate key interactions with dashed-line callouts if helpful
+
+### Step 7: Flow Indicators
+- If multiple screens, add arrows between related screens showing navigation flow
+- Arrow strokeColor: "#1976d2", strokeWidth: 2
+
+## ELEMENT STRUCTURE RULES
+
+Every element MUST include ALL these properties:
+\`\`\`json
+{
+  "id": "unique-string-id",
+  "type": "rectangle",
+  "x": 0, "y": 0,
+  "width": 160, "height": 80,
+  "angle": 0,
+  "strokeColor": "#9e9e9e",
+  "backgroundColor": "#ffffff",
+  "fillStyle": "solid",
+  "strokeWidth": 2,
+  "strokeStyle": "solid",
+  "roughness": 0,
+  "opacity": 100,
+  "groupIds": [],
+  "roundness": null,
+  "isDeleted": false,
+  "boundElements": null,
+  "locked": false
+}
+\`\`\`
+
+Text elements MUST include:
+\`\`\`json
+{
+  "id": "unique-text-id",
+  "type": "text",
+  "x": 0, "y": 0,
+  "width": 100, "height": 25,
+  "angle": 0,
+  "strokeColor": "#424242",
+  "backgroundColor": "transparent",
+  "fillStyle": "solid",
+  "strokeWidth": 1,
+  "strokeStyle": "solid",
+  "roughness": 0,
+  "opacity": 100,
+  "groupIds": [],
+  "roundness": null,
+  "isDeleted": false,
+  "boundElements": null,
+  "locked": false,
+  "text": "Label text",
+  "fontSize": 16,
+  "fontFamily": 1,
+  "textAlign": "left",
+  "verticalAlign": "top",
+  "containerId": null,
+  "originalText": "Label text"
+}
+\`\`\`
+
+For labels INSIDE shapes, the text element must have:
+- containerId: "parent-shape-id"
+- textAlign: "center", verticalAlign: "middle"
+- width calculated as: text.length × fontSize × 0.6 + 20 (rounded to nearest 10)
+And the parent shape must have: boundElements: [{"type":"text","id":"text-id"}]
+Both shape and text must share the same groupIds: ["group-id"]
+
+## THEME: Classic Wireframe
+- Background: #ffffff
+- Container fill: #f5f5f5
+- Borders: #9e9e9e
+- Text: #424242
+- Primary accent: #1976d2
+- Primary fill: #e3f2fd
+- Error: #d32f2f
+- Success: #388e3c
+
+## COORDINATE RULES
+- Snap ALL x, y values to 20px grid: Math.round(value / 20) * 20
+- Minimum spacing between elements: 20px
+- Consistent padding inside containers: 40px
+
+Output ONLY this JSON structure:
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "forge-wireframe-agent",
+  "elements": [/* all elements */]
+}`;
+
+      const response = await this.callLLMWithOptions(systemPrompt, userPrompt, {
+        maxOutputTokens: 16384,
+        temperature: 0.3,
+      });
+
+      // Validate basic structure
+      if (
+        response &&
+        response.type === 'excalidraw' &&
+        Array.isArray(response.elements) &&
+        response.elements.length > 0
+      ) {
+        return {
+          type: 'excalidraw',
+          version: 2,
+          source: response.source || 'forge-wireframe-agent',
+          elements: response.elements,
+        };
+      }
+
+      this.logger.warn('Excalidraw generation returned invalid structure');
+      return undefined;
+    } catch (error) {
+      this.logger.warn(`Excalidraw wireframe generation failed: ${String(error)}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Refines existing Excalidraw wireframe elements based on user instruction.
+   *
+   * Takes current elements + natural language instruction, returns modified elements.
+   * Preserves element IDs where possible, only changes what the user asked for.
+   */
+  async refineExcalidrawWireframe(
+    currentElements: any[],
+    instruction: string,
+  ): Promise<any[]> {
+    const excalidrawSkills = this.getExcalidrawSkills();
+
+    const systemPrompt = `You are BMAD Frame Expert — a wireframe refinement agent that modifies Excalidraw JSON elements.
+You receive existing elements and a modification request. Return the COMPLETE modified elements array.
+
+CRITICAL: Respond with ONLY a valid JSON array. No text before or after.
+
+${excalidrawSkills}
+
+## THEME: Classic Wireframe
+- Background: #ffffff, Container fill: #f5f5f5, Borders: #9e9e9e
+- Text: #424242, Primary accent: #1976d2, Primary fill: #e3f2fd`;
+
+    const userPrompt = `Current Excalidraw elements:
+
+${JSON.stringify(currentElements)}
+
+Modification request: "${instruction}"
+
+Return the COMPLETE modified elements array. Rules:
+- Preserve element IDs where possible — only change what the user asked for
+- If adding new elements, generate unique IDs and include ALL required properties (id, type, x, y, width, height, angle, strokeColor, backgroundColor, fillStyle, strokeWidth, strokeStyle, roughness, opacity, groupIds, roundness, isDeleted, boundElements, locked)
+- Text elements inside shapes must have containerId pointing to parent, textAlign: "center", verticalAlign: "middle"
+- Parent shapes must have boundElements referencing the text
+- Snap all coordinates to 20px grid
+- Use theme colors: borders #9e9e9e, text #424242, accent #1976d2, fills #f5f5f5
+- Return ONLY the JSON array starting with [`;
+
+    const response = await this.callLLMWithOptions(systemPrompt, userPrompt, {
+      maxOutputTokens: 16384,
+      temperature: 0.3,
+    });
+
+    // Response could be the array directly or wrapped
+    const elements = Array.isArray(response) ? response : response?.elements;
+    if (!Array.isArray(elements) || elements.length === 0) {
+      throw new Error('Refinement returned invalid elements');
+    }
+
+    return elements;
+  }
+
+  /**
    * Generates mock LLM response for testing
    *
    * Used when llmClient is not available or for testing purposes
@@ -2371,16 +2729,43 @@ Rewritten text (definitive, unambiguous):`;
     answers: Array<{ questionId: string; answer: string | string[] }>;
     ticketType?: 'feature' | 'bug' | 'task';
     reproductionSteps?: any[];
+    // Story 14-3: Generation preferences
+    includeWireframes?: boolean;
+    includeApiSpec?: boolean;
+    wireframeContext?: string;
+    wireframeImageUrls?: string[];
+    apiContext?: string;
   }): Promise<TechSpec> {
     try {
       const context = input.context;
       const hasRepository = context !== null;
+      // Story 14-3: Default to true for backward compatibility
+      const includeWireframes = input.includeWireframes ?? true;
+      const includeApiSpec = input.includeApiSpec ?? true;
+
+      // Story 14-3: Build exclusion instructions for disabled sections
+      const exclusionParts: string[] = [];
+      if (!includeWireframes) {
+        exclusionParts.push('Do NOT generate or reference UI wireframes, visual QA expectations, or layout guidance.');
+      }
+      if (!includeApiSpec) {
+        exclusionParts.push('Do NOT generate or reference API endpoint specifications.');
+      }
+      const exclusionSuffix = exclusionParts.length > 0
+        ? `\n\nIMPORTANT SCOPE EXCLUSIONS:\n${exclusionParts.join('\n')}`
+        : '';
+
+      // Enrich description with exclusion instructions and user-provided context
+      const enrichedDescription = (input.description || '')
+        + exclusionSuffix
+        + (input.wireframeContext && includeWireframes ? `\n\nDesign Context: ${input.wireframeContext}` : '')
+        + (input.apiContext && includeApiSpec ? `\n\nAPI Context: ${input.apiContext}` : '');
 
       // Generate each section with answer context
       // AC#2: When no repository, pass null and skip code-specific generation
       const problemStatement = await this.generateProblemStatementWithAnswers(
         input.title,
-        input.description || '',
+        enrichedDescription,
         context,
         input.answers,
       );
@@ -2389,28 +2774,51 @@ Rewritten text (definitive, unambiguous):`;
 
       // AC#2: Generate code-specific sections only when repository provided
       if (hasRepository) {
-        const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all([
+        // Story 14-3: Conditionally generate API and wireframe sections
+        const parallelGenerators: Promise<any>[] = [
           this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
           this.generateFileChanges(solution, context),
           this.generateScope(input.title, input.description || '', true),
           this.generateScope(input.title, input.description || '', false),
-          this.extractApiChanges(context),
+          includeApiSpec ? this.extractApiChanges(context, input.apiContext) : Promise.resolve({ endpoints: [] }),
           this.detectDependencies(input.title, input.description || '', solution, context),
-        ]);
+        ];
+        const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all(parallelGenerators);
 
         // Generate sections that depend on fileChanges (parallel)
-        // Note: We're inside hasRepository check, so context is guaranteed non-null
-        const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all([
+        // Story 14-3: Skip visualExpectations when includeWireframes=false
+        const secondaryGenerators: Promise<any>[] = [
           this.generateTestPlan(solution, acceptanceCriteria, fileChanges, context),
           this.categorizeFilesByLayer(fileChanges, context),
-          this.generateVisualExpectations(
-            solution,
-            acceptanceCriteria,
-            fileChanges,
-            apiChanges,
-            context,
-          ),
-        ]);
+          includeWireframes
+            ? this.generateVisualExpectations(
+                solution,
+                acceptanceCriteria,
+                fileChanges,
+                apiChanges,
+                context,
+                input.wireframeContext,
+                input.wireframeImageUrls,
+              )
+            : Promise.resolve(undefined),
+        ];
+        const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all(secondaryGenerators);
+
+        // Generate Excalidraw wireframes if visual expectations were generated
+        if (visualExpectations && includeWireframes) {
+          try {
+            const excalidrawData = await this.generateExcalidrawWireframes(
+              visualExpectations.expectations,
+              input.wireframeContext,
+              input.wireframeImageUrls,
+            );
+            if (excalidrawData) {
+              visualExpectations.excalidrawData = excalidrawData;
+            }
+          } catch (error) {
+            this.logger.warn(`Excalidraw generation failed (non-blocking): ${String(error)}`);
+          }
+        }
 
         // Assemble final tech spec (WITH repository)
         const techSpec: TechSpec = {
@@ -2427,10 +2835,10 @@ Rewritten text (definitive, unambiguous):`;
           qualityScore: 0,
           ambiguityFlags: [],
           stack: this.resolveStack(context),
-          apiChanges,
+          apiChanges: includeApiSpec ? apiChanges : undefined,
           layeredFileChanges,
           testPlan,
-          visualExpectations,
+          visualExpectations: includeWireframes ? visualExpectations : undefined,
           dependencies: dependencies && dependencies.length > 0 ? dependencies : undefined, // Only include if dependencies exist
         };
 

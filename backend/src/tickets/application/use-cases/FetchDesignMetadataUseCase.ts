@@ -29,12 +29,22 @@ export class FetchDesignMetadataUseCase {
   ) {}
 
   /**
+   * Convert teamId to legacy workspaceId format used by integration token storage.
+   * Tokens are stored under `workspaces/ws_team_<first12chars>/integrations/figma`
+   */
+  private deriveWorkspaceId(teamId: string): string {
+    // teamId format: "team_xxx..." → workspaceId: "ws_team_<first 12 chars after 'team_'>"
+    const suffix = teamId.startsWith('team_') ? teamId.substring(5, 17) : teamId.substring(0, 12);
+    return `ws_team_${suffix}`;
+  }
+
+  /**
    * Fetch and return metadata for design reference
    * Returns null/undefined metadata if API unavailable or not connected
    * Tracks fetch status for error handling
    *
    * @param reference DesignReference with URL
-   * @param teamId Workspace to look up OAuth token
+   * @param teamId Team ID to look up OAuth token
    * @returns Updated reference with metadata and fetch status
    */
   async execute(
@@ -49,10 +59,10 @@ export class FetchDesignMetadataUseCase {
         return await this.fetchLoomMetadata(reference, teamId);
       }
 
-      // No metadata available for other platforms - mark as skipped
+      // No metadata available for other platforms
       return {
         ...reference,
-        metadataFetchStatus: 'pending', // Not attempting to fetch for unsupported platforms
+        metadataFetchStatus: 'success', // Nothing to fetch — link is stored as-is
       };
     } catch (error) {
       // Log error but don't throw - design link should still be stored
@@ -77,15 +87,16 @@ export class FetchDesignMetadataUseCase {
     teamId: string,
   ): Promise<DesignReference> {
     // Check if Figma is connected for this workspace
-    const token = await this.figmaIntegrationRepository.getToken(teamId);
+    const workspaceId = this.deriveWorkspaceId(teamId);
+    const token = await this.figmaIntegrationRepository.getToken(workspaceId);
     if (!token) {
       this.logger.debug(
-        `Figma not connected for workspace ${teamId}, skipping metadata fetch`,
+        `Figma not connected for workspace ${workspaceId} (team ${teamId}), skipping metadata fetch`,
       );
-      // Figma not connected - can retry later
       return {
         ...reference,
-        metadataFetchStatus: 'pending',
+        metadataFetchStatus: 'failed',
+        metadataFetchError: 'Figma not connected. Connect Figma in Settings to fetch design metadata.',
       };
     }
 
@@ -160,15 +171,16 @@ export class FetchDesignMetadataUseCase {
     teamId: string,
   ): Promise<DesignReference> {
     // Check if Loom is connected for this workspace
-    const token = await this.loomIntegrationRepository.getToken(teamId);
+    const workspaceId = this.deriveWorkspaceId(teamId);
+    const token = await this.loomIntegrationRepository.getToken(workspaceId);
     if (!token) {
       this.logger.debug(
-        `Loom not connected for workspace ${teamId}, skipping metadata fetch`,
+        `Loom not connected for workspace ${workspaceId} (team ${teamId}), skipping metadata fetch`,
       );
-      // Loom not connected - can retry later
       return {
         ...reference,
-        metadataFetchStatus: 'pending',
+        metadataFetchStatus: 'failed',
+        metadataFetchError: 'Loom not connected. Connect Loom in Settings to fetch video metadata.',
       };
     }
 
