@@ -3,6 +3,7 @@ import { FirebaseService } from './infrastructure/firebase/firebase.config';
 import { GitHubApiService } from './infrastructure/github/github-api.service';
 import { EmailService } from './infrastructure/email/EmailService';
 import { SendGridEmailService } from './infrastructure/email/SendGridEmailService';
+import { ConsoleEmailService } from './infrastructure/email/ConsoleEmailService';
 import { FirestoreUserRepository } from '../users/infrastructure/persistence/FirestoreUserRepository';
 import { FirestoreTeamRepository } from '../teams/infrastructure/persistence/FirestoreTeamRepository';
 
@@ -13,7 +14,9 @@ import { FirestoreTeamRepository } from '../teams/infrastructure/persistence/Fir
     GitHubApiService,
     {
       provide: EmailService,
-      useClass: SendGridEmailService,
+      useClass: process.env.SENDGRID_API_KEY
+        ? SendGridEmailService
+        : ConsoleEmailService,
     },
     // Add repositories needed by WorkspaceGuard (globally available)
     {

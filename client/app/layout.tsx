@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import { PostHogProvider } from '@/src/components/PostHogProvider';
 import { DevStartupHealthCheck } from '@/core/components/dev/DevStartupHealthCheck';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const inter = Inter({
@@ -29,11 +30,13 @@ const unbounded = Unbounded({
 export const metadata: Metadata = {
   title: 'Forge',
   description: 'Stop shipping half-baked tickets. Forge turns ideas into verified execution contracts.',
+  manifest: '/manifest.json',
   icons: {
     icon: '/forge-icon.png',
     shortcut: '/forge-icon.png',
     apple: '/forge-icon.png',
   },
+  themeColor: '#111111',
 };
 
 export default function RootLayout({
@@ -67,6 +70,7 @@ export default function RootLayout({
           <div id="main-content">{children}</div>
           <Toaster position="bottom-right" richColors />
         </PostHogProvider>
+        <Analytics />
         <Script id="remove-preload" strategy="afterInteractive">
           {`
             window.addEventListener('load', function() {

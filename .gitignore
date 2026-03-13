@@ -52,3 +52,4 @@ _bmad/
 forge-cli/
 client/src/core/components/dev/CLAUDE.md
 client/src/core/config/CLAUDE.md
+gcp-sa-key.json

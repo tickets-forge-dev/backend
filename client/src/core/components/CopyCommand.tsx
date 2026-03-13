@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 export function CopyCommand({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
@@ -16,9 +17,9 @@ export function CopyCommand({ command }: { command: string }) {
   }
 
   return (
-    <div className="mt-4 flex items-center gap-2 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] px-3 py-2 font-mono text-sm">
-      <span className="text-[var(--text-secondary)] select-none">$</span>
-      <code className="flex-1 text-[var(--text)] truncate">{command}</code>
+    <div className="mt-4 flex items-center gap-2.5 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] px-4 py-3 font-mono text-sm">
+      <Image src="/forge-icon.png" alt="" width={18} height={18} className="select-none shrink-0" />
+      <code className="flex-1 text-[var(--text-secondary)] truncate">{command}</code>
       <button
         onClick={handleCopy}
         className="shrink-0 p-1 rounded hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text)]"

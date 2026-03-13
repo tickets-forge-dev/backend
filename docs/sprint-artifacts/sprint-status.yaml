@@ -193,7 +193,7 @@ development_status:
   8-4-user-documentation: backlog
   8-5-api-documentation: backlog
   8-6-architecture-update: backlog
-  8-7-cli-publish: drafted
+  8-7-cli-publish: done
   epic-8-testing-documentation-retrospective: optional
 
   # EPIC 10: Forge Developer Agent (P0) - 4 stories
