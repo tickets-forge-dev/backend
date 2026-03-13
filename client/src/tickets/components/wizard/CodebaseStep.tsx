@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { RepositorySelector } from '../RepositorySelector';
 import { BranchSelector } from '../BranchSelector';
-import { GitBranch, Sparkles, Shield, Users } from 'lucide-react';
+import { GitBranch, Sparkles, Shield, Users, HelpCircle, X, Terminal, CheckCircle2, MessageSquare, FileCode, Rocket } from 'lucide-react';
 
 /**
  * CodebaseStep — Repository connection step.
@@ -119,13 +119,105 @@ export function CodebaseStep() {
 
       {/* Off state message */}
       {!includeRepository && (
-        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 text-center space-y-1">
+        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 text-center space-y-2">
           <p className="text-sm text-[var(--text-secondary)]">
             No problem — you can still create great tickets without a repository.
           </p>
           <p className="text-xs text-[var(--text-tertiary)]">
-            Tickets will be based on your description only. You can always connect a repo later.
+            Tickets will be based on your description only. A developer can later refine the ticket with real code context using the CLI — adding file references, APIs, and patterns from your actual codebase.
           </p>
+        </div>
+      )}
+
+      {/* Help — ticket lifecycle */}
+      <TicketLifecycleHelp />
+    </div>
+  );
+}
+
+const lifecycleSteps = [
+  {
+    icon: FileCode,
+    color: 'text-purple-500',
+    title: 'PM creates the ticket',
+    description: 'You describe the feature, bug, or task. Optionally connect a repo for smarter output.',
+  },
+  {
+    icon: MessageSquare,
+    color: 'text-violet-500',
+    title: 'AI asks clarifying questions',
+    description: 'Forge identifies gaps and ambiguities before any code is written.',
+  },
+  {
+    icon: CheckCircle2,
+    color: 'text-amber-500',
+    title: 'Tech spec is generated',
+    description: 'A structured AEC with acceptance criteria, scope, API changes, and wireframes.',
+  },
+  {
+    icon: Terminal,
+    color: 'text-blue-500',
+    title: 'Developer refines with code context',
+    description: 'Using the CLI, the developer reviews the spec and enriches it with real file paths, APIs, and patterns from the codebase.',
+  },
+  {
+    icon: Rocket,
+    color: 'text-green-500',
+    title: 'Approved and executed',
+    description: 'PM approves the final spec. The developer runs guided implementation — the AI builds exactly what was agreed.',
+  },
+];
+
+function TicketLifecycleHelp() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        <HelpCircle className="h-3.5 w-3.5" />
+        <span>How does a ticket go from idea to code?</span>
+      </button>
+
+      {isOpen && (
+        <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-[var(--text)]">Ticket Lifecycle</h3>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="space-y-0">
+            {lifecycleSteps.map((step, i) => {
+              const Icon = step.icon;
+              return (
+                <div key={i} className="flex gap-3">
+                  {/* Timeline line + dot */}
+                  <div className="flex flex-col items-center">
+                    <div className={`flex-shrink-0 w-6 h-6 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] flex items-center justify-center`}>
+                      <Icon className={`h-3 w-3 ${step.color}`} />
+                    </div>
+                    {i < lifecycleSteps.length - 1 && (
+                      <div className="w-px h-full min-h-[24px] bg-[var(--border-subtle)]" />
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div className="pb-4">
+                    <p className="text-xs font-medium text-[var(--text)]">{step.title}</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-0.5 leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

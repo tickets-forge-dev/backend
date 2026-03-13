@@ -11,7 +11,7 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -394,7 +394,9 @@ export function TicketDetailLayout({
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="w-full grid grid-cols-3 bg-transparent h-auto p-0 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+          <TabsList className="flex bg-transparent h-auto p-0 border-b-0">
+
           <TabsTrigger
             value="spec"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none"
@@ -413,7 +415,40 @@ export function TicketDetailLayout({
           >
             Design
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
+
+          {/* Metadata chips — type, priority, quality */}
+          <div className="flex items-center gap-2 pb-1">
+            {ticket.type && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                {ticket.type === 'feature' && <Lightbulb className="h-3 w-3" />}
+                {ticket.type === 'bug' && <Bug className="h-3 w-3" />}
+                {ticket.type === 'task' && <ClipboardList className="h-3 w-3" />}
+                {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
+              </span>
+            )}
+            {ticket.priority && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  ticket.priority === 'critical' ? 'bg-red-500' :
+                  ticket.priority === 'high' ? 'bg-orange-500' :
+                  ticket.priority === 'medium' ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`} />
+                {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
+              </span>
+            )}
+            {qualityScore !== undefined && (
+              <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${
+                qualityScore >= 80 ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+                qualityScore >= 50 ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' :
+                'bg-red-500/10 text-red-600 dark:text-red-400'
+              }`}>
+                {qualityScore}%
+              </span>
+            )}
+          </div>
+        </div>
 
         <TabsContent value="spec" className="mt-6">
           {/* Mobile section pills — shown below xl only */}
@@ -433,7 +468,7 @@ export function TicketDetailLayout({
             ))}
           </div>
 
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <SpecificationTab
               ticket={ticket}
               ticketId={ticketId}
@@ -480,7 +515,7 @@ export function TicketDetailLayout({
             const statusCfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
 
             return (
-              <div className={`max-w-3xl mx-auto mb-6 relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
+              <div className={`max-w-3xl xl:max-w-4xl mx-auto mb-6 relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
                 <div className="px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isForged ? 'bg-amber-500/10' : 'bg-[var(--bg-hover)]'}`}>
@@ -575,7 +610,7 @@ export function TicketDetailLayout({
             const hasAny = ac > 0 || api > 0 || files > 0 || tests > 0 || scope;
             if (!hasAny) return null;
             return (
-              <div className="max-w-3xl mx-auto mb-5 flex flex-wrap gap-x-5 gap-y-2 px-1">
+              <div className="max-w-3xl xl:max-w-4xl mx-auto mb-5 flex flex-wrap gap-x-5 gap-y-2 px-1">
                 {ac > 0 && (
                   <div className="flex items-center gap-1.5">
                     <Target className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
@@ -627,7 +662,7 @@ export function TicketDetailLayout({
             ))}
           </div>
 
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <ImplementationTab
               ticket={ticket}
               ticketId={ticketId}
@@ -664,7 +699,7 @@ export function TicketDetailLayout({
         </TabsContent>
 
         <TabsContent value="design" className="mt-6">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
             {onAddDesignReference && onRemoveDesignReference ? (
               <DesignTab
                 ticketId={ticketId}

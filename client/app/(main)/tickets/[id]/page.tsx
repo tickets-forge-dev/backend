@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Lightbulb, Bug, ClipboardList, Pencil, Eye, ExternalLink, Upload, UserPlus } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -810,7 +810,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   };
 
   return (
-    <div className="space-y-8 max-w-[var(--content-max)] mx-auto">
+    <div className="space-y-4 max-w-[var(--content-max)] xl:max-w-[1040px] mx-auto">
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -819,10 +819,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             Back to Tickets
           </Button>
 
-          {/* No code analysis indicator */}
-          {!currentTicket.repositoryContext && (
-            <span className="text-xs text-[var(--text-secondary)]">No code analysis</span>
-          )}
         </div>
         
         {currentTicket?.techSpec && (
@@ -847,48 +843,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         )}
       </div>
 
-      {/* Metadata chips: Type + Priority + Quality — above title */}
-      <div className="flex items-center gap-4 -mb-4">
-        {currentTicket.type && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-            {currentTicket.type === 'bug' ? <Bug className="h-3.5 w-3.5 text-red-500" />
-              : currentTicket.type === 'task' ? <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
-              : <Lightbulb className="h-3.5 w-3.5 text-amber-500" />}
-            <span className="capitalize">{currentTicket.type}</span>
-          </span>
-        )}
-        {currentTicket.priority && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-            <span className={`h-2 w-2 rounded-full ${
-              currentTicket.priority === 'urgent' ? 'bg-red-500'
-                : currentTicket.priority === 'high' ? 'bg-orange-500'
-                : currentTicket.priority === 'medium' ? 'bg-yellow-500'
-                : 'bg-green-500'
-            }`} />
-            <span className="capitalize">{currentTicket.priority}</span>
-          </span>
-        )}
-        {currentTicket.techSpec?.qualityScore !== undefined && (
-          <span
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-              currentTicket.techSpec.qualityScore >= 75
-                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                : currentTicket.techSpec.qualityScore >= 50
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                  : 'bg-red-500/10 text-red-600 dark:text-red-400'
-            }`}
-            title="Spec quality score"
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${
-              currentTicket.techSpec.qualityScore >= 75 ? 'bg-green-500' : currentTicket.techSpec.qualityScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
-            }`} />
-            Quality {currentTicket.techSpec.qualityScore}%
-          </span>
-        )}
-      </div>
-
       {/* Hero Header — Title */}
-      <div className="flex items-start gap-4 py-2">
+      <div className="flex items-center justify-center gap-4">
         {/* Title - editable with max 2 lines, full width */}
         <div className="flex-1 min-w-0">
           {isEditingTitle ? (

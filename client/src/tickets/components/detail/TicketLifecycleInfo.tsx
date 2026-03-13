@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom';
 import { LIFECYCLE_STEPS, EXECUTE_STATUSES, TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
 
-function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string; onTransition?: (status: string) => void }) {
+function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { currentStatus: string; onTransition?: (status: string) => void; hasAssignee?: boolean }) {
   // Always 4 fixed steps. Executing/complete all map to the "Forged" step.
   const currentIdx = LIFECYCLE_STEPS.findIndex(
     (s) => s.key === currentStatus || (s.key === 'forged' && EXECUTE_STATUSES.has(currentStatus)),
@@ -24,16 +24,20 @@ function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string
           const isClickable = onTransition && !isCurrent;
           const isBefore = currentIdx >= 0 && i < currentIdx;
           const isAfter = currentIdx >= 0 && i > currentIdx;
+          // Dim optional steps when no developer is assigned and step hasn't been reached
+          const isDimmed = !hasAssignee && step.optional && !isCurrent && !isBefore;
 
           return (
-            <div key={step.key} className="flex gap-2.5">
+            <div key={step.key} className={`flex gap-2.5 ${isDimmed ? 'opacity-40' : ''}`}>
               {/* Vertical track */}
               <div className="flex flex-col items-center w-4 shrink-0">
                 <div
                   className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                     isCurrent
                       ? 'border-blue-500 bg-blue-500'
-                      : 'border-[var(--border)] bg-[var(--bg)]'
+                      : isDimmed
+                        ? 'border-dashed border-[var(--border)] bg-[var(--bg)]'
+                        : 'border-[var(--border)] bg-[var(--bg)]'
                   }`}
                 >
                   {isCurrent && (
@@ -41,13 +45,13 @@ function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string
                   )}
                 </div>
                 {!isLast && (
-                  <div className="w-px flex-1 min-h-[16px] bg-[var(--border)]" />
+                  <div className={`w-px flex-1 min-h-[16px] ${isDimmed ? 'border-l border-dashed border-[var(--border)]' : 'bg-[var(--border)]'}`} />
                 )}
               </div>
 
               {/* Content */}
               <div className={`pb-3 -mt-0.5 ${isLast ? 'pb-0' : ''}`}>
-                {isClickable ? (
+                {isClickable && !isDimmed ? (
                   <button
                     onClick={() => onTransition(step.key)}
                     className={`group/step inline-flex items-center gap-1.5 px-2 py-1 -mx-0.5 rounded-md text-[11px] font-medium leading-none transition-all cursor-pointer border border-transparent ${
@@ -68,13 +72,14 @@ function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string
                     }`}
                   >
                     {step.label}
+                    {isDimmed && <span className="ml-1 font-normal opacity-70">· optional</span>}
                   </span>
                 )}
-                <p className={`text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug ${isClickable ? 'ml-0.5' : ''}`}>
+                <p className={`text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug ${isClickable && !isDimmed ? 'ml-0.5' : ''}`}>
                   {step.description}
                 </p>
                 {step.note && (
-                  <p className="text-[10px] text-[var(--text-tertiary)]/60 mt-0.5 italic leading-snug">
+                  <p className="text-[10px] opacity-60 text-[var(--text-tertiary)] mt-0.5 italic leading-snug">
                     {step.note}
                   </p>
                 )}
@@ -83,6 +88,15 @@ function LifecyclePanel({ currentStatus, onTransition }: { currentStatus: string
           );
         })}
       </div>
+
+      {/* Footer hint when no developer */}
+      {!hasAssignee && (
+        <div className="mt-3 pt-2 border-t border-[var(--border-subtle)]">
+          <p className="text-[10px] text-[var(--text-tertiary)] leading-snug">
+            No developer assigned — you can export to Jira, download, or use this ticket as-is.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -94,6 +108,7 @@ interface ClickProps {
   trigger?: 'click';
   children: ReactNode;
   onTransition?: (status: string) => void;
+  hasAssignee?: boolean;
 }
 
 interface HoverProps {
@@ -101,19 +116,20 @@ interface HoverProps {
   trigger: 'hover';
   children: ReactNode;
   onTransition?: never;
+  hasAssignee?: boolean;
 }
 
 type TicketLifecycleInfoProps = ClickProps | HoverProps;
 
 export function TicketLifecycleInfo(props: TicketLifecycleInfoProps) {
-  const { currentStatus, trigger = 'click' } = props;
+  const { currentStatus, trigger = 'click', hasAssignee } = props;
 
   if (trigger === 'hover') {
-    return <HoverLifecycle currentStatus={currentStatus}>{props.children}</HoverLifecycle>;
+    return <HoverLifecycle currentStatus={currentStatus} hasAssignee={hasAssignee}>{props.children}</HoverLifecycle>;
   }
 
   return (
-    <ClickLifecycle currentStatus={currentStatus} onTransition={props.onTransition}>
+    <ClickLifecycle currentStatus={currentStatus} onTransition={props.onTransition} hasAssignee={hasAssignee}>
       {props.children}
     </ClickLifecycle>
   );
@@ -121,7 +137,7 @@ export function TicketLifecycleInfo(props: TicketLifecycleInfoProps) {
 
 /* ── Click variant — wraps children (the badge), click to open lifecycle panel ── */
 
-function ClickLifecycle({ currentStatus, onTransition, children }: { currentStatus: string; onTransition?: (status: string) => void; children: ReactNode }) {
+function ClickLifecycle({ currentStatus, onTransition, hasAssignee, children }: { currentStatus: string; onTransition?: (status: string) => void; hasAssignee?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -150,7 +166,7 @@ function ClickLifecycle({ currentStatus, onTransition, children }: { currentStat
 
       {open && (
         <div className="absolute right-0 top-full mt-2 z-50">
-          <LifecyclePanel currentStatus={currentStatus} onTransition={onTransition} />
+          <LifecyclePanel currentStatus={currentStatus} onTransition={onTransition} hasAssignee={hasAssignee} />
         </div>
       )}
     </div>
@@ -159,7 +175,7 @@ function ClickLifecycle({ currentStatus, onTransition, children }: { currentStat
 
 /* ── Hover variant — used in ticket grid (read-only) ── */
 
-function HoverLifecycle({ currentStatus, children }: { currentStatus: string; children: ReactNode }) {
+function HoverLifecycle({ currentStatus, hasAssignee, children }: { currentStatus: string; hasAssignee?: boolean; children: ReactNode }) {
   const [visible, setVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -201,7 +217,7 @@ function HoverLifecycle({ currentStatus, children }: { currentStatus: string; ch
           onMouseEnter={show}
           onMouseLeave={hide}
         >
-          <LifecyclePanel currentStatus={currentStatus} />
+          <LifecyclePanel currentStatus={currentStatus} hasAssignee={hasAssignee} />
         </div>,
         document.body,
       )}

@@ -330,8 +330,8 @@ export default function TicketsListPage() {
         )}
       </div>
 
-      {/* Loading state: Show skeletons when loading (including team switches) */}
-      {isLoading && (
+      {/* Loading state: Show skeletons on initial load or when loading */}
+      {(isLoading || isInitialLoad) && (
         <div className="space-y-1.5">
           {[...Array(5)].map((_, i) => (
             <TicketSkeletonRow key={i} />
@@ -347,7 +347,7 @@ export default function TicketsListPage() {
       )}
 
       {/* Tickets list */}
-      {!isLoading && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
+      {!isLoading && !isInitialLoad && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
         <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
           <TicketGridHeader />
           {isCreatingFolder && (
@@ -432,7 +432,7 @@ export default function TicketsListPage() {
         </div>
       )}
 
-      {!isLoading && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
+      {!isLoading && !isInitialLoad && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
         <div className="rounded-lg overflow-hidden  border border-[var(--border-subtle)]">
           {/* Column headers */}
           <TicketGridHeader />
@@ -526,17 +526,16 @@ export default function TicketsListPage() {
                   onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
                 />
                 {isExpanded && (
-                  folderTickets.length > 0 ? (
-                    <div>
-                      {folderTickets.map((ticket) => (
-                        <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="pl-10 py-3 text-xs text-[var(--text-tertiary)] bg-[var(--bg-subtle)]/30 border-b border-[var(--border-subtle)]">
-                      No tickets in this folder
-                    </div>
-                  )
+                  <>
+                    {folderTickets.length > 0 && (
+                      <div>
+                        {folderTickets.map((ticket) => (
+                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested />
+                        ))}
+                      </div>
+                    )}
+                    <InlineFolderAdd folderId={folder.id} />
+                  </>
                 )}
               </div>
             );
@@ -555,6 +554,9 @@ export default function TicketsListPage() {
               ))}
             </div>
           )}
+
+          {/* Root-level quick add */}
+          <InlineRootAdd />
         </div>
       )}
     </div>
@@ -737,6 +739,149 @@ function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'draft' |
 
 function isTicketInProgress(ticket: any) {
   return ticket.status === 'draft' && !ticket.techSpec;
+}
+
+/** Inline ghost row for quick-adding a ticket inside a folder */
+function InlineFolderAdd({ folderId }: { folderId: string }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const { currentTeam } = useTeamStore();
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
+
+  const handleSubmit = async () => {
+    const trimmed = title.trim();
+    if (trimmed.length < 3 || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const { quickCreateDraft } = useTicketsStore.getState();
+      const { moveTicket } = useFoldersStore.getState();
+      const aec = await quickCreateDraft(trimmed);
+      if (aec && currentTeam?.id) {
+        await moveTicket(currentTeam.id, aec.id, folderId);
+        setTitle('');
+        setIsEditing(false);
+        router.push(`/tickets/create?resume=${aec.id}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    } else if (e.key === 'Escape') {
+      setTitle('');
+      setIsEditing(false);
+    }
+  };
+
+  if (!isEditing) {
+    return (
+      <button
+        onClick={() => setIsEditing(true)}
+        className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+      >
+        <Plus className="h-3 w-3" />
+        <span>New ticket</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 pl-10 pr-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
+      <Plus className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
+      <input
+        ref={inputRef}
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => { if (!title.trim()) { setTitle(''); setIsEditing(false); } }}
+        placeholder="Ticket title… (Enter to create)"
+        disabled={isSubmitting}
+        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-50"
+      />
+      {isSubmitting && <Loader2 className="h-3 w-3 animate-spin text-[var(--text-tertiary)]" />}
+    </div>
+  );
+}
+
+/** Inline ghost row for quick-adding a ticket at the root level (no folder) */
+function InlineRootAdd() {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
+
+  const handleSubmit = async () => {
+    const trimmed = title.trim();
+    if (trimmed.length < 3 || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const { quickCreateDraft } = useTicketsStore.getState();
+      const aec = await quickCreateDraft(trimmed);
+      if (aec) {
+        setTitle('');
+        setIsEditing(false);
+        router.push(`/tickets/create?resume=${aec.id}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    } else if (e.key === 'Escape') {
+      setTitle('');
+      setIsEditing(false);
+    }
+  };
+
+  if (!isEditing) {
+    return (
+      <button
+        onClick={() => setIsEditing(true)}
+        className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+      >
+        <Plus className="h-3 w-3" />
+        <span>New ticket</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
+      <Plus className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
+      <input
+        ref={inputRef}
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => { if (!title.trim()) { setTitle(''); setIsEditing(false); } }}
+        placeholder="Ticket title… (Enter to create)"
+        disabled={isSubmitting}
+        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-50"
+      />
+      {isSubmitting && <Loader2 className="h-3 w-3 animate-spin text-[var(--text-tertiary)]" />}
+    </div>
+  );
 }
 
 function getRelativeTime(date: string | Date) {

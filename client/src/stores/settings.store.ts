@@ -229,11 +229,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         throw new Error('Popup blocked. Please allow popups for this site.');
       }
 
-      // Poll for popup close (OAuth callback will trigger loadGitHubStatus via useEffect)
+      // Poll for popup close — reload status as fallback
+      // (postMessage may fail if backend origin differs from frontend)
       const pollTimer = setInterval(() => {
         if (popup.closed) {
           clearInterval(pollTimer);
           set({ isConnecting: false });
+          // Reload connection status after popup closes
+          get().loadGitHubStatus(githubService);
         }
       }, 500);
     } catch (error: any) {

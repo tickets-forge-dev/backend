@@ -1,10 +1,38 @@
 'use client';
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
-import { TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
+import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import type { AECResponse } from '@/services/ticket.service';
+
+/** Maps current status → hint with and without a developer assigned. */
+const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> = {
+  draft: {
+    assigned: 'Fill in details, then hand off to the developer for refinement',
+    unassigned: 'Fill in details — assign a developer for code-aware refinement, or export / download as-is',
+  },
+  'dev-refining': {
+    assigned: 'Developer is reviewing and refining the spec with code context',
+    unassigned: 'Developer is reviewing and refining the spec with code context',
+  },
+  review: {
+    assigned: 'PM reviews the developer\'s changes before forging',
+    unassigned: 'PM reviews the developer\'s changes before forging',
+  },
+  forged: {
+    assigned: 'AEC is final — ready to execute or export',
+    unassigned: 'AEC is final — export to Jira, download, or use however you like',
+  },
+  executing: {
+    assigned: 'Being built or pushed to your issue tracker',
+    unassigned: 'Being built or pushed to your issue tracker',
+  },
+  complete: {
+    assigned: 'This ticket is done',
+    unassigned: 'This ticket is done',
+  },
+};
 
 interface OverviewCardProps {
   ticket: AECResponse;
@@ -25,10 +53,17 @@ export function OverviewCard({
 }: OverviewCardProps) {
   const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
   const isUnassigned = !ticket.assignedTo;
+  const hints = NEXT_STEP_HINTS[ticket.status];
+  const hint = hints ? (isUnassigned ? hints.unassigned : hints.assigned) : '';
+
+  // Find current and next step for the progress dots
+  const currentIdx = LIFECYCLE_STEPS.findIndex(
+    (s) => s.key === ticket.status || (s.key === 'forged' && EXECUTE_STATUSES.has(ticket.status)),
+  );
 
   return (
-    <div className="py-2">
-      {/* Assign To Developer ... [spacer] ... Status badge */}
+    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-3">
+      {/* Top row: Assignee ... Status badge */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative">
           <AssigneeSelector
@@ -37,13 +72,13 @@ export function OverviewCard({
             externalOpen={assignDialogOpen}
             onExternalOpenChange={onAssignDialogOpenChange}
           />
-          {/* Unassigned warning */}
+          {/* Unassigned hint */}
           {isUnassigned && (
             <div className="group/warn absolute -top-1 -right-1">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/warn:block z-50 w-52 rounded-md bg-[var(--bg-secondary)] border border-[var(--border)] px-3 py-2 shadow-xl">
-                <p className="text-[11px] font-medium text-amber-500">No developer assigned</p>
-                <p className="mt-0.5 text-[10px] text-[var(--text-tertiary)] leading-tight">Assign a developer to move this ticket to Dev Refine phase</p>
+              <AlertTriangle className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/warn:block z-50 w-56 rounded-md bg-[var(--bg-secondary)] border border-[var(--border)] px-3 py-2 shadow-xl">
+                <p className="text-[11px] font-medium text-[var(--text-secondary)]">No developer assigned</p>
+                <p className="mt-0.5 text-[10px] text-[var(--text-tertiary)] leading-tight">Assign a developer for code-aware refinement, or skip and export / download the ticket directly.</p>
               </div>
             </div>
           )}
@@ -51,14 +86,40 @@ export function OverviewCard({
 
         {/* Status badge — clicking opens lifecycle panel */}
         {ticket.status && (
-          <TicketLifecycleInfo currentStatus={ticket.status} onTransition={onTransition}>
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
+          <TicketLifecycleInfo currentStatus={ticket.status} onTransition={onTransition} hasAssignee={!isUnassigned}>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
               {cfg.label}
               <svg className="h-3 w-3 opacity-50" viewBox="0 0 12 12" fill="none"><path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </span>
           </TicketLifecycleInfo>
         )}
       </div>
+
+      {/* Bottom row: progress dots + next step hint */}
+      {hint && (
+        <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center gap-3">
+          {/* Mini progress dots */}
+          <div className="flex items-center gap-1 shrink-0">
+            {LIFECYCLE_STEPS.map((step, i) => (
+              <div
+                key={step.key}
+                className={`h-1.5 rounded-full transition-colors ${
+                  i <= currentIdx
+                    ? 'w-4 bg-blue-500'
+                    : 'w-1.5 bg-[var(--text-tertiary)]/20'
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 min-w-0">
+            <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
+            <p className="text-[11px] text-[var(--text-tertiary)] leading-tight truncate">
+              {hint}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

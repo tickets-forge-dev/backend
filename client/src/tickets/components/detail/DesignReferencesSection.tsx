@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { type DesignReference } from '@repo/shared-types';
 import { DesignReferenceCard } from './DesignReferenceCard';
-import { Settings } from 'lucide-react';
+import { Link2, Settings } from 'lucide-react';
 
 interface DesignReferencesSectionProps {
   references: DesignReference[];
@@ -29,27 +29,29 @@ export function DesignReferencesSection({
           <div className="text-4xl mb-3">🎨</div>
           <p className="text-sm font-medium text-[var(--text-secondary)]">No design references added yet</p>
           <p className="text-xs text-[var(--text-tertiary)] mt-1 max-w-xs leading-relaxed">
-            Add Figma, Loom, or other design links to extract colors, typography, layout specs, and component details for more accurate tickets.
+            Add Figma, Loom, Miro, or any design link to extract colors, typography, layout specs, and component details for more accurate tickets.
           </p>
           {!readOnly && (
-            isFigmaConnected ? (
-              onAdd && (
+            <div className="mt-4 flex flex-col items-center gap-2">
+              {onAdd && (
                 <button
                   onClick={onAdd}
-                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
                 >
-                  Add Figma Link
+                  <Link2 className="h-3.5 w-3.5" />
+                  Add Design Link
                 </button>
-              )
-            ) : (
-              <Link
-                href="/settings"
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                <Settings className="h-3.5 w-3.5" />
-                Connect Figma
-              </Link>
-            )
+              )}
+              {!isFigmaConnected && (
+                <Link
+                  href="/settings"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  <Settings className="h-3 w-3" />
+                  Connect Figma for rich previews
+                </Link>
+              )}
+            </div>
           )}
         </div>
       </div>

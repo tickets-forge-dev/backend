@@ -64,11 +64,11 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
 };
 
 /** The lifecycle steps shown in the lifecycle panel. */
-export const LIFECYCLE_STEPS: Array<{ key: string; label: string; description: string; note?: string }> = [
+export const LIFECYCLE_STEPS: Array<{ key: string; label: string; description: string; note?: string; optional?: boolean }> = [
   { key: 'draft', label: 'Define', description: 'PM creates the ticket' },
-  { key: 'dev-refining', label: 'Dev-Refine', description: 'Developer reviews and refines the spec' },
-  { key: 'review', label: 'Review (PM)', description: "PM reviews the developer's changes", note: 'Skipped unless approval is required' },
-  { key: 'forged', label: 'Forged', description: 'AEC is final, ready to execute' },
+  { key: 'dev-refining', label: 'Dev-Refine', description: 'Developer reviews and refines the spec', note: 'Optional — skip if no developer needed', optional: true },
+  { key: 'review', label: 'Review (PM)', description: "PM reviews the developer's changes", note: 'Only when a developer submits changes', optional: true },
+  { key: 'forged', label: 'Forged', description: 'Export to Jira, download, or execute' },
 ];
 
 /** Statuses that map to the final "Forged" lifecycle step for highlighting. */
