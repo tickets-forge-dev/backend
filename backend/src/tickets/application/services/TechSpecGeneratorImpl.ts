@@ -13,12 +13,17 @@
  * @implements TechSpecGenerator
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { randomUUID } from 'crypto';
 import { DesignContextPromptBuilder } from './DesignContextPromptBuilder';
+import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
+import {
+  UsageBudgetRepository,
+  USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UsageBudgetRepository';
 import {
   TechSpecGenerator,
   TechSpecInput,
@@ -507,7 +512,12 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
 
   private static readonly DEFINITIVE_MARKERS = ['will', 'must', 'shall', 'is', 'are'];
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly telemetryService: TelemetryService,
+    @Inject(USAGE_BUDGET_REPOSITORY)
+    private readonly usageBudgetRepository: UsageBudgetRepository,
+  ) {
     const provider = this.configService.get<string>('LLM_PROVIDER') || 'anthropic';
 
     if (provider === 'anthropic') {
@@ -2095,7 +2105,11 @@ Rewritten text (definitive, unambiguous):`;
    * Uses configured provider (Ollama or Anthropic) via Vercel AI SDK.
    * Falls back to mock responses when no model is configured.
    */
-  private async callLLM(systemPrompt: string, userPrompt: string): Promise<any> {
+  private async callLLM(
+    systemPrompt: string,
+    userPrompt: string,
+    trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
+  ): Promise<any> {
     if (!this.llmModel) {
       throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
     }
@@ -2110,13 +2124,40 @@ Rewritten text (definitive, unambiguous):`;
             ? userPrompt
             : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
 
-        const { text } = await generateText({
+        const { text, usage } = await generateText({
           model: this.llmModel,
           system: systemPrompt,
           prompt,
           maxOutputTokens: 4096,
           temperature: 0.2,
         });
+
+        // Track cost if context is provided
+        if (trackingContext?.userId && usage) {
+          const model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+          const costUsd = this.telemetryService.computeLLMCost(
+            model,
+            usage.inputTokens ?? 0,
+            usage.outputTokens ?? 0,
+          );
+          this.telemetryService.trackCost(trackingContext.userId, {
+            service: 'anthropic',
+            tokens_input: usage.inputTokens ?? 0,
+            tokens_output: usage.outputTokens ?? 0,
+            cost_usd: costUsd,
+            model,
+            operation: trackingContext.operation || 'tech_spec_generation',
+            ticket_id: trackingContext.ticketId,
+          });
+
+          if (trackingContext.teamId) {
+            const month = new Date().toISOString().slice(0, 7);
+            const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+            this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+              this.logger.warn(`Failed to increment token usage: ${err.message}`);
+            });
+          }
+        }
 
         this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
         return this.parseJSON(text);
@@ -2143,6 +2184,7 @@ Rewritten text (definitive, unambiguous):`;
     systemPrompt: string,
     userPrompt: string,
     opts?: { maxOutputTokens?: number; temperature?: number },
+    trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
   ): Promise<any> {
     if (!this.llmModel) {
       throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
@@ -2160,13 +2202,40 @@ Rewritten text (definitive, unambiguous):`;
             ? userPrompt
             : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
 
-        const { text } = await generateText({
+        const { text, usage } = await generateText({
           model: this.llmModel,
           system: systemPrompt,
           prompt,
           maxOutputTokens,
           temperature,
         });
+
+        // Track cost if context is provided
+        if (trackingContext?.userId && usage) {
+          const model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+          const costUsd = this.telemetryService.computeLLMCost(
+            model,
+            usage.inputTokens ?? 0,
+            usage.outputTokens ?? 0,
+          );
+          this.telemetryService.trackCost(trackingContext.userId, {
+            service: 'anthropic',
+            tokens_input: usage.inputTokens ?? 0,
+            tokens_output: usage.outputTokens ?? 0,
+            cost_usd: costUsd,
+            model,
+            operation: trackingContext.operation || 'tech_spec_generation',
+            ticket_id: trackingContext.ticketId,
+          });
+
+          if (trackingContext.teamId) {
+            const month = new Date().toISOString().slice(0, 7);
+            const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+            this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+              this.logger.warn(`Failed to increment token usage: ${err.message}`);
+            });
+          }
+        }
 
         this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
         return this.parseJSON(text);

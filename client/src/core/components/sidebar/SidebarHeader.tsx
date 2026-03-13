@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LogOut, Settings, BookOpen } from 'lucide-react';
+import { LogOut, Settings, BookOpen, FileText, Shield } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import {
   DropdownMenu,
@@ -103,6 +103,21 @@ export function SidebarHeader() {
           >
             <BookOpen className="mr-2 h-4 w-4" />
             Show Onboarding
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => window.open('/terms', '_blank')}
+            className="cursor-pointer"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Terms of Service
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.open('/privacy', '_blank')}
+            className="cursor-pointer"
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            Privacy Policy
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">

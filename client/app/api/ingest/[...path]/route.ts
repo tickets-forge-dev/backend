@@ -28,25 +28,21 @@ export async function POST(
   const targetUrl = `${POSTHOG_HOST}/${pathname}${url.search}`;
 
   try {
-    const body = await request.text();
+    // Read body as raw bytes to preserve gzip-compressed data intact
+    const body = await request.arrayBuffer();
 
     // Forward all relevant headers from the original request
     const headers: Record<string, string> = {
       'User-Agent': request.headers.get('user-agent') || 'forge-proxy',
     };
 
-    // Preserve Content-Type if present
-    const contentType = request.headers.get('content-type');
-    if (contentType) {
-      headers['Content-Type'] = contentType;
-    }
-
-    // Preserve other PostHog-specific headers
+    // Preserve Content-Type and Content-Encoding (critical for gzip-js bodies)
     const relevantHeaders = [
+      'content-type',
+      'content-encoding',
       'authorization',
       'x-posthog-api-key',
       'accept',
-      'accept-encoding',
     ];
 
     for (const header of relevantHeaders) {
@@ -56,18 +52,10 @@ export async function POST(
       }
     }
 
-    // Debug logging (disabled to reduce noise)
-    // console.log('[PostHog Proxy] POST request:', {
-    //   targetUrl,
-    //   headers,
-    //   bodyLength: body?.length || 0,
-    //   bodyPreview: body ? body.substring(0, 100) : 'empty',
-    // });
-
     const response = await fetch(targetUrl, {
       method: 'POST',
       headers,
-      body: body || undefined,
+      body: body.byteLength > 0 ? Buffer.from(body) : undefined,
     });
 
     const data = await response.text();

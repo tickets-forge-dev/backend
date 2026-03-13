@@ -320,7 +320,7 @@ export default function TicketsListPage() {
           <div className="relative group flex-shrink-0">
             <CreationMenu disabled={true} />
             <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
-              Ticket limit reached ({quota.used}/{quota.limit})
+              Ticket limit reached ({quota.ticketsCreatedToday}/{quota.dailyTicketLimit})
             </div>
           </div>
         ) : (
@@ -526,7 +526,11 @@ export default function TicketsListPage() {
                   onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
                 />
                 {isExpanded && (
-                  <>
+                  <FolderBody
+                    isDragActive={!!draggingTicketId}
+                    draggingTicketId={draggingTicketId}
+                    onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
+                  >
                     {folderTickets.length > 0 && (
                       <div>
                         {folderTickets.map((ticket) => (
@@ -535,7 +539,7 @@ export default function TicketsListPage() {
                       </div>
                     )}
                     <InlineFolderAdd folderId={folder.id} />
-                  </>
+                  </FolderBody>
                 )}
               </div>
             );
@@ -563,16 +567,54 @@ export default function TicketsListPage() {
   );
 }
 
+// Folder body wrapper — also a drop target so users can drop anywhere in the folder area
+function FolderBody({ isDragActive, draggingTicketId, onTicketDrop, children }: {
+  isDragActive: boolean;
+  draggingTicketId: string | null;
+  onTicketDrop: (ticketId: string) => void;
+  children: React.ReactNode;
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  return (
+    <div
+      className={`transition-colors ${
+        isDragOver ? 'bg-blue-500/5' : isDragActive ? 'bg-blue-500/[0.02]' : ''
+      }`}
+      onDragOver={(e) => {
+        if (!isDragActive) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setIsDragOver(true);
+      }}
+      onDragLeave={(e) => {
+        // Only reset if we're leaving the container, not entering a child
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setIsDragOver(false);
+        }
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
+        if (ticketId) onTicketDrop(ticketId);
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 // Drop zone for removing tickets from folders
 function UnfiledDropZone({ draggingTicketId, onTicketDrop }: { draggingTicketId: string | null; onTicketDrop: (ticketId: string) => void }) {
   const [isDragOver, setIsDragOver] = useState(false);
 
   return (
     <div
-      className={`flex items-center justify-center px-4 py-2.5 border-b border-dashed border-[var(--border-subtle)] transition-all text-xs ${
+      className={`flex items-center justify-center px-4 py-3 border-2 border-dashed transition-all text-xs ${
         isDragOver
-          ? 'border-[var(--blue)] bg-[var(--bg-active)] text-[var(--text-secondary)]'
-          : 'text-[var(--text-tertiary)]'
+          ? 'border-[var(--blue)] bg-blue-500/10 text-[var(--text-secondary)]'
+          : 'border-[var(--blue)]/40 bg-blue-500/5 text-[var(--text-tertiary)]'
       }`}
       onDragOver={(e) => {
         e.preventDefault();
@@ -657,7 +699,11 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
   return (
     <div
       className={`group/folder sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] ${
-        isDragOver ? 'ring-2 ring-[var(--blue)] ring-inset bg-[var(--bg-active)]' : ''
+        isDragOver
+          ? 'ring-2 ring-[var(--blue)] ring-inset bg-blue-500/10'
+          : isDragActive
+            ? 'ring-1 ring-[var(--blue)]/40 ring-inset bg-blue-500/5'
+            : ''
       }`}
       onDragOver={(e) => {
         if (!isDragActive) return;
@@ -992,12 +1038,12 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
         setIsDragging(false);
         onDragEnd?.();
       }}
-      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing ${
+      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-grab [&_a]:active:cursor-grabbing ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
       } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-white/[0.02] dark:bg-white/[0.02]' : ''}`}
     >
       {/* Title cell */}
-      <Link href={href} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>
+      <Link href={href} draggable={false} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>
         {nested && <span className="w-3 h-px bg-[var(--border-subtle)] flex-shrink-0 -ml-3" />}
         <span className="flex-shrink-0">{getTypeIcon(ticket.type)}</span>
         <span className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
@@ -1011,14 +1057,14 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
       </Link>
 
       {/* Status */}
-      <Link href={href} className="hidden sm:flex items-center py-3">
+      <Link href={href} draggable={false} className="hidden sm:flex items-center py-3">
         <TicketLifecycleInfo currentStatus={ticket.status} trigger="hover">
           <StatusCell ticket={ticket} />
         </TicketLifecycleInfo>
       </Link>
 
       {/* Priority */}
-      <Link href={href} className="hidden sm:flex items-center py-3">
+      <Link href={href} draggable={false} className="hidden sm:flex items-center py-3">
         <PriorityCell priority={ticket.priority} />
       </Link>
 
@@ -1028,12 +1074,12 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
       </div>
 
       {/* Updated */}
-      <Link href={href} className="hidden md:flex items-center py-3">
+      <Link href={href} draggable={false} className="hidden md:flex items-center py-3">
         <span className="text-[11px] text-[var(--text-tertiary)]">{getRelativeTime(ticket.updatedAt)}</span>
       </Link>
 
       {/* Progress ring */}
-      <Link href={href} className="flex items-center justify-center py-3">
+      <Link href={href} draggable={false} className="flex items-center justify-center py-3">
         <ProgressRing ticket={ticket} />
       </Link>
 

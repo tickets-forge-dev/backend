@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
 import Image from 'next/image';
+import Link from 'next/link';
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -98,7 +99,9 @@ export default function LoginPage() {
           onClick={handleGoogleSignIn}
           disabled={isLoading}
           variant="outline"
-          className="w-full h-11 justify-center gap-3 text-white font-medium border-[#27272a] bg-[#18181b] hover:bg-[#27272a] hover:border-[#3f3f46]"
+          className={`w-full h-11 justify-center gap-3 text-white font-medium border-[#27272a] bg-[#18181b] hover:bg-[#27272a] hover:border-[#3f3f46] ${
+            error?.includes('sign in with Google') ? 'ring-2 ring-amber-500/50' : ''
+          }`}
           size="lg"
         >
           <GoogleIcon className="w-5 h-5 shrink-0" />
@@ -109,7 +112,9 @@ export default function LoginPage() {
           onClick={handleGitHubSignIn}
           disabled={isLoading}
           variant="outline"
-          className="w-full h-11 justify-center gap-3 text-white font-medium border-[#27272a] bg-[#18181b] hover:bg-[#27272a] hover:border-[#3f3f46]"
+          className={`w-full h-11 justify-center gap-3 text-white font-medium border-[#27272a] bg-[#18181b] hover:bg-[#27272a] hover:border-[#3f3f46] ${
+            error?.includes('sign in with GitHub') ? 'ring-2 ring-amber-500/50' : ''
+          }`}
           size="lg"
         >
           <GitHubIcon className="w-5 h-5 shrink-0" />
@@ -119,9 +124,17 @@ export default function LoginPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="p-3 bg-red-950/20 rounded-[var(--radius)] border border-red-500/30">
-          <p className="text-[var(--text-sm)] text-red-400 text-center">
-            {error}
+        <div className={`p-3 rounded-[var(--radius)] border ${
+          error.includes('already linked')
+            ? 'bg-amber-950/20 border-amber-500/30'
+            : 'bg-red-950/20 border-red-500/30'
+        }`}>
+          <p className={`text-[var(--text-sm)] text-center ${
+            error.includes('already linked') ? 'text-amber-400' : 'text-red-400'
+          }`}>
+            {error.includes('already linked')
+              ? `This email is already registered with ${error.includes('Google') && error.includes('sign in with Google') ? 'Google' : 'GitHub'}. Use that provider to sign in.`
+              : error}
           </p>
         </div>
       )}
@@ -136,13 +149,13 @@ export default function LoginPage() {
       {/* Footer / Terms */}
       <p className="text-center text-[var(--text-xs)] text-[#71717a] leading-relaxed">
         By signing in, you agree to our{' '}
-        <span className="text-[#a1a1aa] hover:text-white cursor-pointer underline underline-offset-2">
+        <Link href="/terms" className="text-[#a1a1aa] hover:text-white underline underline-offset-2">
           Terms of Service
-        </span>
+        </Link>
         {' '}and{' '}
-        <span className="text-[#a1a1aa] hover:text-white cursor-pointer underline underline-offset-2">
+        <Link href="/privacy" className="text-[#a1a1aa] hover:text-white underline underline-offset-2">
           Privacy Policy
-        </span>
+        </Link>
       </p>
     </div>
   );

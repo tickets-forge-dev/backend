@@ -43,7 +43,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         currentTeamId: result.currentTeamId
       });
     } catch (error: any) {
-      console.error('❌ [AuthStore] signInWithGoogle error:', error);
+      if (error.message?.includes('already linked')) {
+        console.warn('[AuthStore] Account linking notice:', error.message);
+      } else {
+        console.error('[AuthStore] signInWithGoogle error:', error);
+      }
       set({ isLoading: false, error: error.message });
     }
   },
@@ -62,7 +66,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         currentTeamId: result.currentTeamId
       });
     } catch (error: any) {
-      console.error('❌ [AuthStore] signInWithGitHub error:', error);
+      if (error.message?.includes('already linked')) {
+        console.warn('[AuthStore] Account linking notice:', error.message);
+      } else {
+        console.error('[AuthStore] signInWithGitHub error:', error);
+      }
       set({ isLoading: false, error: error.message });
     }
   },

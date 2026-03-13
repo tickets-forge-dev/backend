@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Card } from '@/core/components/ui/card';
 import { Button } from '@/core/components/ui/button';
 import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
@@ -8,8 +9,75 @@ import { JiraIntegration } from '@/src/settings/components/JiraIntegration';
 import { FigmaIntegration } from '@/src/settings/components/FigmaIntegration';
 import { RoleSettings } from '@/src/settings/components/RoleSettings';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
+import { useTicketsStore } from '@/stores/tickets.store';
 import Link from 'next/link';
 import { X, Monitor, Sun, Moon } from 'lucide-react';
+
+function UsageSection() {
+  const quota = useTicketsStore((s) => s.quota);
+  const fetchQuota = useTicketsStore((s) => s.fetchQuota);
+
+  useEffect(() => {
+    fetchQuota();
+  }, [fetchQuota]);
+
+  if (!quota) return null;
+
+  const percent = quota.usagePercent;
+  const barColor =
+    percent >= 90
+      ? 'bg-red-500'
+      : percent >= 70
+        ? 'bg-amber-500'
+        : 'bg-emerald-500';
+
+  const formatTokens = (n: number) =>
+    n >= 1_000_000
+      ? `${(n / 1_000_000).toFixed(1)}M`
+      : n >= 1_000
+        ? `${(n / 1_000).toFixed(0)}K`
+        : String(n);
+
+  return (
+    <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
+      <div>
+        <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
+          Usage
+        </h2>
+        <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+          Current billing period token and ticket usage
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {/* Token usage bar */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-[var(--text-sm)]">
+            <span className="text-[var(--text-secondary)]">Token usage</span>
+            <span className="text-[var(--text)] font-medium">
+              {formatTokens(quota.tokensUsed)} / {formatTokens(quota.tokenLimit)}
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-[var(--bg-hover)] overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${barColor}`}
+              style={{ width: `${Math.min(percent, 100)}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-[var(--text-tertiary)]">{percent}% used</p>
+        </div>
+
+        {/* Daily tickets */}
+        <div className="flex items-center justify-between text-[var(--text-sm)]">
+          <span className="text-[var(--text-secondary)]">Tickets created today</span>
+          <span className="text-[var(--text)] font-medium">
+            {quota.ticketsCreatedToday} / {quota.dailyTicketLimit}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -71,6 +139,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* Usage Section */}
+      <UsageSection />
 
       {/* Account Section */}
       <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">

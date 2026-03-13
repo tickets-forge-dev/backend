@@ -5,9 +5,12 @@ import type { AECResponse } from '@/services/ticket.service';
 import type { BranchInfo } from '@/services/github.service';
 
 interface QuotaInfo {
-  used: number;
-  limit: number;
+  tokensUsed: number;
+  tokenLimit: number;
+  ticketsCreatedToday: number;
+  dailyTicketLimit: number;
   canCreate: boolean;
+  usagePercent: number;
 }
 
 interface TicketListPreferences {

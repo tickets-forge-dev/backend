@@ -8,6 +8,11 @@ import {
 } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
+import {
+  UsageBudgetRepository,
+  USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UsageBudgetRepository';
+import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
 export const TICKET_LIMITS: Record<string, number> = {};
 export const DEFAULT_TICKET_LIMIT = Infinity;
 
@@ -43,9 +48,26 @@ export class CreateTicketUseCase {
     @Inject(GITHUB_INTEGRATION_REPOSITORY)
     private readonly githubIntegrationRepository: GitHubIntegrationRepository,
     private readonly githubTokenService: GitHubTokenService,
+    @Inject(USAGE_BUDGET_REPOSITORY)
+    private readonly usageBudgetRepository: UsageBudgetRepository,
   ) {}
 
   async execute(command: CreateTicketCommand): Promise<AEC> {
+    // Check quota before creating ticket
+    const today = new Date().toISOString().slice(0, 10);
+    const month = today.slice(0, 7);
+    const budget = await this.usageBudgetRepository.getOrCreate(command.teamId, month);
+
+    if (budget.tokensUsed >= budget.tokenLimit) {
+      throw new QuotaExceededError(budget.tokensUsed, budget.tokenLimit);
+    }
+
+    // Check daily ticket limit (compare against today, resetting if needed)
+    const ticketsToday = budget.lastResetDate === today ? budget.ticketsCreatedToday : 0;
+    if (ticketsToday >= budget.dailyTicketLimit) {
+      throw new QuotaExceededError(ticketsToday, budget.dailyTicketLimit);
+    }
+
     // Build repository context if repository info provided
     let repositoryContext: RepositoryContext | undefined;
 
@@ -102,6 +124,9 @@ export class CreateTicketUseCase {
 
     // Persist draft
     await this.aecRepository.save(aec);
+
+    // Increment daily ticket counter
+    await this.usageBudgetRepository.incrementDailyTickets(command.teamId, today);
 
     return aec;
   }

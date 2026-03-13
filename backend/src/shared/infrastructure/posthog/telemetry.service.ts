@@ -130,6 +130,25 @@ export class TelemetryService {
   }
 
   /**
+   * Compute LLM cost in USD based on model pricing
+   */
+  computeLLMCost(model: string, promptTokens: number, completionTokens: number): number {
+    // Pricing per 1M tokens
+    const pricing: Record<string, { input: number; output: number }> = {
+      'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
+      'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00 },
+      'claude-3-5-sonnet-20241022': { input: 3.00, output: 15.00 },
+      'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 },
+    };
+
+    const modelPricing = pricing[model] ?? pricing['claude-3-haiku-20240307'];
+    return (
+      (promptTokens / 1_000_000) * modelPricing.input +
+      (completionTokens / 1_000_000) * modelPricing.output
+    );
+  }
+
+  /**
    * Track cost (LLM tokens, API calls)
    */
   trackCost(userId: string, props: CostTrackingProperties) {

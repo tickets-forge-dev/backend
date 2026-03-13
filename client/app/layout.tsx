@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { Inter, JetBrains_Mono, Unbounded } from 'next/font/google';
 import { Toaster } from 'sonner';
@@ -36,6 +36,9 @@ export const metadata: Metadata = {
     shortcut: '/forge-icon.png',
     apple: '/forge-icon.png',
   },
+};
+
+export const viewport: Viewport = {
   themeColor: '#111111',
 };
 
