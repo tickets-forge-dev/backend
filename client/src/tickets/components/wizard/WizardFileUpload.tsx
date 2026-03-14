@@ -98,7 +98,7 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
           multiple
           onChange={handleFileSelect}
           className="hidden"
-          accept="image/*,.pdf,.md,.txt,.csv,.json,.xml,.yaml,.yml"
+          accept="image/*,.pdf,.md,.txt,.csv,.json,.xml,.yaml,.yml,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
         />
       </div>
 

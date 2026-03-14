@@ -8,13 +8,56 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Trash2, Download, Eye, FileText, Plus } from 'lucide-react';
+import {
+  Trash2,
+  Download,
+  Eye,
+  FileText,
+  FileJson,
+  FileSpreadsheet,
+  FileType,
+  File as FileIcon,
+  Paperclip,
+  Upload,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import type { AttachmentResponse } from '@/services/ticket.service';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_ATTACHMENTS = 5;
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'];
+const ALLOWED_TYPES = [
+  // Images
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  // Documents
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'text/x-markdown',
+  'application/json',
+  // Office
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+];
+
+const ACCEPT_STRING = [
+  ...ALLOWED_TYPES,
+  '.md',
+  '.txt',
+  '.json',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.ppt',
+  '.pptx',
+].join(',');
 
 interface ImageAttachmentsGridProps {
   attachments: AttachmentResponse[];
@@ -33,47 +76,64 @@ function isImageMimeType(mimeType: string): boolean {
   return mimeType.startsWith('image/');
 }
 
-/** Circular progress ring SVG */
-function UploadProgress({ percent, fileName }: { percent: number; fileName: string }) {
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percent / 100) * circumference;
+function getFileExtension(filename: string): string {
+  return filename.split('.').pop()?.toLowerCase() || '';
+}
 
+function getFileIcon(mimeType: string, fileName: string) {
+  if (isImageMimeType(mimeType)) {
+    return <Paperclip className="h-4 w-4 text-blue-400" />;
+  }
+  const ext = getFileExtension(fileName);
+  switch (ext) {
+    case 'pdf':
+      return <FileText className="h-4 w-4 text-red-400" />;
+    case 'md':
+      return <FileText className="h-4 w-4 text-blue-400" />;
+    case 'txt':
+      return <FileType className="h-4 w-4 text-[var(--text-tertiary)]" />;
+    case 'json':
+      return <FileJson className="h-4 w-4 text-yellow-400" />;
+    case 'doc':
+    case 'docx':
+      return <FileText className="h-4 w-4 text-blue-500" />;
+    case 'xls':
+    case 'xlsx':
+      return <FileSpreadsheet className="h-4 w-4 text-green-500" />;
+    case 'ppt':
+    case 'pptx':
+      return <FileText className="h-4 w-4 text-orange-500" />;
+    default:
+      return <FileIcon className="h-4 w-4 text-[var(--text-tertiary)]" />;
+  }
+}
+
+function isAllowedFile(file: File): boolean {
+  if (ALLOWED_TYPES.includes(file.type)) return true;
+  const ext = getFileExtension(file.name);
+  return ['md', 'txt', 'json', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+}
+
+/** Inline progress bar */
+function UploadProgressBar({ percent, fileName }: { percent: number; fileName: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2">
-      <div className="relative">
-        <svg width="72" height="72" className="transform -rotate-90">
-          {/* Background ring */}
-          <circle
-            cx="36"
-            cy="36"
-            r={radius}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="4"
-            className="text-[var(--border)]"
-          />
-          {/* Progress ring */}
-          <circle
-            cx="36"
-            cy="36"
-            r={radius}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            className="text-[var(--primary)] transition-[stroke-dashoffset] duration-200"
-          />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-[var(--text)]">
-          {percent}%
-        </span>
+    <div className="flex items-center gap-3 rounded-lg bg-[var(--bg-subtle)] px-3 py-2.5">
+      <div className="flex-shrink-0">
+        <Upload className="h-4 w-4 text-[var(--primary)] animate-pulse" />
       </div>
-      <p className="text-[10px] text-[var(--text-tertiary)] truncate max-w-full px-2">
-        {fileName}
-      </p>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-[var(--text-secondary)] truncate">{fileName}</p>
+        <div className="mt-1 h-1 w-full rounded-full bg-[var(--border)]">
+          <div
+            className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-200"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+      <span className="text-[10px] text-[var(--text-tertiary)] flex-shrink-0 tabular-nums">
+        {percent}%
+      </span>
     </div>
   );
 }
@@ -90,25 +150,18 @@ export function ImageAttachmentsGrid({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadFileName, setUploadFileName] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
-  const handleFileSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      // Reset input so the same file can be re-selected
-      e.target.value = '';
-
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        toast.error('File type not allowed. Use PNG, JPEG, GIF, WebP, or PDF.');
+  const processFile = useCallback(
+    async (file: File) => {
+      if (!isAllowedFile(file)) {
+        toast.error('File type not supported. Use images, PDF, Markdown, text, JSON, or Office files.');
         return;
       }
-
       if (file.size > MAX_FILE_SIZE) {
         toast.error('File too large. Maximum size is 5MB.');
         return;
       }
-
       if (attachments.length >= MAX_ATTACHMENTS) {
         toast.error(`Maximum of ${MAX_ATTACHMENTS} attachments reached.`);
         return;
@@ -133,6 +186,26 @@ export function ImageAttachmentsGrid({
     [attachments.length, onUpload],
   );
 
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = '';
+      await processFile(file);
+    },
+    [processFile],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) processFile(file);
+    },
+    [processFile],
+  );
+
   const handleDelete = useCallback(
     async (attachment: AttachmentResponse) => {
       setDeletingId(attachment.id);
@@ -140,10 +213,7 @@ export function ImageAttachmentsGrid({
       setDeletingId(null);
 
       if (success) {
-        toast('Attachment deleted', {
-          description: attachment.fileName,
-          duration: 3000,
-        });
+        toast('Attachment deleted', { description: attachment.fileName, duration: 3000 });
       } else {
         toast.error('Failed to delete attachment');
       }
@@ -162,129 +232,142 @@ export function ImageAttachmentsGrid({
 
   const canUpload = attachments.length < MAX_ATTACHMENTS && !isUploading;
   const isActivelyUploading = uploadProgress !== null;
+  const hasAttachments = attachments.length > 0;
 
   return (
     <>
       <input
         ref={fileInputRef}
         type="file"
-        accept={ALLOWED_TYPES.join(',')}
+        accept={ACCEPT_STRING}
         onChange={handleFileSelect}
         className="hidden"
       />
 
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {/* Existing attachments */}
-          {attachments.map((attachment) => {
-            const isImage = isImageMimeType(attachment.mimeType);
-            const isDeleting = deletingId === attachment.id;
+      <div className="space-y-1.5">
+        {/* File list */}
+        {attachments.map((attachment) => {
+          const isImage = isImageMimeType(attachment.mimeType);
+          const isDeleting = deletingId === attachment.id;
 
-            return (
-              <div
-                key={attachment.id}
-                className="group relative rounded-lg border border-[var(--border)]/40 bg-[var(--bg-hover)] overflow-hidden"
-              >
-                <div className="aspect-square relative">
-                  {isImage ? (
-                    <img
-                      src={attachment.storageUrl}
-                      alt={attachment.fileName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[var(--bg-subtle)]">
-                      <FileText className="h-10 w-10 text-[var(--text-tertiary)]" />
-                    </div>
-                  )}
-
-                  {/* Hover overlay with actions */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    {isImage && (
-                      <button
-                        onClick={() => {
-                          setLightboxUrl(attachment.storageUrl);
-                          setLightboxName(attachment.fileName);
-                        }}
-                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                        title="Preview"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleDownload(attachment)}
-                      className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                      title="Download"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(attachment)}
-                      disabled={isDeleting}
-                      className="p-1.5 rounded-full bg-red-500/40 hover:bg-red-500/60 text-white transition-colors"
-                      title="Delete"
-                    >
-                      {isDeleting ? (
-                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" />
-                        </svg>
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* File info */}
-                <div className="px-2 py-1.5">
-                  <p className="text-[11px] text-[var(--text-secondary)] truncate" title={attachment.fileName}>
-                    {attachment.fileName}
-                  </p>
-                  <p className="text-[10px] text-[var(--text-tertiary)]">
-                    {formatFileSize(attachment.fileSize)}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Upload progress card — same dimensions as attachment cards */}
-          {isActivelyUploading && (
-            <div className="rounded-lg border border-[var(--primary)]/30 bg-[var(--bg-subtle)] overflow-hidden">
-              <div className="aspect-square flex items-center justify-center">
-                <UploadProgress percent={uploadProgress} fileName={uploadFileName} />
-              </div>
-              <div className="px-2 py-1.5">
-                <p className="text-[11px] text-[var(--text-secondary)] truncate">Uploading...</p>
-                <p className="text-[10px] text-[var(--text-tertiary)]">{uploadProgress}%</p>
-              </div>
-            </div>
-          )}
-
-          {/* Add placeholder — nice background, same dimensions */}
-          {canUpload && !isActivelyUploading && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 transition-all overflow-hidden cursor-pointer group"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='8' ry='8' stroke='rgba(136,136,136,0.25)' stroke-width='3' stroke-dasharray='6%2c 14' stroke-linecap='round'/%3e%3c/svg%3e")` }}
+          return (
+            <div
+              key={attachment.id}
+              className="group flex items-center gap-3 rounded-lg bg-[var(--bg-subtle)] px-3 py-2 hover:bg-[var(--bg-hover)] transition-colors"
             >
-              <div className="aspect-square flex flex-col items-center justify-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-[var(--primary)]/15 group-hover:bg-[var(--primary)]/25 flex items-center justify-center transition-colors">
-                  <Plus className="h-5 w-5 text-[var(--primary)] transition-colors" />
+              {/* Thumbnail or icon */}
+              {isImage ? (
+                <button
+                  onClick={() => {
+                    setLightboxUrl(attachment.storageUrl);
+                    setLightboxName(attachment.fileName);
+                  }}
+                  className="flex-shrink-0 w-8 h-8 rounded overflow-hidden bg-[var(--bg-active)]"
+                >
+                  <img
+                    src={attachment.storageUrl}
+                    alt={attachment.fileName}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ) : (
+                <div className="flex-shrink-0 w-8 h-8 rounded bg-[var(--bg-active)] flex items-center justify-center">
+                  {getFileIcon(attachment.mimeType, attachment.fileName)}
                 </div>
-                <span className="text-[11px] text-[var(--text-secondary)]">
-                  Add file
-                </span>
-              </div>
-              <div className="px-2 py-1.5">
+              )}
+
+              {/* File info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-[var(--text-secondary)] truncate" title={attachment.fileName}>
+                  {attachment.fileName}
+                </p>
                 <p className="text-[10px] text-[var(--text-tertiary)]">
-                  {attachments.length}/{MAX_ATTACHMENTS} · Max 5MB
+                  {formatFileSize(attachment.fileSize)}
                 </p>
               </div>
-            </button>
-          )}
-        </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {isImage && (
+                  <button
+                    onClick={() => {
+                      setLightboxUrl(attachment.storageUrl);
+                      setLightboxName(attachment.fileName);
+                    }}
+                    className="p-1 rounded hover:bg-[var(--bg-active)] text-[var(--text-tertiary)] hover:text-[var(--text)] transition-colors"
+                    title="Preview"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDownload(attachment)}
+                  className="p-1 rounded hover:bg-[var(--bg-active)] text-[var(--text-tertiary)] hover:text-[var(--text)] transition-colors"
+                  title="Download"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => handleDelete(attachment)}
+                  disabled={isDeleting}
+                  className="p-1 rounded hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-400 transition-colors"
+                  title="Delete"
+                >
+                  {isDeleting ? (
+                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Upload progress */}
+        {isActivelyUploading && (
+          <UploadProgressBar percent={uploadProgress} fileName={uploadFileName} />
+        )}
+
+        {/* Drop zone / add button */}
+        {canUpload && !isActivelyUploading && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`
+              w-full flex items-center gap-3 rounded-lg px-3 transition-all cursor-pointer
+              ${hasAttachments ? 'py-2' : 'py-4'}
+              ${dragOver
+                ? 'bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]/30'
+                : 'bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)]'
+              }
+            `}
+          >
+            <div className={`
+              flex-shrink-0 rounded flex items-center justify-center
+              ${hasAttachments ? 'w-8 h-8' : 'w-9 h-9'}
+              ${dragOver ? 'bg-[var(--primary)]/15' : 'bg-[var(--bg-active)]'}
+            `}>
+              {dragOver ? (
+                <Upload className="h-4 w-4 text-[var(--primary)]" />
+              ) : (
+                <Paperclip className="h-4 w-4 text-[var(--text-tertiary)]" />
+              )}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-xs text-[var(--text-secondary)]">
+                {dragOver ? 'Drop file here' : hasAttachments ? 'Add another file' : 'Add file or drop here'}
+              </p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">
+                {attachments.length}/{MAX_ATTACHMENTS} · Max 5MB · Images, PDF, Markdown, text, JSON, Office
+              </p>
+            </div>
+          </button>
+        )}
       </div>
 
       {/* Lightbox Dialog */}
