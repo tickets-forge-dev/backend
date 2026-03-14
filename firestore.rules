@@ -1,13 +1,113 @@
 rules_version = '2';
+
+// Forge Firestore Security Rules
+//
+// Architecture: All data access goes through the NestJS backend using the
+// Firebase Admin SDK, which bypasses these rules entirely. These rules exist
+// as defense-in-depth to block any direct client SDK access to Firestore.
+//
+// Collections:
+//   /users/{userId}                              - User profiles
+//   /teams/{teamId}                              - Team metadata
+//   /teams/{teamId}/members/{userId}             - Team membership
+//   /teams/{teamId}/aecs/{aecId}                 - Tickets
+//   /teams/{teamId}/folders/{folderId}           - Ticket folders
+//   /teams/{teamId}/usage/{month}                - Usage budgets
+//   /workspaces/{workspaceId}/integrations/{id}  - OAuth tokens (sensitive)
+//   /aec_lookup/{aecId}                          - Ticket lookup index
+//   /device_codes/{code}                         - Device auth codes
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Workspace isolation - users can only access their own workspace
-    match /workspaces/{workspaceId}/{document=**} {
-      allow read, write: if request.auth != null &&
-        request.auth.token.workspaceId == workspaceId;
+
+    // ── Helper functions ──────────────────────────────────────────────
+
+    // User is authenticated
+    function isAuth() {
+      return request.auth != null;
     }
 
-    // Fallback - deny all other access
+    // User owns this document (userId matches auth uid)
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // User is an active member of the team
+    function isTeamMember(teamId) {
+      return isAuth() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)).data.status == 'active';
+    }
+
+    // User is the team owner
+    function isTeamOwner(teamId) {
+      return isAuth() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)) &&
+        get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+    }
+
+    // User has team access (owner OR active member)
+    function hasTeamAccess(teamId) {
+      return isTeamOwner(teamId) || isTeamMember(teamId);
+    }
+
+    // ── User profiles ─────────────────────────────────────────────────
+    // Users can read their own profile only
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Admin SDK only
+    }
+
+    // ── Teams ─────────────────────────────────────────────────────────
+    // Team metadata readable by members, writable by admin SDK only
+    match /teams/{teamId} {
+      allow read: if hasTeamAccess(teamId);
+      allow write: if false; // Admin SDK only
+
+      // Team members — readable by team members
+      match /members/{memberId} {
+        allow read: if hasTeamAccess(teamId);
+        allow write: if false; // Admin SDK only
+      }
+
+      // Tickets — readable by team members
+      match /aecs/{aecId} {
+        allow read: if hasTeamAccess(teamId);
+        allow write: if false; // Admin SDK only
+      }
+
+      // Folders — readable by team members
+      match /folders/{folderId} {
+        allow read: if hasTeamAccess(teamId);
+        allow write: if false; // Admin SDK only
+      }
+
+      // Usage budgets — readable by team members
+      match /usage/{month} {
+        allow read: if hasTeamAccess(teamId);
+        allow write: if false; // Admin SDK only
+      }
+    }
+
+    // ── Workspaces & Integrations ─────────────────────────────────────
+    // Integration docs contain encrypted OAuth tokens — no client access
+    match /workspaces/{workspaceId}/{document=**} {
+      allow read, write: if false; // Admin SDK only — contains secrets
+    }
+
+    // ── Lookup indexes ────────────────────────────────────────────────
+    // Internal index for ticket→team mapping — no client access
+    match /aec_lookup/{aecId} {
+      allow read, write: if false; // Admin SDK only
+    }
+
+    // ── Device codes ──────────────────────────────────────────────────
+    // Short-lived auth codes for CLI device flow — no client access
+    match /device_codes/{code} {
+      allow read, write: if false; // Admin SDK only
+    }
+
+    // ── Catch-all: deny everything else ───────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }

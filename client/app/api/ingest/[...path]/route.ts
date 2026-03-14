@@ -37,10 +37,10 @@ export async function POST(
     };
 
     // Preserve Content-Type and Content-Encoding (critical for gzip-js bodies)
+    // NOTE: Never forward 'authorization' — it contains the user's Firebase token
     const relevantHeaders = [
       'content-type',
       'content-encoding',
-      'authorization',
       'x-posthog-api-key',
       'accept',
     ];
@@ -101,7 +101,7 @@ export async function GET(
       'User-Agent': request.headers.get('user-agent') || 'forge-proxy',
     };
 
-    const relevantHeaders = ['authorization', 'x-posthog-api-key', 'accept', 'accept-encoding'];
+    const relevantHeaders = ['x-posthog-api-key', 'accept', 'accept-encoding'];
     for (const header of relevantHeaders) {
       const value = request.headers.get(header);
       if (value) {

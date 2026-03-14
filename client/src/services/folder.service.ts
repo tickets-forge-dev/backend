@@ -1,5 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
-import { auth } from '@/lib/firebase';
+import { AxiosInstance } from 'axios';
+import { createApiClient } from '@/lib/api-client';
 
 export interface FolderResponse {
   id: string;
@@ -14,22 +14,7 @@ export class FolderService {
   private client: AxiosInstance;
 
   constructor() {
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-
-    this.client = axios.create({
-      baseURL,
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 30000,
-    });
-
-    this.client.interceptors.request.use(async (config) => {
-      const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
+    this.client = createApiClient();
   }
 
   async list(teamId: string): Promise<FolderResponse[]> {

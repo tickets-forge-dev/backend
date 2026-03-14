@@ -1038,12 +1038,12 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
         setIsDragging(false);
         onDragEnd?.();
       }}
-      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-grab [&_a]:active:cursor-grabbing ${
+      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-pointer ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
       } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-white/[0.02] dark:bg-white/[0.02]' : ''}`}
     >
       {/* Title cell */}
-      <Link href={href} draggable={false} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>
+      <Link href={href} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>
         {nested && <span className="w-3 h-px bg-[var(--border-subtle)] flex-shrink-0 -ml-3" />}
         <span className="flex-shrink-0">{getTypeIcon(ticket.type)}</span>
         <span className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
@@ -1057,14 +1057,14 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
       </Link>
 
       {/* Status */}
-      <Link href={href} draggable={false} className="hidden sm:flex items-center py-3">
+      <Link href={href} className="hidden sm:flex items-center py-3">
         <TicketLifecycleInfo currentStatus={ticket.status} trigger="hover">
           <StatusCell ticket={ticket} />
         </TicketLifecycleInfo>
       </Link>
 
       {/* Priority */}
-      <Link href={href} draggable={false} className="hidden sm:flex items-center py-3">
+      <Link href={href} className="hidden sm:flex items-center py-3">
         <PriorityCell priority={ticket.priority} />
       </Link>
 
@@ -1074,12 +1074,12 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
       </div>
 
       {/* Updated */}
-      <Link href={href} draggable={false} className="hidden md:flex items-center py-3">
+      <Link href={href} className="hidden md:flex items-center py-3">
         <span className="text-[11px] text-[var(--text-tertiary)]">{getRelativeTime(ticket.updatedAt)}</span>
       </Link>
 
       {/* Progress ring */}
-      <Link href={href} draggable={false} className="flex items-center justify-center py-3">
+      <Link href={href} className="flex items-center justify-center py-3">
         <ProgressRing ticket={ticket} />
       </Link>
 

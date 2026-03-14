@@ -6,6 +6,7 @@ import { SendGridEmailService } from './infrastructure/email/SendGridEmailServic
 import { ConsoleEmailService } from './infrastructure/email/ConsoleEmailService';
 import { FirestoreUserRepository } from '../users/infrastructure/persistence/FirestoreUserRepository';
 import { FirestoreTeamRepository } from '../teams/infrastructure/persistence/FirestoreTeamRepository';
+import { FirestoreTeamMemberRepository } from '../teams/infrastructure/persistence/FirestoreTeamMemberRepository';
 
 @Global()
 @Module({
@@ -35,6 +36,14 @@ import { FirestoreTeamRepository } from '../teams/infrastructure/persistence/Fir
       },
       inject: [FirebaseService],
     },
+    {
+      provide: FirestoreTeamMemberRepository,
+      useFactory: (firebaseService: FirebaseService) => {
+        const firestore = firebaseService.getFirestore();
+        return new FirestoreTeamMemberRepository(firestore);
+      },
+      inject: [FirebaseService],
+    },
   ],
   exports: [
     FirebaseService,
@@ -42,6 +51,7 @@ import { FirestoreTeamRepository } from '../teams/infrastructure/persistence/Fir
     EmailService,
     FirestoreUserRepository,
     FirestoreTeamRepository,
+    FirestoreTeamMemberRepository,
   ],
 })
 export class SharedModule {}

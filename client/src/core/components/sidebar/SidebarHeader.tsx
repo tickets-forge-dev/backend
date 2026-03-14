@@ -62,10 +62,10 @@ export function SidebarHeader() {
             {/* Name and email - hidden when collapsed */}
             {!sidebarCollapsed && (
               <div className="flex flex-col items-start overflow-hidden">
-                <p className="text-[var(--text-sm)] font-medium text-[var(--text)] truncate w-full">
+                <p className="text-[var(--text-sm)] font-semibold text-[var(--text)] truncate w-full">
                   {user.displayName || 'User'}
                 </p>
-                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] truncate w-full">
+                <p className="text-[11px] text-[var(--text-tertiary)] truncate w-full">
                   {user.email}
                 </p>
               </div>
@@ -80,11 +80,11 @@ export function SidebarHeader() {
           className="w-56 z-[var(--z-modal)]"
         >
           <DropdownMenuLabel>
-            <div className="flex flex-col space-y-1">
-              <p className="text-[var(--text-sm)] font-medium">
+            <div className="flex flex-col space-y-0.5">
+              <p className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
                 {user.displayName || 'User'}
               </p>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+              <p className="text-[11px] font-normal text-[var(--text-tertiary)]">
                 {user.email}
               </p>
             </div>
