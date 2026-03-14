@@ -65,6 +65,8 @@ import { ReEnrichWithQAUseCase } from './application/use-cases/ReEnrichWithQAUse
 import { ApproveTicketUseCase } from './application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from './application/use-cases/StartImplementationUseCase';
 import { RefineWireframeUseCase } from './application/use-cases/RefineWireframeUseCase';
+import { ArchiveAECUseCase } from './application/use-cases/ArchiveAECUseCase';
+import { UnarchiveAECUseCase } from './application/use-cases/UnarchiveAECUseCase';
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
 import { TeamsModule } from '../teams/teams.module';
@@ -112,6 +114,8 @@ import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persist
     ApproveTicketUseCase,
     StartImplementationUseCase,
     RefineWireframeUseCase,
+    ArchiveAECUseCase,
+    UnarchiveAECUseCase,
     ValidationEngine,
     // Validators
     CompletenessValidator,

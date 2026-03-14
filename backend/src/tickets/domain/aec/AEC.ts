@@ -84,6 +84,7 @@ export class AEC {
     private _wireframeContext: string | null = null,
     private _wireframeImageAttachmentIds: string[] = [],
     private _apiContext: string | null = null,
+    private _previousStatus: AECStatus | null = null,
   ) {}
 
   // Factory method for creating new draft
@@ -204,6 +205,7 @@ export class AEC {
     wireframeContext?: string | null,
     wireframeImageAttachmentIds?: string[],
     apiContext?: string | null,
+    previousStatus?: AECStatus | null,
   ): AEC {
     return new AEC(
       id,
@@ -250,6 +252,7 @@ export class AEC {
       wireframeContext ?? null,
       wireframeImageAttachmentIds ?? [],
       apiContext ?? null,
+      previousStatus ?? null,
     );
   }
 
@@ -379,11 +382,42 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Archive a ticket (soft-delete). Can be done from any status.
+   * Stores the previous status so the ticket can be restored.
+   */
+  archive(): void {
+    if (this._status === AECStatus.ARCHIVED) {
+      throw new InvalidStateTransitionError('Ticket is already archived');
+    }
+    this._previousStatus = this._status;
+    this._status = AECStatus.ARCHIVED;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Restore a previously archived ticket to its prior status.
+   */
+  unarchive(): void {
+    if (this._status !== AECStatus.ARCHIVED) {
+      throw new InvalidStateTransitionError(
+        `Cannot unarchive a ticket that is not archived (current: ${this._status})`,
+      );
+    }
+    this._status = this._previousStatus ?? AECStatus.DRAFT;
+    this._previousStatus = null;
+    this._updatedAt = new Date();
+  }
+
+  get previousStatus(): AECStatus | null {
+    return this._previousStatus;
+  }
+
   // Assignment methods (Story 3.5-5: AC#1)
   assign(userId: string): void {
-    if (this._status === AECStatus.COMPLETE) {
+    if (this._status === AECStatus.COMPLETE || this._status === AECStatus.ARCHIVED) {
       throw new InvalidStateTransitionError(
-        'Cannot assign a completed ticket. Revert to draft first.',
+        `Cannot assign a ${this._status} ticket.`,
       );
     }
     this._assignedTo = userId;

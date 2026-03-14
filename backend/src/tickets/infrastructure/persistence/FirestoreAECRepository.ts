@@ -154,20 +154,29 @@ export class FirestoreAECRepository implements AECRepository {
       .count()
       .get();
 
-    return snapshot.data().count;
+    // Subtract archived count to avoid needing a composite index
+    const archivedSnapshot = await firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('aecs')
+      .where('status', '==', 'archived')
+      .count()
+      .get();
+
+    return snapshot.data().count - archivedSnapshot.data().count;
   }
 
   async countByTeamAndCreator(teamId: string, createdBy: string): Promise<number> {
     const firestore = this.getFirestore();
+    // Fetch all by creator, then filter out archived in memory
     const snapshot = await firestore
       .collection('teams')
       .doc(teamId)
       .collection('aecs')
       .where('createdBy', '==', createdBy)
-      .count()
       .get();
 
-    return snapshot.data().count;
+    return snapshot.docs.filter((doc) => (doc.data() as any).status !== 'archived').length;
   }
 
   async findByTeam(teamId: string): Promise<AEC[]> {
@@ -179,7 +188,23 @@ export class FirestoreAECRepository implements AECRepository {
       .orderBy('updatedAt', 'desc')
       .get();
 
-    return snapshot.docs.map((doc) => AECMapper.toDomain(doc.data() as AECDocument));
+    return snapshot.docs
+      .map((doc) => AECMapper.toDomain(doc.data() as AECDocument))
+      .filter((aec) => aec.status !== 'archived');
+  }
+
+  async findArchivedByTeam(teamId: string): Promise<AEC[]> {
+    const firestore = this.getFirestore();
+    const snapshot = await firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('aecs')
+      .where('status', '==', 'archived')
+      .get();
+
+    return snapshot.docs
+      .map((doc) => AECMapper.toDomain(doc.data() as AECDocument))
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   }
 
   async update(aec: AEC): Promise<void> {

@@ -37,6 +37,11 @@ interface TicketsState {
   isAssigning: boolean;
   assignError: string | null;
 
+  // Archive
+  archivedTickets: AECResponse[];
+  isLoadingArchived: boolean;
+  showArchived: boolean;
+
   // Quick draft
   isQuickCreating: boolean;
   quickCreateError: string | null;
@@ -69,6 +74,10 @@ interface TicketsState {
     data: { title?: string; description?: string; acceptanceCriteria?: string[]; assumptions?: string[]; status?: string; techSpec?: Record<string, any> }
   ) => Promise<boolean>;
   deleteTicket: (id: string) => Promise<boolean>;
+  archiveTicket: (id: string) => Promise<boolean>;
+  unarchiveTicket: (id: string) => Promise<boolean>;
+  loadArchivedTickets: () => Promise<void>;
+  toggleShowArchived: () => void;
   assignTicket: (id: string, userId: string | null) => Promise<boolean>;
   clearCreateError: () => void;
   quickCreateDraft: (title: string, type?: string, priority?: string) => Promise<AECResponse | null>;
@@ -125,6 +134,11 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     deleteError: null,
     isAssigning: false,
     assignError: null,
+
+    // Archive
+    archivedTickets: [],
+    isLoadingArchived: false,
+    showArchived: false,
 
     // Quick draft
     isQuickCreating: false,
@@ -432,6 +446,65 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
       set({ isDeleting: false, deleteError: errorMessage });
       return false;
     }
+  },
+
+  archiveTicket: async (id: string) => {
+    try {
+      const { ticketService } = useServices();
+      await ticketService.archive(id);
+
+      // Remove from active tickets list and archived cache
+      set((state) => ({
+        tickets: state.tickets.filter((t) => t.id !== id),
+        currentTicket: state.currentTicket?.id === id ? null : state.currentTicket,
+        archivedTickets: [], // invalidate cache so next toggle re-fetches
+        showArchived: false,
+      }));
+
+      get().fetchQuota();
+      return true;
+    } catch (error: any) {
+      return false;
+    }
+  },
+
+  unarchiveTicket: async (id: string) => {
+    try {
+      const { ticketService } = useServices();
+      await ticketService.unarchive(id);
+
+      // Remove from archived list
+      set((state) => ({
+        archivedTickets: state.archivedTickets.filter((t) => t.id !== id),
+      }));
+
+      // Reload active tickets to pick up the restored one
+      get().loadTickets();
+      get().fetchQuota();
+      return true;
+    } catch (error: any) {
+      return false;
+    }
+  },
+
+  loadArchivedTickets: async () => {
+    set({ isLoadingArchived: true });
+    try {
+      const { ticketService } = useServices();
+      const archived = await ticketService.listArchived();
+      set({ archivedTickets: archived, isLoadingArchived: false });
+    } catch {
+      set({ isLoadingArchived: false });
+    }
+  },
+
+  toggleShowArchived: () => {
+    const { showArchived } = get();
+    if (!showArchived) {
+      // Fetch archived tickets when expanding
+      get().loadArchivedTickets();
+    }
+    set({ showArchived: !showArchived });
   },
 
   // Branch selection actions (AC#5, Task 9)

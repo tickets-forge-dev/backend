@@ -135,6 +135,19 @@ export class TicketService {
     await this.client.delete(`/tickets/${id}`);
   }
 
+  async archive(id: string): Promise<void> {
+    await this.client.patch(`/tickets/${id}/archive`);
+  }
+
+  async unarchive(id: string): Promise<void> {
+    await this.client.patch(`/tickets/${id}/unarchive`);
+  }
+
+  async listArchived(): Promise<AECResponse[]> {
+    const response = await this.client.get<AECResponse[]>('/tickets/archived');
+    return response.data;
+  }
+
   async getQuota(): Promise<{
     tokensUsed: number;
     tokenLimit: number;

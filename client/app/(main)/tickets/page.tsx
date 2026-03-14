@@ -10,7 +10,7 @@ import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,16 @@ import {
 } from '@/core/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/core/components/ui/alert-dialog';
 import { TicketLifecycleInfo } from '@/tickets/components/detail/TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG } from '@/tickets/config/ticketStatusConfig';
 
@@ -43,7 +53,7 @@ function getTypeIcon(type: string | null) {
 }
 
 export default function TicketsListPage() {
-  const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences } = useTicketsStore();
+  const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences, archivedTickets, isLoadingArchived, showArchived, toggleShowArchived, unarchiveTicket } = useTicketsStore();
   const { currentTeam, loadTeamMembers } = useTeamStore();
   const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder } = useFoldersStore();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -563,6 +573,17 @@ export default function TicketsListPage() {
           <InlineRootAdd />
         </div>
       )}
+
+      {/* Archived tickets section */}
+      {!isLoading && !isInitialLoad && !loadError && (
+        <ArchivedSection
+          archivedTickets={archivedTickets}
+          isLoading={isLoadingArchived}
+          showArchived={showArchived}
+          onToggle={toggleShowArchived}
+          onUnarchive={unarchiveTicket}
+        />
+      )}
     </div>
   );
 }
@@ -983,6 +1004,108 @@ function PriorityCell({ priority }: { priority: string | null }) {
   );
 }
 
+// Archived tickets collapsible section
+function ArchivedSection({
+  archivedTickets,
+  isLoading,
+  showArchived,
+  onToggle,
+  onUnarchive,
+}: {
+  archivedTickets: any[];
+  isLoading: boolean;
+  showArchived: boolean;
+  onToggle: () => void;
+  onUnarchive: (id: string) => Promise<boolean>;
+}) {
+  const router = useRouter();
+
+  // Don't render anything until we know there are archived tickets (or section is open)
+  if (!showArchived && archivedTickets.length === 0 && !isLoading) {
+    // Render a clickable probe that fetches count on first click
+    return (
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-center gap-1.5 py-3 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        <Archive className="h-3.5 w-3.5" />
+        View archived tickets
+      </button>
+    );
+  }
+
+  // After fetching, if truly empty, show nothing
+  if (!showArchived && !isLoading && archivedTickets.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-1.5 py-3 px-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        {showArchived ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
+        <Archive className="h-3.5 w-3.5" />
+        <span>
+          {isLoading
+            ? 'Loading archived tickets...'
+            : `${archivedTickets.length} archived ticket${archivedTickets.length !== 1 ? 's' : ''}`}
+        </span>
+      </button>
+
+      {showArchived && (
+        <div className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
+            </div>
+          ) : archivedTickets.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-xs text-[var(--text-tertiary)]">
+              No archived tickets
+            </div>
+          ) : (
+            archivedTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="group flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <div className="flex-shrink-0 opacity-40">
+                  {getTypeIcon(ticket.type)}
+                </div>
+                <button
+                  onClick={() => router.push(`/tickets/${ticket.id}`)}
+                  className="flex-1 text-left text-sm text-[var(--text-secondary)] truncate hover:text-[var(--text)] transition-colors"
+                >
+                  {ticket.title}
+                </button>
+                <span className="hidden sm:block text-[10px] text-[var(--text-tertiary)] tabular-nums flex-shrink-0">
+                  {new Date(ticket.updatedAt).toLocaleDateString()}
+                </span>
+                <button
+                  onClick={async () => {
+                    const success = await onUnarchive(ticket.id);
+                    if (success) toast.success('Ticket restored');
+                    else toast.error('Failed to restore ticket');
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                >
+                  <ArchiveRestore className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Restore</span>
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Grid-based ticket row
 function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
   ticket: any;
@@ -992,23 +1115,22 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
   nested?: boolean;
 }) {
   const router = useRouter();
-  const { deleteTicket, loadTickets } = useTicketsStore();
+  const { deleteTicket, archiveTicket, loadTickets } = useTicketsStore();
   const { teamMembers, currentTeam } = useTeamStore();
   const { moveTicket } = useFoldersStore();
   const ticketStatus = getTicketStatusKey(ticket);
   const inProgress = isTicketInProgress(ticket);
   const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
   const [isDragging, setIsDragging] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
   const handleOpen = () => router.push(href);
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this ticket?')) {
-      const success = await deleteTicket(ticket.id);
-      if (success) toast.success('Ticket deleted');
-      else toast.error('Failed to delete ticket');
-    }
+    const success = await deleteTicket(ticket.id);
+    if (success) toast.success('Ticket deleted');
+    else toast.error('Failed to delete ticket');
   };
 
   return (
@@ -1144,16 +1266,40 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
               </DropdownMenuSub>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toast.info('Archive feature coming soon')}>
+            <DropdownMenuItem onClick={async () => {
+              const success = await archiveTicket(ticket.id);
+              if (success) toast.success('Ticket archived');
+              else toast.error('Failed to archive ticket');
+            }}>
               <Archive className="h-4 w-4 mr-2" />
               Archive
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDelete} className="text-red-500 focus:text-red-500">
+            <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-500 focus:text-red-500">
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete ticket</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete <span className="font-medium text-[var(--text)]">{ticket.title}</span>. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
