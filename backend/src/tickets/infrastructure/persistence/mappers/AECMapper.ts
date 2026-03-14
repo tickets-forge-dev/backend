@@ -90,6 +90,7 @@ export interface AECDocument {
   wireframeContext?: string | null;
   wireframeImageAttachmentIds?: string[];
   apiContext?: string | null;
+  previousStatus?: string | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -252,6 +253,7 @@ export class AECMapper {
       doc.wireframeContext ?? null,
       doc.wireframeImageAttachmentIds ?? [],
       doc.apiContext ?? null,
+      (doc.previousStatus as AECStatus) ?? null,
     );
   }
 
@@ -297,7 +299,7 @@ export class AECMapper {
       questionsAnsweredAt: aec.questionsAnsweredAt
         ? Timestamp.fromDate(aec.questionsAnsweredAt)
         : null,
-      techSpec: aec.techSpec,
+      techSpec: aec.techSpec ? JSON.parse(JSON.stringify(aec.techSpec)) : null,
       taskAnalysis: aec.taskAnalysis ?? null,
       attachments: aec.attachments.map((a) => ({
         ...a,
@@ -331,6 +333,7 @@ export class AECMapper {
       wireframeContext: aec.wireframeContext ?? null,
       wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds.length > 0 ? aec.wireframeImageAttachmentIds : undefined,
       apiContext: aec.apiContext ?? null,
+      previousStatus: aec.previousStatus ?? null,
     };
   }
 }

@@ -264,6 +264,10 @@ export interface WizardState {
   hasRepository: boolean; // Whether repository is being analyzed (for progress UI)
   error: string | null;
 
+  // Skip questions flag
+  skipQuestions: boolean;
+  _savedMaxRounds: number; // Preserved value when skipQuestions toggled on
+
   // First ticket celebration
   showCelebration: boolean;
 }
@@ -296,6 +300,7 @@ export interface WizardActions {
   setApiSpecDeferred: (deferred: boolean) => void;
   setApiContext: (context: string) => void;
   setFolderId: (folderId: string | null) => void;
+  setSkipQuestions: (skip: boolean) => void;
 
   // Bug reproduction steps
   addReproductionStep: () => void;
@@ -414,6 +419,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   currentPhase: null,
   hasRepository: false,
   error: null,
+  skipQuestions: false,
+  _savedMaxRounds: 3,
   showCelebration: false,
 
   // ============================================================================
@@ -513,6 +520,15 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   setApiContext: (context: string) => set({ apiContext: context }),
 
   setFolderId: (folderId: string | null) => set({ folderId }),
+
+  setSkipQuestions: (skip: boolean) => {
+    const state = get();
+    if (skip) {
+      set({ skipQuestions: true, _savedMaxRounds: state.maxRounds, maxRounds: 0 });
+    } else {
+      set({ skipQuestions: false, maxRounds: state._savedMaxRounds || 3 });
+    }
+  },
 
   // Bug reproduction steps
   addReproductionStep: () =>
@@ -1662,6 +1678,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       currentPhase: null,
       hasRepository: false,
       error: null,
+      skipQuestions: false,
+      _savedMaxRounds: 3,
       showCelebration: false,
     });
   },

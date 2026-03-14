@@ -5,6 +5,7 @@ export enum AECStatus {
   FORGED = 'forged',
   EXECUTING = 'executing',
   COMPLETE = 'complete',
+  ARCHIVED = 'archived',
 }
 
 export type TicketType = 'feature' | 'bug' | 'task';

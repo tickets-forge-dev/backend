@@ -122,7 +122,7 @@ export function DesignLinkInput({
           Design Links (Optional)
         </label>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Paste Figma, Loom, or Miro links to provide visual context
+          Link designs, recordings, or boards so the AI can reference them in the spec
         </p>
 
         {/* Add Link Form */}
@@ -130,7 +130,7 @@ export function DesignLinkInput({
           <div>
             <input
               type="url"
-              placeholder="https://figma.com/file/... or https://loom.com/share/..."
+              placeholder="https://figma.com/design/... or any https:// link"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
@@ -139,29 +139,29 @@ export function DesignLinkInput({
               onKeyPress={handleKeyPress}
               disabled={disabled || links.length >= maxLinks}
               className={`w-full px-3 py-2 border rounded-md text-sm font-mono
-                ${urlError ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                placeholder-gray-400 dark:placeholder-gray-500
+                ${urlError ? 'border-red-500' : 'border-[var(--border-subtle)]'}
+                bg-[var(--bg)]
+                text-[var(--text)]
+                placeholder:text-[var(--text-tertiary)]
                 disabled:opacity-50 disabled:cursor-not-allowed
-                focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                focus:outline-none focus:ring-1 focus:ring-[var(--blue)]`}
             />
             {urlError && <p className="text-xs text-red-500 mt-1">{urlError}</p>}
           </div>
 
           <input
             type="text"
-            placeholder="Title (optional, auto-generated from URL if blank)"
+            placeholder="Label (optional)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyPress={handleKeyPress}
             disabled={disabled || links.length >= maxLinks}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm
-              bg-white dark:bg-gray-800
-              text-gray-900 dark:text-gray-100
-              placeholder-gray-400 dark:placeholder-gray-500
+            className="w-full px-3 py-2 border border-[var(--border-subtle)] rounded-md text-sm
+              bg-[var(--bg)]
+              text-[var(--text)]
+              placeholder:text-[var(--text-tertiary)]
               disabled:opacity-50 disabled:cursor-not-allowed
-              focus:outline-none focus:ring-2 focus:ring-blue-500"
+              focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
           />
 
           <div className="flex gap-2">

@@ -28,6 +28,49 @@ interface ConnectBody {
   apiToken: string;
 }
 
+/** Block SSRF: reject private/reserved IP ranges and non-HTTPS URLs */
+function validateJiraUrl(raw: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new BadRequestException('Invalid Jira URL');
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new BadRequestException('Jira URL must use HTTPS');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block private/reserved hostnames
+  const blocked = [
+    'localhost', '127.0.0.1', '0.0.0.0', '[::1]',
+    'metadata.google.internal',
+  ];
+  if (blocked.includes(hostname)) {
+    throw new BadRequestException('Invalid Jira hostname');
+  }
+
+  // Block private IP ranges (10.x, 172.16-31.x, 192.168.x, 169.254.x)
+  const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipMatch) {
+    const [, a, b] = ipMatch.map(Number);
+    if (
+      a === 10 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254) ||
+      a === 127 ||
+      a === 0
+    ) {
+      throw new BadRequestException('Invalid Jira hostname');
+    }
+  }
+
+  return parsed.origin;
+}
+
 @Controller('jira')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
 export class JiraController {
@@ -54,15 +97,16 @@ export class JiraController {
       throw new BadRequestException('jiraUrl, username, and apiToken are required');
     }
 
-    // Normalize URL
-    const normalizedUrl = jiraUrl.replace(/\/+$/, '');
+    // Validate and normalize URL (blocks SSRF against private IPs)
+    const normalizedUrl = validateJiraUrl(jiraUrl);
 
     // Verify connection by calling Jira API
     let userInfo: { displayName: string; emailAddress: string };
     try {
       userInfo = await this.apiClient.verifyConnection(normalizedUrl, username, apiToken);
     } catch (error: any) {
-      throw new BadRequestException(`Connection failed: ${error.message}`);
+      this.logger.warn(`Jira connection failed for user ${userId}: ${error.message}`);
+      throw new BadRequestException('Failed to connect to Jira. Check your URL and credentials.');
     }
 
     // Encrypt the API token before storing
@@ -175,8 +219,8 @@ export class JiraController {
 
       return { issues };
     } catch (error: any) {
-      this.logger.error(`Jira search failed: ${error.message}`);
-      throw new BadRequestException(`Search failed: ${error.message}`);
+      this.logger.error(`Jira search failed for user ${userId}: ${error.message}`);
+      throw new BadRequestException('Jira search failed. Please try again.');
     }
   }
 }

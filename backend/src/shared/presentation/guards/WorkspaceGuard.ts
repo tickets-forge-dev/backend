@@ -1,12 +1,15 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
 import { FirestoreTeamRepository } from '../../../teams/infrastructure/persistence/FirestoreTeamRepository';
+import { FirestoreTeamMemberRepository } from '../../../teams/infrastructure/persistence/FirestoreTeamMemberRepository';
+import { TeamId } from '../../../teams/domain/TeamId';
 
 @Injectable()
 export class WorkspaceGuard implements CanActivate {
   constructor(
     private readonly userRepository: FirestoreUserRepository,
     private readonly teamRepository: FirestoreTeamRepository,
+    private readonly teamMemberRepository: FirestoreTeamMemberRepository,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -37,6 +40,26 @@ export class WorkspaceGuard implements CanActivate {
         resolvedTeamId = currentTeamId;
       }
 
+      // Verify user is an active member of the resolved team
+      if (resolvedTeamId && !resolvedTeamId.startsWith('personal_')) {
+        const team = await this.teamRepository.getById(TeamId.create(resolvedTeamId));
+        if (!team) {
+          throw new ForbiddenException('Team not found');
+        }
+
+        // Team owner always has access
+        const isOwner = team.isOwnedBy(firebaseUser.uid);
+        if (!isOwner) {
+          const member = await this.teamMemberRepository.findByUserAndTeam(
+            firebaseUser.uid,
+            resolvedTeamId,
+          );
+          if (!member || !member.isActive()) {
+            throw new ForbiddenException('You are not a member of this team');
+          }
+        }
+      }
+
       if (resolvedTeamId) {
         // Derive legacy workspaceId for integrations stored under old keys
         workspaceId = `ws_team_${resolvedTeamId.substring(5, 17)}`;
@@ -45,6 +68,10 @@ export class WorkspaceGuard implements CanActivate {
         workspaceId = `ws_${firebaseUser.uid.substring(0, 12)}`;
       }
     } catch (error) {
+      // Re-throw auth/permission errors
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
       console.warn('[WorkspaceGuard] Error fetching user/team:', error);
       workspaceId = `ws_${firebaseUser.uid.substring(0, 12)}`;
     }
@@ -57,8 +84,6 @@ export class WorkspaceGuard implements CanActivate {
     // Attach both to request
     request.teamId = resolvedTeamId;
     request.workspaceId = workspaceId; // backward-compat for non-ticket endpoints
-
-    console.log(`[WorkspaceGuard] userId: ${firebaseUser.uid}, teamId: ${resolvedTeamId}, workspaceId: ${workspaceId}`);
 
     return true;
   }

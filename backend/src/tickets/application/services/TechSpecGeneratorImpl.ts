@@ -17,6 +17,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { DEFAULT_MODEL, DEFAULT_FAST_MODEL } from '../../../shared/infrastructure/llm/llm.config';
 import { randomUUID } from 'crypto';
 import { DesignContextPromptBuilder } from './DesignContextPromptBuilder';
 import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
@@ -115,6 +116,50 @@ IMPORTANT:
 
 Problem: ${problem.narrative}
 Why it matters: ${problem.whyItMatters}
+Framework: ${context.stack.framework?.name || 'Unknown'}
+Architecture: ${context.analysis.architecture.type}
+Key files in codebase: ${keyFiles || 'Unknown'}
+
+Generate valid JSON object with EXACTLY this structure:
+{
+  "overview": "High-level solution description (2-3 sentences)",
+  "steps": [
+    {
+      "order": 1,
+      "description": "Step description",
+      "file": "path/to/file.ts (full path from project root)",
+      "lineNumbers": [10, 50],
+      "codeSnippet": "relevant code or pattern reference"
+    }
+  ],
+  "fileChanges": {
+    "create": ["path/to/new/file.ts"],
+    "modify": ["path/to/existing/file.ts"],
+    "delete": []
+  }
+}
+
+IMPORTANT:
+- Generate 5+ ordered steps
+- Use actual file paths that match the project structure
+- Include line numbers for modifications to existing files
+- Reference existing patterns to follow
+- All file paths must start from project root
+- Use definitive language throughout`;
+  }
+
+  static solutionPromptFromDescription(
+    title: string,
+    description: string,
+    context: CodebaseContext,
+    files: Map<string, string>,
+  ): string {
+    const keyFiles = Array.from(files.keys()).slice(0, 5).join(', ');
+
+    return `Based on the following feature request and project context, generate a detailed solution:
+
+Feature: ${title}
+Description: ${description || '(No description provided)'}
 Framework: ${context.stack.framework?.name || 'Unknown'}
 Architecture: ${context.analysis.architecture.type}
 Key files in codebase: ${keyFiles || 'Unknown'}
@@ -498,7 +543,9 @@ Return ONLY valid JSON:
 export class TechSpecGeneratorImpl implements TechSpecGenerator {
   private readonly logger = new Logger(TechSpecGeneratorImpl.name);
   private readonly llmModel: LanguageModel | null;
+  private readonly fastModel: LanguageModel | null;
   private readonly providerName: string;
+  private readonly fastModelId: string;
 
   private static readonly AMBIGUITY_MARKERS = [
     'or',
@@ -520,25 +567,30 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   ) {
     const provider = this.configService.get<string>('LLM_PROVIDER') || 'anthropic';
 
+    this.fastModelId = this.configService.get<string>('ANTHROPIC_FAST_MODEL') || DEFAULT_FAST_MODEL;
+
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       const modelId =
-        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+        this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
+        this.fastModel = anthropic(this.fastModelId);
         this.providerName = `Anthropic (${modelId})`;
       } else {
         this.llmModel = null;
+        this.fastModel = null;
         this.providerName = 'mock (ANTHROPIC_API_KEY not set)';
       }
     } else {
       // Fallback: require Anthropic
       this.llmModel = null;
+      this.fastModel = null;
       this.providerName = 'none (LLM_PROVIDER must be anthropic)';
     }
 
-    this.logger.log(`LLM ready: ${this.providerName}`);
+    this.logger.log(`LLM ready: ${this.providerName}, fast model: ${this.fastModelId}`);
   }
 
   /**
@@ -563,15 +615,16 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
       input.designReferences || []
     );
 
-    // Generate each section
-    const problemStatement = await this.generateProblemStatement(
-      input.title,
-      input.description || '',
-      context,
-      designContext,
-    );
-
-    const solution = await this.generateSolution(problemStatement, context);
+    // Generate problem + solution in parallel (solution uses title+description directly)
+    const [problemStatement, solution] = await Promise.all([
+      this.generateProblemStatement(
+        input.title,
+        input.description || '',
+        context,
+        designContext,
+      ),
+      this.generateSolutionFromDescription(input.title, input.description || '', context),
+    ]);
 
     const [
       acceptanceCriteria,
@@ -851,6 +904,69 @@ Generate valid JSON object:
   }
 
   /**
+   * Generates solution from raw title+description (no ProblemStatement dependency).
+   * Used for parallel execution with problem statement generation.
+   */
+  private async generateSolutionFromDescription(
+    title: string,
+    description: string,
+    context: CodebaseContext | null,
+  ): Promise<SolutionSection> {
+    try {
+      const systemPrompt = context
+        ? PromptTemplates.systemPrompt(context)
+        : 'You are a senior product manager helping to define technical solutions. Focus on high-level solution approach and implementation steps.';
+
+      const userPrompt = context
+        ? PromptTemplates.solutionPromptFromDescription(title, description, context, context.files)
+        : `Based on the following feature request, generate a high-level solution.
+
+Feature: ${title}
+Description: ${description || '(No description provided)'}
+
+Generate valid JSON object:
+{
+  "overview": "High-level solution approach (2-3 sentences)",
+  "steps": [
+    {
+      "description": "Implementation step description",
+      "file": "(optional) file path if known",
+      "lineNumbers": [0, 0],
+      "codeSnippet": "(optional) pseudocode or example"
+    }
+  ],
+  "fileChanges": {
+    "create": [],
+    "modify": [],
+    "delete": []
+  }
+}`;
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<SolutionSection>(response);
+
+      if (!parsed.overview || !Array.isArray(parsed.steps) || !parsed.fileChanges) {
+        throw new Error('Invalid solution structure');
+      }
+
+      parsed.steps = parsed.steps
+        .map((step, index) => ({
+          ...step,
+          order: index + 1,
+        }))
+        .slice(0, 20);
+
+      if (!Array.isArray(parsed.fileChanges.create)) parsed.fileChanges.create = [];
+      if (!Array.isArray(parsed.fileChanges.modify)) parsed.fileChanges.modify = [];
+      if (!Array.isArray(parsed.fileChanges.delete)) parsed.fileChanges.delete = [];
+
+      return parsed;
+    } catch (error) {
+      throw new Error(`Failed to generate solution from description: ${String(error)}`);
+    }
+  }
+
+  /**
    * Generates Acceptance Criteria in BDD format
    */
   async generateAcceptanceCriteria(
@@ -1112,7 +1228,7 @@ Return ONLY valid JSON.`;
       const systemPrompt = PromptTemplates.systemPrompt(context);
       const userPrompt = PromptTemplates.layerCategorizationPrompt(fileChanges, directoryStructure);
 
-      const response = await this.callLLM(systemPrompt, userPrompt);
+      const response = await this.callFastLLM(systemPrompt, userPrompt);
       const parsed = this.parseJSON<LayeredFileChanges>(response);
 
       // Validate structure
@@ -1308,7 +1424,7 @@ ${existingPackages.join(', ') || 'None detected'}
 Return an empty array [] if no new dependencies are required.
 `;
 
-      const response = await this.callLLM(systemPrompt, userPrompt);
+      const response = await this.callFastLLM(systemPrompt, userPrompt);
       const parsed = this.parseJSON<PackageDependency[]>(response);
 
       // Validate structure
@@ -1643,7 +1759,7 @@ IMPORTANT:
 - No overlap with ${inScope ? 'out' : 'in'}-of-scope items
 - Valid JSON array only`;
 
-      const response = await this.callLLM('You are a technical spec writer.', prompt);
+      const response = await this.callFastLLM('You are a technical spec writer.', prompt);
       const parsed = this.parseJSON<string[]>(response);
 
       if (!Array.isArray(parsed)) {
@@ -2119,22 +2235,21 @@ Rewritten text (definitive, unambiguous):`;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const prompt =
-          attempt === 1
-            ? userPrompt
-            : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
+        const jsonSuffix = attempt > 1
+          ? '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [. Escape all special characters inside string values (newlines as \\n, tabs as \\t, quotes as \\").'
+          : '\n\nRespond with valid JSON only. Escape newlines inside string values as \\n.';
 
         const { text, usage } = await generateText({
           model: this.llmModel,
           system: systemPrompt,
-          prompt,
+          prompt: userPrompt + jsonSuffix,
           maxOutputTokens: 4096,
           temperature: 0.2,
         });
 
         // Track cost if context is provided
         if (trackingContext?.userId && usage) {
-          const model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+          const model = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
           const costUsd = this.telemetryService.computeLLMCost(
             model,
             usage.inputTokens ?? 0,
@@ -2176,6 +2291,79 @@ Rewritten text (definitive, unambiguous):`;
   }
 
   /**
+   * Calls the fast (Haiku) model for commodity LLM tasks.
+   * Same interface as callLLM but uses this.fastModel for 10x faster responses.
+   */
+  private async callFastLLM(
+    systemPrompt: string,
+    userPrompt: string,
+    trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
+  ): Promise<any> {
+    if (!this.fastModel) {
+      // Fall back to main model if fast model not available
+      return this.callLLM(systemPrompt, userPrompt, trackingContext);
+    }
+
+    const maxRetries = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const jsonSuffix = attempt > 1
+          ? '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [. Escape all special characters inside string values (newlines as \\n, tabs as \\t, quotes as \\").'
+          : '\n\nRespond with valid JSON only. Escape newlines inside string values as \\n.';
+
+        const { text, usage } = await generateText({
+          model: this.fastModel,
+          system: systemPrompt,
+          prompt: userPrompt + jsonSuffix,
+          maxOutputTokens: 4096,
+          temperature: 0.2,
+        });
+
+        // Track cost with fast model pricing
+        if (trackingContext?.userId && usage) {
+          const costUsd = this.telemetryService.computeLLMCost(
+            this.fastModelId,
+            usage.inputTokens ?? 0,
+            usage.outputTokens ?? 0,
+          );
+          this.telemetryService.trackCost(trackingContext.userId, {
+            service: 'anthropic',
+            tokens_input: usage.inputTokens ?? 0,
+            tokens_output: usage.outputTokens ?? 0,
+            cost_usd: costUsd,
+            model: this.fastModelId,
+            operation: trackingContext.operation || 'tech_spec_generation_fast',
+            ticket_id: trackingContext.ticketId,
+          });
+
+          if (trackingContext.teamId) {
+            const month = new Date().toISOString().slice(0, 7);
+            const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+            this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+              this.logger.warn(`Failed to increment token usage: ${err.message}`);
+            });
+          }
+        }
+
+        this.logger.debug(`Fast LLM response (${this.fastModelId}): ${text.length} chars`);
+        return this.parseJSON(text);
+      } catch (error: any) {
+        lastError = error;
+        if (attempt < maxRetries && error.message?.includes('Failed to parse response')) {
+          this.logger.warn(`Fast LLM returned non-JSON (attempt ${attempt}/${maxRetries}), retrying...`);
+          continue;
+        }
+        this.logger.error(`Fast LLM call failed (${this.fastModelId}): ${error.message}`);
+        throw new Error(`Fast LLM call failed: ${error.message}`);
+      }
+    }
+
+    throw new Error(`Fast LLM call failed after ${maxRetries} attempts: ${lastError?.message}`);
+  }
+
+  /**
    * Calls LLM with configurable options (token limits, temperature)
    *
    * Used for wireframe generation which needs higher token limits.
@@ -2197,22 +2385,21 @@ Rewritten text (definitive, unambiguous):`;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const prompt =
-          attempt === 1
-            ? userPrompt
-            : `${userPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [.`;
+        const jsonSuffix = attempt > 1
+          ? '\n\nIMPORTANT: You MUST respond with ONLY valid JSON. No text, no explanations, no apologies. Start your response with { or [. Escape all special characters inside string values (newlines as \\n, tabs as \\t, quotes as \\").'
+          : '\n\nRespond with valid JSON only. Escape newlines inside string values as \\n.';
 
         const { text, usage } = await generateText({
           model: this.llmModel,
           system: systemPrompt,
-          prompt,
+          prompt: userPrompt + jsonSuffix,
           maxOutputTokens,
           temperature,
         });
 
         // Track cost if context is provided
         if (trackingContext?.userId && usage) {
-          const model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+          const model = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
           const costUsd = this.telemetryService.computeLLMCost(
             model,
             usage.inputTokens ?? 0,
@@ -2638,19 +2825,46 @@ Return the COMPLETE modified elements array. Rules:
         try {
           return JSON.parse(jsonStr);
         } catch {
-          // Sanitize: replace backtick-wrapped values with double-quoted strings
-          // LLMs sometimes use `...` instead of "..." for string values
-          const sanitized = jsonStr.replace(
+          // Fix common LLM JSON issues in sequence
+          let fixed = jsonStr;
+
+          // 1. Replace backtick-wrapped values with double-quoted strings
+          fixed = fixed.replace(
             /:\s*`([^`]*)`/g,
             (_, content) => `: ${JSON.stringify(content)}`,
           );
+
+          // 2. Remove trailing commas before } or ]
+          fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+
           try {
-            return JSON.parse(sanitized);
+            return JSON.parse(fixed);
           } catch {
-            // Last resort: try to fix common LLM JSON issues
-            // Remove trailing commas before } or ]
-            const fixedTrailing = sanitized.replace(/,\s*([}\]])/g, '$1');
-            return JSON.parse(fixedTrailing);
+            // 3. Fix unescaped newlines/tabs/control chars inside JSON string values
+            // Walk through the string and escape control characters only within quoted values
+            fixed = fixed.replace(/"(?:[^"\\]|\\.)*"/g, (match) => {
+              return match
+                .replace(/(?<!\\)\n/g, '\\n')
+                .replace(/(?<!\\)\r/g, '\\r')
+                .replace(/(?<!\\)\t/g, '\\t');
+            });
+
+            try {
+              return JSON.parse(fixed);
+            } catch {
+              // 4. Nuclear option: strip all control characters inside strings
+              // and try one more time
+              fixed = fixed.replace(/"(?:[^"\\]|\\.)*"/g, (match) => {
+                // eslint-disable-next-line no-control-regex
+                return match.replace(/[\x00-\x1F\x7F]/g, (ch) => {
+                  if (ch === '\n') return '\\n';
+                  if (ch === '\r') return '\\r';
+                  if (ch === '\t') return '\\t';
+                  return '';
+                });
+              });
+              return JSON.parse(fixed);
+            }
           }
         }
       }
@@ -2830,16 +3044,17 @@ Return the COMPLETE modified elements array. Rules:
         + (input.wireframeContext && includeWireframes ? `\n\nDesign Context: ${input.wireframeContext}` : '')
         + (input.apiContext && includeApiSpec ? `\n\nAPI Context: ${input.apiContext}` : '');
 
-      // Generate each section with answer context
+      // Generate problem + solution in parallel (solution uses title+description directly)
       // AC#2: When no repository, pass null and skip code-specific generation
-      const problemStatement = await this.generateProblemStatementWithAnswers(
-        input.title,
-        enrichedDescription,
-        context,
-        input.answers,
-      );
-
-      const solution = await this.generateSolution(problemStatement, context);
+      const [problemStatement, solution] = await Promise.all([
+        this.generateProblemStatementWithAnswers(
+          input.title,
+          enrichedDescription,
+          context,
+          input.answers,
+        ),
+        this.generateSolutionFromDescription(input.title, enrichedDescription, context),
+      ]);
 
       // AC#2: Generate code-specific sections only when repository provided
       if (hasRepository) {
@@ -2873,21 +3088,8 @@ Return the COMPLETE modified elements array. Rules:
         ];
         const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all(secondaryGenerators);
 
-        // Generate Excalidraw wireframes if visual expectations were generated
-        if (visualExpectations && includeWireframes) {
-          try {
-            const excalidrawData = await this.generateExcalidrawWireframes(
-              visualExpectations.expectations,
-              input.wireframeContext,
-              input.wireframeImageUrls,
-            );
-            if (excalidrawData) {
-              visualExpectations.excalidrawData = excalidrawData;
-            }
-          } catch (error) {
-            this.logger.warn(`Excalidraw generation failed (non-blocking): ${String(error)}`);
-          }
-        }
+        // Excalidraw wireframes are deferred — generated in background by FinalizeSpecUseCase
+        // after the spec is saved, so users get their spec faster
 
         // Assemble final tech spec (WITH repository)
         const techSpec: TechSpec = {

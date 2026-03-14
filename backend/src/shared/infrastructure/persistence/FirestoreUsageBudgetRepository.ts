@@ -4,7 +4,7 @@ import { UsageBudgetRepository } from '../../application/ports/UsageBudgetReposi
 import { UsageBudget } from '../../domain/usage/UsageBudget';
 import { FirebaseService } from '../firebase/firebase.config';
 
-const DEFAULT_TOKEN_LIMIT = 500_000;
+const DEFAULT_TOKEN_LIMIT = 2_000_000;
 const DEFAULT_DAILY_TICKET_LIMIT = 20;
 
 @Injectable()

@@ -3,7 +3,7 @@ import {
   linkWithCredential,
   GoogleAuthProvider,
   GithubAuthProvider,
-  AuthCredential
+  AuthCredential,
 } from 'firebase/auth';
 import { auth, googleProvider, githubProvider } from '@/lib/firebase';
 import { AuthService } from '@/services/auth.service';
@@ -30,15 +30,7 @@ export class SignInUseCase {
 
   async signInWithGitHub(): Promise<SignInResult> {
     try {
-      const result = await signInWithPopup(auth, githubProvider);
-
-      // Store GitHub access token for fetching user's repositories
-      const credential = GithubAuthProvider.credentialFromResult(result);
-      const accessToken = credential?.accessToken;
-      if (accessToken) {
-        localStorage.setItem('github_access_token', accessToken);
-      }
-
+      await signInWithPopup(auth, githubProvider);
       const initResult = await this.authService.initializeWorkspace();
       return initResult;
     } catch (error) {

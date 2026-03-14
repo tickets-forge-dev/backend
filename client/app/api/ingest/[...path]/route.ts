@@ -37,10 +37,10 @@ export async function POST(
     };
 
     // Preserve Content-Type and Content-Encoding (critical for gzip-js bodies)
+    // NOTE: Never forward 'authorization' — it contains the user's Firebase token
     const relevantHeaders = [
       'content-type',
       'content-encoding',
-      'authorization',
       'x-posthog-api-key',
       'accept',
     ];
@@ -58,13 +58,17 @@ export async function POST(
       body: body.byteLength > 0 ? Buffer.from(body) : undefined,
     });
 
-    const data = await response.text();
+    // 204 No Content cannot have a body
+    if (response.status === 204) {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
 
-    // Log response status (disabled to reduce noise)
-    // console.log('[PostHog Proxy] Response:', {
-    //   status: response.status,
-    //   statusText: response.statusText,
-    // });
+    const data = await response.text();
 
     return new NextResponse(data, {
       status: response.status,
@@ -101,7 +105,7 @@ export async function GET(
       'User-Agent': request.headers.get('user-agent') || 'forge-proxy',
     };
 
-    const relevantHeaders = ['authorization', 'x-posthog-api-key', 'accept', 'accept-encoding'];
+    const relevantHeaders = ['x-posthog-api-key', 'accept', 'accept-encoding'];
     for (const header of relevantHeaders) {
       const value = request.headers.get(header);
       if (value) {

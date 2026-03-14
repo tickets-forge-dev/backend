@@ -87,6 +87,30 @@ export function Stage3Draft() {
   const [retryCount, setRetryCount] = useState(0);
   const initRef = useRef(false);
   const autoSubmitRef = useRef(false);
+  const soundPlayedRef = useRef(false);
+
+  // Play a subtle chime when spec generation completes
+  useEffect(() => {
+    if (spec && !soundPlayedRef.current) {
+      soundPlayedRef.current = true;
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      } catch {
+        // Silently fail if AudioContext not available
+      }
+    }
+  }, [spec]);
 
   // Step 1: Create draft (if needed) then generate questions
   useEffect(() => {

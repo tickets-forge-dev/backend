@@ -90,13 +90,29 @@ class TeamService {
   /**
    * Get authentication token from Firebase
    */
-  private async getAuthToken(): Promise<string> {
+  private async getAuthToken(forceRefresh = false): Promise<string> {
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) {
       throw new Error('User not authenticated');
     }
-    return await user.getIdToken();
+    return await user.getIdToken(forceRefresh);
+  }
+
+  /**
+   * Fetch wrapper that retries once with a fresh token on 401
+   */
+  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+    const response = await fetch(url, init);
+    if (response.status === 401) {
+      const freshToken = await this.getAuthToken(true);
+      const retryInit = {
+        ...init,
+        headers: { ...init.headers, Authorization: `Bearer ${freshToken}` },
+      };
+      return fetch(url, retryInit);
+    }
+    return response;
   }
 
   /**
@@ -106,7 +122,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(this.baseUrl, {
+    const response = await this.fetchWithRetry(this.baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -131,7 +147,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(this.baseUrl, {
+    const response = await this.fetchWithRetry(this.baseUrl, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -152,7 +168,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/${teamId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -175,7 +191,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/${teamId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -200,7 +216,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/switch`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/switch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -225,7 +241,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/${teamId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -245,7 +261,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/${teamId}/members`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}/members`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -268,7 +284,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/${teamId}/members`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}/members`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -294,7 +310,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/${teamId}/members/${userId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}/members/${userId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -316,7 +332,7 @@ class TeamService {
     this.validateApiUrl();
     const token = await this.getAuthToken();
 
-    const response = await fetch(`${this.baseUrl}/${teamId}/members/${userId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}/members/${userId}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,

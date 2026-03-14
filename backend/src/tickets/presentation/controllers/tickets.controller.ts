@@ -98,6 +98,8 @@ import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketU
 import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
 import { StartImplementationDto } from '../dto/StartImplementationDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
+import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
+import { UnarchiveAECUseCase } from '../../application/use-cases/UnarchiveAECUseCase';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -146,6 +148,8 @@ export class TicketsController {
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
+    private readonly archiveAECUseCase: ArchiveAECUseCase,
+    private readonly unarchiveAECUseCase: UnarchiveAECUseCase,
     private readonly telemetry: TelemetryService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
@@ -439,6 +443,49 @@ export class TicketsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTicket(@TeamId() teamId: string, @Param('id') id: string) {
     await this.deleteAECUseCase.execute(id, teamId);
+  }
+
+  @Patch(':id/archive')
+  async archiveTicket(@TeamId() teamId: string, @Param('id') id: string) {
+    try {
+      await this.archiveAECUseCase.execute(id, teamId);
+      return { success: true };
+    } catch (error) {
+      if (error instanceof InvalidStateTransitionError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Patch(':id/unarchive')
+  async unarchiveTicket(@TeamId() teamId: string, @Param('id') id: string) {
+    try {
+      await this.unarchiveAECUseCase.execute(id, teamId);
+      return { success: true };
+    } catch (error) {
+      if (error instanceof InvalidStateTransitionError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Get('archived')
+  async listArchivedTickets(@TeamId() teamId: string) {
+    const tickets = await this.aecRepository.findArchivedByTeam(teamId);
+    return tickets.map((aec) => ({
+      id: aec.id,
+      title: aec.title,
+      status: aec.status,
+      previousStatus: aec.previousStatus,
+      type: aec.type,
+      priority: aec.priority,
+      createdAt: aec.createdAt,
+      updatedAt: aec.updatedAt,
+      assignedTo: aec.assignedTo,
+      folderId: aec.folderId,
+    }));
   }
 
   /**
@@ -959,11 +1006,13 @@ export class TicketsController {
     @TeamId() teamId: string,
     @Param('id') id: string,
     @Body() body: { teamId: string },
+    @Req() req: any,
   ) {
     try {
       const result = await this.exportToLinearUseCase.execute({
         aecId: id,
         forgeTeamId: teamId,
+        workspaceId: req.workspaceId,
         linearTeamId: body.teamId,
       });
       return result;
@@ -986,10 +1035,13 @@ export class TicketsController {
     if (!userId) throw new BadRequestException('Missing user');
 
     try {
+      // Use req.workspaceId for Jira integration lookup (legacy key format: ws_team_...)
+      // while teamId is used for AEC ownership check
       const result = await this.exportToJiraUseCase.execute({
         aecId: id,
         teamId,
         userId,
+        workspaceId: req.workspaceId,
         projectKey: body.projectKey,
         sections: body.sections,
       });
