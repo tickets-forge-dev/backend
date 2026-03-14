@@ -2855,6 +2855,7 @@ Return the COMPLETE modified elements array. Rules:
               // 4. Nuclear option: strip all control characters inside strings
               // and try one more time
               fixed = fixed.replace(/"(?:[^"\\]|\\.)*"/g, (match) => {
+                // eslint-disable-next-line no-control-regex
                 return match.replace(/[\x00-\x1F\x7F]/g, (ch) => {
                   if (ch === '\n') return '\\n';
                   if (ch === '\r') return '\\r';
