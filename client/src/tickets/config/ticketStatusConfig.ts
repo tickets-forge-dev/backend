@@ -39,7 +39,7 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
   },
   forged: {
     label: 'Forged',
-    description: 'AEC is final, ready to execute',
+    description: 'Spec complete — ready to export or execute',
     badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     dotClass: 'bg-amber-500',
     textClass: 'text-amber-500',
@@ -68,7 +68,7 @@ export const LIFECYCLE_STEPS: Array<{ key: string; label: string; description: s
   { key: 'draft', label: 'Define', description: 'PM creates the ticket' },
   { key: 'dev-refining', label: 'Dev-Refine', description: 'Developer reviews and refines the spec', note: 'Optional — skip if no developer needed', optional: true },
   { key: 'review', label: 'Review (PM)', description: "PM reviews the developer's changes", note: 'Only when a developer submits changes', optional: true },
-  { key: 'forged', label: 'Forged', description: 'Export to Jira, download, or execute' },
+  { key: 'forged', label: 'Forged', description: 'Spec complete — ready to export or execute' },
 ];
 
 /** Statuses that map to the final "Forged" lifecycle step for highlighting. */
