@@ -13,6 +13,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { DEFAULT_MODEL } from '../../../shared/infrastructure/llm/llm.config';
 import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
 import {
   UsageBudgetRepository,
@@ -102,7 +103,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     if (provider === 'anthropic') {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       const modelId =
-        this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+        this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
@@ -663,7 +664,7 @@ QUALITY RULES:
 
       // Track cost if context is provided
       if (trackingContext?.userId && usage) {
-        const model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+        const model = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
         const costUsd = this.telemetryService.computeLLMCost(
           model,
           usage.inputTokens ?? 0,

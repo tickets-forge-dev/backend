@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createAnthropic } from '@ai-sdk/anthropic';
 
+export const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+
 export type ModelType = 'fast' | 'main';
 
 /**
@@ -17,7 +19,7 @@ export class LLMConfigService {
 
   constructor(private configService: ConfigService) {
     this.apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
-    this.model = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307';
+    this.model = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
   }
 
   /**
