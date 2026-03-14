@@ -1,13 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
-import { Paintbrush, Zap, Upload, X } from 'lucide-react';
+import { Paintbrush, Zap, SkipForward, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { ToggleOptionCard } from './ToggleOptionCard';
-
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
 /**
  * GenerationOptionsStep — Step between Input and Draft.
@@ -23,8 +20,6 @@ export function GenerationOptionsStep() {
     wireframeContext,
     setIncludeWireframes,
     setWireframeContext,
-    addWireframeImage,
-    removeWireframeImage,
     includeApiSpec,
     apiSpecDeferred,
     apiContext,
@@ -34,25 +29,11 @@ export function GenerationOptionsStep() {
     analyzeRepository,
     prevStage,
     loading,
+    skipQuestions,
+    setSkipQuestions,
   } = useWizardStore();
 
-  const isBug = type === 'bug';
   const isFeature = type === 'feature';
-
-  // Image upload state
-  const [uploadedPreviews, setUploadedPreviews] = useState<Array<{ id: string; name: string; url: string }>>([]);
-  const [dragOver, setDragOver] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Revoke object URLs on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      uploadedPreviews.forEach((p) => URL.revokeObjectURL(p.url));
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const hintText = isFeature
     ? 'Recommended for features'
@@ -61,52 +42,14 @@ export function GenerationOptionsStep() {
   // ── Wireframe handlers ──
 
   const handleWireframeToggle = useCallback(() => {
-    const next = !includeWireframes;
-    setIncludeWireframes(next);
-    if (!next) {
-      // Revoke object URLs to prevent memory leaks
-      uploadedPreviews.forEach((p) => URL.revokeObjectURL(p.url));
-      setUploadedPreviews([]);
-    }
-  }, [includeWireframes, setIncludeWireframes, uploadedPreviews]);
-
-  const handleImageFile = useCallback((file: File) => {
-    setUploadError(null);
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      setUploadError('Only PNG, JPG, WebP, and SVG files are accepted');
-      return;
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      setUploadError(`${file.name} exceeds 5MB limit`);
-      return;
-    }
-    const tempId = `wireframe_${crypto.randomUUID()}`;
-    const url = URL.createObjectURL(file);
-    setUploadedPreviews((prev) => [...prev, { id: tempId, name: file.name, url }]);
-    addWireframeImage(tempId);
-  }, [addWireframeImage]);
-
-  const handleRemoveImage = useCallback((id: string) => {
-    setUploadedPreviews((prev) => {
-      const item = prev.find((p) => p.id === id);
-      if (item) URL.revokeObjectURL(item.url);
-      return prev.filter((p) => p.id !== id);
-    });
-    removeWireframeImage(id);
-  }, [removeWireframeImage]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    Array.from(e.dataTransfer.files).forEach(handleImageFile);
-  }, [handleImageFile]);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files || []).forEach(handleImageFile);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [handleImageFile]);
+    setIncludeWireframes(!includeWireframes);
+  }, [includeWireframes, setIncludeWireframes]);
 
   // ── API handlers ──
+
+  const [manualEndpoints, setManualEndpoints] = useState<Array<{ method: string; route: string }>>([]);
+  const [newMethod, setNewMethod] = useState('GET');
+  const [newRoute, setNewRoute] = useState('');
 
   const handleApiToggle = useCallback(() => {
     setIncludeApiSpec(!includeApiSpec);
@@ -115,17 +58,48 @@ export function GenerationOptionsStep() {
   const handleDeferToggle = useCallback(() => {
     const next = !apiSpecDeferred;
     setApiSpecDeferred(next);
-    if (next) setApiContext('');
+    if (next) {
+      setApiContext('');
+      setManualEndpoints([]);
+    }
   }, [apiSpecDeferred, setApiSpecDeferred, setApiContext]);
+
+  const addEndpoint = useCallback(() => {
+    if (!newRoute.trim()) return;
+    const updated = [...manualEndpoints, { method: newMethod, route: newRoute.trim() }];
+    setManualEndpoints(updated);
+    setNewRoute('');
+    setNewMethod('GET');
+    // Sync to apiContext as structured text for the LLM
+    setApiContext(updated.map((e) => `${e.method} ${e.route}`).join('\n'));
+  }, [newMethod, newRoute, manualEndpoints, setApiContext]);
+
+  const removeEndpoint = useCallback((index: number) => {
+    const updated = manualEndpoints.filter((_, i) => i !== index);
+    setManualEndpoints(updated);
+    setApiContext(updated.map((e) => `${e.method} ${e.route}`).join('\n'));
+  }, [manualEndpoints, setApiContext]);
 
   // ── Continue ──
 
   const wireframeContextMissing = includeWireframes && !wireframeContext.trim();
+  const [showValidationError, setShowValidationError] = useState(false);
 
   const handleContinue = useCallback(() => {
-    if (wireframeContextMissing) return;
+    if (wireframeContextMissing) {
+      setShowValidationError(true);
+      return;
+    }
+    setShowValidationError(false);
     analyzeRepository();
   }, [analyzeRepository, wireframeContextMissing]);
+
+  // Clear validation error when user starts typing
+  useEffect(() => {
+    if (wireframeContext.trim()) {
+      setShowValidationError(false);
+    }
+  }, [wireframeContext]);
 
   return (
     <div className="space-y-6">
@@ -149,82 +123,25 @@ export function GenerationOptionsStep() {
           icon={<Paintbrush className={`h-5 w-5 flex-shrink-0 ${includeWireframes ? 'text-green-600 dark:text-green-400' : 'text-[var(--text-tertiary)]'}`} />}
           enabled={includeWireframes}
           onToggle={handleWireframeToggle}
+          forceExpanded={showValidationError}
+          collapsedHint="Describe the UI layout (required)"
         >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-                Describe the UI <span className="text-red-400">*</span>
-              </label>
-              <textarea
-                value={wireframeContext}
-                onChange={(e) => setWireframeContext(e.target.value)}
-                placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
-                rows={3}
-                className={`w-full rounded-md border bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none ${
-                  wireframeContextMissing ? 'border-red-400/50' : 'border-[var(--border-subtle)]'
-                }`}
-              />
-              {wireframeContextMissing && (
-                <p className="text-[11px] text-red-400 mt-1">Describe the layout so the AI can generate accurate wireframes</p>
-              )}
-            </div>
-
-            {/* Image Upload */}
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-                Upload Mockup (optional)
-              </label>
-              <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`rounded-md border border-dashed p-4 text-center cursor-pointer transition-colors min-h-[44px] ${
-                  dragOver
-                    ? 'border-[var(--blue)] bg-[var(--blue)]/5'
-                    : 'border-[var(--border-subtle)] hover:border-[var(--border)] bg-[var(--bg-subtle)]'
-                }`}
-              >
-                <Upload className="mx-auto h-4 w-4 text-[var(--text-tertiary)] mb-1" />
-                <p className="text-xs text-[var(--text-tertiary)]">
-                  Drop image here or <span className="text-[var(--blue)] font-medium">browse</span>
-                </p>
-                <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
-                  PNG, JPG, WebP, SVG — max 5MB
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </div>
-              {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
-              {uploadedPreviews.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {uploadedPreviews.map((preview) => (
-                    <div key={preview.id} className="relative group">
-                      <img
-                        src={preview.url}
-                        alt={preview.name}
-                        className="h-[80px] w-auto rounded-md border border-[var(--border-subtle)] object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleRemoveImage(preview.id); }}
-                        className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                      <p className="text-[10px] text-[var(--text-tertiary)] truncate max-w-[80px] mt-0.5 text-center">
-                        {preview.name}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+              Describe the UI <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              value={wireframeContext}
+              onChange={(e) => setWireframeContext(e.target.value)}
+              placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
+              rows={3}
+              className={`w-full rounded-md border bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none ${
+                wireframeContextMissing ? 'border-red-400/50' : 'border-[var(--border-subtle)]'
+              }`}
+            />
+            {wireframeContextMissing && (
+              <p className="text-[11px] text-red-400 mt-1">Describe the layout so the AI can generate accurate wireframes</p>
+            )}
           </div>
         </ToggleOptionCard>
 
@@ -268,19 +185,104 @@ export function GenerationOptionsStep() {
             </div>
           }
         >
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-              API Context (optional)
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-[var(--text-secondary)]">
+              Known endpoints (optional)
             </label>
-            <textarea
-              value={apiContext}
-              onChange={(e) => setApiContext(e.target.value)}
-              placeholder="Describe endpoints, methods, payloads..."
-              rows={3}
-              className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none"
-            />
+
+            {/* Existing endpoints */}
+            {manualEndpoints.length > 0 && (
+              <div className="space-y-1.5">
+                {manualEndpoints.map((ep, i) => (
+                  <div key={i} className="flex items-center gap-2 group">
+                    <span className="text-[11px] font-mono font-medium text-blue-500 w-14 flex-shrink-0">{ep.method}</span>
+                    <span className="text-xs font-mono text-[var(--text-secondary)] flex-1 truncate">{ep.route}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeEndpoint(i)}
+                      className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add endpoint row */}
+            <div className="flex items-center gap-2">
+              <select
+                value={newMethod}
+                onChange={(e) => setNewMethod(e.target.value)}
+                className="h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2 text-xs font-mono text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
+              >
+                {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={newRoute}
+                onChange={(e) => setNewRoute(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEndpoint(); } }}
+                placeholder="/api/..."
+                className="flex-1 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 text-xs font-mono text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
+              />
+              <button
+                type="button"
+                onClick={addEndpoint}
+                disabled={!newRoute.trim()}
+                className="h-8 px-2 rounded-md border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] disabled:opacity-30 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-[var(--text-tertiary)]">
+              {manualEndpoints.length === 0
+                ? 'Leave empty to let AI detect from codebase'
+                : `${manualEndpoints.length} endpoint${manualEndpoints.length !== 1 ? 's' : ''} — AI will include these in the spec`}
+            </p>
           </div>
         </ToggleOptionCard>
+      </div>
+
+      {/* Validation Error Banner */}
+      {showValidationError && wireframeContextMissing && (
+        <p className="text-sm text-red-500 dark:text-red-400 bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-2.5">
+          Please describe the UI layout above so the AI can generate accurate wireframes.
+        </p>
+      )}
+
+      {/* Skip Questions Toggle */}
+      <div
+        onClick={() => setSkipQuestions(!skipQuestions)}
+        className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-all ${
+          skipQuestions
+            ? 'border-blue-500/40 bg-blue-50/30 dark:bg-blue-950/10'
+            : 'border-[var(--border-subtle)] hover:border-[var(--border)]'
+        }`}
+      >
+        <SkipForward className={`h-4 w-4 flex-shrink-0 ${skipQuestions ? 'text-blue-500' : 'text-[var(--text-tertiary)]'}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-[var(--text)]">Skip clarification questions</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+            {skipQuestions
+              ? <>The spec will be generated from your description. You or a developer can refine it anytime from the ticket or via the{' '}<a href="/docs" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-secondary)] transition-colors">CLI / MCP tools</a>.</>
+              : 'The AI will ask a few questions to improve the spec quality.'}
+          </p>
+        </div>
+        <div
+          className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${
+            skipQuestions ? 'bg-blue-500' : 'bg-[var(--border)]'
+          }`}
+        >
+          <div
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              skipQuestions ? 'translate-x-4' : 'translate-x-0.5'
+            }`}
+          />
+        </div>
       </div>
 
       {/* Footer Actions */}

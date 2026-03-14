@@ -357,6 +357,23 @@ export function TicketDetailLayout({
         onAssignDialogOpenChange={onAssignDialogOpenChange}
       />
 
+      {/* Refine with Questions — shown for draft tickets that have a spec but no questions answered */}
+      {ticket.status === 'draft' && hasTechSpec && (
+        <div className="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3">
+          <MessageSquare className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-[var(--text-secondary)]">
+              Want a better spec? Answer clarification questions to refine it.
+            </p>
+          </div>
+          <Link href={`/tickets/create?resume=${ticketId}`}>
+            <Button variant="outline" size="sm">
+              Refine with Questions
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Review Session Q&A (Story 6-12 / 7-6) — shown above tabs when present */}
       {hasReviewSession && (
         <CollapsibleSection
@@ -708,6 +725,7 @@ export function TicketDetailLayout({
                 onAddDesignReference={onAddDesignReference}
                 onRemoveDesignReference={onRemoveDesignReference}
                 onRefreshDesignReference={onRefreshDesignReference}
+                onRefresh={() => fetchTicket(ticketId)}
               />
             ) : (
               <div>

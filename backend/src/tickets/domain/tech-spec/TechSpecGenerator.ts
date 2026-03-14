@@ -565,4 +565,19 @@ export interface TechSpecGenerator {
     wireframeImageUrls?: string[];
     apiContext?: string;
   }): Promise<TechSpec>;
+
+  /**
+   * Generates Excalidraw wireframe data from visual expectations.
+   * Called as a deferred background task after the main spec is saved.
+   *
+   * @param expectations - Visual expectations to convert to wireframes
+   * @param wireframeContext - Optional user-provided wireframe context
+   * @param wireframeImageUrls - Optional wireframe image URLs for reference
+   * @returns Excalidraw data or null if generation fails
+   */
+  generateExcalidrawWireframes(
+    expectations: VisualExpectation[],
+    wireframeContext?: string,
+    wireframeImageUrls?: string[],
+  ): Promise<ExcalidrawData | null | undefined>;
 }

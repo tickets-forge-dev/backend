@@ -299,7 +299,7 @@ export class AECMapper {
       questionsAnsweredAt: aec.questionsAnsweredAt
         ? Timestamp.fromDate(aec.questionsAnsweredAt)
         : null,
-      techSpec: aec.techSpec,
+      techSpec: aec.techSpec ? JSON.parse(JSON.stringify(aec.techSpec)) : null,
       taskAnalysis: aec.taskAnalysis ?? null,
       attachments: aec.attachments.map((a) => ({
         ...a,

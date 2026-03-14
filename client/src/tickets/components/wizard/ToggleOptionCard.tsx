@@ -17,6 +17,10 @@ interface ToggleOptionCardProps {
   children?: React.ReactNode;
   /** Footer content rendered below the expandable area */
   footer?: React.ReactNode;
+  /** Force expand the card (e.g., for validation errors) */
+  forceExpanded?: boolean;
+  /** Text for the collapsed hint — defaults to "Click to add context (optional)" */
+  collapsedHint?: string;
 }
 
 /**
@@ -35,6 +39,8 @@ export function ToggleOptionCard({
   toggleDisabled,
   children,
   footer,
+  forceExpanded,
+  collapsedHint,
 }: ToggleOptionCardProps) {
   const [expanded, setExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -53,6 +59,13 @@ export function ToggleOptionCard({
       setExpanded(false);
     }
   }, [enabled]);
+
+  // Force expand when parent requests it (e.g., validation error)
+  useEffect(() => {
+    if (forceExpanded && enabled) {
+      setExpanded(true);
+    }
+  }, [forceExpanded, enabled]);
 
   const handleExpandToggle = () => {
     if (enabled) setExpanded((prev) => !prev);
@@ -128,7 +141,7 @@ export function ToggleOptionCard({
           onClick={handleExpandToggle}
           className="w-full text-left px-4 pb-3 text-xs text-[var(--blue)] hover:underline"
         >
-          Click to add context (optional)
+          {collapsedHint || 'Click to add context (optional)'}
         </button>
       )}
 

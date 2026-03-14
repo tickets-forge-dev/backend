@@ -138,6 +138,7 @@ export class TelemetryService {
     const pricing: Record<string, { input: number; output: number }> = {
       'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
       'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00 },
+      'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
       'claude-3-5-sonnet-20241022': { input: 3.00, output: 15.00 },
       'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 },
     };

@@ -145,7 +145,77 @@ export class FinalizeSpecUseCase {
 
     console.log(`✨ [FinalizeSpecUseCase] Final spec persisted, AEC ready for validation`);
 
+    // Deferred: Generate Excalidraw wireframes in background (non-blocking)
+    if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
+      this.generateWireframesInBackground(
+        aec.id,
+        aec.teamId,
+        techSpec,
+        aec.wireframeContext ?? undefined,
+        wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
+      );
+    }
+
     return aec;
+  }
+
+  /**
+   * Generate Excalidraw wireframes in background and patch the AEC when done.
+   * Fire-and-forget — does not block the spec finalization response.
+   */
+  private generateWireframesInBackground(
+    aecId: string,
+    teamId: string,
+    techSpec: any,
+    wireframeContext?: string,
+    wireframeImageUrls?: string[],
+  ): void {
+    console.log(`✨ [FinalizeSpecUseCase] Starting background Excalidraw generation for AEC ${aecId}`);
+
+    this.techSpecGenerator
+      .generateExcalidrawWireframes(
+        techSpec.visualExpectations.expectations,
+        wireframeContext,
+        wireframeImageUrls,
+      )
+      .then(async (excalidrawData) => {
+        if (!excalidrawData) {
+          console.log(`✨ [FinalizeSpecUseCase] Excalidraw generation returned null for AEC ${aecId}`);
+          return;
+        }
+
+        // Re-load the AEC and patch the excalidraw data
+        const aec = await this.aecRepository.findById(aecId);
+        if (!aec || !aec.techSpec) {
+          console.warn(`✨ [FinalizeSpecUseCase] AEC ${aecId} not found or has no techSpec for Excalidraw patch`);
+          return;
+        }
+
+        // Patch the visual expectations with excalidraw data
+        const existingVE = aec.techSpec.visualExpectations;
+        if (!existingVE) {
+          console.warn(`✨ [FinalizeSpecUseCase] AEC ${aecId} has no visualExpectations to patch`);
+          return;
+        }
+        aec.setTechSpec({
+          ...aec.techSpec,
+          visualExpectations: {
+            summary: existingVE.summary,
+            expectations: existingVE.expectations,
+            flowDiagram: existingVE.flowDiagram,
+            excalidrawData,
+          },
+        });
+
+        await this.aecRepository.save(aec);
+        console.log(`✨ [FinalizeSpecUseCase] Excalidraw wireframes saved for AEC ${aecId}`);
+      })
+      .catch((error) => {
+        console.error(
+          `✨ [FinalizeSpecUseCase] Background Excalidraw generation failed for AEC ${aecId}:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      });
   }
 
   /**

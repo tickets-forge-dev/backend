@@ -62,35 +62,44 @@ export function SpecGenerationProgressDialog({
 }: SpecGenerationProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
+  const [estimatedTokens, setEstimatedTokens] = useState(0);
 
   const phases = isSubmitting ? SPEC_GENERATION_PHASES : QUESTION_GENERATION_PHASES;
   const phaseCount = phases.length;
 
-  // Elapsed time counter
+  // Elapsed time counter + token estimate
   useEffect(() => {
     if (!isVisible) {
       setElapsedSeconds(0);
       setProgressPercent(0);
+      setEstimatedTokens(0);
       return;
     }
 
+    // Tick every 500ms for smoother token counter
     const interval = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
+      setElapsedSeconds((prev) => prev + 0.5);
       // Gradually increase progress (faster at start, slower near end)
       setProgressPercent((prev) => {
         if (prev >= 90) return prev;
-        const increment = Math.random() * 10 + 2;
+        const increment = (Math.random() * 5 + 1);
         return Math.min(prev + increment, 90);
       });
-    }, 1000);
+      // Estimate tokens: ~80 output tokens/sec for Sonnet, ramp up gradually
+      setEstimatedTokens((prev) => {
+        const rate = Math.min(prev / 200 + 20, 80); // ramp from 20 to 80 tokens/tick
+        return Math.round(prev + rate * 0.5);
+      });
+    }, 500);
 
     return () => clearInterval(interval);
   }, [isVisible]);
 
-  // Set to complete when done
+  // Reset when hidden
   useEffect(() => {
     if (!isVisible) {
       setProgressPercent(0);
+      setEstimatedTokens(0);
     }
   }, [isVisible]);
 
@@ -193,12 +202,15 @@ export function SpecGenerationProgressDialog({
             />
           </div>
 
-          {/* Percent and elapsed time */}
+          {/* Stats row */}
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-600 dark:text-gray-400 font-medium">
               {Math.min(Math.floor(progressPercent), 99)}%
             </span>
-            <span className="text-gray-500 dark:text-gray-500">{elapsedSeconds}s</span>
+            <div className="flex items-center gap-3 text-gray-500 dark:text-gray-500">
+              <span className="tabular-nums">{estimatedTokens.toLocaleString()} tokens</span>
+              <span className="tabular-nums">{Math.floor(elapsedSeconds)}s</span>
+            </div>
           </div>
         </div>
       </div>

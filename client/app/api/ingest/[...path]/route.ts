@@ -58,13 +58,17 @@ export async function POST(
       body: body.byteLength > 0 ? Buffer.from(body) : undefined,
     });
 
-    const data = await response.text();
+    // 204 No Content cannot have a body
+    if (response.status === 204) {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
 
-    // Log response status (disabled to reduce noise)
-    // console.log('[PostHog Proxy] Response:', {
-    //   status: response.status,
-    //   statusText: response.statusText,
-    // });
+    const data = await response.text();
 
     return new NextResponse(data, {
       status: response.status,

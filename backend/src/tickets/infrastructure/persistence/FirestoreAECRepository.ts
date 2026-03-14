@@ -6,14 +6,18 @@ import { AECMapper, AECDocument } from './mappers/AECMapper';
 import { AECNotFoundError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { FirebaseService } from '../../../shared/infrastructure/firebase/firebase.config';
 
-/** Recursively strip undefined values (Firestore rejects them) */
-function stripUndefined(obj: any): any {
+/** Recursively strip values Firestore rejects (undefined, NaN, Infinity, functions) */
+function stripUndefined(obj: any, depth = 0): any {
+  // Firestore max nesting depth is 20
+  if (depth > 19) return null;
   if (obj === null || obj === undefined) return null;
-  if (Array.isArray(obj)) return obj.map(stripUndefined);
+  if (typeof obj === 'function') return null;
+  if (typeof obj === 'number' && !isFinite(obj)) return null; // NaN, Infinity
+  if (Array.isArray(obj)) return obj.map((item) => stripUndefined(item, depth + 1));
   if (typeof obj === 'object' && !(obj instanceof Date)) {
     const clean: any = {};
     for (const [k, v] of Object.entries(obj)) {
-      if (v !== undefined) clean[k] = stripUndefined(v);
+      if (v !== undefined) clean[k] = stripUndefined(v, depth + 1);
     }
     return clean;
   }
