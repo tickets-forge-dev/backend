@@ -10,7 +10,8 @@ import { TechSpecMarkdownGenerator } from '../services/TechSpecMarkdownGenerator
 
 interface ExportToLinearCommand {
   aecId: string;
-  forgeTeamId: string;   // Forge team ID (for AEC ownership + integration lookup)
+  forgeTeamId: string;   // Forge team ID (for AEC ownership check)
+  workspaceId?: string;  // Legacy workspace ID for integration lookup (ws_team_...)
   linearTeamId: string;  // Linear team ID (export destination)
 }
 
@@ -46,7 +47,10 @@ export class ExportToLinearUseCase {
       throw new Error('Ticket has no tech spec. Generate a spec first.');
     }
 
-    const integration = await this.linearIntegrationRepo.findByWorkspaceId(command.forgeTeamId);
+    // Use workspaceId (legacy format: ws_team_...) for integration lookup,
+    // falling back to forgeTeamId for backward compatibility
+    const integrationLookupId = command.workspaceId || command.forgeTeamId;
+    const integration = await this.linearIntegrationRepo.findByWorkspaceId(integrationLookupId);
     if (!integration) {
       throw new Error('Linear not connected. Connect Linear in Settings.');
     }

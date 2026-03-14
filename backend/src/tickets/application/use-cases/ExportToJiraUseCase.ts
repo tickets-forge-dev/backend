@@ -14,6 +14,7 @@ interface ExportToJiraCommand {
   aecId: string;
   teamId: string;
   userId: string;
+  workspaceId?: string; // Legacy workspace ID for integration lookup (ws_team_...)
   projectKey: string;
   sections?: string[];
 }
@@ -52,9 +53,12 @@ export class ExportToJiraUseCase {
       throw new Error('Ticket has no tech spec. Generate a spec first.');
     }
 
+    // Use workspaceId (legacy format: ws_team_...) for Jira integration lookup,
+    // falling back to teamId for backward compatibility
+    const integrationLookupId = command.workspaceId || command.teamId;
     const integration = await this.jiraIntegrationRepo.findByUserAndWorkspace(
       command.userId,
-      command.teamId,
+      integrationLookupId,
     );
     if (!integration) {
       throw new Error('Jira not connected. Connect Jira in Settings.');

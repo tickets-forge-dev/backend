@@ -1006,11 +1006,13 @@ export class TicketsController {
     @TeamId() teamId: string,
     @Param('id') id: string,
     @Body() body: { teamId: string },
+    @Req() req: any,
   ) {
     try {
       const result = await this.exportToLinearUseCase.execute({
         aecId: id,
         forgeTeamId: teamId,
+        workspaceId: req.workspaceId,
         linearTeamId: body.teamId,
       });
       return result;
@@ -1033,10 +1035,13 @@ export class TicketsController {
     if (!userId) throw new BadRequestException('Missing user');
 
     try {
+      // Use req.workspaceId for Jira integration lookup (legacy key format: ws_team_...)
+      // while teamId is used for AEC ownership check
       const result = await this.exportToJiraUseCase.execute({
         aecId: id,
         teamId,
         userId,
+        workspaceId: req.workspaceId,
         projectKey: body.projectKey,
         sections: body.sections,
       });
