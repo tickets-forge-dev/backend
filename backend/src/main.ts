@@ -74,8 +74,8 @@ async function bootstrap() {
         return;
       }
 
-      // Allow requests from localhost/127.0.0.1 (development)
-      if (requestOrigin.includes('localhost') || requestOrigin.includes('127.0.0.1')) {
+      // Allow requests from localhost/127.0.0.1 (development only)
+      if (!isProduction && (requestOrigin.includes('localhost') || requestOrigin.includes('127.0.0.1'))) {
         callback(null, true);
         return;
       }
@@ -86,8 +86,8 @@ async function bootstrap() {
         return;
       }
 
-      // Allow Render deployments (onrender.com) for backend-to-backend communication
-      if (isProduction && requestOrigin.includes('onrender.com')) {
+      // Allow Render deployments (exact subdomain match)
+      if (isProduction && /^https:\/\/[\w-]+\.onrender\.com$/.test(requestOrigin)) {
         callback(null, true);
         return;
       }
