@@ -26,7 +26,7 @@ const tiers: PricingTier[] = [
     name: 'Free',
     price: 0,
     period: 'forever',
-    description: 'Try Forge with your team — no credit card required',
+    description: 'Try forge with your team — no credit card required',
     features: [
       { name: 'Unlimited tickets', included: true },
       { name: 'Web UI for PMs', included: true },
@@ -243,7 +243,7 @@ export default function PricingPage() {
             Ready to ship faster?
           </h2>
           <p className="text-xs text-[var(--text-secondary)] mb-6">
-            Join teams using Forge as their AI-native project management platform.
+            Join teams using forge as their AI-native project management platform.
           </p>
           <Link href="/tickets">
             <Button size="sm" className="h-9">Try for Free</Button>

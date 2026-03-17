@@ -37,7 +37,7 @@ function PrivacyNote() {
       {expanded && (
         <div className="mt-3 rounded-lg bg-[var(--bg-subtle)] p-4 text-[12px] text-[var(--text-tertiary)] leading-relaxed space-y-2">
           <p>
-            Forge uses the GitHub API to read your repository&apos;s file tree and selected source files — the same way you browse code on github.com. We request <strong className="text-[var(--text-secondary)]">read-only</strong> access and never write, push, or clone anything.
+            forge uses the GitHub API to read your repository&apos;s file tree and selected source files — the same way you browse code on github.com. We request <strong className="text-[var(--text-secondary)]">read-only</strong> access and never write, push, or clone anything.
           </p>
           <p>
             During analysis, the AI reads config files and a small set of source files (10-25) to understand your stack, patterns, and architecture. File contents are processed in-memory and never stored on disk.
@@ -138,7 +138,7 @@ export function OnboardingDialog() {
               <div className="flex justify-center mb-3">
                 <img
                   src="/forge-icon.png"
-                  alt="Forge"
+                  alt="forge"
                   width={44}
                   height={44}
                   className="rounded-xl"
@@ -151,7 +151,7 @@ export function OnboardingDialog() {
                 Stop shipping half-baked tickets.
               </p>
               <p className="text-[12px] text-[var(--text-tertiary)] max-w-[380px] mx-auto leading-relaxed mb-5">
-                Forge turns ideas into verified execution contracts — specs that developers and AI can execute.
+                forge turns ideas into verified execution contracts — specs that developers and AI can execute.
               </p>
 
               <div className="max-w-[360px] mx-auto text-left space-y-1">
@@ -232,7 +232,7 @@ export function OnboardingDialog() {
                     </p>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
-                    They install the Forge CLI, run <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge login</code> to authenticate, and <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge mcp install</code> to connect their AI assistant.
+                    They install the forge CLI, run <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge login</code> to authenticate, and <code className="text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-[10px]">forge mcp install</code> to connect their AI assistant.
                   </p>
                   <CopyCommand command="npm install -g @anthropic/forge-cli" />
                   <p className="text-[10px] text-[var(--text-tertiary)] mt-1.5">
@@ -249,7 +249,7 @@ export function OnboardingDialog() {
                 Connect Your Repository
               </h2>
               <p className="text-[13px] text-[var(--text-secondary)] text-center mb-4 max-w-[380px] mx-auto leading-relaxed">
-                Forge reads your codebase for deeper, more accurate specs. Read-only — your code stays on GitHub.
+                forge reads your codebase for deeper, more accurate specs. Read-only — your code stays on GitHub.
               </p>
               <GitHubIntegration onBeforeConnect={handleBeforeConnect} />
               <PrivacyNote />

@@ -19,7 +19,7 @@ interface ExportToJiraCommand {
   sections?: string[];
 }
 
-// Map Forge priority to Jira priority names
+// Map forge priority to Jira priority names
 const PRIORITY_MAP: Record<string, string> = {
   urgent: 'Highest',
   high: 'High',

@@ -46,7 +46,7 @@ export function WhyForge() {
     <section className="py-24 border-b border-[var(--border-subtle)]">
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Why Forge?</h2>
+          <h2 className="text-3xl font-bold mb-4">Why forge?</h2>
           <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
             No other tool does what happens between &quot;I have an idea&quot; and &quot;build this.&quot;
           </p>

@@ -146,7 +146,7 @@ const lifecycleSteps = [
     icon: MessageSquare,
     color: 'text-violet-500',
     title: 'AI asks clarifying questions',
-    description: 'Forge identifies gaps and ambiguities before any code is written.',
+    description: 'forge identifies gaps and ambiguities before any code is written.',
   },
   {
     icon: CheckCircle2,

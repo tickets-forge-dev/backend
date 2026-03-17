@@ -13,7 +13,7 @@ export default function DocsIndexPage() {
   return (
     <div className="max-w-4xl mx-auto px-8 py-12">
       <p className="text-xs font-semibold uppercase tracking-wider text-[var(--primary)] mb-2">Documentation</p>
-      <h1 className="text-3xl font-bold tracking-tight mb-3">Welcome to Forge Docs</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-3">Welcome to forge Docs</h1>
       <p className="text-[var(--text-secondary)] text-base mb-10 max-w-2xl">
         Everything you need to turn messy ideas into verified execution contracts — for PMs and developers.
       </p>
@@ -26,7 +26,7 @@ export default function DocsIndexPage() {
         >
           <Rocket className="w-6 h-6 text-[var(--text-secondary)] mb-3 group-hover:text-[var(--primary)] transition-colors" />
           <h3 className="text-sm font-semibold mb-1 group-hover:text-[var(--primary)] transition-colors">Quick Start</h3>
-          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Learn what Forge is and get up and running</p>
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Learn what forge is and get up and running</p>
         </Link>
         <Link
           href="/docs/cli-and-mcp/command-reference"

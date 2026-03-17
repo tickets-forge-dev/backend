@@ -23,6 +23,7 @@ import {
 import { UpdateAECUseCase } from '../../application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from '../../application/use-cases/DeleteAECUseCase';
 import { GenerateQuestionsUseCase } from '../../application/use-cases/GenerateQuestionsUseCase';
+import { GenerateNextQuestionUseCase } from '../../application/use-cases/GenerateNextQuestionUseCase';
 import { SubmitQuestionAnswersUseCase } from '../../application/use-cases/SubmitQuestionAnswersUseCase';
 import { FinalizeSpecUseCase } from '../../application/use-cases/FinalizeSpecUseCase';
 import { CreateTicketDto } from '../dto/CreateTicketDto';
@@ -111,6 +112,7 @@ export class TicketsController {
     private readonly updateAECUseCase: UpdateAECUseCase,
     private readonly deleteAECUseCase: DeleteAECUseCase,
     private readonly generateQuestionsUseCase: GenerateQuestionsUseCase,
+    private readonly generateNextQuestionUseCase: GenerateNextQuestionUseCase,
     private readonly submitQuestionAnswersUseCase: SubmitQuestionAnswersUseCase,
     private readonly finalizeSpecUseCase: FinalizeSpecUseCase,
     @Inject(AEC_REPOSITORY)
@@ -527,7 +529,7 @@ export class TicketsController {
   }
 
   /**
-   * Start implementation via the Forge Developer Agent (Story 10-2)
+   * Start implementation via the forge Developer Agent (Story 10-2)
    * Records branch name and optional Q&A, transitions FORGED → EXECUTING.
    */
   @Post(':id/start-implementation')
@@ -623,6 +625,27 @@ export class TicketsController {
     this.telemetry.trackQuestionsGenerated(userId, id, questions.length);
 
     return { questions };
+  }
+
+  /**
+   * Generate the next clarification question (dynamic, one-at-a-time flow)
+   *
+   * Returns { question, assumptions } where question is null when the LLM
+   * has enough info to generate a spec.
+   */
+  @Post(':id(aec_[a-f0-9\\-]+)/next-question')
+  async generateNextQuestion(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() body: { previousAnswers?: Record<string, string | string[]> },
+  ) {
+    const result = await this.generateNextQuestionUseCase.execute({
+      aecId: id,
+      teamId,
+      previousAnswers: body.previousAnswers ?? {},
+    });
+
+    return result;
   }
 
   /**

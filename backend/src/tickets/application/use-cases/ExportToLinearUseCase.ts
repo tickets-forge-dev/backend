@@ -10,12 +10,12 @@ import { TechSpecMarkdownGenerator } from '../services/TechSpecMarkdownGenerator
 
 interface ExportToLinearCommand {
   aecId: string;
-  forgeTeamId: string;   // Forge team ID (for AEC ownership check)
+  forgeTeamId: string;   // forge team ID (for AEC ownership check)
   workspaceId?: string;  // Legacy workspace ID for integration lookup (ws_team_...)
   linearTeamId: string;  // Linear team ID (export destination)
 }
 
-// Map Forge priority to Linear priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)
+// Map forge priority to Linear priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)
 const PRIORITY_MAP: Record<string, number> = {
   urgent: 1,
   high: 2,

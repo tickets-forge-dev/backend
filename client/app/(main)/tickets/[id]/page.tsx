@@ -170,7 +170,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <img
           src="/forge-icon.png"
-          alt="Forge"
+          alt="forge"
           className="h-12 w-12 animate-pulse"
         />
         <p className="text-sm text-[var(--text-tertiary)]">Loading...</p>

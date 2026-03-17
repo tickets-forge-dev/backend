@@ -2506,137 +2506,59 @@ ${excalidrawSkills}`;
         ? `\nReference mockup images: ${wireframeImageUrls.length} uploaded. Use them as visual reference.\n`
         : '';
 
-      const userPrompt = `Create a medium-fidelity web app wireframe for the following screens.
+      const userPrompt = `Create a system architecture / feature flow diagram for a technical specification.
 ${designContext}${imageRef}
-Screens to include:
+Feature context:
 ${screensList}
 
-## BUILD ORDER (follow this exactly)
+## WHAT TO DRAW
 
-### Step 1: Screen Containers
-For each screen, create a container rectangle:
-- width: 800, height: 600, strokeWidth: 2, strokeColor: "#9e9e9e"
-- backgroundColor: "#ffffff", fillStyle: "solid", roughness: 0
-- Lay out horizontally starting at x=0, y=100, with 100px gap between screens
-- Add a title text element ABOVE each container (y = container.y - 40, fontSize: 24)
+Create a clear **system diagram** showing how the feature works — components, data flow, and interactions. This is NOT a pixel-perfect UI mockup. Think architecture diagrams, flowcharts, and data flow.
 
-### Step 2: Layout Sections (inside each container)
-- Header bar: full width (800), height 60, backgroundColor: "#f5f5f5", fillStyle: "solid"
-- Content area: below header, padded 40px from edges
-- Footer/action bar if needed: bottom of container, height 60
+Include:
+- **Components**: Services, controllers, databases, API endpoints, UI views as labeled boxes
+- **Data flow**: Arrows showing how data moves between components
+- **Labels**: Clear names on every box and arrow
+- **Grouping**: Related components grouped together (e.g. "Backend", "Frontend", "External")
 
-### Step 3: Navigation Elements
-- Nav items as text elements in the header
-- Breadcrumbs, tabs, or sidebar as needed by the screen
+Layout: Left-to-right or top-to-bottom flow. Space components 160px apart.
 
-### Step 4: Content Blocks
-- Cards: rectangle with roundness {"type":3,"value":8}, strokeColor: "#9e9e9e", backgroundColor: "#ffffff"
-- Tables: use grouped rectangles for rows/columns
-- Lists: text elements with consistent spacing (40px vertical gap)
-- Images/placeholders: rectangle with diagonal cross lines
+## ELEMENT FORMAT
 
-### Step 5: Interactive Elements
-- Buttons: rectangle width 120-200, height 40, roundness {"type":3,"value":4}, backgroundColor: "#e3f2fd", strokeColor: "#1976d2"
-- Primary buttons: backgroundColor: "#1976d2", text strokeColor: "#ffffff"
-- Input fields: rectangle width 300, height 40, roundness {"type":3,"value":4}, backgroundColor: "#ffffff", strokeColor: "#9e9e9e"
-- Checkboxes/toggles: small rectangles (20x20)
-- Dropdowns: input + small chevron indicator
+Use these exact shapes. Every element needs ALL shown properties — no shortcuts.
 
-### Step 6: Labels & Annotations
-- Add text labels for all interactive elements
-- Section headings: fontSize 20, bold
-- Body text: fontSize 16
-- Caption/helper text: fontSize 14, strokeColor: "#757575"
-- Annotate key interactions with dashed-line callouts if helpful
+Rectangle (component box):
+{"id":"comp-1","type":"rectangle","x":0,"y":0,"width":200,"height":80,"angle":0,"strokeColor":"#6c8ebf","backgroundColor":"#dae8fc","fillStyle":"solid","strokeWidth":2,"strokeStyle":"solid","roughness":0,"opacity":100,"groupIds":[],"roundness":{"type":3,"value":8},"isDeleted":false,"boundElements":[{"type":"text","id":"comp-1-label"}],"locked":false}
 
-### Step 7: Flow Indicators
-- If multiple screens, add arrows between related screens showing navigation flow
-- Arrow strokeColor: "#1976d2", strokeWidth: 2
+Text label (inside a shape — must reference parent via containerId):
+{"id":"comp-1-label","type":"text","x":40,"y":28,"width":120,"height":24,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":0,"opacity":100,"groupIds":[],"roundness":null,"isDeleted":false,"boundElements":null,"locked":false,"text":"Component Name","fontSize":16,"fontFamily":1,"textAlign":"center","verticalAlign":"middle","containerId":"comp-1","originalText":"Component Name"}
 
-## ELEMENT STRUCTURE RULES
+Standalone text (title, annotation):
+{"id":"title-1","type":"text","x":0,"y":0,"width":200,"height":30,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":0,"opacity":100,"groupIds":[],"roundness":null,"isDeleted":false,"boundElements":null,"locked":false,"text":"Section Title","fontSize":20,"fontFamily":1,"textAlign":"left","verticalAlign":"top","containerId":null,"originalText":"Section Title"}
 
-Every element MUST include ALL these properties:
-\`\`\`json
-{
-  "id": "unique-string-id",
-  "type": "rectangle",
-  "x": 0, "y": 0,
-  "width": 160, "height": 80,
-  "angle": 0,
-  "strokeColor": "#9e9e9e",
-  "backgroundColor": "#ffffff",
-  "fillStyle": "solid",
-  "strokeWidth": 2,
-  "strokeStyle": "solid",
-  "roughness": 0,
-  "opacity": 100,
-  "groupIds": [],
-  "roundness": null,
-  "isDeleted": false,
-  "boundElements": null,
-  "locked": false
-}
-\`\`\`
+Arrow (data flow between components):
+{"id":"arrow-1","type":"arrow","x":200,"y":40,"width":160,"height":0,"angle":0,"strokeColor":"#6c8ebf","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":2,"strokeStyle":"solid","roughness":0,"opacity":100,"groupIds":[],"roundness":{"type":2},"isDeleted":false,"boundElements":null,"locked":false,"points":[[0,0],[160,0]],"startBinding":{"elementId":"comp-1","focus":0,"gap":1},"endBinding":{"elementId":"comp-2","focus":0,"gap":1},"startArrowhead":null,"endArrowhead":"arrow","lastCommittedPoint":null}
 
-Text elements MUST include:
-\`\`\`json
-{
-  "id": "unique-text-id",
-  "type": "text",
-  "x": 0, "y": 0,
-  "width": 100, "height": 25,
-  "angle": 0,
-  "strokeColor": "#424242",
-  "backgroundColor": "transparent",
-  "fillStyle": "solid",
-  "strokeWidth": 1,
-  "strokeStyle": "solid",
-  "roughness": 0,
-  "opacity": 100,
-  "groupIds": [],
-  "roundness": null,
-  "isDeleted": false,
-  "boundElements": null,
-  "locked": false,
-  "text": "Label text",
-  "fontSize": 16,
-  "fontFamily": 1,
-  "textAlign": "left",
-  "verticalAlign": "top",
-  "containerId": null,
-  "originalText": "Label text"
-}
-\`\`\`
+Database (ellipse):
+{"id":"db-1","type":"ellipse","x":0,"y":0,"width":160,"height":80,"angle":0,"strokeColor":"#82b366","backgroundColor":"#d5e8d4","fillStyle":"solid","strokeWidth":2,"strokeStyle":"solid","roughness":0,"opacity":100,"groupIds":[],"roundness":null,"isDeleted":false,"boundElements":[{"type":"text","id":"db-1-label"}],"locked":false}
 
-For labels INSIDE shapes, the text element must have:
-- containerId: "parent-shape-id"
-- textAlign: "center", verticalAlign: "middle"
-- width calculated as: text.length × fontSize × 0.6 + 20 (rounded to nearest 10)
-And the parent shape must have: boundElements: [{"type":"text","id":"text-id"}]
-Both shape and text must share the same groupIds: ["group-id"]
+## COLOR PALETTE
+- Frontend components: stroke #6c8ebf, fill #dae8fc (soft blue)
+- Backend components: stroke #b85450, fill #f8cecc (soft red)
+- Database/storage: stroke #82b366, fill #d5e8d4 (soft green)
+- External services: stroke #9673a6, fill #e1d5e7 (soft purple)
+- Arrows/flow: stroke #6c8ebf
+- Text: #1e1e1e
+- Section titles: fontSize 20, component labels: fontSize 16, arrow labels: fontSize 14
 
-## THEME: Classic Wireframe
-- Background: #ffffff
-- Container fill: #f5f5f5
-- Borders: #9e9e9e
-- Text: #424242
-- Primary accent: #1976d2
-- Primary fill: #e3f2fd
-- Error: #d32f2f
-- Success: #388e3c
+## RULES
+- Generate 8-20 elements total — enough to show the architecture clearly
+- Every shape that has a label MUST have boundElements pointing to the text, and the text MUST have containerId pointing back
+- Arrow points are relative to the arrow's x,y position
+- Snap coordinates to 20px grid
 
-## COORDINATE RULES
-- Snap ALL x, y values to 20px grid: Math.round(value / 20) * 20
-- Minimum spacing between elements: 20px
-- Consistent padding inside containers: 40px
-
-Output ONLY this JSON structure:
-{
-  "type": "excalidraw",
-  "version": 2,
-  "source": "forge-wireframe-agent",
-  "elements": [/* all elements */]
-}`;
+Output ONLY this JSON:
+{"type":"excalidraw","version":2,"source":"forge-wireframe-agent","elements":[...]}`;
 
       const response = await this.callLLMWithOptions(systemPrompt, userPrompt, {
         maxOutputTokens: 16384,
@@ -2896,6 +2818,53 @@ Return the COMPLETE modified elements array. Rules:
 
     // Sort and limit
     return Array.from(dirs).sort().slice(0, 20).join('\n');
+  }
+
+  /**
+   * Generates the single most important next clarification question (conversational flow).
+   *
+   * The LLM sees all prior Q&A context and decides:
+   * - What assumptions it can make (listed explicitly)
+   * - What is the single most important remaining ambiguity (or null if done)
+   *
+   * Max 5 questions total — enforced by caller, but prompt also instructs.
+   */
+  async generateNextQuestion(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext | null;
+    previousQAs: Array<{ question: string; answer: string | string[] }>;
+  }): Promise<{ question: ClarificationQuestion | null; assumptions: string[]; reasoning: string }> {
+    try {
+      const systemPrompt = input.context
+        ? PromptTemplates.systemPrompt(input.context)
+        : 'You are a senior product manager helping to clarify requirements for a technical specification. Focus on high-level requirements, acceptance criteria, and scope.';
+
+      const userPrompt = this.buildNextQuestionPrompt(
+        input.title,
+        input.description,
+        input.previousQAs,
+        input.context,
+      );
+
+      const response = await this.callLLM(systemPrompt, userPrompt);
+      const parsed = this.parseJSON<{
+        assumptions: string[];
+        question: ClarificationQuestion | null;
+        reasoning: string;
+      }>(response);
+
+      return {
+        question: parsed.question && parsed.question.id && parsed.question.question && parsed.question.type
+          ? parsed.question
+          : null,
+        assumptions: Array.isArray(parsed.assumptions) ? parsed.assumptions : [],
+        reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : '',
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to generate next question: ${String(error)}`);
+      return { question: null, assumptions: [], reasoning: '' };
+    }
   }
 
   /**
@@ -3293,6 +3262,61 @@ Return [] if:
 - All critical ambiguities already resolved
 - Acceptance criteria can be specific without more info
 - File changes are deterministic with current answers`;
+  }
+
+  /**
+   * Builds the prompt for the conversational one-at-a-time question flow.
+   * Instructs the LLM to return ONE question (or null) plus assumptions.
+   */
+  private buildNextQuestionPrompt(
+    title: string,
+    description: string | undefined,
+    previousQAs: Array<{ question: string; answer: string | string[] }>,
+    context?: CodebaseContext | null,
+  ): string {
+    const apiContextBlock = this.buildApiContextBlock(context);
+
+    const qaPairsText = previousQAs.length > 0
+      ? `\nPrevious Q&A:\n${previousQAs.map((qa, i) => `${i + 1}. Q: "${qa.question}"\n   A: "${Array.isArray(qa.answer) ? qa.answer.join(', ') : qa.answer}"`).join('\n')}\n`
+      : '\nNo previous questions have been asked yet.\n';
+
+    return `You are deciding what clarification is needed for this ticket.
+
+Title: ${title}
+Description: ${description || '(No description provided)'}
+${apiContextBlock}
+${qaPairsText}
+Based on ALL information so far (the title, description, and any previous answers), respond with JSON:
+{
+  "assumptions": ["what you'll assume for anything that has a reasonable default"],
+  "question": {
+    "id": "q${previousQAs.length + 1}",
+    "question": "The single most important remaining question",
+    "type": "radio|checkbox|text|select|multiline",
+    "options": ["option 1", "option 2"],
+    "context": "Why this question matters from a product/UX perspective",
+    "impact": "How the answer affects the spec"
+  },
+  "reasoning": "Why this is the most important remaining question"
+}
+
+OR if you have enough info:
+{
+  "assumptions": ["assumption 1", "assumption 2"],
+  "question": null,
+  "reasoning": "Why you have enough info to write a clear spec"
+}
+
+Rules:
+- Return question: null when you have enough info to write a clear, unambiguous spec
+- Only ask about things that are GENUINELY ambiguous and would MATERIALLY change the spec
+- Make reasonable assumptions for everything else and list them
+- Each question must be the SINGLE most important remaining ambiguity
+- Maximum 5 questions total — you have asked ${previousQAs.length} so far${previousQAs.length >= 4 ? ' — this is likely your last question' : ''}
+- Frame questions for product owners, not engineers
+- Use clear, non-technical language
+- Do NOT ask about implementation details, library choices, or database schemas
+- DO ask about user experience, business rules, scope, and edge cases`;
   }
 
   /**

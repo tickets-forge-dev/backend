@@ -167,7 +167,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
 
         {/* Footer Text */}
         <p className="mt-4 text-xs text-[var(--text-secondary)]">
-          Your feedback helps us improve Forge. We read every submission! 💙
+          Your feedback helps us improve forge. We read every submission! 💙
         </p>
       </div>
     </>

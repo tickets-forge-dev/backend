@@ -12,12 +12,12 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/forge-icon.png"
-                alt="Forge Logo"
+                alt="forge Logo"
                 width={28}
                 height={28}
                 className="drop-shadow-sm"
               />
-              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
+              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">forge</span>
             </Link>
             <span className="text-[var(--border-subtle)]">|</span>
             <Link href="/docs" className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">

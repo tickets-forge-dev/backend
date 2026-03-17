@@ -28,8 +28,8 @@ const unbounded = Unbounded({
 });
 
 export const metadata: Metadata = {
-  title: 'Forge',
-  description: 'Stop shipping half-baked tickets. Forge turns ideas into verified execution contracts.',
+  title: 'forge',
+  description: 'Stop shipping half-baked tickets. forge turns ideas into verified execution contracts.',
   manifest: '/manifest.json',
   icons: {
     icon: '/forge-icon.png',

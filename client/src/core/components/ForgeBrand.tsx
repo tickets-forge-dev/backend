@@ -16,7 +16,7 @@ export function ForgeBrand({ size = 'md', className = '' }: ForgeBrandProps) {
     <span
       className={`font-bold tracking-tight font-[family-name:var(--font-unbounded)] ${sizeMap[size]} ${className}`}
     >
-      Forge
+      forge
     </span>
   );
 }

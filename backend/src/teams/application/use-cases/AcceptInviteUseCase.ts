@@ -10,9 +10,10 @@
  * Layer: Application (Use Case)
  */
 
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, Logger } from '@nestjs/common';
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
+import { User } from '../../../users/domain/User';
 import { TeamId } from '../../domain/TeamId';
 
 export interface AcceptInviteCommand {
@@ -23,6 +24,8 @@ export interface AcceptInviteCommand {
 
 @Injectable()
 export class AcceptInviteUseCase {
+  private readonly logger = new Logger(AcceptInviteUseCase.name);
+
   constructor(
     @Inject('TeamMemberRepository')
     private readonly memberRepository: TeamMemberRepository,
@@ -70,10 +73,13 @@ export class AcceptInviteUseCase {
     await this.memberRepository.save(activatedMember);
 
     // Add team to user's teamIds array (so GET /teams returns this team)
-    const user = await this.userRepository.getById(userId);
-    if (user) {
-      const updatedUser = user.addTeam(TeamId.create(teamId));
-      await this.userRepository.save(updatedUser);
+    let user = await this.userRepository.getById(userId);
+    if (!user) {
+      // User document doesn't exist yet (new user who signed up via invite link)
+      this.logger.log(`Creating user document for ${activatedMember.email} (${userId}) during invite acceptance`);
+      user = User.create(userId, activatedMember.email, displayName.trim());
     }
+    const updatedUser = user.addTeam(TeamId.create(teamId));
+    await this.userRepository.save(updatedUser);
   }
 }

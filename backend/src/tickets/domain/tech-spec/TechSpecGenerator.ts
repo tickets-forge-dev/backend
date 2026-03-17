@@ -497,6 +497,23 @@ export interface TechSpecGenerator {
   calculateQualityScore(spec: TechSpec): number;
 
   /**
+   * Generates the single most important next clarification question
+   *
+   * Used in the conversational, one-at-a-time question flow. The LLM sees all
+   * prior Q&A context and decides what's the most important remaining ambiguity,
+   * or returns null if it has enough info to write a clear spec.
+   *
+   * @param input - Title, description, codebase context, and prior Q&A pairs
+   * @returns The next question (or null if done) plus assumptions the LLM is making
+   */
+  generateNextQuestion(input: {
+    title: string;
+    description?: string;
+    context: CodebaseContext | null;
+    previousQAs: Array<{ question: string; answer: string | string[] }>;
+  }): Promise<{ question: ClarificationQuestion | null; assumptions: string[]; reasoning: string }>;
+
+  /**
    * Generates clarification questions with context from prior rounds
    *
    * Used in iterative refinement workflow (Rounds 2+) to generate targeted

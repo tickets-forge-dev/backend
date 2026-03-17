@@ -10,14 +10,14 @@ export function HeroSection() {
       </h1>
 
       <p className="text-lg sm:text-xl text-[var(--text-secondary)] mb-12 max-w-2xl leading-relaxed mx-auto">
-        Forge turns messy ideas into verified execution contracts — so developers know exactly what to build.
+        forge turns messy ideas into verified execution contracts — so developers know exactly what to build.
       </p>
 
       <Link
         href="/tickets"
         className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--text)] px-8 text-base font-medium text-[var(--bg)] transition-all hover:scale-105 hover:shadow-lg active:scale-95"
       >
-        Try Forge Free
+        Try forge Free
       </Link>
     </section>
   );

@@ -252,6 +252,11 @@ export interface WizardState {
   clarificationQuestions: ClarificationQuestion[];
   questionAnswers: Record<string, string | string[]>;
 
+  // Dynamic conversational question flow
+  assumptions: string[];
+  questionsComplete: boolean;
+  questionReasoning: string;
+
   // Legacy iterative refinement workflow (deprecated)
   questionRounds: QuestionRound[];
   currentRound: number;
@@ -334,6 +339,9 @@ export interface WizardActions {
   generateQuestions: () => Promise<void>;
   submitQuestionAnswers: () => Promise<void>;
 
+  // Dynamic conversational question flow
+  fetchNextQuestion: () => Promise<void>;
+
   // Legacy iterative refinement workflow (deprecated, kept for compatibility)
   startQuestionRound: (aecId: string, roundNumber: number) => Promise<void>;
   answerQuestionInRound: (round: number, questionId: string, answer: string | string[]) => void;
@@ -409,6 +417,9 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   draftAecId: null,
   clarificationQuestions: [],
   questionAnswers: {},
+  assumptions: [],
+  questionsComplete: false,
+  questionReasoning: '',
   questionRounds: [],
   currentRound: 0,
   maxRounds: 3,
@@ -1145,48 +1156,15 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     }),
 
   // ============================================================================
-  // SIMPLIFIED QUESTION REFINEMENT WORKFLOW (NEW - Single Set, No Rounds)
+  // QUESTION REFINEMENT WORKFLOW
   // ============================================================================
 
   /**
-   * Generate clarification questions (up to 5, single call)
-   * Calls backend to generate context-aware questions based on codebase
+   * @deprecated Use fetchNextQuestion() instead.
+   * Kept as alias for backward compatibility with bulk enrichment UI.
    */
   generateQuestions: async () => {
-    const state = get();
-    if (!state.draftAecId) {
-      set({ error: 'No draft AEC found' });
-      return;
-    }
-
-    if (state.roundStatus === 'generating') return; // Prevent duplicate calls
-    set({ roundStatus: 'generating', error: null });
-
-    try {
-      const response = await authFetch(`/tickets/${state.draftAecId}/generate-questions`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate questions: ${response.statusText}`);
-      }
-
-      const { questions } = await response.json();
-      set({
-        clarificationQuestions: questions,
-        roundStatus: 'idle',
-        currentStage: 'generate' as WizardStage,
-      });
-
-      // Auto-save to localStorage
-      localStorage.setItem('wizard-clarification-questions', JSON.stringify(questions));
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      set({
-        error: errorMessage,
-        roundStatus: 'idle',
-      });
-    }
+    await get().fetchNextQuestion();
   },
 
   /**
@@ -1233,168 +1211,54 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   },
 
   // ============================================================================
-  // LEGACY ITERATIVE REFINEMENT WORKFLOW (Deprecated - kept for compatibility)
+  // DYNAMIC CONVERSATIONAL QUESTION FLOW
   // ============================================================================
 
   /**
-   * LEGACY: Start a new question round
-   * Calls backend to generate context-aware questions
+   * Fetch the next clarification question from the LLM.
+   * Sends all current answers so the LLM can decide what to ask next (or stop).
    */
-  startQuestionRound: async (aecId: string, roundNumber: number) => {
+  fetchNextQuestion: async () => {
     const state = get();
-    // Prevent duplicate calls while already generating
+    if (!state.draftAecId) {
+      set({ error: 'No draft AEC found' });
+      return;
+    }
     if (state.roundStatus === 'generating') return;
+
     set({ roundStatus: 'generating', error: null });
 
     try {
-      const response = await authFetch(`/tickets/${aecId}/start-round`, {
+      const response = await authFetch(`/tickets/${state.draftAecId}/next-question`, {
         method: 'POST',
-        body: JSON.stringify({ roundNumber }),
+        body: JSON.stringify({ previousAnswers: state.questionAnswers }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to start round: ${response.statusText}`);
+        throw new Error(`Failed to generate next question: ${response.statusText}`);
       }
 
-      const { questionRounds, currentRound } = await response.json();
-      set({
-        draftAecId: aecId,
-        questionRounds,
-        currentRound,
-        roundStatus: 'idle',
-        currentStage: 'generate' as WizardStage, // Ensure we're on stage 3
-      });
+      const { question, assumptions, reasoning } = await response.json();
 
-      // Auto-save to localStorage
-      localStorage.setItem('wizard-draft-aec-id', aecId);
-      localStorage.setItem('wizard-question-rounds', JSON.stringify(questionRounds));
-      localStorage.setItem('wizard-current-round', String(currentRound));
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      set({
-        error: errorMessage,
-        roundStatus: 'idle',
-      });
-    }
-  },
-
-  /**
-   * User answers a question in current round
-   * Auto-saves to localStorage
-   */
-  answerQuestionInRound: (round: number, questionId: string, answer: string | string[]) => {
-    set((state) => {
-      const updatedRounds = [...state.questionRounds];
-      const roundIdx = updatedRounds.findIndex((r) => r.roundNumber === round);
-
-      if (roundIdx >= 0) {
-        updatedRounds[roundIdx] = {
-          ...updatedRounds[roundIdx],
-          answers: {
-            ...updatedRounds[roundIdx].answers,
-            [questionId]: answer,
-          },
-        };
-      }
-
-      // Auto-save to localStorage (debounced in practice)
-      localStorage.setItem('wizard-question-rounds', JSON.stringify(updatedRounds));
-
-      return { questionRounds: updatedRounds };
-    });
-  },
-
-  /**
-   * Submit answers for current round
-   * Backend decides: continue to next round or finalize
-   */
-  submitRoundAnswers: async (roundNumber: number, answers?: Record<string, string | string[]>) => {
-    const state = get();
-    if (!state.draftAecId) {
-      set({ error: 'No draft AEC found' });
-      return 'finalize';
-    }
-
-    set({ roundStatus: 'submitting', error: null });
-
-    try {
-      const round = state.questionRounds.find((r) => r.roundNumber === roundNumber);
-      if (!round) {
-        throw new Error(`Round ${roundNumber} not found`);
-      }
-
-      // Use provided answers (from UI component) or fall back to store's round answers
-      const finalAnswers = answers || round.answers;
-
-      // Sync answers back to store so they're persisted
-      if (answers) {
-        const updatedRounds = state.questionRounds.map((r) =>
-          r.roundNumber === roundNumber ? { ...r, answers: finalAnswers } : r,
-        );
-        set({ questionRounds: updatedRounds });
-        localStorage.setItem('wizard-question-rounds', JSON.stringify(updatedRounds));
-      }
-
-      const response = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
-        method: 'POST',
-        body: JSON.stringify({
-          roundNumber,
-          answers: finalAnswers,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to submit answers: ${response.statusText}`);
-      }
-
-      const { aec, nextAction } = await response.json();
-
-      if (nextAction === 'continue') {
-        // Start the next question round
-        const nextRound = roundNumber + 1;
-        if (nextRound <= get().maxRounds && state.draftAecId) {
-          await get().startQuestionRound(state.draftAecId, nextRound);
-        } else {
-          set({ roundStatus: 'idle' });
-        }
+      if (question) {
+        // Append to questions list
+        set((s) => ({
+          clarificationQuestions: [...s.clarificationQuestions, question],
+          assumptions: assumptions || s.assumptions,
+          questionReasoning: reasoning || '',
+          roundStatus: 'idle',
+          currentStage: 'generate' as WizardStage,
+        }));
       } else {
-        // Will finalize next
-        set({ roundStatus: 'idle' });
+        // LLM says it has enough — mark questions complete for auto-submit
+        set((s) => ({
+          assumptions: assumptions || s.assumptions,
+          questionReasoning: reasoning || '',
+          questionsComplete: true,
+          roundStatus: 'idle',
+          currentStage: 'generate' as WizardStage,
+        }));
       }
-
-      return nextAction;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      set({
-        error: errorMessage,
-        roundStatus: 'idle',
-      });
-      return 'finalize';
-    }
-  },
-
-  /**
-   * User manually skips remaining rounds
-   */
-  skipToFinalize: async () => {
-    const state = get();
-    if (!state.draftAecId) {
-      set({ error: 'No draft AEC found' });
-      return;
-    }
-
-    set({ roundStatus: 'submitting', error: null });
-
-    try {
-      const response = await authFetch(`/tickets/${state.draftAecId}/skip-to-finalize`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to skip: ${response.statusText}`);
-      }
-
-      set({ roundStatus: 'idle' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
@@ -1404,67 +1268,29 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     }
   },
 
-  /**
-   * Generate final tech spec with all accumulated answers
-   */
-  finalizeSpec: async () => {
-    const state = get();
-    if (!state.draftAecId) {
-      set({ error: 'No draft AEC found' });
-      return;
-    }
+  // ============================================================================
+  // LEGACY STUBS (kept for type compatibility, no-ops)
+  // ============================================================================
 
-    set({ roundStatus: 'finalizing', error: null });
-
-    try {
-      const response = await authFetch(`/tickets/${state.draftAecId}/finalize`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to finalize: ${response.statusText}`);
-      }
-
-      const aec = await response.json();
-
-      // Check if this is the user's first ticket
-      const hasCompletedFirstTicket = localStorage.getItem('forge-first-ticket-completed');
-      const shouldShowCelebration = !hasCompletedFirstTicket;
-
-      set({
-        spec: aec.techSpec,
-        roundStatus: 'idle',
-        showCelebration: shouldShowCelebration,
-      });
-
-      // Mark first ticket as completed
-      if (shouldShowCelebration) {
-        localStorage.setItem('forge-first-ticket-completed', 'true');
-      }
-
-      // Clear localStorage draft
-      localStorage.removeItem('wizard-draft-aec-id');
-      localStorage.removeItem('wizard-question-rounds');
-      localStorage.removeItem('wizard-current-round');
-      localStorage.removeItem(WIZARD_STORAGE_KEY);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      set({
-        error: errorMessage,
-        roundStatus: 'idle',
-      });
-    }
-  },
+  /** @deprecated No-op. Use fetchNextQuestion() */
+  startQuestionRound: async () => {},
+  /** @deprecated No-op. Use answerQuestion() */
+  answerQuestionInRound: () => {},
+  /** @deprecated No-op. Use submitQuestionAnswers() */
+  submitRoundAnswers: async () => 'finalize' as const,
+  /** @deprecated No-op. Use handleSkipAll in Stage3Draft */
+  skipToFinalize: async () => {},
+  /** @deprecated No-op. Use submitQuestionAnswers() */
+  finalizeSpec: async () => {},
 
   /**
-   * Resume a draft from localStorage or backend
-   * Restores all question rounds and answers
+   * Resume a draft from backend
    */
   resumeDraft: async (aecId: string) => {
     set({ loading: true, error: null });
 
     try {
-      // Fetch full AEC with all question rounds
+      // Fetch full AEC
       const response = await authFetch(`/tickets/${aecId}`);
       if (!response.ok) {
         throw new Error(`Failed to load draft: ${response.statusText}`);
@@ -1477,21 +1303,27 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       const repoOwner = repoParts[0] || '';
       const repoName = repoParts[1] || '';
 
-      // Determine the right stage: if the draft has questions/rounds, resume at generate;
-      // otherwise (e.g. quick draft with just a title), start at details
-      const hasProgress = (aec.questions && aec.questions.length > 0) ||
-        (aec.questionRounds && aec.questionRounds.length > 0) ||
-        aec.currentRound > 0;
+      // Determine the right stage
+      const hasProgress = (aec.questions && aec.questions.length > 0);
       const resumeStage: WizardStage = hasProgress ? 'generate' : 'details';
+
+      // Check if all existing questions have been answered already
+      const questions: any[] = aec.questions || [];
+      const answers: Record<string, any> = aec.questionAnswers || {};
+      const allExistingAnswered = questions.length > 0 &&
+        questions.every((q: any) => answers[q.id] !== undefined && answers[q.id] !== '');
 
       set({
         draftAecId: aecId,
-        // New simplified question fields
-        clarificationQuestions: aec.questions || [],
-        questionAnswers: aec.questionAnswers || {},
-        // Legacy round-based fields
-        questionRounds: aec.questionRounds || [],
-        currentRound: aec.currentRound || 0,
+        clarificationQuestions: questions,
+        questionAnswers: answers,
+        assumptions: aec.assumptions || [],
+        // If all existing questions are answered, the dynamic flow needs to fetch the next one.
+        // questionsComplete stays false so Stage3Draft will call fetchNextQuestion on mount.
+        questionsComplete: false,
+        // Legacy round-based fields (kept for backward compat)
+        questionRounds: [],
+        currentRound: 0,
         maxRounds: aec.maxRounds ?? get().maxRounds,
         type: aec.type || get().type,
         priority: aec.priority || get().priority,
@@ -1507,10 +1339,6 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       // Restore localStorage
       localStorage.setItem('wizard-draft-aec-id', aecId);
-      localStorage.setItem('wizard-clarification-questions', JSON.stringify(aec.questions || []));
-      localStorage.setItem('wizard-question-answers', JSON.stringify(aec.questionAnswers || {}));
-      localStorage.setItem('wizard-question-rounds', JSON.stringify(aec.questionRounds || []));
-      localStorage.setItem('wizard-current-round', String(aec.currentRound || 0));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({

@@ -8,12 +8,12 @@ export function LandingHeader() {
         <div className="flex items-center gap-3">
           <Image
             src="/forge-icon.png"
-            alt="Forge Logo"
+            alt="forge Logo"
             width={32}
             height={32}
             className="drop-shadow-sm"
           />
-          <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">Forge</span>
+          <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">forge</span>
         </div>
         <div className="flex items-center gap-6">
           <Link

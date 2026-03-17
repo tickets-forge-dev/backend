@@ -10,7 +10,7 @@ import { DEFAULT_MODEL } from '../llm/llm.config';
 /**
  * Telemetry Service
  *
- * High-level analytics tracking for Forge operations
+ * High-level analytics tracking for forge operations
  * Provides semantic methods for tracking specific business events
  */
 @Injectable()

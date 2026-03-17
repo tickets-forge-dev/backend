@@ -140,6 +140,7 @@ export class TeamMember {
 
     return new TeamMember({
       ...this.props,
+      id: `${this.props.teamId}_${actualUserId}`, // Update composite key to match new userId
       userId: actualUserId,
       displayName: displayName.trim(),
       status: MemberStatus.ACTIVE,

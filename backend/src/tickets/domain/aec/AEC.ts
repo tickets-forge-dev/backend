@@ -318,7 +318,7 @@ export class AEC {
   }
 
   /**
-   * Start implementation via the Forge Developer Agent (Story 10-1).
+   * Start implementation via the forge Developer Agent (Story 10-1).
    * Transitions FORGED → EXECUTING without requiring an ExternalIssue.
    * Stores the branch name and implementation Q&A session.
    */
@@ -525,6 +525,26 @@ export class AEC {
    */
   setQuestions(questions: ClarificationQuestion[]): void {
     this._clarificationQuestions = questions;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Append a single clarification question (dynamic, one-at-a-time flow)
+   *
+   * Used by the conversational question flow where the LLM generates
+   * one question at a time based on prior Q&A context.
+   */
+  addQuestion(question: ClarificationQuestion): void {
+    this._clarificationQuestions.push(question);
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Set LLM-generated assumptions about the ticket.
+   * These are things the LLM will assume unless the user's answers say otherwise.
+   */
+  setClarificationAssumptions(assumptions: string[]): void {
+    this._assumptions = assumptions;
     this._updatedAt = new Date();
   }
 

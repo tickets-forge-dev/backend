@@ -29,7 +29,7 @@ export interface ImportFromLinearResult {
 }
 
 /**
- * Maps Linear priority (0-4) to Forge priority.
+ * Maps Linear priority (0-4) to forge priority.
  * Linear priorities: 0 (None), 1 (Urgent), 2 (High), 3 (Medium), 4 (Low)
  */
 function mapLinearPriority(linearPriority?: number): TicketPriority | null {

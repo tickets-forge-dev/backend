@@ -1,7 +1,7 @@
 /**
  * Analytics Event Types
  *
- * Defines all trackable events in Forge
+ * Defines all trackable events in forge
  * Used by both frontend and backend for consistent event naming and properties
  */
 

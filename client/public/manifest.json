@@ -1,7 +1,7 @@
 {
-  "name": "Forge",
-  "short_name": "Forge",
-  "description": "Stop shipping half-baked tickets. Forge turns ideas into verified execution contracts.",
+  "name": "forge",
+  "short_name": "forge",
+  "description": "Stop shipping half-baked tickets. forge turns ideas into verified execution contracts.",
   "start_url": "/tickets",
   "display": "standalone",
   "background_color": "#111111",

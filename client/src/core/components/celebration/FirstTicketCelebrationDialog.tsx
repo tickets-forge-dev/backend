@@ -125,7 +125,7 @@ export function FirstTicketCelebrationDialog({
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm text-[var(--text-secondary)]">
-            You&apos;ve created your first ticket with Forge! We&apos;d love to hear
+            You&apos;ve created your first ticket with forge! We&apos;d love to hear
             about your experience.
           </DialogDescription>
         </DialogHeader>

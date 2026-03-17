@@ -29,7 +29,7 @@ export interface ImportFromJiraResult {
 }
 
 /**
- * Maps Jira priority name to Forge priority.
+ * Maps Jira priority name to forge priority.
  * Jira default priorities: Lowest, Low, Medium, High, Highest
  */
 function mapJiraPriority(jiraPriority?: string): TicketPriority | null {
@@ -45,7 +45,7 @@ function mapJiraPriority(jiraPriority?: string): TicketPriority | null {
 }
 
 /**
- * Maps Jira issue type to Forge ticket type.
+ * Maps Jira issue type to forge ticket type.
  */
 function mapJiraIssueType(jiraIssueType?: string): TicketType | null {
   if (!jiraIssueType) return null;

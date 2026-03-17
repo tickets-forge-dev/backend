@@ -275,7 +275,7 @@ function DevCliInfo() {
         <p className="text-[11px] font-medium text-[var(--text-secondary)]">How it works for developers</p>
       </div>
       <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed mb-2">
-        Once assigned, the developer installs the Forge CLI, logs in with <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge login</code>, and runs <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge develop</code> to refine the ticket with real code context.
+        Once assigned, the developer installs the forge CLI, logs in with <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge login</code>, and runs <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge develop</code> to refine the ticket with real code context.
       </p>
       <button
         onClick={handleCopy}

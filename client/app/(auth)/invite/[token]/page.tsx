@@ -44,12 +44,12 @@ export default function AcceptInvitePage() {
     return () => unsubscribe();
   }, []);
 
-  // Redirect to sign-in if not authenticated
+  // Redirect to sign-in if not authenticated, preserving invite URL as return path
   useEffect(() => {
     if (authChecked && !isAuthenticated) {
-      router.push(`/login`);
+      router.push(`/login?returnTo=${encodeURIComponent(`/invite/${token}`)}`);
     }
-  }, [authChecked, isAuthenticated, router]);
+  }, [authChecked, isAuthenticated, router, token]);
 
   const handleAcceptInvite = async () => {
     if (!displayName.trim()) {
