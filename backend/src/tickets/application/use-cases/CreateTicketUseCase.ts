@@ -32,6 +32,7 @@ export interface CreateTicketCommand {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   taskAnalysis?: any;
   reproductionSteps?: any[];
+  folderId?: string | null;
   // Story 14-3: Generation preferences
   includeWireframes?: boolean;
   includeApiSpec?: boolean;
@@ -128,6 +129,7 @@ export class CreateTicketUseCase {
         apiContext: command.apiContext,
       },
       slug,
+      command.folderId,
     );
 
     // Persist taskAnalysis from deep analysis if provided

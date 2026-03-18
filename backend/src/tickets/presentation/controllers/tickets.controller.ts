@@ -356,6 +356,7 @@ export class TicketsController {
         wireframeContext: dto.wireframeContext,
         wireframeImageAttachmentIds: dto.wireframeImageAttachmentIds,
         apiContext: dto.apiContext,
+        folderId: dto.folderId,
       });
 
       return this.mapToResponse(aec);

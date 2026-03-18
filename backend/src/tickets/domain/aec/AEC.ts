@@ -108,6 +108,7 @@ export class AEC {
       apiContext?: string;
     },
     slug?: string,
+    folderId?: string | null,
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -152,7 +153,7 @@ export class AEC {
       [], // _reproductionSteps
       null, // _implementationBranch
       null, // _implementationSession
-      null, // _folderId
+      folderId ?? null, // _folderId
       // Story 14-3: Generation preferences
       generationPreferences?.includeWireframes ?? true,
       generationPreferences?.includeApiSpec ?? true,

@@ -80,7 +80,7 @@ interface TicketsState {
   toggleShowArchived: () => void;
   assignTicket: (id: string, userId: string | null) => Promise<boolean>;
   clearCreateError: () => void;
-  quickCreateDraft: (title: string, type?: string, priority?: string) => Promise<AECResponse | null>;
+  quickCreateDraft: (title: string, type?: string, priority?: string, folderId?: string) => Promise<AECResponse | null>;
   clearQuickCreateError: () => void;
 
   // List preferences
@@ -314,13 +314,13 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     set({ createError: null });
   },
 
-  quickCreateDraft: async (title: string, type?: string, priority?: string) => {
+  quickCreateDraft: async (title: string, type?: string, priority?: string, folderId?: string) => {
     if (get().isQuickCreating) return null;
     set({ isQuickCreating: true, quickCreateError: null });
 
     try {
       const { ticketService } = useServices();
-      const aec = await ticketService.create({ title, type: type || 'feature', priority: priority || 'low' });
+      const aec = await ticketService.create({ title, type: type || 'feature', priority: priority || 'low', folderId });
 
       set((state) => ({
         tickets: [aec, ...state.tickets],

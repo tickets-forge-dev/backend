@@ -1336,6 +1336,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         maxRounds: aec.maxRounds ?? get().maxRounds,
         type: aec.type || get().type,
         priority: aec.priority || get().priority,
+        folderId: aec.folderId ?? null,
         currentStage: resumeStage,
         input: {
           title: aec.title,
