@@ -69,6 +69,7 @@ export class AEC {
     private _questionsAnsweredAt: Date | null = null,
     private _techSpec: TechSpec | null = null,
     private _taskAnalysis: any = null,
+    private _cachedCodebaseContext: any = null, // Cached GitHub context to avoid re-fetching during Q&A flow
     private _attachments: Attachment[] = [],
     private _designReferences: DesignReference[] = [],
     private _assignedTo: string | null = null, // userId of assigned team member
@@ -84,6 +85,7 @@ export class AEC {
     private _wireframeContext: string | null = null,
     private _wireframeImageAttachmentIds: string[] = [],
     private _apiContext: string | null = null,
+    private _slug: string | null = null,
     private _previousStatus: AECStatus | null = null,
   ) {}
 
@@ -105,6 +107,7 @@ export class AEC {
       wireframeImageAttachmentIds?: string[];
       apiContext?: string;
     },
+    slug?: string,
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -141,6 +144,7 @@ export class AEC {
       null, // _questionsAnsweredAt
       null, // _techSpec
       null, // _taskAnalysis
+      null, // _cachedCodebaseContext
       [], // _attachments
       [], // _designReferences
       assignedTo ?? null, // _assignedTo
@@ -156,6 +160,7 @@ export class AEC {
       generationPreferences?.wireframeContext ?? null,
       generationPreferences?.wireframeImageAttachmentIds ?? [],
       generationPreferences?.apiContext ?? null,
+      slug ?? null,
     );
   }
 
@@ -190,6 +195,7 @@ export class AEC {
     questionsAnsweredAt?: Date | null,
     techSpec?: TechSpec | null,
     taskAnalysis?: any,
+    cachedCodebaseContext?: any,
     attachments?: Attachment[],
     designReferences?: DesignReference[],
     assignedTo?: string | null,
@@ -205,6 +211,7 @@ export class AEC {
     wireframeContext?: string | null,
     wireframeImageAttachmentIds?: string[],
     apiContext?: string | null,
+    slug?: string | null,
     previousStatus?: AECStatus | null,
   ): AEC {
     return new AEC(
@@ -237,6 +244,7 @@ export class AEC {
       questionsAnsweredAt ?? null,
       techSpec ?? null,
       taskAnalysis ?? null,
+      cachedCodebaseContext ?? null,
       attachments ?? [],
       designReferences ?? [],
       assignedTo ?? null,
@@ -252,6 +260,7 @@ export class AEC {
       wireframeContext ?? null,
       wireframeImageAttachmentIds ?? [],
       apiContext ?? null,
+      slug ?? null,
       previousStatus ?? null,
     );
   }
@@ -777,6 +786,10 @@ export class AEC {
     return this._apiContext;
   }
 
+  get slug(): string | null {
+    return this._slug;
+  }
+
   // Getters for clarification questions (simple, single-set)
   get questions(): ClarificationQuestion[] {
     return [...this._clarificationQuestions];
@@ -805,6 +818,14 @@ export class AEC {
   setTaskAnalysis(taskAnalysis: any): void {
     this._taskAnalysis = taskAnalysis;
     this._updatedAt = new Date();
+  }
+
+  get cachedCodebaseContext(): any {
+    return this._cachedCodebaseContext;
+  }
+
+  setCachedCodebaseContext(context: any): void {
+    this._cachedCodebaseContext = context;
   }
 
   get reproductionSteps(): any[] {

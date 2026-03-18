@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import {
   TechSpecGenerator,
@@ -30,9 +30,14 @@ export interface GenerateNextQuestionCommand {
  * 5. If a question is returned, append it to the AEC
  * 6. Store assumptions
  * 7. Return { question, assumptions }
+ *
+ * Caches codebase context on first call and reuses it for subsequent
+ * questions (Q2-Q5) to avoid redundant GitHub API calls.
  */
 @Injectable()
 export class GenerateNextQuestionUseCase {
+  private readonly logger = new Logger(GenerateNextQuestionUseCase.name);
+
   constructor(
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
@@ -71,8 +76,19 @@ export class GenerateNextQuestionUseCase {
       answer: command.previousAnswers[q.id] ?? '_skipped',
     }));
 
-    // Build codebase context
-    const codebaseContext = await this.buildCodebaseContext(aec);
+    // Reuse cached codebase context if available (avoids redundant GitHub calls for Q2-Q5)
+    let codebaseContext: CodebaseContext | null;
+    if (aec.cachedCodebaseContext) {
+      this.logger.debug('Reusing cached codebase context from previous question');
+      codebaseContext = this.deserializeContext(aec.cachedCodebaseContext);
+    } else {
+      this.logger.debug('Building codebase context from GitHub (first question)');
+      codebaseContext = await this.buildCodebaseContext(aec);
+      // Cache it for Q2-Q5
+      if (codebaseContext) {
+        aec.setCachedCodebaseContext(this.serializeContext(codebaseContext));
+      }
+    }
 
     // Generate next question
     const result = await this.techSpecGenerator.generateNextQuestion({
@@ -138,5 +154,27 @@ export class GenerateNextQuestionUseCase {
     } catch {
       return null;
     }
+  }
+
+  /** Serialize CodebaseContext for Firestore storage (Map → Object) */
+  private serializeContext(ctx: CodebaseContext): any {
+    return {
+      stack: ctx.stack,
+      analysis: ctx.analysis,
+      fileTree: ctx.fileTree,
+      files: Object.fromEntries(ctx.files),
+      taskAnalysis: ctx.taskAnalysis,
+    };
+  }
+
+  /** Deserialize CodebaseContext from Firestore (Object → Map) */
+  private deserializeContext(cached: any): CodebaseContext {
+    return {
+      stack: cached.stack,
+      analysis: cached.analysis,
+      fileTree: cached.fileTree,
+      files: new Map(Object.entries(cached.files ?? {})),
+      taskAnalysis: cached.taskAnalysis,
+    };
   }
 }
