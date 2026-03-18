@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
@@ -39,6 +39,14 @@ function GitHubIcon({ className }: { className?: string }) {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, hasTeams, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
