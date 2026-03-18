@@ -2,7 +2,7 @@
  * PRD Breakdown Types
  *
  * Defines the domain types for breaking down Product Requirements Documents (PRDs)
- * into executable Forge tickets.
+ * into executable forge tickets.
  */
 
 /**

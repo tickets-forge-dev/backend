@@ -82,7 +82,7 @@ export function ReEnrichProgressDialog({ isVisible }: ReEnrichProgressDialogProp
             Regenerating Specification
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Incorporating developer Q&A insights into an improved spec...
+            Incorporating developer feedback into an improved spec. This may take a minute or two.
           </p>
         </div>
 
@@ -97,7 +97,7 @@ export function ReEnrichProgressDialog({ isVisible }: ReEnrichProgressDialogProp
             return (
               <div
                 key={phase.key}
-                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-150 ${
+                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-300 ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-950/30'
                     : isComplete

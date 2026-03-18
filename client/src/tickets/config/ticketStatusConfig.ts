@@ -38,12 +38,12 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     cliIcon: '⏳',
   },
   forged: {
-    label: 'Forged',
-    description: 'Spec complete — ready to export or execute',
-    badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    dotClass: 'bg-amber-500',
-    textClass: 'text-amber-500',
-    cliIcon: '🛡️',
+    label: 'Ready',
+    description: 'Approved — ready for the developer to pick up',
+    badgeClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    dotClass: 'bg-emerald-500',
+    textClass: 'text-emerald-500',
+    cliIcon: '✅',
   },
   executing: {
     label: 'Executing',
@@ -68,7 +68,7 @@ export const LIFECYCLE_STEPS: Array<{ key: string; label: string; description: s
   { key: 'draft', label: 'Define', description: 'PM creates the ticket' },
   { key: 'dev-refining', label: 'Dev-Refine', description: 'Developer reviews and refines the spec', note: 'Optional — skip if no developer needed', optional: true },
   { key: 'review', label: 'Review (PM)', description: "PM reviews the developer's changes", note: 'Only when a developer submits changes', optional: true },
-  { key: 'forged', label: 'Forged', description: 'Spec complete — ready to export or execute' },
+  { key: 'forged', label: 'Ready', description: 'Approved — ready for the developer to pick up' },
 ];
 
 /** Statuses that map to the final "Forged" lifecycle step for highlighting. */

@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, Settings, MessageCircle, Users, Search } from 'lucide-react';
+import { LayoutGrid, Settings, MessageCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
-import { useTeamStore } from '@/teams/stores/team.store';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
@@ -20,14 +19,9 @@ export function SidebarNav() {
     }
   };
   const { openFeedback } = useFeedbackStore();
-  const { currentTeam } = useTeamStore();
-
-  // Compute currentTeamId from currentTeam for reactivity
-  const currentTeamId = currentTeam?.id || null;
 
   const navigationItems = [
     { label: 'Workspace', href: '/tickets', icon: LayoutGrid },
-    { label: 'Teams', href: currentTeamId ? `/teams/${currentTeamId}` : '/teams', icon: Users },
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -37,28 +31,6 @@ export function SidebarNav() {
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
-          const isTeamsLink = item.label === 'Teams';
-          const isDisabled = isTeamsLink && !currentTeamId;
-
-          // If Teams link is disabled, render as disabled button instead of link
-          if (isDisabled) {
-            return (
-              <li key={item.href}>
-                <div
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                    'text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
-                  )}
-                  title="Switch to a team to access team management"
-                >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
-                  {!sidebarCollapsed && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                </div>
-              </li>
-            );
-          }
 
           return (
             <li key={item.href}>

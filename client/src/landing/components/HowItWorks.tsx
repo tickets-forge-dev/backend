@@ -78,15 +78,15 @@ function DesktopFlowDiagram() {
         <circle cx="812" cy="202" r="12" fill="#f59e0b" />
         <text x="812" y="206" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
 
-        {/* ROW 3: AEC Forged */}
+        {/* ROW 3: Ticket Forged */}
         <line x1="715" y1="280" x2="715" y2="340" stroke="#f59e0b" strokeWidth="2" />
         <line x1="715" y1="340" x2="560" y2="380" stroke="#f59e0b" strokeWidth="2" markerEnd="url(#arrow-amber)" />
         <text x="660" y="338" fill="#f59e0b" fontSize="10" fontFamily="system-ui">approved</text>
 
         <rect x="240" y="375" width="340" height="95" rx="20" fill="url(#aec-glow)" />
         <rect x="250" y="380" width="320" height="85" rx="18" fill="#18181b" stroke="#f59e0b" strokeWidth="2.5" />
-        <text x="410" y="412" textAnchor="middle" fill="#f59e0b" fontSize="18" fontWeight="700" fontFamily="system-ui">AEC Forged</text>
-        <text x="410" y="434" textAnchor="middle" fill="#e4e4e7" fontSize="12" fontFamily="system-ui">Verified execution contract</text>
+        <text x="410" y="412" textAnchor="middle" fill="#f59e0b" fontSize="18" fontWeight="700" fontFamily="system-ui">Ticket Forged</text>
+        <text x="410" y="434" textAnchor="middle" fill="#e4e4e7" fontSize="12" fontFamily="system-ui">Complete, development-ready</text>
         <text x="410" y="452" textAnchor="middle" fill="#a1a1aa" fontSize="10" fontFamily="system-ui">AC &middot; APIs &middot; Scope &middot; Tech Context</text>
 
         {/* ROW 4: Guided Prep */}
@@ -150,8 +150,8 @@ function MobileFlowDiagram() {
       <ArrowDownIcon />
 
       <div className="w-full max-w-[300px] rounded-2xl border-2 border-amber-500 bg-[#18181b] p-6 text-center relative shadow-[0_0_30px_rgba(245,158,11,0.15)]">
-        <p className="font-bold text-[18px] mb-1 text-amber-400">AEC Forged</p>
-        <p className="text-[var(--text-secondary)] text-xs">Verified execution contract</p>
+        <p className="font-bold text-[18px] mb-1 text-amber-400">Ticket Forged</p>
+        <p className="text-[var(--text-secondary)] text-xs">Complete, development-ready</p>
         <p className="text-[var(--text-tertiary)] text-[10px] mt-1">AC &middot; APIs &middot; Scope &middot; Tech Context</p>
       </div>
       <ArrowDownIcon />

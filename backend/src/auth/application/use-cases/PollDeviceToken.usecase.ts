@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { FirestoreDeviceCodeRepository } from '../../infrastructure/persistence/FirestoreDeviceCodeRepository';
 import { FirebaseService } from '../../../shared/infrastructure/firebase/firebase.config';
 import { FirestoreTeamRepository } from '../../../teams/infrastructure/persistence/FirestoreTeamRepository';
+import { FirestoreUserRepository } from '../../../users/infrastructure/persistence/FirestoreUserRepository';
 
 export interface DeviceFlowToken {
   accessToken: string;
@@ -21,6 +22,7 @@ export class PollDeviceTokenUseCase {
     private readonly deviceCodeRepo: FirestoreDeviceCodeRepository,
     private readonly firebaseService: FirebaseService,
     private readonly teamRepository: FirestoreTeamRepository,
+    private readonly userRepository: FirestoreUserRepository,
     private readonly configService: ConfigService,
   ) {}
 
@@ -88,10 +90,28 @@ export class PollDeviceTokenUseCase {
       .getAuth()
       .getUser(record.userId);
 
-    // Get the user's primary team
-    const teams = await this.teamRepository.getByOwnerId(record.userId);
-    const activeTeam = teams.find((t) => !t.isDeleted());
-    const teamId = activeTeam?.getId().getValue() ?? '';
+    // Get the user's current team (respects memberships, not just ownership)
+    let teamId = '';
+    const user = await this.userRepository.getById(record.userId);
+    if (user) {
+      const currentTeamId = user.getCurrentTeamId();
+      if (currentTeamId) {
+        teamId = currentTeamId.getValue();
+      } else {
+        // Fallback: first team from user's team list
+        const userTeams = user.getTeams();
+        if (userTeams.length > 0) {
+          teamId = userTeams[0].getValue();
+        }
+      }
+    }
+
+    // Final fallback: owned teams (for users not yet synced to User document)
+    if (!teamId) {
+      const ownedTeams = await this.teamRepository.getByOwnerId(record.userId);
+      const activeTeam = ownedTeams.find((t) => !t.isDeleted());
+      teamId = activeTeam?.getId().getValue() ?? '';
+    }
 
     // Consume the device code so it cannot be polled again
     await this.deviceCodeRepo.markConsumed(deviceCode);

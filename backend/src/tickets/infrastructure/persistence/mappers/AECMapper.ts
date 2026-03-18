@@ -75,6 +75,7 @@ export interface AECDocument {
   questionsAnsweredAt?: Timestamp | null;
   techSpec?: TechSpec | null;
   taskAnalysis?: any;
+  cachedCodebaseContext?: any;
   attachments?: any[];
   designReferences?: any[];
   assignedTo?: string | null; // Story 3.5-5: userId of assigned team member
@@ -90,6 +91,7 @@ export interface AECDocument {
   wireframeContext?: string | null;
   wireframeImageAttachmentIds?: string[];
   apiContext?: string | null;
+  slug?: string | null;
   previousStatus?: string | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
@@ -224,6 +226,7 @@ export class AECMapper {
       doc.questionsAnsweredAt ? toDate(doc.questionsAnsweredAt) : null,
       doc.techSpec ?? null,
       doc.taskAnalysis ?? null,
+      doc.cachedCodebaseContext ?? null,
       (doc.attachments || []).map((a: any) => ({
         ...a,
         uploadedAt: toDate(a.uploadedAt),
@@ -253,6 +256,7 @@ export class AECMapper {
       doc.wireframeContext ?? null,
       doc.wireframeImageAttachmentIds ?? [],
       doc.apiContext ?? null,
+      doc.slug ?? null,
       (doc.previousStatus as AECStatus) ?? null,
     );
   }
@@ -301,6 +305,7 @@ export class AECMapper {
         : null,
       techSpec: aec.techSpec ? JSON.parse(JSON.stringify(aec.techSpec)) : null,
       taskAnalysis: aec.taskAnalysis ?? null,
+      cachedCodebaseContext: aec.cachedCodebaseContext ?? null,
       attachments: aec.attachments.map((a) => ({
         ...a,
         uploadedAt: Timestamp.fromDate(a.uploadedAt),
@@ -333,6 +338,7 @@ export class AECMapper {
       wireframeContext: aec.wireframeContext ?? null,
       wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds.length > 0 ? aec.wireframeImageAttachmentIds : undefined,
       apiContext: aec.apiContext ?? null,
+      slug: aec.slug ?? null,
       previousStatus: aec.previousStatus ?? null,
     };
   }

@@ -114,7 +114,7 @@ function DevicePageContent() {
             Sign in to authorize CLI
           </h2>
           <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-1">
-            Sign in with your Forge account to link your terminal session
+            Sign in with your forge account to link your terminal session
           </p>
         </div>
 

@@ -86,7 +86,7 @@ export function DevStartupHealthCheck() {
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">⚡</span>
               <h3 className="text-sm font-semibold">
-                Forge Development Setup
+                forge Development Setup
               </h3>
             </div>
 

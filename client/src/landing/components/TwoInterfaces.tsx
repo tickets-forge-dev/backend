@@ -14,7 +14,7 @@ export function TwoInterfaces() {
           <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left overflow-hidden">
             <Image
               src="/images/ticket-screenshot.png"
-              alt="Forge web app showing the ticket list with statuses, priorities, and quality scores"
+              alt="forge web app showing the ticket list with statuses, priorities, and quality scores"
               width={1200}
               height={800}
               className="w-full h-auto"
@@ -30,7 +30,7 @@ export function TwoInterfaces() {
           <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-left overflow-hidden">
             <Image
               src="/images/cli-screenshot.png"
-              alt="Claude Code terminal with Forge MCP integration listing tickets and running review"
+              alt="Claude Code terminal with forge MCP integration listing tickets and running review"
               width={1200}
               height={800}
               className="w-full h-auto"

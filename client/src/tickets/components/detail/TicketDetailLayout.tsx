@@ -163,18 +163,10 @@ export function TicketDetailLayout({
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      // Re-enrich first (re-bake spec + AEC with developer context), then approve
-      const reEnrichSuccess = await reEnrichTicket(ticketId);
-      if (!reEnrichSuccess) {
-        toast.error('Failed to re-bake the ticket. Please try again.');
-        setIsApproving(false);
-        return;
-      }
-
       const success = await approveTicket(ticketId);
       if (success) {
         await fetchTicket(ticketId);
-        toast.success('AEC forged — ticket is ready for execution');
+        toast.success('Ticket approved — the developer can start when ready');
       } else {
         toast.error('Failed to approve ticket. Please try again.');
       }
@@ -304,19 +296,19 @@ export function TicketDetailLayout({
             {isWaitingForApproval && (
               <div className="mt-4 pt-4 border-t border-[var(--border)]">
                 <p className="text-xs text-[var(--text-tertiary)] mb-3">
-                  Approving will re-bake the ticket with the developer&apos;s insights and forge the final AEC.
+                  The spec will be refined with the developer&apos;s feedback. Once approved, the developer can pick it up when ready.
                 </p>
                 <Button
                   onClick={handleApprove}
                   disabled={isApproving}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   {isApproving ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <ShieldCheck className="h-4 w-4 mr-2" />
                   )}
-                  {isApproving ? 'Forging AEC...' : 'Approve & Forge AEC'}
+                  {isApproving ? 'Approving...' : 'Approve Ticket'}
                 </Button>
               </div>
             )}
@@ -357,6 +349,33 @@ export function TicketDetailLayout({
         onAssignDialogOpenChange={onAssignDialogOpenChange}
       />
 
+      {/* Approval banner — always visible when ticket is in review with developer Q&A */}
+      {isWaitingForApproval && hasReviewSession && (
+        <div className="flex items-center gap-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-5 py-4">
+          <ShieldCheck className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              Developer review complete — {ticket.reviewSession!.qaItems.length} question{ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''} answered
+            </p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+              The spec will be refined with the developer&apos;s feedback. Once approved, the developer can pick it up when ready.
+            </p>
+          </div>
+          <Button
+            onClick={handleApprove}
+            disabled={isApproving}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white flex-shrink-0"
+          >
+            {isApproving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 mr-2" />
+            )}
+            {isApproving ? 'Approving...' : 'Approve Ticket'}
+          </Button>
+        </div>
+      )}
+
       {/* Refine with Questions — shown for draft tickets that have a spec but no questions answered */}
       {ticket.status === 'draft' && hasTechSpec && (
         <div className="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3">
@@ -390,19 +409,19 @@ export function TicketDetailLayout({
           {isWaitingForApproval && (
             <div className="mt-4 pt-4 border-t border-[var(--border)]">
               <p className="text-xs text-[var(--text-tertiary)] mb-3">
-                Approving will re-bake the ticket with the developer&apos;s insights and forge the final AEC.
+                The spec will be refined with the developer&apos;s feedback. Once approved, the developer can pick it up when ready.
               </p>
               <Button
                 onClick={handleApprove}
                 disabled={isApproving}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {isApproving ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <ShieldCheck className="h-4 w-4 mr-2" />
                 )}
-                {isApproving ? 'Forging AEC...' : 'Approve & Forge AEC'}
+                {isApproving ? 'Approving...' : 'Approve Ticket'}
               </Button>
             </div>
           )}

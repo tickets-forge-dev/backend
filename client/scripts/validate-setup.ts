@@ -75,7 +75,7 @@ async function validate(): Promise<ValidationResult> {
     warnings: [],
   };
 
-  console.log(`${colors.cyan}⚡ Forge Setup Validation${colors.reset}`);
+  console.log(`${colors.cyan}⚡ forge Setup Validation${colors.reset}`);
   console.log('━'.repeat(60));
 
   // Check if .env.local exists

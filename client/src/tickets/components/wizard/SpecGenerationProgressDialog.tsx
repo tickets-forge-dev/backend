@@ -62,21 +62,18 @@ export function SpecGenerationProgressDialog({
 }: SpecGenerationProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
-  const [estimatedTokens, setEstimatedTokens] = useState(0);
 
   const phases = isSubmitting ? SPEC_GENERATION_PHASES : QUESTION_GENERATION_PHASES;
   const phaseCount = phases.length;
 
-  // Elapsed time counter + token estimate
+  // Elapsed time counter
   useEffect(() => {
     if (!isVisible) {
       setElapsedSeconds(0);
       setProgressPercent(0);
-      setEstimatedTokens(0);
       return;
     }
 
-    // Tick every 500ms for smoother token counter
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => prev + 0.5);
       // Gradually increase progress (faster at start, slower near end)
@@ -84,11 +81,6 @@ export function SpecGenerationProgressDialog({
         if (prev >= 90) return prev;
         const increment = (Math.random() * 5 + 1);
         return Math.min(prev + increment, 90);
-      });
-      // Estimate tokens: ~80 output tokens/sec for Sonnet, ramp up gradually
-      setEstimatedTokens((prev) => {
-        const rate = Math.min(prev / 200 + 20, 80); // ramp from 20 to 80 tokens/tick
-        return Math.round(prev + rate * 0.5);
       });
     }, 500);
 
@@ -99,7 +91,6 @@ export function SpecGenerationProgressDialog({
   useEffect(() => {
     if (!isVisible) {
       setProgressPercent(0);
-      setEstimatedTokens(0);
     }
   }, [isVisible]);
 
@@ -130,8 +121,8 @@ export function SpecGenerationProgressDialog({
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {isSubmitting
-              ? 'Processing your answers and building the final spec...'
-              : 'Analyzing your codebase and preparing clarifying questions...'}
+              ? 'Processing your answers and building the final spec. This may take a minute or two.'
+              : 'Analyzing your codebase and preparing clarifying questions. This may take a minute or two.'}
           </p>
         </div>
 
@@ -146,7 +137,7 @@ export function SpecGenerationProgressDialog({
             return (
               <div
                 key={phase.key}
-                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-150 ${
+                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-300 ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-950/30'
                     : isComplete
@@ -207,10 +198,9 @@ export function SpecGenerationProgressDialog({
             <span className="text-gray-600 dark:text-gray-400 font-medium">
               {Math.min(Math.floor(progressPercent), 99)}%
             </span>
-            <div className="flex items-center gap-3 text-gray-500 dark:text-gray-500">
-              <span className="tabular-nums">{estimatedTokens.toLocaleString()} tokens</span>
-              <span className="tabular-nums">{Math.floor(elapsedSeconds)}s</span>
-            </div>
+            <span className="text-gray-500 dark:text-gray-500 tabular-nums">
+              {Math.floor(elapsedSeconds)}s elapsed
+            </span>
           </div>
         </div>
       </div>

@@ -29,7 +29,7 @@ export interface StartImplementationResult {
  * StartImplementationUseCase (Story 10-2)
  *
  * Records the implementation branch and optional Q&A from the
- * Forge Developer Agent, then transitions the ticket FORGED → EXECUTING.
+ * forge Developer Agent, then transitions the ticket FORGED → EXECUTING.
  */
 @Injectable()
 export class StartImplementationUseCase {

@@ -25,6 +25,7 @@ export interface AttachmentResponse {
 
 export interface AECResponse {
   id: string;
+  slug: string | null;
   teamId: string;
   status: string;
   title: string;

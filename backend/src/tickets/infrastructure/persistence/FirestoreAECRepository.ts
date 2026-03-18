@@ -48,6 +48,7 @@ export class FirestoreAECRepository implements AECRepository {
       teamId: doc.teamId,
       title: doc.title,
       status: doc.status,
+      slug: doc.slug,
     });
 
     const batch = firestore.batch();
@@ -63,6 +64,12 @@ export class FirestoreAECRepository implements AECRepository {
     // Write lookup index so findById can resolve teamId without a collectionGroup query
     const lookupRef = firestore.collection('aec_lookup').doc(aec.id);
     batch.set(lookupRef, { teamId: aec.teamId });
+
+    // Write slug lookup index for global slug resolution
+    if (aec.slug) {
+      const slugLookupRef = firestore.collection('slug_lookup').doc(aec.slug);
+      batch.set(slugLookupRef, { teamId: aec.teamId, aecId: aec.id });
+    }
 
     await batch.commit();
 
@@ -118,6 +125,47 @@ export class FirestoreAECRepository implements AECRepository {
       console.error('❌ [FirestoreAECRepository] findById error:', error);
       return null;
     }
+  }
+
+  async findBySlug(slug: string, teamId: string): Promise<AEC | null> {
+    const firestore = this.getFirestore();
+
+    try {
+      const snapshot = await firestore
+        .collection('teams')
+        .doc(teamId)
+        .collection('aecs')
+        .where('slug', '==', slug)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        return null;
+      }
+
+      return AECMapper.toDomain(snapshot.docs[0].data() as AECDocument);
+    } catch (error) {
+      console.error('❌ [FirestoreAECRepository] findBySlug error:', error);
+      return null;
+    }
+  }
+
+  async getNextTicketNumber(teamId: string): Promise<number> {
+    const firestore = this.getFirestore();
+    const counterRef = firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('counters')
+      .doc('tickets');
+
+    return firestore.runTransaction(async (tx) => {
+      const counterDoc = await tx.get(counterRef);
+      const currentNumber = counterDoc.exists
+        ? (counterDoc.data()?.nextNumber ?? 1)
+        : 1;
+      tx.set(counterRef, { nextNumber: currentNumber + 1 }, { merge: true });
+      return currentNumber;
+    });
   }
 
   async findByIdInTeam(id: string, teamId: string): Promise<AEC | null> {
@@ -239,12 +287,22 @@ export class FirestoreAECRepository implements AECRepository {
       .collection('aecs')
       .doc(aecId);
 
-    const exists = await docRef.get();
-    if (!exists.exists) {
+    const snap = await docRef.get();
+    if (!snap.exists) {
       throw new AECNotFoundError(aecId);
     }
 
-    await docRef.delete();
+    const batch = firestore.batch();
+    batch.delete(docRef);
+
+    // Clean up lookup indexes
+    batch.delete(firestore.collection('aec_lookup').doc(aecId));
+    const slug = (snap.data() as any)?.slug;
+    if (slug) {
+      batch.delete(firestore.collection('slug_lookup').doc(slug));
+    }
+
+    await batch.commit();
     console.log(`✅ [FirestoreAECRepository] AEC deleted successfully from ${path}`);
   }
 

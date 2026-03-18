@@ -18,6 +18,9 @@ import {
   ArrowRight,
   Plus,
   FlaskConical,
+  Info,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
 import { SpecGenerationProgressDialog } from './SpecGenerationProgressDialog';
@@ -52,27 +55,31 @@ function countSolutionSteps(sol: unknown): number {
 }
 
 /**
- * Stage 3: Draft Review with One-at-a-Time Clarification Questions
+ * Stage 3: Draft Review with Dynamic, Conversational Clarification Questions
  *
  * Flow:
  * 1. Create draft AEC (if needed)
- * 2. Generate up to 5 clarification questions
- * 3. Show ONE question at a time with LLM options + "type your own"
- * 4. After all questions → auto-submit → finalize
+ * 2. Fetch first question from LLM (+ initial assumptions)
+ * 3. Show ONE question at a time; after each answer, fetch next from LLM
+ * 4. LLM stops early when it has enough info → auto-submit → finalize
  * 5. Show unified summary with actions (merged Stage 3 + Stage 4)
  */
 export function Stage3Draft() {
   const router = useRouter();
   const {
     draftAecId,
+    draftAecSlug,
     spec,
     clarificationQuestions,
     questionAnswers,
+    assumptions,
+    questionsComplete,
+    questionReasoning,
     roundStatus,
     error,
     goBackToInput,
     confirmContextContinue,
-    generateQuestions,
+    fetchNextQuestion,
     submitQuestionAnswers,
     answerQuestion,
     setError,
@@ -81,13 +88,20 @@ export function Stage3Draft() {
   } = useWizardStore();
 
   const [localError, setLocalError] = useState<string | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [customAnswer, setCustomAnswer] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showAssumptions, setShowAssumptions] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const initRef = useRef(false);
   const autoSubmitRef = useRef(false);
   const soundPlayedRef = useRef(false);
+
+  // The current question is always the last one in the list (the newest)
+  const currentQuestion = clarificationQuestions.length > 0
+    ? clarificationQuestions[clarificationQuestions.length - 1]
+    : null;
+  const currentAnswer = currentQuestion ? questionAnswers[currentQuestion.id] : undefined;
+  const hasAnswer = currentAnswer !== undefined && currentAnswer !== '';
 
   // Play a subtle chime when spec generation completes
   useEffect(() => {
@@ -112,11 +126,26 @@ export function Stage3Draft() {
     }
   }, [spec]);
 
-  // Step 1: Create draft (if needed) then generate questions
+  // Step 1: Create draft (if needed) then fetch first/next question
   useEffect(() => {
     if (initRef.current) return;
-    // Already have questions or spec — nothing to do
-    if (clarificationQuestions.length > 0 || spec) return;
+    if (spec || questionsComplete) return;
+
+    // If we already have questions, check if they're all answered (resume case)
+    // If so, we need to fetch the next one. If not, show the current unanswered one.
+    if (clarificationQuestions.length > 0) {
+      const allAnswered = clarificationQuestions.every(
+        (q) => questionAnswers[q.id] !== undefined && questionAnswers[q.id] !== ''
+      );
+      if (!allAnswered) return; // Still have an unanswered question to show
+      // All answered — fetch the next question from LLM
+      initRef.current = true;
+      fetchNextQuestion().catch((err) => {
+        console.error('[Stage3Draft resume] Error fetching next question:', err);
+        setLocalError(err instanceof Error ? err.message : 'Failed to load next question');
+      });
+      return;
+    }
 
     initRef.current = true;
 
@@ -124,20 +153,14 @@ export function Stage3Draft() {
       try {
         const storeState = useWizardStore.getState();
 
-        // Read fresh store state (not stale closure) to decide if draft exists
         if (!storeState.draftAecId) {
           await confirmContextContinue();
           const newState = useWizardStore.getState();
-          if (!newState.draftAecId) {
-            // confirmContextContinue set an error in the store — don't proceed
-            return;
-          }
-          // Auto-finalize path (maxRounds=0) may have already set spec — skip questions
-          if (newState.spec) {
-            return;
-          }
+          if (!newState.draftAecId) return;
+          if (newState.spec) return;
         }
-        await generateQuestions();
+        // Fetch first question (no previous answers)
+        await fetchNextQuestion();
       } catch (err) {
         console.error('[Stage3Draft init] Error:', err);
         setLocalError(err instanceof Error ? err.message : 'Failed to initialize');
@@ -146,85 +169,57 @@ export function Stage3Draft() {
 
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftAecId, clarificationQuestions.length, spec, confirmContextContinue, generateQuestions, retryCount]);
+  }, [draftAecId, clarificationQuestions.length, spec, questionsComplete, confirmContextContinue, fetchNextQuestion, retryCount]);
 
-  // Auto-submit after all questions are answered
-  const answeredCount = clarificationQuestions.filter(
-    (q) => questionAnswers[q.id] !== undefined && questionAnswers[q.id] !== ''
-  ).length;
-  const allAnswered = clarificationQuestions.length > 0 && answeredCount === clarificationQuestions.length;
-
+  // Auto-submit when questionsComplete is set (LLM said it has enough info)
   useEffect(() => {
-    if (allAnswered && !autoSubmitRef.current && !spec && roundStatus === 'idle') {
+    if (questionsComplete && !autoSubmitRef.current && !spec && roundStatus === 'idle') {
       autoSubmitRef.current = true;
-      // Small delay so the "all answered" UI renders before the submit overlay kicks in
       const timer = setTimeout(() => {
         submitQuestionAnswers().catch((err) => {
           const errorMsg = err instanceof Error ? err.message : 'Failed to finalize';
           setLocalError(errorMsg);
           setError(errorMsg);
-          autoSubmitRef.current = false; // Allow retry
+          autoSubmitRef.current = false;
         });
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [allAnswered, spec, roundStatus, submitQuestionAnswers, setError]);
+  }, [questionsComplete, spec, roundStatus, submitQuestionAnswers, setError]);
 
   const isSubmitting = roundStatus === 'submitting' || roundStatus === 'finalizing';
   const isGenerating = roundStatus === 'generating';
 
-  const currentQuestion = clarificationQuestions[currentIndex] ?? null;
-  const currentAnswer = currentQuestion ? questionAnswers[currentQuestion.id] : undefined;
-  const hasAnswer = currentAnswer !== undefined && currentAnswer !== '';
-
-  // Select a predefined option
+  // Select a predefined option → answer + fetch next question
   const selectOption = useCallback((option: string) => {
     if (!currentQuestion) return;
     setShowCustomInput(false);
     setCustomAnswer('');
     answerQuestion(currentQuestion.id, option);
+    // Fetch next question from LLM (it will see this answer)
+    fetchNextQuestion();
+  }, [currentQuestion, answerQuestion, fetchNextQuestion]);
 
-    // Auto-advance after brief visual feedback
-    setTimeout(() => {
-      if (currentIndex < clarificationQuestions.length - 1) {
-        setCurrentIndex((i) => i + 1);
-        setShowCustomInput(false);
-        setCustomAnswer('');
-      }
-      // If last question, the auto-submit useEffect will trigger
-    }, 400);
-  }, [currentQuestion, currentIndex, clarificationQuestions.length, answerQuestion]);
-
-  // Submit custom typed answer
+  // Submit custom typed answer → answer + fetch next question
   const submitCustom = useCallback(() => {
     if (!currentQuestion || !customAnswer.trim()) return;
     answerQuestion(currentQuestion.id, customAnswer.trim());
     setShowCustomInput(false);
+    setCustomAnswer('');
+    fetchNextQuestion();
+  }, [currentQuestion, customAnswer, answerQuestion, fetchNextQuestion]);
 
-    // Auto-advance
-    setTimeout(() => {
-      if (currentIndex < clarificationQuestions.length - 1) {
-        setCurrentIndex((i) => i + 1);
-        setShowCustomInput(false);
-        setCustomAnswer('');
-      }
-    }, 400);
-  }, [currentQuestion, customAnswer, currentIndex, clarificationQuestions.length, answerQuestion]);
-
-  // Skip current question and advance
+  // Skip current question → answer as skipped + fetch next
   const skipQuestion = useCallback(() => {
     if (!currentQuestion) return;
     answerQuestion(currentQuestion.id, '_skipped');
-    if (currentIndex < clarificationQuestions.length - 1) {
-      setCurrentIndex((i) => i + 1);
-      setShowCustomInput(false);
-      setCustomAnswer('');
-    }
-  }, [currentQuestion, currentIndex, clarificationQuestions.length, answerQuestion]);
+    setShowCustomInput(false);
+    setCustomAnswer('');
+    fetchNextQuestion();
+  }, [currentQuestion, answerQuestion, fetchNextQuestion]);
 
-  // Skip all questions
+  // Skip all questions → submit with skipped answers
   const handleSkipAll = async () => {
-    // Mark all unanswered questions as skipped
     for (const q of clarificationQuestions) {
       if (!questionAnswers[q.id] || questionAnswers[q.id] === '') {
         answerQuestion(q.id, '_skipped');
@@ -237,15 +232,6 @@ export function Stage3Draft() {
       const errorMsg = err instanceof Error ? err.message : 'Failed to finalize';
       setLocalError(errorMsg);
       setError(errorMsg);
-    }
-  };
-
-  // Go to previous question
-  const goBack = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-      setShowCustomInput(false);
-      setCustomAnswer('');
     }
   };
 
@@ -478,7 +464,7 @@ export function Stage3Draft() {
             </Button>
             <Button
               onClick={() => {
-                if (draftAecId) router.push(`/tickets/${draftAecId}`);
+                if (draftAecId) router.push(`/tickets/${draftAecSlug || draftAecId}`);
               }}
             >
               View Ticket
@@ -490,13 +476,13 @@ export function Stage3Draft() {
 
       {/* Detailed Progress Dialog for Generating / Submitting States */}
       <SpecGenerationProgressDialog
-        isVisible={!spec && (isGenerating || isSubmitting)}
+        isVisible={!spec && (isSubmitting)}
         isSubmitting={isSubmitting}
-        isGenerating={isGenerating}
+        isGenerating={false}
       />
 
-      {/* All questions answered — transitioning to spec generation */}
-      {!spec && !isGenerating && !isSubmitting && allAnswered && clarificationQuestions.length > 0 && (
+      {/* Questions complete — transitioning to spec generation */}
+      {!spec && !isGenerating && !isSubmitting && questionsComplete && (
         <div className="text-center py-12 space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
           <p className="text-sm text-[var(--text-secondary)]">
@@ -519,58 +505,136 @@ export function Stage3Draft() {
         </div>
       )}
 
-      {/* One-at-a-Time Question Flow (only when NOT all answered) */}
-      {!spec && !isGenerating && !isSubmitting && !allAnswered && currentQuestion && (
+      {/* Dynamic One-at-a-Time Question Flow */}
+      {!spec && !isSubmitting && !questionsComplete && (currentQuestion || isGenerating) && (
         <>
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-              <span>Question {currentIndex + 1} of {clarificationQuestions.length}</span>
+          {/* Assumptions Block (collapsible) */}
+          {assumptions.length > 0 && (
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
               <button
                 type="button"
-                onClick={handleSkipAll}
-                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                onClick={() => setShowAssumptions(!showAssumptions)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
               >
-                Skip all questions
+                <Info className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                <span className="text-xs text-[var(--text-tertiary)] flex-1">
+                  {assumptions.length} assumption{assumptions.length !== 1 ? 's' : ''} (will be used unless your answers say otherwise)
+                </span>
+                {showAssumptions
+                  ? <ChevronUp className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                  : <ChevronDown className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                }
               </button>
+              {showAssumptions && (
+                <div className="px-4 pb-3 space-y-1">
+                  {assumptions.map((a, i) => (
+                    <p key={i} className="text-[11px] text-[var(--text-tertiary)] pl-5">
+                      &bull; {a}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${((currentIndex + 1) / clarificationQuestions.length) * 100}%` }}
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Question Card */}
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <h3 className="text-base font-medium text-gray-900 dark:text-gray-50">
-                {currentQuestion.question}
-              </h3>
-              {currentQuestion.context && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {currentQuestion.context}
+          {/* Loading state between questions */}
+          {isGenerating && (
+            <div className="text-center py-12 space-y-3">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto" />
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {clarificationQuestions.length === 0 ? 'Analyzing your ticket...' : 'Generating next question...'}
+              </p>
+              {questionReasoning && clarificationQuestions.length > 0 && (
+                <p className="text-xs text-[var(--text-tertiary)] max-w-md mx-auto italic leading-relaxed">
+                  {questionReasoning}
                 </p>
               )}
             </div>
+          )}
 
-            {/* Options or Free-Text Input */}
-            <div className="space-y-2">
-              {(currentQuestion.options || []).length > 0 ? (
-                <>
-                  {/* LLM-provided options */}
-                  {(currentQuestion.options || []).map((option, idx) => {
-                    const isSelected = currentAnswer === option;
-                    return (
+          {/* Current Question */}
+          {!isGenerating && currentQuestion && !hasAnswer && (
+            <>
+              {/* Dynamic Progress Indicator */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                  <span>Question {clarificationQuestions.length}</span>
+                  <button
+                    type="button"
+                    onClick={handleSkipAll}
+                    className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    Skip all questions
+                  </button>
+                </div>
+                <div className="h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${Math.min((clarificationQuestions.length / 5) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Question Card */}
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <h3 className="text-base font-medium text-gray-900 dark:text-gray-50">
+                    {currentQuestion.question}
+                  </h3>
+                  {currentQuestion.context && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {currentQuestion.context}
+                    </p>
+                  )}
+                </div>
+
+                {/* Options or Free-Text Input */}
+                <div className="space-y-2">
+                  {(currentQuestion.options || []).length > 0 ? (
+                    <>
+                      {(currentQuestion.options || []).map((option, idx) => {
+                        const isSelected = currentAnswer === option;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => selectOption(option)}
+                            className={`
+                              w-full flex items-center gap-3 p-3.5 rounded-lg text-left
+                              transition-all border-2
+                              ${isSelected
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                                : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 bg-white dark:bg-gray-950'
+                              }
+                            `}
+                          >
+                            <div
+                              className={`
+                                w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center
+                                transition-all
+                                ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 dark:border-gray-600'}
+                              `}
+                            >
+                              {isSelected && <Check size={12} className="text-white" />}
+                            </div>
+                            <span className={`text-sm ${isSelected ? 'text-gray-900 dark:text-gray-50 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
+                              {idx + 1}. {option}
+                            </span>
+                          </button>
+                        );
+                      })}
+
+                      {/* "Type your own answer" option */}
                       <button
-                        key={option}
                         type="button"
-                        onClick={() => selectOption(option)}
+                        onClick={() => {
+                          setShowCustomInput(true);
+                          setCustomAnswer('');
+                        }}
                         className={`
                           w-full flex items-center gap-3 p-3.5 rounded-lg text-left
                           transition-all border-2
-                          ${isSelected
+                          ${showCustomInput
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
                             : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 bg-white dark:bg-gray-950'
                           }
@@ -580,58 +644,51 @@ export function Stage3Draft() {
                           className={`
                             w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center
                             transition-all
-                            ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 dark:border-gray-600'}
+                            ${showCustomInput
+                              ? 'border-blue-500 bg-blue-500'
+                              : 'border-gray-300 dark:border-gray-600'
+                            }
                           `}
                         >
-                          {isSelected && <Check size={12} className="text-white" />}
+                          {showCustomInput && <Check size={12} className="text-white" />}
                         </div>
-                        <span className={`text-sm ${isSelected ? 'text-gray-900 dark:text-gray-50 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
-                          {idx + 1}. {option}
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {(currentQuestion.options || []).length + 1}. Type your own answer
                         </span>
                       </button>
-                    );
-                  })}
 
-                  {/* "Type your own answer" option */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCustomInput(true);
-                    }}
-                    className={`
-                      w-full flex items-center gap-3 p-3.5 rounded-lg text-left
-                      transition-all border-2
-                      ${showCustomInput || (hasAnswer && !(currentQuestion.options || []).includes(currentAnswer as string))
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-                        : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 bg-white dark:bg-gray-950'
-                      }
-                    `}
-                  >
-                    <div
-                      className={`
-                        w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center
-                        transition-all
-                        ${showCustomInput || (hasAnswer && !(currentQuestion.options || []).includes(currentAnswer as string))
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300 dark:border-gray-600'
-                        }
-                      `}
-                    >
-                      {(showCustomInput || (hasAnswer && !(currentQuestion.options || []).includes(currentAnswer as string))) && (
-                        <Check size={12} className="text-white" />
+                      {/* Custom Answer Input (expandable) */}
+                      {showCustomInput && (
+                        <div className="pl-8 space-y-2">
+                          <input
+                            type="text"
+                            value={customAnswer}
+                            onChange={(e) => setCustomAnswer(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && customAnswer.trim()) {
+                                submitCustom();
+                              }
+                            }}
+                            placeholder="Type your answer..."
+                            autoFocus
+                            className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={submitCustom}
+                            disabled={!customAnswer.trim()}
+                          >
+                            Confirm
+                          </Button>
+                        </div>
                       )}
-                    </div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {(currentQuestion.options || []).length + 1}. Type your own answer
-                    </span>
-                  </button>
-
-                  {/* Custom Answer Input (expandable) */}
-                  {showCustomInput && (
-                    <div className="pl-8 space-y-2">
+                    </>
+                  ) : (
+                    /* No options — show direct text input */
+                    <div className="space-y-3">
                       <input
                         type="text"
-                        value={customAnswer}
+                        value={customAnswer || (typeof currentAnswer === 'string' ? currentAnswer : '')}
                         onChange={(e) => setCustomAnswer(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && customAnswer.trim()) {
@@ -640,76 +697,40 @@ export function Stage3Draft() {
                         }}
                         placeholder="Type your answer..."
                         autoFocus
-                        className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                       />
                       <Button
                         size="sm"
                         onClick={submitCustom}
                         disabled={!customAnswer.trim()}
                       >
-                        Confirm
+                        Next
                       </Button>
                     </div>
                   )}
-                </>
-              ) : (
-                /* No options — show direct text input */
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={customAnswer || (typeof currentAnswer === 'string' ? currentAnswer : '')}
-                    onChange={(e) => setCustomAnswer(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && customAnswer.trim()) {
-                        submitCustom();
-                      }
-                    }}
-                    placeholder="Type your answer..."
-                    autoFocus
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={submitCustom}
-                    disabled={!customAnswer.trim()}
-                  >
-                    Next
-                  </Button>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
 
-          {/* Question Navigation */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
-            {currentIndex > 0 ? (
-              <Button variant="outline" size="sm" onClick={goBack}>
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" onClick={goBackToInput}>
-                Back
-              </Button>
-            )}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {answeredCount} of {clarificationQuestions.length} answered
-              </span>
-              <Button variant="ghost" size="sm" onClick={skipQuestion}>
-                Skip
-              </Button>
-            </div>
-          </div>
+              {/* Question Navigation */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+                <Button variant="outline" size="sm" onClick={goBackToInput}>
+                  Back
+                </Button>
+                <Button variant="ghost" size="sm" onClick={skipQuestion}>
+                  Skip
+                </Button>
+              </div>
+            </>
+          )}
         </>
       )}
 
-      {/* Waiting for questions (no questions yet, not generating) */}
-      {!spec && !isGenerating && !isSubmitting && clarificationQuestions.length === 0 && (
+      {/* Waiting for first question (no questions yet, not generating) */}
+      {!spec && !isGenerating && !isSubmitting && !questionsComplete && clarificationQuestions.length === 0 && (
         <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 text-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto mb-3" />
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Preparing questions...
+            Analyzing your ticket...
           </p>
         </div>
       )}

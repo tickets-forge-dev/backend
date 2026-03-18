@@ -44,6 +44,7 @@ export interface BulkCreateResult {
     originalIndex: number;  // Position in original request (0, 1, 2)
     title: string;          // Ticket title for reference
     ticketId?: string;      // Created ticket ID (if successful)
+    ticketSlug?: string;    // Human-friendly slug (if successful)
     error?: string;         // Error message (if failed)
   }>;
 }
@@ -180,6 +181,7 @@ export class BulkCreateFromBreakdownUseCase {
           originalIndex: i,
           title: ticket.title,
           ticketId: aec.id,
+          ticketSlug: aec.slug ?? undefined,
         });
         this.logger.log(
           `✅ Created ticket ${i + 1}/${command.tickets.length}: ${ticket.title} (${aec.id})`,

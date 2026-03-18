@@ -64,10 +64,10 @@ export class TechSpecMarkdownGenerator {
     lines.push(`# ${spec.title || aec.title}`);
     lines.push('');
 
-    // Add link back to Forge ticket if frontendUrl is provided
+    // Add link back to forge ticket if frontendUrl is provided
     if (frontendUrl) {
       const ticketUrl = `${frontendUrl}/tickets/${aec.id}`;
-      lines.push(`**🔗 View in Forge:** ${ticketUrl}`);
+      lines.push(`**🔗 View in forge:** ${ticketUrl}`);
       lines.push('');
     }
 

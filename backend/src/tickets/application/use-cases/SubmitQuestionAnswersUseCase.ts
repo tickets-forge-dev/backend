@@ -58,13 +58,15 @@ export class SubmitQuestionAnswersUseCase {
       throw new BadRequestException('Workspace mismatch');
     }
 
-    // Validate all questions are answered
-    this.validateAnswers(aec, command.answers);
+    // Build complete answers map: merge provided answers with _skipped for any
+    // questions the user didn't explicitly answer (e.g. old batch-generated
+    // questions the dynamic flow never showed, or questions skipped via UI).
+    const completeAnswers = this.buildCompleteAnswers(aec, command.answers);
 
     // Record answers in domain entity
-    aec.recordQuestionAnswers(command.answers);
+    aec.recordQuestionAnswers(completeAnswers);
     await this.aecRepository.save(aec);
-    console.log(`✅ [SubmitQuestionAnswersUseCase] Answers recorded`);
+    console.log(`✅ [SubmitQuestionAnswersUseCase] Answers recorded (${Object.keys(completeAnswers).length} answers for ${aec.questions.length} questions)`);
 
     // Finalize the spec (generate final technical specification)
     const aecWithSpec = await this.finalizeSpecUseCase.execute({
@@ -78,41 +80,26 @@ export class SubmitQuestionAnswersUseCase {
   }
 
   /**
-   * Validate that all questions have been answered
+   * Build a complete answers map covering every question in the AEC.
    *
-   * Ensures no required questions are skipped, and answers are non-empty.
-   * Throws BadRequestException if validation fails.
+   * Any question not present in the provided answers map is auto-filled
+   * with '_skipped'. This supports:
+   * - Dynamic flow: only answered questions are sent from the frontend
+   * - Resume flow: old batch-generated questions the user never saw
+   * - Skip all: explicit _skipped answers from the UI
    */
-  private validateAnswers(aec: AEC, answers: Record<string, string | string[]>): void {
-    const questions = aec.questions;
+  private buildCompleteAnswers(
+    aec: AEC,
+    provided: Record<string, string | string[]>,
+  ): Record<string, string | string[]> {
+    const complete: Record<string, string | string[]> = { ...provided };
 
-    if (questions.length === 0) {
-      // No questions to answer
-      return;
-    }
-
-    // Check all questions have answers
-    for (const question of questions) {
-      if (!(question.id in answers)) {
-        throw new BadRequestException(`Missing answer for question: ${question.question}`);
-      }
-
-      const answer = answers[question.id];
-
-      // Validate non-empty
-      if (typeof answer === 'string') {
-        if (answer.trim().length === 0) {
-          throw new BadRequestException(`Empty answer for question: ${question.question}`);
-        }
-      } else if (Array.isArray(answer)) {
-        if (answer.length === 0) {
-          throw new BadRequestException(`No options selected for question: ${question.question}`);
-        }
+    for (const question of aec.questions) {
+      if (!(question.id in complete) || complete[question.id] === '') {
+        complete[question.id] = '_skipped';
       }
     }
 
-    console.log(
-      `✅ [SubmitQuestionAnswersUseCase] All answers validated (${questions.length} questions)`,
-    );
+    return complete;
   }
 }

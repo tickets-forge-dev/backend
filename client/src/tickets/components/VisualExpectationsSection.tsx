@@ -49,7 +49,7 @@ function ExpectationCard({ expectation, index }: { expectation: VisualExpectatio
   const stateInfo = STATE_LABELS[expectation.state] || STATE_LABELS.default;
 
   return (
-    <div className="rounded-lg border border-[var(--border)]/50 overflow-hidden">
+    <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
       {/* Header — always visible */}
       <button
         onClick={() => setExpanded((v) => !v)}
@@ -81,7 +81,7 @@ function ExpectationCard({ expectation, index }: { expectation: VisualExpectatio
 
       {/* Body — expanded */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]/30">
+        <div className="px-4 pb-4 space-y-3 border-t border-[var(--border-subtle)]">
           {/* Description */}
           <p className="text-[var(--text-sm)] text-[var(--text-secondary)] pt-3">
             {expectation.description}
@@ -154,14 +154,14 @@ export function VisualExpectationsSection({
 
   return (
     <div className="space-y-4">
-      {/* Excalidraw wireframe (if available) */}
-      {excalidrawData && ticketId && onSaveExcalidraw && (
+      {/* Excalidraw wireframe — disabled until quality improvements are done */}
+      {/* {excalidrawData && ticketId && onSaveExcalidraw && (
         <ExcalidrawEditor
           excalidrawData={excalidrawData}
           ticketId={ticketId}
           onSave={onSaveExcalidraw}
         />
-      )}
+      )} */}
 
       {/* Summary */}
       <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">

@@ -49,7 +49,7 @@ export default function AuthLayout({
           <div className="flex justify-center mb-6">
             <img
               src="/forge-icon.png"
-              alt="Forge"
+              alt="forge"
               width={140}
               height={140}
               className="drop-shadow-2xl"

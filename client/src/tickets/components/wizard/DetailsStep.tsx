@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
-import { Lightbulb, Bug, ClipboardList, Folder, PenLine } from 'lucide-react';
+import { Lightbulb, Bug, ClipboardList, Folder, PenLine, FileUp } from 'lucide-react';
 import { useFoldersStore } from '@/stores/folders.store';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { MarkdownInput } from './MarkdownInput';
@@ -30,6 +30,19 @@ export function DetailsStep() {
   const { folders, loadFolders } = useFoldersStore();
   const [editorOpen, setEditorOpen] = useState(false);
   const handleEditorClose = useCallback(() => setEditorOpen(false), []);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      setTitle(input.title ? `${input.title}\n\n${content}` : content);
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [input.title, setTitle]);
 
   // Load folders on mount
   useEffect(() => {
@@ -147,15 +160,33 @@ export function DetailsStep() {
           <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Ticket Description
           </label>
-          <button
-            type="button"
-            onClick={() => setEditorOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--purple)] hover:text-[var(--text)] border border-[var(--purple)]/40 hover:border-[var(--purple)] rounded-md transition-colors hover:bg-[var(--purple)]/10"
-            title="Open full markdown editor"
-          >
-            <PenLine className="h-3.5 w-3.5" />
-            Open Editor
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text)] border border-[var(--border-subtle)] hover:border-[var(--border)] rounded-md transition-colors hover:bg-[var(--bg-hover)]"
+              title="Import a text file (.md, .txt, .csv, .json, .xml, .yaml) into the description"
+            >
+              <FileUp className="h-3.5 w-3.5" />
+              Import
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".md,.txt,.markdown,.text,.csv,.json,.xml,.yaml,.yml"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => setEditorOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--purple)] hover:text-[var(--text)] border border-[var(--purple)]/40 hover:border-[var(--purple)] rounded-md transition-colors hover:bg-[var(--purple)]/10"
+              title="Open full markdown editor"
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              Open Editor
+            </button>
+          </div>
         </div>
         <MarkdownInput
           value={input.title}

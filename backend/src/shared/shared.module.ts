@@ -15,9 +15,12 @@ import { FirestoreTeamMemberRepository } from '../teams/infrastructure/persisten
     GitHubApiService,
     {
       provide: EmailService,
-      useClass: process.env.SENDGRID_API_KEY
-        ? SendGridEmailService
-        : ConsoleEmailService,
+      useFactory: () => {
+        if (process.env.SENDGRID_API_KEY) {
+          return new SendGridEmailService();
+        }
+        return new ConsoleEmailService();
+      },
     },
     // Add repositories needed by WorkspaceGuard (globally available)
     {

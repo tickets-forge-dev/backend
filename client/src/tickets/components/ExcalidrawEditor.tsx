@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Pencil, Save, X, Sparkles, Undo2, Check, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
@@ -27,6 +27,28 @@ interface ExcalidrawEditorProps {
   onSave: (updatedData: ExcalidrawDataSpec) => Promise<void>;
 }
 
+/** Detect current theme from document attribute */
+function useAppTheme(): 'light' | 'dark' {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const detect = () => {
+      const attr = document.documentElement.getAttribute('data-theme');
+      if (attr === 'light') return setTheme('light');
+      if (attr === 'dark') return setTheme('dark');
+      // system preference fallback
+      setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    };
+    detect();
+
+    const observer = new MutationObserver(detect);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return theme;
+}
+
 export function ExcalidrawEditor({ excalidrawData, ticketId, onSave }: ExcalidrawEditorProps) {
   const [mode, setMode] = useState<EditorMode>('view');
   const [elements, setElements] = useState<any[]>(excalidrawData.elements);
@@ -34,6 +56,7 @@ export function ExcalidrawEditor({ excalidrawData, ticketId, onSave }: Excalidra
   const [refineInput, setRefineInput] = useState('');
   const [isRefining, setIsRefining] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const appTheme = useAppTheme();
 
   const ticketService = useMemo(() => new TicketService(), []);
 
@@ -147,7 +170,7 @@ export function ExcalidrawEditor({ excalidrawData, ticketId, onSave }: Excalidra
 
       {/* Canvas */}
       <div
-        className="rounded-lg border border-[var(--border-subtle)] overflow-hidden bg-white"
+        className="rounded-lg border border-[var(--border-subtle)] overflow-hidden"
         style={{ height: 500 }}
       >
         <Excalidraw
@@ -156,7 +179,7 @@ export function ExcalidrawEditor({ excalidrawData, ticketId, onSave }: Excalidra
           zenModeEnabled={mode === 'view'}
           gridModeEnabled={mode === 'edit'}
           onChange={handleChange}
-          theme="light"
+          theme={appTheme}
         />
       </div>
 

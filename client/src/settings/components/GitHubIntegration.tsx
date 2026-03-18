@@ -317,86 +317,117 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
             </div>
           )}
 
-          {/* Repository Selection */}
-          <div className="space-y-3">
-            <h4 className="text-[var(--text-sm)] font-medium text-[var(--text)]">Select Repositories</h4>
+          {/* Step-based Repository Setup */}
+          <div className="space-y-4">
+            {/* Step 1: Select repos */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className={`flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-semibold ${
+                  localSelectedRepos.size > 0
+                    ? 'bg-green-500/20 text-green-500'
+                    : 'bg-[var(--purple)]/20 text-[var(--purple)]'
+                }`}>
+                  {localSelectedRepos.size > 0 ? <Check className="h-3 w-3" /> : '1'}
+                </span>
+                <h4 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+                  Select your repositories
+                </h4>
+                {localSelectedRepos.size > 0 && (
+                  <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                    {localSelectedRepos.size} selected
+                  </span>
+                )}
+              </div>
 
-            {/* Search */}
-            {githubRepositories.length > 5 && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
-                <Input
-                  placeholder="Search repositories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            )}
+              {/* Search */}
+              {githubRepositories.length > 5 && (
+                <div className="relative ml-7">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
+                  <Input
+                    placeholder="Search repositories..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              )}
 
-            {/* Repository List */}
-            {isLoadingRepositories ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
+              {/* Repository List */}
+              <div className="ml-7">
+                {isLoadingRepositories ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
+                  </div>
+                ) : repositoriesError && !githubTokenInvalid ? (
+                  <div className="rounded-lg bg-red-500/10 p-3 flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5" />
+                    <p className="text-[var(--text-sm)] text-[var(--red)]">{repositoriesError}</p>
+                  </div>
+                ) : filteredRepositories.length === 0 ? (
+                  <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] text-center py-4">
+                    {searchQuery ? 'No repositories match your search' : 'No repositories found'}
+                  </p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto space-y-0.5">
+                    {filteredRepositories.map((repo) => (
+                      <label
+                        key={repo.id}
+                        className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--bg-hover)] cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={localSelectedRepos.has(repo.id)}
+                          onChange={() => handleToggleRepository(repo.id)}
+                          className="sr-only"
+                        />
+                        {localSelectedRepos.has(repo.id) ? (
+                          <CheckSquare2 className="h-4 w-4 text-[var(--purple)] flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <Square className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[var(--text-sm)] font-medium text-[var(--text)] truncate">{repo.fullName}</p>
+                          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                            {repo.private ? 'Private' : 'Public'} · {repo.defaultBranch}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : repositoriesError && !githubTokenInvalid ? (
-              <div className="rounded-lg bg-red-500/10 p-3 flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-[var(--red)] mt-0.5" />
-                <p className="text-[var(--text-sm)] text-[var(--red)]">{repositoriesError}</p>
-              </div>
-            ) : filteredRepositories.length === 0 ? (
-              <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] text-center py-4">
-                {searchQuery ? 'No repositories match your search' : 'No repositories found'}
-              </p>
-            ) : (
-              <div className="max-h-64 overflow-y-auto space-y-0.5">
-                {filteredRepositories.map((repo) => (
-                  <label
-                    key={repo.id}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--bg-hover)] cursor-pointer transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={localSelectedRepos.has(repo.id)}
-                      onChange={() => handleToggleRepository(repo.id)}
-                      className="sr-only"
-                    />
-                    {localSelectedRepos.has(repo.id) ? (
-                      <CheckSquare2 className="h-4 w-4 text-[var(--purple)] flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <Square className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[var(--text-sm)] font-medium text-[var(--text)] truncate">{repo.fullName}</p>
-                      <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                        {repo.private ? 'Private' : 'Public'} · {repo.defaultBranch}
-                      </p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
+            </div>
 
-            {/* Save Selection Button */}
-            {localSelectedRepos.size > 0 && (
-              <div className="flex justify-end mt-4">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSaveSelection}
-                  disabled={isSaving || isLoadingRepositories}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>Save Selection ({localSelectedRepos.size})</>
-                  )}
-                </Button>
-              </div>
-            )}
+            {/* Step 2: Save */}
+            <div className="flex items-center gap-2.5 ml-0">
+              <span className={`flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-semibold ${
+                localSelectedRepos.size > 0
+                  ? 'bg-[var(--purple)]/20 text-[var(--purple)]'
+                  : 'bg-[var(--bg-hover)] text-[var(--text-tertiary)]'
+              }`}>
+                2
+              </span>
+              <Button
+                size="sm"
+                onClick={handleSaveSelection}
+                disabled={isSaving || isLoadingRepositories || localSelectedRepos.size === 0}
+                className="bg-[var(--purple)] hover:bg-[var(--purple)]/80 disabled:opacity-40"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>Save{localSelectedRepos.size > 0 ? ` (${localSelectedRepos.size})` : ''}</>
+                )}
+              </Button>
+              {localSelectedRepos.size === 0 && (
+                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                  Select at least one repository first
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}

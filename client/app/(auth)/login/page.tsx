@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
 import Image from 'next/image';
@@ -39,18 +39,30 @@ function GitHubIcon({ className }: { className?: string }) {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, hasTeams, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
 
   useEffect(() => {
     if (user && hasTeams !== null) {
-      if (hasTeams) {
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo?.startsWith('/')) {
+        router.push(returnTo);
+      } else if (hasTeams) {
         router.push('/tickets');
       } else {
         router.push('/onboarding/team-name');
       }
     }
-  }, [user, hasTeams, router]);
+  }, [user, hasTeams, router, searchParams]);
 
   const handleGoogleSignIn = async () => {
     clearError();
@@ -69,14 +81,14 @@ export default function LoginPage() {
         <div className="flex justify-center mb-6">
           <Image
             src="/forge-icon.png"
-            alt="Forge"
+            alt="forge"
             width={120}
             height={120}
             className="drop-shadow-xl"
           />
         </div>
         <h1 className="text-[var(--text-2xl)] font-semibold text-white">
-          Forge
+          forge
         </h1>
         <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-2">
           Transform product intent into execution-ready tickets

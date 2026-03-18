@@ -155,7 +155,7 @@ export function AnalysisProgressDialog({
               <div
                 key={phase.key}
                 ref={isActive ? activePhaseRef : null}
-                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-150 ${
+                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-300 ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-950/30'
                     : isComplete

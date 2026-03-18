@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, Loader2, Plus, Users } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Plus, Settings, Users } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ import { useTeamStore } from '@/teams/stores/team.store';
 import { useUIStore } from '@/stores/ui.store';
 import { CreateTeamDialog } from './CreateTeamDialog';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 /**
  * TeamSwitcher Component
@@ -87,47 +88,48 @@ export function TeamSwitcher() {
 
   return (
     <div className="border-b border-[var(--border)] p-3">
-      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            disabled={isSwitching}
-            className={cn(
-              'w-full gap-2 py-2 h-auto',
-              sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-2'
-            )}
-          >
-            {/* Left: Icon + Team Name */}
-            <div className="flex items-center gap-2 min-w-0">
-              {isSwitching && sidebarCollapsed ? (
-                <Loader2 className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
-              ) : (
-                <Users className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+      <div className="flex items-center gap-1">
+        <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              disabled={isSwitching}
+              className={cn(
+                'flex-1 min-w-0 gap-2 py-2 h-auto',
+                sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-2'
               )}
-              {!sidebarCollapsed && (
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text)] truncate">
-                  {currentTeamName}
-                </span>
-              )}
-            </div>
-            {/* Right: Role Badge + Chevron/Loader */}
-            {!sidebarCollapsed && (
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Badge
-                  variant="outline"
-                  className="text-[10px] px-1.5 py-0 text-[var(--text-secondary)]"
-                >
-                  {currentTeam ? (isOwner ? 'Owner' : 'Member') : 'Private'}
-                </Badge>
-                {isSwitching ? (
-                  <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] animate-spin" />
+            >
+              {/* Left: Icon + Team Name */}
+              <div className="flex items-center gap-2 min-w-0">
+                {isSwitching && sidebarCollapsed ? (
+                  <Loader2 className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
                 ) : (
-                  <ChevronDown className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                  <Users className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+                )}
+                {!sidebarCollapsed && (
+                  <span className="text-[var(--text-sm)] font-medium text-[var(--text)] truncate">
+                    {currentTeamName}
+                  </span>
                 )}
               </div>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
+              {/* Right: Role Badge + Chevron/Loader */}
+              {!sidebarCollapsed && (
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 text-[var(--text-secondary)]"
+                  >
+                    {currentTeam ? (isOwner ? 'Owner' : 'Member') : 'Private'}
+                  </Badge>
+                  {isSwitching ? (
+                    <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] animate-spin" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                  )}
+                </div>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
           side="right"
@@ -199,6 +201,20 @@ export function TeamSwitcher() {
           />
         </DropdownMenuContent>
       </DropdownMenu>
+      {/* Team settings gear icon - only shown when a team is selected and sidebar is expanded */}
+      {currentTeam && !sidebarCollapsed && (
+        <Link
+          href={`/teams/${currentTeam.id}`}
+          title="Team settings"
+          className={cn(
+            'flex items-center justify-center rounded-md p-1.5 flex-shrink-0 transition-colors',
+            'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+          )}
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </Link>
+      )}
+      </div>
     </div>
   );
 }

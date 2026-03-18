@@ -4,9 +4,10 @@ import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
 import { DeleteAECUseCase } from './application/use-cases/DeleteAECUseCase';
 import { EstimateEffortUseCase } from './application/use-cases/EstimateEffortUseCase';
-import { StartQuestionRoundUseCase } from './application/use-cases/StartQuestionRoundUseCase';
-import { SubmitAnswersUseCase } from './application/use-cases/SubmitAnswersUseCase';
+// StartQuestionRoundUseCase and SubmitAnswersUseCase removed — superseded by
+// GenerateNextQuestionUseCase (one-at-a-time) and SubmitQuestionAnswersUseCase
 import { GenerateQuestionsUseCase } from './application/use-cases/GenerateQuestionsUseCase';
+import { GenerateNextQuestionUseCase } from './application/use-cases/GenerateNextQuestionUseCase';
 import { SubmitQuestionAnswersUseCase } from './application/use-cases/SubmitQuestionAnswersUseCase';
 import { FinalizeSpecUseCase } from './application/use-cases/FinalizeSpecUseCase';
 import { ValidationEngine } from './application/services/validation/ValidationEngine';
@@ -90,9 +91,8 @@ import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persist
     UpdateAECUseCase,
     DeleteAECUseCase,
     EstimateEffortUseCase,
-    StartQuestionRoundUseCase,
-    SubmitAnswersUseCase,
     GenerateQuestionsUseCase,
+    GenerateNextQuestionUseCase,
     SubmitQuestionAnswersUseCase,
     FinalizeSpecUseCase,
     ExportToLinearUseCase,

@@ -207,7 +207,7 @@ export function getValidationChecks(
  */
 export function logValidationResults(result: ConfigValidationResult): void {
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('⚡ Forge Configuration Status');
+  console.log('⚡ forge Configuration Status');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   const checks = getValidationChecks(result);

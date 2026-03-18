@@ -145,16 +145,16 @@ export class FinalizeSpecUseCase {
 
     console.log(`✨ [FinalizeSpecUseCase] Final spec persisted, AEC ready for validation`);
 
-    // Deferred: Generate Excalidraw wireframes in background (non-blocking)
-    if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
-      this.generateWireframesInBackground(
-        aec.id,
-        aec.teamId,
-        techSpec,
-        aec.wireframeContext ?? undefined,
-        wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
-      );
-    }
+    // Excalidraw wireframe generation disabled — will be re-enabled after quality improvements
+    // if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
+    //   this.generateWireframesInBackground(
+    //     aec.id,
+    //     aec.teamId,
+    //     techSpec,
+    //     aec.wireframeContext ?? undefined,
+    //     wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
+    //   );
+    // }
 
     return aec;
   }

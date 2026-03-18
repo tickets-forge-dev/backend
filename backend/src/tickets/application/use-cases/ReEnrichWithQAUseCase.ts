@@ -9,12 +9,6 @@ import { AEC } from '../../domain/aec/AEC';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { TechSpecGenerator, CodebaseContext } from '../../domain/tech-spec/TechSpecGenerator';
 import { TECH_SPEC_GENERATOR } from '../ports/TechSpecGeneratorPort';
-import { CodebaseAnalyzer } from '../../domain/pattern-analysis/CodebaseAnalyzer';
-import { ProjectStackDetector } from '../../domain/stack-detection/ProjectStackDetector';
-import { GitHubFileService } from '../../../github/domain/github-file.service';
-import { CODEBASE_ANALYZER } from '../ports/CodebaseAnalyzerPort';
-import { PROJECT_STACK_DETECTOR } from '../ports/ProjectStackDetectorPort';
-import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
 import { TeamMemberRepository } from '../../../teams/application/ports/TeamMemberRepository';
 
 export interface ReEnrichWithQACommand {
@@ -26,14 +20,12 @@ export interface ReEnrichWithQACommand {
 /**
  * ReEnrichWithQAUseCase (Story 7-7)
  *
- * Re-enriches a ticket's tech spec and acceptance criteria using the
- * developer's Q&A answers stored in reviewSession.qaItems.
+ * Re-enriches a ticket's tech spec using the developer's Q&A answers.
+ * Reuses the existing codebase context from initial enrichment rather than
+ * re-fetching from GitHub — the developer's answers are the authoritative
+ * source of codebase decisions at this stage.
  *
- * Called when the PM clicks "Re-bake Ticket" after reviewing developer Q&A.
- * Status stays REVIEW — approve is handled by Story 7-8.
- *
- * Pattern mirrors FinalizeSpecUseCase: builds codebase context from
- * repositoryContext (if present), then calls generateWithAnswers().
+ * Called when the PM clicks "Approve" after reviewing developer Q&A.
  */
 @Injectable()
 export class ReEnrichWithQAUseCase {
@@ -45,12 +37,6 @@ export class ReEnrichWithQAUseCase {
     private readonly aecRepository: AECRepository,
     @Inject(TECH_SPEC_GENERATOR)
     private readonly techSpecGenerator: TechSpecGenerator,
-    @Inject(CODEBASE_ANALYZER)
-    private readonly codebaseAnalyzer: CodebaseAnalyzer,
-    @Inject(PROJECT_STACK_DETECTOR)
-    private readonly stackDetector: ProjectStackDetector,
-    @Inject(GITHUB_FILE_SERVICE)
-    private readonly githubFileService: GitHubFileService,
     @Inject('TeamMemberRepository')
     private readonly teamMemberRepository: TeamMemberRepository,
   ) {}
@@ -92,8 +78,10 @@ export class ReEnrichWithQAUseCase {
       answer: qa.answer,
     }));
 
-    // 5. Build codebase context (null-safe: works with or without repository)
-    const codebaseContext = await this.buildCodebaseContext(aec);
+    // 5. Reuse codebase context from the existing tech spec (already built during
+    //    initial enrichment). The developer's Q&A answers are the authoritative
+    //    source of codebase decisions at this stage — no need to re-fetch from GitHub.
+    const codebaseContext = this.reuseExistingContext(aec);
 
     // 6. Generate updated tech spec with Q&A answers as context
     const techSpec = await this.generateSpecWithRetry(
@@ -148,50 +136,66 @@ export class ReEnrichWithQAUseCase {
   }
 
   /**
-   * Build codebase context from ticket's repository context.
-   * Returns minimal context when no repository is linked.
-   * Mirrors the pattern in FinalizeSpecUseCase.buildCodebaseContext().
+   * Reuse codebase context from the existing tech spec.
+   *
+   * At re-enrich time, the ticket already went through initial enrichment
+   * (which fetched from GitHub) and developer review (which added human
+   * codebase knowledge via Q&A). Re-fetching from GitHub would be:
+   * - Redundant (context already exists in the spec)
+   * - Unreliable (GitHub auth may not be available)
+   * - Less accurate (developer's answers supersede static analysis)
    */
-  private async buildCodebaseContext(aec: AEC): Promise<CodebaseContext> {
-    const repoContext = aec.repositoryContext;
+  private reuseExistingContext(aec: AEC): CodebaseContext {
+    const existingSpec = aec.techSpec;
 
-    if (!repoContext) {
-      return this.minimalContext();
+    if (existingSpec?.stack) {
+      // Build a lightweight context from what we already know
+      return {
+        stack: {
+          framework: existingSpec.stack.framework
+            ? { name: existingSpec.stack.framework, version: '', majorVersion: 0 }
+            : null,
+          language: {
+            name: existingSpec.stack.language ?? 'unknown',
+            detected: !!existingSpec.stack.language,
+            confidence: existingSpec.stack.language ? 100 : 0,
+          },
+          packageManager: { type: (existingSpec.stack.packageManager as 'npm' | 'yarn' | 'pnpm' | 'bun') ?? 'npm' },
+          dependencies: [],
+          devDependencies: [],
+          tooling: {},
+          hasWorkspaces: false,
+          isMonorepo: false,
+        },
+        analysis: {
+          architecture: { type: 'unknown', confidence: 0, signals: [], directories: [] },
+          naming: {
+            files: 'kebab-case',
+            variables: 'camelCase',
+            functions: 'camelCase',
+            classes: 'PascalCase',
+            components: 'PascalCase',
+            confidence: 0,
+          },
+          testing: {
+            runner: null,
+            location: 'colocated',
+            namingPattern: '*.test.ts',
+            libraries: [],
+            confidence: 0,
+          },
+          stateManagement: { type: 'unknown', packages: [], patterns: [], confidence: 0 },
+          apiRouting: { type: 'unknown', baseDirectory: '', conventions: [], confidence: 0 },
+          directories: [],
+          overallConfidence: 0,
+          recommendations: [],
+        },
+        fileTree: { sha: '', url: '', tree: [], truncated: false },
+        files: new Map(),
+      };
     }
 
-    try {
-      const [owner, repo] = repoContext.repositoryFullName.split('/');
-
-      const fileTree = await this.githubFileService.getTree(owner, repo, repoContext.branchName);
-
-      const filesMap = new Map<string, string>();
-      const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
-
-      for (const fileName of keyFiles) {
-        try {
-          const content = await this.githubFileService.readFile(
-            owner,
-            repo,
-            fileName,
-            repoContext.branchName,
-          );
-          filesMap.set(fileName, content);
-        } catch {
-          // File may not exist in this repo — skip
-        }
-      }
-
-      const stack = await this.stackDetector.detectStack(filesMap);
-      const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
-
-      return { stack, analysis, fileTree, files: filesMap };
-    } catch (error) {
-      console.error(
-        '[ReEnrichWithQAUseCase] Error building codebase context, falling back to minimal:',
-        error instanceof Error ? error.message : String(error),
-      );
-      return this.minimalContext();
-    }
+    return this.minimalContext();
   }
 
   private minimalContext(): CodebaseContext {
