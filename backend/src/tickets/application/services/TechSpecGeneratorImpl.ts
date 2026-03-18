@@ -405,8 +405,7 @@ Generate valid JSON array:
     "path": "src/path/to/file.ts",
     "action": "create|modify|delete",
     "lineNumbers": [10, 50],
-    "suggestedContent": "For create: stub or template code",
-    "suggestedChanges": "For modify: specific changes to make",
+    "suggestedChanges": "Brief description of what to change or create (1-2 sentences, NOT code)",
     "imports": {
       "add": ["import { foo } from 'bar'"],
       "remove": ["import { oldFoo }"]
@@ -419,10 +418,10 @@ IMPORTANT:
 - action: MUST be "create", "modify", or "delete"
 - path: Full path from project root
 - lineNumbers: [start, end] only for modify action
-- suggestedContent: Only for create action
-- suggestedChanges: Only for modify action
+- suggestedChanges: 1-2 sentence description of what to do. Do NOT include code, templates, or stubs
 - imports: Optional, only when imports change
 - pattern: Reference to existing code pattern (e.g., "Follow UserStore pattern in src/stores/UserStore.ts")
+- Keep responses concise — describe intent, not implementation
 - Valid JSON array only`;
   }
 
@@ -1320,7 +1319,7 @@ Return ONLY valid JSON.`;
         fileChanges,
       );
 
-      const response = await this.callLLM(systemPrompt, userPrompt);
+      const response = await this.callLLM(systemPrompt, userPrompt, undefined, 8192);
       const parsed = this.parseJSON<TestPlan>(response);
 
       // Validate minimum structure
@@ -1717,7 +1716,7 @@ Return valid JSON:
   "flowDiagram": "ASCII flow diagram (use \\n for newlines, arrows like →, boxes like [Step])"
 }`;
 
-      const response = await this.callLLM(systemPrompt, userPrompt);
+      const response = await this.callLLM(systemPrompt, userPrompt, undefined, 8192);
       const parsed = this.parseJSON<VisualExpectations>(response);
 
       if (!parsed.summary || !Array.isArray(parsed.expectations)) {
@@ -2225,6 +2224,7 @@ Rewritten text (definitive, unambiguous):`;
     systemPrompt: string,
     userPrompt: string,
     trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
+    maxOutputTokens = 4096,
   ): Promise<any> {
     if (!this.llmModel) {
       throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
@@ -2243,7 +2243,7 @@ Rewritten text (definitive, unambiguous):`;
           model: this.llmModel,
           system: systemPrompt,
           prompt: userPrompt + jsonSuffix,
-          maxOutputTokens: 4096,
+          maxOutputTokens,
           temperature: 0.2,
         });
 

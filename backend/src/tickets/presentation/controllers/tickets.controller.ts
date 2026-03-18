@@ -44,6 +44,7 @@ import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDete
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { ProjectStackDetector } from '@tickets/domain/stack-detection/ProjectStackDetector';
 import { Inject, BadRequestException, ForbiddenException, Req, Query } from '@nestjs/common';
+import { FirebaseService } from '../../../shared/infrastructure/firebase/firebase.config';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
@@ -89,7 +90,7 @@ import {
   BulkCreateFromBreakdownRequestDto,
   BulkCreateFromBreakdownResponseDto,
 } from '../dto/PRDBreakdownDto';
-import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
 import { AssignTicketUseCase } from '../../application/use-cases/AssignTicketUseCase';
 import { AssignTicketDto } from '../dto/AssignTicketDto';
 import { SubmitReviewSessionUseCase } from '../../application/use-cases/SubmitReviewSessionUseCase';
@@ -155,6 +156,7 @@ export class TicketsController {
     private readonly telemetry: TelemetryService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    private readonly firebaseService: FirebaseService,
   ) {}
 
   /**
@@ -393,13 +395,27 @@ export class TicketsController {
     };
   }
 
-  @Get(':id(aec_[a-f0-9\\-]+)')
-  async getTicket(@TeamId() teamId: string, @Param('id') id: string) {
-    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
-    if (!aec) {
-      throw new NotFoundException('Ticket not found');
-    }
+  @Get('archived')
+  async listArchivedTickets(@TeamId() teamId: string) {
+    const tickets = await this.aecRepository.findArchivedByTeam(teamId);
+    return tickets.map((aec) => ({
+      id: aec.id,
+      slug: aec.slug ?? null,
+      title: aec.title,
+      status: aec.status,
+      previousStatus: aec.previousStatus,
+      type: aec.type,
+      priority: aec.priority,
+      createdAt: aec.createdAt,
+      updatedAt: aec.updatedAt,
+      assignedTo: aec.assignedTo,
+      folderId: aec.folderId,
+    }));
+  }
 
+  @Get(':id')
+  async getTicket(@TeamId() teamId: string, @Param('id') id: string) {
+    const aec = await this.resolveTicket(id, teamId);
     return this.mapToResponse(aec);
   }
 
@@ -420,10 +436,11 @@ export class TicketsController {
   }
 
   @Patch(':id')
-  async updateTicket(@Param('id') id: string, @Body() dto: UpdateAECDto) {
+  async updateTicket(@TeamId() teamId: string, @Param('id') id: string, @Body() dto: UpdateAECDto) {
     try {
+      const aecId = await this.resolveTicketId(id, teamId);
       const aec = await this.updateAECUseCase.execute({
-        aecId: id,
+        aecId,
         title: dto.title,
         description: dto.description,
         acceptanceCriteria: dto.acceptanceCriteria,
@@ -444,13 +461,15 @@ export class TicketsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTicket(@TeamId() teamId: string, @Param('id') id: string) {
-    await this.deleteAECUseCase.execute(id, teamId);
+    const aecId = await this.resolveTicketId(id, teamId);
+    await this.deleteAECUseCase.execute(aecId, teamId);
   }
 
   @Patch(':id/archive')
   async archiveTicket(@TeamId() teamId: string, @Param('id') id: string) {
     try {
-      await this.archiveAECUseCase.execute(id, teamId);
+      const aecId = await this.resolveTicketId(id, teamId);
+      await this.archiveAECUseCase.execute(aecId, teamId);
       return { success: true };
     } catch (error) {
       if (error instanceof InvalidStateTransitionError) {
@@ -463,7 +482,8 @@ export class TicketsController {
   @Patch(':id/unarchive')
   async unarchiveTicket(@TeamId() teamId: string, @Param('id') id: string) {
     try {
-      await this.unarchiveAECUseCase.execute(id, teamId);
+      const aecId = await this.resolveTicketId(id, teamId);
+      await this.unarchiveAECUseCase.execute(aecId, teamId);
       return { success: true };
     } catch (error) {
       if (error instanceof InvalidStateTransitionError) {
@@ -471,23 +491,6 @@ export class TicketsController {
       }
       throw error;
     }
-  }
-
-  @Get('archived')
-  async listArchivedTickets(@TeamId() teamId: string) {
-    const tickets = await this.aecRepository.findArchivedByTeam(teamId);
-    return tickets.map((aec) => ({
-      id: aec.id,
-      title: aec.title,
-      status: aec.status,
-      previousStatus: aec.previousStatus,
-      type: aec.type,
-      priority: aec.priority,
-      createdAt: aec.createdAt,
-      updatedAt: aec.updatedAt,
-      assignedTo: aec.assignedTo,
-      folderId: aec.folderId,
-    }));
   }
 
   /**
@@ -501,8 +504,9 @@ export class TicketsController {
     @Param('id') id: string,
     @Body() dto: AssignTicketDto,
   ) {
+    const aecId = await this.resolveTicketId(id, teamId);
     await this.assignTicketUseCase.execute({
-      ticketId: id,
+      ticketId: aecId,
       userId: dto.userId,
       requestingUserId: userId,
       teamId,
@@ -521,8 +525,9 @@ export class TicketsController {
     @Param('id') id: string,
     @Body() dto: SubmitReviewSessionDto,
   ) {
+    const aecId = await this.resolveTicketId(id, teamId);
     return this.submitReviewSessionUseCase.execute({
-      ticketId: id,
+      ticketId: aecId,
       teamId,
       qaItems: dto.qaItems,
     });
@@ -538,8 +543,9 @@ export class TicketsController {
     @Param('id') id: string,
     @Body() dto: StartImplementationDto,
   ) {
+    const aecId = await this.resolveTicketId(id, teamId);
     return this.startImplementationUseCase.execute({
-      ticketId: id,
+      ticketId: aecId,
       teamId,
       branchName: dto.branchName,
       qaItems: dto.qaItems,
@@ -564,15 +570,25 @@ export class TicketsController {
       throw new BadRequestException('instruction and currentElements are required');
     }
 
-    const elements = await this.refineWireframeUseCase.execute({
-      ticketId: id,
-      teamId,
-      userId,
-      instruction: body.instruction,
-      currentElements: body.currentElements,
-    });
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const elements = await this.refineWireframeUseCase.execute({
+        ticketId: aecId,
+        teamId,
+        userId,
+        instruction: body.instruction,
+        currentElements: body.currentElements,
+      });
 
-    return { elements };
+      return { elements };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[refine-wireframe] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI wireframe refinement failed — please try again. Details: ${message}`);
+    }
   }
 
   /**
@@ -589,8 +605,20 @@ export class TicketsController {
     @UserId() userId: string,
     @Param('id') id: string,
   ) {
-    const aec = await this.reEnrichWithQAUseCase.execute({ ticketId: id, teamId, requestingUserId: userId });
-    return this.mapToResponse(aec);
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const aec = await this.reEnrichWithQAUseCase.execute({ ticketId: aecId, teamId, requestingUserId: userId });
+      return this.mapToResponse(aec);
+    } catch (error) {
+      // NestJS HTTP exceptions (404, 403, 400) — rethrow as-is
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      // LLM / generation failures — return 503 so the client can show a retry prompt
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[re-enrich] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI generation failed — please try again. Details: ${message}`);
+    }
   }
 
   /**
@@ -604,27 +632,38 @@ export class TicketsController {
     @TeamId() teamId: string,
     @Param('id') id: string,
   ) {
-    const aec = await this.approveTicketUseCase.execute({ ticketId: id, teamId });
+    const aecId = await this.resolveTicketId(id, teamId);
+    const aec = await this.approveTicketUseCase.execute({ ticketId: aecId, teamId });
     return this.mapToResponse(aec);
   }
 
   /**
    * Generate clarification questions (simplified single-call flow)
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/generate-questions')
+  @Post(':id/generate-questions')
   async generateQuestions(
     @TeamId() teamId: string,
     @Param('id') id: string,
     @UserId() userId: string,
   ) {
-    const questions = await this.generateQuestionsUseCase.execute({
-      aecId: id,
-      teamId,
-    });
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const questions = await this.generateQuestionsUseCase.execute({
+        aecId,
+        teamId,
+      });
 
-    this.telemetry.trackQuestionsGenerated(userId, id, questions.length);
+      this.telemetry.trackQuestionsGenerated(userId, aecId, questions.length);
 
-    return { questions };
+      return { questions };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[generate-questions] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI question generation failed — please try again. Details: ${message}`);
+    }
   }
 
   /**
@@ -633,86 +672,112 @@ export class TicketsController {
    * Returns { question, assumptions } where question is null when the LLM
    * has enough info to generate a spec.
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/next-question')
+  @Post(':id/next-question')
   async generateNextQuestion(
     @TeamId() teamId: string,
     @Param('id') id: string,
     @Body() body: { previousAnswers?: Record<string, string | string[]> },
   ) {
-    const result = await this.generateNextQuestionUseCase.execute({
-      aecId: id,
-      teamId,
-      previousAnswers: body.previousAnswers ?? {},
-    });
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const result = await this.generateNextQuestionUseCase.execute({
+        aecId,
+        teamId,
+        previousAnswers: body.previousAnswers ?? {},
+      });
 
-    return result;
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[next-question] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI question generation failed — please try again. Details: ${message}`);
+    }
   }
 
   /**
    * Submit question answers and finalize technical specification
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/submit-answers')
+  @Post(':id/submit-answers')
   async submitQuestionAnswers(
     @TeamId() teamId: string,
     @Param('id') id: string,
     @UserId() userId: string,
     @Body() dto: SubmitAnswersDto,
   ) {
-    const aec = await this.submitQuestionAnswersUseCase.execute({
-      aecId: id,
-      teamId,
-      answers: dto.answers ?? {},
-    });
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const aec = await this.submitQuestionAnswersUseCase.execute({
+        aecId,
+        teamId,
+        answers: dto.answers ?? {},
+      });
 
-    // Track spec finalization after answers are submitted
-    if (aec.techSpec) {
-      this.telemetry.trackSpecGenerated(
-        userId,
-        id,
-        aec.techSpec.qualityScore ?? 0,
-        0, // Duration not tracked at controller level, could be added to domain
-      );
+      // Track spec finalization after answers are submitted
+      if (aec.techSpec) {
+        this.telemetry.trackSpecGenerated(
+          userId,
+          aecId,
+          aec.techSpec.qualityScore ?? 0,
+          0, // Duration not tracked at controller level, could be added to domain
+        );
 
-      this.telemetry.trackTicketFinalized(
-        userId,
-        id,
-        0, // Total duration not tracked, would need to store creation time
-        0, // Total cost not tracked at this level
-      );
+        this.telemetry.trackTicketFinalized(
+          userId,
+          aecId,
+          0, // Total duration not tracked, would need to store creation time
+          0, // Total cost not tracked at this level
+        );
+      }
+
+      return this.mapToResponse(aec);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[submit-answers] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI spec generation failed — please try again. Details: ${message}`);
     }
-
-    return this.mapToResponse(aec);
   }
 
   /**
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/finalize')
+  @Post(':id/finalize')
   async finalizeSpec(@TeamId() teamId: string, @Param('id') id: string) {
-    const aec = await this.finalizeSpecUseCase.execute({
-      aecId: id,
-      teamId,
-    });
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const aec = await this.finalizeSpecUseCase.execute({
+        aecId,
+        teamId,
+      });
 
-    return this.mapToResponse(aec);
+      return this.mapToResponse(aec);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[finalize] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI spec finalization failed — please try again. Details: ${message}`);
+    }
   }
 
   /**
    * Export ticket as Markdown tech spec document.
    * Uses @Res() for custom Content-Type, so we manually handle errors.
    */
-  @Get(':id(aec_[a-f0-9\\-]+)/export/markdown')
+  @Get(':id/export/markdown')
   async exportMarkdown(
     @TeamId() teamId: string,
     @Param('id') id: string,
     @Res() res: Response,
   ) {
     try {
-      const aec = await this.aecRepository.findByIdInTeam(id, teamId);
-      if (!aec) {
-        res.status(400).json({ message: 'Ticket not found' });
-        return;
-      }
+      const aec = await this.resolveTicket(id, teamId);
       if (!aec.techSpec) {
         res.status(400).json({ message: 'Ticket has no tech spec. Generate a spec first.' });
         return;
@@ -725,6 +790,10 @@ export class TicketsController {
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(markdown);
     } catch (error: any) {
+      if (error instanceof NotFoundException) {
+        res.status(404).json({ message: error.message });
+        return;
+      }
       this.logger.error(`Export markdown failed: ${error.message}`);
       res.status(500).json({ message: 'Failed to export markdown' });
     }
@@ -734,18 +803,14 @@ export class TicketsController {
    * Export ticket as AEC XML contract.
    * Uses @Res() for custom Content-Type, so we manually handle errors.
    */
-  @Get(':id(aec_[a-f0-9\\-]+)/export/xml')
+  @Get(':id/export/xml')
   async exportXml(
     @TeamId() teamId: string,
     @Param('id') id: string,
     @Res() res: Response,
   ) {
     try {
-      const aec = await this.aecRepository.findByIdInTeam(id, teamId);
-      if (!aec) {
-        res.status(400).json({ message: 'Ticket not found' });
-        return;
-      }
+      const aec = await this.resolveTicket(id, teamId);
       if (!aec.techSpec) {
         res.status(400).json({ message: 'Ticket has no tech spec. Generate a spec first.' });
         return;
@@ -758,6 +823,10 @@ export class TicketsController {
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(xml);
     } catch (error: any) {
+      if (error instanceof NotFoundException) {
+        res.status(404).json({ message: error.message });
+        return;
+      }
       this.logger.error(`Export XML failed: ${error.message}`);
       res.status(500).json({ message: 'Failed to export XML' });
     }
@@ -767,12 +836,9 @@ export class TicketsController {
    * Detect APIs from the ticket's repository by scanning controller files.
    * Resolves per-user GitHub token (same pattern as analyzeRepository).
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/detect-apis')
+  @Post(':id/detect-apis')
   async detectApis(@TeamId() teamId: string, @WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
-    if (!aec) {
-      throw new BadRequestException('Ticket not found');
-    }
+    const aec = await this.resolveTicket(id, teamId);
 
     const repoContext = aec.repositoryContext;
     if (!repoContext?.repositoryFullName) {
@@ -865,7 +931,7 @@ export class TicketsController {
   /**
    * Upload a file attachment to a ticket.
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/attachments')
+  @Post(':id/attachments')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file', {
     storage: memoryStorage(),
@@ -891,10 +957,7 @@ export class TicketsController {
       );
     }
 
-    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
-    if (!aec) {
-      throw new BadRequestException('Ticket not found');
-    }
+    const aec = await this.resolveTicket(id, teamId);
 
     if (aec.attachments.length >= MAX_ATTACHMENTS) {
       throw new BadRequestException(`Maximum of ${MAX_ATTACHMENTS} attachments per ticket`);
@@ -928,10 +991,7 @@ export class TicketsController {
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
   ) {
-    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
-    if (!aec) {
-      throw new BadRequestException('Ticket not found');
-    }
+    const aec = await this.resolveTicket(id, teamId);
 
     const attachment = aec.attachments.find((a) => a.id === attachmentId);
     if (!attachment) {
@@ -946,16 +1006,12 @@ export class TicketsController {
   /**
    * List attachments for a ticket.
    */
-  @Get(':id(aec_[a-f0-9\\-]+)/attachments')
+  @Get(':id/attachments')
   async listAttachments(
     @TeamId() teamId: string,
     @Param('id') id: string,
   ) {
-    const aec = await this.aecRepository.findByIdInTeam(id, teamId);
-    if (!aec) {
-      throw new BadRequestException('Ticket not found');
-    }
-
+    const aec = await this.resolveTicket(id, teamId);
     return aec.attachments;
   }
 
@@ -965,7 +1021,7 @@ export class TicketsController {
    * Validates URL, auto-detects platform, stores reference.
    * Phase 2: Metadata fetching happens asynchronously.
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/design-references')
+  @Post(':id/design-references')
   @HttpCode(HttpStatus.CREATED)
   async addDesignReference(
     @TeamId() teamId: string,
@@ -974,8 +1030,9 @@ export class TicketsController {
     @Param('id') id: string,
     @Body() dto: AddDesignReferenceDto,
   ) {
+    const aecId = await this.resolveTicketId(id, teamId);
     const result = await this.addDesignReferenceUseCase.execute({
-      ticketId: id,
+      ticketId: aecId,
       teamId,
       userId,
       userEmail,
@@ -996,8 +1053,9 @@ export class TicketsController {
     @Param('id') id: string,
     @Param('referenceId') referenceId: string,
   ) {
+    const aecId = await this.resolveTicketId(id, teamId);
     await this.removeDesignReferenceUseCase.execute({
-      ticketId: id,
+      ticketId: aecId,
       referenceId,
       teamId,
     });
@@ -1013,8 +1071,9 @@ export class TicketsController {
     @Param('id') id: string,
     @Param('referenceId') referenceId: string,
   ) {
+    const aecId = await this.resolveTicketId(id, teamId);
     const result = await this.refreshDesignMetadataUseCase.execute({
-      ticketId: id,
+      ticketId: aecId,
       referenceId,
       teamId,
     });
@@ -1024,7 +1083,7 @@ export class TicketsController {
   /**
    * Export ticket to Linear as an issue.
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/export/linear')
+  @Post(':id/export/linear')
   async exportToLinear(
     @TeamId() teamId: string,
     @Param('id') id: string,
@@ -1032,8 +1091,9 @@ export class TicketsController {
     @Req() req: any,
   ) {
     try {
+      const aecId = await this.resolveTicketId(id, teamId);
       const result = await this.exportToLinearUseCase.execute({
-        aecId: id,
+        aecId,
         forgeTeamId: teamId,
         workspaceId: req.workspaceId,
         linearTeamId: body.teamId,
@@ -1047,7 +1107,7 @@ export class TicketsController {
   /**
    * Export ticket to Jira as an issue.
    */
-  @Post(':id(aec_[a-f0-9\\-]+)/export/jira')
+  @Post(':id/export/jira')
   async exportToJira(
     @TeamId() teamId: string,
     @Param('id') id: string,
@@ -1060,8 +1120,9 @@ export class TicketsController {
     try {
       // Use req.workspaceId for Jira integration lookup (legacy key format: ws_team_...)
       // while teamId is used for AEC ownership check
+      const aecId = await this.resolveTicketId(id, teamId);
       const result = await this.exportToJiraUseCase.execute({
-        aecId: id,
+        aecId,
         teamId,
         userId,
         workspaceId: req.workspaceId,
@@ -1074,9 +1135,39 @@ export class TicketsController {
     }
   }
 
+  /**
+   * Resolve a ticket by internal ID (aec_*) or human-friendly slug (e.g., forge-42).
+   * Returns the full AEC entity or throws NotFoundException.
+   */
+  private async resolveTicket(idOrSlug: string, teamId: string) {
+    const aec = idOrSlug.startsWith('aec_')
+      ? await this.aecRepository.findByIdInTeam(idOrSlug, teamId)
+      : await this.aecRepository.findBySlug(idOrSlug, teamId);
+    if (!aec) {
+      throw new NotFoundException('Ticket not found');
+    }
+    return aec;
+  }
+
+  /**
+   * Resolve a slug or internal ID to the internal aec_id.
+   * For use with use cases that accept aecId/ticketId strings.
+   */
+  private async resolveTicketId(idOrSlug: string, teamId: string): Promise<string> {
+    if (idOrSlug.startsWith('aec_')) {
+      return idOrSlug;
+    }
+    const aec = await this.aecRepository.findBySlug(idOrSlug, teamId);
+    if (!aec) {
+      throw new NotFoundException('Ticket not found');
+    }
+    return aec.id;
+  }
+
   private mapToResponse(aec: any) {
     return {
       id: aec.id,
+      slug: aec.slug ?? null,
       teamId: aec.teamId,
       status: aec.status,
       title: aec.title,
@@ -1541,5 +1632,72 @@ export class TicketsController {
     } catch (error: any) {
       throw new BadRequestException(`Failed to delete draft: ${error.message}`);
     }
+  }
+
+  /**
+   * Backfill slugs for existing tickets that don't have one.
+   * Assigns sequential slugs based on createdAt order.
+   * Admin-only: should be called once after deployment.
+   */
+  @Post('admin/backfill-slugs')
+  @HttpCode(HttpStatus.OK)
+  async backfillSlugs(
+    @TeamId() teamId: string,
+  ) {
+    const firestore = this.firebaseService.getFirestore();
+
+    // Fetch all tickets (active + archived), sorted by creation order
+    const allTickets = await this.aecRepository.findByTeam(teamId);
+    const archivedTickets = await this.aecRepository.findArchivedByTeam(teamId);
+    const tickets = [...allTickets, ...archivedTickets]
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    // Get team slug prefix
+    let teamSlug = 'forge';
+    const teamDoc = await firestore.collection('teams').doc(teamId).get();
+    if (teamDoc.exists) {
+      teamSlug = teamDoc.data()?.slug ?? 'forge';
+    }
+
+    let backfilledCount = 0;
+    let nextNumber = 1;
+
+    for (const ticket of tickets) {
+      if (ticket.slug) {
+        // Already has a slug — track highest number for counter
+        const match = ticket.slug.match(/-(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num >= nextNumber) nextNumber = num + 1;
+        }
+        continue;
+      }
+
+      const slug = `${teamSlug}-${nextNumber}`;
+      nextNumber++;
+
+      // Direct Firestore update (bypasses domain to avoid side effects)
+      const batch = firestore.batch();
+      batch.update(
+        firestore.collection('teams').doc(teamId).collection('aecs').doc(ticket.id),
+        { slug },
+      );
+      batch.set(
+        firestore.collection('slug_lookup').doc(slug),
+        { teamId, aecId: ticket.id },
+      );
+      await batch.commit();
+      backfilledCount++;
+    }
+
+    // Set counter to next available number
+    await firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('counters')
+      .doc('tickets')
+      .set({ nextNumber }, { merge: true });
+
+    return { backfilledCount, totalTickets: tickets.length, nextNumber, teamSlug };
   }
 }

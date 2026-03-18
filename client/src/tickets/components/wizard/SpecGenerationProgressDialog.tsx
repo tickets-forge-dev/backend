@@ -121,8 +121,8 @@ export function SpecGenerationProgressDialog({
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {isSubmitting
-              ? 'Processing your answers and building the final spec...'
-              : 'Analyzing your codebase and preparing clarifying questions...'}
+              ? 'Processing your answers and building the final spec. This may take a minute or two.'
+              : 'Analyzing your codebase and preparing clarifying questions. This may take a minute or two.'}
           </p>
         </div>
 
@@ -137,7 +137,7 @@ export function SpecGenerationProgressDialog({
             return (
               <div
                 key={phase.key}
-                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-150 ${
+                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-300 ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-950/30'
                     : isComplete
