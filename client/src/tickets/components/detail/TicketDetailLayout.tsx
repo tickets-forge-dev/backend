@@ -163,14 +163,6 @@ export function TicketDetailLayout({
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      // Re-enrich first (re-bake spec + AEC with developer context), then approve
-      const reEnrichSuccess = await reEnrichTicket(ticketId);
-      if (!reEnrichSuccess) {
-        toast.error('Failed to update the ticket. Please try again.');
-        setIsApproving(false);
-        return;
-      }
-
       const success = await approveTicket(ticketId);
       if (success) {
         await fetchTicket(ticketId);
