@@ -68,6 +68,7 @@ export function Stage3Draft() {
   const router = useRouter();
   const {
     draftAecId,
+    draftAecSlug,
     spec,
     clarificationQuestions,
     questionAnswers,
@@ -463,7 +464,7 @@ export function Stage3Draft() {
             </Button>
             <Button
               onClick={() => {
-                if (draftAecId) router.push(`/tickets/${draftAecId}`);
+                if (draftAecId) router.push(`/tickets/${draftAecSlug || draftAecId}`);
               }}
             >
               View Ticket

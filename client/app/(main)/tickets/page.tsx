@@ -1120,7 +1120,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
   const { moveTicket } = useFoldersStore();
   const ticketStatus = getTicketStatusKey(ticket);
   const inProgress = isTicketInProgress(ticket);
-  const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.id}`;
+  const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.slug || ticket.id}`;
   const [isDragging, setIsDragging] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;

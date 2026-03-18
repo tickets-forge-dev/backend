@@ -13,6 +13,8 @@ import {
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
 import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
+import { FirestoreTeamRepository } from '../../../teams/infrastructure/persistence/FirestoreTeamRepository';
+import { TeamId } from '../../../teams/domain/TeamId';
 export const TICKET_LIMITS: Record<string, number> = {};
 export const DEFAULT_TICKET_LIMIT = Infinity;
 
@@ -50,6 +52,7 @@ export class CreateTicketUseCase {
     private readonly githubTokenService: GitHubTokenService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    private readonly teamRepository: FirestoreTeamRepository,
   ) {}
 
   async execute(command: CreateTicketCommand): Promise<AEC> {
@@ -91,6 +94,20 @@ export class CreateTicketUseCase {
       // No OAuth integration - code will be read on-demand via GitHubFileService
     }
 
+    // Generate human-friendly slug: {team-slug}-{number}
+    let slug: string | undefined;
+    try {
+      const team = await this.teamRepository.getById(TeamId.create(command.teamId));
+      if (team) {
+        const teamSlug = team.getSlug();
+        const nextNumber = await this.aecRepository.getNextTicketNumber(command.teamId);
+        slug = `${teamSlug}-${nextNumber}`;
+      }
+    } catch (error) {
+      // Non-fatal: ticket can still be created without a slug
+      console.warn('⚠️ [CreateTicketUseCase] Failed to generate slug:', error);
+    }
+
     // Create domain entity
     const aec = AEC.createDraft(
       command.teamId,
@@ -110,6 +127,7 @@ export class CreateTicketUseCase {
         wireframeImageAttachmentIds: command.wireframeImageAttachmentIds,
         apiContext: command.apiContext,
       },
+      slug,
     );
 
     // Persist taskAnalysis from deep analysis if provided

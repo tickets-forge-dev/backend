@@ -55,7 +55,7 @@ function extractText(value: unknown, maxDepth = 5): string {
  */
 export function Stage4Review() {
   const router = useRouter();
-  const { draftAecId, spec, input, reset } = useWizardStore();
+  const { draftAecId, draftAecSlug, spec, input, reset } = useWizardStore();
 
   // No auto-redirect — let user click "View Ticket Details" manually
 
@@ -153,7 +153,7 @@ export function Stage4Review() {
         <Button
           onClick={() => {
             if (draftAecId) {
-              router.push(`/tickets/${draftAecId}`);
+              router.push(`/tickets/${draftAecSlug || draftAecId}`);
             }
           }}
         >

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { Inter, JetBrains_Mono, Unbounded } from 'next/font/google';
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import { PostHogProvider } from '@/src/components/PostHogProvider';
@@ -20,16 +20,16 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
-const unbounded = Unbounded({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-unbounded',
+  variable: '--font-display',
   display: 'swap',
-  weight: ['700'],
+  weight: ['500', '600', '700'],
 });
 
 export const metadata: Metadata = {
   title: 'forge',
-  description: 'Stop shipping half-baked tickets. forge turns ideas into verified execution contracts.',
+  description: 'Stop shipping half-baked tickets. forge turns rough ideas into complete, development-ready tickets.',
   manifest: '/manifest.json',
   icons: {
     icon: '/forge-icon.png',
@@ -63,7 +63,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`preload ${inter.variable} ${jetbrainsMono.variable} ${unbounded.variable}`}>
+      <body className={`preload ${inter.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

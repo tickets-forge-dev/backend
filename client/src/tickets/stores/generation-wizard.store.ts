@@ -48,6 +48,7 @@ interface WizardSnapshot {
   type: string;
   priority: string;
   draftAecId: string | null;
+  draftAecSlug: string | null;
   maxRounds: number;
   context: WizardState['context'];
   reproductionSteps: ReproductionStepSpec[];
@@ -69,6 +70,7 @@ function saveSnapshot(state: WizardState): void {
       type: state.type,
       priority: state.priority,
       draftAecId: state.draftAecId,
+      draftAecSlug: state.draftAecSlug,
       maxRounds: state.maxRounds,
       context: state.context,
       reproductionSteps: state.reproductionSteps,
@@ -249,6 +251,7 @@ export interface WizardState {
 
   // Simplified question refinement (NEW - single set, no rounds)
   draftAecId: string | null;
+  draftAecSlug: string | null;
   clarificationQuestions: ClarificationQuestion[];
   questionAnswers: Record<string, string | string[]>;
 
@@ -415,6 +418,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   pendingFiles: [],
   pendingDesignLinks: [],
   draftAecId: null,
+  draftAecSlug: null,
   clarificationQuestions: [],
   questionAnswers: {},
   assumptions: [],
@@ -997,6 +1001,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       if (state.maxRounds === 0) {
         set({
           draftAecId: aec.id,
+          draftAecSlug: aec.slug ?? null,
           loading: true,
           loadingMessage: 'Trivial task — generating spec directly...',
         });
@@ -1014,6 +1019,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           const finalizedAec = await finalizeResponse.json();
           set({
             draftAecId: aec.id,
+            draftAecSlug: aec.slug ?? null,
             spec: finalizedAec.techSpec,
             currentStage: 'generate' as WizardStage,
             loading: false,
@@ -1024,6 +1030,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           console.warn('Auto-finalize failed, falling back to 1 round:', finalizeError);
           set({
             draftAecId: aec.id,
+            draftAecSlug: aec.slug ?? null,
             maxRounds: 1,
             currentStage: 'generate' as WizardStage,
             loading: false,
@@ -1035,6 +1042,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       set({
         draftAecId: aec.id,
+        draftAecSlug: aec.slug ?? null,
         currentStage: 'generate' as WizardStage,
         loading: false,
       });
@@ -1315,6 +1323,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       set({
         draftAecId: aecId,
+        draftAecSlug: aec.slug ?? null,
         clarificationQuestions: questions,
         questionAnswers: answers,
         assumptions: aec.assumptions || [],
@@ -1494,6 +1503,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       pendingFiles: [],
       pendingDesignLinks: [],
       draftAecId: null,
+      draftAecSlug: null,
       clarificationQuestions: [],
       questionAnswers: {},
       questionRounds: [],

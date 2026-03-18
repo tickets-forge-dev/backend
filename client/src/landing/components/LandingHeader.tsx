@@ -13,7 +13,7 @@ export function LandingHeader() {
             height={32}
             className="drop-shadow-sm"
           />
-          <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-[var(--primary)] to-orange-500 text-transparent bg-clip-text">forge</span>
+          <span className="font-bold text-xl tracking-tight text-red-500">forge</span>
         </div>
         <div className="flex items-center gap-6">
           <Link

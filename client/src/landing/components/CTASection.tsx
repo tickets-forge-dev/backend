@@ -6,7 +6,7 @@ export function CTASection() {
       <div className="container mx-auto px-4 max-w-3xl text-center">
         <h2 className="text-3xl font-bold mb-4">Stop wasting time on bad tickets</h2>
         <p className="text-[var(--text-secondary)] mb-8 text-lg">
-          forge your first AEC in minutes. Free forever for individuals.
+          forge your first ticket in minutes. Free forever for individuals.
         </p>
         <Link
           href="/tickets"

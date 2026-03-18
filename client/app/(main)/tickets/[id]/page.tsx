@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus, Copy, Hash } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -49,6 +49,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
+  const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [exportPlatform, setExportPlatform] = useState<'linear' | 'jira'>('jira');
@@ -900,6 +901,32 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           )}
         </div>
       </div>
+
+      {/* Ticket ID — click to reveal, click to copy */}
+      {!isEditingTitle && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTicketIdVisible(!showTicketIdVisible)}
+            className="inline-flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+          >
+            <Hash className="h-3 w-3" />
+            {showTicketIdVisible ? 'Hide Ticket ID' : 'Show Ticket ID'}
+          </button>
+          {showTicketIdVisible && ticketId && (
+            <button
+              onClick={() => {
+                const displayId = currentTicket?.slug || ticketId;
+                navigator.clipboard.writeText(displayId);
+                toast.success('Ticket ID copied');
+              }}
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--bg-hover)] text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors animate-fade-in"
+            >
+              {currentTicket?.slug || ticketId}
+              <Copy className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Full title (shown when title is long and would be truncated) */}
       {currentTicket.title.length > 80 && !isEditingTitle && (

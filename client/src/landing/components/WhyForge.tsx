@@ -11,7 +11,7 @@ const features = [
   },
   {
     title: 'Verified before execution',
-    description: 'PM and developer both sign off. The AEC is a contract — not a wish list. What was promised is what gets built.',
+    description: 'PM and developer both sign off. The ticket is a contract — not a wish list. What was promised is what gets built.',
     color: 'amber',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
