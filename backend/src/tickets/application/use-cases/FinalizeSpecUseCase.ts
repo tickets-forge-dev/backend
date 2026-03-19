@@ -131,6 +131,7 @@ export class FinalizeSpecUseCase {
       aec.wireframeContext ?? undefined,
       wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
       aec.apiContext ?? undefined,
+      { userId: aec.createdBy, teamId: command.teamId, ticketId: command.aecId },
     );
 
     console.log(
@@ -370,6 +371,7 @@ export class FinalizeSpecUseCase {
     wireframeContext?: string,
     wireframeImageUrls?: string[],
     apiContext?: string,
+    trackingContext?: { userId: string; teamId: string; ticketId: string },
   ): Promise<any> {
     let lastError: Error | null = null;
 
@@ -392,6 +394,7 @@ export class FinalizeSpecUseCase {
           wireframeContext,
           wireframeImageUrls,
           apiContext,
+          trackingContext,
         });
 
         console.log(`✨ [FinalizeSpecUseCase] Successfully generated final spec`);

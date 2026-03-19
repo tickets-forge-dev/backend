@@ -1306,7 +1306,7 @@ function getLifecycleInfo(ticket: any): { label: string; colorClass: string; dot
   if (key === 'needs-input') return { label: 'Needs Input', colorClass: 'text-amber-500', dot: 'bg-amber-500', next: 'Answer the questions to continue' };
   const map: Record<string, { label: string; colorClass: string; dot: string; next: string }> = {
     complete:              { label: 'Done',              colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
-    forged:                { label: 'Forged',            colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'Run forge execute to implement' },
+    forged:                { label: 'Ready',             colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'Run forge execute to implement' },
     review:                { label: 'Review (PM)',       colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'PM needs to review and approve' },
     executing:             { label: 'Executing',         colorClass: 'text-blue-500',               dot: 'bg-blue-500',               next: 'Review and merge the implementation' },
     'dev-refining':        { label: 'Dev-Refine',        colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Developer reviews and refines the spec' },

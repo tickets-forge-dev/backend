@@ -22,4 +22,19 @@ export abstract class EmailService {
     teamName: string,
     inviteToken: string
   ): Promise<void>;
+
+  /**
+   * Send a generic email
+   *
+   * @param to - Recipient email address
+   * @param subject - Email subject line
+   * @param textBody - Plain text body
+   * @param htmlBody - Optional HTML body
+   */
+  abstract sendEmail(
+    to: string,
+    subject: string,
+    textBody: string,
+    htmlBody?: string
+  ): Promise<void>;
 }

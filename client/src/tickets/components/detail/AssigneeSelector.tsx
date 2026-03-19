@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebase';
 import { TeamService, type TeamMember } from '@/services/team.service';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Users, UserPlus, X, Terminal, Copy, Check } from 'lucide-react';
+import { Users, UserPlus, X, Terminal, Copy, Check, ChevronRight } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -257,9 +257,10 @@ export function AssigneeSelector({
   );
 }
 
-/** Small info block explaining how assigned devs use the CLI. */
+/** Small collapsible info block explaining how assigned devs use the CLI. */
 function DevCliInfo() {
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const command = 'npm install -g @anthropic-forge/cli';
 
   const handleCopy = () => {
@@ -270,24 +271,32 @@ function DevCliInfo() {
 
   return (
     <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] text-left">
-      <div className="flex items-center gap-1.5 mb-1.5">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 w-full text-left hover:text-[var(--text)] transition-colors"
+      >
+        <ChevronRight className={`h-3 w-3 text-[var(--text-tertiary)] transition-transform ${expanded ? 'rotate-90' : ''}`} />
         <Terminal className="h-3 w-3 text-[var(--text-tertiary)]" />
         <p className="text-[11px] font-medium text-[var(--text-secondary)]">How it works for developers</p>
-      </div>
-      <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed mb-2">
-        Once assigned, the developer installs the forge CLI, logs in with <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge login</code>, and runs <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge develop</code> to refine the ticket with real code context.
-      </p>
-      <button
-        onClick={handleCopy}
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--border)] transition-colors group"
-      >
-        <code className="flex-1 text-[10px] text-[var(--text-secondary)] text-left font-mono truncate">{command}</code>
-        {copied ? (
-          <Check className="h-3 w-3 text-green-500 shrink-0" />
-        ) : (
-          <Copy className="h-3 w-3 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] shrink-0" />
-        )}
       </button>
+      {expanded && (
+        <div className="mt-1.5 pl-[18px]">
+          <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed mb-2">
+            Once assigned, the developer installs the forge CLI, logs in with <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge login</code>, and runs <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge develop</code> to refine the ticket with real code context.
+          </p>
+          <button
+            onClick={handleCopy}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--border)] transition-colors group"
+          >
+            <code className="flex-1 text-[10px] text-[var(--text-secondary)] text-left font-mono truncate">{command}</code>
+            {copied ? (
+              <Check className="h-3 w-3 text-green-500 shrink-0" />
+            ) : (
+              <Copy className="h-3 w-3 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] shrink-0" />
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

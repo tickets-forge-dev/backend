@@ -89,6 +89,7 @@ export class ReEnrichWithQAUseCase {
       aec.description ?? undefined,
       codebaseContext,
       answers,
+      { userId: aec.createdBy, teamId: command.teamId, ticketId: command.ticketId },
     );
 
     // 7. Apply re-enrichment (updates techSpec + acceptanceCriteria, keeps status)
@@ -108,6 +109,7 @@ export class ReEnrichWithQAUseCase {
     description: string | undefined,
     context: CodebaseContext,
     answers: Array<{ questionId: string; answer: string }>,
+    trackingContext?: { userId: string; teamId: string; ticketId: string },
   ) {
     let lastError: Error | undefined;
     let backoff = ReEnrichWithQAUseCase.INITIAL_BACKOFF_MS;
@@ -119,6 +121,7 @@ export class ReEnrichWithQAUseCase {
           description,
           context,
           answers,
+          trackingContext,
         });
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));

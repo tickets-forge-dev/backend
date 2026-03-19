@@ -546,6 +546,9 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
   private readonly providerName: string;
   private readonly fastModelId: string;
 
+  /** Active tracking context — set by entry-point methods for callLLM fallback */
+  private _activeTrackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string };
+
   private static readonly AMBIGUITY_MARKERS = [
     'or',
     'might',
@@ -602,6 +605,15 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
    * to populate relatedFiles, suspectedCause, and suggestedFix.
    */
   async generate(input: TechSpecInput): Promise<TechSpec> {
+    if (input.trackingContext) {
+      this._activeTrackingContext = {
+        userId: input.trackingContext.userId,
+        teamId: input.trackingContext.teamId,
+        ticketId: input.trackingContext.ticketId,
+        operation: 'tech_spec_generation',
+      };
+    }
+    try {
     const context: CodebaseContext = {
       stack: input.stack,
       analysis: input.analysis,
@@ -715,6 +727,9 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     techSpec.qualityScore = this.calculateQualityScore(techSpec);
 
     return techSpec;
+    } finally {
+      this._activeTrackingContext = undefined;
+    }
   }
 
   /**
@@ -2230,6 +2245,9 @@ Rewritten text (definitive, unambiguous):`;
       throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
     }
 
+    // Use instance-level tracking context as fallback
+    const ctx = trackingContext ?? this._activeTrackingContext;
+
     const maxRetries = 2;
     let lastError: Error | null = null;
 
@@ -2248,27 +2266,27 @@ Rewritten text (definitive, unambiguous):`;
         });
 
         // Track cost if context is provided
-        if (trackingContext?.userId && usage) {
+        if (ctx?.userId && usage) {
           const model = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
           const costUsd = this.telemetryService.computeLLMCost(
             model,
             usage.inputTokens ?? 0,
             usage.outputTokens ?? 0,
           );
-          this.telemetryService.trackCost(trackingContext.userId, {
+          this.telemetryService.trackCost(ctx.userId, {
             service: 'anthropic',
             tokens_input: usage.inputTokens ?? 0,
             tokens_output: usage.outputTokens ?? 0,
             cost_usd: costUsd,
             model,
-            operation: trackingContext.operation || 'tech_spec_generation',
-            ticket_id: trackingContext.ticketId,
+            operation: ctx.operation || 'tech_spec_generation',
+            ticket_id: ctx.ticketId,
           });
 
-          if (trackingContext.teamId) {
+          if (ctx.teamId) {
             const month = new Date().toISOString().slice(0, 7);
             const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
-            this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+            this.usageBudgetRepository.incrementTokens(ctx.teamId, month, totalTokens).catch((err) => {
               this.logger.warn(`Failed to increment token usage: ${err.message}`);
             });
           }
@@ -2299,9 +2317,12 @@ Rewritten text (definitive, unambiguous):`;
     userPrompt: string,
     trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
   ): Promise<any> {
+    // Use instance-level tracking context as fallback
+    const ctx = trackingContext ?? this._activeTrackingContext;
+
     if (!this.fastModel) {
       // Fall back to main model if fast model not available
-      return this.callLLM(systemPrompt, userPrompt, trackingContext);
+      return this.callLLM(systemPrompt, userPrompt, ctx);
     }
 
     const maxRetries = 2;
@@ -2322,26 +2343,26 @@ Rewritten text (definitive, unambiguous):`;
         });
 
         // Track cost with fast model pricing
-        if (trackingContext?.userId && usage) {
+        if (ctx?.userId && usage) {
           const costUsd = this.telemetryService.computeLLMCost(
             this.fastModelId,
             usage.inputTokens ?? 0,
             usage.outputTokens ?? 0,
           );
-          this.telemetryService.trackCost(trackingContext.userId, {
+          this.telemetryService.trackCost(ctx.userId, {
             service: 'anthropic',
             tokens_input: usage.inputTokens ?? 0,
             tokens_output: usage.outputTokens ?? 0,
             cost_usd: costUsd,
             model: this.fastModelId,
-            operation: trackingContext.operation || 'tech_spec_generation_fast',
-            ticket_id: trackingContext.ticketId,
+            operation: ctx.operation || 'tech_spec_generation_fast',
+            ticket_id: ctx.ticketId,
           });
 
-          if (trackingContext.teamId) {
+          if (ctx.teamId) {
             const month = new Date().toISOString().slice(0, 7);
             const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
-            this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+            this.usageBudgetRepository.incrementTokens(ctx.teamId, month, totalTokens).catch((err) => {
               this.logger.warn(`Failed to increment token usage: ${err.message}`);
             });
           }
@@ -2378,6 +2399,9 @@ Rewritten text (definitive, unambiguous):`;
       throw new Error('No LLM configured. Set LLM_PROVIDER and ANTHROPIC_API_KEY in .env');
     }
 
+    // Use instance-level tracking context as fallback
+    const ctx = trackingContext ?? this._activeTrackingContext;
+
     const maxOutputTokens = opts?.maxOutputTokens ?? 4096;
     const temperature = opts?.temperature ?? 0.2;
     const maxRetries = 2;
@@ -2398,27 +2422,27 @@ Rewritten text (definitive, unambiguous):`;
         });
 
         // Track cost if context is provided
-        if (trackingContext?.userId && usage) {
+        if (ctx?.userId && usage) {
           const model = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
           const costUsd = this.telemetryService.computeLLMCost(
             model,
             usage.inputTokens ?? 0,
             usage.outputTokens ?? 0,
           );
-          this.telemetryService.trackCost(trackingContext.userId, {
+          this.telemetryService.trackCost(ctx.userId, {
             service: 'anthropic',
             tokens_input: usage.inputTokens ?? 0,
             tokens_output: usage.outputTokens ?? 0,
             cost_usd: costUsd,
             model,
-            operation: trackingContext.operation || 'tech_spec_generation',
-            ticket_id: trackingContext.ticketId,
+            operation: ctx.operation || 'tech_spec_generation',
+            ticket_id: ctx.ticketId,
           });
 
-          if (trackingContext.teamId) {
+          if (ctx.teamId) {
             const month = new Date().toISOString().slice(0, 7);
             const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
-            this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
+            this.usageBudgetRepository.incrementTokens(ctx.teamId, month, totalTokens).catch((err) => {
               this.logger.warn(`Failed to increment token usage: ${err.message}`);
             });
           }
@@ -2834,7 +2858,16 @@ Return the COMPLETE modified elements array. Rules:
     description?: string;
     context: CodebaseContext | null;
     previousQAs: Array<{ question: string; answer: string | string[] }>;
+    trackingContext?: { userId: string; teamId: string; ticketId?: string; operation?: string };
   }): Promise<{ question: ClarificationQuestion | null; assumptions: string[]; reasoning: string }> {
+    if (input.trackingContext) {
+      this._activeTrackingContext = {
+        userId: input.trackingContext.userId,
+        teamId: input.trackingContext.teamId,
+        ticketId: input.trackingContext.ticketId,
+        operation: 'next_question_generation',
+      };
+    }
     try {
       const systemPrompt = input.context
         ? PromptTemplates.systemPrompt(input.context)
@@ -2864,6 +2897,8 @@ Return the COMPLETE modified elements array. Rules:
     } catch (error) {
       this.logger.warn(`Failed to generate next question: ${String(error)}`);
       return { question: null, assumptions: [], reasoning: '' };
+    } finally {
+      this._activeTrackingContext = undefined;
     }
   }
 
@@ -2880,7 +2915,16 @@ Return the COMPLETE modified elements array. Rules:
     context: CodebaseContext | null;  // AC#2: Null when no repository provided
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>;
     roundNumber: number;
+    trackingContext?: { userId: string; teamId: string; ticketId?: string; operation?: string };
   }): Promise<ClarificationQuestion[]> {
+    if (input.trackingContext) {
+      this._activeTrackingContext = {
+        userId: input.trackingContext.userId,
+        teamId: input.trackingContext.teamId,
+        ticketId: input.trackingContext.ticketId,
+        operation: 'question_generation',
+      };
+    }
     try {
       // AC#2: Use appropriate system prompt based on context availability
       const systemPrompt = input.context
@@ -2915,6 +2959,8 @@ Return the COMPLETE modified elements array. Rules:
         .slice(0, input.roundNumber === 1 ? 10 : 3); // Front-load questions: Round 1 up to 10, Rounds 2-3 up to 3
     } catch (error) {
       throw new Error(`Failed to generate questions with context: ${String(error)}`);
+    } finally {
+      this._activeTrackingContext = undefined;
     }
   }
 
@@ -2987,7 +3033,16 @@ Return the COMPLETE modified elements array. Rules:
     wireframeContext?: string;
     wireframeImageUrls?: string[];
     apiContext?: string;
+    trackingContext?: { userId: string; teamId: string; ticketId?: string; operation?: string };
   }): Promise<TechSpec> {
+    if (input.trackingContext) {
+      this._activeTrackingContext = {
+        userId: input.trackingContext.userId,
+        teamId: input.trackingContext.teamId,
+        ticketId: input.trackingContext.ticketId,
+        operation: 'tech_spec_generation_with_answers',
+      };
+    }
     try {
       const context = input.context;
       const hasRepository = context !== null;
@@ -3156,6 +3211,8 @@ Return the COMPLETE modified elements array. Rules:
     }
     } catch (error) {
       throw new Error(`Failed to generate spec with answers: ${String(error)}`);
+    } finally {
+      this._activeTrackingContext = undefined;
     }
   }
 

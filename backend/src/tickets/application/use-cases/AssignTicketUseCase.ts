@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { TeamMemberRepository } from '../../../teams/application/ports/TeamMemberRepository';
 import { Role } from '../../../teams/domain/Role';
+import { NotificationService } from '../../../notifications/notification.service';
 
 /**
  * AssignTicketUseCase (Story 3.5-5: AC#3)
@@ -20,11 +21,14 @@ export interface AssignTicketCommand {
 
 @Injectable()
 export class AssignTicketUseCase {
+  private readonly logger = new Logger(AssignTicketUseCase.name);
+
   constructor(
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
     @Inject('TeamMemberRepository')
     private readonly teamMemberRepository: TeamMemberRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(command: AssignTicketCommand): Promise<void> {
@@ -95,5 +99,12 @@ export class AssignTicketUseCase {
 
     // 6. Save
     await this.aecRepository.save(aec);
+
+    // 7. Send notification (fire-and-forget)
+    if (command.userId) {
+      void this.notificationService
+        .notifyTicketAssigned(command.ticketId, command.userId, aec.title)
+        .catch((err) => this.logger.warn('Notification failed (assign)', err));
+    }
   }
 }

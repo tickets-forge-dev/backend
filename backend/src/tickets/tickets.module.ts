@@ -71,6 +71,7 @@ import { UnarchiveAECUseCase } from './application/use-cases/UnarchiveAECUseCase
 import { FigmaModule } from '../integrations/figma/figma.module';
 import { LoomModule } from '../integrations/loom/loom.module';
 import { TeamsModule } from '../teams/teams.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UsageBudgetRepository';
 import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUsageBudgetRepository';
 
@@ -84,6 +85,7 @@ import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persist
     FigmaModule,
     LoomModule,
     TeamsModule, // Story 3.5-5: Access to TeamMemberRepository for assignment validation
+    NotificationsModule, // Story 9.2: Email notifications for ticket events
   ],
   controllers: [TicketsController],
   providers: [

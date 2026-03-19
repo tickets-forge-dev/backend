@@ -2,6 +2,7 @@ import { NotFoundException, BadRequestException, ForbiddenException } from '@nes
 import { AssignTicketUseCase } from './AssignTicketUseCase';
 import { AECRepository } from '../ports/AECRepository';
 import { TeamMemberRepository } from '../../../teams/application/ports/TeamMemberRepository';
+import { NotificationService } from '../../../notifications/notification.service';
 import { AEC } from '../../domain/aec/AEC';
 import { AECStatus } from '../../domain/value-objects/AECStatus';
 import { TeamMember } from '../../../teams/domain/TeamMember';
@@ -12,6 +13,7 @@ describe('AssignTicketUseCase', () => {
   let useCase: AssignTicketUseCase;
   let mockAecRepository: jest.Mocked<AECRepository>;
   let mockTeamMemberRepository: jest.Mocked<TeamMemberRepository>;
+  let mockNotificationService: jest.Mocked<NotificationService>;
 
   beforeEach(() => {
     mockAecRepository = {
@@ -32,7 +34,12 @@ describe('AssignTicketUseCase', () => {
       delete: jest.fn(),
     } as any;
 
-    useCase = new AssignTicketUseCase(mockAecRepository, mockTeamMemberRepository);
+    mockNotificationService = {
+      notifyTicketAssigned: jest.fn().mockResolvedValue(undefined),
+      notifyTicketReady: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
+    useCase = new AssignTicketUseCase(mockAecRepository, mockTeamMemberRepository, mockNotificationService);
   });
 
   // Helper to create mock team members
@@ -576,6 +583,58 @@ describe('AssignTicketUseCase', () => {
       ).rejects.toThrow('Cannot assign a completed ticket. Revert to draft first.');
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should fire assignment notification when assigning', async () => {
+      // Given
+      const ticketId = 'aec_123';
+      const userId = 'user-456';
+      const teamId = 'team_123';
+      const requestingUserId = 'pm-user-123';
+
+      const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
+
+      mockAecRepository.findById.mockResolvedValue(mockAec);
+      setupValidAuthMocks(requestingUserId, userId, teamId);
+      mockAecRepository.save.mockResolvedValue(undefined);
+
+      // When
+      await useCase.execute({ ticketId, userId, requestingUserId, teamId });
+
+      // Then
+      expect(mockNotificationService.notifyTicketAssigned).toHaveBeenCalledWith(
+        ticketId,
+        userId,
+        'Test Ticket',
+      );
+    });
+
+    it('should not fire notification when unassigning', async () => {
+      // Given
+      const ticketId = 'aec_123';
+      const teamId = 'team_123';
+      const requestingUserId = 'pm-user-123';
+
+      const mockAec = AEC.createDraft(
+        teamId,
+        requestingUserId,
+        'Test Ticket',
+        'Description',
+        undefined,
+        undefined,
+        undefined,
+        'previous-user-456',
+      );
+
+      mockAecRepository.findById.mockResolvedValue(mockAec);
+      setupUnassignAuthMocks(requestingUserId, teamId);
+      mockAecRepository.save.mockResolvedValue(undefined);
+
+      // When
+      await useCase.execute({ ticketId, userId: null, requestingUserId, teamId });
+
+      // Then
+      expect(mockNotificationService.notifyTicketAssigned).not.toHaveBeenCalled();
     });
 
     it('should update updatedAt timestamp on assignment', async () => {

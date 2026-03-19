@@ -161,7 +161,7 @@ If you didn't expect this invitation, you can safely ignore this email.
  * Escape HTML special characters to prevent XSS
  * Handles null/undefined by converting to empty string
  */
-function escapeHtml(text: string | null | undefined): string {
+export function escapeHtml(text: string | null | undefined): string {
   if (text === null || text === undefined) {
     return '';
   }
