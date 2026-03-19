@@ -6,6 +6,8 @@ import {
   generateAssignmentEmailText,
   generateApprovalEmailHtml,
   generateApprovalEmailText,
+  generateReviewEmailHtml,
+  generateReviewEmailText,
 } from './templates/notification-email.template';
 
 @Injectable()
@@ -77,6 +79,36 @@ export class NotificationService {
       this.logger.log(`Approval notification sent to ${email} for ticket ${ticketId}`);
     } catch (error) {
       this.logger.warn(`Failed to send approval notification for ticket ${ticketId}`, error);
+    }
+  }
+
+  async notifyTicketReadyForReview(
+    ticketId: string,
+    assignedUserId: string,
+    ticketTitle: string,
+  ): Promise<void> {
+    try {
+      const user = await this.userRepository.getById(assignedUserId);
+      if (!user) {
+        this.logger.warn(`Cannot send review notification: user ${assignedUserId} not found`);
+        return;
+      }
+
+      const email = user.getEmail();
+      if (!email) {
+        this.logger.warn(`Cannot send review notification: user ${assignedUserId} has no email`);
+        return;
+      }
+
+      const ticketUrl = `${this.appUrl}/tickets/${ticketId}`;
+      const subject = `[Forge] Ticket ready for review: ${ticketTitle}`;
+      const textBody = generateReviewEmailText({ ticketTitle, ticketUrl });
+      const htmlBody = generateReviewEmailHtml({ ticketTitle, ticketUrl });
+
+      await this.emailService.sendEmail(email, subject, textBody, htmlBody);
+      this.logger.log(`Review notification sent to ${email} for ticket ${ticketId}`);
+    } catch (error) {
+      this.logger.warn(`Failed to send review notification for ticket ${ticketId}`, error);
     }
   }
 }

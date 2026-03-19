@@ -13,6 +13,7 @@ import {
   UsageBudgetRepository,
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
+import { NotificationService } from '../../../notifications/notification.service';
 
 /**
  * Input command for finalizing the technical specification
@@ -65,6 +66,7 @@ export class FinalizeSpecUseCase {
     private readonly githubFileService: GitHubFileService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -145,6 +147,13 @@ export class FinalizeSpecUseCase {
     await this.aecRepository.save(aec);
 
     console.log(`✨ [FinalizeSpecUseCase] Final spec persisted, AEC ready for validation`);
+
+    // Notify assignee that ticket is ready for review (fire-and-forget)
+    if (aec.assignedTo) {
+      void this.notificationService
+        .notifyTicketReadyForReview(command.aecId, aec.assignedTo, aec.title)
+        .catch(() => {});
+    }
 
     // Excalidraw wireframe generation disabled — will be re-enabled after quality improvements
     // if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {

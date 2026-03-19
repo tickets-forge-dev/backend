@@ -242,3 +242,117 @@ ${data.ticketUrl}
 This is an automated notification from Forge.
   `.trim();
 }
+
+export interface ReviewEmailData {
+  ticketTitle: string;
+  ticketUrl: string;
+}
+
+export function generateReviewEmailHtml(data: ReviewEmailData): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket Ready for Review</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 40px 20px;
+      background: #ffffff;
+      border-radius: 8px;
+    }
+    .header {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #111;
+    }
+    .message {
+      font-size: 16px;
+      margin-bottom: 30px;
+      color: #555;
+    }
+    .button-container {
+      margin: 30px 0;
+      text-align: center;
+    }
+    .button {
+      display: inline-block;
+      background: #5E6AD2;
+      color: #ffffff;
+      padding: 14px 28px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 16px;
+    }
+    .link-fallback {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 14px;
+      color: #666;
+    }
+    .link-fallback a {
+      color: #5E6AD2;
+      word-break: break-all;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 14px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Ticket ready for review</div>
+
+    <div class="message">
+      <p>The spec for <strong>${escapeHtml(data.ticketTitle)}</strong> has been finalized and is ready for your review.</p>
+      <p>Review the ticket details and approve it when you're satisfied.</p>
+    </div>
+
+    <div class="button-container">
+      <a href="${escapeHtml(data.ticketUrl)}" class="button">Review Ticket</a>
+    </div>
+
+    <div class="link-fallback">
+      <p>Or copy and paste this link into your browser:</p>
+      <p><a href="${escapeHtml(data.ticketUrl)}">${escapeHtml(data.ticketUrl)}</a></p>
+    </div>
+
+    <div class="footer">
+      <p>This is an automated notification from Forge.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+export function generateReviewEmailText(data: ReviewEmailData): string {
+  return `
+Ticket ready for review
+
+The spec for ${data.ticketTitle} has been finalized and is ready for your review.
+
+Review and approve the ticket:
+${data.ticketUrl}
+
+This is an automated notification from Forge.
+  `.trim();
+}

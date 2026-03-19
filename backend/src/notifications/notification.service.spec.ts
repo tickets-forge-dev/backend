@@ -66,6 +66,26 @@ describe('NotificationService', () => {
     });
   });
 
+  describe('notifyTicketReadyForReview', () => {
+    it('sends review email with correct subject and body', async () => {
+      mockUserRepository.getById.mockResolvedValue({
+        getEmail: () => 'pm@example.com',
+      } as any);
+
+      await service.notifyTicketReadyForReview('ticket-3', 'user-1', 'Import from Jira');
+
+      expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(1);
+      const [to, subject, textBody, htmlBody] = mockEmailService.sendEmail.mock.calls[0];
+      expect(to).toBe('pm@example.com');
+      expect(subject).toContain('[Forge]');
+      expect(subject).toContain('review');
+      expect(subject).toContain('Import from Jira');
+      expect(textBody).toContain('Import from Jira');
+      expect(textBody).toContain('https://forge.example.com/tickets/ticket-3');
+      expect(htmlBody).toContain('Review Ticket');
+    });
+  });
+
   describe('User not found', () => {
     it('skips silently when user is not found', async () => {
       mockUserRepository.getById.mockResolvedValue(null);
