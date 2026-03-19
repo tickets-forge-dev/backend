@@ -35,7 +35,7 @@ export class ConsoleEmailService extends EmailService {
     to: string,
     subject: string,
     textBody: string,
-    htmlBody?: string,
+    _htmlBody?: string,
   ): Promise<void> {
     this.logger.log(
       `[DEV] Email:\n  To: ${to}\n  Subject: ${subject}\n  Body: ${textBody}`,
