@@ -126,6 +126,44 @@ export class SendGridEmailService extends EmailService {
   }
 
   /**
+   * Send a generic email
+   */
+  async sendEmail(
+    to: string,
+    subject: string,
+    textBody: string,
+    htmlBody?: string,
+  ): Promise<void> {
+    if (!to || !to.trim()) {
+      throw new Error('Recipient email address is required');
+    }
+    if (!this.isValidEmail(to)) {
+      throw new Error(`Invalid recipient email address: ${to}`);
+    }
+
+    try {
+      const safeSubject = this.sanitizeForSubject(subject);
+
+      const msg = {
+        to: to.trim().toLowerCase(),
+        from: this.fromEmail,
+        subject: safeSubject,
+        text: textBody,
+        ...(htmlBody ? { html: htmlBody } : {}),
+      };
+
+      this.logger.log(`Sending email from ${this.fromEmail} to ${to}: ${safeSubject}`);
+      await sgMail.send(msg);
+
+      this.logger.log(`Email sent successfully to ${to}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to send email to ${to}`, error);
+      throw new Error(`Failed to send email: ${errorMessage}`);
+    }
+  }
+
+  /**
    * Validate email format
    */
   private isValidEmail(email: string): boolean {

@@ -82,4 +82,8 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   apiContext?: string;
+
+  @IsOptional()
+  @IsString()
+  folderId?: string;
 }

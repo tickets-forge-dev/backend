@@ -20,7 +20,6 @@ import {
 import { useUIStore } from '@/stores/ui.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useFoldersStore } from '@/stores/folders.store';
-import { useTeamStore } from '@/teams/stores/team.store';
 
 type DraftType = 'feature' | 'bug' | 'task';
 type DraftPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -55,7 +54,6 @@ export function QuickDraftPalette() {
   const { isQuickCreating, quickCreateError, quickCreateDraft, clearQuickCreateError } =
     useTicketsStore();
   const { folders } = useFoldersStore();
-  const { currentTeam } = useTeamStore();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mode, setMode] = useState<PaletteMode>('commands');
@@ -210,15 +208,9 @@ export function QuickDraftPalette() {
   const handleDraftSubmit = async () => {
     if (draftTitle.length < 3 || isQuickCreating) return;
 
-    const aec = await quickCreateDraft(draftTitle, draftType, draftPriority);
+    const aec = await quickCreateDraft(draftTitle, draftType, draftPriority, draftFolderId || undefined);
     if (aec) {
-      // Move to folder if selected
-      if (draftFolderId && currentTeam?.id) {
-        const { moveTicket } = useFoldersStore.getState();
-        moveTicket(currentTeam.id, aec.id, draftFolderId);
-      }
       close();
-      router.push(`/tickets/create?resume=${aec.id}`);
     }
   };
 

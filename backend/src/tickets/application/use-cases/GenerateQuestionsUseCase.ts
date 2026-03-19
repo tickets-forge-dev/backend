@@ -87,6 +87,7 @@ export class GenerateQuestionsUseCase {
       aec.title,
       aec.description,
       codebaseContext,
+      { userId: aec.createdBy, teamId: command.teamId, ticketId: command.aecId },
     );
 
     console.log(`❓ [GenerateQuestionsUseCase] Generated ${questions.length} questions`);
@@ -270,6 +271,7 @@ export class GenerateQuestionsUseCase {
     title: string,
     description: string | null,
     context: CodebaseContext,
+    trackingContext?: { userId: string; teamId: string; ticketId: string },
   ): Promise<ClarificationQuestion[]> {
     let lastError: Error | null = null;
 
@@ -285,6 +287,7 @@ export class GenerateQuestionsUseCase {
           context,
           priorAnswers: [], // No prior answers for first (and only) call
           roundNumber: 1, // Always round 1 in simplified flow
+          trackingContext,
         });
 
         console.log(

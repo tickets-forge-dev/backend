@@ -805,7 +805,7 @@ function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'draft' |
 }
 
 function isTicketInProgress(ticket: any) {
-  return ticket.status === 'draft' && !ticket.techSpec;
+  return ticket.status === 'draft' && !ticket.techSpec && ticket.currentRound !== undefined;
 }
 
 /** Inline ghost row for quick-adding a ticket inside a folder */
@@ -814,8 +814,6 @@ function InlineFolderAdd({ folderId }: { folderId: string }) {
   const [title, setTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
-  const { currentTeam } = useTeamStore();
 
   useEffect(() => {
     if (isEditing) inputRef.current?.focus();
@@ -827,13 +825,10 @@ function InlineFolderAdd({ folderId }: { folderId: string }) {
     setIsSubmitting(true);
     try {
       const { quickCreateDraft } = useTicketsStore.getState();
-      const { moveTicket } = useFoldersStore.getState();
-      const aec = await quickCreateDraft(trimmed);
-      if (aec && currentTeam?.id) {
-        await moveTicket(currentTeam.id, aec.id, folderId);
+      const aec = await quickCreateDraft(trimmed, undefined, undefined, folderId);
+      if (aec) {
         setTitle('');
         setIsEditing(false);
-        router.push(`/tickets/create?resume=${aec.id}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -887,7 +882,6 @@ function InlineRootAdd() {
   const [title, setTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (isEditing) inputRef.current?.focus();
@@ -903,7 +897,6 @@ function InlineRootAdd() {
       if (aec) {
         setTitle('');
         setIsEditing(false);
-        router.push(`/tickets/create?resume=${aec.id}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -1119,8 +1112,8 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
   const { teamMembers, currentTeam } = useTeamStore();
   const { moveTicket } = useFoldersStore();
   const ticketStatus = getTicketStatusKey(ticket);
-  const inProgress = isTicketInProgress(ticket);
-  const href = inProgress ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.slug || ticket.id}`;
+  const isDraft = ticketStatus === 'draft' || ticketStatus === 'in-progress' || ticketStatus === 'needs-resume';
+  const href = isDraft ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.slug || ticket.id}`;
   const [isDragging, setIsDragging] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
@@ -1313,7 +1306,7 @@ function getLifecycleInfo(ticket: any): { label: string; colorClass: string; dot
   if (key === 'needs-input') return { label: 'Needs Input', colorClass: 'text-amber-500', dot: 'bg-amber-500', next: 'Answer the questions to continue' };
   const map: Record<string, { label: string; colorClass: string; dot: string; next: string }> = {
     complete:              { label: 'Done',              colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
-    forged:                { label: 'Forged',            colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'Run forge execute to implement' },
+    forged:                { label: 'Ready',             colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'Run forge execute to implement' },
     review:                { label: 'Review (PM)',       colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'PM needs to review and approve' },
     executing:             { label: 'Executing',         colorClass: 'text-blue-500',               dot: 'bg-blue-500',               next: 'Review and merge the implementation' },
     'dev-refining':        { label: 'Dev-Refine',        colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Developer reviews and refines the spec' },

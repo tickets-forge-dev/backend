@@ -96,6 +96,7 @@ export class GenerateNextQuestionUseCase {
       description: aec.description ?? undefined,
       context: codebaseContext,
       previousQAs,
+      trackingContext: { userId: aec.createdBy, teamId: command.teamId, ticketId: command.aecId },
     });
 
     // If a question was returned, append it to the AEC

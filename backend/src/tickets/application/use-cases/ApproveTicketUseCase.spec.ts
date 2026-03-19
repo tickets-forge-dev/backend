@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ApproveTicketUseCase } from './ApproveTicketUseCase';
 import { AECStatus } from '../../domain/value-objects/AECStatus';
+import { NotificationService } from '../../../notifications/notification.service';
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 
@@ -10,12 +11,14 @@ const TICKET_ID = 'aec_001';
 function makeMockAEC(overrides: {
   status?: AECStatus;
   teamId?: string;
+  assignedTo?: string | null;
 }) {
   return {
     id: TICKET_ID,
     teamId: overrides.teamId ?? TEAM_ID,
     status: overrides.status ?? AECStatus.REVIEW,
     title: 'Add login rate limiting',
+    assignedTo: overrides.assignedTo ?? null,
     approve: jest.fn(),
   };
 }
@@ -24,6 +27,7 @@ function makeMockAEC(overrides: {
 
 describe('ApproveTicketUseCase', () => {
   let aecRepository: jest.Mocked<{ findById: jest.Mock; save: jest.Mock }>;
+  let mockNotificationService: jest.Mocked<NotificationService>;
   let useCase: ApproveTicketUseCase;
 
   beforeEach(() => {
@@ -32,7 +36,12 @@ describe('ApproveTicketUseCase', () => {
       save: jest.fn().mockResolvedValue(undefined),
     };
 
-    useCase = new ApproveTicketUseCase(aecRepository as any);
+    mockNotificationService = {
+      notifyTicketAssigned: jest.fn().mockResolvedValue(undefined),
+      notifyTicketReady: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
+    useCase = new ApproveTicketUseCase(aecRepository as any, mockNotificationService);
   });
 
   // ── Happy path ────────────────────────────────────────────────────────────────
@@ -107,6 +116,32 @@ describe('ApproveTicketUseCase', () => {
 
       expect(mockAEC.approve).not.toHaveBeenCalled();
       expect(aecRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Notifications ────────────────────────────────────────────────────────────
+
+  describe('Notifications', () => {
+    it('sends approval notification when ticket has an assignee', async () => {
+      const mockAEC = makeMockAEC({ assignedTo: 'dev-user-1' });
+      aecRepository.findById.mockResolvedValue(mockAEC);
+
+      await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID });
+
+      expect(mockNotificationService.notifyTicketReady).toHaveBeenCalledWith(
+        TICKET_ID,
+        'dev-user-1',
+        'Add login rate limiting',
+      );
+    });
+
+    it('does not send notification when ticket has no assignee', async () => {
+      const mockAEC = makeMockAEC({ assignedTo: null });
+      aecRepository.findById.mockResolvedValue(mockAEC);
+
+      await useCase.execute({ ticketId: TICKET_ID, teamId: TEAM_ID });
+
+      expect(mockNotificationService.notifyTicketReady).not.toHaveBeenCalled();
     });
   });
 });

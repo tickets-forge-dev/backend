@@ -30,4 +30,15 @@ export class ConsoleEmailService extends EmailService {
       `[DEV] Invite email:\n  To: ${to}\n  Team: ${teamName}\n  Token: ${inviteToken}`,
     );
   }
+
+  async sendEmail(
+    to: string,
+    subject: string,
+    textBody: string,
+    _htmlBody?: string,
+  ): Promise<void> {
+    this.logger.log(
+      `[DEV] Email:\n  To: ${to}\n  Subject: ${subject}\n  Body: ${textBody}`,
+    );
+  }
 }

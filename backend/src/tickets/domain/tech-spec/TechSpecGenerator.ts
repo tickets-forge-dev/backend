@@ -31,6 +31,14 @@ import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetect
 import { CodebaseAnalysis } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { DesignReference } from '../value-objects/DesignReference';
 
+/** Optional tracking context for token usage metering */
+export interface LLMTrackingContext {
+  userId: string;
+  teamId: string;
+  ticketId?: string;
+  operation?: string;
+}
+
 /**
  * Input for tech spec generation
  */
@@ -49,6 +57,7 @@ export interface TechSpecInput {
   ticketType?: 'feature' | 'bug' | 'task'; // Optional: ticket type
   reproductionSteps?: ReproductionStep[]; // Optional: bug reproduction steps
   designReferences?: DesignReference[]; // Optional: design references (Figma, Loom, etc.) with metadata
+  trackingContext?: LLMTrackingContext; // Optional: token usage tracking context
 }
 
 /**
@@ -511,6 +520,7 @@ export interface TechSpecGenerator {
     description?: string;
     context: CodebaseContext | null;
     previousQAs: Array<{ question: string; answer: string | string[] }>;
+    trackingContext?: LLMTrackingContext;
   }): Promise<{ question: ClarificationQuestion | null; assumptions: string[]; reasoning: string }>;
 
   /**
@@ -532,6 +542,7 @@ export interface TechSpecGenerator {
     context: CodebaseContext | null;  // Null when no repository provided (PM without GitHub)
     priorAnswers: AnswerContext[];
     roundNumber: number;
+    trackingContext?: LLMTrackingContext;
   }): Promise<ClarificationQuestion[]>;
 
   /**
@@ -581,6 +592,7 @@ export interface TechSpecGenerator {
     wireframeContext?: string;
     wireframeImageUrls?: string[];
     apiContext?: string;
+    trackingContext?: LLMTrackingContext;
   }): Promise<TechSpec>;
 
   /**

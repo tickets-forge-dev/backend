@@ -1,6 +1,7 @@
 import {
   Injectable,
   Inject,
+  Logger,
   BadRequestException,
   ForbiddenException,
   NotFoundException,
@@ -8,6 +9,7 @@ import {
 import { AEC } from '../../domain/aec/AEC';
 import { AECStatus } from '../../domain/value-objects/AECStatus';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
+import { NotificationService } from '../../../notifications/notification.service';
 
 export interface ApproveTicketCommand {
   ticketId: string;
@@ -23,9 +25,12 @@ export interface ApproveTicketCommand {
  */
 @Injectable()
 export class ApproveTicketUseCase {
+  private readonly logger = new Logger(ApproveTicketUseCase.name);
+
   constructor(
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(command: ApproveTicketCommand): Promise<AEC> {
@@ -52,6 +57,13 @@ export class ApproveTicketUseCase {
 
     // 5. Persist
     await this.aecRepository.save(aec);
+
+    // 6. Send notification (fire-and-forget)
+    if (aec.assignedTo) {
+      void this.notificationService
+        .notifyTicketReady(command.ticketId, aec.assignedTo, aec.title)
+        .catch((err) => this.logger.warn('Notification failed (approve)', err));
+    }
 
     return aec;
   }

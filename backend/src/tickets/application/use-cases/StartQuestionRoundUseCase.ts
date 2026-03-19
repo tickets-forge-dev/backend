@@ -95,6 +95,7 @@ export class StartQuestionRoundUseCase {
       codebaseContext,
       priorAnswers,
       command.roundNumber,
+      { userId: aec.createdBy, teamId: command.teamId, ticketId: command.aecId },
     );
 
     console.log(`🎯 [StartQuestionRoundUseCase] Generated ${questions.length} questions`);
@@ -282,6 +283,7 @@ export class StartQuestionRoundUseCase {
     context: CodebaseContext,
     priorAnswers: Array<{ questionId: string; answer: string | string[] }>,
     roundNumber: number,
+    trackingContext?: { userId: string; teamId: string; ticketId: string },
   ): Promise<ClarificationQuestion[]> {
     let lastError: Error | null = null;
 
@@ -297,6 +299,7 @@ export class StartQuestionRoundUseCase {
           context,
           priorAnswers,
           roundNumber,
+          trackingContext,
         });
 
         console.log(

@@ -10,6 +10,7 @@ export interface CreateTicketRequest {
   branchName?: string;
   type?: string;
   priority?: string;
+  folderId?: string;
 }
 
 export interface AttachmentResponse {
