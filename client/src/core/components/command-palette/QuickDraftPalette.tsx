@@ -236,7 +236,7 @@ export function QuickDraftPalette() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Type a command or search..."
-                className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] outline-none"
+                className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] outline-none focus-visible:outline-none"
               />
             </div>
 
@@ -447,7 +447,7 @@ export function QuickDraftPalette() {
                   }}
                   disabled={isQuickCreating}
                   placeholder="What are you working on?"
-                  className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] outline-none focus-visible:outline-none disabled:opacity-50"
                 />
                 {isQuickCreating && (
                   <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />

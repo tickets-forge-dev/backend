@@ -72,7 +72,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     }
   }, [initialType, setType]);
 
-  // On mount: handle resume param or detect recoverable state
+  // On mount or resumeId change: handle resume param or detect recoverable state
   useEffect(() => {
     if (forceNew) return;
 
@@ -87,7 +87,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       setShowRecoveryBanner(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forceNew]);
+  }, [forceNew, resumeId]);
 
   const handleResume = useCallback(async () => {
     setShowRecoveryBanner(false);
@@ -236,8 +236,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {renderStage()}
       </div>
 
-      {/* Analysis Progress Dialog */}
-      {loading && (
+      {/* Analysis Progress Dialog — only during real analysis, not draft resume */}
+      {loading && currentPhase && (
         <AnalysisProgressDialog
           currentPhase={currentPhase}
           message={loadingMessage}

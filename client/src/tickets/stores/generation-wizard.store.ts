@@ -1295,7 +1295,22 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Resume a draft from backend
    */
   resumeDraft: async (aecId: string) => {
-    set({ loading: true, error: null });
+    // Clear stale state immediately so previous ticket data doesn't flash
+    set({
+      loading: true,
+      error: null,
+      input: { title: '', repoOwner: '', repoName: '', description: undefined, branch: undefined },
+      clarificationQuestions: [],
+      questionAnswers: {},
+      assumptions: [],
+      spec: null,
+      context: null,
+      draftAecId: null,
+      draftAecSlug: null,
+      currentPhase: null,
+      loadingMessage: null,
+      progressPercent: 0,
+    });
 
     try {
       // Fetch full AEC
