@@ -56,8 +56,10 @@ export class StartFinalizationUseCase {
       throw new ConflictException(`Ticket must be in draft status to finalize, currently: ${aec.status}`);
     }
 
+    // Allow finalization without answers when no questions exist (skip questions mode)
     const answers = aec.questionAnswers;
-    if (!answers || Object.keys(answers).length === 0) {
+    const hasQuestions = aec.questions && aec.questions.length > 0;
+    if (hasQuestions && (!answers || Object.keys(answers).length === 0)) {
       throw new ConflictException('Ticket must have answered questions before finalizing');
     }
 

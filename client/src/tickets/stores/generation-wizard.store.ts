@@ -1068,12 +1068,12 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
             loadingMessage: 'Generating technical specification...',
           });
         } catch (finalizeError) {
-          // Fallback: if job start fails, go to stage 3 with maxRounds=1
-          console.warn('Auto-finalize failed, falling back to 1 round:', finalizeError);
+          const errMsg = finalizeError instanceof Error ? finalizeError.message : 'Failed to start spec generation';
+          console.error('Auto-finalize failed:', errMsg);
           set({
             draftAecId: aec.id,
             draftAecSlug: aec.slug ?? null,
-            maxRounds: 1,
+            error: errMsg,
             currentStage: 'generate' as WizardStage,
             loading: false,
             loadingMessage: null,
