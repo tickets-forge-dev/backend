@@ -104,6 +104,7 @@ import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketU
 import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
 import { StartImplementationDto } from '../dto/StartImplementationDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
+import { GenerateWireframesUseCase } from '../../application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
 import { UnarchiveAECUseCase } from '../../application/use-cases/UnarchiveAECUseCase';
 import {
@@ -159,6 +160,7 @@ export class TicketsController {
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
+    private readonly generateWireframesUseCase: GenerateWireframesUseCase,
     private readonly archiveAECUseCase: ArchiveAECUseCase,
     private readonly unarchiveAECUseCase: UnarchiveAECUseCase,
     private readonly telemetry: TelemetryService,
@@ -666,6 +668,37 @@ export class TicketsController {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`[refine-wireframe] Failed for ticket ${aecId}: ${message}`);
       throw new ServiceUnavailableException(`AI wireframe refinement failed — please try again. Details: ${message}`);
+    }
+  }
+
+  /**
+   * Generate visual expectations (wireframes) for a ticket that doesn't have them.
+   *
+   * Allows users to add wireframes after ticket creation, even if they
+   * initially chose to skip wireframe generation.
+   */
+  @Post(':id/generate-wireframes')
+  @HttpCode(HttpStatus.OK)
+  async generateWireframes(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() body: { wireframeContext?: string },
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const aec = await this.generateWireframesUseCase.execute({
+        ticketId: aecId,
+        teamId,
+        wireframeContext: body.wireframeContext,
+      });
+      return this.mapToResponse(aec);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[generate-wireframes] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI wireframe generation failed — please try again. Details: ${message}`);
     }
   }
 

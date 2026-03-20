@@ -281,6 +281,18 @@ export class TicketService {
     return response.data;
   }
 
+  // Generate visual expectations (wireframes) for a ticket that doesn't have them
+  async generateWireframes(
+    ticketId: string,
+    wireframeContext?: string,
+  ): Promise<AECResponse> {
+    const response = await this.client.post<AECResponse>(
+      `/tickets/${ticketId}/generate-wireframes`,
+      { wireframeContext },
+    );
+    return response.data;
+  }
+
   // Excalidraw wireframe refinement via AI
   async refineWireframe(
     ticketId: string,

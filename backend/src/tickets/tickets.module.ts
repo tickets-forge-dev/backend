@@ -66,6 +66,7 @@ import { ReEnrichWithQAUseCase } from './application/use-cases/ReEnrichWithQAUse
 import { ApproveTicketUseCase } from './application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from './application/use-cases/StartImplementationUseCase';
 import { RefineWireframeUseCase } from './application/use-cases/RefineWireframeUseCase';
+import { GenerateWireframesUseCase } from './application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from './application/use-cases/ArchiveAECUseCase';
 import { UnarchiveAECUseCase } from './application/use-cases/UnarchiveAECUseCase';
 import { FigmaModule } from '../integrations/figma/figma.module';
@@ -118,6 +119,7 @@ import { ProjectProfilesModule } from '../project-profiles/project-profiles.modu
     ApproveTicketUseCase,
     StartImplementationUseCase,
     RefineWireframeUseCase,
+    GenerateWireframesUseCase,
     ArchiveAECUseCase,
     UnarchiveAECUseCase,
     ValidationEngine,

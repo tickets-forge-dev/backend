@@ -63,6 +63,10 @@ interface SettingsState {
   processIndexingQueue: (githubService: GitHubService) => Promise<void>;
 }
 
+// In-flight dedup guards: prevent concurrent calls from bypassing cache
+let _loadGitHubStatusPromise: Promise<void> | null = null;
+let _loadReposPromise: Promise<void> | null = null;
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   // Initial State
   githubConnected: false,
@@ -88,31 +92,42 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    * AC#1: Check and display connection status
    */
   loadGitHubStatus: async (githubService: GitHubService) => {
-    set({ isLoadingConnection: true, connectionError: null, githubTokenInvalid: false });
+    // Deduplicate: if already fetching, reuse the in-flight promise
+    if (_loadGitHubStatusPromise) return _loadGitHubStatusPromise;
+
+    _loadGitHubStatusPromise = (async () => {
+      set({ isLoadingConnection: true, connectionError: null, githubTokenInvalid: false });
+
+      try {
+        const status = await githubService.getConnectionStatus();
+        set({
+          githubConnected: status.connected,
+          githubConnectionStatus: status,
+          selectedRepositories: status.selectedRepositories || [],
+          isLoadingConnection: false,
+          githubTokenInvalid: false, // Clear on status check
+        });
+
+        // If connected, auto-load repositories (no indexing - we use on-demand scanning)
+        if (status.connected) {
+          await get().loadRepositories(githubService);
+        }
+      } catch (error: any) {
+        console.error('Failed to load GitHub status:', error);
+        set({
+          connectionError: error.response?.data?.message || 'Failed to load GitHub connection status',
+          isLoadingConnection: false,
+          githubConnected: false,
+          githubConnectionStatus: null,
+          githubTokenInvalid: false,
+        });
+      }
+    })();
 
     try {
-      const status = await githubService.getConnectionStatus();
-      set({
-        githubConnected: status.connected,
-        githubConnectionStatus: status,
-        selectedRepositories: status.selectedRepositories || [],
-        isLoadingConnection: false,
-        githubTokenInvalid: false, // Clear on status check
-      });
-
-      // If connected, auto-load repositories (no indexing - we use on-demand scanning)
-      if (status.connected) {
-        get().loadRepositories(githubService);
-      }
-    } catch (error: any) {
-      console.error('Failed to load GitHub status:', error);
-      set({
-        connectionError: error.response?.data?.message || 'Failed to load GitHub connection status',
-        isLoadingConnection: false,
-        githubConnected: false,
-        githubConnectionStatus: null,
-        githubTokenInvalid: false,
-      });
+      await _loadGitHubStatusPromise;
+    } finally {
+      _loadGitHubStatusPromise = null;
     }
   },
 
@@ -162,7 +177,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    * to prevent endless retry loops.
    */
   loadRepositories: async (githubService: GitHubService) => {
-    const now = Date.now();
+    // Deduplicate: if already fetching, reuse the in-flight promise
+    if (_loadReposPromise) return _loadReposPromise;
+
     const { repositoriesFetchedAt, githubRepositories, githubTokenInvalid } = get();
 
     // Don't retry if we already know the token is invalid
@@ -172,42 +189,51 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 
     // Cache is valid if fetched within 5 minutes
+    const now = Date.now();
     const CACHE_DURATION = 5 * 60 * 1000;
     if (repositoriesFetchedAt && now - repositoriesFetchedAt < CACHE_DURATION && githubRepositories.length > 0) {
       console.log('📦 Using cached repositories (age:', Math.round((now - repositoriesFetchedAt) / 1000), 's)');
       return;
     }
 
-    set({ isLoadingRepositories: true, repositoriesError: null });
+    _loadReposPromise = (async () => {
+      set({ isLoadingRepositories: true, repositoriesError: null });
+
+      try {
+        const repositories = await githubService.listRepositories();
+        console.log('📥 Fetched', repositories.length, 'repositories from GitHub');
+        set({
+          githubRepositories: repositories,
+          repositoriesFetchedAt: Date.now(),
+          isLoadingRepositories: false,
+          githubTokenInvalid: false, // Clear token invalid flag on success
+        });
+      } catch (error: any) {
+        const status = error.response?.status;
+        const isAuthError = (error as any).isAuthError || status === 401;
+        const isNetworkError = !status || status >= 500 || error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+
+        if (isNetworkError && githubRepositories.length > 0) {
+          // Network/timeout error but we have cached data — silently use it
+          console.warn('GitHub API temporarily unavailable, using cached repositories');
+          set({ isLoadingRepositories: false });
+        } else {
+          console.error('Failed to load repositories:', error.message || error);
+          set({
+            repositoriesError: isAuthError
+              ? 'GitHub token expired. Please reconnect in Settings.'
+              : 'Failed to load repositories',
+            isLoadingRepositories: false,
+            githubTokenInvalid: isAuthError,
+          });
+        }
+      }
+    })();
 
     try {
-      const repositories = await githubService.listRepositories();
-      console.log('📥 Fetched', repositories.length, 'repositories from GitHub');
-      set({
-        githubRepositories: repositories,
-        repositoriesFetchedAt: now,
-        isLoadingRepositories: false,
-        githubTokenInvalid: false, // Clear token invalid flag on success
-      });
-    } catch (error: any) {
-      const status = error.response?.status;
-      const isAuthError = (error as any).isAuthError || status === 401;
-      const isNetworkError = !status || status >= 500 || error.code === 'ECONNABORTED' || error.message?.includes('timeout');
-
-      if (isNetworkError && githubRepositories.length > 0) {
-        // Network/timeout error but we have cached data — silently use it
-        console.warn('GitHub API temporarily unavailable, using cached repositories');
-        set({ isLoadingRepositories: false });
-      } else {
-        console.error('Failed to load repositories:', error.message || error);
-        set({
-          repositoriesError: isAuthError
-            ? 'GitHub token expired. Please reconnect in Settings.'
-            : 'Failed to load repositories',
-          isLoadingRepositories: false,
-          githubTokenInvalid: isAuthError,
-        });
-      }
+      await _loadReposPromise;
+    } finally {
+      _loadReposPromise = null;
     }
   },
 

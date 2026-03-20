@@ -228,18 +228,27 @@ export function ImplementationTab({
       )}
 
       {/* Dependencies & Packages */}
-      {techSpec?.dependencies && techSpec.dependencies.length > 0 && (
-        <div id="technical-dependencies">
-          <CollapsibleSection
-            id="dependencies"
-            title="Dependencies & Packages"
-            badge={`${techSpec.dependencies.length} new`}
-            defaultExpanded={true}
-          >
-            <DependenciesSection dependencies={techSpec.dependencies} />
-          </CollapsibleSection>
-        </div>
-      )}
+      <div id="technical-dependencies">
+        <CollapsibleSection
+          id="dependencies"
+          title="Dependencies & Packages"
+          badge={techSpec?.dependencies?.length ? `${techSpec.dependencies.length} new` : undefined}
+          defaultExpanded={true}
+        >
+          <DependenciesSection
+            dependencies={techSpec?.dependencies || []}
+            onRemove={(index) => {
+              const updated = [...(techSpec?.dependencies || [])];
+              updated.splice(index, 1);
+              saveTechSpecPatch({ dependencies: updated });
+            }}
+            onAdd={(dep) => {
+              const updated = [...(techSpec?.dependencies || []), dep];
+              saveTechSpecPatch({ dependencies: updated });
+            }}
+          />
+        </CollapsibleSection>
+      </div>
 
       {/* Backend / Frontend Changes (Layered) */}
       {techSpec?.layeredFileChanges ? (

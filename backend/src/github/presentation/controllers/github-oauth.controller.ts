@@ -305,13 +305,17 @@ export class GitHubOAuthController {
       }
 
       // Fetch repositories - only owned repos, sorted by updated date
-      const octokit = new Octokit({ auth: accessToken });
+      const octokit = new Octokit({
+        auth: accessToken,
+        request: { timeout: 15000 }, // 15s timeout to prevent hanging
+      });
       const pageNum = page ? parseInt(page, 10) : 1;
 
       this.logger.debug(`Calling GitHub API to list repositories (page ${pageNum})`);
 
       // List only repos owned by the authenticated user (not contributed/org repos)
       let repoData: any;
+      const startTime = Date.now();
       try {
         const response = await octokit.rest.repos.listForAuthenticatedUser({
           affiliation: 'owner', // Only show repos owned by the user
@@ -321,7 +325,7 @@ export class GitHubOAuthController {
           direction: 'desc',
         });
         repoData = response.data;
-        this.logger.debug(`GitHub API returned ${repoData.length} repositories`);
+        this.logger.debug(`GitHub API returned ${repoData.length} repositories in ${Date.now() - startTime}ms`);
       } catch (apiError: any) {
         this.logger.error(
           `GitHub API call failed for workspace ${workspaceId}:`,
