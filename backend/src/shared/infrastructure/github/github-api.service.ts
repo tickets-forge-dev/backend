@@ -103,12 +103,14 @@ export class GitHubApiService {
 
       const octokit = this.createOctokit(accessToken);
 
-      // Fetch default branch and branch list in parallel (2 API calls total)
-      const [defaultBranch, branchesResponse] = await Promise.all([
-        this.getDefaultBranch(owner, repo, accessToken),
+      // Single API call — repos.get returns default_branch alongside repo metadata
+      // We avoid the separate getDefaultBranch chain which has a slow fallback path
+      const [repoResponse, branchesResponse] = await Promise.all([
+        octokit.rest.repos.get({ owner, repo }),
         octokit.rest.repos.listBranches({ owner, repo, per_page: 100 }),
       ]);
 
+      const defaultBranch = repoResponse.data.default_branch || 'main';
       const branches = branchesResponse.data;
 
       // Map to GitHubBranch without fetching individual commits (was N extra API calls)
