@@ -51,6 +51,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     nextStage,
     prevStage,
     activeJobId,
+    cancelAnalysis,
   } = useWizardStore();
 
   // Subscribe to job progress when an active job is running
@@ -317,8 +318,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           message={loadingMessage}
           percent={resolvedPercent}
           hasRepository={hasRepository}
-          onSendToBackground={isBackgroundJob ? handleSendToBackground : undefined}
-          onCancel={isBackgroundJob ? handleCancelJob : undefined}
+          onSendToBackground={handleSendToBackground}
+          onCancel={isBackgroundJob ? handleCancelJob : cancelAnalysis}
         />
       )}
 

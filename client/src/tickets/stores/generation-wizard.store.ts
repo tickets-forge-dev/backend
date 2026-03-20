@@ -321,6 +321,7 @@ export interface WizardActions {
 
   // Context stage
   analyzeRepository: () => Promise<void>;
+  cancelAnalysis: () => void;
   editStack: (updates: any) => void; // Legacy: ProjectStack type
   editAnalysis: (updates: any) => void; // Legacy: CodebaseAnalysis type
 
@@ -736,6 +737,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+    (window as any).__analysisAbortController = abortController;
+
     set({
       loading: true,
       loadingMessage: 'Connecting to GitHub...',
@@ -761,6 +766,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       const response = await authFetch('/tickets/analyze-repo', {
         method: 'POST',
+        signal: abortController.signal,
         body: JSON.stringify({
           owner,
           repo,
@@ -869,6 +875,24 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         currentPhase: null,
       });
     }
+  },
+
+  /**
+   * Cancel an in-progress analysis SSE stream.
+   */
+  cancelAnalysis: () => {
+    const controller = (window as any).__analysisAbortController as AbortController | undefined;
+    if (controller) {
+      controller.abort();
+      (window as any).__analysisAbortController = undefined;
+    }
+    set({
+      loading: false,
+      currentPhase: null,
+      loadingMessage: null,
+      progressPercent: 0,
+      error: null,
+    });
   },
 
   /**
