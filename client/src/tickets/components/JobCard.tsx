@@ -10,6 +10,7 @@ interface JobCardProps {
   onCancel: (jobId: string) => void;
   onRetry: (jobId: string) => void;
   onView: (ticketId: string) => void;
+  onDismiss?: (jobId: string) => void;
 }
 
 /**
@@ -26,7 +27,7 @@ function formatElapsed(from: Date): string {
 /**
  * Compact card displaying a background generation job's status.
  */
-export function JobCard({ job, onCancel, onRetry, onView }: JobCardProps) {
+export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardProps) {
   const [elapsed, setElapsed] = useState(() => formatElapsed(job.createdAt));
 
   // Update elapsed time every second for active jobs
@@ -114,6 +115,17 @@ export function JobCard({ job, onCancel, onRetry, onView }: JobCardProps) {
             onClick={() => onView(job.ticketId)}
           >
             View
+          </Button>
+        )}
+        {(job.status === 'completed' || job.status === 'failed') && onDismiss && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 w-5 p-0 text-[var(--text-tertiary)] hover:text-[var(--text)]"
+            onClick={() => onDismiss(job.id)}
+            title="Dismiss"
+          >
+            <X className="h-3 w-3" />
           </Button>
         )}
       </div>

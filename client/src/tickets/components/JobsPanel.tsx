@@ -15,7 +15,7 @@ import type { GenerationJobClient } from '@/stores/jobs.store';
  * Hidden on mobile (below md breakpoint).
  */
 export function JobsPanel() {
-  const { jobs, dismissedIds, cancelJob, retryJob, clearCompleted } = useJobsStore();
+  const { jobs, dismissedIds, cancelJob, retryJob, clearCompleted, dismissJob } = useJobsStore();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
   const [completedCollapsed, setCompletedCollapsed] = useState(false);
@@ -141,6 +141,7 @@ export function JobsPanel() {
                 onCancel={handleCancel}
                 onRetry={handleRetry}
                 onView={handleView}
+                onDismiss={dismissJob}
               />
             ))}
           </div>
@@ -178,6 +179,7 @@ export function JobsPanel() {
                 onCancel={handleCancel}
                 onRetry={handleRetry}
                 onView={handleView}
+                onDismiss={dismissJob}
               />
             ))}
           </div>
