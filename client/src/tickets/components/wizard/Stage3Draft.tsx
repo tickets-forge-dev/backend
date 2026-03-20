@@ -134,13 +134,13 @@ export function Stage3Draft() {
   useEffect(() => {
     if (initRef.current) return;
     if (spec || questionsComplete) return;
-    // If skip questions is on or a background job is running, don't fetch questions
+    // If a background job is already running, nothing to do
     if (activeJobId) return;
-    if (useWizardStore.getState().maxRounds === 0) return;
 
-    // If we already have questions, check if they're all answered (resume case)
-    // If so, we need to fetch the next one. If not, show the current unanswered one.
-    if (clarificationQuestions.length > 0) {
+    const skipQuestions = useWizardStore.getState().maxRounds === 0;
+
+    // Resume case: have questions, not all answered — just show them (don't re-init)
+    if (!skipQuestions && clarificationQuestions.length > 0) {
       const allAnswered = clarificationQuestions.every(
         (q) => questionAnswers[q.id] !== undefined && questionAnswers[q.id] !== ''
       );
@@ -160,16 +160,17 @@ export function Stage3Draft() {
       try {
         const storeState = useWizardStore.getState();
 
+        // Create draft if needed (always — even when skipping questions)
         if (!storeState.draftAecId) {
           await confirmContextContinue();
           const newState = useWizardStore.getState();
           if (!newState.draftAecId) return;
           if (newState.spec) return;
-          // If a background job was started (skipQuestions / maxRounds=0), don't fetch questions
+          // If a background job was started (skipQuestions / maxRounds=0), we're done
           if (newState.activeJobId) return;
         }
 
-        // Skip question fetching if maxRounds is 0 (skip questions toggled on)
+        // Skip question fetching if maxRounds is 0
         if (useWizardStore.getState().maxRounds === 0) return;
 
         // Fetch first question (no previous answers)
