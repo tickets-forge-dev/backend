@@ -60,10 +60,14 @@ export class BackgroundScanService {
     let jobId: string | null = null;
 
     try {
-      // Load profile
+      // Load profile and guard against concurrent scans
       const profile = await this.profileRepository.findById(profileId, teamId);
       if (!profile) {
         this.logger.error(`Profile ${profileId} not found`);
+        return;
+      }
+      if (profile.isScanning()) {
+        this.logger.warn(`Profile ${profileId} already scanning — skipping duplicate run`);
         return;
       }
 

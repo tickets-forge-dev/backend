@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import { LayoutGrid, Settings, MessageCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
@@ -22,15 +23,18 @@ export function SidebarNav() {
   };
   const { openFeedback } = useFeedbackStore();
 
-  // Check for unprofiled/failed repos to show attention dot on Settings
+  // Check for unprofiled/failed repos — memoized to avoid re-renders on every poll
   const selectedRepos = useSettingsStore((s) => s.selectedRepositories);
   const profilesList = useProjectProfileStore((s) => s.profiles);
-  const hasProfileAttention = selectedRepos.length > 0 && selectedRepos.some((repo) => {
-    const profile = profilesList.find(
-      (p) => p.repoOwner === repo.owner && p.repoName === repo.name,
-    );
-    return !profile || profile.status === 'failed';
-  });
+  const hasProfileAttention = useMemo(() => {
+    if (selectedRepos.length === 0) return false;
+    return selectedRepos.some((repo) => {
+      const profile = profilesList.find(
+        (p) => p.repoOwner === repo.owner && p.repoName === repo.name,
+      );
+      return !profile || profile.status === 'failed';
+    });
+  }, [selectedRepos, profilesList]);
 
   const navigationItems = [
     { label: 'Workspace', href: '/tickets', icon: LayoutGrid },

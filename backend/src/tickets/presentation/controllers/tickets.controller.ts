@@ -293,43 +293,38 @@ export class TicketsController {
 
       this.logger.log(`[TIMING] Tree fetch: ${Date.now() - treeStart}ms`);
 
-      // 3. Config read: skip if profile available (profile already has config contents)
+      // 3. Config read: always read — LLM prompt needs DEPENDENCIES & CONFIG section
+      send({ phase: 'reading_configs', message: 'Reading configuration files...', percent: 25 });
+      const configStart = Date.now();
+
+      const configFilePaths = [
+        'package.json',
+        'tsconfig.json',
+        '.eslintrc.json',
+        '.prettierrc',
+        'README.md',
+      ];
+
       const configFiles = new Map<string, string>();
-      if (profileAvailable) {
-        send({ phase: 'reading_configs', message: 'Using cached configuration...', percent: 25 });
-        this.logger.log(`[PROFILE] Skipping config file reads — using cached profile`);
-      } else {
-        send({ phase: 'reading_configs', message: 'Reading configuration files...', percent: 25 });
-        const configStart = Date.now();
+      for (const filePath of configFilePaths) {
+        try {
+          const response = await octokit.rest.repos.getContent({
+            owner: dto.owner,
+            repo: dto.repo,
+            path: filePath,
+            ref: branch,
+          });
 
-        const configFilePaths = [
-          'package.json',
-          'tsconfig.json',
-          '.eslintrc.json',
-          '.prettierrc',
-          'README.md',
-        ];
-
-        for (const filePath of configFilePaths) {
-          try {
-            const response = await octokit.rest.repos.getContent({
-              owner: dto.owner,
-              repo: dto.repo,
-              path: filePath,
-              ref: branch,
-            });
-
-            if ('content' in response.data && typeof response.data.content === 'string') {
-              const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-              configFiles.set(filePath, content);
-            }
-          } catch {
-            // File not found, skip
+          if ('content' in response.data && typeof response.data.content === 'string') {
+            const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+            configFiles.set(filePath, content);
           }
+        } catch {
+          // File not found, skip
         }
-
-        this.logger.log(`[TIMING] Config reads: ${Date.now() - configStart}ms (${configFiles.size} files)`);
       }
+
+      this.logger.log(`[TIMING] Config reads: ${Date.now() - configStart}ms (${configFiles.size} files)`);
 
       // 4. Deep LLM analysis — service emits progress at 35%, 50%, 65%
       const analysisStart = Date.now();

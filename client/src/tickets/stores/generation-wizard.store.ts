@@ -8,6 +8,9 @@ import { auth } from '@/lib/firebase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
+/** Module-scoped abort controller for the analysis SSE stream */
+let _analysisAbortController: AbortController | undefined;
+
 const WIZARD_STORAGE_KEY = 'wizard-snapshot';
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -739,7 +742,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
     // Create abort controller for cancellation
     const abortController = new AbortController();
-    (window as any).__analysisAbortController = abortController;
+    _analysisAbortController = abortController;
 
     set({
       loading: true,
@@ -821,6 +824,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           }
 
           if (event.phase === 'complete') {
+            _analysisAbortController = undefined;
             const analysisContext = event.result?.context || null;
             // Extract recommendedRounds from deep analysis
             const recommended = analysisContext?.taskAnalysis?.implementationHints?.recommendedRounds;
@@ -842,6 +846,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           }
 
           if (event.phase === 'error') {
+            _analysisAbortController = undefined;
             set({
               error: event.message || 'Analysis failed',
               loading: false,
@@ -862,10 +867,12 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       }
 
       // Stream ended without complete/error event
+      _analysisAbortController = undefined;
       if (get().loading) {
         set({ error: 'Analysis stream ended unexpectedly', loading: false, loadingMessage: null, progressPercent: 0, currentPhase: null });
       }
     } catch (error) {
+      _analysisAbortController = undefined;
       // AbortError from cancelAnalysis() — not a real error, just user cancellation
       if (error instanceof DOMException && error.name === 'AbortError') {
         set({ loading: false, loadingMessage: null, progressPercent: 0, currentPhase: null, error: null });
@@ -886,10 +893,9 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Cancel an in-progress analysis SSE stream.
    */
   cancelAnalysis: () => {
-    const controller = (window as any).__analysisAbortController as AbortController | undefined;
-    if (controller) {
-      controller.abort();
-      (window as any).__analysisAbortController = undefined;
+    if (_analysisAbortController) {
+      _analysisAbortController.abort();
+      _analysisAbortController = undefined;
     }
     set({
       loading: false,

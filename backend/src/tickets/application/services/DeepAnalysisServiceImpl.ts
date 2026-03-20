@@ -140,27 +140,21 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
 
     this.logger.log(`Phase 1: Tree has ${condensedTree.split('\n').length} source entries`);
 
-    // PASS 1: Fingerprinting — skip if profile available (profile has tech stack)
-    let fingerprint: RepositoryFingerprint | undefined;
-    if (hasProfile) {
-      this.logger.log(`[PROFILE] Skipping fingerprinting — profile has tech stack`);
-      emit({ phase: 'fingerprinting', message: 'Using cached tech stack...', percent: 20 });
-    } else {
-      emit({ phase: 'fingerprinting', message: 'Detecting tech stack...', percent: 15 });
-      const fpStart = Date.now();
-      fingerprint = this.fingerprintService.extractFingerprint(
-        input.fileTree,
-        Object.fromEntries(input.configFiles),
-      );
-      this.logger.log(
-        `[TIMING] Fingerprinting: ${Date.now() - fpStart}ms — ${fingerprint.languages.join(', ') || 'unknown'} (${fingerprint.packageManager || 'auto-detect'})`,
-      );
-      emit({
-        phase: 'fingerprinting',
-        message: `Detected: ${fingerprint.primaryLanguage}, ${fingerprint.frameworks.join(', ') || 'no framework'}`,
-        percent: 20,
-      });
-    }
+    // PASS 1: Fast fingerprinting (instant — regex on in-memory data, no API calls)
+    emit({ phase: 'fingerprinting', message: 'Detecting tech stack...', percent: 15 });
+    const fpStart = Date.now();
+    const fingerprint = this.fingerprintService.extractFingerprint(
+      input.fileTree,
+      Object.fromEntries(input.configFiles),
+    );
+    this.logger.log(
+      `[TIMING] Fingerprinting: ${Date.now() - fpStart}ms — ${fingerprint.languages.join(', ') || 'unknown'} (${fingerprint.packageManager || 'auto-detect'})`,
+    );
+    emit({
+      phase: 'fingerprinting',
+      message: `Detected: ${fingerprint.primaryLanguage}, ${fingerprint.frameworks.join(', ') || 'no framework'}`,
+      percent: 20,
+    });
 
     // Build project profile context for LLM injection
     const profileContext = input.projectProfile
