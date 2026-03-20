@@ -3,6 +3,8 @@ import { InvalidJobTransitionError } from './InvalidJobTransitionError';
 
 export type JobStatus = 'running' | 'retrying' | 'completed' | 'failed' | 'cancelled';
 
+export type JobType = 'finalization' | 'scan';
+
 const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   running: ['retrying', 'completed', 'failed', 'cancelled'],
   retrying: ['completed', 'failed', 'cancelled'],
@@ -30,6 +32,7 @@ export class GenerationJob {
     private readonly _createdAt: Date,
     private _updatedAt: Date,
     private _completedAt: Date | null,
+    private readonly _type: JobType = 'finalization',
   ) {}
 
   /**
@@ -42,6 +45,7 @@ export class GenerationJob {
     ticketTitle: string,
     createdBy: string,
     previousJobId?: string,
+    type?: JobType,
   ): GenerationJob {
     const now = new Date();
     return new GenerationJob(
@@ -59,6 +63,7 @@ export class GenerationJob {
       now,
       now,
       null,
+      type ?? 'finalization',
     );
   }
 
@@ -81,6 +86,7 @@ export class GenerationJob {
     createdAt: Date;
     updatedAt: Date;
     completedAt: Date | null;
+    type?: JobType;
   }): GenerationJob {
     return new GenerationJob(
       props.id,
@@ -97,6 +103,7 @@ export class GenerationJob {
       props.createdAt,
       props.updatedAt,
       props.completedAt,
+      props.type ?? 'finalization',
     );
   }
 
@@ -243,6 +250,10 @@ export class GenerationJob {
     return this._completedAt;
   }
 
+  get type(): JobType {
+    return this._type;
+  }
+
   /**
    * Returns a plain object representation suitable for JSON serialization.
    * Needed because NestJS cannot serialize private-field domain entities
@@ -264,6 +275,7 @@ export class GenerationJob {
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       completedAt: this.completedAt?.toISOString() ?? null,
+      type: this.type,
     };
   }
 }

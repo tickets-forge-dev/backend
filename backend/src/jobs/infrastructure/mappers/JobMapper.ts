@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase-admin/firestore';
-import { GenerationJob, JobStatus } from '../../domain/GenerationJob';
+import { GenerationJob, JobStatus, JobType } from '../../domain/GenerationJob';
 
 /** Safely convert Firestore Timestamp, {_seconds,_nanoseconds}, or ISO string to Date */
 function toDate(value: unknown): Date {
@@ -29,6 +29,7 @@ export interface JobDocument {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   completedAt: Timestamp | null;
+  type: string;
 }
 
 export class JobMapper {
@@ -48,6 +49,7 @@ export class JobMapper {
       createdAt: toDate(doc.createdAt),
       updatedAt: toDate(doc.updatedAt),
       completedAt: doc.completedAt ? toDate(doc.completedAt) : null,
+      type: (doc.type as JobType) ?? 'finalization',
     });
   }
 
@@ -67,6 +69,7 @@ export class JobMapper {
       createdAt: Timestamp.fromDate(job.createdAt),
       updatedAt: Timestamp.fromDate(job.updatedAt),
       completedAt: job.completedAt ? Timestamp.fromDate(job.completedAt) : null,
+      type: job.type,
     };
   }
 }

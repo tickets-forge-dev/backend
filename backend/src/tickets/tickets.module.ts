@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TicketsController } from './presentation/controllers/tickets.controller';
 import { CreateTicketUseCase } from './application/use-cases/CreateTicketUseCase';
 import { UpdateAECUseCase } from './application/use-cases/UpdateAECUseCase';
@@ -74,6 +74,7 @@ import { TeamsModule } from '../teams/teams.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UsageBudgetRepository';
 import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUsageBudgetRepository';
+import { ProjectProfilesModule } from '../project-profiles/project-profiles.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persist
     LoomModule,
     TeamsModule, // Story 3.5-5: Access to TeamMemberRepository for assignment validation
     NotificationsModule, // Story 9.2: Email notifications for ticket events
+    forwardRef(() => ProjectProfilesModule), // Epic 15: Project profile lookup during analysis
   ],
   controllers: [TicketsController],
   providers: [
@@ -209,6 +211,7 @@ import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persist
     CODEBASE_ANALYZER,
     PROJECT_STACK_DETECTOR,
     GITHUB_FILE_SERVICE,
+    RepositoryFingerprintService,
   ],
 })
 export class TicketsModule {}

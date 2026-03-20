@@ -13,6 +13,7 @@ import { ConfigModule as ConfigApiModule } from './config/config.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { FoldersModule } from './folders/folders.module';
 import { JobsModule } from './jobs/jobs.module';
+import { ProjectProfilesModule } from './project-profiles/project-profiles.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { JobsModule } from './jobs/jobs.module';
     FeedbackModule,
     FoldersModule,
     JobsModule,
+    ProjectProfilesModule,
   ],
   controllers: [],
   providers: [],

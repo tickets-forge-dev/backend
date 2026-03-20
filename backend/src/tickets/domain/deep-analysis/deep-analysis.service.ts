@@ -58,6 +58,8 @@ export interface DeepAnalysisInput {
   configFiles: Map<string, string>;
   octokit: any;
   onProgress?: (event: AnalysisProgressEvent) => void;
+  /** Optional cached project profile text — enriches LLM prompts with pre-scanned context */
+  projectProfile?: string;
 }
 
 /**

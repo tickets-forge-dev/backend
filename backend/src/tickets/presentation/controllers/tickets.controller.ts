@@ -102,6 +102,10 @@ import { StartImplementationDto } from '../dto/StartImplementationDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
 import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
 import { UnarchiveAECUseCase } from '../../application/use-cases/UnarchiveAECUseCase';
+import {
+  ProjectProfileRepository,
+  PROJECT_PROFILE_REPOSITORY,
+} from '../../../project-profiles/application/ports/ProjectProfileRepository.port';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -157,6 +161,8 @@ export class TicketsController {
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
     private readonly firebaseService: FirebaseService,
+    @Inject(PROJECT_PROFILE_REPOSITORY)
+    private readonly projectProfileRepository: ProjectProfileRepository,
   ) {}
 
   /**
@@ -284,6 +290,25 @@ export class TicketsController {
         }
       }
 
+      // 3.5 Look up cached project profile (Epic 15)
+      let projectProfile: string | undefined;
+      try {
+        if (!this.projectProfileRepository) throw new Error('not available');
+        const profile = await this.projectProfileRepository.findByRepo(
+          teamId,
+          dto.owner,
+          dto.repo,
+        );
+        if (profile?.isReady() && profile.profileContent) {
+          projectProfile = profile.profileContent;
+          this.logger.log(
+            `Project profile available for ${dto.owner}/${dto.repo} (${profile.profileContent.length} chars)`,
+          );
+        }
+      } catch {
+        // Non-critical — proceed without profile
+      }
+
       // 4. Deep LLM analysis — service emits progress at 35%, 50%, 65%
       this.logger.log(`Starting deep LLM analysis...`);
       const result = await this.deepAnalysisService.analyze({
@@ -296,6 +321,7 @@ export class TicketsController {
         configFiles,
         octokit,
         onProgress: (event) => send(event),
+        projectProfile,
       });
 
       this.logger.log(`Repository analysis complete`);

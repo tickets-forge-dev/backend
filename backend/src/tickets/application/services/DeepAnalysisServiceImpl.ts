@@ -162,6 +162,15 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     let selectedFiles: string[] = [];
     let fileContents = new Map<string, string>();
 
+    // Build project profile context if available (Epic 15)
+    const profileContext = input.projectProfile
+      ? `\n\nPROJECT PROFILE (pre-scanned context):\n${input.projectProfile}`
+      : '';
+
+    if (input.projectProfile) {
+      this.logger.log(`Using cached project profile (${input.projectProfile.length} chars)`);
+    }
+
     try {
       emit({
         phase: 'selecting_files',
@@ -175,6 +184,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         condensedTree,
         configContents,
         input.fileTree,
+        profileContext,
       );
 
       this.logger.log(`Phase 2: LLM selected ${selectedFiles.length} files to read`);
@@ -217,6 +227,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         condensedTree,
         selectedFiles,
         fingerprint, // Pass fingerprint for context
+        profileContext,
       );
 
       // Post-Phase 3: Enrich with regex-based controller scanning
@@ -267,6 +278,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     condensedTree: string,
     configContents: string,
     fileTree: FileTree,
+    profileContext: string = '',
   ): Promise<string[]> {
     const systemPrompt = `You are a senior software engineer. Your job: given a specific development task, pick the exact source files from the repository that are DIRECTLY relevant to implementing that task.
 
@@ -280,7 +292,7 @@ DO NOT pick random files. Every file you pick must have a clear connection to th
 
     const userPrompt = `THE TASK: "${title}"
 ${description ? `DETAILS: ${description}` : ''}
-
+${profileContext}
 EXISTING DEPENDENCIES AND CONFIG:
 ${configContents}
 
@@ -395,6 +407,7 @@ CRITICAL RULES:
     condensedTree: string,
     llmFilesRead: string[],
     fingerprint?: RepositoryFingerprint,
+    profileContext: string = '',
   ): Promise<DeepAnalysisResult> {
     // Build file contents string
     const sourceFilesText = Array.from(fileContents.entries())
@@ -423,7 +436,7 @@ REPOSITORY FINGERPRINT (detected without reading all files):
 ${description ? `DESCRIPTION: ${description}` : ''}
 
 I've analyzed this repository and read selected source files. Analyze them for implementing the task above.
-${fingerprintContext}
+${fingerprintContext}${profileContext}
 
 DEPENDENCIES & CONFIG:
 ${configContents}
