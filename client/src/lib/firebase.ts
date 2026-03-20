@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, GithubAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
 
 // Fetch Firebase configuration from backend at runtime
 // This ensures the config is available even if env vars weren't set during build
@@ -82,7 +82,7 @@ function initializeFirebaseIfValid() {
   try {
     app = initializeApp(config);
     auth = getAuth(app);
-    firestore = getFirestore(app);
+    firestore = initializeFirestore(app, { localCache: persistentLocalCache({}) });
     firebaseInitialized = true;
   } catch (error) {
     console.error('❌ Failed to initialize Firebase:', error);
@@ -105,14 +105,7 @@ if (typeof window !== 'undefined') {
     // Silently fail - fallback config is already in use
   });
 
-  // Enable offline persistence when Firebase is ready
-  if (firestore) {
-    import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
-      enableIndexedDbPersistence(firestore).catch((err) => {
-        // Silently fail - offline persistence is optional
-      });
-    });
-  }
+  // Offline persistence is now configured via initializeFirestore localCache option
 }
 
 // Export auth and firestore (will be null during SSR/build, but that's OK)
