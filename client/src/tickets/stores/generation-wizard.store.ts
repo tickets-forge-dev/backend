@@ -3,6 +3,7 @@ import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestion
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTeamStore } from '@/teams/stores/team.store';
+import { useJobsStore } from '@/stores/jobs.store';
 import { auth } from '@/lib/firebase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -272,6 +273,9 @@ export interface WizardState {
   hasRepository: boolean; // Whether repository is being analyzed (for progress UI)
   error: string | null;
 
+  // Background finalization job
+  activeJobId: string | null;
+
   // Skip questions flag
   skipQuestions: boolean;
   _savedMaxRounds: number; // Preserved value when skipQuestions toggled on
@@ -434,6 +438,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   currentPhase: null,
   hasRepository: false,
   error: null,
+  activeJobId: null,
   skipQuestions: false,
   _savedMaxRounds: 3,
   showCelebration: false,
@@ -1008,25 +1013,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         saveSnapshot(get());
 
         try {
-          const finalizeResponse = await authFetch(`/tickets/${aec.id}/finalize`, {
-            method: 'POST',
-          });
-
-          if (!finalizeResponse.ok) {
-            throw new Error(`Failed to finalize: ${finalizeResponse.statusText}`);
-          }
-
-          const finalizedAec = await finalizeResponse.json();
+          // Start background finalization job instead of synchronous finalize
+          const { jobId } = await useJobsStore.getState().startFinalization(aec.id);
           set({
             draftAecId: aec.id,
             draftAecSlug: aec.slug ?? null,
-            spec: finalizedAec.techSpec,
+            activeJobId: jobId,
             currentStage: 'generate' as WizardStage,
-            loading: false,
-            loadingMessage: null,
+            loading: true,
+            currentPhase: 'preparing',
+            progressPercent: 0,
+            loadingMessage: 'Generating technical specification...',
           });
         } catch (finalizeError) {
-          // Fallback: if auto-finalize fails, go to stage 3 with maxRounds=1
+          // Fallback: if job start fails, go to stage 3 with maxRounds=1
           console.warn('Auto-finalize failed, falling back to 1 round:', finalizeError);
           set({
             draftAecId: aec.id,
@@ -1035,6 +1035,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
             currentStage: 'generate' as WizardStage,
             loading: false,
             loadingMessage: null,
+            activeJobId: null,
           });
         }
         return;
@@ -1176,8 +1177,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   },
 
   /**
-   * Submit all question answers and finalize spec
-   * Combines answer submission + spec generation in one call
+   * Submit all question answers and start background finalization job.
+   * Answers are submitted synchronously; spec generation runs in the background.
    */
   submitQuestionAnswers: async () => {
     const state = get();
@@ -1189,20 +1190,40 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ roundStatus: 'submitting', error: null });
 
     try {
-      const response = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
+      // Step 1: Submit answers synchronously (records answers on the AEC)
+      const answersResponse = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
         method: 'POST',
         body: JSON.stringify({ answers: state.questionAnswers }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to submit answers: ${response.statusText}`);
+      if (!answersResponse.ok) {
+        throw new Error(`Failed to submit answers: ${answersResponse.statusText}`);
       }
 
-      const data = await response.json();
+      // Check if the synchronous endpoint already returned a finalized spec
+      const answersData = await answersResponse.json();
+      if (answersData.techSpec) {
+        // Legacy path: synchronous finalization completed inline
+        set({
+          spec: answersData.techSpec,
+          roundStatus: 'idle',
+          activeJobId: null,
+        });
+        localStorage.removeItem('wizard-clarification-questions');
+        localStorage.removeItem('wizard-question-answers');
+        return;
+      }
 
-      // Update state with finalized spec — stay on Stage 3 for user review
+      // Step 2: Start background finalization job
+      const { jobId } = await useJobsStore.getState().startFinalization(state.draftAecId);
+
+      // Store jobId for progress dialog and set loading state
       set({
-        spec: data.techSpec,
+        activeJobId: jobId,
+        loading: true,
+        currentPhase: 'preparing',
+        progressPercent: 0,
+        loadingMessage: 'Generating technical specification...',
         roundStatus: 'idle',
       });
 
@@ -1214,6 +1235,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       set({
         error: errorMessage,
         roundStatus: 'idle',
+        activeJobId: null,
       });
     }
   },
@@ -1532,6 +1554,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       currentPhase: null,
       hasRepository: false,
       error: null,
+      activeJobId: null,
       skipQuestions: false,
       _savedMaxRounds: 3,
       showCelebration: false,

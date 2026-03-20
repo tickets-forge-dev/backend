@@ -146,9 +146,6 @@ export class BackgroundFinalizationService {
     // Phase 5: Generate tech spec via LLM
     await progressCallback.onPhaseUpdate('generating', 40);
 
-    // TODO: Wire progressCallback into techSpecGenerator.generateWithAnswers
-    // once Story 7 adds the callback parameter to the generator interface.
-    // For now, the generator is called without progress reporting during generation.
     const techSpec = await this.techSpecGenerator.generateWithAnswers({
       title: aec.title,
       description: aec.description ?? undefined,
@@ -163,7 +160,7 @@ export class BackgroundFinalizationService {
       wireframeImageUrls: wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
       apiContext: aec.apiContext ?? undefined,
       trackingContext: { userId: aec.createdBy, teamId, ticketId: aecId },
-    });
+    }, progressCallback);
 
     // Check cancellation after expensive LLM call
     if (await progressCallback.isCancelled()) return;

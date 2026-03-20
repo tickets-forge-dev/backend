@@ -30,6 +30,7 @@ import { FileTree } from '@github/domain/github-file.service';
 import { ProjectStack } from '@tickets/domain/stack-detection/ProjectStackDetector';
 import { CodebaseAnalysis } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
 import { DesignReference } from '../value-objects/DesignReference';
+import { GenerationProgressCallback } from '../../../jobs/application/ports/GenerationProgressCallback';
 
 /** Optional tracking context for token usage metering */
 export interface LLMTrackingContext {
@@ -593,7 +594,7 @@ export interface TechSpecGenerator {
     wireframeImageUrls?: string[];
     apiContext?: string;
     trackingContext?: LLMTrackingContext;
-  }): Promise<TechSpec>;
+  }, progressCallback?: GenerationProgressCallback): Promise<TechSpec>;
 
   /**
    * Generates Excalidraw wireframe data from visual expectations.

@@ -33,6 +33,8 @@ interface AnalysisProgressDialogProps {
   message: string | null;
   percent: number;
   hasRepository?: boolean; // Whether repository is being analyzed
+  onSendToBackground?: () => void;
+  onCancel?: () => void;
 }
 
 interface PhaseConfig {
@@ -92,6 +94,8 @@ export function AnalysisProgressDialog({
   message,
   percent,
   hasRepository = true, // Default to true for backward compatibility
+  onSendToBackground,
+  onCancel,
 }: AnalysisProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const PHASES = hasRepository ? REPO_PHASES : NO_REPO_PHASES;
@@ -227,6 +231,28 @@ export function AnalysisProgressDialog({
             <span className="text-gray-600 dark:text-gray-400 font-medium">{percent}%</span>
             <span className="text-gray-500 dark:text-gray-500">{elapsedSeconds}s</span>
           </div>
+
+          {/* Action buttons for background finalization */}
+          {(onSendToBackground || onCancel) && (
+            <div className="flex items-center justify-end gap-2 pt-2">
+              {onCancel && (
+                <button
+                  onClick={onCancel}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              {onSendToBackground && (
+                <button
+                  onClick={onSendToBackground}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  Send to Background
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

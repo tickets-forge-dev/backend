@@ -43,6 +43,7 @@ import {
   PackageDependency,
   BugDetails,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
+import { GenerationProgressCallback } from '../../../jobs/application/ports/GenerationProgressCallback';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -3034,7 +3035,7 @@ Return the COMPLETE modified elements array. Rules:
     wireframeImageUrls?: string[];
     apiContext?: string;
     trackingContext?: { userId: string; teamId: string; ticketId?: string; operation?: string };
-  }): Promise<TechSpec> {
+  }, progressCallback?: GenerationProgressCallback): Promise<TechSpec> {
     if (input.trackingContext) {
       this._activeTrackingContext = {
         userId: input.trackingContext.userId,
@@ -3044,6 +3045,14 @@ Return the COMPLETE modified elements array. Rules:
       };
     }
     try {
+      // Report: preparing
+      if (progressCallback) {
+        if (await progressCallback.isCancelled()) {
+          throw new Error('Generation cancelled');
+        }
+        await progressCallback.onPhaseUpdate('preparing', 5);
+      }
+
       const context = input.context;
       const hasRepository = context !== null;
       // Story 14-3: Default to true for backward compatibility
@@ -3080,8 +3089,21 @@ Return the COMPLETE modified elements array. Rules:
         this.generateSolutionFromDescription(input.title, enrichedDescription, context),
       ]);
 
+      // Report: problem_statement + solution complete
+      if (progressCallback) {
+        if (await progressCallback.isCancelled()) {
+          throw new Error('Generation cancelled');
+        }
+        await progressCallback.onPhaseUpdate('problem_statement', 15);
+      }
+
       // AC#2: Generate code-specific sections only when repository provided
       if (hasRepository) {
+        // Report: solution phase
+        if (progressCallback) {
+          await progressCallback.onPhaseUpdate('solution', 25);
+        }
+
         // Story 14-3: Conditionally generate API and wireframe sections
         const parallelGenerators: Promise<any>[] = [
           this.generateAcceptanceCriteriaWithAnswers(context, input.answers),
@@ -3092,6 +3114,24 @@ Return the COMPLETE modified elements array. Rules:
           this.detectDependencies(input.title, input.description || '', solution, context),
         ];
         const [acceptanceCriteria, fileChanges, inScope, outOfScope, apiChanges, dependencies] = await Promise.all(parallelGenerators);
+
+        // Report: acceptance_criteria + file_changes complete
+        if (progressCallback) {
+          if (await progressCallback.isCancelled()) {
+            throw new Error('Generation cancelled');
+          }
+          await progressCallback.onPhaseUpdate('acceptance_criteria', 40);
+        }
+
+        // Report: file_changes
+        if (progressCallback) {
+          await progressCallback.onPhaseUpdate('file_changes', 55);
+        }
+
+        // Report: dependencies/scope
+        if (progressCallback) {
+          await progressCallback.onPhaseUpdate('dependencies', 65);
+        }
 
         // Generate sections that depend on fileChanges (parallel)
         // Story 14-3: Skip visualExpectations when includeWireframes=false
@@ -3111,6 +3151,19 @@ Return the COMPLETE modified elements array. Rules:
             : Promise.resolve(undefined),
         ];
         const [testPlan, layeredFileChanges, visualExpectations] = await Promise.all(secondaryGenerators);
+
+        // Report: test_plan complete
+        if (progressCallback) {
+          if (await progressCallback.isCancelled()) {
+            throw new Error('Generation cancelled');
+          }
+          await progressCallback.onPhaseUpdate('test_plan', 75);
+        }
+
+        // Report: visual_expectations
+        if (progressCallback) {
+          await progressCallback.onPhaseUpdate('visual_expectations', 85);
+        }
 
         // Excalidraw wireframes are deferred — generated in background by FinalizeSpecUseCase
         // after the spec is saved, so users get their spec faster
@@ -3168,8 +3221,18 @@ Return the COMPLETE modified elements array. Rules:
       //   await this.removeAmbiguities(techSpec);
       // }
 
+      // Report: saving
+      if (progressCallback) {
+        await progressCallback.onPhaseUpdate('saving', 95);
+      }
+
       // Calculate quality score
       techSpec.qualityScore = this.calculateQualityScore(techSpec);
+
+      // Report: complete
+      if (progressCallback) {
+        await progressCallback.onPhaseUpdate('complete', 100);
+      }
 
       return techSpec;
     } else {
@@ -3206,6 +3269,11 @@ Return the COMPLETE modified elements array. Rules:
 
       // AC#3: Quality score calculation adapts to missing repository context
       techSpec.qualityScore = this.calculateQualityScore(techSpec);
+
+      // Report: complete (no-repo path)
+      if (progressCallback) {
+        await progressCallback.onPhaseUpdate('complete', 100);
+      }
 
       return techSpec;
     }
