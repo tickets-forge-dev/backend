@@ -1,7 +1,8 @@
 'use client';
 
-import { RefreshCw, Eye, Trash2, GitBranch, FileText, Clock, GitCommit } from 'lucide-react';
+import { RefreshCw, Eye, Trash2, GitBranch, FileText, Clock, GitCommit, Scan } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
+import { ProfileStatusBadge } from './ProfileStatusBadge';
 
 /** Simple relative time — avoids date-fns dependency */
 function timeAgo(dateStr: string): string {
@@ -14,7 +15,6 @@ function timeAgo(dateStr: string): string {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
-import { ProfileStatusBadge } from './ProfileStatusBadge';
 
 interface ProfileStatusCardProps {
   profile: {
@@ -22,7 +22,7 @@ interface ProfileStatusCardProps {
     repoOwner: string;
     repoName: string;
     branch: string;
-    status: 'pending' | 'scanning' | 'ready' | 'failed';
+    status: 'pending' | 'scanning' | 'ready' | 'failed' | null;
     scannedAt: string | null;
     fileCount: number;
     techStack: string[];
@@ -48,7 +48,13 @@ export function ProfileStatusCard({ profile, onRescan, onDelete, onView }: Profi
           <GitBranch className="h-3 w-3" />
           {branch}
         </span>
-        <ProfileStatusBadge status={status} techStack={techStack} />
+        {status !== null ? (
+          <ProfileStatusBadge status={status} techStack={techStack} />
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-hover)] px-2.5 py-1 text-xs text-[var(--text-tertiary)]">
+            Not profiled
+          </span>
+        )}
       </div>
 
       {/* Body — Ready */}
@@ -87,6 +93,13 @@ export function ProfileStatusCard({ profile, onRescan, onDelete, onView }: Profi
         </div>
       )}
 
+      {/* Body — Not profiled */}
+      {status === null && (
+        <p className="text-xs text-[var(--text-tertiary)]">
+          This repository hasn&apos;t been scanned yet. Scan it to speed up ticket creation.
+        </p>
+      )}
+
       {/* Body — Failed */}
       {status === 'failed' && error && (
         <p className="text-xs text-red-500">{error}</p>
@@ -94,7 +107,13 @@ export function ProfileStatusCard({ profile, onRescan, onDelete, onView }: Profi
 
       {/* Footer */}
       <div className="flex items-center gap-1.5 pt-1">
-        {onRescan && (
+        {status === null && onRescan && (
+          <Button variant="outline" size="sm" onClick={onRescan}>
+            <Scan className="h-3.5 w-3.5" />
+            Scan Now
+          </Button>
+        )}
+        {status !== null && onRescan && (
           <Button variant="ghost" size="sm" onClick={onRescan}>
             <RefreshCw className="h-3.5 w-3.5" />
             Re-scan
