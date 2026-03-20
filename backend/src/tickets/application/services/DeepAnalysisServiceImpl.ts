@@ -13,7 +13,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { DEFAULT_MODEL } from '../../../shared/infrastructure/llm/llm.config';
+import { DEFAULT_MODEL, DEFAULT_FAST_MODEL } from '../../../shared/infrastructure/llm/llm.config';
 import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
 import {
   UsageBudgetRepository,
@@ -88,6 +88,7 @@ const MAX_FILE_SIZE_BYTES = 50_000;
 export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   private readonly logger = new Logger(DeepAnalysisServiceImpl.name);
   private readonly llmModel: LanguageModel | null;
+  private readonly fastModel: LanguageModel | null;
   private readonly providerName: string;
 
   constructor(
@@ -104,17 +105,22 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       const modelId =
         this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
+      const fastModelId =
+        this.configService.get<string>('ANTHROPIC_FAST_MODEL') || DEFAULT_FAST_MODEL;
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
-        this.providerName = `Anthropic (${modelId})`;
+        this.fastModel = anthropic(fastModelId);
+        this.providerName = `Anthropic (${modelId}, fast: ${fastModelId})`;
       } else {
         this.llmModel = null;
+        this.fastModel = null;
         this.providerName = 'none (ANTHROPIC_API_KEY not set)';
       }
     } else {
       // Fallback: require Anthropic
       this.llmModel = null;
+      this.fastModel = null;
       this.providerName = 'none (LLM_PROVIDER must be anthropic)';
     }
 
@@ -320,7 +326,8 @@ CRITICAL RULES:
 - Skip documentation, CI/CD, workflow, and build config files
 - Focus on APPLICATION CODE: routes, controllers, services, models, middleware, stores, components`;
 
-    const response = await this.callLLM(systemPrompt, userPrompt);
+    // Use fast model (Haiku) for file selection — it's a commodity task
+    const response = await this.callLLM(systemPrompt, userPrompt, undefined, true);
     const parsed = this.parseJSON<Array<{ path: string; why: string }>>(response);
 
     if (!Array.isArray(parsed)) {
@@ -655,19 +662,22 @@ QUALITY RULES:
     systemPrompt: string,
     userPrompt: string,
     trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
+    useFastModel = false,
   ): Promise<string> {
-    if (!this.llmModel) {
+    const model = useFastModel && this.fastModel ? this.fastModel : this.llmModel;
+    if (!model) {
       throw new Error('No LLM model configured. Set LLM_PROVIDER and credentials.');
     }
 
     try {
+      const modelLabel = useFastModel && this.fastModel ? 'fast' : 'main';
       this.logger.log(
-        `Calling LLM (${this.providerName}), prompt length: ${userPrompt.length} chars`,
+        `Calling LLM (${modelLabel}), prompt length: ${userPrompt.length} chars`,
       );
       const startTime = Date.now();
 
       const { text, usage } = await generateText({
-        model: this.llmModel,
+        model,
         system: systemPrompt,
         prompt: userPrompt,
         maxOutputTokens: 4096,

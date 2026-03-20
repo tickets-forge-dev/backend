@@ -134,6 +134,9 @@ export function Stage3Draft() {
   useEffect(() => {
     if (initRef.current) return;
     if (spec || questionsComplete) return;
+    // If skip questions is on or a background job is running, don't fetch questions
+    if (activeJobId) return;
+    if (useWizardStore.getState().maxRounds === 0) return;
 
     // If we already have questions, check if they're all answered (resume case)
     // If so, we need to fetch the next one. If not, show the current unanswered one.
@@ -162,7 +165,13 @@ export function Stage3Draft() {
           const newState = useWizardStore.getState();
           if (!newState.draftAecId) return;
           if (newState.spec) return;
+          // If a background job was started (skipQuestions / maxRounds=0), don't fetch questions
+          if (newState.activeJobId) return;
         }
+
+        // Skip question fetching if maxRounds is 0 (skip questions toggled on)
+        if (useWizardStore.getState().maxRounds === 0) return;
+
         // Fetch first question (no previous answers)
         await fetchNextQuestion();
       } catch (err) {
