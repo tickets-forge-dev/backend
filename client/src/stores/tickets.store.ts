@@ -107,6 +107,9 @@ interface TicketsState {
   reEnrichTicket: (ticketId: string) => Promise<boolean>;
 }
 
+/** Session-level branch cache — avoids re-fetching branches for repos already loaded */
+const branchCache = new Map<string, { branches: BranchInfo[]; defaultBranch: string }>();
+
 export const useTicketsStore = create<TicketsState>((set, get) => {
   // Load preferences from localStorage on init
   const loadPreferences = (): TicketListPreferences => {
@@ -520,6 +523,20 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
       return;
     }
 
+    // Check session cache first — instant if already loaded
+    const cached = branchCache.get(repositoryFullName);
+    if (cached) {
+      set({
+        selectedRepository: repositoryFullName,
+        availableBranches: cached.branches,
+        defaultBranch: cached.defaultBranch,
+        selectedBranch: cached.defaultBranch,
+        isBranchesLoading: false,
+        branchesError: null,
+      });
+      return;
+    }
+
     set({
       selectedRepository: repositoryFullName,
       selectedBranch: null,
@@ -538,6 +555,12 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
 
       const [owner, repo] = parts;
       const branchesResponse = await gitHubService.getBranches(owner, repo);
+
+      // Cache for session
+      branchCache.set(repositoryFullName, {
+        branches: branchesResponse.branches,
+        defaultBranch: branchesResponse.defaultBranch,
+      });
 
       // Auto-select default branch (AC#1)
       set({
@@ -565,6 +588,18 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     const { selectedRepository, selectedBranch } = get();
     if (!selectedRepository) return;
 
+    // Use cache if available (refreshBranches is called on re-mount)
+    const cached = branchCache.get(selectedRepository);
+    if (cached) {
+      set({
+        availableBranches: cached.branches,
+        defaultBranch: cached.defaultBranch,
+        selectedBranch: selectedBranch || cached.defaultBranch,
+        isBranchesLoading: false,
+      });
+      return;
+    }
+
     const parts = selectedRepository.split('/');
     if (parts.length !== 2) return;
 
@@ -574,6 +609,12 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
       const { gitHubService } = useServices();
       const [owner, repo] = parts;
       const branchesResponse = await gitHubService.getBranches(owner, repo);
+
+      // Update cache
+      branchCache.set(selectedRepository, {
+        branches: branchesResponse.branches,
+        defaultBranch: branchesResponse.defaultBranch,
+      });
 
       set({
         availableBranches: branchesResponse.branches,
