@@ -30,6 +30,7 @@
       "@/lib/*": ["./src/lib/*"],
       "@/types/*": ["./src/types/*"],
       "@/landing/*": ["./src/landing/*"],
+      "@/project-profiles/*": ["./src/project-profiles/*"],
       "@/src/*": ["./src/*"]
     }
   },

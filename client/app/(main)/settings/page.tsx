@@ -8,6 +8,7 @@ import { LinearIntegration } from '@/src/settings/components/LinearIntegration';
 import { JiraIntegration } from '@/src/settings/components/JiraIntegration';
 import { FigmaIntegration } from '@/src/settings/components/FigmaIntegration';
 import { RoleSettings } from '@/src/settings/components/RoleSettings';
+import { ProfileManagement } from '@/project-profiles/components/ProfileManagement';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
 import { useTicketsStore } from '@/stores/tickets.store';
 import Link from 'next/link';
@@ -156,6 +157,9 @@ export default function SettingsPage() {
 
         <RoleSettings />
       </section>
+
+      {/* Connected Repositories — Epic 15 */}
+      <ProfileManagement />
 
       {/* Integrations Section */}
       <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
