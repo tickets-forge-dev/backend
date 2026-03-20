@@ -10,14 +10,15 @@ import type { GenerationJobClient } from '@/stores/jobs.store';
 
 /**
  * Right-side jobs panel on the tickets page.
- * Always visible as a collapsed strip by default.
+ * Desktop: Always visible as a collapsed strip (md+ breakpoint).
+ * Mobile: Floating toggle button + slide-over overlay.
  * Groups jobs into Active and Completed sections.
- * Hidden on mobile (below md breakpoint).
  */
 export function JobsPanel() {
   const { jobs, dismissedIds, cancelJob, retryJob, clearCompleted, dismissJob } = useJobsStore();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [completedCollapsed, setCompletedCollapsed] = useState(false);
   const prevActiveCount = useRef(0);
 
@@ -45,6 +46,7 @@ export function JobsPanel() {
   useEffect(() => {
     if (activeJobs.length > prevActiveCount.current) {
       setCollapsed(false);
+      setMobileOpen(true);
     }
     prevActiveCount.current = activeJobs.length;
   }, [activeJobs.length]);
@@ -68,124 +70,174 @@ export function JobsPanel() {
   };
 
   const handleView = (ticketId: string) => {
+    setMobileOpen(false);
     router.push(`/tickets/${ticketId}`);
   };
 
-  // Collapsed: narrow strip with icon + mini indicators
-  if (collapsed) {
-    return (
-      <div className="hidden md:flex w-10 shrink-0 border-l border-[var(--border-subtle)] flex-col items-center py-3 gap-2">
-        {/* Expand button */}
-        <button
-          onClick={() => setCollapsed(false)}
-          className="p-1 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-          title={visibleJobs.length > 0 ? `Expand jobs panel (${visibleJobs.length})` : 'Expand jobs panel'}
-        >
-          <ChevronLeft className="h-3 w-3" />
-        </button>
+  /** Shared panel content used in both desktop expanded and mobile overlay */
+  const panelContent = (
+    <div className="px-3 pb-3 flex flex-col gap-1.5">
+      {/* Empty state */}
+      {visibleJobs.length === 0 && (
+        <p className="text-[10px] text-[var(--text-tertiary)] py-4 text-center">
+          No active jobs
+        </p>
+      )}
 
-        {/* Zap icon with job count badge */}
+      {/* Active jobs section */}
+      {activeJobs.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider pt-1">
+            Active ({activeJobs.length})
+          </p>
+          {activeJobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              onCancel={handleCancel}
+              onRetry={handleRetry}
+              onView={handleView}
+              onDismiss={dismissJob}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Divider between sections */}
+      {activeJobs.length > 0 && completedJobs.length > 0 && (
+        <div className="border-t border-[var(--border-subtle)] my-1" />
+      )}
+
+      {/* Completed jobs section — collapsible */}
+      {completedJobs.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between pt-1">
+            <button
+              onClick={() => setCompletedCollapsed(!completedCollapsed)}
+              className="flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider hover:text-[var(--text-secondary)] transition-colors"
+            >
+              <ChevronDown className={`h-2.5 w-2.5 transition-transform ${completedCollapsed ? '-rotate-90' : ''}`} />
+              Completed ({completedJobs.length})
+            </button>
+            <button
+              onClick={clearCompleted}
+              className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-0.5"
+              title="Clear all completed jobs"
+            >
+              <Trash2 className="h-2.5 w-2.5" />
+              Clear
+            </button>
+          </div>
+          {!completedCollapsed && completedJobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              onCancel={handleCancel}
+              onRetry={handleRetry}
+              onView={handleView}
+              onDismiss={dismissJob}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {/* ─── Mobile: floating toggle button ─── */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-3 right-3 z-40 p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] shadow-lg hover:bg-[var(--bg-subtle)] transition-colors"
+        title={visibleJobs.length > 0 ? `Jobs (${visibleJobs.length})` : 'Jobs'}
+      >
         <div className="relative">
-          <Zap className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+          <Zap className="h-4 w-4 text-[var(--text-secondary)]" />
           {visibleJobs.length > 0 && (
             <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-blue-500 text-white text-[8px] font-bold flex items-center justify-center px-0.5">
               {visibleJobs.length}
             </span>
           )}
         </div>
+      </button>
 
-        {/* Mini job indicators */}
-        {visibleJobs.map((job) => (
-          <MiniJobIndicator key={job.id} job={job} />
-        ))}
-      </div>
-    );
-  }
-
-  // Expanded: full panel with grouped sections
-  return (
-    <div className="hidden md:flex w-60 shrink-0 border-l border-[var(--border-subtle)] flex-col overflow-y-auto">
-      {/* Header with collapse button */}
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <h3 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5">
-          <Zap className="h-3 w-3" />
-          Jobs {visibleJobs.length > 0 && `(${visibleJobs.length})`}
-        </h3>
-        <button
-          onClick={() => setCollapsed(true)}
-          className="p-1 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-          title="Collapse jobs panel"
-        >
-          <ChevronRight className="h-3 w-3" />
-        </button>
-      </div>
-
-      <div className="px-3 pb-3 flex flex-col gap-1.5">
-        {/* Empty state */}
-        {visibleJobs.length === 0 && (
-          <p className="text-[10px] text-[var(--text-tertiary)] py-4 text-center">
-            No active jobs
-          </p>
-        )}
-
-        {/* Active jobs section */}
-        {activeJobs.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider pt-1">
-              Active ({activeJobs.length})
-            </p>
-            {activeJobs.map((job) => (
-              <JobCard
-                key={job.id}
-                job={job}
-                onCancel={handleCancel}
-                onRetry={handleRetry}
-                onView={handleView}
-                onDismiss={dismissJob}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Divider between sections */}
-        {activeJobs.length > 0 && completedJobs.length > 0 && (
-          <div className="border-t border-[var(--border-subtle)] my-1" />
-        )}
-
-        {/* Completed jobs section — collapsible */}
-        {completedJobs.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between pt-1">
+      {/* ─── Mobile: slide-over overlay ─── */}
+      {mobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
+            onClick={() => setMobileOpen(false)}
+          />
+          {/* Panel */}
+          <div className="md:hidden fixed inset-y-0 right-0 z-50 w-72 bg-[var(--bg-base)] border-l border-[var(--border-subtle)] flex flex-col overflow-y-auto animate-in slide-in-from-right duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 pt-3 pb-1">
+              <h3 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5">
+                <Zap className="h-3 w-3" />
+                Jobs {visibleJobs.length > 0 && `(${visibleJobs.length})`}
+              </h3>
               <button
-                onClick={() => setCompletedCollapsed(!completedCollapsed)}
-                className="flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider hover:text-[var(--text-secondary)] transition-colors"
+                onClick={() => setMobileOpen(false)}
+                className="p-1 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                title="Close"
               >
-                <ChevronDown className={`h-2.5 w-2.5 transition-transform ${completedCollapsed ? '-rotate-90' : ''}`} />
-                Completed ({completedJobs.length})
-              </button>
-              <button
-                onClick={clearCompleted}
-                className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-0.5"
-                title="Clear all completed jobs"
-              >
-                <Trash2 className="h-2.5 w-2.5" />
-                Clear
+                <X className="h-4 w-4" />
               </button>
             </div>
-            {!completedCollapsed && completedJobs.map((job) => (
-              <JobCard
-                key={job.id}
-                job={job}
-                onCancel={handleCancel}
-                onRetry={handleRetry}
-                onView={handleView}
-                onDismiss={dismissJob}
-              />
-            ))}
+            {panelContent}
           </div>
-        )}
-      </div>
-    </div>
+        </>
+      )}
+
+      {/* ─── Desktop: collapsed strip ─── */}
+      {collapsed ? (
+        <div className="hidden md:flex w-10 shrink-0 border-l border-[var(--border-subtle)] flex-col items-center py-3 gap-2">
+          {/* Expand button */}
+          <button
+            onClick={() => setCollapsed(false)}
+            className="p-1 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+            title={visibleJobs.length > 0 ? `Expand jobs panel (${visibleJobs.length})` : 'Expand jobs panel'}
+          >
+            <ChevronLeft className="h-3 w-3" />
+          </button>
+
+          {/* Zap icon with job count badge */}
+          <div className="relative">
+            <Zap className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+            {visibleJobs.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-blue-500 text-white text-[8px] font-bold flex items-center justify-center px-0.5">
+                {visibleJobs.length}
+              </span>
+            )}
+          </div>
+
+          {/* Mini job indicators */}
+          {visibleJobs.map((job) => (
+            <MiniJobIndicator key={job.id} job={job} />
+          ))}
+        </div>
+      ) : (
+        /* ─── Desktop: expanded panel ─── */
+        <div className="hidden md:flex w-60 shrink-0 border-l border-[var(--border-subtle)] flex-col overflow-y-auto">
+          {/* Header with collapse button */}
+          <div className="flex items-center justify-between px-3 pt-3 pb-1">
+            <h3 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="h-3 w-3" />
+              Jobs {visibleJobs.length > 0 && `(${visibleJobs.length})`}
+            </h3>
+            <button
+              onClick={() => setCollapsed(true)}
+              className="p-1 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              title="Collapse jobs panel"
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+          {panelContent}
+        </div>
+      )}
+    </>
   );
 }
 
