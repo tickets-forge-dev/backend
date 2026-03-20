@@ -249,8 +249,9 @@ export function Stage3Draft() {
     }
   };
 
-  // Loading: waiting for draft creation
-  if (!draftAecId) {
+  // Loading: waiting for draft creation (only show for question flows, not skip-questions)
+  const isSkipQuestions = useWizardStore.getState().maxRounds === 0;
+  if (!draftAecId && !isSkipQuestions) {
     return (
       <div className="space-y-6">
         {(error || localError) ? (
@@ -488,10 +489,37 @@ export function Stage3Draft() {
         </>
       )}
 
+      {/* Error state for skip-questions flow */}
+      {isSkipQuestions && !spec && !activeJobId && (error || localError) && (
+        <div className="text-center py-12 space-y-4">
+          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto" />
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {error || localError}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Button variant="outline" size="sm" onClick={goBackToInput}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setLocalError(null);
+                setError(null);
+                initRef.current = false;
+                setRetryCount((c) => c + 1);
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Detailed Progress Dialog for Generating / Submitting States */}
       <SpecGenerationProgressDialog
-        isVisible={!spec && (isSubmitting || !!activeJobId)}
-        isSubmitting={isSubmitting || !!activeJobId}
+        isVisible={!spec && (isSubmitting || !!activeJobId || (isSkipQuestions && !draftAecId && !error && !localError))}
+        isSubmitting={isSubmitting || !!activeJobId || isSkipQuestions}
         isGenerating={false}
         onSendToBackground={() => router.push('/tickets')}
         onCancel={async () => {
