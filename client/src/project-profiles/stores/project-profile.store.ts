@@ -4,6 +4,9 @@ import { useTeamStore } from '@/teams/stores/team.store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
+/** Polling interval when a scan is in progress */
+const POLL_INTERVAL_MS = 3000;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -64,24 +67,35 @@ interface ProjectProfileState {
   isTriggeringScan: boolean;
   error: string | null;
 
+  /** Active polling timers — keyed by "owner/name" */
+  _pollingTimers: Map<string, ReturnType<typeof setInterval>>;
+
   loadProfiles: () => Promise<void>;
   loadProfileById: (profileId: string) => Promise<void>;
   findByRepo: (repoOwner: string, repoName: string) => Promise<ProjectProfileSummary | null>;
   triggerScan: (repoOwner: string, repoName: string, branch?: string) => Promise<{ profileId: string; status: string }>;
   deleteProfile: (profileId: string) => Promise<void>;
   clearError: () => void;
+
+  /** Start polling a repo until its profile reaches a terminal state */
+  startPolling: (repoOwner: string, repoName: string, onChange?: (profile: ProjectProfileSummary) => void) => void;
+  /** Stop polling a specific repo */
+  stopPolling: (repoOwner: string, repoName: string) => void;
+  /** Stop all active polling */
+  stopAllPolling: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
-export const useProjectProfileStore = create<ProjectProfileState>((set) => ({
+export const useProjectProfileStore = create<ProjectProfileState>((set, get) => ({
   profiles: [],
   currentProfile: null,
   isLoading: false,
   isTriggeringScan: false,
   error: null,
+  _pollingTimers: new Map(),
 
   loadProfiles: async () => {
     set({ isLoading: true, error: null });
@@ -116,7 +130,6 @@ export const useProjectProfileStore = create<ProjectProfileState>((set) => ({
   },
 
   findByRepo: async (repoOwner: string, repoName: string) => {
-    set({ isLoading: true, error: null });
     try {
       const response = await authFetch(`/project-profiles?repo=${encodeURIComponent(`${repoOwner}/${repoName}`)}`);
       if (!response.ok) {
@@ -124,11 +137,8 @@ export const useProjectProfileStore = create<ProjectProfileState>((set) => ({
         throw new Error((body as Record<string, string>).message || `Failed to find profile: ${response.statusText}`);
       }
       const data = (await response.json()) as ProjectProfileSummary | null;
-      set({ isLoading: false });
       return data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to find profile';
-      set({ isLoading: false, error: errorMessage });
+    } catch {
       return null;
     }
   },
@@ -181,5 +191,57 @@ export const useProjectProfileStore = create<ProjectProfileState>((set) => ({
 
   clearError: () => {
     set({ error: null });
+  },
+
+  startPolling: (repoOwner: string, repoName: string, onChange?: (profile: ProjectProfileSummary) => void) => {
+    const key = `${repoOwner}/${repoName}`;
+    const { _pollingTimers } = get();
+
+    // Don't start duplicate polling
+    if (_pollingTimers.has(key)) return;
+
+    const timer = setInterval(async () => {
+      const profile = await get().findByRepo(repoOwner, repoName);
+      if (!profile) return;
+
+      // Update the profiles list with latest status
+      set((state) => ({
+        profiles: state.profiles.map((p) =>
+          p.repoOwner === repoOwner && p.repoName === repoName ? profile : p,
+        ),
+      }));
+
+      // Notify caller
+      onChange?.(profile);
+
+      // Stop polling when scan reaches terminal state
+      if (profile.status === 'ready' || profile.status === 'failed') {
+        get().stopPolling(repoOwner, repoName);
+        // Reload full profiles list to sync sidebar badge
+        get().loadProfiles();
+      }
+    }, POLL_INTERVAL_MS);
+
+    _pollingTimers.set(key, timer);
+    set({ _pollingTimers: new Map(_pollingTimers) });
+  },
+
+  stopPolling: (repoOwner: string, repoName: string) => {
+    const key = `${repoOwner}/${repoName}`;
+    const { _pollingTimers } = get();
+    const timer = _pollingTimers.get(key);
+    if (timer) {
+      clearInterval(timer);
+      _pollingTimers.delete(key);
+      set({ _pollingTimers: new Map(_pollingTimers) });
+    }
+  },
+
+  stopAllPolling: () => {
+    const { _pollingTimers } = get();
+    for (const timer of _pollingTimers.values()) {
+      clearInterval(timer);
+    }
+    set({ _pollingTimers: new Map() });
   },
 }));

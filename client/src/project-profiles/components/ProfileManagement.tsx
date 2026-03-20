@@ -19,7 +19,7 @@ interface ConnectedRepoRow {
 }
 
 export function ProfileManagement() {
-  const { profiles, isLoading, loadProfiles, triggerScan, deleteProfile } =
+  const { profiles, isLoading, loadProfiles, triggerScan, deleteProfile, startPolling, stopAllPolling } =
     useProjectProfileStore();
   const { selectedRepositories, githubConnected, loadGitHubStatus } =
     useSettingsStore();
@@ -34,6 +34,7 @@ export function ProfileManagement() {
     if (!githubConnected) {
       loadGitHubStatus(gitHubService);
     }
+    return () => stopAllPolling();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -59,6 +60,7 @@ export function ProfileManagement() {
   const handleScan = async (owner: string, name: string, branch: string) => {
     await triggerScan(owner, name, branch);
     await loadProfiles();
+    startPolling(owner, name);
   };
 
   const handleDelete = async (profileId: string) => {
@@ -79,6 +81,7 @@ export function ProfileManagement() {
     for (const row of unprofiled) {
       try {
         await triggerScan(row.repoOwner, row.repoName, row.defaultBranch);
+        startPolling(row.repoOwner, row.repoName);
       } catch {
         // Continue with next repo
       }

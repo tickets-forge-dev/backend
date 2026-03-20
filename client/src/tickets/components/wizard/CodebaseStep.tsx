@@ -28,7 +28,7 @@ export function CodebaseStep() {
     setRepository,
   } = useWizardStore();
 
-  const { findByRepo, triggerScan } = useProjectProfileStore();
+  const { findByRepo, triggerScan, startPolling, stopPolling } = useProjectProfileStore();
   const [profileStatus, setProfileStatus] = useState<ProjectProfileSummary | null>(null);
 
   // Load GitHub status on mount
@@ -55,20 +55,33 @@ export function CodebaseStep() {
     }
 
     let cancelled = false;
+    const owner = input.repoOwner;
+    const name = input.repoName;
 
     async function checkProfile() {
-      const existing = await findByRepo(input.repoOwner, input.repoName);
+      const existing = await findByRepo(owner, name);
       if (cancelled) return;
 
-      if (existing && (existing.status === 'ready' || existing.status === 'scanning' || existing.status === 'pending')) {
+      if (existing) {
         setProfileStatus(existing);
+        // If still in progress, poll until terminal
+        if (existing.status === 'pending' || existing.status === 'scanning') {
+          startPolling(owner, name, (updated) => {
+            if (!cancelled) setProfileStatus(updated);
+          });
+        }
       } else {
-        // No profile or failed — auto-trigger scan
+        // No profile — auto-trigger scan
         try {
-          await triggerScan(input.repoOwner, input.repoName, input.branch);
+          await triggerScan(owner, name, input.branch);
           if (cancelled) return;
-          const updated = await findByRepo(input.repoOwner, input.repoName);
-          if (!cancelled) setProfileStatus(updated);
+          const updated = await findByRepo(owner, name);
+          if (cancelled) return;
+          setProfileStatus(updated);
+          // Start polling for the newly triggered scan
+          startPolling(owner, name, (p) => {
+            if (!cancelled) setProfileStatus(p);
+          });
         } catch {
           // Scan trigger failed — non-blocking, user can continue
         }
@@ -76,7 +89,10 @@ export function CodebaseStep() {
     }
 
     checkProfile();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      stopPolling(owner, name);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input.repoOwner, input.repoName]);
 
@@ -86,6 +102,8 @@ export function CodebaseStep() {
       await triggerScan(input.repoOwner, input.repoName, input.branch);
       const updated = await findByRepo(input.repoOwner, input.repoName);
       setProfileStatus(updated);
+      // Poll until complete
+      startPolling(input.repoOwner, input.repoName, (p) => setProfileStatus(p));
     } catch {
       // Non-blocking
     }
