@@ -4,7 +4,7 @@ import { IsString, IsNotEmpty, IsOptional, Matches, MaxLength } from 'class-vali
 const GITHUB_NAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 
 /** Git branch names: no control chars, no spaces, no "..", no ending in ".lock" */
-const GIT_BRANCH_REGEX = /^[a-zA-Z0-9._\/-]+$/;
+const GIT_BRANCH_REGEX = /^[a-zA-Z0-9._/-]+$/;
 
 export class TriggerScanDto {
   @IsString()

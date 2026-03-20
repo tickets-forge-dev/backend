@@ -1,4 +1,4 @@
-import { GenerationJob, JobStatus } from '../GenerationJob';
+import { GenerationJob } from '../GenerationJob';
 import { InvalidJobTransitionError } from '../InvalidJobTransitionError';
 
 describe('GenerationJob Domain Entity', () => {
