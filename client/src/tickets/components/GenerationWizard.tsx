@@ -321,8 +321,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           message={loadingMessage}
           percent={resolvedPercent}
           hasRepository={hasRepository}
-          onSendToBackground={isBackgroundJob ? handleSendToBackground : undefined}
-          onCancel={isBackgroundJob ? handleCancelJob : cancelAnalysis}
+          onCancel={cancelAnalysis}
         />
       )}
 

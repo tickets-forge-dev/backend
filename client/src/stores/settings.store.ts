@@ -190,16 +190,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         githubTokenInvalid: false, // Clear token invalid flag on success
       });
     } catch (error: any) {
-      console.error('Failed to load repositories:', error);
+      const status = error.response?.status;
+      const isAuthError = (error as any).isAuthError || status === 401;
+      const isNetworkError = !status || status >= 500 || error.code === 'ECONNABORTED' || error.message?.includes('timeout');
 
-      // Detect 401 "Bad credentials" errors (token invalid/expired)
-      const isAuthError = (error as any).isAuthError || error.response?.status === 401;
-
-      set({
-        repositoriesError: error.message || error.response?.data?.message || 'Failed to load repositories',
-        isLoadingRepositories: false,
-        githubTokenInvalid: isAuthError, // Set flag to prevent retries
-      });
+      if (isNetworkError && githubRepositories.length > 0) {
+        // Network/timeout error but we have cached data — silently use it
+        console.warn('GitHub API temporarily unavailable, using cached repositories');
+        set({ isLoadingRepositories: false });
+      } else {
+        console.error('Failed to load repositories:', error.message || error);
+        set({
+          repositoriesError: isAuthError
+            ? 'GitHub token expired. Please reconnect in Settings.'
+            : 'Failed to load repositories',
+          isLoadingRepositories: false,
+          githubTokenInvalid: isAuthError,
+        });
+      }
     }
   },
 
