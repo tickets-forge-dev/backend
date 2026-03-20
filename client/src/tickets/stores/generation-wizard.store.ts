@@ -827,10 +827,17 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
             _analysisAbortController = undefined;
             const analysisContext = event.result?.context || null;
             // Extract recommendedRounds from deep analysis
-            const recommended = analysisContext?.taskAnalysis?.implementationHints?.recommendedRounds;
-            const rounds = typeof recommended === 'number'
-              ? Math.max(0, Math.min(3, Math.round(recommended)))
-              : 3;
+            // BUT: respect skipQuestions — if user toggled skip, keep maxRounds at 0
+            const currentState = get();
+            let rounds: number;
+            if (currentState.skipQuestions) {
+              rounds = 0; // User explicitly chose to skip — don't override
+            } else {
+              const recommended = analysisContext?.taskAnalysis?.implementationHints?.recommendedRounds;
+              rounds = typeof recommended === 'number'
+                ? Math.max(0, Math.min(3, Math.round(recommended)))
+                : 3;
+            }
 
             set({
               context: analysisContext,
