@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
 import { SpecGenerationProgressDialog } from './SpecGenerationProgressDialog';
+import { useJobsStore } from '@/stores/jobs.store';
 
 /** Extract readable solution text */
 function extractSolutionText(sol: unknown): string {
@@ -85,7 +86,10 @@ export function Stage3Draft() {
     setError,
     reset,
     input,
+    activeJobId,
   } = useWizardStore();
+
+  const cancelJob = useJobsStore((s) => s.cancelJob);
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [customAnswer, setCustomAnswer] = useState('');
@@ -479,6 +483,21 @@ export function Stage3Draft() {
         isVisible={!spec && (isSubmitting)}
         isSubmitting={isSubmitting}
         isGenerating={false}
+        onSendToBackground={activeJobId ? () => router.push('/tickets') : undefined}
+        onCancel={activeJobId ? async () => {
+          try {
+            await cancelJob(activeJobId);
+            useWizardStore.setState({
+              loading: false,
+              currentPhase: null,
+              loadingMessage: null,
+              activeJobId: null,
+              roundStatus: 'idle',
+            });
+          } catch {
+            // Ignore cancel errors
+          }
+        } : undefined}
       />
 
       {/* Questions complete — transitioning to spec generation */}

@@ -28,6 +28,8 @@ interface SpecGenerationProgressDialogProps {
   isVisible: boolean;
   isSubmitting?: boolean; // true when finalizing spec
   isGenerating?: boolean; // true when generating questions
+  onSendToBackground?: () => void;
+  onCancel?: () => void;
 }
 
 interface PhaseConfig {
@@ -59,6 +61,8 @@ export function SpecGenerationProgressDialog({
   isVisible,
   isSubmitting = false,
   isGenerating = false,
+  onSendToBackground,
+  onCancel,
 }: SpecGenerationProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
@@ -202,6 +206,28 @@ export function SpecGenerationProgressDialog({
               {Math.floor(elapsedSeconds)}s elapsed
             </span>
           </div>
+
+          {/* Background / Cancel actions */}
+          {(onSendToBackground || onCancel) && (
+            <div className="flex items-center justify-end gap-3 pt-2">
+              {onCancel && (
+                <button
+                  onClick={onCancel}
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              {onSendToBackground && (
+                <button
+                  onClick={onSendToBackground}
+                  className="text-xs px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors font-medium"
+                >
+                  Send to Background
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
