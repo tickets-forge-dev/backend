@@ -79,15 +79,18 @@ export class FirestoreJobRepository implements JobRepository {
     const firestore = this.getFirestore();
 
     try {
+      // Single-field query, filter status in code (avoids composite index)
       const snapshot = await firestore
         .collection('teams')
         .doc(teamId)
         .collection('jobs')
         .where('createdBy', '==', userId)
-        .where('status', 'in', ['running', 'retrying'])
         .get();
 
-      return snapshot.docs.map((doc) => JobMapper.toDomain(doc.data() as JobDocument));
+      const activeStatuses = new Set(['running', 'retrying']);
+      return snapshot.docs
+        .map((doc) => JobMapper.toDomain(doc.data() as JobDocument))
+        .filter((job) => activeStatuses.has(job.status));
     } catch (error) {
       console.error(`[FirestoreJobRepository] findActiveByUser error for ${userId}:`, error);
       return [];
@@ -98,20 +101,20 @@ export class FirestoreJobRepository implements JobRepository {
     const firestore = this.getFirestore();
 
     try {
+      // Single-field query, filter status in code
       const snapshot = await firestore
         .collection('teams')
         .doc(teamId)
         .collection('jobs')
         .where('ticketId', '==', ticketId)
-        .where('status', 'in', ['running', 'retrying'])
-        .limit(1)
         .get();
 
-      if (snapshot.empty) {
-        return null;
-      }
+      const activeStatuses = new Set(['running', 'retrying']);
+      const match = snapshot.docs
+        .map((doc) => JobMapper.toDomain(doc.data() as JobDocument))
+        .find((job) => activeStatuses.has(job.status));
 
-      return JobMapper.toDomain(snapshot.docs[0].data() as JobDocument);
+      return match ?? null;
     } catch (error) {
       console.error(`[FirestoreJobRepository] findActiveByTicket error for ${ticketId}:`, error);
       return null;
@@ -120,21 +123,21 @@ export class FirestoreJobRepository implements JobRepository {
 
   async findRecentByUser(userId: string, teamId: string): Promise<GenerationJob[]> {
     const firestore = this.getFirestore();
-    const twentyFourHoursAgo = Timestamp.fromDate(
-      new Date(Date.now() - 24 * 60 * 60 * 1000),
-    );
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     try {
+      // Single-field query, filter by time + sort in code
       const snapshot = await firestore
         .collection('teams')
         .doc(teamId)
         .collection('jobs')
         .where('createdBy', '==', userId)
-        .where('createdAt', '>', twentyFourHoursAgo)
-        .orderBy('createdAt', 'desc')
         .get();
 
-      return snapshot.docs.map((doc) => JobMapper.toDomain(doc.data() as JobDocument));
+      return snapshot.docs
+        .map((doc) => JobMapper.toDomain(doc.data() as JobDocument))
+        .filter((job) => job.createdAt > twentyFourHoursAgo)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     } catch (error) {
       console.error(`[FirestoreJobRepository] findRecentByUser error for ${userId}:`, error);
       return [];
@@ -145,6 +148,8 @@ export class FirestoreJobRepository implements JobRepository {
     const firestore = this.getFirestore();
 
     try {
+      // Collection group query — needs a collection group index on 'status'
+      // If index is missing, log and return empty (recovery is best-effort)
       const snapshot = await firestore
         .collectionGroup('jobs')
         .where('status', 'in', ['running', 'retrying'])
@@ -152,7 +157,13 @@ export class FirestoreJobRepository implements JobRepository {
 
       return snapshot.docs.map((doc) => JobMapper.toDomain(doc.data() as JobDocument));
     } catch (error) {
-      console.error('[FirestoreJobRepository] findOrphaned error:', error);
+      // FAILED_PRECONDITION = missing index — expected until index is created
+      const errMsg = error instanceof Error ? error.message : '';
+      if (errMsg.includes('FAILED_PRECONDITION') || errMsg.includes('requires an index')) {
+        console.warn('[FirestoreJobRepository] findOrphaned: collection group index not yet created, skipping recovery');
+      } else {
+        console.error('[FirestoreJobRepository] findOrphaned error:', error);
+      }
       return [];
     }
   }
@@ -212,11 +223,11 @@ export class FirestoreJobRepository implements JobRepository {
     );
 
     try {
+      // Single-field query (no composite index needed), filter status in code
       const snapshot = await firestore
         .collection('teams')
         .doc(teamId)
         .collection('jobs')
-        .where('status', 'in', ['completed', 'failed', 'cancelled'])
         .where('createdAt', '<', twentyFourHoursAgo)
         .get();
 
@@ -224,13 +235,23 @@ export class FirestoreJobRepository implements JobRepository {
         return 0;
       }
 
+      const terminalStatuses = new Set(['completed', 'failed', 'cancelled']);
+      const toDelete = snapshot.docs.filter((doc) => {
+        const data = doc.data() as JobDocument;
+        return terminalStatuses.has(data.status);
+      });
+
+      if (toDelete.length === 0) {
+        return 0;
+      }
+
       const batch = firestore.batch();
-      for (const doc of snapshot.docs) {
+      for (const doc of toDelete) {
         batch.delete(doc.ref);
       }
       await batch.commit();
 
-      return snapshot.size;
+      return toDelete.length;
     } catch (error) {
       console.error(`[FirestoreJobRepository] pruneExpired error for team ${teamId}:`, error);
       return 0;
