@@ -866,6 +866,11 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         set({ error: 'Analysis stream ended unexpectedly', loading: false, loadingMessage: null, progressPercent: 0, currentPhase: null });
       }
     } catch (error) {
+      // AbortError from cancelAnalysis() — not a real error, just user cancellation
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        set({ loading: false, loadingMessage: null, progressPercent: 0, currentPhase: null, error: null });
+        return;
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
         error: errorMessage,
