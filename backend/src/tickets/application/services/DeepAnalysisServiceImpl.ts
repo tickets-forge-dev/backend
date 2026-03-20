@@ -130,8 +130,9 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   async analyze(input: DeepAnalysisInput): Promise<DeepAnalysisResult> {
     const startTime = Date.now();
     const emit = (event: AnalysisProgressEvent) => input.onProgress?.(event);
+    const hasProfile = !!input.projectProfile;
 
-    this.logger.log(`Starting deep analysis for ${input.owner}/${input.repo} — "${input.title}"`);
+    this.logger.log(`Starting deep analysis for ${input.owner}/${input.repo} — "${input.title}" (profile: ${hasProfile ? 'YES' : 'NO'})`);
 
     // Phase 1: Build condensed tree (input already has tree + configs)
     const condensedTree = this.buildFileTreeString(input.fileTree);
@@ -139,45 +140,47 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
 
     this.logger.log(`Phase 1: Tree has ${condensedTree.split('\n').length} source entries`);
 
-    // PASS 1: Fast fingerprinting (1-2 seconds)
-    // Emit to frontend immediately so user sees tech stack right away
-    emit({ phase: 'fingerprinting', message: 'Detecting tech stack...', percent: 15 });
-    const fingerprint = this.fingerprintService.extractFingerprint(
-      input.fileTree,
-      Object.fromEntries(input.configFiles),
-    );
-    const pmDisplay = fingerprint.packageManager || 'auto-detect';
-    this.logger.log(
-      `Pass 1: Detected ${fingerprint.languages.join(', ') || 'unknown'} (${pmDisplay})`,
-    );
+    // PASS 1: Fingerprinting — skip if profile available (profile has tech stack)
+    let fingerprint: RepositoryFingerprint | undefined;
+    if (hasProfile) {
+      this.logger.log(`[PROFILE] Skipping fingerprinting — profile has tech stack`);
+      emit({ phase: 'fingerprinting', message: 'Using cached tech stack...', percent: 20 });
+    } else {
+      emit({ phase: 'fingerprinting', message: 'Detecting tech stack...', percent: 15 });
+      const fpStart = Date.now();
+      fingerprint = this.fingerprintService.extractFingerprint(
+        input.fileTree,
+        Object.fromEntries(input.configFiles),
+      );
+      this.logger.log(
+        `[TIMING] Fingerprinting: ${Date.now() - fpStart}ms — ${fingerprint.languages.join(', ') || 'unknown'} (${fingerprint.packageManager || 'auto-detect'})`,
+      );
+      emit({
+        phase: 'fingerprinting',
+        message: `Detected: ${fingerprint.primaryLanguage}, ${fingerprint.frameworks.join(', ') || 'no framework'}`,
+        percent: 20,
+      });
+    }
 
-    // Emit fingerprint result quickly (can be used by frontend immediately)
-    emit({
-      phase: 'fingerprinting',
-      message: `Detected: ${fingerprint.primaryLanguage}, ${fingerprint.frameworks.join(', ') || 'no framework'}`,
-      percent: 20,
-    });
+    // Build project profile context for LLM injection
+    const profileContext = input.projectProfile
+      ? `\n\nPROJECT PROFILE (pre-scanned context — use this for architecture understanding, skip redundant detection):\n${input.projectProfile}`
+      : '';
 
     // Phase 2: LLM selects files to read
     let selectedFiles: string[] = [];
     let fileContents = new Map<string, string>();
 
-    // Build project profile context if available (Epic 15)
-    const profileContext = input.projectProfile
-      ? `\n\nPROJECT PROFILE (pre-scanned context):\n${input.projectProfile}`
-      : '';
-
-    if (input.projectProfile) {
-      this.logger.log(`Using cached project profile (${input.projectProfile.length} chars)`);
-    }
-
     try {
       emit({
         phase: 'selecting_files',
-        message: 'AI is selecting relevant files to analyze...',
+        message: hasProfile
+          ? 'AI is selecting files (profile-guided)...'
+          : 'AI is selecting relevant files to analyze...',
         percent: 35,
       });
 
+      const selectStart = Date.now();
       selectedFiles = await this.selectFilesToRead(
         input.title,
         input.description,
@@ -187,7 +190,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         profileContext,
       );
 
-      this.logger.log(`Phase 2: LLM selected ${selectedFiles.length} files to read`);
+      this.logger.log(`[TIMING] LLM file selection: ${Date.now() - selectStart}ms — selected ${selectedFiles.length} files`);
 
       emit({
         phase: 'reading_files',
@@ -196,6 +199,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       });
 
       // Read selected files from GitHub
+      const readStart = Date.now();
       fileContents = await this.readFilesFromGitHub(
         input.octokit,
         input.owner,
@@ -204,7 +208,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         selectedFiles,
       );
 
-      this.logger.log(`Phase 2: Read ${fileContents.size} files from GitHub`);
+      this.logger.log(`[TIMING] GitHub file reads: ${Date.now() - readStart}ms — read ${fileContents.size}/${selectedFiles.length} files`);
     } catch (error: any) {
       this.logger.warn(
         `Phase 2 file selection failed: ${error.message}. Proceeding with config files only.`,
@@ -215,10 +219,13 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     try {
       emit({
         phase: 'analyzing',
-        message: 'Deep analyzing codebase patterns and architecture...',
+        message: hasProfile
+          ? 'Analyzing with profile context...'
+          : 'Deep analyzing codebase patterns and architecture...',
         percent: 65,
       });
 
+      const analyzeStart = Date.now();
       const result = await this.analyzeWithLLM(
         input.title,
         input.description,
@@ -226,9 +233,10 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         fileContents,
         condensedTree,
         selectedFiles,
-        fingerprint, // Pass fingerprint for context
+        fingerprint, // undefined when profile available — LLM uses profile instead
         profileContext,
       );
+      this.logger.log(`[TIMING] LLM deep analysis: ${Date.now() - analyzeStart}ms`);
 
       // Post-Phase 3: Enrich with regex-based controller scanning
       // Uses files already read in Phase 2 — no extra GitHub API calls
@@ -259,7 +267,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       }
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      this.logger.log(`Deep analysis complete in ${elapsed}s`);
+      this.logger.log(`[TIMING] Total deep analysis: ${elapsed}s (profile: ${hasProfile ? 'YES' : 'NO'}, files read: ${fileContents.size})`);
 
       return result;
     } catch (error: any) {

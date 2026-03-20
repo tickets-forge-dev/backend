@@ -233,8 +233,34 @@ export class TicketsController {
       const octokit = new Octokit({ auth: accessToken });
       const branch = dto.branch || 'main';
 
-      // 2. Tree: fetch recursive tree
+      // 1.5 Look up cached project profile (Epic 15)
+      let projectProfile: string | undefined;
+      let profileAvailable = false;
+      try {
+        if (!this.projectProfileRepository) throw new Error('not available');
+        const profile = await this.projectProfileRepository.findByRepo(
+          teamId,
+          dto.owner,
+          dto.repo,
+        );
+        if (profile?.isReady() && profile.profileContent) {
+          projectProfile = profile.profileContent;
+          profileAvailable = true;
+          this.logger.log(
+            `[PROFILE] ✓ Cached profile found for ${dto.owner}/${dto.repo} (${profile.profileContent.length} chars, ${profile.fileCount} files, stack: ${profile.techStack.join(', ')})`,
+          );
+        } else {
+          this.logger.log(
+            `[PROFILE] ✗ No cached profile for ${dto.owner}/${dto.repo} — full analysis required`,
+          );
+        }
+      } catch {
+        this.logger.log(`[PROFILE] ✗ Profile lookup failed — proceeding without profile`);
+      }
+
+      // 2. Tree: fetch recursive tree (always needed — LLM file selection validates against it)
       send({ phase: 'fetching_tree', message: 'Fetching repository structure...', percent: 15 });
+      const treeStart = Date.now();
 
       const refResponse = await octokit.rest.git.getRef({
         owner: dto.owner,
@@ -265,57 +291,49 @@ export class TicketsController {
         truncated: treeResponse.data.truncated || false,
       };
 
-      // 3. Config read: read key config files
-      send({ phase: 'reading_configs', message: 'Reading configuration files...', percent: 25 });
+      this.logger.log(`[TIMING] Tree fetch: ${Date.now() - treeStart}ms`);
 
-      const configFilePaths = [
-        'package.json',
-        'tsconfig.json',
-        '.eslintrc.json',
-        '.prettierrc',
-        'README.md',
-      ];
-
+      // 3. Config read: skip if profile available (profile already has config contents)
       const configFiles = new Map<string, string>();
-      for (const filePath of configFilePaths) {
-        try {
-          const response = await octokit.rest.repos.getContent({
-            owner: dto.owner,
-            repo: dto.repo,
-            path: filePath,
-            ref: branch,
-          });
+      if (profileAvailable) {
+        send({ phase: 'reading_configs', message: 'Using cached configuration...', percent: 25 });
+        this.logger.log(`[PROFILE] Skipping config file reads — using cached profile`);
+      } else {
+        send({ phase: 'reading_configs', message: 'Reading configuration files...', percent: 25 });
+        const configStart = Date.now();
 
-          if ('content' in response.data && typeof response.data.content === 'string') {
-            const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-            configFiles.set(filePath, content);
+        const configFilePaths = [
+          'package.json',
+          'tsconfig.json',
+          '.eslintrc.json',
+          '.prettierrc',
+          'README.md',
+        ];
+
+        for (const filePath of configFilePaths) {
+          try {
+            const response = await octokit.rest.repos.getContent({
+              owner: dto.owner,
+              repo: dto.repo,
+              path: filePath,
+              ref: branch,
+            });
+
+            if ('content' in response.data && typeof response.data.content === 'string') {
+              const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+              configFiles.set(filePath, content);
+            }
+          } catch {
+            // File not found, skip
           }
-        } catch {
-          // File not found, skip
         }
-      }
 
-      // 3.5 Look up cached project profile (Epic 15)
-      let projectProfile: string | undefined;
-      try {
-        if (!this.projectProfileRepository) throw new Error('not available');
-        const profile = await this.projectProfileRepository.findByRepo(
-          teamId,
-          dto.owner,
-          dto.repo,
-        );
-        if (profile?.isReady() && profile.profileContent) {
-          projectProfile = profile.profileContent;
-          this.logger.log(
-            `Project profile available for ${dto.owner}/${dto.repo} (${profile.profileContent.length} chars)`,
-          );
-        }
-      } catch {
-        // Non-critical — proceed without profile
+        this.logger.log(`[TIMING] Config reads: ${Date.now() - configStart}ms (${configFiles.size} files)`);
       }
 
       // 4. Deep LLM analysis — service emits progress at 35%, 50%, 65%
-      this.logger.log(`Starting deep LLM analysis...`);
+      const analysisStart = Date.now();
+      this.logger.log(`[TIMING] Starting deep LLM analysis (profile: ${profileAvailable ? 'YES' : 'NO'})...`);
       const result = await this.deepAnalysisService.analyze({
         title: dto.title,
         description: dto.description,
@@ -328,6 +346,7 @@ export class TicketsController {
         onProgress: (event) => send(event),
         projectProfile,
       });
+      this.logger.log(`[TIMING] Deep analysis complete: ${Date.now() - analysisStart}ms`);
 
       this.logger.log(`Repository analysis complete`);
 
