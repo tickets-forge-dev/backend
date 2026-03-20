@@ -43,7 +43,7 @@ import {
   PackageDependency,
   BugDetails,
 } from '@tickets/domain/tech-spec/TechSpecGenerator';
-import { GenerationProgressCallback } from '../../../jobs/application/ports/GenerationProgressCallback';
+import { GenerationProgressCallback } from '../../domain/tech-spec/GenerationProgressCallback';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 

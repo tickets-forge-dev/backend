@@ -1,4 +1,2 @@
-export interface GenerationProgressCallback {
-  onPhaseUpdate(phase: string, percent: number): Promise<void>;
-  isCancelled(): Promise<boolean>;
-}
+// Re-export from tickets domain — the canonical definition lives there
+export type { GenerationProgressCallback } from '../../../tickets/domain/tech-spec/GenerationProgressCallback';

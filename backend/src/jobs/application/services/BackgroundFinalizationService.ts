@@ -180,6 +180,11 @@ export class BackgroundFinalizationService {
       await this.jobRepository.save(job);
     }
 
+    // Clear generation job reference from AEC now that the job is complete.
+    // Done after job.markCompleted() so the job is persisted even if AEC save fails.
+    aec.clearGenerationJobId();
+    await this.aecRepository.save(aec);
+
     this.logger.log(
       `Job ${jobId} completed for ticket ${aecId} (quality score: ${techSpec.qualityScore})`,
     );

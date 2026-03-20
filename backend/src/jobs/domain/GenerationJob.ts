@@ -242,4 +242,28 @@ export class GenerationJob {
   get completedAt(): Date | null {
     return this._completedAt;
   }
+
+  /**
+   * Returns a plain object representation suitable for JSON serialization.
+   * Needed because NestJS cannot serialize private-field domain entities
+   * (getters are not enumerable properties).
+   */
+  toPlainObject(): Record<string, unknown> {
+    return {
+      id: this.id,
+      teamId: this.teamId,
+      ticketId: this.ticketId,
+      ticketTitle: this.ticketTitle,
+      createdBy: this.createdBy,
+      status: this.status,
+      phase: this.phase,
+      percent: this.percent,
+      attempt: this.attempt,
+      previousJobId: this.previousJobId,
+      error: this.error,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+      completedAt: this.completedAt?.toISOString() ?? null,
+    };
+  }
 }

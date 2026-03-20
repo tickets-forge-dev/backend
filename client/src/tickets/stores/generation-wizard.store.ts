@@ -1343,6 +1343,44 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       const aec = await response.json();
 
+      // Check if this ticket has an active background job
+      if (aec.generationJobId) {
+        try {
+          const jobsRes = await authFetch('/jobs');
+          if (jobsRes.ok) {
+            const allJobs = await jobsRes.json();
+            const activeJob = allJobs.find(
+              (j: any) => j.id === aec.generationJobId && (j.status === 'running' || j.status === 'retrying'),
+            );
+            if (activeJob) {
+              set({
+                draftAecId: aecId,
+                draftAecSlug: aec.slug ?? null,
+                type: aec.type || get().type,
+                priority: aec.priority || get().priority,
+                folderId: aec.folderId ?? null,
+                input: {
+                  title: aec.title,
+                  repoOwner: (aec.repositoryFullName || '').split('/')[0] || '',
+                  repoName: (aec.repositoryFullName || '').split('/')[1] || '',
+                  description: aec.description || '',
+                },
+                activeJobId: aec.generationJobId,
+                loading: true,
+                currentPhase: activeJob.phase || 'preparing',
+                progressPercent: activeJob.percent || 0,
+                loadingMessage: 'Generating technical specification...',
+                currentStage: 'generate' as WizardStage,
+              });
+              localStorage.setItem('wizard-draft-aec-id', aecId);
+              return;
+            }
+          }
+        } catch {
+          // Ignore — proceed with normal resume
+        }
+      }
+
       // Parse repo owner/name from repositoryFullName (e.g. "owner/repo")
       const repoParts = (aec.repositoryFullName || '').split('/');
       const repoOwner = repoParts[0] || '';

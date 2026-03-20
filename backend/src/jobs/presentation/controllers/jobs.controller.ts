@@ -16,7 +16,6 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
-import { GenerationJob } from '../../domain/GenerationJob';
 
 @Controller('jobs')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -64,7 +63,7 @@ export class JobsController {
   async listJobs(
     @TeamId() teamId: string,
     @UserId() userId: string,
-  ): Promise<GenerationJob[]> {
+  ): Promise<Record<string, unknown>[]> {
     return this.listUserJobsUseCase.execute({ userId, teamId });
   }
 }

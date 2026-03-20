@@ -1,6 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { JobRepository, JOB_REPOSITORY } from '../ports/JobRepository.port';
-import { GenerationJob } from '../../domain/GenerationJob';
 
 export interface ListUserJobsCommand {
   userId: string;
@@ -15,7 +14,7 @@ export class ListUserJobsUseCase {
     @Inject(JOB_REPOSITORY) private readonly jobRepository: JobRepository,
   ) {}
 
-  async execute(command: ListUserJobsCommand): Promise<GenerationJob[]> {
+  async execute(command: ListUserJobsCommand): Promise<Record<string, unknown>[]> {
     const { userId, teamId } = command;
 
     // Query recent jobs for user (last 24h)
@@ -26,6 +25,6 @@ export class ListUserJobsUseCase {
       this.logger.warn(`Failed to prune expired jobs for team ${teamId}: ${error.message}`);
     });
 
-    return jobs;
+    return jobs.map(j => j.toPlainObject());
   }
 }

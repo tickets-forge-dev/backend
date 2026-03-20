@@ -1,17 +1,11 @@
-/* eslint-disable react-hooks/rules-of-hooks -- Zustand store: getState() is lazy access, not a React hook */
 import { create } from 'zustand';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  Timestamp,
-} from 'firebase/firestore';
-import { firestore, auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { useTeamStore } from '@/teams/stores/team.store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+const POLL_INTERVAL_ACTIVE = 2000;  // 2s when jobs are running
+const POLL_INTERVAL_IDLE = 10000;   // 10s when no active jobs
 
 export interface GenerationJobClient {
   id: string;
@@ -39,6 +33,8 @@ interface JobsState {
   startFinalization: (ticketId: string) => Promise<{ jobId: string }>;
   getJobById: (jobId: string) => GenerationJobClient | undefined;
   activeJobCount: () => number;
+  /** Force an immediate poll (e.g. after starting a job) */
+  poll: () => Promise<void>;
 }
 
 /**
@@ -65,42 +61,28 @@ async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   return fetch(`${API_URL}${path}`, { ...init, headers });
 }
 
-/**
- * Convert a Firestore Timestamp or any date-like value to a JS Date.
- */
-function toDate(value: unknown): Date {
-  if (value instanceof Timestamp) {
-    return value.toDate();
-  }
-  if (value instanceof Date) {
-    return value;
-  }
-  if (typeof value === 'string' || typeof value === 'number') {
-    return new Date(value);
-  }
+function parseDate(value: unknown): Date {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') return new Date(value);
   return new Date();
 }
 
-/**
- * Map a Firestore document to a GenerationJobClient.
- */
-function mapDoc(doc: { id: string; data: () => Record<string, unknown> }): GenerationJobClient {
-  const d = doc.data();
+function mapJob(raw: Record<string, unknown>): GenerationJobClient {
   return {
-    id: doc.id,
-    teamId: (d.teamId as string) || '',
-    ticketId: (d.ticketId as string) || '',
-    ticketTitle: (d.ticketTitle as string) || '',
-    createdBy: (d.createdBy as string) || '',
-    status: (d.status as GenerationJobClient['status']) || 'running',
-    phase: (d.phase as string) ?? null,
-    percent: (d.percent as number) || 0,
-    attempt: (d.attempt as number) || 1,
-    previousJobId: (d.previousJobId as string) ?? null,
-    error: (d.error as string) ?? null,
-    createdAt: toDate(d.createdAt),
-    updatedAt: toDate(d.updatedAt),
-    completedAt: d.completedAt ? toDate(d.completedAt) : null,
+    id: (raw.id as string) || '',
+    teamId: (raw.teamId as string) || '',
+    ticketId: (raw.ticketId as string) || '',
+    ticketTitle: (raw.ticketTitle as string) || '',
+    createdBy: (raw.createdBy as string) || '',
+    status: (raw.status as GenerationJobClient['status']) || 'running',
+    phase: (raw.phase as string) ?? null,
+    percent: (raw.percent as number) || 0,
+    attempt: (raw.attempt as number) || 1,
+    previousJobId: (raw.previousJobId as string) ?? null,
+    error: (raw.error as string) ?? null,
+    createdAt: parseDate(raw.createdAt),
+    updatedAt: parseDate(raw.updatedAt),
+    completedAt: raw.completedAt ? parseDate(raw.completedAt) : null,
   };
 }
 
@@ -108,56 +90,76 @@ export const useJobsStore = create<JobsState>((set, get) => ({
   jobs: [],
   isSubscribed: false,
 
-  subscribe: (teamId: string, userId: string) => {
-    if (!firestore) {
-      console.warn('[JobsStore] Firestore not initialized, skipping subscription');
-      return () => {};
-    }
+  /**
+   * Start polling the backend API for job updates.
+   * Polls at 2s when active jobs exist, 10s when idle.
+   * Returns an unsubscribe function to stop polling.
+   */
+  subscribe: (_teamId: string, _userId: string) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
 
-    const jobsRef = collection(firestore, `teams/${teamId}/jobs`);
-    const q = query(
-      jobsRef,
-      where('createdBy', '==', userId),
-      orderBy('createdAt', 'desc'),
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const jobs = snapshot.docs.map(mapDoc);
+    const fetchJobs = async () => {
+      try {
+        const res = await authFetch('/jobs');
+        if (!res.ok) return;
+        const data = (await res.json()) as Record<string, unknown>[];
+        const jobs = data.map(mapJob);
         set({ jobs, isSubscribed: true });
-      },
-      (error) => {
-        console.error('[JobsStore] Snapshot error:', error);
-      },
-    );
+      } catch {
+        // Silently ignore poll failures — will retry on next tick
+      }
+    };
+
+    const scheduleNext = () => {
+      if (stopped) return;
+      const hasActive = get().jobs.some((j) => j.status === 'running' || j.status === 'retrying');
+      const interval = hasActive ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_IDLE;
+      timer = setTimeout(async () => {
+        await fetchJobs();
+        scheduleNext();
+      }, interval);
+    };
+
+    // Initial fetch, then start polling
+    void fetchJobs().then(scheduleNext);
 
     return () => {
-      unsubscribe();
+      stopped = true;
+      if (timer) clearTimeout(timer);
       set({ isSubscribed: false });
     };
   },
 
-  cancelJob: async (jobId: string) => {
-    const response = await authFetch(`/jobs/${jobId}/cancel`, {
-      method: 'POST',
-    });
+  poll: async () => {
+    try {
+      const res = await authFetch('/jobs');
+      if (!res.ok) return;
+      const data = (await res.json()) as Record<string, unknown>[];
+      const jobs = data.map(mapJob);
+      set({ jobs });
+    } catch {
+      // Ignore
+    }
+  },
 
+  cancelJob: async (jobId: string) => {
+    const response = await authFetch(`/jobs/${jobId}/cancel`, { method: 'POST' });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       throw new Error((body as Record<string, string>).message || `Failed to cancel job: ${response.statusText}`);
     }
+    // Immediately poll to reflect the change
+    await get().poll();
   },
 
   retryJob: async (jobId: string) => {
-    const response = await authFetch(`/jobs/${jobId}/retry`, {
-      method: 'POST',
-    });
-
+    const response = await authFetch(`/jobs/${jobId}/retry`, { method: 'POST' });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       throw new Error((body as Record<string, string>).message || `Failed to retry job: ${response.statusText}`);
     }
+    await get().poll();
   },
 
   startFinalization: async (ticketId: string) => {
@@ -172,6 +174,8 @@ export const useJobsStore = create<JobsState>((set, get) => ({
     }
 
     const data = (await response.json()) as { jobId: string };
+    // Immediately poll to pick up the new job
+    await get().poll();
     return { jobId: data.jobId };
   },
 
