@@ -13,7 +13,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { DEFAULT_MODEL } from '../../../shared/infrastructure/llm/llm.config';
+import { DEFAULT_MODEL, DEFAULT_FAST_MODEL } from '../../../shared/infrastructure/llm/llm.config';
 import { TelemetryService } from '../../../shared/infrastructure/posthog/telemetry.service';
 import {
   UsageBudgetRepository,
@@ -88,6 +88,7 @@ const MAX_FILE_SIZE_BYTES = 50_000;
 export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   private readonly logger = new Logger(DeepAnalysisServiceImpl.name);
   private readonly llmModel: LanguageModel | null;
+  private readonly fastModel: LanguageModel | null;
   private readonly providerName: string;
 
   constructor(
@@ -104,17 +105,22 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
       const modelId =
         this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
+      const fastModelId =
+        this.configService.get<string>('ANTHROPIC_FAST_MODEL') || DEFAULT_FAST_MODEL;
       if (apiKey) {
         const anthropic = createAnthropic({ apiKey });
         this.llmModel = anthropic(modelId);
-        this.providerName = `Anthropic (${modelId})`;
+        this.fastModel = anthropic(fastModelId);
+        this.providerName = `Anthropic (${modelId}, fast: ${fastModelId})`;
       } else {
         this.llmModel = null;
+        this.fastModel = null;
         this.providerName = 'none (ANTHROPIC_API_KEY not set)';
       }
     } else {
       // Fallback: require Anthropic
       this.llmModel = null;
+      this.fastModel = null;
       this.providerName = 'none (LLM_PROVIDER must be anthropic)';
     }
 
@@ -130,8 +136,9 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
   async analyze(input: DeepAnalysisInput): Promise<DeepAnalysisResult> {
     const startTime = Date.now();
     const emit = (event: AnalysisProgressEvent) => input.onProgress?.(event);
+    const hasProfile = !!input.projectProfile;
 
-    this.logger.log(`Starting deep analysis for ${input.owner}/${input.repo} — "${input.title}"`);
+    this.logger.log(`Starting deep analysis for ${input.owner}/${input.repo} — "${input.title}" (profile: ${hasProfile ? 'YES' : 'NO'})`);
 
     // Phase 1: Build condensed tree (input already has tree + configs)
     const condensedTree = this.buildFileTreeString(input.fileTree);
@@ -139,24 +146,26 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
 
     this.logger.log(`Phase 1: Tree has ${condensedTree.split('\n').length} source entries`);
 
-    // PASS 1: Fast fingerprinting (1-2 seconds)
-    // Emit to frontend immediately so user sees tech stack right away
+    // PASS 1: Fast fingerprinting (instant — regex on in-memory data, no API calls)
     emit({ phase: 'fingerprinting', message: 'Detecting tech stack...', percent: 15 });
+    const fpStart = Date.now();
     const fingerprint = this.fingerprintService.extractFingerprint(
       input.fileTree,
       Object.fromEntries(input.configFiles),
     );
-    const pmDisplay = fingerprint.packageManager || 'auto-detect';
     this.logger.log(
-      `Pass 1: Detected ${fingerprint.languages.join(', ') || 'unknown'} (${pmDisplay})`,
+      `[TIMING] Fingerprinting: ${Date.now() - fpStart}ms — ${fingerprint.languages.join(', ') || 'unknown'} (${fingerprint.packageManager || 'auto-detect'})`,
     );
-
-    // Emit fingerprint result quickly (can be used by frontend immediately)
     emit({
       phase: 'fingerprinting',
       message: `Detected: ${fingerprint.primaryLanguage}, ${fingerprint.frameworks.join(', ') || 'no framework'}`,
       percent: 20,
     });
+
+    // Build project profile context for LLM injection
+    const profileContext = input.projectProfile
+      ? `\n\nPROJECT PROFILE (pre-scanned context — use this for architecture understanding, skip redundant detection):\n${input.projectProfile}`
+      : '';
 
     // Phase 2: LLM selects files to read
     let selectedFiles: string[] = [];
@@ -165,19 +174,23 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     try {
       emit({
         phase: 'selecting_files',
-        message: 'AI is selecting relevant files to analyze...',
+        message: hasProfile
+          ? 'AI is selecting files (profile-guided)...'
+          : 'AI is selecting relevant files to analyze...',
         percent: 35,
       });
 
+      const selectStart = Date.now();
       selectedFiles = await this.selectFilesToRead(
         input.title,
         input.description,
         condensedTree,
         configContents,
         input.fileTree,
+        profileContext,
       );
 
-      this.logger.log(`Phase 2: LLM selected ${selectedFiles.length} files to read`);
+      this.logger.log(`[TIMING] LLM file selection: ${Date.now() - selectStart}ms — selected ${selectedFiles.length} files`);
 
       emit({
         phase: 'reading_files',
@@ -186,6 +199,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       });
 
       // Read selected files from GitHub
+      const readStart = Date.now();
       fileContents = await this.readFilesFromGitHub(
         input.octokit,
         input.owner,
@@ -194,7 +208,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         selectedFiles,
       );
 
-      this.logger.log(`Phase 2: Read ${fileContents.size} files from GitHub`);
+      this.logger.log(`[TIMING] GitHub file reads: ${Date.now() - readStart}ms — read ${fileContents.size}/${selectedFiles.length} files`);
     } catch (error: any) {
       this.logger.warn(
         `Phase 2 file selection failed: ${error.message}. Proceeding with config files only.`,
@@ -205,10 +219,13 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     try {
       emit({
         phase: 'analyzing',
-        message: 'Deep analyzing codebase patterns and architecture...',
+        message: hasProfile
+          ? 'Analyzing with profile context...'
+          : 'Deep analyzing codebase patterns and architecture...',
         percent: 65,
       });
 
+      const analyzeStart = Date.now();
       const result = await this.analyzeWithLLM(
         input.title,
         input.description,
@@ -216,8 +233,10 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
         fileContents,
         condensedTree,
         selectedFiles,
-        fingerprint, // Pass fingerprint for context
+        fingerprint, // undefined when profile available — LLM uses profile instead
+        profileContext,
       );
+      this.logger.log(`[TIMING] LLM deep analysis: ${Date.now() - analyzeStart}ms`);
 
       // Post-Phase 3: Enrich with regex-based controller scanning
       // Uses files already read in Phase 2 — no extra GitHub API calls
@@ -248,7 +267,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
       }
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      this.logger.log(`Deep analysis complete in ${elapsed}s`);
+      this.logger.log(`[TIMING] Total deep analysis: ${elapsed}s (profile: ${hasProfile ? 'YES' : 'NO'}, files read: ${fileContents.size})`);
 
       return result;
     } catch (error: any) {
@@ -267,6 +286,7 @@ export class DeepAnalysisServiceImpl implements DeepAnalysisService {
     condensedTree: string,
     configContents: string,
     fileTree: FileTree,
+    profileContext: string = '',
   ): Promise<string[]> {
     const systemPrompt = `You are a senior software engineer. Your job: given a specific development task, pick the exact source files from the repository that are DIRECTLY relevant to implementing that task.
 
@@ -280,7 +300,7 @@ DO NOT pick random files. Every file you pick must have a clear connection to th
 
     const userPrompt = `THE TASK: "${title}"
 ${description ? `DETAILS: ${description}` : ''}
-
+${profileContext}
 EXISTING DEPENDENCIES AND CONFIG:
 ${configContents}
 
@@ -306,7 +326,8 @@ CRITICAL RULES:
 - Skip documentation, CI/CD, workflow, and build config files
 - Focus on APPLICATION CODE: routes, controllers, services, models, middleware, stores, components`;
 
-    const response = await this.callLLM(systemPrompt, userPrompt);
+    // Use fast model (Haiku) for file selection — it's a commodity task
+    const response = await this.callLLM(systemPrompt, userPrompt, undefined, true);
     const parsed = this.parseJSON<Array<{ path: string; why: string }>>(response);
 
     if (!Array.isArray(parsed)) {
@@ -395,6 +416,7 @@ CRITICAL RULES:
     condensedTree: string,
     llmFilesRead: string[],
     fingerprint?: RepositoryFingerprint,
+    profileContext: string = '',
   ): Promise<DeepAnalysisResult> {
     // Build file contents string
     const sourceFilesText = Array.from(fileContents.entries())
@@ -423,7 +445,7 @@ REPOSITORY FINGERPRINT (detected without reading all files):
 ${description ? `DESCRIPTION: ${description}` : ''}
 
 I've analyzed this repository and read selected source files. Analyze them for implementing the task above.
-${fingerprintContext}
+${fingerprintContext}${profileContext}
 
 DEPENDENCIES & CONFIG:
 ${configContents}
@@ -640,19 +662,22 @@ QUALITY RULES:
     systemPrompt: string,
     userPrompt: string,
     trackingContext?: { userId?: string; teamId?: string; ticketId?: string; operation?: string },
+    useFastModel = false,
   ): Promise<string> {
-    if (!this.llmModel) {
+    const model = useFastModel && this.fastModel ? this.fastModel : this.llmModel;
+    if (!model) {
       throw new Error('No LLM model configured. Set LLM_PROVIDER and credentials.');
     }
 
     try {
+      const modelLabel = useFastModel && this.fastModel ? 'fast' : 'main';
       this.logger.log(
-        `Calling LLM (${this.providerName}), prompt length: ${userPrompt.length} chars`,
+        `Calling LLM (${modelLabel}), prompt length: ${userPrompt.length} chars`,
       );
       const startTime = Date.now();
 
       const { text, usage } = await generateText({
-        model: this.llmModel,
+        model,
         system: systemPrompt,
         prompt: userPrompt,
         maxOutputTokens: 4096,

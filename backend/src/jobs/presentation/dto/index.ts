@@ -1,0 +1,1 @@
+export { StartFinalizationDto } from './StartFinalizationDto';

@@ -87,6 +87,7 @@ export class AEC {
     private _apiContext: string | null = null,
     private _slug: string | null = null,
     private _previousStatus: AECStatus | null = null,
+    private _generationJobId: string | null = null,
   ) {}
 
   // Factory method for creating new draft
@@ -214,6 +215,7 @@ export class AEC {
     apiContext?: string | null,
     slug?: string | null,
     previousStatus?: AECStatus | null,
+    generationJobId?: string | null,
   ): AEC {
     return new AEC(
       id,
@@ -263,6 +265,7 @@ export class AEC {
       apiContext ?? null,
       slug ?? null,
       previousStatus ?? null,
+      generationJobId ?? null,
     );
   }
 
@@ -421,6 +424,20 @@ export class AEC {
 
   get previousStatus(): AECStatus | null {
     return this._previousStatus;
+  }
+
+  get generationJobId(): string | null {
+    return this._generationJobId;
+  }
+
+  setGenerationJobId(id: string): void {
+    this._generationJobId = id;
+    this._updatedAt = new Date();
+  }
+
+  clearGenerationJobId(): void {
+    this._generationJobId = null;
+    this._updatedAt = new Date();
   }
 
   // Assignment methods (Story 3.5-5: AC#1)

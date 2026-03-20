@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo, type WizardStage } from '@/tickets/stores/generation-wizard.store';
+import { useJobsStore } from '@/stores/jobs.store';
+import { useTicketsStore } from '@/stores/tickets.store';
 import { DetailsStep } from './wizard/DetailsStep';
 import { CodebaseStep } from './wizard/CodebaseStep';
 import { ReferencesStep } from './wizard/ReferencesStep';
@@ -40,6 +42,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     setType,
     setTitle,
     draftAecId,
+    draftAecSlug,
     showCelebration,
     closeCelebration,
     type,
@@ -48,10 +51,54 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     hasRepository,
     nextStage,
     prevStage,
+    activeJobId,
+    cancelAnalysis,
   } = useWizardStore();
+
+  // Subscribe to job progress when an active job is running
+  const activeJob = useJobsStore((s) => activeJobId ? s.getJobById(activeJobId) : undefined);
+  const cancelJob = useJobsStore((s) => s.cancelJob);
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
+
+  // When the active job completes, navigate to the ticket detail page
+  useEffect(() => {
+    if (activeJob?.status === 'completed' && draftAecId) {
+      // Job completed — navigate to ticket detail
+      const slug = draftAecSlug || draftAecId;
+      useWizardStore.setState({
+        loading: false,
+        currentPhase: null,
+        loadingMessage: null,
+        activeJobId: null,
+      });
+      router.push(`/tickets/${slug}`);
+    } else if (activeJob?.status === 'failed') {
+      // Job failed — show error and clear loading state
+      useWizardStore.setState({
+        loading: false,
+        currentPhase: null,
+        loadingMessage: null,
+        activeJobId: null,
+        error: activeJob.error || 'Spec generation failed. Please try again.',
+      });
+    } else if (activeJob?.status === 'cancelled') {
+      // Job cancelled — clear loading state
+      useWizardStore.setState({
+        loading: false,
+        currentPhase: null,
+        loadingMessage: null,
+        activeJobId: null,
+      });
+    } else if (activeJob && (activeJob.status === 'running' || activeJob.status === 'retrying')) {
+      // Job in progress — sync progress from job to wizard state
+      useWizardStore.setState({
+        currentPhase: activeJob.phase,
+        progressPercent: activeJob.percent,
+      });
+    }
+  }, [activeJob, draftAecId, draftAecSlug, router]);
 
   // On mount: reset if forceNew is true (e.g., mode=new URL param)
   useEffect(() => {
@@ -72,7 +119,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     }
   }, [initialType, setType]);
 
-  // On mount: handle resume param or detect recoverable state
+  // On mount or resumeId change: handle resume param or detect recoverable state
   useEffect(() => {
     if (forceNew) return;
 
@@ -87,7 +134,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       setShowRecoveryBanner(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forceNew]);
+  }, [forceNew, resumeId]);
 
   const handleResume = useCallback(async () => {
     setShowRecoveryBanner(false);
@@ -107,10 +154,41 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     }
   }, [reset, resumeId, router]);
 
+  // Handler: send generation to background and navigate away
+  const handleSendToBackground = useCallback(() => {
+    router.push('/tickets');
+  }, [router]);
+
+  // Handler: cancel the active generation job
+  const handleCancelJob = useCallback(async () => {
+    if (!activeJobId) return;
+    try {
+      await cancelJob(activeJobId);
+      useWizardStore.setState({
+        loading: false,
+        currentPhase: null,
+        loadingMessage: null,
+        activeJobId: null,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to cancel';
+      setError(msg);
+    }
+  }, [activeJobId, cancelJob, setError]);
+
+  const isBranchesLoading = useTicketsStore((s) => s.isBranchesLoading);
+
   // Validation for the Details step
   const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
   const isTitleValid = wordCount >= 2 && input.title.length <= 2000;
   const isRepoValid = !includeRepository || (input.repoOwner.length > 0 && input.repoName.length > 0);
+
+  // Determine if the progress dialog is for a background job (shows extra buttons)
+  const isBackgroundJob = !!activeJobId;
+
+  // Resolve progress data: from jobs store when a background job is active, otherwise from wizard store
+  const resolvedPhase = isBackgroundJob ? (activeJob?.phase ?? currentPhase) : currentPhase;
+  const resolvedPercent = isBackgroundJob ? (activeJob?.percent ?? progressPercent) : progressPercent;
 
   // Next button logic based on current stage
   const getNextButton = () => {
@@ -147,11 +225,11 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           <Button variant="outline" size="sm" onClick={prevStage}>Back</Button>
           <Button
             onClick={() => { if (isRepoValid) nextStage(); }}
-            disabled={!isRepoValid || loading}
+            disabled={!isRepoValid || loading || isBranchesLoading}
             size="sm"
             className="min-w-[96px]"
           >
-            Next
+            {isBranchesLoading ? 'Loading...' : 'Next'}
           </Button>
         </div>
       );
@@ -236,13 +314,14 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {renderStage()}
       </div>
 
-      {/* Analysis Progress Dialog */}
-      {loading && (
+      {/* Analysis Progress Dialog — only during real analysis, not draft resume */}
+      {loading && (resolvedPhase || currentPhase) && (
         <AnalysisProgressDialog
-          currentPhase={currentPhase}
+          currentPhase={resolvedPhase}
           message={loadingMessage}
-          percent={progressPercent}
+          percent={resolvedPercent}
           hasRepository={hasRepository}
+          onCancel={cancelAnalysis}
         />
       )}
 

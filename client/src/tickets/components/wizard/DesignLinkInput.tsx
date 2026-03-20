@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Trash2, ExternalLink } from 'lucide-react';
+import { Trash2, ExternalLink, Plus } from 'lucide-react';
 import { detectPlatform, type DesignPlatform } from '@repo/shared-types';
 
 interface DesignLink {
   url: string;
   title?: string;
   platform: DesignPlatform;
-  tempId: string; // For local tracking before server persistence
+  tempId: string;
 }
 
 interface DesignLinkInputProps {
@@ -34,7 +34,7 @@ const PLATFORM_NAMES: Record<DesignPlatform, string> = {
   miro: 'Miro',
   sketch: 'Sketch',
   whimsical: 'Whimsical',
-  other: 'Other',
+  other: 'Link',
 };
 
 export function DesignLinkInput({
@@ -47,208 +47,115 @@ export function DesignLinkInput({
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [urlError, setUrlError] = useState<string | null>(null);
 
-  const validateUrl = (inputUrl: string): boolean => {
-    if (!inputUrl.trim()) {
-      setUrlError('URL is required');
-      return false;
-    }
-
-    if (!inputUrl.startsWith('https://')) {
-      setUrlError('URL must use HTTPS (https://)');
-      return false;
-    }
-
-    try {
-      new URL(inputUrl);
-      setUrlError(null);
-      return true;
-    } catch {
-      setUrlError('Invalid URL format');
-      return false;
-    }
-  };
-
-  const handleAddLink = () => {
+  const handleAdd = () => {
     setError(null);
-
     const trimmedUrl = url.trim();
-    const trimmedTitle = title.trim();
+    if (!trimmedUrl) return;
 
-    // Validate
-    if (!validateUrl(trimmedUrl)) {
+    if (!trimmedUrl.startsWith('https://')) {
+      setError('URL must use HTTPS');
       return;
     }
-
-    // Check max limit
+    try { new URL(trimmedUrl); } catch {
+      setError('Invalid URL');
+      return;
+    }
     if (links.length >= maxLinks) {
-      setError(`Maximum ${maxLinks} design links allowed per ticket`);
+      setError(`Maximum ${maxLinks} links`);
+      return;
+    }
+    if (links.some((l) => l.url === trimmedUrl)) {
+      setError('Already added');
       return;
     }
 
-    // Check for duplicates
-    if (links.some((link) => link.url === trimmedUrl)) {
-      setError('This URL has already been added');
-      return;
-    }
-
-    // Add link
-    onAdd({
-      url: trimmedUrl,
-      title: trimmedTitle || undefined,
-    });
-
-    // Reset form
+    onAdd({ url: trimmedUrl, title: title.trim() || undefined });
     setUrl('');
     setTitle('');
-    setUrlError(null);
-  };
-
-  const handleRemoveLink = (tempId: string | number) => {
-    onRemove(tempId);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleAddLink();
-    }
   };
 
   return (
-    <div className="space-y-3">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Design Links (Optional)
-        </label>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Link designs, recordings, or boards so the AI can reference them in the spec
-        </p>
-
-        {/* Add Link Form */}
-        <div className="space-y-2 mb-4">
-          <div>
-            <input
-              type="url"
-              placeholder="https://figma.com/design/... or any https:// link"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-                setUrlError(null);
-              }}
-              onKeyPress={handleKeyPress}
-              disabled={disabled || links.length >= maxLinks}
-              className={`w-full px-3 py-2 border rounded-md text-sm font-mono
-                ${urlError ? 'border-red-500' : 'border-[var(--border-subtle)]'}
-                bg-[var(--bg)]
-                text-[var(--text)]
-                placeholder:text-[var(--text-tertiary)]
-                disabled:opacity-50 disabled:cursor-not-allowed
-                focus:outline-none focus:ring-1 focus:ring-[var(--blue)]`}
-            />
-            {urlError && <p className="text-xs text-red-500 mt-1">{urlError}</p>}
-          </div>
-
-          <input
-            type="text"
-            placeholder="Label (optional)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={disabled || links.length >= maxLinks}
-            className="w-full px-3 py-2 border border-[var(--border-subtle)] rounded-md text-sm
-              bg-[var(--bg)]
-              text-[var(--text)]
-              placeholder:text-[var(--text-tertiary)]
-              disabled:opacity-50 disabled:cursor-not-allowed
-              focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
-          />
-
-          <div className="flex gap-2">
-            <button
-              onClick={handleAddLink}
-              disabled={disabled || links.length >= maxLinks || !url.trim()}
-              className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600
-                transition-colors"
-            >
-              Add Link
-            </button>
-            {links.length > 0 && (
-              <button
-                onClick={() => {
-                  setUrl('');
-                  setTitle('');
-                  setError(null);
-                  setUrlError(null);
-                }}
-                className="px-3 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600
-                  text-gray-900 dark:text-gray-100 rounded-md text-sm font-medium
-                  transition-colors"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
-        </div>
-
-        {/* Links List */}
-        {links.length > 0 && (
-          <div className="space-y-2">
-            {links.map((link, idx) => (
-              <div
-                key={link.tempId ?? idx}
-                className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"
-              >
-                <div className="text-xl flex-shrink-0">
-                  {PLATFORM_ICONS[link.platform]}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {link.title || PLATFORM_NAMES[link.platform]}
-                  </p>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block"
-                  >
-                    {link.url}
-                  </a>
-                </div>
-
-                <div className="flex gap-1 flex-shrink-0">
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open in new tab"
-                    className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  >
-                    <ExternalLink size={16} />
-                  </a>
-                  <button
-                    onClick={() => handleRemoveLink(link.tempId ?? idx)}
-                    disabled={disabled}
-                    title="Remove link"
-                    className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {/* Counter */}
-            <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-              {links.length} of {maxLinks} design links added
-            </p>
-          </div>
-        )}
+    <div className="space-y-2">
+      {/* Inline add form */}
+      <div className="flex gap-1.5">
+        <input
+          type="url"
+          placeholder="https://figma.com/..."
+          value={url}
+          onChange={(e) => { setUrl(e.target.value); setError(null); }}
+          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
+          disabled={disabled || links.length >= maxLinks}
+          className="flex-1 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] disabled:opacity-40"
+        />
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={disabled || !url.trim() || links.length >= maxLinks}
+          className="h-8 px-2 rounded-md border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] disabled:opacity-30 transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
       </div>
+
+      {/* Optional label — only show when URL has content */}
+      {url.trim() && (
+        <input
+          type="text"
+          placeholder="Label (optional)"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
+          className="w-full h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
+        />
+      )}
+
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
+
+      {/* Links list */}
+      {links.length > 0 && (
+        <ul className="space-y-1">
+          {links.map((link, idx) => (
+            <li
+              key={link.tempId ?? idx}
+              className="flex items-center gap-2 rounded-md px-2.5 py-1.5 bg-[var(--bg-subtle)] group"
+            >
+              <span className="text-sm flex-shrink-0">{PLATFORM_ICONS[link.platform]}</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs text-[var(--text)] block truncate">
+                  {link.title || PLATFORM_NAMES[link.platform]}
+                </span>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--blue)] truncate block"
+                >
+                  {link.url}
+                </a>
+              </div>
+              <div className="flex gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 text-[var(--text-tertiary)] hover:text-[var(--blue)] transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => onRemove(link.tempId ?? idx)}
+                  disabled={disabled}
+                  className="p-1 text-[var(--text-tertiary)] hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

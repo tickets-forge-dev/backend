@@ -739,6 +739,8 @@ export function TicketDetailLayout({
             {onAddDesignReference && onRemoveDesignReference ? (
               <DesignTab
                 ticketId={ticketId}
+                ticketTitle={ticket.title}
+                ticketDescription={ticket.description}
                 references={ticket.designReferences || []}
                 visualExpectations={ticket.techSpec?.visualExpectations}
                 onAddDesignReference={onAddDesignReference}

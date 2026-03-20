@@ -115,8 +115,10 @@ export class GitHubController {
 
     try {
       const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+      // listBranches already resolves isDefault per branch — extract default from there
+      // (avoids a redundant repos.get API call that was causing timeouts)
       const branches = await this.gitHubApiService.listBranches(owner, repo, accessToken);
-      const defaultBranch = await this.gitHubApiService.getDefaultBranch(owner, repo, accessToken);
+      const defaultBranch = branches.find((b) => b.isDefault)?.name || 'main';
 
       const branchDtos: BranchDto[] = branches.map((branch) => ({
         name: branch.name,

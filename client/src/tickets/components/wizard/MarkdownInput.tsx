@@ -262,7 +262,7 @@ function FullscreenEditor({
               onChange={(e) => onChange(e.target.value)}
               placeholder={placeholder}
               maxLength={maxLength}
-              className={`flex-1 w-full resize-none px-8 py-6 bg-transparent text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none leading-relaxed ${font.value} ${fontSize.value}`}
+              className={`flex-1 w-full resize-none px-8 py-6 bg-transparent text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus-visible:outline-none leading-relaxed ${font.value} ${fontSize.value}`}
             />
           </div>
         )}

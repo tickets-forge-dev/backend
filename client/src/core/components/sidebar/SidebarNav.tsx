@@ -2,10 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import { LayoutGrid, Settings, MessageCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useProjectProfileStore } from '@/project-profiles/stores/project-profile.store';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
@@ -20,9 +23,22 @@ export function SidebarNav() {
   };
   const { openFeedback } = useFeedbackStore();
 
+  // Check for unprofiled/failed repos — memoized to avoid re-renders on every poll
+  const selectedRepos = useSettingsStore((s) => s.selectedRepositories);
+  const profilesList = useProjectProfileStore((s) => s.profiles);
+  const hasProfileAttention = useMemo(() => {
+    if (selectedRepos.length === 0) return false;
+    return selectedRepos.some((repo) => {
+      const profile = profilesList.find(
+        (p) => p.repoOwner === repo.owner && p.repoName === repo.name,
+      );
+      return !profile || profile.status === 'failed';
+    });
+  }, [selectedRepos, profilesList]);
+
   const navigationItems = [
     { label: 'Workspace', href: '/tickets', icon: LayoutGrid },
-    { label: 'Settings', href: '/settings', icon: Settings },
+    { label: 'Settings', href: '/settings', icon: Settings, attention: hasProfileAttention },
   ];
 
   return (
@@ -31,6 +47,7 @@ export function SidebarNav() {
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
+          const showDot = 'attention' in item && item.attention;
 
           return (
             <li key={item.href}>
@@ -46,7 +63,12 @@ export function SidebarNav() {
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]'
                 )}
               >
-                <Icon className="h-4 w-4 flex-shrink-0" />
+                <span className="relative flex-shrink-0">
+                  <Icon className="h-4 w-4" />
+                  {showDot && (
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-500" />
+                  )}
+                </span>
                 {!sidebarCollapsed && (
                   <span className="truncate">{item.label}</span>
                 )}

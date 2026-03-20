@@ -61,6 +61,10 @@ import {
 } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { Octokit } from '@octokit/rest';
+import { ConfigService } from '@nestjs/config';
+import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { DEFAULT_FAST_MODEL } from '../../../shared/infrastructure/llm/llm.config';
 import { DEEP_ANALYSIS_SERVICE } from '../../application/ports/DeepAnalysisServicePort';
 import { DeepAnalysisService } from '@tickets/domain/deep-analysis/deep-analysis.service';
 import { ApiDetectionService } from '../../application/services/ApiDetectionService';
@@ -100,8 +104,13 @@ import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketU
 import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
 import { StartImplementationDto } from '../dto/StartImplementationDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
+import { GenerateWireframesUseCase } from '../../application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
 import { UnarchiveAECUseCase } from '../../application/use-cases/UnarchiveAECUseCase';
+import {
+  ProjectProfileRepository,
+  PROJECT_PROFILE_REPOSITORY,
+} from '../../../project-profiles/application/ports/ProjectProfileRepository.port';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -151,12 +160,16 @@ export class TicketsController {
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
+    private readonly generateWireframesUseCase: GenerateWireframesUseCase,
     private readonly archiveAECUseCase: ArchiveAECUseCase,
     private readonly unarchiveAECUseCase: UnarchiveAECUseCase,
     private readonly telemetry: TelemetryService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
     private readonly firebaseService: FirebaseService,
+    @Inject(PROJECT_PROFILE_REPOSITORY)
+    private readonly projectProfileRepository: ProjectProfileRepository,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -222,8 +235,34 @@ export class TicketsController {
       const octokit = new Octokit({ auth: accessToken });
       const branch = dto.branch || 'main';
 
-      // 2. Tree: fetch recursive tree
+      // 1.5 Look up cached project profile (Epic 15)
+      let projectProfile: string | undefined;
+      let profileAvailable = false;
+      try {
+        if (!this.projectProfileRepository) throw new Error('not available');
+        const profile = await this.projectProfileRepository.findByRepo(
+          teamId,
+          dto.owner,
+          dto.repo,
+        );
+        if (profile?.isReady() && profile.profileContent) {
+          projectProfile = profile.profileContent;
+          profileAvailable = true;
+          this.logger.log(
+            `[PROFILE] ✓ Cached profile found for ${dto.owner}/${dto.repo} (${profile.profileContent.length} chars, ${profile.fileCount} files, stack: ${profile.techStack.join(', ')})`,
+          );
+        } else {
+          this.logger.log(
+            `[PROFILE] ✗ No cached profile for ${dto.owner}/${dto.repo} — full analysis required`,
+          );
+        }
+      } catch {
+        this.logger.log(`[PROFILE] ✗ Profile lookup failed — proceeding without profile`);
+      }
+
+      // 2. Tree: fetch recursive tree (always needed — LLM file selection validates against it)
       send({ phase: 'fetching_tree', message: 'Fetching repository structure...', percent: 15 });
+      const treeStart = Date.now();
 
       const refResponse = await octokit.rest.git.getRef({
         owner: dto.owner,
@@ -254,8 +293,11 @@ export class TicketsController {
         truncated: treeResponse.data.truncated || false,
       };
 
-      // 3. Config read: read key config files
+      this.logger.log(`[TIMING] Tree fetch: ${Date.now() - treeStart}ms`);
+
+      // 3. Config read: always read — LLM prompt needs DEPENDENCIES & CONFIG section
       send({ phase: 'reading_configs', message: 'Reading configuration files...', percent: 25 });
+      const configStart = Date.now();
 
       const configFilePaths = [
         'package.json',
@@ -284,8 +326,11 @@ export class TicketsController {
         }
       }
 
+      this.logger.log(`[TIMING] Config reads: ${Date.now() - configStart}ms (${configFiles.size} files)`);
+
       // 4. Deep LLM analysis — service emits progress at 35%, 50%, 65%
-      this.logger.log(`Starting deep LLM analysis...`);
+      const analysisStart = Date.now();
+      this.logger.log(`[TIMING] Starting deep LLM analysis (profile: ${profileAvailable ? 'YES' : 'NO'})...`);
       const result = await this.deepAnalysisService.analyze({
         title: dto.title,
         description: dto.description,
@@ -296,7 +341,9 @@ export class TicketsController {
         configFiles,
         octokit,
         onProgress: (event) => send(event),
+        projectProfile,
       });
+      this.logger.log(`[TIMING] Deep analysis complete: ${Date.now() - analysisStart}ms`);
 
       this.logger.log(`Repository analysis complete`);
 
@@ -319,6 +366,38 @@ export class TicketsController {
       send({ phase: 'error', message: errorMessage, percent: 0 });
       res.end();
     }
+  }
+
+  /**
+   * Generate a UI description for wireframe context using the cheapest LLM (Haiku).
+   * Takes the ticket title + description and returns a concise UI layout description.
+   */
+  @UseGuards(RateLimitGuard)
+  @Post('generate-ui-description')
+  async generateUIDescription(
+    @Body() body: { title: string; description?: string },
+  ): Promise<{ uiDescription: string }> {
+    if (!body.title) {
+      throw new BadRequestException('Title is required');
+    }
+
+    const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      throw new BadRequestException('LLM not configured');
+    }
+
+    const modelId = this.configService.get<string>('ANTHROPIC_FAST_MODEL') || DEFAULT_FAST_MODEL;
+    const anthropic = createAnthropic({ apiKey });
+
+    const { text } = await generateText({
+      model: anthropic(modelId),
+      system: `You are a UI/UX designer. Given a feature description, write a brief UI layout description (2-4 sentences) that a developer or AI can use to generate wireframes. Focus on: page layout, key components, navigation, and data display. Be specific and actionable. Do NOT use markdown or bullet points — write flowing prose.`,
+      prompt: `Feature: ${body.title}${body.description ? `\n\nDetails: ${body.description}` : ''}`,
+      maxOutputTokens: 300,
+      temperature: 0.3,
+    });
+
+    return { uiDescription: text.trim() };
   }
 
   @UseGuards(RateLimitGuard)
@@ -593,6 +672,37 @@ export class TicketsController {
   }
 
   /**
+   * Generate visual expectations (wireframes) for a ticket that doesn't have them.
+   *
+   * Allows users to add wireframes after ticket creation, even if they
+   * initially chose to skip wireframe generation.
+   */
+  @Post(':id/generate-wireframes')
+  @HttpCode(HttpStatus.OK)
+  async generateWireframes(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() body: { wireframeContext?: string },
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    try {
+      const aec = await this.generateWireframesUseCase.execute({
+        ticketId: aecId,
+        teamId,
+        wireframeContext: body.wireframeContext,
+      });
+      return this.mapToResponse(aec);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[generate-wireframes] Failed for ticket ${aecId}: ${message}`);
+      throw new ServiceUnavailableException(`AI wireframe generation failed — please try again. Details: ${message}`);
+    }
+  }
+
+  /**
    * Re-enrich ticket using developer Q&A review session (Story 7-7)
    *
    * PM triggers this after reviewing the developer's Q&A answers.
@@ -714,6 +824,7 @@ export class TicketsController {
         aecId,
         teamId,
         answers: dto.answers ?? {},
+        saveOnly: dto.saveOnly,
       });
 
       // Track spec finalization after answers are submitted

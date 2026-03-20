@@ -35,6 +35,7 @@ import {
 } from '@/core/components/ui/alert-dialog';
 import { TicketLifecycleInfo } from '@/tickets/components/detail/TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG } from '@/tickets/config/ticketStatusConfig';
+import { JobsPanel } from '@/tickets/components/JobsPanel';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
 type SortDirection = 'desc' | 'asc';
@@ -188,7 +189,8 @@ export default function TicketsListPage() {
     }[sortBy];
 
     return (
-      <div className="space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
+      <div className="flex flex-1 min-h-0">
+      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
       {/* Filter, Sort & Actions bar */}
       <div className="flex items-center gap-2">
         {/* Search */}
@@ -585,6 +587,8 @@ export default function TicketsListPage() {
         />
       )}
     </div>
+    <JobsPanel />
+    </div>
   );
 }
 
@@ -858,7 +862,7 @@ function InlineFolderAdd({ folderId }: { folderId: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2 pl-10 pr-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
+    <div className="flex items-center gap-2 pl-10 pr-4 py-1.5 border border-[var(--border-subtle)] rounded-lg mx-2 my-1 bg-[var(--bg-subtle)]/30">
       <Plus className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
       <input
         ref={inputRef}
@@ -869,7 +873,7 @@ function InlineFolderAdd({ folderId }: { folderId: string }) {
         onBlur={() => { if (!title.trim()) { setTitle(''); setIsEditing(false); } }}
         placeholder="Ticket title… (Enter to create)"
         disabled={isSubmitting}
-        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-50"
+        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:outline-none focus-visible:outline-none disabled:opacity-50"
       />
       {isSubmitting && <Loader2 className="h-3 w-3 animate-spin text-[var(--text-tertiary)]" />}
     </div>
@@ -926,7 +930,7 @@ function InlineRootAdd() {
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30">
+    <div className="flex items-center gap-2 px-4 py-1.5 border border-[var(--border-subtle)] rounded-lg mx-2 my-1 bg-[var(--bg-subtle)]/30">
       <Plus className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
       <input
         ref={inputRef}
@@ -937,7 +941,7 @@ function InlineRootAdd() {
         onBlur={() => { if (!title.trim()) { setTitle(''); setIsEditing(false); } }}
         placeholder="Ticket title… (Enter to create)"
         disabled={isSubmitting}
-        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-50"
+        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:outline-none focus-visible:outline-none disabled:opacity-50"
       />
       {isSubmitting && <Loader2 className="h-3 w-3 animate-spin text-[var(--text-tertiary)]" />}
     </div>

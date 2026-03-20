@@ -8,6 +8,8 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { RepositorySelector } from '../RepositorySelector';
 import { BranchSelector } from '../BranchSelector';
 import { GitBranch, Sparkles, Shield, Users, HelpCircle, X, Terminal, CheckCircle2, MessageSquare, FileCode, Rocket } from 'lucide-react';
+import { useProjectProfileStore, type ProjectProfileSummary } from '@/project-profiles/stores/project-profile.store';
+import { ProfileStatusBadge } from '@/project-profiles/components/ProfileStatusBadge';
 
 /**
  * CodebaseStep — Repository connection step.
@@ -26,6 +28,9 @@ export function CodebaseStep() {
     setRepository,
   } = useWizardStore();
 
+  const { findByRepo, triggerScan, startPolling, stopPolling } = useProjectProfileStore();
+  const [profileStatus, setProfileStatus] = useState<ProjectProfileSummary | null>(null);
+
   // Load GitHub status on mount
   useEffect(() => {
     loadGitHubStatus(gitHubService);
@@ -41,6 +46,68 @@ export function CodebaseStep() {
       }
     }
   }, [selectedRepository, input.repoOwner, input.repoName, setRepository]);
+
+  // Auto-check/trigger profile scan when repo is selected
+  useEffect(() => {
+    if (!input.repoOwner || !input.repoName) {
+      setProfileStatus(null);
+      return;
+    }
+
+    let cancelled = false;
+    const owner = input.repoOwner;
+    const name = input.repoName;
+
+    async function checkProfile() {
+      const existing = await findByRepo(owner, name);
+      if (cancelled) return;
+
+      if (existing) {
+        setProfileStatus(existing);
+        // If still in progress, poll until terminal
+        if (existing.status === 'pending' || existing.status === 'scanning') {
+          startPolling(owner, name, (updated) => {
+            if (!cancelled) setProfileStatus(updated);
+          });
+        }
+      } else {
+        // No profile — auto-trigger scan
+        try {
+          await triggerScan(owner, name, input.branch);
+          if (cancelled) return;
+          const updated = await findByRepo(owner, name);
+          if (cancelled) return;
+          setProfileStatus(updated);
+          // Start polling for the newly triggered scan
+          startPolling(owner, name, (p) => {
+            if (!cancelled) setProfileStatus(p);
+          });
+        } catch {
+          // Scan trigger failed — non-blocking, user can continue
+        }
+      }
+    }
+
+    checkProfile();
+    return () => {
+      cancelled = true;
+      stopPolling(owner, name);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input.repoOwner, input.repoName]);
+
+  const handleRescan = async () => {
+    if (!input.repoOwner || !input.repoName) return;
+    try {
+      await triggerScan(input.repoOwner, input.repoName, input.branch);
+      const updated = await findByRepo(input.repoOwner, input.repoName);
+      setProfileStatus(updated);
+      // Poll until complete
+      startPolling(input.repoOwner, input.repoName, (p) => setProfileStatus(p));
+    } catch {
+      // Non-blocking
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -114,6 +181,17 @@ export function CodebaseStep() {
             </p>
             <BranchSelector hideLabel={true} />
           </div>
+
+          {/* Profile status badge — shows after repo selection */}
+          {input.repoOwner && input.repoName && (
+            <div className="pt-1">
+              <ProfileStatusBadge
+                status={profileStatus?.status ?? null}
+                techStack={profileStatus?.techStack}
+                onRescan={handleRescan}
+              />
+            </div>
+          )}
         </div>
       )}
 

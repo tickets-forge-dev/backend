@@ -2,9 +2,11 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
-import { Paintbrush, Zap, SkipForward, Plus, Trash2 } from 'lucide-react';
+import { Paintbrush, Zap, SkipForward, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { ToggleOptionCard } from './ToggleOptionCard';
+import { auth } from '@/lib/firebase';
+import { useTeamStore } from '@/teams/stores/team.store';
 
 /**
  * GenerationOptionsStep — Step between Input and Draft.
@@ -16,6 +18,7 @@ import { ToggleOptionCard } from './ToggleOptionCard';
 export function GenerationOptionsStep() {
   const {
     type,
+    input,
     includeWireframes,
     wireframeContext,
     setIncludeWireframes,
@@ -44,6 +47,40 @@ export function GenerationOptionsStep() {
   const handleWireframeToggle = useCallback(() => {
     setIncludeWireframes(!includeWireframes);
   }, [includeWireframes, setIncludeWireframes]);
+
+  // ── AI wireframe description generator ──
+  const [isGeneratingUI, setIsGeneratingUI] = useState(false);
+
+  const handleGenerateUIDescription = useCallback(async () => {
+    if (!input.title) return;
+    setIsGeneratingUI(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const user = auth.currentUser;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (user) {
+        headers['Authorization'] = `Bearer ${await user.getIdToken()}`;
+      }
+      const teamId = useTeamStore.getState().currentTeam?.id;
+      if (teamId) {
+        headers['x-team-id'] = teamId;
+      }
+      const res = await fetch(`${API_URL}/tickets/generate-ui-description`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ title: input.title, description: input.description }),
+      });
+      if (!res.ok) throw new Error('Failed to generate');
+      const data = await res.json();
+      if (data.uiDescription) {
+        setWireframeContext(data.uiDescription);
+      }
+    } catch {
+      // Silently fail — user can still type manually
+    } finally {
+      setIsGeneratingUI(false);
+    }
+  }, [input.title, input.description, setWireframeContext]);
 
   // ── API handlers ──
 
@@ -127,9 +164,24 @@ export function GenerationOptionsStep() {
           collapsedHint="Describe the UI layout (required)"
         >
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-              Describe the UI <span className="text-red-400">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-[var(--text-secondary)]">
+                Describe the UI <span className="text-red-400">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleGenerateUIDescription}
+                disabled={isGeneratingUI || !input.title}
+                className="inline-flex items-center gap-1 text-[11px] text-purple-500 hover:text-purple-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {isGeneratingUI ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3" />
+                )}
+                {isGeneratingUI ? 'Generating...' : 'Generate with AI'}
+              </button>
+            </div>
             <textarea
               value={wireframeContext}
               onChange={(e) => setWireframeContext(e.target.value)}

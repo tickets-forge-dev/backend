@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { normalizeProblemStatement } from '@/tickets/utils/normalize-problem-statement';
 import { SpecGenerationProgressDialog } from './SpecGenerationProgressDialog';
+import { useJobsStore } from '@/stores/jobs.store';
 
 /** Extract readable solution text */
 function extractSolutionText(sol: unknown): string {
@@ -85,7 +86,10 @@ export function Stage3Draft() {
     setError,
     reset,
     input,
+    activeJobId,
   } = useWizardStore();
+
+  const cancelJob = useJobsStore((s) => s.cancelJob);
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [customAnswer, setCustomAnswer] = useState('');
@@ -130,10 +134,13 @@ export function Stage3Draft() {
   useEffect(() => {
     if (initRef.current) return;
     if (spec || questionsComplete) return;
+    // If a background job is already running, nothing to do
+    if (activeJobId) return;
 
-    // If we already have questions, check if they're all answered (resume case)
-    // If so, we need to fetch the next one. If not, show the current unanswered one.
-    if (clarificationQuestions.length > 0) {
+    const skipQuestions = useWizardStore.getState().maxRounds === 0;
+
+    // Resume case: have questions, not all answered — just show them (don't re-init)
+    if (!skipQuestions && clarificationQuestions.length > 0) {
       const allAnswered = clarificationQuestions.every(
         (q) => questionAnswers[q.id] !== undefined && questionAnswers[q.id] !== ''
       );
@@ -153,12 +160,19 @@ export function Stage3Draft() {
       try {
         const storeState = useWizardStore.getState();
 
+        // Create draft if needed (always — even when skipping questions)
         if (!storeState.draftAecId) {
           await confirmContextContinue();
           const newState = useWizardStore.getState();
           if (!newState.draftAecId) return;
           if (newState.spec) return;
+          // If a background job was started (skipQuestions / maxRounds=0), we're done
+          if (newState.activeJobId) return;
         }
+
+        // Skip question fetching if maxRounds is 0
+        if (useWizardStore.getState().maxRounds === 0) return;
+
         // Fetch first question (no previous answers)
         await fetchNextQuestion();
       } catch (err) {
@@ -235,8 +249,9 @@ export function Stage3Draft() {
     }
   };
 
-  // Loading: waiting for draft creation
-  if (!draftAecId) {
+  // Loading: waiting for draft creation (only show for question flows, not skip-questions)
+  const isSkipQuestions = useWizardStore.getState().maxRounds === 0;
+  if (!draftAecId && !isSkipQuestions) {
     return (
       <div className="space-y-6">
         {(error || localError) ? (
@@ -474,11 +489,57 @@ export function Stage3Draft() {
         </>
       )}
 
+      {/* Error state for skip-questions flow */}
+      {isSkipQuestions && !spec && !activeJobId && (error || localError) && (
+        <div className="text-center py-12 space-y-4">
+          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto" />
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {error || localError}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Button variant="outline" size="sm" onClick={goBackToInput}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setLocalError(null);
+                setError(null);
+                initRef.current = false;
+                setRetryCount((c) => c + 1);
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Detailed Progress Dialog for Generating / Submitting States */}
       <SpecGenerationProgressDialog
-        isVisible={!spec && (isSubmitting)}
-        isSubmitting={isSubmitting}
+        isVisible={!spec && (isSubmitting || !!activeJobId || (isSkipQuestions && !draftAecId && !error && !localError))}
+        isSubmitting={isSubmitting || !!activeJobId || isSkipQuestions}
         isGenerating={false}
+        onSendToBackground={() => router.push('/tickets')}
+        onCancel={async () => {
+          // Cancel the background job if it exists
+          if (activeJobId) {
+            try {
+              await cancelJob(activeJobId);
+            } catch {
+              // Ignore cancel errors
+            }
+          }
+          // Reset wizard state regardless
+          useWizardStore.setState({
+            loading: false,
+            currentPhase: null,
+            loadingMessage: null,
+            activeJobId: null,
+            roundStatus: 'idle',
+          });
+        }}
       />
 
       {/* Questions complete — transitioning to spec generation */}

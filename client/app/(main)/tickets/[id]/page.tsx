@@ -27,6 +27,42 @@ interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+/** Auto-redirects to /tickets after 2s when a ticket isn't found */
+function TicketNotFound({ error }: { error: string | null }) {
+  const router = useRouter();
+  const [countdown, setCountdown] = useState(2);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          router.push('/tickets');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [router]);
+
+  return (
+    <div className="rounded-lg bg-[var(--bg-subtle)] p-6">
+      <div className="text-center">
+        <p className="text-[var(--text-base)] text-[var(--red)]">
+          {error || 'Ticket not found'}
+        </p>
+        <p className="text-sm text-[var(--text-tertiary)] mt-2">
+          Redirecting to tickets in {countdown}s...
+        </p>
+        <Button onClick={() => router.push('/tickets')} variant="outline" className="mt-4">
+          Back to Tickets
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function TicketDetailContent({ params }: TicketDetailPageProps) {
   const router = useRouter();
   const [ticketId, setTicketId] = useState<string | null>(null);
@@ -179,20 +215,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     );
   }
 
-  // Error state
+  // Error state — auto-redirect to /tickets after 2s on "not found"
   if (fetchError || !currentTicket) {
-    return (
-      <div className="rounded-lg bg-[var(--bg-subtle)] p-6">
-        <div className="text-center">
-          <p className="text-[var(--text-base)] text-[var(--red)]">
-            {fetchError || 'Ticket not found'}
-          </p>
-          <Button onClick={() => router.push('/tickets')} variant="outline" className="mt-4">
-            Back to Tickets
-          </Button>
-        </div>
-      </div>
-    );
+    return <TicketNotFound error={fetchError} />;
   }
 
   // Derive wizard stage

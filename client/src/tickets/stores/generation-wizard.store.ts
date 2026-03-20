@@ -3,9 +3,13 @@ import type { ClarificationQuestion, TechSpec, QuestionRound as FrontendQuestion
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTeamStore } from '@/teams/stores/team.store';
+import { useJobsStore } from '@/stores/jobs.store';
 import { auth } from '@/lib/firebase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+/** Module-scoped abort controller for the analysis SSE stream */
+let _analysisAbortController: AbortController | undefined;
 
 const WIZARD_STORAGE_KEY = 'wizard-snapshot';
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -272,6 +276,9 @@ export interface WizardState {
   hasRepository: boolean; // Whether repository is being analyzed (for progress UI)
   error: string | null;
 
+  // Background finalization job
+  activeJobId: string | null;
+
   // Skip questions flag
   skipQuestions: boolean;
   _savedMaxRounds: number; // Preserved value when skipQuestions toggled on
@@ -317,6 +324,7 @@ export interface WizardActions {
 
   // Context stage
   analyzeRepository: () => Promise<void>;
+  cancelAnalysis: () => void;
   editStack: (updates: any) => void; // Legacy: ProjectStack type
   editAnalysis: (updates: any) => void; // Legacy: CodebaseAnalysis type
 
@@ -434,6 +442,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   currentPhase: null,
   hasRepository: false,
   error: null,
+  activeJobId: null,
   skipQuestions: false,
   _savedMaxRounds: 3,
   showCelebration: false,
@@ -731,6 +740,10 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+    _analysisAbortController = abortController;
+
     set({
       loading: true,
       loadingMessage: 'Connecting to GitHub...',
@@ -756,6 +769,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       const response = await authFetch('/tickets/analyze-repo', {
         method: 'POST',
+        signal: abortController.signal,
         body: JSON.stringify({
           owner,
           repo,
@@ -810,12 +824,20 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           }
 
           if (event.phase === 'complete') {
+            _analysisAbortController = undefined;
             const analysisContext = event.result?.context || null;
             // Extract recommendedRounds from deep analysis
-            const recommended = analysisContext?.taskAnalysis?.implementationHints?.recommendedRounds;
-            const rounds = typeof recommended === 'number'
-              ? Math.max(0, Math.min(3, Math.round(recommended)))
-              : 3;
+            // BUT: respect skipQuestions — if user toggled skip, keep maxRounds at 0
+            const currentState = get();
+            let rounds: number;
+            if (currentState.skipQuestions) {
+              rounds = 0; // User explicitly chose to skip — don't override
+            } else {
+              const recommended = analysisContext?.taskAnalysis?.implementationHints?.recommendedRounds;
+              rounds = typeof recommended === 'number'
+                ? Math.max(0, Math.min(3, Math.round(recommended)))
+                : 3;
+            }
 
             set({
               context: analysisContext,
@@ -831,6 +853,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
           }
 
           if (event.phase === 'error') {
+            _analysisAbortController = undefined;
             set({
               error: event.message || 'Analysis failed',
               loading: false,
@@ -851,10 +874,17 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       }
 
       // Stream ended without complete/error event
+      _analysisAbortController = undefined;
       if (get().loading) {
         set({ error: 'Analysis stream ended unexpectedly', loading: false, loadingMessage: null, progressPercent: 0, currentPhase: null });
       }
     } catch (error) {
+      _analysisAbortController = undefined;
+      // AbortError from cancelAnalysis() — not a real error, just user cancellation
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        set({ loading: false, loadingMessage: null, progressPercent: 0, currentPhase: null, error: null });
+        return;
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({
         error: errorMessage,
@@ -864,6 +894,23 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         currentPhase: null,
       });
     }
+  },
+
+  /**
+   * Cancel an in-progress analysis SSE stream.
+   */
+  cancelAnalysis: () => {
+    if (_analysisAbortController) {
+      _analysisAbortController.abort();
+      _analysisAbortController = undefined;
+    }
+    set({
+      loading: false,
+      currentPhase: null,
+      loadingMessage: null,
+      progressPercent: 0,
+      error: null,
+    });
   },
 
   /**
@@ -928,7 +975,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
-    set({ loading: true, error: null, currentPhase: 'preparing', loadingMessage: 'Creating ticket...', progressPercent: 0 });
+    set({ loading: true, error: null, currentPhase: null, loadingMessage: 'Creating ticket...', progressPercent: 0 });
 
     try {
       // Build request body (only include repository fields if we have a repository)
@@ -1008,33 +1055,29 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         saveSnapshot(get());
 
         try {
-          const finalizeResponse = await authFetch(`/tickets/${aec.id}/finalize`, {
-            method: 'POST',
-          });
-
-          if (!finalizeResponse.ok) {
-            throw new Error(`Failed to finalize: ${finalizeResponse.statusText}`);
-          }
-
-          const finalizedAec = await finalizeResponse.json();
+          // Start background finalization job instead of synchronous finalize
+          const { jobId } = await useJobsStore.getState().startFinalization(aec.id);
           set({
             draftAecId: aec.id,
             draftAecSlug: aec.slug ?? null,
-            spec: finalizedAec.techSpec,
+            activeJobId: jobId,
             currentStage: 'generate' as WizardStage,
-            loading: false,
-            loadingMessage: null,
+            loading: true,
+            currentPhase: 'preparing',
+            progressPercent: 0,
+            loadingMessage: 'Generating technical specification...',
           });
         } catch (finalizeError) {
-          // Fallback: if auto-finalize fails, go to stage 3 with maxRounds=1
-          console.warn('Auto-finalize failed, falling back to 1 round:', finalizeError);
+          const errMsg = finalizeError instanceof Error ? finalizeError.message : 'Failed to start spec generation';
+          console.error('Auto-finalize failed:', errMsg);
           set({
             draftAecId: aec.id,
             draftAecSlug: aec.slug ?? null,
-            maxRounds: 1,
+            error: errMsg,
             currentStage: 'generate' as WizardStage,
             loading: false,
             loadingMessage: null,
+            activeJobId: null,
           });
         }
         return;
@@ -1045,6 +1088,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         draftAecSlug: aec.slug ?? null,
         currentStage: 'generate' as WizardStage,
         loading: false,
+        currentPhase: null,
+        loadingMessage: null,
       });
 
       // Upload pending files in background (best-effort, don't block wizard)
@@ -1176,8 +1221,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   },
 
   /**
-   * Submit all question answers and finalize spec
-   * Combines answer submission + spec generation in one call
+   * Submit all question answers and start background finalization job.
+   * Answers are submitted synchronously; spec generation runs in the background.
    */
   submitQuestionAnswers: async () => {
     const state = get();
@@ -1189,20 +1234,28 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ roundStatus: 'submitting', error: null });
 
     try {
-      const response = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
+      // Step 1: Submit answers only (saveOnly=true skips synchronous finalization)
+      const answersResponse = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
         method: 'POST',
-        body: JSON.stringify({ answers: state.questionAnswers }),
+        body: JSON.stringify({ answers: state.questionAnswers, saveOnly: true }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to submit answers: ${response.statusText}`);
+      if (!answersResponse.ok) {
+        throw new Error(`Failed to submit answers: ${answersResponse.statusText}`);
       }
 
-      const data = await response.json();
+      // Step 2: Start background finalization job
+      // Always use the background job path for consistent UX (progress in jobs panel,
+      // cancel/background buttons, survives browser close)
+      const { jobId } = await useJobsStore.getState().startFinalization(state.draftAecId);
 
-      // Update state with finalized spec — stay on Stage 3 for user review
+      // Store jobId for progress dialog and set loading state
       set({
-        spec: data.techSpec,
+        activeJobId: jobId,
+        loading: true,
+        currentPhase: 'preparing',
+        progressPercent: 0,
+        loadingMessage: 'Generating technical specification...',
         roundStatus: 'idle',
       });
 
@@ -1214,6 +1267,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       set({
         error: errorMessage,
         roundStatus: 'idle',
+        activeJobId: null,
       });
     }
   },
@@ -1295,7 +1349,22 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    * Resume a draft from backend
    */
   resumeDraft: async (aecId: string) => {
-    set({ loading: true, error: null });
+    // Clear stale state immediately so previous ticket data doesn't flash
+    set({
+      loading: true,
+      error: null,
+      input: { title: '', repoOwner: '', repoName: '', description: undefined, branch: undefined },
+      clarificationQuestions: [],
+      questionAnswers: {},
+      assumptions: [],
+      spec: null,
+      context: null,
+      draftAecId: null,
+      draftAecSlug: null,
+      currentPhase: null,
+      loadingMessage: null,
+      progressPercent: 0,
+    });
 
     try {
       // Fetch full AEC
@@ -1305,6 +1374,44 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       }
 
       const aec = await response.json();
+
+      // Check if this ticket has an active background job
+      if (aec.generationJobId) {
+        try {
+          const jobsRes = await authFetch('/jobs');
+          if (jobsRes.ok) {
+            const allJobs = await jobsRes.json();
+            const activeJob = allJobs.find(
+              (j: any) => j.id === aec.generationJobId && (j.status === 'running' || j.status === 'retrying'),
+            );
+            if (activeJob) {
+              set({
+                draftAecId: aecId,
+                draftAecSlug: aec.slug ?? null,
+                type: aec.type || get().type,
+                priority: aec.priority || get().priority,
+                folderId: aec.folderId ?? null,
+                input: {
+                  title: aec.title,
+                  repoOwner: (aec.repositoryFullName || '').split('/')[0] || '',
+                  repoName: (aec.repositoryFullName || '').split('/')[1] || '',
+                  description: aec.description || '',
+                },
+                activeJobId: aec.generationJobId,
+                loading: true,
+                currentPhase: activeJob.phase || 'preparing',
+                progressPercent: activeJob.percent || 0,
+                loadingMessage: 'Generating technical specification...',
+                currentStage: 'generate' as WizardStage,
+              });
+              localStorage.setItem('wizard-draft-aec-id', aecId);
+              return;
+            }
+          }
+        } catch {
+          // Ignore — proceed with normal resume
+        }
+      }
 
       // Parse repo owner/name from repositoryFullName (e.g. "owner/repo")
       const repoParts = (aec.repositoryFullName || '').split('/');
@@ -1517,6 +1624,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       currentPhase: null,
       hasRepository: false,
       error: null,
+      activeJobId: null,
       skipQuestions: false,
       _savedMaxRounds: 3,
       showCelebration: false,

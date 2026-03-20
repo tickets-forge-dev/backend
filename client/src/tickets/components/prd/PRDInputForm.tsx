@@ -199,19 +199,19 @@ export function PRDInputForm() {
           value={prdText}
           onChange={(e) => setPRDText(e.target.value)}
           placeholder="Paste your Product Requirements Document here. Include functional requirements, user stories, and success criteria..."
-          className="w-full h-64 p-4 rounded-lg font-mono text-sm"
+          className="w-full h-64 p-4 rounded-lg font-mono text-sm focus-visible:outline-none"
           style={{
             backgroundColor: 'var(--bg)',
             color: 'var(--text)',
-            borderColor: 'var(--border)',
+            borderColor: 'var(--border-subtle)',
             borderWidth: '1px',
             outline: 'none',
           }}
           onFocus={(e) => {
-            e.currentTarget.style.boxShadow = '0 0 0 2px var(--blue)';
+            e.currentTarget.style.borderColor = 'var(--text-tertiary)';
           }}
           onBlur={(e) => {
-            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.borderColor = 'var(--border-subtle)';
           }}
           disabled={isAnalyzing}
         />

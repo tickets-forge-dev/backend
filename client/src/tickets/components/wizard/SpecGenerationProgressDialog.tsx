@@ -28,6 +28,8 @@ interface SpecGenerationProgressDialogProps {
   isVisible: boolean;
   isSubmitting?: boolean; // true when finalizing spec
   isGenerating?: boolean; // true when generating questions
+  onSendToBackground?: () => void;
+  onCancel?: () => void;
 }
 
 interface PhaseConfig {
@@ -59,6 +61,8 @@ export function SpecGenerationProgressDialog({
   isVisible,
   isSubmitting = false,
   isGenerating = false,
+  onSendToBackground,
+  onCancel,
 }: SpecGenerationProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
@@ -112,8 +116,8 @@ export function SpecGenerationProgressDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 flex items-center justify-center">
-      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-lg">
+    <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-50 flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
+      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-xl">
         {/* Header */}
         <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
@@ -202,6 +206,28 @@ export function SpecGenerationProgressDialog({
               {Math.floor(elapsedSeconds)}s elapsed
             </span>
           </div>
+
+          {/* Background / Cancel actions */}
+          {(onSendToBackground || onCancel) && (
+            <div className="flex items-center justify-end gap-3 pt-2">
+              {onCancel && (
+                <button
+                  onClick={onCancel}
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              {onSendToBackground && (
+                <button
+                  onClick={onSendToBackground}
+                  className="text-xs px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors font-medium"
+                >
+                  Send to Background
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

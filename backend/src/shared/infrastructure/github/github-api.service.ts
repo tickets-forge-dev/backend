@@ -103,56 +103,32 @@ export class GitHubApiService {
 
       const octokit = this.createOctokit(accessToken);
 
-      // Get default branch first
-      const defaultBranch = await this.getDefaultBranch(owner, repo, accessToken);
+      // Single API call — repos.get returns default_branch alongside repo metadata
+      // We avoid the separate getDefaultBranch chain which has a slow fallback path
+      const [repoResponse, branchesResponse] = await Promise.all([
+        octokit.rest.repos.get({ owner, repo }),
+        octokit.rest.repos.listBranches({ owner, repo, per_page: 100 }),
+      ]);
 
-      // Get all branches
-      const { data: branches } = await octokit.rest.repos.listBranches({
-        owner,
-        repo,
-        per_page: 100, // Get up to 100 branches
-      });
+      const defaultBranch = repoResponse.data.default_branch || 'main';
+      const branches = branchesResponse.data;
 
-      // Fetch commit details for each branch
-      const branchesWithDetails = await Promise.all(
-        branches.map(async (branch) => {
-          try {
-            const { data: commit } = await octokit.rest.repos.getCommit({
-              owner,
-              repo,
-              ref: branch.commit.sha,
-            });
-
-            return {
-              name: branch.name,
-              isDefault: branch.name === defaultBranch,
-              commitSha: branch.commit.sha,
-              lastCommit: {
-                sha: commit.sha,
-                author: commit.commit.author?.name || null,
-                date: new Date(commit.commit.author?.date || Date.now()),
-                message: commit.commit.message,
-              },
-            };
-          } catch (error) {
-            // If commit fetch fails, return basic info
-            return {
-              name: branch.name,
-              isDefault: branch.name === defaultBranch,
-              commitSha: branch.commit.sha,
-              lastCommit: {
-                sha: branch.commit.sha,
-                author: null,
-                date: new Date(),
-                message: '',
-              },
-            };
-          }
-        }),
-      );
+      // Map to GitHubBranch without fetching individual commits (was N extra API calls)
+      // The branch list already includes commit SHA — that's enough for the selector
+      const result: GitHubBranch[] = branches.map((branch) => ({
+        name: branch.name,
+        isDefault: branch.name === defaultBranch,
+        commitSha: branch.commit.sha,
+        lastCommit: {
+          sha: branch.commit.sha,
+          author: null,
+          date: new Date(),
+          message: '',
+        },
+      }));
 
       // Sort: default branch first, then alphabetically
-      return branchesWithDetails.sort((a, b) => {
+      return result.sort((a, b) => {
         if (a.isDefault) return -1;
         if (b.isDefault) return 1;
         return a.name.localeCompare(b.name);
