@@ -1227,31 +1227,19 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
     set({ roundStatus: 'submitting', error: null });
 
     try {
-      // Step 1: Submit answers synchronously (records answers on the AEC)
+      // Step 1: Submit answers only (saveOnly=true skips synchronous finalization)
       const answersResponse = await authFetch(`/tickets/${state.draftAecId}/submit-answers`, {
         method: 'POST',
-        body: JSON.stringify({ answers: state.questionAnswers }),
+        body: JSON.stringify({ answers: state.questionAnswers, saveOnly: true }),
       });
 
       if (!answersResponse.ok) {
         throw new Error(`Failed to submit answers: ${answersResponse.statusText}`);
       }
 
-      // Check if the synchronous endpoint already returned a finalized spec
-      const answersData = await answersResponse.json();
-      if (answersData.techSpec) {
-        // Legacy path: synchronous finalization completed inline
-        set({
-          spec: answersData.techSpec,
-          roundStatus: 'idle',
-          activeJobId: null,
-        });
-        localStorage.removeItem('wizard-clarification-questions');
-        localStorage.removeItem('wizard-question-answers');
-        return;
-      }
-
       // Step 2: Start background finalization job
+      // Always use the background job path for consistent UX (progress in jobs panel,
+      // cancel/background buttons, survives browser close)
       const { jobId } = await useJobsStore.getState().startFinalization(state.draftAecId);
 
       // Store jobId for progress dialog and set loading state

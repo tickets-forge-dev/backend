@@ -1,4 +1,4 @@
-import { IsInt, Min, Max, IsObject, IsOptional } from 'class-validator';
+import { IsInt, Min, Max, IsObject, IsOptional, IsBoolean } from 'class-validator';
 
 export class SubmitAnswersDto {
   @IsInt()
@@ -10,4 +10,9 @@ export class SubmitAnswersDto {
   @IsObject()
   @IsOptional()
   answers?: Record<string, string | string[]>;
+
+  /** If true, only save answers without triggering spec finalization */
+  @IsBoolean()
+  @IsOptional()
+  saveOnly?: boolean;
 }

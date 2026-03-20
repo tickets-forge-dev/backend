@@ -10,6 +10,8 @@ export interface SubmitQuestionAnswersCommand {
   aecId: string;
   teamId: string;
   answers: Record<string, string | string[]>; // questionId -> answer mapping
+  /** If true, only record answers without triggering spec finalization */
+  saveOnly?: boolean;
 }
 
 /**
@@ -67,6 +69,12 @@ export class SubmitQuestionAnswersUseCase {
     aec.recordQuestionAnswers(completeAnswers);
     await this.aecRepository.save(aec);
     console.log(`✅ [SubmitQuestionAnswersUseCase] Answers recorded (${Object.keys(completeAnswers).length} answers for ${aec.questions.length} questions)`);
+
+    // If saveOnly, return without finalization (client will start a background job)
+    if (command.saveOnly) {
+      console.log(`✅ [SubmitQuestionAnswersUseCase] saveOnly=true — skipping finalization`);
+      return aec;
+    }
 
     // Finalize the spec (generate final technical specification)
     const aecWithSpec = await this.finalizeSpecUseCase.execute({

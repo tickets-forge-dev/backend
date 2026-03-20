@@ -481,23 +481,27 @@ export function Stage3Draft() {
       {/* Detailed Progress Dialog for Generating / Submitting States */}
       <SpecGenerationProgressDialog
         isVisible={!spec && (isSubmitting || !!activeJobId)}
-        isSubmitting={isSubmitting}
+        isSubmitting={isSubmitting || !!activeJobId}
         isGenerating={false}
-        onSendToBackground={activeJobId ? () => router.push('/tickets') : undefined}
-        onCancel={activeJobId ? async () => {
-          try {
-            await cancelJob(activeJobId);
-            useWizardStore.setState({
-              loading: false,
-              currentPhase: null,
-              loadingMessage: null,
-              activeJobId: null,
-              roundStatus: 'idle',
-            });
-          } catch {
-            // Ignore cancel errors
+        onSendToBackground={() => router.push('/tickets')}
+        onCancel={async () => {
+          // Cancel the background job if it exists
+          if (activeJobId) {
+            try {
+              await cancelJob(activeJobId);
+            } catch {
+              // Ignore cancel errors
+            }
           }
-        } : undefined}
+          // Reset wizard state regardless
+          useWizardStore.setState({
+            loading: false,
+            currentPhase: null,
+            loadingMessage: null,
+            activeJobId: null,
+            roundStatus: 'idle',
+          });
+        }}
       />
 
       {/* Questions complete — transitioning to spec generation */}

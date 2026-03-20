@@ -791,6 +791,7 @@ export class TicketsController {
         aecId,
         teamId,
         answers: dto.answers ?? {},
+        saveOnly: dto.saveOnly,
       });
 
       // Track spec finalization after answers are submitted
