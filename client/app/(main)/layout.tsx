@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { AuthCheck } from '@/lib/auth-check';
 import { Sidebar } from '@/core/components/sidebar/Sidebar';
 import { OnboardingDialog } from '@/core/components/onboarding/OnboardingDialog';
@@ -12,6 +13,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/core/components/ui/button';
 import { Menu } from 'lucide-react';
 import { Toaster } from 'sonner';
+import { useTeamStore } from '@/teams/stores/team.store';
+import { useAuthStore } from '@/stores/auth.store';
+import { useJobsStore } from '@/stores/jobs.store';
 
 export default function MainLayout({
   children,
@@ -28,7 +32,19 @@ export default function MainLayout({
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
   const { feedbackOpen, closeFeedback } = useFeedbackStore();
+  const { currentTeam } = useTeamStore();
+  const { user } = useAuthStore();
   useCommandPalette();
+
+  // Subscribe to jobs collection for real-time updates
+  const teamId = currentTeam?.id;
+  const userId = user?.uid;
+  useEffect(() => {
+    if (teamId && userId) {
+      const unsubscribe = useJobsStore.getState().subscribe(teamId, userId);
+      return unsubscribe;
+    }
+  }, [teamId, userId]);
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">

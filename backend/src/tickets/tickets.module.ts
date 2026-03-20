@@ -205,6 +205,10 @@ import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persist
     USAGE_BUDGET_REPOSITORY,
     DRIFT_DETECTOR,
     ESTIMATION_ENGINE,
+    TECH_SPEC_GENERATOR,
+    CODEBASE_ANALYZER,
+    PROJECT_STACK_DETECTOR,
+    GITHUB_FILE_SERVICE,
   ],
 })
 export class TicketsModule {}

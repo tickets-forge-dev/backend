@@ -35,6 +35,7 @@ import {
 } from '@/core/components/ui/alert-dialog';
 import { TicketLifecycleInfo } from '@/tickets/components/detail/TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG } from '@/tickets/config/ticketStatusConfig';
+import { JobsPanel } from '@/tickets/components/JobsPanel';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
 type SortDirection = 'desc' | 'asc';
@@ -188,7 +189,8 @@ export default function TicketsListPage() {
     }[sortBy];
 
     return (
-      <div className="space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
+      <div className="flex flex-1 min-h-0">
+      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
       {/* Filter, Sort & Actions bar */}
       <div className="flex items-center gap-2">
         {/* Search */}
@@ -584,6 +586,8 @@ export default function TicketsListPage() {
           onUnarchive={unarchiveTicket}
         />
       )}
+    </div>
+    <JobsPanel />
     </div>
   );
 }

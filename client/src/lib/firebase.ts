@@ -115,8 +115,8 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Export auth (will be null during SSR/build, but that's OK)
-export { auth };
+// Export auth and firestore (will be null during SSR/build, but that's OK)
+export { auth, firestore };
 
 // OAuth providers
 export const googleProvider = new GoogleAuthProvider();

@@ -93,6 +93,7 @@ export interface AECDocument {
   apiContext?: string | null;
   slug?: string | null;
   previousStatus?: string | null;
+  generationJobId?: string | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -258,6 +259,7 @@ export class AECMapper {
       doc.apiContext ?? null,
       doc.slug ?? null,
       (doc.previousStatus as AECStatus) ?? null,
+      doc.generationJobId ?? null,
     );
   }
 
@@ -340,6 +342,7 @@ export class AECMapper {
       apiContext: aec.apiContext ?? null,
       slug: aec.slug ?? null,
       previousStatus: aec.previousStatus ?? null,
+      generationJobId: aec.generationJobId ?? null,
     };
   }
 }
