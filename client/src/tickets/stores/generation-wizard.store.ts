@@ -933,7 +933,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
-    set({ loading: true, error: null, currentPhase: 'preparing', loadingMessage: 'Creating ticket...', progressPercent: 0 });
+    set({ loading: true, error: null, currentPhase: null, loadingMessage: 'Creating ticket...', progressPercent: 0 });
 
     try {
       // Build request body (only include repository fields if we have a repository)
@@ -1046,6 +1046,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         draftAecSlug: aec.slug ?? null,
         currentStage: 'generate' as WizardStage,
         loading: false,
+        currentPhase: null,
+        loadingMessage: null,
       });
 
       // Upload pending files in background (best-effort, don't block wizard)
