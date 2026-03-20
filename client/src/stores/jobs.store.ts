@@ -14,6 +14,7 @@ export interface GenerationJobClient {
   ticketTitle: string;
   createdBy: string;
   status: 'running' | 'retrying' | 'completed' | 'failed' | 'cancelled';
+  type: 'finalization' | 'scan';
   phase: string | null;
   percent: number;
   attempt: number;
@@ -26,6 +27,8 @@ export interface GenerationJobClient {
 
 interface JobsState {
   jobs: GenerationJobClient[];
+  /** Job IDs dismissed by the user (client-side only, survives until next poll replaces them) */
+  dismissedIds: Set<string>;
   isSubscribed: boolean;
   subscribe: (teamId: string, userId: string) => () => void;
   cancelJob: (jobId: string) => Promise<void>;
@@ -35,6 +38,10 @@ interface JobsState {
   activeJobCount: () => number;
   /** Force an immediate poll (e.g. after starting a job) */
   poll: () => Promise<void>;
+  /** Dismiss a single completed/failed job from the panel */
+  dismissJob: (jobId: string) => void;
+  /** Dismiss all completed/failed jobs from the panel */
+  clearCompleted: () => void;
 }
 
 /**
@@ -75,6 +82,7 @@ function mapJob(raw: Record<string, unknown>): GenerationJobClient {
     ticketTitle: (raw.ticketTitle as string) || '',
     createdBy: (raw.createdBy as string) || '',
     status: (raw.status as GenerationJobClient['status']) || 'running',
+    type: (raw.type as GenerationJobClient['type']) || 'finalization',
     phase: (raw.phase as string) ?? null,
     percent: (raw.percent as number) || 0,
     attempt: (raw.attempt as number) || 1,
@@ -88,6 +96,7 @@ function mapJob(raw: Record<string, unknown>): GenerationJobClient {
 
 export const useJobsStore = create<JobsState>((set, get) => ({
   jobs: [],
+  dismissedIds: new Set<string>(),
   isSubscribed: false,
 
   /**
@@ -185,5 +194,25 @@ export const useJobsStore = create<JobsState>((set, get) => ({
 
   activeJobCount: () => {
     return get().jobs.filter((j) => j.status === 'running' || j.status === 'retrying').length;
+  },
+
+  dismissJob: (jobId: string) => {
+    set((state) => {
+      const next = new Set(state.dismissedIds);
+      next.add(jobId);
+      return { dismissedIds: next };
+    });
+  },
+
+  clearCompleted: () => {
+    set((state) => {
+      const next = new Set(state.dismissedIds);
+      for (const job of state.jobs) {
+        if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+          next.add(job.id);
+        }
+      }
+      return { dismissedIds: next };
+    });
   },
 }));

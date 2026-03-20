@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Zap, ChevronRight, ChevronLeft, Loader2, Check, X } from 'lucide-react';
+import { Zap, ChevronRight, ChevronLeft, ChevronDown, Loader2, Check, X, Trash2 } from 'lucide-react';
 import { useJobsStore } from '@/stores/jobs.store';
 import { JobCard } from './JobCard';
 import { toast } from 'sonner';
@@ -11,36 +11,43 @@ import type { GenerationJobClient } from '@/stores/jobs.store';
 /**
  * Right-side jobs panel on the tickets page.
  * Always visible as a collapsed strip by default.
- * Expands to show full job cards. Auto-expands when a job starts.
+ * Groups jobs into Active and Completed sections.
  * Hidden on mobile (below md breakpoint).
  */
 export function JobsPanel() {
-  const { jobs, cancelJob, retryJob } = useJobsStore();
+  const { jobs, dismissedIds, cancelJob, retryJob, clearCompleted } = useJobsStore();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
+  const [completedCollapsed, setCompletedCollapsed] = useState(false);
   const prevActiveCount = useRef(0);
 
-  // Filter out cancelled jobs after 5 seconds
+  // Filter out dismissed and recently-cancelled jobs
   const visibleJobs = useMemo(() => {
     const now = Date.now();
     return jobs.filter((job) => {
-      if (job.status !== 'cancelled') return true;
-      return now - job.updatedAt.getTime() < 5000;
+      if (dismissedIds.has(job.id)) return false;
+      if (job.status === 'cancelled') return now - job.updatedAt.getTime() < 5000;
+      return true;
     });
-  }, [jobs]);
+  }, [jobs, dismissedIds]);
 
-  const activeCount = useMemo(
-    () => visibleJobs.filter((j) => j.status === 'running' || j.status === 'retrying').length,
+  const activeJobs = useMemo(
+    () => visibleJobs.filter((j) => j.status === 'running' || j.status === 'retrying'),
+    [visibleJobs],
+  );
+
+  const completedJobs = useMemo(
+    () => visibleJobs.filter((j) => j.status === 'completed' || j.status === 'failed' || j.status === 'cancelled'),
     [visibleJobs],
   );
 
   // Auto-expand when a NEW job starts (activeCount increases)
   useEffect(() => {
-    if (activeCount > prevActiveCount.current) {
+    if (activeJobs.length > prevActiveCount.current) {
       setCollapsed(false);
     }
-    prevActiveCount.current = activeCount;
-  }, [activeCount]);
+    prevActiveCount.current = activeJobs.length;
+  }, [activeJobs.length]);
 
   const handleCancel = async (jobId: string) => {
     try {
@@ -95,7 +102,7 @@ export function JobsPanel() {
     );
   }
 
-  // Expanded: full panel
+  // Expanded: full panel with grouped sections
   return (
     <div className="hidden md:flex w-60 shrink-0 border-l border-[var(--border-subtle)] flex-col overflow-y-auto">
       {/* Header with collapse button */}
@@ -113,22 +120,67 @@ export function JobsPanel() {
         </button>
       </div>
 
-      {/* Job cards or empty state */}
-      <div className="px-3 pb-3 flex flex-col gap-2">
-        {visibleJobs.length === 0 ? (
+      <div className="px-3 pb-3 flex flex-col gap-1.5">
+        {/* Empty state */}
+        {visibleJobs.length === 0 && (
           <p className="text-[10px] text-[var(--text-tertiary)] py-4 text-center">
             No active jobs
           </p>
-        ) : (
-          visibleJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              onCancel={handleCancel}
-              onRetry={handleRetry}
-              onView={handleView}
-            />
-          ))
+        )}
+
+        {/* Active jobs section */}
+        {activeJobs.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider pt-1">
+              Active ({activeJobs.length})
+            </p>
+            {activeJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onCancel={handleCancel}
+                onRetry={handleRetry}
+                onView={handleView}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Divider between sections */}
+        {activeJobs.length > 0 && completedJobs.length > 0 && (
+          <div className="border-t border-[var(--border-subtle)] my-1" />
+        )}
+
+        {/* Completed jobs section — collapsible */}
+        {completedJobs.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between pt-1">
+              <button
+                onClick={() => setCompletedCollapsed(!completedCollapsed)}
+                className="flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider hover:text-[var(--text-secondary)] transition-colors"
+              >
+                <ChevronDown className={`h-2.5 w-2.5 transition-transform ${completedCollapsed ? '-rotate-90' : ''}`} />
+                Completed ({completedJobs.length})
+              </button>
+              <button
+                onClick={clearCompleted}
+                className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-0.5"
+                title="Clear all completed jobs"
+              >
+                <Trash2 className="h-2.5 w-2.5" />
+                Clear
+              </button>
+            </div>
+            {!completedCollapsed && completedJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onCancel={handleCancel}
+                onRetry={handleRetry}
+                onView={handleView}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

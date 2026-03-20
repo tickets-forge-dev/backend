@@ -106,7 +106,7 @@ export function JobCard({ job, onCancel, onRetry, onView }: JobCardProps) {
             Retry
           </Button>
         )}
-        {job.status === 'completed' && (
+        {job.status === 'completed' && job.type !== 'scan' && (
           <Button
             variant="ghost"
             size="sm"
