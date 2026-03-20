@@ -61,6 +61,10 @@ import {
 } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { Octokit } from '@octokit/rest';
+import { ConfigService } from '@nestjs/config';
+import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { DEFAULT_FAST_MODEL } from '../../../shared/infrastructure/llm/llm.config';
 import { DEEP_ANALYSIS_SERVICE } from '../../application/ports/DeepAnalysisServicePort';
 import { DeepAnalysisService } from '@tickets/domain/deep-analysis/deep-analysis.service';
 import { ApiDetectionService } from '../../application/services/ApiDetectionService';
@@ -163,6 +167,7 @@ export class TicketsController {
     private readonly firebaseService: FirebaseService,
     @Inject(PROJECT_PROFILE_REPOSITORY)
     private readonly projectProfileRepository: ProjectProfileRepository,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -345,6 +350,38 @@ export class TicketsController {
       send({ phase: 'error', message: errorMessage, percent: 0 });
       res.end();
     }
+  }
+
+  /**
+   * Generate a UI description for wireframe context using the cheapest LLM (Haiku).
+   * Takes the ticket title + description and returns a concise UI layout description.
+   */
+  @UseGuards(RateLimitGuard)
+  @Post('generate-ui-description')
+  async generateUIDescription(
+    @Body() body: { title: string; description?: string },
+  ): Promise<{ uiDescription: string }> {
+    if (!body.title) {
+      throw new BadRequestException('Title is required');
+    }
+
+    const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      throw new BadRequestException('LLM not configured');
+    }
+
+    const modelId = this.configService.get<string>('ANTHROPIC_FAST_MODEL') || DEFAULT_FAST_MODEL;
+    const anthropic = createAnthropic({ apiKey });
+
+    const { text } = await generateText({
+      model: anthropic(modelId),
+      system: `You are a UI/UX designer. Given a feature description, write a brief UI layout description (2-4 sentences) that a developer or AI can use to generate wireframes. Focus on: page layout, key components, navigation, and data display. Be specific and actionable. Do NOT use markdown or bullet points — write flowing prose.`,
+      prompt: `Feature: ${body.title}${body.description ? `\n\nDetails: ${body.description}` : ''}`,
+      maxOutputTokens: 300,
+      temperature: 0.3,
+    });
+
+    return { uiDescription: text.trim() };
   }
 
   @UseGuards(RateLimitGuard)
