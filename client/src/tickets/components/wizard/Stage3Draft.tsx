@@ -480,7 +480,7 @@ export function Stage3Draft() {
 
       {/* Detailed Progress Dialog for Generating / Submitting States */}
       <SpecGenerationProgressDialog
-        isVisible={!spec && (isSubmitting)}
+        isVisible={!spec && (isSubmitting || !!activeJobId)}
         isSubmitting={isSubmitting}
         isGenerating={false}
         onSendToBackground={activeJobId ? () => router.push('/tickets') : undefined}
