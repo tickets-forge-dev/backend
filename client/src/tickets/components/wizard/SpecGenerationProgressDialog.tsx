@@ -116,8 +116,8 @@ export function SpecGenerationProgressDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 flex items-center justify-center">
-      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-lg">
+    <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-50 flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
+      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-xl">
         {/* Header */}
         <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">

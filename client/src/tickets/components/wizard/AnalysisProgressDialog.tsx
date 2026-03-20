@@ -111,6 +111,18 @@ export function AnalysisProgressDialog({
     return () => clearInterval(interval);
   }, []);
 
+  // Warn user before leaving the page (tab close, navigation, refresh)
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Modern browsers show a generic message, but returnValue is still needed
+      e.returnValue = 'Analysis is in progress. Leaving will cancel it.';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
   // Auto-scroll to keep active phase visible
   useEffect(() => {
     if (activePhaseRef.current) {
@@ -133,8 +145,8 @@ export function AnalysisProgressDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 flex items-center justify-center">
-      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-lg">
+    <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-50 flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
+      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-xl">
         {/* Header */}
         <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
@@ -142,8 +154,8 @@ export function AnalysisProgressDialog({
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {hasRepository
-              ? "Hang tight! We're analyzing your repository to understand its structure and patterns."
-              : "Hang tight! We're setting up your ticket specification."}
+              ? "Please stay on this page — we're analyzing your repository."
+              : "Please stay on this page — we're setting up your ticket."}
           </p>
         </div>
 
