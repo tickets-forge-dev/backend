@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Button } from '@/core/components/ui/button';
 import { Upload, X, FileText, Image, File as FileIcon } from 'lucide-react';
 
 const MAX_FILES = 5;
@@ -14,9 +13,9 @@ interface WizardFileUploadProps {
 }
 
 function getFileIcon(file: File) {
-  if (file.type.startsWith('image/')) return <Image className="h-4 w-4 text-blue-500" />;
-  if (file.type === 'application/pdf' || file.type.includes('text')) return <FileText className="h-4 w-4 text-orange-500" />;
-  return <FileIcon className="h-4 w-4 text-[var(--text-tertiary)]" />;
+  if (file.type.startsWith('image/')) return <Image className="h-3.5 w-3.5 text-blue-500" />;
+  if (file.type === 'application/pdf' || file.type.includes('text')) return <FileText className="h-3.5 w-3.5 text-orange-500" />;
+  return <FileIcon className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />;
 }
 
 function formatSize(bytes: number): string {
@@ -40,7 +39,6 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
       setError(`${file.name} exceeds 5MB limit`);
       return;
     }
-    // Check for duplicates by name
     if (files.some((f) => f.name === file.name && f.size === file.size)) {
       setError(`${file.name} is already added`);
       return;
@@ -51,46 +49,34 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    droppedFiles.forEach(addFile);
+    Array.from(e.dataTransfer.files).forEach(addFile);
   }, [addFile]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    selectedFiles.forEach(addFile);
-    // Reset input so same file can be selected again
+    Array.from(e.target.files || []).forEach(addFile);
     if (inputRef.current) inputRef.current.value = '';
   }, [addFile]);
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-1.5">
-        <label className="block text-xs font-medium uppercase tracking-wide text-gray-700 dark:text-gray-400">
-          Reference Materials
-        </label>
-        <p className="text-xs text-gray-600 dark:text-gray-400">
-          Add screenshots, wireframes, documentation, or reference files to help inform the ticket (max {MAX_FILES} files, 5MB each)
-        </p>
-      </div>
-
+    <div className="space-y-2">
       {/* Drop zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={`
-          rounded-lg p-6 text-center transition-all cursor-pointer
+          rounded-md p-4 text-center transition-all cursor-pointer border border-dashed
           ${dragOver
-            ? 'ring-2 ring-[var(--purple)] bg-[var(--purple)]/5'
-            : 'bg-[var(--bg-hover)] hover:bg-[var(--bg-active)]'
+            ? 'border-purple-500 bg-purple-500/5'
+            : 'border-[var(--border-subtle)] hover:border-[var(--border)] bg-[var(--bg)]'
           }
-          ${files.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}
+          ${files.length >= MAX_FILES ? 'opacity-40 cursor-not-allowed' : ''}
         `}
         onClick={() => files.length < MAX_FILES && inputRef.current?.click()}
       >
-        <Upload className="mx-auto h-5 w-5 text-[var(--text-tertiary)] mb-2" />
-        <p className="text-xs text-[var(--text-tertiary)]">
-          Drop files here or <span className="text-[var(--purple)] font-medium">browse</span>
+        <Upload className="mx-auto h-4 w-4 text-[var(--text-tertiary)] mb-1.5" />
+        <p className="text-[11px] text-[var(--text-tertiary)]">
+          Drop files or <span className="text-purple-500 font-medium">browse</span>
         </p>
         <input
           ref={inputRef}
@@ -102,10 +88,7 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
         />
       </div>
 
-      {/* Error */}
-      {error && (
-        <p className="text-xs text-[var(--red)]">{error}</p>
-      )}
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
 
       {/* File list */}
       {files.length > 0 && (
@@ -113,17 +96,17 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
           {files.map((file, i) => (
             <li
               key={`${file.name}-${file.size}`}
-              className="flex items-center gap-2 rounded-md px-3 py-2 bg-[var(--bg-subtle)] text-sm"
+              className="flex items-center gap-2 rounded-md px-2.5 py-1.5 bg-[var(--bg-subtle)] group"
             >
               {getFileIcon(file)}
-              <span className="flex-1 truncate text-[var(--text)]">{file.name}</span>
-              <span className="text-xs text-[var(--text-tertiary)] flex-shrink-0">{formatSize(file.size)}</span>
+              <span className="flex-1 truncate text-xs text-[var(--text)]">{file.name}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] flex-shrink-0">{formatSize(file.size)}</span>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onRemove(i); }}
-                className="text-[var(--text-tertiary)] hover:text-[var(--red)] transition-colors"
+                className="text-[var(--text-tertiary)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3" />
               </button>
             </li>
           ))}

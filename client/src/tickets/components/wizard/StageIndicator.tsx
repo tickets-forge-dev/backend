@@ -7,7 +7,7 @@ const STAGE_LABELS: Record<WizardStage, string> = {
   details: 'Details',
   reproduce: 'Reproduce',
   codebase: 'Codebase',
-  references: 'References',
+  references: 'Attachments',
   options: 'Options',
   generate: 'Generate',
 };

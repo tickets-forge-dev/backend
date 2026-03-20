@@ -5,14 +5,12 @@ import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { detectPlatform } from '@repo/shared-types';
 import { WizardFileUpload } from './WizardFileUpload';
 import { DesignLinkInput } from './DesignLinkInput';
+import { Paperclip, Link2 } from 'lucide-react';
 
 /**
  * ReferencesStep — File attachments and design links.
  *
- * Two sections:
- * 1. File Attachments — drag-and-drop upload (reuses WizardFileUpload)
- * 2. Design Links — paste Figma/Loom/Miro URLs (reuses DesignLinkInput)
- *
+ * Two sections side-by-side on desktop, stacked on mobile.
  * Both are optional — user can skip to next step.
  */
 export function ReferencesStep() {
@@ -40,31 +38,44 @@ export function ReferencesStep() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text)]">References</h2>
+        <h2 className="text-lg font-semibold text-[var(--text)]">Attachments & Links</h2>
         <p className="text-sm text-[var(--text-secondary)] mt-1">
-          Add files and design links to provide context for better ticket generation.
+          Add context the AI can reference — screenshots, docs, design links. All optional.
         </p>
       </div>
 
-      {/* File Attachments */}
-      <div className="border border-[var(--border-subtle)] rounded-lg p-5">
-        <WizardFileUpload
-          files={pendingFiles}
-          onAdd={addPendingFile}
-          onRemove={removePendingFile}
-        />
+      {/* Two-column grid on desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* File Attachments */}
+        <div className="border border-[var(--border-subtle)] rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Paperclip className="h-4 w-4 text-[var(--text-tertiary)]" />
+            <span className="text-xs font-medium text-[var(--text-secondary)]">Files</span>
+            <span className="text-[10px] text-[var(--text-tertiary)]">max 5, 5MB each</span>
+          </div>
+          <WizardFileUpload
+            files={pendingFiles}
+            onAdd={addPendingFile}
+            onRemove={removePendingFile}
+          />
+        </div>
+
+        {/* Design Links */}
+        <div className="border border-[var(--border-subtle)] rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-[var(--text-tertiary)]" />
+            <span className="text-xs font-medium text-[var(--text-secondary)]">Design Links</span>
+            <span className="text-[10px] text-[var(--text-tertiary)]">optional</span>
+          </div>
+          <DesignLinkInput
+            links={designLinks}
+            onAdd={({ url, title }) => addPendingDesignLink(url, title)}
+            onRemove={(tempId) => removePendingDesignLink(String(tempId))}
+          />
+        </div>
       </div>
 
-      {/* Design Links */}
-      <div className="border border-[var(--border-subtle)] rounded-lg p-5">
-        <DesignLinkInput
-          links={designLinks}
-          onAdd={({ url, title }) => addPendingDesignLink(url, title)}
-          onRemove={(tempId) => removePendingDesignLink(String(tempId))}
-        />
-      </div>
-
-      {/* Skip hint — only visible when no references added */}
+      {/* Skip hint */}
       {!hasAnyReferences && (
         <p className="text-center">
           <button
@@ -72,7 +83,7 @@ export function ReferencesStep() {
             onClick={nextStage}
             className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
           >
-            No references? Skip to next step →
+            No attachments? Skip to next step →
           </button>
         </p>
       )}
