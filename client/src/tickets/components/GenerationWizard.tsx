@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo, type WizardStage } from '@/tickets/stores/generation-wizard.store';
 import { useJobsStore } from '@/stores/jobs.store';
+import { useTicketsStore } from '@/stores/tickets.store';
 import { DetailsStep } from './wizard/DetailsStep';
 import { CodebaseStep } from './wizard/CodebaseStep';
 import { ReferencesStep } from './wizard/ReferencesStep';
@@ -175,6 +176,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     }
   }, [activeJobId, cancelJob, setError]);
 
+  const isBranchesLoading = useTicketsStore((s) => s.isBranchesLoading);
+
   // Validation for the Details step
   const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
   const isTitleValid = wordCount >= 2 && input.title.length <= 2000;
@@ -222,11 +225,11 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           <Button variant="outline" size="sm" onClick={prevStage}>Back</Button>
           <Button
             onClick={() => { if (isRepoValid) nextStage(); }}
-            disabled={!isRepoValid || loading}
+            disabled={!isRepoValid || loading || isBranchesLoading}
             size="sm"
             className="min-w-[96px]"
           >
-            Next
+            {isBranchesLoading ? 'Loading...' : 'Next'}
           </Button>
         </div>
       );
