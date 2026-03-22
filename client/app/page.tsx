@@ -3,6 +3,7 @@ import { HeroSection } from '@/landing/components/HeroSection';
 import { TwoInterfaces } from '@/landing/components/TwoInterfaces';
 import { HowItWorks } from '@/landing/components/HowItWorks';
 import { BeforeAfter } from '@/landing/components/BeforeAfter';
+import { ComingSoonTeaser } from '@/landing/components/ComingSoonTeaser';
 import { CTASection } from '@/landing/components/CTASection';
 import { EmberSprinkles } from '@/landing/components/EmberSprinkles';
 import { LandingFooter } from '@/landing/components/LandingFooter';
@@ -16,6 +17,7 @@ export default function LandingPage() {
         <HowItWorks />
         <TwoInterfaces />
         <BeforeAfter />
+        <ComingSoonTeaser />
         <CTASection />
       </main>
       <EmberSprinkles />
