@@ -154,7 +154,7 @@ The existing codebase uses both terms. `GitHubIntegration` uses `workspaceId`; `
 
 Persisted in Firestore collection `github-app-installations`. One per team (can cover multiple repos).
 
-**No token stored on this entity.** Unlike the existing `GitHubIntegration` which stores an encrypted OAuth token, GitHub App tokens are transient — generated at runtime via JWT, cached in memory, and refreshed before expiry. See the GitHub App Token Lifecycle section below.
+**No token stored on this entity.** Unlike the existing `GitHubIntegration` which stores an encrypted OAuth token, GitHub App tokens are transient — generated at runtime via JWT, cached in memory, and refreshed before expiry. See the GitHub App Token Lifecycle section above.
 
 ### New entity: ExecutionJob
 
@@ -436,6 +436,7 @@ The "Develop" button checks five conditions in order:
 3. GitHub App is installed for the ticket's repo (resolved from the ticket's `ProjectProfile` which has `repoOwner` + `repoName`)
 4. Executions remaining > 0 for the billing period
 5. No active execution already running for this ticket
+6. Workspace has fewer than 3 concurrent executions running
 
 If any check fails, the button is disabled with a contextual CTA (upgrade, connect GitHub, etc.).
 
