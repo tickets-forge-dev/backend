@@ -14,6 +14,10 @@ import {
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
 import { NotificationService } from '../../../notifications/notification.service';
+import {
+  ProjectProfileRepository,
+  PROJECT_PROFILE_REPOSITORY,
+} from '../../../project-profiles/application/ports/ProjectProfileRepository.port';
 
 /**
  * Input command for finalizing the technical specification
@@ -67,6 +71,8 @@ export class FinalizeSpecUseCase {
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
     private readonly notificationService: NotificationService,
+    @Inject(PROJECT_PROFILE_REPOSITORY)
+    private readonly projectProfileRepository: ProjectProfileRepository,
   ) {}
 
   /**
@@ -313,10 +319,22 @@ export class FinalizeSpecUseCase {
       const stack = await this.stackDetector.detectStack(filesMap);
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
+      // Look up cached project profile for richer codebase context
+      let projectProfile: string | undefined;
+      try {
+        const profile = await this.projectProfileRepository.findByRepo(aec.teamId, owner, repo);
+        if (profile?.isReady() && profile.profileContent) {
+          projectProfile = profile.profileContent;
+          console.log('✨ [FinalizeSpecUseCase] Project profile found, injecting into context');
+        }
+      } catch (error) {
+        console.warn('✨ [FinalizeSpecUseCase] Failed to load project profile, continuing without it');
+      }
+
       console.log(
         `✨ [FinalizeSpecUseCase] Repository context built with framework: ${stack.framework?.name || 'unknown'}`,
       );
-      return { stack, analysis, fileTree, files: filesMap, taskAnalysis: aec.taskAnalysis };
+      return { stack, analysis, fileTree, files: filesMap, taskAnalysis: aec.taskAnalysis, projectProfile };
     } catch (error) {
       console.error(
         '✨ [FinalizeSpecUseCase] Error building context:',

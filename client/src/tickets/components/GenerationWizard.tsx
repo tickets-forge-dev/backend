@@ -314,14 +314,15 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {renderStage()}
       </div>
 
-      {/* Analysis Progress Dialog — only during real analysis, not draft resume */}
-      {loading && (resolvedPhase || currentPhase) && (
+      {/* Generation Progress Dialog — only during background job generation */}
+      {loading && isBackgroundJob && (resolvedPhase || currentPhase) && (
         <AnalysisProgressDialog
           currentPhase={resolvedPhase}
           message={loadingMessage}
           percent={resolvedPercent}
           hasRepository={hasRepository}
-          onCancel={cancelAnalysis}
+          onSendToBackground={handleSendToBackground}
+          onCancel={handleCancelJob}
         />
       )}
 
