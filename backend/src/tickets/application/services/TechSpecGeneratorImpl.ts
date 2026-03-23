@@ -79,7 +79,7 @@ PROJECT CONTEXT:
 - Architecture: ${context.analysis.architecture.type}
 - Testing: ${context.analysis.testing.runner || 'Not detected'}
 - Package Manager: ${context.stack.packageManager?.type || 'npm'}
-- Naming Conventions: Files=${context.analysis.naming.files}, Variables=${context.analysis.naming.variables}, Classes=${context.analysis.naming.classes}`;
+- Naming Conventions: Files=${context.analysis.naming.files}, Variables=${context.analysis.naming.variables}, Classes=${context.analysis.naming.classes}${context.projectProfile ? `\n\n${context.projectProfile}` : ''}`;
   }
 
   static problemStatementPrompt(title: string, description: string): string {

@@ -13,6 +13,10 @@ import { GitHubFileService } from '@github/domain/github-file.service';
 import { CODEBASE_ANALYZER } from '../ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../ports/ProjectStackDetectorPort';
 import { GITHUB_FILE_SERVICE } from '../ports/GitHubFileServicePort';
+import {
+  ProjectProfileRepository,
+  PROJECT_PROFILE_REPOSITORY,
+} from '../../../project-profiles/application/ports/ProjectProfileRepository.port';
 
 /**
  * Input command for generating clarification questions
@@ -60,6 +64,8 @@ export class GenerateQuestionsUseCase {
     private readonly stackDetector: ProjectStackDetector,
     @Inject(GITHUB_FILE_SERVICE)
     private readonly githubFileService: GitHubFileService,
+    @Inject(PROJECT_PROFILE_REPOSITORY)
+    private readonly projectProfileRepository: ProjectProfileRepository,
   ) {}
 
   /**
@@ -204,6 +210,18 @@ export class GenerateQuestionsUseCase {
       console.log('❓ [GenerateQuestionsUseCase] Analyzing codebase patterns...');
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
+      // Look up cached project profile for richer codebase context
+      let projectProfile: string | undefined;
+      try {
+        const profile = await this.projectProfileRepository.findByRepo(aec.teamId, owner, repo);
+        if (profile?.isReady() && profile.profileContent) {
+          projectProfile = profile.profileContent;
+          console.log('❓ [GenerateQuestionsUseCase] Project profile found, injecting into context');
+        }
+      } catch (error) {
+        console.warn('❓ [GenerateQuestionsUseCase] Failed to load project profile, continuing without it');
+      }
+
       console.log(
         `❓ [GenerateQuestionsUseCase] Context built successfully. Stack: ${stack.framework?.name || 'unknown'}`,
       );
@@ -214,6 +232,7 @@ export class GenerateQuestionsUseCase {
         fileTree,
         files: filesMap,
         taskAnalysis: aec.taskAnalysis,
+        projectProfile,
       };
     } catch (error) {
       console.error(

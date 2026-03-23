@@ -41,6 +41,8 @@ interface OverviewCardProps {
   onTransition?: (status: string) => void;
   assignDialogOpen?: boolean;
   onAssignDialogOpenChange?: (open: boolean) => void;
+  /** When true, the assign dialog was opened as part of the approval nudge flow */
+  pendingApproval?: boolean;
 }
 
 export function OverviewCard({
@@ -50,6 +52,7 @@ export function OverviewCard({
   onTransition,
   assignDialogOpen,
   onAssignDialogOpenChange,
+  pendingApproval,
 }: OverviewCardProps) {
   const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
   const isUnassigned = !ticket.assignedTo;
@@ -71,6 +74,7 @@ export function OverviewCard({
             onAssign={onAssignTicket}
             externalOpen={assignDialogOpen}
             onExternalOpenChange={onAssignDialogOpenChange}
+            pendingApproval={pendingApproval}
           />
           {/* Unassigned hint */}
           {isUnassigned && (

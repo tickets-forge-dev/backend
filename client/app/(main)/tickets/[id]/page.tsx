@@ -269,6 +269,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     if (!ticketId) return false;
     const success = await assignTicket(ticketId, userId);
     if (success) {
+      await fetchTicket(ticketId);
       toast.success(userId ? 'Ticket assigned successfully' : 'Ticket unassigned');
     } else {
       toast.error('Failed to assign ticket');

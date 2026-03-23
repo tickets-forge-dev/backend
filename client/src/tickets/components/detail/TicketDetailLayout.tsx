@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
@@ -11,6 +11,16 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/core/components/ui/alert-dialog';
 import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
@@ -97,6 +107,9 @@ export function TicketDetailLayout({
   const [isAecExpanded, setIsAecExpanded] = useState(false);
   const [aecXml, setAecXml] = useState<string | null>(null);
   const [isLoadingXml, setIsLoadingXml] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
+  const assignedDuringNudge = useRef(false);
+  const assignAttempted = useRef(false);
 
   const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -158,20 +171,79 @@ export function TicketDetailLayout({
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
+  const hasTechSpecContent = !!ticket.techSpec;
   const isWaitingForApproval = ticket.status === 'review';
+  const isDevRefining = ticket.status === 'dev-refining';
+  const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent);
+  const [showSkipReviewWarning, setShowSkipReviewWarning] = useState(false);
 
   const handleApprove = async () => {
+    // If approving from DEV_REFINING (skipping developer review), show warning first
+    if (isDevRefining) {
+      setShowSkipReviewWarning(true);
+      return;
+    }
+
+    // If unassigned, nudge PM to assign a developer first
+    if (!ticket.assignedTo) {
+      assignedDuringNudge.current = false;
+      assignAttempted.current = false;
+      setPendingApproval(true);
+      onAssignDialogOpenChange?.(true);
+      return;
+    }
+    await executeApproval();
+  };
+
+  const executeApproval = async (wasJustAssigned = false) => {
     setIsApproving(true);
     try {
       const success = await approveTicket(ticketId);
       if (success) {
         await fetchTicket(ticketId);
-        toast.success('Ticket approved — the developer can start when ready');
+        toast.success(
+          wasJustAssigned
+            ? 'Ticket approved and assigned — developer has been notified'
+            : 'Ticket approved'
+        );
       } else {
         toast.error('Failed to approve ticket. Please try again.');
       }
     } finally {
       setIsApproving(false);
+      setPendingApproval(false);
+    }
+  };
+
+  // Wrap onAssignTicket to chain approval after assignment when pending
+  const handleAssignTicket = async (userId: string | null): Promise<boolean> => {
+    if (pendingApproval && userId) {
+      assignAttempted.current = true;
+    }
+    const success = await onAssignTicket(userId);
+    if (success && pendingApproval && userId) {
+      // Assignment succeeded during approval nudge — auto-approve
+      assignedDuringNudge.current = true;
+      await executeApproval(true);
+    }
+    return success;
+  };
+
+  // Handle assign dialog closing — decide what to do based on nudge flow state
+  const handleAssignDialogOpenChange = (open: boolean) => {
+    onAssignDialogOpenChange?.(open);
+    if (!open && pendingApproval) {
+      if (assignedDuringNudge.current) {
+        // Assignment succeeded — executeApproval already fired from handleAssignTicket, nothing to do
+        return;
+      }
+      if (!assignAttempted.current) {
+        // User explicitly skipped (closed without attempting any assignment) — approve without assignment
+        executeApproval(false);
+      } else {
+        // Assignment was attempted but failed — do NOT approve, just reset pending state
+        setPendingApproval(false);
+      }
     }
   };
 
@@ -202,11 +274,12 @@ export function TicketDetailLayout({
         {/* Overview Card (metadata bar) */}
         <OverviewCard
           ticket={ticket}
-          onAssignTicket={onAssignTicket}
+          onAssignTicket={handleAssignTicket}
           qualityScore={qualityScore}
           onTransition={onStatusTransition}
           assignDialogOpen={assignDialogOpen}
-          onAssignDialogOpenChange={onAssignDialogOpenChange}
+          onAssignDialogOpenChange={handleAssignDialogOpenChange}
+          pendingApproval={pendingApproval}
         />
 
         {/* Pending Questions */}
@@ -342,11 +415,12 @@ export function TicketDetailLayout({
       {/* Overview Card */}
       <OverviewCard
         ticket={ticket}
-        onAssignTicket={onAssignTicket}
+        onAssignTicket={handleAssignTicket}
         qualityScore={qualityScore}
         onTransition={onStatusTransition}
         assignDialogOpen={assignDialogOpen}
-        onAssignDialogOpenChange={onAssignDialogOpenChange}
+        onAssignDialogOpenChange={handleAssignDialogOpenChange}
+        pendingApproval={pendingApproval}
       />
 
       {/* Approval banner — always visible when ticket is in review with developer Q&A */}
@@ -375,6 +449,65 @@ export function TicketDetailLayout({
           </Button>
         </div>
       )}
+
+      {/* Approve without developer review — for DEV_REFINING tickets with a spec */}
+      {isDevRefining && hasTechSpecContent && !hasReviewSession && (
+        <div className="flex items-center gap-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-5 py-4">
+          <ShieldCheck className="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              Spec is ready — approve without developer review?
+            </p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+              You can approve now or wait for a developer to refine the spec first.
+            </p>
+          </div>
+          <Button
+            onClick={handleApprove}
+            disabled={isApproving}
+            className="bg-amber-600 hover:bg-amber-700 text-white flex-shrink-0"
+          >
+            {isApproving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 mr-2" />
+            )}
+            {isApproving ? 'Approving...' : 'Approve Ticket'}
+          </Button>
+        </div>
+      )}
+
+      {/* Warning dialog when approving without developer review */}
+      <AlertDialog open={showSkipReviewWarning} onOpenChange={setShowSkipReviewWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve without developer review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This ticket hasn&apos;t been reviewed by a developer yet. <strong>The spec may miss technical details</strong> that only a developer would catch.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowSkipReviewWarning(false);
+                // Go straight to approval flow — skip the warning check
+                if (!ticket.assignedTo) {
+                  assignedDuringNudge.current = false;
+                  assignAttempted.current = false;
+                  setPendingApproval(true);
+                  onAssignDialogOpenChange?.(true);
+                } else {
+                  executeApproval(false);
+                }
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Approve anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Refine with Questions — shown for draft tickets that have a spec but no questions answered */}
       {ticket.status === 'draft' && hasTechSpec && (

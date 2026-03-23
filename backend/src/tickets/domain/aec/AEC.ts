@@ -60,6 +60,7 @@ export class AEC {
     private _externalIssue: ExternalIssue | null,
     private _driftDetectedAt: Date | null,
     private _driftReason: string | null,
+    private _forgedAt: Date | null,
     private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
@@ -138,6 +139,7 @@ export class AEC {
       null,
       null,
       null,
+      null, // _forgedAt
       repositoryContext ?? null,
       new Date(),
       new Date(),
@@ -216,6 +218,7 @@ export class AEC {
     slug?: string | null,
     previousStatus?: AECStatus | null,
     generationJobId?: string | null,
+    forgedAt?: Date | null,
   ): AEC {
     return new AEC(
       id,
@@ -239,6 +242,7 @@ export class AEC {
       externalIssue,
       driftDetectedAt,
       driftReason,
+      forgedAt ?? null,
       repositoryContext,
       createdAt,
       updatedAt,
@@ -318,6 +322,7 @@ export class AEC {
     this._codeSnapshot = codeSnapshot;
     this._apiSnapshot = apiSnapshot ?? null;
     this._status = AECStatus.FORGED;
+    this._forgedAt = new Date();
     this._updatedAt = new Date();
   }
 
@@ -392,6 +397,7 @@ export class AEC {
     this._status = AECStatus.DRAFT;
     // Clear tech spec when reverting to draft so user can modify and regenerate
     this._techSpec = null;
+    this._forgedAt = null;
     this._updatedAt = new Date();
   }
 
@@ -511,6 +517,7 @@ export class AEC {
       this._apiSnapshot = null;
     }
 
+    this._forgedAt = null;
     this._status = targetStatus;
     this._updatedAt = new Date();
   }
@@ -629,6 +636,7 @@ export class AEC {
    */
   approve(): void {
     this._status = AECStatus.FORGED;
+    this._forgedAt = new Date();
     this._updatedAt = new Date();
   }
 
@@ -751,6 +759,9 @@ export class AEC {
   }
   get driftReason(): string | null {
     return this._driftReason;
+  }
+  get forgedAt(): Date | null {
+    return this._forgedAt;
   }
   get repositoryContext(): RepositoryContext | null {
     return this._repositoryContext;

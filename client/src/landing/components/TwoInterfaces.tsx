@@ -29,7 +29,7 @@ export function TwoInterfaces() {
             <div className="px-1">
               <h3 className="font-semibold text-lg mb-2">Developer Tools &mdash; CLI / MCP</h3>
               <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-4">
-                Type <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">/forge:develop</code> in Claude Code — the MCP server enriches the spec with your real codebase and kicks off implementation automatically.
+                Run <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">forge login</code>, open Claude Code, and type <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">/forge:list</code> — browse tickets, pick one, and start implementing with full codebase context.
               </p>
               <CopyCommand command="npm install -g @anthropic-forge/cli" />
             </div>

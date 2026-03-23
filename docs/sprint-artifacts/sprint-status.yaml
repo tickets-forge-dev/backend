@@ -298,6 +298,22 @@ development_status:
   15-6-client-project-profile-management-ui: backlog
   epic-15-project-initialization-codebase-profiling-retrospective: optional
 
+  # EPIC 16: Two-Way MCP Bridge — Local Codebase Integration (P1) - 7 stories
+  # Status: ⬜ NOT STARTED
+  # Goal: CLI/MCP as two-way bridge for local codebases — no GitHub OAuth needed
+  # Key: forge profile (local scan → upload), forge create (ticket from CLI), MCP tools
+  # Enterprise: SOC2-compliant — no GitHub tokens leave developer's machine
+  # Epic File: docs/epic-16-two-way-mcp-bridge.md
+  epic-16-two-way-mcp-bridge: backlog
+  16-1-git-service-structured-file-tree: backlog
+  16-2-local-profile-scanner-service: backlog
+  16-3-backend-profile-upload-endpoint: backlog
+  16-4-cli-forge-profile-command: backlog
+  16-5-cli-forge-create-command: backlog
+  16-6-mcp-create-ticket-tool: backlog
+  16-7-mcp-brainstorm-prompt: backlog
+  epic-16-two-way-mcp-bridge-retrospective: optional
+
   # ──────────────────────────────────────────────────────────────────────────
   # DEFERRED EPICS (Not needed for MVP)
   # ──────────────────────────────────────────────────────────────────────────

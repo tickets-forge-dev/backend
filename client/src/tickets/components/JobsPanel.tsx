@@ -148,7 +148,7 @@ export function JobsPanel() {
       {/* ─── Mobile: floating toggle button ─── */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 right-3 z-40 p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] shadow-lg hover:bg-[var(--bg-subtle)] transition-colors"
+        className="md:hidden fixed top-3 right-3 z-40 p-2 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] shadow-lg hover:bg-[var(--bg-subtle)] transition-colors"
         title={visibleJobs.length > 0 ? `Jobs (${visibleJobs.length})` : 'Jobs'}
       >
         <div className="relative">
@@ -170,7 +170,7 @@ export function JobsPanel() {
             onClick={() => setMobileOpen(false)}
           />
           {/* Panel */}
-          <div className="md:hidden fixed inset-y-0 right-0 z-50 w-72 bg-[var(--bg-base)] border-l border-[var(--border-subtle)] flex flex-col overflow-y-auto animate-in slide-in-from-right duration-200">
+          <div className="md:hidden fixed inset-y-0 right-0 z-50 w-72 bg-[var(--bg)] border-l border-[var(--border-subtle)] flex flex-col overflow-y-auto animate-in slide-in-from-right duration-200">
             {/* Header */}
             <div className="flex items-center justify-between px-3 pt-3 pb-1">
               <h3 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5">

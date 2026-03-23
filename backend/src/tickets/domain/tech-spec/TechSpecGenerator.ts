@@ -373,6 +373,7 @@ export interface CodebaseContext {
   fileTree: FileTree;
   files: Map<string, string>;
   taskAnalysis?: any;
+  projectProfile?: string;
 }
 
 /**

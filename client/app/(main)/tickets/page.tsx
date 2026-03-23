@@ -1001,6 +1001,27 @@ function PriorityCell({ priority }: { priority: string | null }) {
   );
 }
 
+function WaitBadge({ forgedAt }: { forgedAt: string | null }) {
+  if (!forgedAt) return null;
+
+  const days = Math.floor((Date.now() - new Date(forgedAt).getTime()) / (1000 * 60 * 60 * 24));
+  if (days === 0) return null; // approved today, no badge
+
+  const color = days <= 1
+    ? 'text-emerald-400/70'
+    : days <= 3
+      ? 'text-amber-400/70'
+      : 'text-red-400/70';
+
+  const label = days === 1 ? '1 day' : `${days} days`;
+
+  return (
+    <span className={`text-[10px] ${color}`}>
+      {label}
+    </span>
+  );
+}
+
 // Archived tickets collapsible section
 function ArchivedSection({
   archivedTickets,
@@ -1176,10 +1197,11 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
       </Link>
 
       {/* Status */}
-      <Link href={href} className="hidden sm:flex items-center py-3">
+      <Link href={href} className="hidden sm:flex items-center gap-1.5 py-3">
         <TicketLifecycleInfo currentStatus={ticket.status} trigger="hover">
           <StatusCell ticket={ticket} />
         </TicketLifecycleInfo>
+        {ticket.status === 'forged' && <WaitBadge forgedAt={ticket.forgedAt} />}
       </Link>
 
       {/* Priority */}
