@@ -1,6 +1,5 @@
 import { AEC } from './AEC';
 import { AECStatus } from '../value-objects/AECStatus';
-import { ValidationResult } from '../value-objects/ValidationResult';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,13 +56,6 @@ function makeAEC(overrides: { status?: AECStatus; forgedAt?: Date | null } = {})
     undefined, // generationJobId
     overrides.forgedAt ?? null, // forgedAt
   );
-}
-
-/** Create a ValidationResult that yields a readiness score >= 75 */
-function makePassingValidationResults(): ValidationResult[] {
-  return [
-    { score: 0.9, weight: 1, weightedScore: 0.9, hasCriticalIssues: () => false } as any,
-  ];
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -143,6 +135,21 @@ describe('AEC — forgedAt timestamp', () => {
       aec.sendBack(AECStatus.DEV_REFINING);
 
       expect(aec.forgedAt).toBeNull();
+    });
+
+    it('clears forgedAt when sending back from EXECUTING to DRAFT', () => {
+      // Build a ticket that has gone through FORGED → EXECUTING via startImplementation
+      const forgedAec = makeAEC({
+        status: AECStatus.FORGED,
+        forgedAt: new Date('2025-06-15'),
+      });
+      forgedAec.startImplementation('feat/some-branch');
+      expect(forgedAec.status).toBe(AECStatus.EXECUTING);
+
+      forgedAec.sendBack(AECStatus.DRAFT);
+
+      expect(forgedAec.forgedAt).toBeNull();
+      expect(forgedAec.status).toBe(AECStatus.DRAFT);
     });
   });
 
