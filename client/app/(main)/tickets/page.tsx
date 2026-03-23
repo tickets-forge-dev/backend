@@ -10,7 +10,7 @@ import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3 } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3, GripVertical } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,7 +62,7 @@ export default function TicketsListPage() {
   const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder, updateFolderScope, reorderFolders } = useFoldersStore();
   const { user } = useAuthStore();
   const currentUserId = user?.uid ?? null;
-  const { config: columnConfig, toggleColumn, resetToDefaults, loadColumnConfig } = useColumnConfigStore();
+  const { config: columnConfig, toggleColumn, reorderColumns, resetToDefaults, loadColumnConfig } = useColumnConfigStore();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isSubmittingFolder, setIsSubmittingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -79,6 +79,42 @@ export default function TicketsListPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [draggingTicketId, setDraggingTicketId] = useState<string | null>(null);
+  const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
+  const [folderDropTargetId, setFolderDropTargetId] = useState<string | null>(null);
+  const [folderDropPosition, setFolderDropPosition] = useState<'above' | 'below' | null>(null);
+  const [draggedColumnId, setDraggedColumnId] = useState<ColumnId | null>(null);
+
+  const handleFolderDragStart = useCallback((folderId: string) => {
+    setDraggingFolderId(folderId);
+  }, []);
+
+  const handleFolderDragEnd = useCallback(() => {
+    setDraggingFolderId(null);
+    setFolderDropTargetId(null);
+    setFolderDropPosition(null);
+  }, []);
+
+  const handleFolderDrop = useCallback((targetFolderId: string, position: 'above' | 'below') => {
+    if (!currentTeam?.id || !draggingFolderId || draggingFolderId === targetFolderId) return;
+
+    const draggedFolder = folders.find(f => f.id === draggingFolderId);
+    const targetFolder = folders.find(f => f.id === targetFolderId);
+    if (!draggedFolder || !targetFolder) return;
+
+    // Prevent dragging between sections
+    if (draggedFolder.scope !== targetFolder.scope) return;
+
+    const scopeFolders = folders.filter(f => f.scope === draggedFolder.scope);
+    const newOrder = scopeFolders.map(f => f.id).filter(id => id !== draggingFolderId);
+    const targetIdx = newOrder.indexOf(targetFolderId);
+    const insertIdx = position === 'above' ? targetIdx : targetIdx + 1;
+    newOrder.splice(insertIdx, 0, draggingFolderId);
+
+    reorderFolders(currentTeam.id, draggedFolder.scope, newOrder);
+    setDraggingFolderId(null);
+    setFolderDropTargetId(null);
+    setFolderDropPosition(null);
+  }, [currentTeam?.id, draggingFolderId, folders, reorderFolders]);
 
   const handleDragStart = useCallback((ticketId: string) => {
     setDraggingTicketId(ticketId);
@@ -416,25 +452,58 @@ export default function TicketsListPage() {
               <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg">
                 <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-1">Columns</p>
                 <div className="px-2 py-1 text-xs text-[var(--text-tertiary)]/50 flex items-center gap-2">
+                  <GripVertical className="h-3 w-3 opacity-0" />
                   <input type="checkbox" checked disabled className="accent-[var(--primary)] opacity-40" />
                   Title
                 </div>
                 {columnConfig.order.map((col) => (
-                  <button
+                  <div
                     key={col}
-                    onClick={() => currentTeam?.id && toggleColumn(currentTeam.id, col)}
-                    className="w-full text-left px-2 py-1 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-2"
+                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors ${draggedColumnId === col ? 'opacity-40' : ''}`}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/column-reorder', col);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDraggedColumnId(col);
+                    }}
+                    onDragOver={(e) => {
+                      if (!draggedColumnId || draggedColumnId === col) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      // Swap positions on drag over
+                      const currentOrder = [...columnConfig.order];
+                      const fromIdx = currentOrder.indexOf(draggedColumnId);
+                      const toIdx = currentOrder.indexOf(col);
+                      if (fromIdx === -1 || toIdx === -1) return;
+                      currentOrder.splice(fromIdx, 1);
+                      currentOrder.splice(toIdx, 0, draggedColumnId);
+                      if (currentTeam?.id) reorderColumns(currentTeam.id, currentOrder);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedColumnId(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDraggedColumnId(null);
+                    }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={!columnConfig.hidden.has(col)}
-                      readOnly
-                      className="accent-[var(--primary)] pointer-events-none"
-                    />
-                    {col.charAt(0).toUpperCase() + col.slice(1)}
-                  </button>
+                    <GripVertical className="h-3 w-3 text-[var(--text-tertiary)] cursor-grab flex-shrink-0" />
+                    <button
+                      onClick={() => currentTeam?.id && toggleColumn(currentTeam.id, col)}
+                      className="flex items-center gap-2 flex-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!columnConfig.hidden.has(col)}
+                        readOnly
+                        className="accent-[var(--primary)] pointer-events-none"
+                      />
+                      {col.charAt(0).toUpperCase() + col.slice(1)}
+                    </button>
+                  </div>
                 ))}
                 <div className="px-2 py-1 text-xs text-[var(--text-tertiary)]/50 flex items-center gap-2">
+                  <GripVertical className="h-3 w-3 opacity-0" />
                   <input type="checkbox" checked disabled className="accent-[var(--primary)] opacity-40" />
                   Actions
                 </div>
@@ -705,6 +774,14 @@ export default function TicketsListPage() {
                       onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
                       currentUserId={currentUserId}
                       tickets={tickets}
+                      onFolderDragStart={() => handleFolderDragStart(folder.id)}
+                      onFolderDragEnd={handleFolderDragEnd}
+                      draggingFolderId={draggingFolderId}
+                      onFolderDrop={handleFolderDrop}
+                      folderDropTargetId={folderDropTargetId}
+                      folderDropPosition={folderDropPosition}
+                      setFolderDropTargetId={setFolderDropTargetId}
+                      setFolderDropPosition={setFolderDropPosition}
                     />
                     {isExpanded && (
                       <FolderBody
@@ -770,6 +847,14 @@ export default function TicketsListPage() {
                   onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
                   currentUserId={currentUserId}
                   tickets={tickets}
+                  onFolderDragStart={() => handleFolderDragStart(folder.id)}
+                  onFolderDragEnd={handleFolderDragEnd}
+                  draggingFolderId={draggingFolderId}
+                  onFolderDrop={handleFolderDrop}
+                  folderDropTargetId={folderDropTargetId}
+                  folderDropPosition={folderDropPosition}
+                  setFolderDropTargetId={setFolderDropTargetId}
+                  setFolderDropPosition={setFolderDropPosition}
                 />
                 {isExpanded && (
                   <FolderBody
@@ -1005,7 +1090,7 @@ function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { v
 }
 
 // Folder section header with collapse, rename, delete + drop target
-function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, onRename, onDelete, onChangeVisibility, onMoveUp, onMoveDown, isDragActive, draggingTicketId, onTicketDrop, currentUserId, tickets }: {
+function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, onRename, onDelete, onChangeVisibility, onMoveUp, onMoveDown, isDragActive, draggingTicketId, onTicketDrop, currentUserId, tickets, onFolderDragStart, onFolderDragEnd, draggingFolderId, onFolderDrop, folderDropTargetId, folderDropPosition, setFolderDropTargetId, setFolderDropPosition }: {
   folder: FolderResponse;
   ticketCount: number;
   ticketNames: string[];
@@ -1021,6 +1106,14 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
   onTicketDrop?: (ticketId: string) => void;
   currentUserId?: string | null;
   tickets?: any[];
+  onFolderDragStart?: () => void;
+  onFolderDragEnd?: () => void;
+  draggingFolderId?: string | null;
+  onFolderDrop?: (targetFolderId: string, position: 'above' | 'below') => void;
+  folderDropTargetId?: string | null;
+  folderDropPosition?: 'above' | 'below' | null;
+  setFolderDropTargetId?: (id: string | null) => void;
+  setFolderDropPosition?: (pos: 'above' | 'below' | null) => void;
 }) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
@@ -1065,9 +1158,19 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
       })()
     : false;
 
+  const isFolderDragTarget = folderDropTargetId === folder.id;
+  const showDropAbove = isFolderDragTarget && folderDropPosition === 'above';
+  const showDropBelow = isFolderDragTarget && folderDropPosition === 'below';
+
   return (
     <div
-      className={`group/folder sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] ${
+      className={`group/folder sticky top-0 z-10 flex items-center gap-0 px-1 sm:px-2 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] relative ${
+        showDropAbove ? 'border-t-2 border-t-[var(--blue)]' : ''
+      } ${
+        showDropBelow ? 'border-b-2 border-b-[var(--blue)]' : ''
+      } ${
+        draggingFolderId === folder.id ? 'opacity-40' : ''
+      } ${
         isDropBlocked
           ? 'ring-1 ring-red-500/40 ring-inset bg-red-500/5 opacity-60'
           : isDragOver
@@ -1077,21 +1180,64 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
               : ''
       }`}
       onDragOver={(e) => {
+        // Handle folder reorder drags
+        if (e.dataTransfer.types.includes('application/folder-reorder')) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const rect = e.currentTarget.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          const pos = e.clientY < midY ? 'above' : 'below';
+          setFolderDropTargetId?.(folder.id);
+          setFolderDropPosition?.(pos);
+          return;
+        }
+        // Handle ticket drags (existing behavior)
         if (!isDragActive) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = isDropBlocked ? 'none' : 'move';
         setIsDragOver(true);
       }}
-      onDragLeave={() => setIsDragOver(false)}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setFolderDropTargetId?.(null);
+          setFolderDropPosition?.(null);
+        }
+        setIsDragOver(false);
+      }}
       onDrop={(e) => {
         e.preventDefault();
+        // Handle folder reorder drops
+        if (e.dataTransfer.types.includes('application/folder-reorder')) {
+          const pos = folderDropPosition || 'below';
+          onFolderDrop?.(folder.id, pos);
+          setFolderDropTargetId?.(null);
+          setFolderDropPosition?.(null);
+          return;
+        }
+        // Handle ticket drops (existing behavior)
         setIsDragOver(false);
         if (isDropBlocked) return;
         const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
         if (ticketId && onTicketDrop) onTicketDrop(ticketId);
       }}
     >
-      <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={onToggle}>
+      {/* Drag handle for folder reorder */}
+      <div
+        className="flex-shrink-0 p-1 rounded cursor-grab opacity-0 group-hover/folder:opacity-100 hover:bg-[var(--bg-hover)] transition-all text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/folder-reorder', folder.id);
+          e.dataTransfer.effectAllowed = 'move';
+          e.stopPropagation();
+          onFolderDragStart?.();
+        }}
+        onDragEnd={() => {
+          onFolderDragEnd?.();
+        }}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </div>
+      <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer px-1" onClick={onToggle}>
         <ChevronDown
           className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform flex-shrink-0 ${
             !isExpanded ? '-rotate-90' : ''
