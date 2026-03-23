@@ -192,9 +192,9 @@ export default function TicketsListPage() {
       <div className="flex flex-1 min-h-0">
       <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
       {/* Filter, Sort & Actions bar */}
-      <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative flex-1 sm:max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* Search — full width on mobile */}
+        <div className="relative w-full sm:flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
           <Input
             placeholder="Search tickets..."
@@ -212,6 +212,8 @@ export default function TicketsListPage() {
           )}
         </div>
 
+        {/* Sort, filter & actions row */}
+        <div className="flex items-center gap-2">
         {/* Sort dropdown */}
         <div className="relative flex-shrink-0">
           <Button
@@ -340,6 +342,7 @@ export default function TicketsListPage() {
             <CreationMenu disabled={false} />
           </div>
         )}
+        </div>
       </div>
 
       {/* Loading state: Show skeletons on initial load or when loading */}
@@ -515,6 +518,7 @@ export default function TicketsListPage() {
                 <FolderHeader
                   folder={folder}
                   ticketCount={folderTickets.length}
+                  ticketNames={folderTickets.map((t) => t.title)}
                   isExpanded={isExpanded}
                   onToggle={() => toggleFolder(folder.id)}
                   onRename={async (name) => {
@@ -525,12 +529,10 @@ export default function TicketsListPage() {
                     }
                   }}
                   onDelete={async () => {
-                    if (confirm(`Delete folder "${folder.name}"? Tickets inside will move to root.`)) {
-                      if (currentTeam?.id) {
-                        const ok = await deleteFolder(currentTeam.id, folder.id);
-                        if (ok) { toast.success('Folder deleted'); loadTickets(); }
-                        else toast.error('Failed to delete folder');
-                      }
+                    if (currentTeam?.id) {
+                      const ok = await deleteFolder(currentTeam.id, folder.id);
+                      if (ok) { toast.success('Folder deleted'); loadTickets(); }
+                      else toast.error('Failed to delete folder');
                     }
                   }}
                   isDragActive={!!draggingTicketId}
@@ -676,9 +678,10 @@ function TicketGridHeader() {
 }
 
 // Folder section header with collapse, rename, delete + drop target
-function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onDelete, isDragActive, draggingTicketId, onTicketDrop }: {
+function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, onRename, onDelete, isDragActive, draggingTicketId, onTicketDrop }: {
   folder: FolderResponse;
   ticketCount: number;
+  ticketNames: string[];
   isExpanded: boolean;
   onToggle: () => void;
   onRename: (name: string) => void;
@@ -690,6 +693,7 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const blurEnabledRef = useRef(false);
 
@@ -786,12 +790,51 @@ function FolderHeader({ folder, ticketCount, isExpanded, onToggle, onRename, onD
             Rename
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onDelete} className="text-red-500 focus:text-red-500">
+          <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-500 focus:text-red-500">
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete folder</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <span>Are you sure you want to delete <span className="font-medium text-[var(--text)]">{folder.name}</span>?</span>
+                {ticketCount > 0 ? (
+                  <>
+                    <span className="block mt-2">
+                      {ticketCount === 1 ? '1 ticket' : `${ticketCount} tickets`} inside will be moved to root:
+                    </span>
+                    <ul className="mt-1.5 space-y-0.5 text-sm">
+                      {ticketNames.slice(0, 10).map((name, i) => (
+                        <li key={i} className="truncate text-[var(--text-secondary)]">• {name}</li>
+                      ))}
+                      {ticketNames.length > 10 && (
+                        <li className="text-[var(--text-tertiary)]">and {ticketNames.length - 10} more…</li>
+                      )}
+                    </ul>
+                  </>
+                ) : (
+                  <span className="block mt-2">This folder is empty.</span>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={onDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

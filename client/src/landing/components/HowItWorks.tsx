@@ -1,4 +1,4 @@
-const STEPS = [
+const STEPS: { number: string; title: string; subtitle: string; details?: string[]; color: string; borderColor: string; bgColor: string; dotColor: string }[] = [
   {
     number: '1',
     title: 'Describe',
@@ -21,6 +21,7 @@ const STEPS = [
     number: '3',
     title: 'Approve',
     subtitle: 'Review the complete spec',
+    details: ['Assigns developer automatically', 'Tracks wait time with SLA badges'],
     color: 'text-amber-400',
     borderColor: 'border-amber-500/30',
     bgColor: 'bg-amber-500/5',
@@ -75,6 +76,15 @@ export function HowItWorks() {
                 </div>
                 <p className={`font-semibold text-[15px] mb-1 ${step.color}`}>{step.title}</p>
                 <p className="text-[var(--text-secondary)] text-xs">{step.subtitle}</p>
+                {step.details && (
+                  <div className="mt-2.5 space-y-1">
+                    {step.details.map((d) => (
+                      <p key={d} className="text-[var(--text-tertiary)] text-[11px] flex items-center justify-center gap-1.5">
+                        <span className={`${step.color} text-[10px]`}>✓</span> {d}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Arrow between steps */}
