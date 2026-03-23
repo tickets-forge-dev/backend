@@ -489,6 +489,7 @@ export class TicketsController {
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
       assignedTo: aec.assignedTo,
+      createdBy: aec.createdBy ?? null,
       folderId: aec.folderId,
     }));
   }
@@ -1325,6 +1326,7 @@ export class TicketsController {
       wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds ?? [],
       apiContext: aec.apiContext ?? null,
       forgedAt: aec.forgedAt?.toISOString() ?? null,
+      createdBy: aec.createdBy ?? null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
     };
