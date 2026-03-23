@@ -261,7 +261,7 @@ export class AECMapper {
       doc.slug ?? null,
       (doc.previousStatus as AECStatus) ?? null,
       doc.generationJobId ?? null,
-      doc.forgedAt ? doc.forgedAt.toDate() : null,
+      doc.forgedAt ? toDate(doc.forgedAt) : null,
     );
   }
 
