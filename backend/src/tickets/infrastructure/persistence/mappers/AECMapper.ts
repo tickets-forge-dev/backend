@@ -84,6 +84,7 @@ export interface AECDocument {
   implementationBranch?: string | null; // Story 10-1: forge develop branch
   implementationSession?: { qaItems: { question: string; answer: string }[]; branchName: string; startedAt: Timestamp } | null; // Story 10-1
   folderId?: string | null; // Story 12-2: ticket folder organization
+  tagIds?: string[]; // Ticket tags
   // Story 14-3: Generation preferences
   includeWireframes?: boolean;
   includeApiSpec?: boolean;
@@ -251,6 +252,7 @@ export class AECMapper {
           }
         : null, // Story 10-1
       doc.folderId ?? null, // Story 12-2
+      doc.tagIds ?? [], // Ticket tags
       // Story 14-3: Generation preferences (default true for backward compat)
       doc.includeWireframes ?? true,
       doc.includeApiSpec ?? true,
@@ -335,6 +337,7 @@ export class AECMapper {
           }
         : null, // Story 10-1
       folderId: aec.folderId ?? null, // Story 12-2
+      tagIds: aec.tagIds ?? [], // Ticket tags
       // Story 14-3: Generation preferences
       includeWireframes: aec.includeWireframes,
       includeApiSpec: aec.includeApiSpec,

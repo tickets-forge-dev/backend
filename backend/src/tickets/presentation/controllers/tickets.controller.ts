@@ -115,6 +115,10 @@ import {
   FolderRepository,
   FOLDER_REPOSITORY,
 } from '../../../folders/application/ports/FolderRepository';
+import {
+  TagRepository,
+  TAG_REPOSITORY,
+} from '../../../tags/application/ports/TagRepository';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -176,6 +180,8 @@ export class TicketsController {
     private readonly configService: ConfigService,
     @Inject(FOLDER_REPOSITORY)
     private readonly folderRepository: FolderRepository,
+    @Inject(TAG_REPOSITORY)
+    private readonly tagRepository: TagRepository,
   ) {}
 
   /**
@@ -482,22 +488,36 @@ export class TicketsController {
   }
 
   @Get('archived')
-  async listArchivedTickets(@TeamId() teamId: string) {
+  async listArchivedTickets(@TeamId() teamId: string, @UserId() userId: string) {
     const tickets = await this.aecRepository.findArchivedByTeam(teamId);
-    return tickets.map((aec) => ({
-      id: aec.id,
-      slug: aec.slug ?? null,
-      title: aec.title,
-      status: aec.status,
-      previousStatus: aec.previousStatus,
-      type: aec.type,
-      priority: aec.priority,
-      createdAt: aec.createdAt,
-      updatedAt: aec.updatedAt,
-      assignedTo: aec.assignedTo,
-      createdBy: aec.createdBy ?? null,
-      folderId: aec.folderId,
-    }));
+
+    // Precompute visible tag IDs for stripping private tags from other users
+    const allTags = await this.tagRepository.findByTeam(teamId);
+    const visibleTagIds = new Set(
+      allTags
+        .filter((t) => t.getScope() === 'team' || (t.getScope() === 'private' && t.getCreatedBy() === userId))
+        .map((t) => t.getId()),
+    );
+
+    return tickets.map((aec) => {
+      const rawTagIds: string[] = aec.tagIds ?? [];
+      const filteredTagIds = rawTagIds.filter((id) => visibleTagIds.has(id));
+      return {
+        id: aec.id,
+        slug: aec.slug ?? null,
+        title: aec.title,
+        status: aec.status,
+        previousStatus: aec.previousStatus,
+        type: aec.type,
+        priority: aec.priority,
+        createdAt: aec.createdAt,
+        updatedAt: aec.updatedAt,
+        assignedTo: aec.assignedTo,
+        createdBy: aec.createdBy ?? null,
+        folderId: aec.folderId,
+        tagIds: filteredTagIds,
+      };
+    });
   }
 
   @Get(':id')
@@ -523,6 +543,14 @@ export class TicketsController {
         .map((f) => f.getId()),
     );
 
+    // Precompute visible tag IDs (team tags + user's own private tags)
+    const allTags = await this.tagRepository.findByTeam(teamId);
+    const visibleTagIds = new Set(
+      allTags
+        .filter((t) => t.getScope() === 'team' || (t.getScope() === 'private' && t.getCreatedBy() === userId))
+        .map((t) => t.getId()),
+    );
+
     // Filter out tickets in folders not visible to this user
     const visibleAecs = aecs.filter(
       (aec) => !aec.folderId || visibleFolderIds.has(aec.folderId),
@@ -532,7 +560,50 @@ export class TicketsController {
       ? visibleAecs.filter((aec) => aec.assignedTo === userId)
       : visibleAecs;
 
-    return filtered.map((aec) => this.mapToResponse(aec));
+    return filtered.map((aec) => this.mapToResponse(aec, visibleTagIds));
+  }
+
+  /**
+   * PATCH /tickets/:id/tags
+   * Update the tags applied to a ticket.
+   * Validates all tag IDs exist and are visible to the requesting user.
+   *
+   * IMPORTANT: This route MUST be declared before the generic :id route
+   * so NestJS matches the literal "tags" segment.
+   */
+  @Patch(':id/tags')
+  async updateTicketTags(
+    @TeamId() teamId: string,
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() body: { tagIds: string[] },
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    const tagIds = body.tagIds ?? [];
+
+    if (!Array.isArray(tagIds)) {
+      throw new BadRequestException('tagIds must be an array of strings');
+    }
+
+    // Validate all tag IDs exist and are visible to this user
+    if (tagIds.length > 0) {
+      const allTags = await this.tagRepository.findByTeam(teamId);
+      const visibleTagIds = new Set(
+        allTags
+          .filter((t) => t.getScope() === 'team' || (t.getScope() === 'private' && t.getCreatedBy() === userId))
+          .map((t) => t.getId()),
+      );
+
+      const invalidTagIds = tagIds.filter((tagId) => !visibleTagIds.has(tagId));
+      if (invalidTagIds.length > 0) {
+        throw new BadRequestException(
+          `Invalid or unauthorized tag IDs: ${invalidTagIds.join(', ')}`,
+        );
+      }
+    }
+
+    await this.aecRepository.updateTicketTags(aecId, teamId, tagIds);
+    return { success: true };
   }
 
   @Patch(':id')
@@ -1296,7 +1367,12 @@ export class TicketsController {
     return aec.id;
   }
 
-  private mapToResponse(aec: any) {
+  private mapToResponse(aec: any, visibleTagIds?: Set<string>) {
+    const rawTagIds: string[] = aec.tagIds ?? [];
+    const filteredTagIds = visibleTagIds
+      ? rawTagIds.filter((id: string) => visibleTagIds.has(id))
+      : rawTagIds;
+
     return {
       id: aec.id,
       slug: aec.slug ?? null,
@@ -1337,6 +1413,7 @@ export class TicketsController {
       assignedTo: aec.assignedTo ?? null,
       reviewSession: aec.reviewSession ?? null, // Story 6-12
       folderId: aec.folderId ?? null, // Story 12-2: ticket folder organization
+      tagIds: filteredTagIds, // Ticket tags (filtered by visibility)
       // Story 14-3: Generation preferences
       includeWireframes: aec.includeWireframes ?? true,
       includeApiSpec: aec.includeApiSpec ?? true,

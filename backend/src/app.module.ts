@@ -12,6 +12,7 @@ import { FigmaModule } from './integrations/figma/figma.module';
 import { ConfigModule as ConfigApiModule } from './config/config.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { FoldersModule } from './folders/folders.module';
+import { TagsModule } from './tags/tags.module';
 import { JobsModule } from './jobs/jobs.module';
 import { ProjectProfilesModule } from './project-profiles/project-profiles.module';
 
@@ -33,6 +34,7 @@ import { ProjectProfilesModule } from './project-profiles/project-profiles.modul
     ConfigApiModule,
     FeedbackModule,
     FoldersModule,
+    TagsModule,
     JobsModule,
     ProjectProfilesModule,
   ],

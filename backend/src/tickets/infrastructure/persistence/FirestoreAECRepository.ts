@@ -354,6 +354,57 @@ export class FirestoreAECRepository implements AECRepository {
   }
 
   /**
+   * Remove a tag ID from all tickets that reference it (when tag is deleted)
+   */
+  async removeTagFromTickets(teamId: string, tagId: string): Promise<void> {
+    const { FieldValue } = await import('firebase-admin/firestore');
+    const firestore = this.getFirestore();
+    const snapshot = await firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('aecs')
+      .where('tagIds', 'array-contains', tagId)
+      .get();
+
+    if (snapshot.empty) return;
+
+    const batch = firestore.batch();
+    for (const doc of snapshot.docs) {
+      batch.update(doc.ref, {
+        tagIds: FieldValue.arrayRemove(tagId),
+        updatedAt: new Date(),
+      });
+    }
+    await batch.commit();
+  }
+
+  /**
+   * Update the tagIds field on a ticket document
+   */
+  async updateTicketTags(
+    ticketId: string,
+    teamId: string,
+    tagIds: string[],
+  ): Promise<void> {
+    const firestore = this.getFirestore();
+    const docRef = firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('aecs')
+      .doc(ticketId);
+
+    const exists = await docRef.get();
+    if (!exists.exists) {
+      throw new AECNotFoundError(ticketId);
+    }
+
+    await docRef.update({
+      tagIds: tagIds,
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
    * Find tickets in a folder that were NOT created by the given user.
    * Used when changing folder scope from team → private to identify affected tickets.
    */

@@ -77,6 +77,7 @@ import { USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UsageBudget
 import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUsageBudgetRepository';
 import { ProjectProfilesModule } from '../project-profiles/project-profiles.module';
 import { FoldersModule } from '../folders/folders.module';
+import { TagsModule } from '../tags/tags.module';
 
 @Module({
   imports: [
@@ -91,6 +92,7 @@ import { FoldersModule } from '../folders/folders.module';
     NotificationsModule, // Story 9.2: Email notifications for ticket events
     forwardRef(() => ProjectProfilesModule), // Epic 15: Project profile lookup during analysis
     forwardRef(() => FoldersModule), // Ticket visibility filtering by folder scope
+    forwardRef(() => TagsModule), // Tag validation for ticket tag assignment
   ],
   controllers: [TicketsController],
   providers: [

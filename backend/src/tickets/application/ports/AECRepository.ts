@@ -15,6 +15,9 @@ export interface AECRepository {
   // Story 12-2: Folder operations
   updateTicketFolder(ticketId: string, teamId: string, folderId: string | null): Promise<void>;
   clearFolderFromTickets(teamId: string, folderId: string): Promise<void>;
+  // Tag operations
+  removeTagFromTickets(teamId: string, tagId: string): Promise<void>;
+  updateTicketTags(ticketId: string, teamId: string, tagIds: string[]): Promise<void>;
   // Folder scope: find tickets in a folder NOT created by a given user
   findByFolderAndNotCreatedBy(
     teamId: string,

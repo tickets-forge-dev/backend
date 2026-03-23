@@ -79,6 +79,7 @@ export class AEC {
     private _implementationBranch: string | null = null, // Story 10-1: forge develop branch
     private _implementationSession: ImplementationSession | null = null, // Story 10-1: implementation Q&A
     private _folderId: string | null = null, // Story 12-2: ticket folder organization
+    private _tagIds: string[] = [], // Ticket tags
     // Story 14-3: Generation preferences
     private _includeWireframes: boolean = true,
     private _includeApiSpec: boolean = true,
@@ -111,6 +112,7 @@ export class AEC {
     },
     slug?: string,
     folderId?: string | null,
+    tagIds?: string[],
   ): AEC {
     // Domain validation
     if (title.length < 3 || title.length > 500) {
@@ -157,6 +159,7 @@ export class AEC {
       null, // _implementationBranch
       null, // _implementationSession
       folderId ?? null, // _folderId
+      tagIds ?? [], // _tagIds
       // Story 14-3: Generation preferences
       generationPreferences?.includeWireframes ?? true,
       generationPreferences?.includeApiSpec ?? true,
@@ -208,6 +211,7 @@ export class AEC {
     implementationBranch?: string | null,
     implementationSession?: ImplementationSession | null,
     folderId?: string | null,
+    tagIds?: string[],
     // Story 14-3: Generation preferences
     includeWireframes?: boolean,
     includeApiSpec?: boolean,
@@ -260,6 +264,7 @@ export class AEC {
       implementationBranch ?? null,
       implementationSession ?? null,
       folderId ?? null,
+      tagIds ?? [],
       // Story 14-3: Generation preferences (default true for backward compat)
       includeWireframes ?? true,
       includeApiSpec ?? true,
@@ -788,6 +793,15 @@ export class AEC {
 
   get folderId(): string | null {
     return this._folderId;
+  }
+
+  get tagIds(): string[] {
+    return [...this._tagIds];
+  }
+
+  setTagIds(tagIds: string[]): void {
+    this._tagIds = [...tagIds];
+    this._updatedAt = new Date();
   }
 
   // Story 14-3: Generation preferences getters
