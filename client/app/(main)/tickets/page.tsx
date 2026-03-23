@@ -990,7 +990,7 @@ function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { v
   return (
     <div
       className="ticket-grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
-      style={mdGridTemplate ? { gridTemplateColumns: undefined } : undefined}
+      style={mdGridTemplate ? { '--grid-cols': mdGridTemplate } as React.CSSProperties : undefined}
       onContextMenu={onContextMenu}
     >
       <span className="pl-6">Title</span>
@@ -1643,6 +1643,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
       className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-pointer ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
       } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-white/[0.02] dark:bg-white/[0.02]' : ''}`}
+      style={mdGridTemplate ? { '--grid-cols': mdGridTemplate } as React.CSSProperties : undefined}
     >
       {/* Title cell */}
       <Link href={href} className={`flex items-center gap-2 py-3 min-w-0 pr-3 ${nested ? 'pl-6' : ''}`}>

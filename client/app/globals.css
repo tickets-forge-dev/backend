@@ -596,10 +596,10 @@ input[type="checkbox"]:checked:hover {
   }
 }
 
-/* md (768px+): Add Assignee + Creator + Updated */
+/* md (768px+): Add Assignee + Creator + Updated — uses CSS var for dynamic column management */
 @media (min-width: 768px) {
   .ticket-grid {
-    grid-template-columns: minmax(0, 1fr) 120px 72px 100px 80px 64px 44px 32px;
-    /* Title | Status | Priority | Assignee | Creator | Updated | Score | Actions */
+    grid-template-columns: var(--grid-cols, minmax(0, 1fr) 120px 72px 100px 80px 64px 44px 32px);
+    /* Default: Title | Status | Priority | Assignee | Creator | Updated | Score | Actions */
   }
 }
