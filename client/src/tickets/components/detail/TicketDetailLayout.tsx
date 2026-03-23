@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
@@ -98,6 +98,8 @@ export function TicketDetailLayout({
   const [aecXml, setAecXml] = useState<string | null>(null);
   const [isLoadingXml, setIsLoadingXml] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const assignedDuringNudge = useRef(false);
+  const assignAttempted = useRef(false);
 
   const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -164,6 +166,8 @@ export function TicketDetailLayout({
   const handleApprove = async () => {
     // If unassigned, nudge PM to assign a developer first
     if (!ticket.assignedTo) {
+      assignedDuringNudge.current = false;
+      assignAttempted.current = false;
       setPendingApproval(true);
       onAssignDialogOpenChange?.(true);
       return;
@@ -193,20 +197,33 @@ export function TicketDetailLayout({
 
   // Wrap onAssignTicket to chain approval after assignment when pending
   const handleAssignTicket = async (userId: string | null): Promise<boolean> => {
+    if (pendingApproval && userId) {
+      assignAttempted.current = true;
+    }
     const success = await onAssignTicket(userId);
     if (success && pendingApproval && userId) {
       // Assignment succeeded during approval nudge — auto-approve
+      assignedDuringNudge.current = true;
       await executeApproval(true);
     }
     return success;
   };
 
-  // Handle assign dialog closing — if pending approval and no assignment made, approve anyway
+  // Handle assign dialog closing — decide what to do based on nudge flow state
   const handleAssignDialogOpenChange = (open: boolean) => {
     onAssignDialogOpenChange?.(open);
     if (!open && pendingApproval) {
-      // Dialog closed without assigning (skip) — approve without assignment
-      executeApproval(false);
+      if (assignedDuringNudge.current) {
+        // Assignment succeeded — executeApproval already fired from handleAssignTicket, nothing to do
+        return;
+      }
+      if (!assignAttempted.current) {
+        // User explicitly skipped (closed without attempting any assignment) — approve without assignment
+        executeApproval(false);
+      } else {
+        // Assignment was attempted but failed — do NOT approve, just reset pending state
+        setPendingApproval(false);
+      }
     }
   };
 
