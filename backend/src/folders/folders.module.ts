@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { FoldersController } from './presentation/controllers/folders.controller';
 import { FirestoreFolderRepository } from './infrastructure/persistence/FirestoreFolderRepository';
 import { FOLDER_REPOSITORY } from './application/ports/FolderRepository';
@@ -13,7 +13,7 @@ import { TicketsModule } from '../tickets/tickets.module';
 import { AEC_REPOSITORY } from '../tickets/application/ports/AECRepository';
 
 @Module({
-  imports: [TicketsModule],
+  imports: [forwardRef(() => TicketsModule)],
   controllers: [FoldersController],
   providers: [
     // Repository (bound to port interface)
