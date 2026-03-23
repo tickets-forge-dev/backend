@@ -97,6 +97,7 @@ export function TicketDetailLayout({
   const [isAecExpanded, setIsAecExpanded] = useState(false);
   const [aecXml, setAecXml] = useState<string | null>(null);
   const [isLoadingXml, setIsLoadingXml] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
 
   const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -161,17 +162,51 @@ export function TicketDetailLayout({
   const isWaitingForApproval = ticket.status === 'review';
 
   const handleApprove = async () => {
+    // If unassigned, nudge PM to assign a developer first
+    if (!ticket.assignedTo) {
+      setPendingApproval(true);
+      onAssignDialogOpenChange?.(true);
+      return;
+    }
+    await executeApproval();
+  };
+
+  const executeApproval = async (wasJustAssigned = false) => {
     setIsApproving(true);
     try {
       const success = await approveTicket(ticketId);
       if (success) {
         await fetchTicket(ticketId);
-        toast.success('Ticket approved — the developer can start when ready');
+        toast.success(
+          wasJustAssigned
+            ? 'Ticket approved and assigned — developer has been notified'
+            : 'Ticket approved'
+        );
       } else {
         toast.error('Failed to approve ticket. Please try again.');
       }
     } finally {
       setIsApproving(false);
+      setPendingApproval(false);
+    }
+  };
+
+  // Wrap onAssignTicket to chain approval after assignment when pending
+  const handleAssignTicket = async (userId: string | null): Promise<boolean> => {
+    const success = await onAssignTicket(userId);
+    if (success && pendingApproval && userId) {
+      // Assignment succeeded during approval nudge — auto-approve
+      await executeApproval(true);
+    }
+    return success;
+  };
+
+  // Handle assign dialog closing — if pending approval and no assignment made, approve anyway
+  const handleAssignDialogOpenChange = (open: boolean) => {
+    onAssignDialogOpenChange?.(open);
+    if (!open && pendingApproval) {
+      // Dialog closed without assigning (skip) — approve without assignment
+      executeApproval(false);
     }
   };
 
@@ -202,11 +237,12 @@ export function TicketDetailLayout({
         {/* Overview Card (metadata bar) */}
         <OverviewCard
           ticket={ticket}
-          onAssignTicket={onAssignTicket}
+          onAssignTicket={handleAssignTicket}
           qualityScore={qualityScore}
           onTransition={onStatusTransition}
           assignDialogOpen={assignDialogOpen}
-          onAssignDialogOpenChange={onAssignDialogOpenChange}
+          onAssignDialogOpenChange={handleAssignDialogOpenChange}
+          pendingApproval={pendingApproval}
         />
 
         {/* Pending Questions */}
@@ -342,11 +378,12 @@ export function TicketDetailLayout({
       {/* Overview Card */}
       <OverviewCard
         ticket={ticket}
-        onAssignTicket={onAssignTicket}
+        onAssignTicket={handleAssignTicket}
         qualityScore={qualityScore}
         onTransition={onStatusTransition}
         assignDialogOpen={assignDialogOpen}
-        onAssignDialogOpenChange={onAssignDialogOpenChange}
+        onAssignDialogOpenChange={handleAssignDialogOpenChange}
+        pendingApproval={pendingApproval}
       />
 
       {/* Approval banner — always visible when ticket is in review with developer Q&A */}

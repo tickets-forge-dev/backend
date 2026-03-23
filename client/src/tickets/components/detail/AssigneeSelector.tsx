@@ -20,6 +20,8 @@ interface AssigneeSelectorProps {
   /** Controlled open state — lets parent open the dialog programmatically */
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
+  /** When true, dialog was opened as part of approval nudge — show skip option */
+  pendingApproval?: boolean;
 }
 
 export function AssigneeSelector({
@@ -28,6 +30,7 @@ export function AssigneeSelector({
   disabled = false,
   externalOpen,
   onExternalOpenChange,
+  pendingApproval,
 }: AssigneeSelectorProps) {
   const [developers, setDevelopers] = useState<TeamMember[]>([]);
   const [allMembers, setAllMembers] = useState<TeamMember[]>([]);
@@ -152,7 +155,14 @@ export function AssigneeSelector({
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Assign Ticket</DialogTitle>
+            <DialogTitle>
+              {pendingApproval ? 'Assign a developer before approving?' : 'Assign Ticket'}
+            </DialogTitle>
+            {pendingApproval && (
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Assigning a developer now will notify them when the ticket is approved.
+              </p>
+            )}
           </DialogHeader>
 
           <div className="py-4">
@@ -251,6 +261,21 @@ export function AssigneeSelector({
               <p className="text-sm text-[var(--text-tertiary)] text-center py-6">Loading team members...</p>
             )}
           </div>
+
+          {/* Skip option — only shown during approval nudge flow */}
+          {pendingApproval && (
+            <div className="pt-2 pb-1 border-t border-[var(--border-subtle)] text-center">
+              <button
+                onClick={() => {
+                  setDialogOpen(false);
+                  onExternalOpenChange?.(false);
+                }}
+                className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              >
+                Skip — approve without assigning
+              </button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
