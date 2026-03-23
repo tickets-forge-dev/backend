@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Firestore, Timestamp } from '@google-cloud/firestore';
-import { Folder } from '../../domain/Folder';
+import { Folder, FolderScope } from '../../domain/Folder';
 import { FolderRepository } from '../../application/ports/FolderRepository';
 
 interface FolderDocument {
@@ -10,6 +10,7 @@ interface FolderDocument {
   createdBy: string;
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
+  scope?: string;
 }
 
 /**
@@ -37,6 +38,7 @@ export class FirestoreFolderRepository implements FolderRepository {
         createdBy: data.createdBy,
         createdAt: new Date(data.createdAt),
         updatedAt: new Date(data.updatedAt),
+        scope: data.scope,
       });
   }
 
@@ -75,6 +77,30 @@ export class FirestoreFolderRepository implements FolderRepository {
     return this.mapToFolder(snapshot.docs[0].data() as FolderDocument);
   }
 
+  async findByTeamNameAndScope(
+    teamId: string,
+    name: string,
+    scope: FolderScope,
+    createdBy?: string,
+  ): Promise<Folder | null> {
+    let query = this.firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('folders')
+      .where('name', '==', name)
+      .where('scope', '==', scope);
+
+    // For private scope, also filter by creator
+    if (scope === 'private' && createdBy) {
+      query = query.where('createdBy', '==', createdBy);
+    }
+
+    const snapshot = await query.limit(1).get();
+
+    if (snapshot.empty) return null;
+    return this.mapToFolder(snapshot.docs[0].data() as FolderDocument);
+  }
+
   async update(folder: Folder): Promise<void> {
     const docRef = this.firestore
       .collection('teams')
@@ -89,6 +115,7 @@ export class FirestoreFolderRepository implements FolderRepository {
 
     await docRef.update({
       name: folder.getName(),
+      scope: folder.getScope(),
       updatedAt: new Date(),
     });
   }
@@ -127,6 +154,7 @@ export class FirestoreFolderRepository implements FolderRepository {
       data.createdBy,
       this.toDate(data.createdAt),
       this.toDate(data.updatedAt),
+      (data.scope as FolderScope) ?? 'team',
     );
   }
 }

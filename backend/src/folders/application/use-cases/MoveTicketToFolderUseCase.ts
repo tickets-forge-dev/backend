@@ -6,6 +6,7 @@ export interface MoveTicketToFolderCommand {
   teamId: string;
   ticketId: string;
   folderId: string | null; // null = move to root (unfiled)
+  userId: string;
 }
 
 @Injectable()
@@ -25,6 +26,11 @@ export class MoveTicketToFolderUseCase {
       if (!folder) {
         throw new Error(`Folder ${command.folderId} not found`);
       }
+
+      // Authorization: if target folder is private, only the creator can move tickets into it
+      if (folder.getScope() === 'private' && folder.getCreatedBy() !== command.userId) {
+        throw new Error('You do not have permission to move tickets into this private folder');
+      }
     }
 
     // Update the ticket's folderId
@@ -35,4 +41,3 @@ export class MoveTicketToFolderUseCase {
     );
   }
 }
-

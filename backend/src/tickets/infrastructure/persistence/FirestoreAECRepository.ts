@@ -352,4 +352,28 @@ export class FirestoreAECRepository implements AECRepository {
     }
     await batch.commit();
   }
+
+  /**
+   * Find tickets in a folder that were NOT created by the given user.
+   * Used when changing folder scope from team → private to identify affected tickets.
+   */
+  async findByFolderAndNotCreatedBy(
+    teamId: string,
+    folderId: string,
+    userId: string,
+  ): Promise<AEC[]> {
+    const firestore = this.getFirestore();
+    const snapshot = await firestore
+      .collection('teams')
+      .doc(teamId)
+      .collection('aecs')
+      .where('folderId', '==', folderId)
+      .get();
+
+    if (snapshot.empty) return [];
+
+    return snapshot.docs
+      .map((doc) => AECMapper.toDomain(doc.data() as AECDocument))
+      .filter((aec) => aec.createdBy !== userId);
+  }
 }

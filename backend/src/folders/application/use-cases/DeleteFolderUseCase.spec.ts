@@ -10,6 +10,10 @@ describe('DeleteFolderUseCase', () => {
     'folder_1', 'team_1', 'Test', 'user_1', new Date(), new Date(),
   );
 
+  const mockPrivateFolder = Folder.reconstitute(
+    'folder_2', 'team_1', 'Private', 'user_1', new Date(), new Date(), 'private',
+  );
+
   beforeEach(() => {
     folderRepository = {
       findByIdInTeam: jest.fn().mockResolvedValue(mockFolder),
@@ -22,7 +26,7 @@ describe('DeleteFolderUseCase', () => {
   });
 
   it('should clear tickets from folder then delete the folder', async () => {
-    await useCase.execute({ teamId: 'team_1', folderId: 'folder_1' });
+    await useCase.execute({ teamId: 'team_1', folderId: 'folder_1', userId: 'user_1' });
 
     expect(aecRepository.clearFolderFromTickets).toHaveBeenCalledWith('team_1', 'folder_1');
     expect(folderRepository.delete).toHaveBeenCalledWith('folder_1', 'team_1');
@@ -39,7 +43,7 @@ describe('DeleteFolderUseCase', () => {
       return Promise.resolve();
     });
 
-    await useCase.execute({ teamId: 'team_1', folderId: 'folder_1' });
+    await useCase.execute({ teamId: 'team_1', folderId: 'folder_1', userId: 'user_1' });
 
     expect(callOrder).toEqual(['clear', 'delete']);
   });
@@ -48,10 +52,30 @@ describe('DeleteFolderUseCase', () => {
     folderRepository.findByIdInTeam.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({ teamId: 'team_1', folderId: 'nonexistent' }),
+      useCase.execute({ teamId: 'team_1', folderId: 'nonexistent', userId: 'user_1' }),
     ).rejects.toThrow('not found');
 
     expect(aecRepository.clearFolderFromTickets).not.toHaveBeenCalled();
     expect(folderRepository.delete).not.toHaveBeenCalled();
+  });
+
+  it('should throw if non-creator tries to delete private folder', async () => {
+    folderRepository.findByIdInTeam.mockResolvedValue(mockPrivateFolder);
+
+    await expect(
+      useCase.execute({ teamId: 'team_1', folderId: 'folder_2', userId: 'user_other' }),
+    ).rejects.toThrow('permission');
+
+    expect(aecRepository.clearFolderFromTickets).not.toHaveBeenCalled();
+    expect(folderRepository.delete).not.toHaveBeenCalled();
+  });
+
+  it('should allow creator to delete private folder', async () => {
+    folderRepository.findByIdInTeam.mockResolvedValue(mockPrivateFolder);
+
+    await useCase.execute({ teamId: 'team_1', folderId: 'folder_2', userId: 'user_1' });
+
+    expect(aecRepository.clearFolderFromTickets).toHaveBeenCalled();
+    expect(folderRepository.delete).toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import { AECRepository } from '../../../tickets/application/ports/AECRepository'
 export interface DeleteFolderCommand {
   teamId: string;
   folderId: string;
+  userId: string;
 }
 
 @Injectable()
@@ -21,6 +22,11 @@ export class DeleteFolderUseCase {
     );
     if (!folder) {
       throw new Error(`Folder ${command.folderId} not found`);
+    }
+
+    // Authorization: if folder is private, only the creator can delete it
+    if (folder.getScope() === 'private' && folder.getCreatedBy() !== command.userId) {
+      throw new Error('You do not have permission to delete this private folder');
     }
 
     // Move all tickets in this folder back to root (set folderId to null)

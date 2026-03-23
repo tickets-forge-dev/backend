@@ -5,6 +5,7 @@ export interface RenameFolderCommand {
   teamId: string;
   folderId: string;
   name: string;
+  userId: string;
 }
 
 @Injectable()
@@ -22,13 +23,22 @@ export class RenameFolderUseCase {
       throw new Error(`Folder ${command.folderId} not found`);
     }
 
-    // Check for duplicate name within team
-    const existing = await this.folderRepository.findByTeamAndName(
+    // Authorization: if folder is private, only the creator can rename it
+    if (folder.getScope() === 'private' && folder.getCreatedBy() !== command.userId) {
+      throw new Error('You do not have permission to rename this private folder');
+    }
+
+    const trimmedName = command.name.trim();
+
+    // Scope-aware uniqueness check
+    const existing = await this.folderRepository.findByTeamNameAndScope(
       command.teamId,
-      command.name.trim(),
+      trimmedName,
+      folder.getScope(),
+      folder.getScope() === 'private' ? folder.getCreatedBy() : undefined,
     );
     if (existing && existing.getId() !== command.folderId) {
-      throw new Error(`A folder named "${command.name.trim()}" already exists in this team`);
+      throw new Error(`A folder named "${trimmedName}" already exists in this team`);
     }
 
     const renamed = folder.rename(command.name);

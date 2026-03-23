@@ -1,11 +1,17 @@
 import { randomUUID } from 'crypto';
 
+export type FolderScope = 'team' | 'private';
+
 /**
  * Folder - Domain Entity
  *
  * Represents a team-scoped folder for organizing tickets.
  * Folders appear as collapsible sections in the ticket feed.
  * Max hierarchy: root → folder → tickets (no nested folders).
+ *
+ * Scope determines visibility:
+ * - "team": visible to all team members (default)
+ * - "private": visible only to the creator
  *
  * Immutable: modifications return new instances.
  */
@@ -17,10 +23,12 @@ export class Folder {
     private readonly createdBy: string,
     private readonly createdAt: Date,
     private readonly updatedAt: Date,
+    private readonly scope: FolderScope = 'team',
   ) {}
 
-  static create(teamId: string, createdBy: string, name: string): Folder {
+  static create(teamId: string, createdBy: string, name: string, scope: FolderScope = 'team'): Folder {
     Folder.validateName(name);
+    Folder.validateScope(scope);
 
     if (!teamId || teamId.trim().length === 0) {
       throw new Error('Folder must belong to a team');
@@ -38,6 +46,7 @@ export class Folder {
       createdBy.trim(),
       new Date(),
       new Date(),
+      scope,
     );
   }
 
@@ -48,8 +57,10 @@ export class Folder {
     createdBy: string,
     createdAt: Date,
     updatedAt: Date,
+    scope?: FolderScope,
   ): Folder {
-    return new Folder(id, teamId, name, createdBy, createdAt, updatedAt);
+    // Treat missing/undefined scope as "team" for migration support
+    return new Folder(id, teamId, name, createdBy, createdAt, updatedAt, scope ?? 'team');
   }
 
   rename(newName: string): Folder {
@@ -61,6 +72,20 @@ export class Folder {
       this.createdBy,
       this.createdAt,
       new Date(),
+      this.scope,
+    );
+  }
+
+  updateScope(newScope: FolderScope): Folder {
+    Folder.validateScope(newScope);
+    return new Folder(
+      this.id,
+      this.teamId,
+      this.name,
+      this.createdBy,
+      this.createdAt,
+      new Date(),
+      newScope,
     );
   }
 
@@ -89,6 +114,10 @@ export class Folder {
     return new Date(this.updatedAt);
   }
 
+  getScope(): FolderScope {
+    return this.scope;
+  }
+
   private static validateName(name: string): void {
     if (!name || name.trim().length === 0) {
       throw new Error('Folder name cannot be empty');
@@ -96,6 +125,12 @@ export class Folder {
     const trimmed = name.trim();
     if (trimmed.length < 1 || trimmed.length > 100) {
       throw new Error('Folder name must be between 1 and 100 characters');
+    }
+  }
+
+  private static validateScope(scope: string): void {
+    if (scope !== 'team' && scope !== 'private') {
+      throw new Error('Folder scope must be "team" or "private"');
     }
   }
 
@@ -107,6 +142,7 @@ export class Folder {
       createdBy: this.createdBy,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
+      scope: this.scope,
     };
   }
 }

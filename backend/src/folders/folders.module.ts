@@ -7,6 +7,7 @@ import { ListFoldersUseCase } from './application/use-cases/ListFoldersUseCase';
 import { RenameFolderUseCase } from './application/use-cases/RenameFolderUseCase';
 import { DeleteFolderUseCase } from './application/use-cases/DeleteFolderUseCase';
 import { MoveTicketToFolderUseCase } from './application/use-cases/MoveTicketToFolderUseCase';
+import { UpdateFolderScopeUseCase } from './application/use-cases/UpdateFolderScopeUseCase';
 import { FirebaseService } from '../shared/infrastructure/firebase/firebase.config';
 import { TicketsModule } from '../tickets/tickets.module';
 import { AEC_REPOSITORY } from '../tickets/application/ports/AECRepository';
@@ -48,6 +49,11 @@ import { AEC_REPOSITORY } from '../tickets/application/ports/AECRepository';
     {
       provide: MoveTicketToFolderUseCase,
       useFactory: (folderRepo, aecRepo) => new MoveTicketToFolderUseCase(folderRepo, aecRepo),
+      inject: [FOLDER_REPOSITORY, AEC_REPOSITORY],
+    },
+    {
+      provide: UpdateFolderScopeUseCase,
+      useFactory: (folderRepo, aecRepo) => new UpdateFolderScopeUseCase(folderRepo, aecRepo),
       inject: [FOLDER_REPOSITORY, AEC_REPOSITORY],
     },
   ],
