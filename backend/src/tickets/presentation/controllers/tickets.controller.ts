@@ -521,9 +521,16 @@ export class TicketsController {
   }
 
   @Get(':id')
-  async getTicket(@TeamId() teamId: string, @Param('id') id: string) {
+  async getTicket(@TeamId() teamId: string, @UserId() userId: string, @Param('id') id: string) {
     const aec = await this.resolveTicket(id, teamId);
-    return this.mapToResponse(aec);
+    // Precompute visible tag IDs to strip other users' private tags
+    const allTags = await this.tagRepository.findByTeam(teamId);
+    const visibleTagIds = new Set(
+      allTags
+        .filter((t) => t.getScope() === 'team' || (t.getScope() === 'private' && t.getCreatedBy() === userId))
+        .map((t) => t.getId()),
+    );
+    return this.mapToResponse(aec, visibleTagIds);
   }
 
   @Get()
