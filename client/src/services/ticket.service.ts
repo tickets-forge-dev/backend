@@ -80,6 +80,7 @@ export interface AECResponse {
   wireframeContext?: string | null;
   wireframeImageAttachmentIds?: string[];
   apiContext?: string | null;
+  forgedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

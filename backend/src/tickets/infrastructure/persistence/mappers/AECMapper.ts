@@ -94,6 +94,7 @@ export interface AECDocument {
   slug?: string | null;
   previousStatus?: string | null;
   generationJobId?: string | null;
+  forgedAt?: Timestamp | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -260,6 +261,7 @@ export class AECMapper {
       doc.slug ?? null,
       (doc.previousStatus as AECStatus) ?? null,
       doc.generationJobId ?? null,
+      doc.forgedAt ? doc.forgedAt.toDate() : null,
     );
   }
 
@@ -343,6 +345,7 @@ export class AECMapper {
       slug: aec.slug ?? null,
       previousStatus: aec.previousStatus ?? null,
       generationJobId: aec.generationJobId ?? null,
+      forgedAt: aec.forgedAt ? Timestamp.fromDate(aec.forgedAt) : null,
     };
   }
 }
