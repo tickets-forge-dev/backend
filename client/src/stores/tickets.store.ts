@@ -19,6 +19,7 @@ interface TicketListPreferences {
   collapsedGroups?: string[];
   priorityFilter?: string;
   typeFilter?: string;
+  tagFilter?: string[];
 }
 
 interface TicketsState {

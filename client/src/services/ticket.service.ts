@@ -73,6 +73,7 @@ export interface AECResponse {
     submittedAt: string;
   } | null;
   folderId?: string | null;
+  tagIds?: string[];
   // Story 14-3: Generation preferences
   includeWireframes?: boolean;
   includeApiSpec?: boolean;
@@ -293,6 +294,10 @@ export class TicketService {
       { wireframeContext },
     );
     return response.data;
+  }
+
+  async updateTicketTags(ticketId: string, tagIds: string[]): Promise<void> {
+    await this.client.patch(`/tickets/${ticketId}/tags`, { tagIds });
   }
 
   // Excalidraw wireframe refinement via AI

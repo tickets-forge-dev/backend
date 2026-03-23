@@ -5,6 +5,7 @@ import { QuestionRoundService } from './question-round.service';
 import { LinearService } from './linear.service';
 import { JiraService } from './jira.service';
 import { FolderService } from './folder.service';
+import { TagService } from './tag.service';
 import { teamService } from '../teams/services/team.service';
 
 /**
@@ -21,6 +22,7 @@ let questionRoundServiceInstance: QuestionRoundService | null = null;
 let linearServiceInstance: LinearService | null = null;
 let jiraServiceInstance: JiraService | null = null;
 let folderServiceInstance: FolderService | null = null;
+let tagServiceInstance: TagService | null = null;
 
 export function useServices() {
   // Lazy initialization - create service instances only once
@@ -52,6 +54,10 @@ export function useServices() {
     folderServiceInstance = new FolderService();
   }
 
+  if (!tagServiceInstance) {
+    tagServiceInstance = new TagService();
+  }
+
   return {
     ticketService: ticketServiceInstance,
     authService: authServiceInstance,
@@ -60,6 +66,7 @@ export function useServices() {
     linearService: linearServiceInstance,
     jiraService: jiraServiceInstance,
     folderService: folderServiceInstance,
+    tagService: tagServiceInstance,
     teamService: teamService, // Singleton from teams module
   };
 }

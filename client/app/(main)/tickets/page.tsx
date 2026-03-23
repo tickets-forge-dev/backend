@@ -6,11 +6,14 @@ import { Button } from '@/core/components/ui/button';
 import Link from 'next/link';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useFoldersStore } from '@/stores/folders.store';
+import { useTagsStore } from '@/stores/tags.store';
 import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3, GripVertical } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3, GripVertical, Tag } from 'lucide-react';
+import { TagPicker } from '@/tickets/components/TagPicker';
+import { getTagColor } from '@/tickets/config/tagColors';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +63,7 @@ export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences, archivedTickets, isLoadingArchived, showArchived, toggleShowArchived, unarchiveTicket } = useTicketsStore();
   const { currentTeam, loadTeamMembers, teamMembers } = useTeamStore();
   const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder, updateFolderScope, reorderFolders } = useFoldersStore();
+  const { tags, loadTags } = useTagsStore();
   const { user } = useAuthStore();
   const currentUserId = user?.uid ?? null;
   const { config: columnConfig, toggleColumn, reorderColumns, resetToDefaults, loadColumnConfig } = useColumnConfigStore();
@@ -73,6 +77,7 @@ export default function TicketsListPage() {
   const [headerContextMenu, setHeaderContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(listPreferences?.typeFilter || 'all');
+  const [tagFilter, setTagFilter] = useState<string[]>(listPreferences?.tagFilter || []);
   const [showFilter, setShowFilter] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [sortBy, setSortBy] = useState<SortBy>((listPreferences?.sortBy as any) || 'updated');
@@ -219,11 +224,23 @@ export default function TicketsListPage() {
     if (currentTeam?.id) {
       loadTeamMembers(currentTeam.id);
       loadFolders(currentTeam.id);
+      loadTags(currentTeam.id);
       loadColumnConfig(currentTeam.id);
     }
-  }, [loadTickets, fetchQuota, loadTeamMembers, loadFolders, loadColumnConfig, currentTeam?.id]);
+  }, [loadTickets, fetchQuota, loadTeamMembers, loadFolders, loadTags, loadColumnConfig, currentTeam?.id]);
 
   const allTickets = tickets;
+
+  // Filter out stale tag IDs that no longer exist in loaded tags
+  useEffect(() => {
+    if (tags.length > 0 && tagFilter.length > 0) {
+      const validTagIds = new Set(tags.map(t => t.id));
+      const cleaned = tagFilter.filter(id => validTagIds.has(id));
+      if (cleaned.length !== tagFilter.length) {
+        setTagFilter(cleaned);
+      }
+    }
+  }, [tags]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter and sort tickets
   const filteredTickets = useMemo(() => {
@@ -242,7 +259,10 @@ export default function TicketsListPage() {
         const matchesType =
           typeFilter === 'all' || ticket.type === typeFilter;
 
-        return matchesSearch && matchesPriority && matchesType;
+        const matchesTags =
+          tagFilter.length === 0 || tagFilter.every(tagId => (ticket.tagIds ?? []).includes(tagId));
+
+        return matchesSearch && matchesPriority && matchesType && matchesTags;
       })
       .sort((a, b) => {
         let comparison = 0;
@@ -271,7 +291,7 @@ export default function TicketsListPage() {
 
         return sortDirection === 'desc' ? comparison : -comparison;
       });
-  }, [allTickets, debouncedSearch, priorityFilter, typeFilter, sortBy, sortDirection]);
+  }, [allTickets, debouncedSearch, priorityFilter, typeFilter, tagFilter, sortBy, sortDirection]);
 
   // Separate tickets into folder-grouped and unfiled
   const { folderTicketsMap, unfiledTickets } = useMemo(() => {
@@ -296,8 +316,9 @@ export default function TicketsListPage() {
       sortBy,
       priorityFilter,
       typeFilter,
+      tagFilter,
     });
-  }, [sortBy, priorityFilter, typeFilter, setListPreferences]);
+  }, [sortBy, priorityFilter, typeFilter, tagFilter, setListPreferences]);
 
   const sortLabel = {
       updated: 'Recently updated',
@@ -383,7 +404,7 @@ export default function TicketsListPage() {
             variant="ghost"
             size="icon"
             onClick={() => setShowFilter((v) => !v)}
-            className={`${priorityFilter !== 'all' || typeFilter !== 'all' ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+            className={`${priorityFilter !== 'all' || typeFilter !== 'all' || tagFilter.length > 0 ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
@@ -430,6 +451,36 @@ export default function TicketsListPage() {
                     </button>
                   ))}
                 </div>
+                {/* Tags */}
+                {tags.length > 0 && (
+                  <div className="border-t border-[var(--border)]/30 pt-2">
+                    <div className="flex items-center justify-between px-2 mb-0.5">
+                      <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Tags</p>
+                      {tagFilter.length > 0 && (
+                        <button onClick={() => setTagFilter([])} className="text-[10px] text-[var(--primary)] hover:underline">Clear</button>
+                      )}
+                    </div>
+                    {tags.map(tag => {
+                      const color = getTagColor(tag.color);
+                      const isActive = tagFilter.includes(tag.id);
+                      return (
+                        <button
+                          key={tag.id}
+                          onClick={() => {
+                            setTagFilter(prev =>
+                              isActive ? prev.filter(id => id !== tag.id) : [...prev, tag.id]
+                            );
+                          }}
+                          className={`w-full text-left px-3 py-1.5 rounded-md text-[var(--text-sm)] transition-colors flex items-center gap-2 ${isActive ? 'bg-[var(--bg-hover)] text-[var(--text)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
+                        >
+                          <span className={`h-2 w-2 rounded-full flex-shrink-0 ${color.dot}`} />
+                          <span className="truncate flex-1">{tag.name}</span>
+                          {tag.scope === 'private' && <Lock className="h-3 w-3 text-[var(--text-tertiary)]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -632,7 +683,7 @@ export default function TicketsListPage() {
           )}
           <div className="flex min-h-[300px] sm:min-h-[400px] items-center justify-center">
             <div className="text-center px-4">
-              {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' ? (
+              {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all' || tagFilter.length > 0 ? (
                 <>
                   <Search className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" />
                   <p className="text-sm text-[var(--text-secondary)]">No tickets found</p>
@@ -1688,12 +1739,30 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
   const { deleteTicket, archiveTicket, loadTickets } = useTicketsStore();
   const { teamMembers, currentTeam } = useTeamStore();
   const { moveTicket } = useFoldersStore();
+  const { tags } = useTagsStore();
+  const { ticketService } = useServices();
   const ticketStatus = getTicketStatusKey(ticket);
   const isDraft = ticketStatus === 'draft' || ticketStatus === 'in-progress' || ticketStatus === 'needs-resume';
   const href = isDraft ? `/tickets/create?resume=${ticket.id}` : `/tickets/${ticket.slug || ticket.id}`;
   const [isDragging, setIsDragging] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+  // Resolve tag IDs to tag objects
+  const visibleTicketTags = useMemo(() => {
+    const ticketTagIds = ticket.tagIds ?? [];
+    if (ticketTagIds.length === 0) return [];
+    return tags.filter(t => ticketTagIds.includes(t.id));
+  }, [ticket.tagIds, tags]);
+
+  const handleTagsChange = useCallback(async (tagIds: string[]) => {
+    try {
+      await ticketService.updateTicketTags(ticket.id, tagIds);
+      loadTickets();
+    } catch {
+      toast.error('Failed to update tags');
+    }
+  }, [ticket.id, ticketService, loadTickets]);
 
   const handleOpen = () => router.push(href);
 
@@ -1803,6 +1872,20 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
           {ticket.title}
         </span>
         {ticketStatus === 'needs-resume' && <span className="flex-shrink-0 text-red-500 text-xs">{'\u274C'}</span>}
+        {/* Tag pills */}
+        {visibleTicketTags.length > 0 && (
+          <span className="flex items-center gap-1 flex-shrink-0 ml-1">
+            {visibleTicketTags.slice(0, 3).map(tag => (
+              <span key={tag.id} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${getTagColor(tag.color).pill}`}>
+                {tag.scope === 'private' && <Lock className="h-2 w-2" />}
+                {tag.name}
+              </span>
+            ))}
+            {visibleTicketTags.length > 3 && (
+              <span className="text-[10px] text-[var(--text-tertiary)]">+{visibleTicketTags.length - 3}</span>
+            )}
+          </span>
+        )}
       </Link>
 
       {/* Dynamic columns */}
@@ -1828,6 +1911,15 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
               <UserPlus className="h-4 w-4 mr-2" />
               Assign
             </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Tag className="h-4 w-4 mr-2" />
+                Tags...
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56 p-0">
+                <TagPicker ticketId={ticket.id} currentTagIds={ticket.tagIds ?? []} onTagsChange={handleTagsChange} />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             {(movableFolders.length > 0 || ticket.folderId) && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>

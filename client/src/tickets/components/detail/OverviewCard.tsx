@@ -1,11 +1,22 @@
 'use client';
 
-import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { useMemo, useCallback } from 'react';
+import { AlertTriangle, ArrowRight, Lock, Plus } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import type { AECResponse } from '@/services/ticket.service';
 import { useTeamStore } from '@/teams/stores/team.store';
+import { useTagsStore } from '@/stores/tags.store';
+import { useServices } from '@/services/index';
+import { useTicketsStore } from '@/stores/tickets.store';
+import { TagPicker } from '../TagPicker';
+import { getTagColor } from '@/tickets/config/tagColors';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/core/components/ui/dropdown-menu';
 
 /** Maps current status → hint with and without a developer assigned. */
 const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> = {
@@ -60,8 +71,27 @@ export function OverviewCard({
   const hints = NEXT_STEP_HINTS[ticket.status];
   const hint = hints ? (isUnassigned ? hints.unassigned : hints.assigned) : '';
   const { teamMembers } = useTeamStore();
+  const { tags } = useTagsStore();
+  const { ticketService } = useServices();
+  const { loadTickets } = useTicketsStore();
   const creatorMember = ticket.createdBy ? teamMembers.find((m) => m.userId === ticket.createdBy) : null;
   const creatorName = creatorMember ? (creatorMember.displayName || creatorMember.email || null) : null;
+
+  // Resolve tag IDs to tag objects
+  const visibleTicketTags = useMemo(() => {
+    const ticketTagIds = ticket.tagIds ?? [];
+    if (ticketTagIds.length === 0) return [];
+    return tags.filter(t => ticketTagIds.includes(t.id));
+  }, [ticket.tagIds, tags]);
+
+  const handleTagsChange = useCallback(async (tagIds: string[]) => {
+    try {
+      await ticketService.updateTicketTags(ticket.id, tagIds);
+      loadTickets();
+    } catch {
+      // Silently fail — TagPicker handles UI
+    }
+  }, [ticket.id, ticketService, loadTickets]);
 
   // Find current and next step for the progress dots
   const currentIdx = LIFECYCLE_STEPS.findIndex(
@@ -98,6 +128,27 @@ export function OverviewCard({
             Created by <span className="text-[var(--text-secondary)]">{creatorName ?? '—'}</span>
           </span>
         )}
+
+        {/* Tag pills + add tag */}
+        <div className="flex items-center gap-1 flex-1 min-w-0 justify-center">
+          {visibleTicketTags.map(tag => (
+            <span key={tag.id} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${getTagColor(tag.color).pill}`}>
+              {tag.scope === 'private' && <Lock className="h-2 w-2" />}
+              {tag.name}
+            </span>
+          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors">
+                <Plus className="h-3 w-3" />
+                {visibleTicketTags.length === 0 && <span>Add tag</span>}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-56 p-0">
+              <TagPicker ticketId={ticket.id} currentTagIds={ticket.tagIds ?? []} onTagsChange={handleTagsChange} />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* Status badge — clicking opens lifecycle panel */}
         {ticket.status && (
