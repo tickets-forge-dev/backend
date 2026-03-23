@@ -83,22 +83,28 @@ export class FirestoreFolderRepository implements FolderRepository {
     scope: FolderScope,
     createdBy?: string,
   ): Promise<Folder | null> {
-    let query = this.firestore
+    // Query by name only (catches pre-migration folders without scope field)
+    const snapshot = await this.firestore
       .collection('teams')
       .doc(teamId)
       .collection('folders')
       .where('name', '==', name)
-      .where('scope', '==', scope);
-
-    // For private scope, also filter by creator
-    if (scope === 'private' && createdBy) {
-      query = query.where('createdBy', '==', createdBy);
-    }
-
-    const snapshot = await query.limit(1).get();
+      .get();
 
     if (snapshot.empty) return null;
-    return this.mapToFolder(snapshot.docs[0].data() as FolderDocument);
+
+    // Filter in-memory by scope (treating missing scope as 'team')
+    for (const doc of snapshot.docs) {
+      const data = doc.data() as FolderDocument;
+      const folderScope = data.scope || 'team'; // null-coalesce for pre-migration
+      if (scope === 'team' && folderScope === 'team') {
+        return this.mapToFolder(data);
+      }
+      if (scope === 'private' && folderScope === 'private' && createdBy && data.createdBy === createdBy) {
+        return this.mapToFolder(data);
+      }
+    }
+    return null;
   }
 
   async update(folder: Folder): Promise<void> {

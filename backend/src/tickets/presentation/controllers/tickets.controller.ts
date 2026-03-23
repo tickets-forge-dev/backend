@@ -111,6 +111,10 @@ import {
   ProjectProfileRepository,
   PROJECT_PROFILE_REPOSITORY,
 } from '../../../project-profiles/application/ports/ProjectProfileRepository.port';
+import {
+  FolderRepository,
+  FOLDER_REPOSITORY,
+} from '../../../folders/application/ports/FolderRepository';
 
 @Controller('tickets')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -170,6 +174,8 @@ export class TicketsController {
     @Inject(PROJECT_PROFILE_REPOSITORY)
     private readonly projectProfileRepository: ProjectProfileRepository,
     private readonly configService: ConfigService,
+    @Inject(FOLDER_REPOSITORY)
+    private readonly folderRepository: FolderRepository,
   ) {}
 
   /**
@@ -509,9 +515,22 @@ export class TicketsController {
     const aecs = await this.aecRepository.findByTeam(teamId);
     this.logger.log(`[listTickets] teamId: ${teamId}, found ${aecs.length} tickets`);
 
+    // Load visible folder IDs for the current user (team-scoped + user's private folders)
+    const allFolders = await this.folderRepository.findByTeam(teamId);
+    const visibleFolderIds = new Set(
+      allFolders
+        .filter((f) => f.getScope() === 'team' || (f.getScope() === 'private' && f.getCreatedBy() === userId))
+        .map((f) => f.getId()),
+    );
+
+    // Filter out tickets in folders not visible to this user
+    const visibleAecs = aecs.filter(
+      (aec) => !aec.folderId || visibleFolderIds.has(aec.folderId),
+    );
+
     const filtered = assignedToMe === 'true'
-      ? aecs.filter((aec) => aec.assignedTo === userId)
-      : aecs;
+      ? visibleAecs.filter((aec) => aec.assignedTo === userId)
+      : visibleAecs;
 
     return filtered.map((aec) => this.mapToResponse(aec));
   }

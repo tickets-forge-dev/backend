@@ -76,6 +76,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UsageBudgetRepository';
 import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUsageBudgetRepository';
 import { ProjectProfilesModule } from '../project-profiles/project-profiles.module';
+import { FoldersModule } from '../folders/folders.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { ProjectProfilesModule } from '../project-profiles/project-profiles.modu
     TeamsModule, // Story 3.5-5: Access to TeamMemberRepository for assignment validation
     NotificationsModule, // Story 9.2: Email notifications for ticket events
     forwardRef(() => ProjectProfilesModule), // Epic 15: Project profile lookup during analysis
+    forwardRef(() => FoldersModule), // Ticket visibility filtering by folder scope
   ],
   controllers: [TicketsController],
   providers: [
