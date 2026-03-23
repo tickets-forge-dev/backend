@@ -106,8 +106,8 @@ export function AssigneeSelector({
     }
   };
 
-  // Find assigned developer for display name
-  const assignedDev = developers.find((d) => d.userId === assignedTo);
+  // Find assigned member for display name (use allMembers, not filtered developers list)
+  const assignedDev = allMembers.find((d) => d.userId === assignedTo);
 
   // Trigger button - pill-shaped chip, clearly interactive
   const TriggerButton = () => {
