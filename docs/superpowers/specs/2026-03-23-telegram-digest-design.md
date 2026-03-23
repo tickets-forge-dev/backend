@@ -36,6 +36,7 @@ Because it uses MCP, the server works with any MCP-compatible client (Claude Cod
 │  │  • telegram_list_channels  (browse)   │   │
 │  │  • telegram_select_channels(config)   │   │
 │  │  • telegram_get_messages   (fetch)    │   │
+│  │  • telegram_logout         (cleanup)  │   │
 │  └──────────────┬────────────────────────┘   │
 │                 │ MTProto                     │
 │  ┌──────────────▼────────────────────────┐   │
@@ -65,7 +66,8 @@ telegram-digest-mcp/
 │   │   ├── login.ts              # telegram_login
 │   │   ├── list-channels.ts      # telegram_list_channels
 │   │   ├── select-channels.ts    # telegram_select_channels
-│   │   └── get-messages.ts       # telegram_get_messages
+│   │   ├── get-messages.ts       # telegram_get_messages
+│   │   └── logout.ts             # telegram_logout
 │   ├── telegram/
 │   │   └── client.ts             # gramjs wrapper (connect, auth, fetch)
 │   └── config/
@@ -79,16 +81,29 @@ telegram-digest-mcp/
 
 #### `telegram_login`
 
-- **Input:** `{ phone: string, code?: string }`
-- **Behavior:** If `code` is omitted, initiates auth and sends SMS. If `code` is provided, completes auth.
-- **Output:** `{ status: "code_sent" | "authenticated", message: string }`
-- **Side effect:** Saves gramjs StringSession to `~/.config/telegram-digest/session`
+- **Input:** `{ apiId?: number, apiHash?: string, phone?: string, code?: string, password?: string }`
+- **Behavior:**
+  - First call: pass `apiId`, `apiHash`, `phone` → initiates auth, sends SMS code. Returns `{ status: "code_sent" }`. Saves `apiId`/`apiHash` to config.
+  - Second call: pass `code` → verifies SMS code. If 2FA is enabled, returns `{ status: "password_required" }`. If not, returns `{ status: "authenticated" }`.
+  - Third call (if 2FA): pass `password` → completes auth. Returns `{ status: "authenticated" }`.
+- **Output:** `{ status: "code_sent" | "password_required" | "authenticated" | "error", message: string }`
+- **Errors:** Invalid/expired code returns `{ status: "error", message: "Code expired or invalid. Request a new code." }`. The skill should re-initiate login on code expiry.
+- **Side effect:** Saves gramjs StringSession to `~/.config/telegram-digest/session`, saves `apiId`/`apiHash` to `config.json`.
+
+#### `telegram_logout`
+
+- **Input:** `{}`
+- **Behavior:** Destroys the MTProto session and clears stored credentials.
+- **Output:** `{ status: "logged_out" }`
+- **Side effect:** Deletes `session` and clears `apiId`/`apiHash` from `config.json`. Preserves channel selection and state.
 
 #### `telegram_list_channels`
 
 - **Input:** `{}`
 - **Output:** `{ channels: { id: string, title: string, unreadCount: number }[] }`
+- **Behavior:** Returns all channels/supergroups the user is subscribed to. Telegram caps subscriptions at ~500 for regular users, so pagination is unnecessary. Channel IDs are stringified large integers (e.g., `"-1001234567890"`).
 - **Requires:** Active session
+- **Session error:** If the session is expired/revoked, returns `{ error: "session_expired", message: "Session expired. Run telegram_login to re-authenticate." }`
 
 #### `telegram_select_channels`
 
@@ -98,13 +113,14 @@ telegram-digest-mcp/
 
 #### `telegram_get_messages`
 
-- **Input:** `{ mode: "24h" | "since-last-read", channelIds?: string[] }`
+- **Input:** `{ mode: "24h" | "since-last-read", channelIds?: string[], limit?: number }`
 - **Output:**
   ```json
   {
     "channels": [
       {
         "title": "Channel Name",
+        "messageCount": 42,
         "messages": [
           { "text": "message content", "date": "ISO timestamp", "sender": "name" }
         ]
@@ -115,7 +131,10 @@ telegram-digest-mcp/
 - **Behavior:**
   - `mode: "24h"` — fetches messages from the last 24 hours
   - `mode: "since-last-read"` — fetches messages after the last-read position stored in `state.json`
-  - If `channelIds` is omitted, uses the saved selection from config
+  - If `channelIds` is omitted, uses the saved selection from config. If no channels are configured, returns `{ error: "no_channels", message: "No channels configured. Run telegram_select_channels first." }`
+  - `limit` defaults to **100 messages per channel**. This caps payload size to stay within LLM context windows. `messageCount` reports the total available so the user knows if messages were truncated.
+- **Rate limiting:** If Telegram returns a `FloodWaitError`, the server waits the required duration (up to 60s) and retries automatically. If the wait exceeds 60s, returns `{ error: "rate_limited", message: "Telegram rate limit. Try again in Xs.", retryAfter: number }`.
+- **Session error:** If the session is expired/revoked, returns `{ error: "session_expired", message: "Session expired. Run telegram_login to re-authenticate." }`
 - **Side effect:** Updates `state.json` with the latest message ID per channel after fetch
 
 ### Config & State
@@ -124,9 +143,9 @@ Stored at `~/.config/telegram-digest/`:
 
 | File | Contents |
 |---|---|
-| `config.json` | `{ apiId: number, apiHash: string, selectedChannels: string[] }` |
+| `config.json` | `{ apiId: number, apiHash: string, selectedChannels: string[] }` — channel IDs are stringified integers |
 | `session` | gramjs StringSession string (MTProto auth persistence) |
-| `state.json` | `{ [channelId]: { lastReadMessageId: number } }` |
+| `state.json` | `{ [channelId: string]: { lastReadMessageId: number } }` — keys match the string IDs from `config.json` |
 
 ### Prerequisites
 
@@ -177,19 +196,28 @@ Use this format:
 
 ---
 
-{{raw messages grouped by channel}}
+{{raw messages serialized as plain text, one per line:}}
+{{## Channel Name (42 messages)}}
+{{[2026-03-23 10:15] sender: message text}}
+{{[2026-03-23 10:17] sender: another message}}
 ```
+
+The skill serializes the JSON response from `telegram_get_messages` into this plain-text format to minimize token usage. JSON structure is not passed to the LLM.
 
 ### First-Run Experience
 
 ```
 User: /telegram:summarize-mine
 Skill: "No session found. Let's set up Telegram access."
-Skill: "Enter your api_id and api_hash from my.telegram.org"
-       → calls telegram_login { phone: "+972..." }
-       → gramjs sends SMS code
-Skill: "Enter the code you received"
-       → completes auth, session saved
+Skill: "Go to my.telegram.org and create an app. Enter your api_id, api_hash, and phone number."
+       → calls telegram_login { apiId: 12345, apiHash: "abc...", phone: "+972..." }
+       → gramjs sends SMS code → returns { status: "code_sent" }
+Skill: "Enter the code you received via SMS"
+       → calls telegram_login { code: "12345" }
+       → if 2FA: returns { status: "password_required" }
+Skill: "Enter your 2FA password" (only if needed)
+       → calls telegram_login { password: "..." }
+       → returns { status: "authenticated" }
 Skill: "Authenticated! Now let's pick your channels."
        → calls telegram_list_channels → shows list → user picks
        → calls telegram_select_channels
