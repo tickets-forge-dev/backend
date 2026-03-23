@@ -5,6 +5,7 @@ import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import type { AECResponse } from '@/services/ticket.service';
+import { useTeamStore } from '@/teams/stores/team.store';
 
 /** Maps current status → hint with and without a developer assigned. */
 const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> = {
@@ -58,6 +59,9 @@ export function OverviewCard({
   const isUnassigned = !ticket.assignedTo;
   const hints = NEXT_STEP_HINTS[ticket.status];
   const hint = hints ? (isUnassigned ? hints.unassigned : hints.assigned) : '';
+  const { teamMembers } = useTeamStore();
+  const creatorMember = ticket.createdBy ? teamMembers.find((m) => m.userId === ticket.createdBy) : null;
+  const creatorName = creatorMember ? (creatorMember.displayName || creatorMember.email || null) : null;
 
   // Find current and next step for the progress dots
   const currentIdx = LIFECYCLE_STEPS.findIndex(
@@ -87,6 +91,13 @@ export function OverviewCard({
             </div>
           )}
         </div>
+
+        {/* Created by — read only */}
+        {ticket.createdBy && (
+          <span className="text-[11px] text-[var(--text-tertiary)]">
+            Created by <span className="text-[var(--text-secondary)]">{creatorName ?? '—'}</span>
+          </span>
+        )}
 
         {/* Status badge — clicking opens lifecycle panel */}
         {ticket.status && (

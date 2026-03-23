@@ -10,7 +10,7 @@ import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,9 @@ import {
 import { TicketLifecycleInfo } from '@/tickets/components/detail/TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG } from '@/tickets/config/ticketStatusConfig';
 import { JobsPanel } from '@/tickets/components/JobsPanel';
+import { useAuthStore } from '@/stores/auth.store';
+import { useColumnConfigStore, type ColumnId } from '@/stores/column-config.store';
+import { useServices } from '@/services/index';
 
 type SortBy = 'updated' | 'created' | 'priority' | 'progress';
 type SortDirection = 'desc' | 'asc';
@@ -55,12 +58,19 @@ function getTypeIcon(type: string | null) {
 
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences, archivedTickets, isLoadingArchived, showArchived, toggleShowArchived, unarchiveTicket } = useTicketsStore();
-  const { currentTeam, loadTeamMembers } = useTeamStore();
-  const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder } = useFoldersStore();
+  const { currentTeam, loadTeamMembers, teamMembers } = useTeamStore();
+  const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder, updateFolderScope, reorderFolders } = useFoldersStore();
+  const { user } = useAuthStore();
+  const currentUserId = user?.uid ?? null;
+  const { config: columnConfig, toggleColumn, resetToDefaults, loadColumnConfig } = useColumnConfigStore();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isSubmittingFolder, setIsSubmittingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderScope, setNewFolderScope] = useState<'team' | 'private'>('team');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const [scopeChangeDialog, setScopeChangeDialog] = useState<{ folderId: string; folderName: string; newScope: 'team' | 'private'; affectedTickets: any[] } | null>(null);
+  const [headerContextMenu, setHeaderContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<string>(listPreferences?.priorityFilter || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(listPreferences?.typeFilter || 'all');
   const [showFilter, setShowFilter] = useState(false);
@@ -80,6 +90,19 @@ export default function TicketsListPage() {
 
   const handleTicketDrop = useCallback(async (ticketId: string, folderId: string | null) => {
     if (!currentTeam?.id) return;
+
+    // Scope check: if dropping into a private folder, ensure ticket belongs to folder owner
+    if (folderId) {
+      const targetFolder = folders.find(f => f.id === folderId);
+      if (targetFolder?.scope === 'private') {
+        const ticket = tickets.find(t => t.id === ticketId);
+        if (ticket && ticket.createdBy !== currentUserId) {
+          toast.error('Cannot move another user\'s ticket to a private folder');
+          return;
+        }
+      }
+    }
+
     const ok = await moveTicket(currentTeam.id, ticketId, folderId);
     if (ok) {
       loadTickets();
@@ -87,7 +110,65 @@ export default function TicketsListPage() {
     } else {
       toast.error('Failed to move ticket');
     }
-  }, [currentTeam?.id, moveTicket, loadTickets]);
+  }, [currentTeam?.id, moveTicket, loadTickets, folders, tickets, currentUserId]);
+
+  const handleChangeVisibility = useCallback(async (folderId: string) => {
+    if (!currentTeam?.id) return;
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    const newScope = folder.scope === 'private' ? 'team' : 'private';
+
+    try {
+      const result = await updateFolderScope(currentTeam.id, folderId, newScope);
+      if (result.affectedTickets && result.affectedTickets.length > 0) {
+        // Need confirmation — show dialog
+        setScopeChangeDialog({ folderId, folderName: folder.name, newScope, affectedTickets: result.affectedTickets });
+      } else {
+        toast.success(newScope === 'private' ? 'Folder is now private' : 'Folder is now visible to team');
+        loadTickets();
+      }
+    } catch {
+      toast.error('Failed to change folder visibility');
+    }
+  }, [currentTeam?.id, folders, updateFolderScope, loadTickets]);
+
+  const handleConfirmScopeChange = useCallback(async () => {
+    if (!scopeChangeDialog || !currentTeam?.id) return;
+    try {
+      await updateFolderScope(currentTeam.id, scopeChangeDialog.folderId, scopeChangeDialog.newScope, true);
+      toast.success(scopeChangeDialog.newScope === 'private' ? 'Folder is now private' : 'Folder is now visible to team');
+      setScopeChangeDialog(null);
+      loadTickets();
+    } catch {
+      toast.error('Failed to change folder visibility');
+    }
+  }, [scopeChangeDialog, currentTeam?.id, updateFolderScope, loadTickets]);
+
+  const handleMoveFolder = useCallback((folderId: string, direction: 'up' | 'down') => {
+    if (!currentTeam?.id) return;
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const scopeFolders = folders.filter(f => f.scope === folder.scope);
+    const idx = scopeFolders.findIndex(f => f.id === folderId);
+    if (idx === -1) return;
+    if (direction === 'up' && idx === 0) return;
+    if (direction === 'down' && idx === scopeFolders.length - 1) return;
+
+    const newOrder = scopeFolders.map(f => f.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+    reorderFolders(currentTeam.id, folder.scope, newOrder);
+  }, [currentTeam?.id, folders, reorderFolders]);
+
+  // Compute visible columns and grid template
+  const visibleColumns = useMemo(() => columnConfig.order.filter(c => !columnConfig.hidden.has(c)), [columnConfig]);
+  const columnWidths: Record<ColumnId, string> = { status: '120px', priority: '72px', assignee: '100px', creator: '80px', updated: '64px', score: '44px' };
+  const mdGridTemplate = useMemo(() => `minmax(0, 1fr) ${visibleColumns.map(c => columnWidths[c]).join(' ')} 32px`, [visibleColumns]);
+
+  // Split folders into private and team sections
+  const privateFolders = useMemo(() => folders.filter(f => f.scope === 'private'), [folders]);
+  const teamFolders = useMemo(() => folders.filter(f => f.scope === 'team'), [folders]);
 
   // Debounce search input
   useEffect(() => {
@@ -102,8 +183,9 @@ export default function TicketsListPage() {
     if (currentTeam?.id) {
       loadTeamMembers(currentTeam.id);
       loadFolders(currentTeam.id);
+      loadColumnConfig(currentTeam.id);
     }
-  }, [loadTickets, fetchQuota, loadTeamMembers, loadFolders, currentTeam?.id]);
+  }, [loadTickets, fetchQuota, loadTeamMembers, loadFolders, loadColumnConfig, currentTeam?.id]);
 
   const allTickets = tickets;
 
@@ -317,6 +399,58 @@ export default function TicketsListPage() {
           )}
         </div>
 
+        {/* Column management */}
+        <div className="relative hidden md:block">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowColumnMenu((v) => !v)}
+            className="text-[var(--text-tertiary)]"
+            title="Manage columns"
+          >
+            <Columns3 className="h-4 w-4" />
+          </Button>
+          {showColumnMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowColumnMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg">
+                <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-1">Columns</p>
+                <div className="px-2 py-1 text-xs text-[var(--text-tertiary)]/50 flex items-center gap-2">
+                  <input type="checkbox" checked disabled className="accent-[var(--primary)] opacity-40" />
+                  Title
+                </div>
+                {columnConfig.order.map((col) => (
+                  <button
+                    key={col}
+                    onClick={() => currentTeam?.id && toggleColumn(currentTeam.id, col)}
+                    className="w-full text-left px-2 py-1 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!columnConfig.hidden.has(col)}
+                      readOnly
+                      className="accent-[var(--primary)] pointer-events-none"
+                    />
+                    {col.charAt(0).toUpperCase() + col.slice(1)}
+                  </button>
+                ))}
+                <div className="px-2 py-1 text-xs text-[var(--text-tertiary)]/50 flex items-center gap-2">
+                  <input type="checkbox" checked disabled className="accent-[var(--primary)] opacity-40" />
+                  Actions
+                </div>
+                <div className="border-t border-[var(--border)]/30 mt-1 pt-1">
+                  <button
+                    onClick={() => { if (currentTeam?.id) resetToDefaults(currentTeam.id); }}
+                    className="w-full text-left px-2 py-1 rounded-md text-xs text-[var(--primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                  >
+                    Reset to defaults
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -364,7 +498,7 @@ export default function TicketsListPage() {
       {/* Tickets list */}
       {!isLoading && !isInitialLoad && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
         <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
-          <TicketGridHeader />
+          <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
           {isCreatingFolder && (
             <form
               className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
@@ -374,9 +508,10 @@ export default function TicketsListPage() {
                 const name = newFolderName.trim();
                 setIsSubmittingFolder(true);
                 try {
-                  const result = await createFolder(currentTeam.id, name);
+                  const result = await createFolder(currentTeam.id, name, newFolderScope);
                   if (result) toast.success('Folder created');
                   setNewFolderName('');
+                  setNewFolderScope('team');
                   setIsCreatingFolder(false);
                 } catch {
                   toast.error('Failed to create folder');
@@ -386,6 +521,14 @@ export default function TicketsListPage() {
               }}
             >
               <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              <button
+                type="button"
+                onClick={() => setNewFolderScope(s => s === 'team' ? 'private' : 'team')}
+                className="p-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex-shrink-0"
+                title={newFolderScope === 'team' ? 'Team — visible to all members' : 'Private — only visible to you'}
+              >
+                {newFolderScope === 'team' ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              </button>
               <input
                 autoFocus
                 placeholder="Folder name..."
@@ -395,6 +538,7 @@ export default function TicketsListPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
                     setNewFolderName('');
+                    setNewFolderScope('team');
                     setIsCreatingFolder(false);
                   }
                 }}
@@ -409,7 +553,7 @@ export default function TicketsListPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setNewFolderName(''); setIsCreatingFolder(false); }}
+                onClick={() => { setNewFolderName(''); setNewFolderScope('team'); setIsCreatingFolder(false); }}
                 className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                 aria-label="Cancel"
               >
@@ -450,7 +594,7 @@ export default function TicketsListPage() {
       {!isLoading && !isInitialLoad && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
         <div className="rounded-lg overflow-hidden  border border-[var(--border-subtle)]">
           {/* Column headers */}
-          <TicketGridHeader />
+          <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onContextMenu={(e) => { e.preventDefault(); setHeaderContextMenu({ x: e.clientX, y: e.clientY }); }} />
 
           {/* Inline folder creation */}
           {isCreatingFolder && (
@@ -462,9 +606,10 @@ export default function TicketsListPage() {
                 const name = newFolderName.trim();
                 setIsSubmittingFolder(true);
                 try {
-                  const result = await createFolder(currentTeam.id, name);
+                  const result = await createFolder(currentTeam.id, name, newFolderScope);
                   if (result) toast.success('Folder created');
                   setNewFolderName('');
+                  setNewFolderScope('team');
                   setIsCreatingFolder(false);
                 } catch {
                   toast.error('Failed to create folder');
@@ -474,6 +619,14 @@ export default function TicketsListPage() {
               }}
             >
               <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+              <button
+                type="button"
+                onClick={() => setNewFolderScope(s => s === 'team' ? 'private' : 'team')}
+                className="p-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex-shrink-0"
+                title={newFolderScope === 'team' ? 'Team — visible to all members' : 'Private — only visible to you'}
+              >
+                {newFolderScope === 'team' ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              </button>
               <input
                 autoFocus
                 placeholder="Folder name..."
@@ -483,6 +636,7 @@ export default function TicketsListPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
                     setNewFolderName('');
+                    setNewFolderScope('team');
                     setIsCreatingFolder(false);
                   }
                 }}
@@ -499,6 +653,7 @@ export default function TicketsListPage() {
                 type="button"
                 onClick={() => {
                   setNewFolderName('');
+                  setNewFolderScope('team');
                   setIsCreatingFolder(false);
                 }}
                 className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
@@ -509,8 +664,80 @@ export default function TicketsListPage() {
             </form>
           )}
 
-          {/* Folder sections (always on top, alphabetical) */}
-          {folders.map((folder) => {
+          {/* MY FOLDERS section — only if user has private folders */}
+          {privateFolders.length > 0 && (
+            <>
+              {teamFolders.length > 0 && (
+                <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider bg-[var(--bg-subtle)]/60 border-b border-[var(--border-subtle)]">
+                  My Folders
+                </div>
+              )}
+              {privateFolders.map((folder, folderIdx) => {
+                const folderTickets = folderTicketsMap[folder.id] || [];
+                const isExpanded = expandedFolders.has(folder.id);
+                return (
+                  <div key={folder.id}>
+                    <FolderHeader
+                      folder={folder}
+                      ticketCount={folderTickets.length}
+                      ticketNames={folderTickets.map((t) => t.title)}
+                      isExpanded={isExpanded}
+                      onToggle={() => toggleFolder(folder.id)}
+                      onRename={async (name) => {
+                        if (currentTeam?.id) {
+                          const ok = await renameFolder(currentTeam.id, folder.id, name);
+                          if (ok) toast.success('Folder renamed');
+                          else toast.error('Failed to rename folder');
+                        }
+                      }}
+                      onDelete={async () => {
+                        if (currentTeam?.id) {
+                          const ok = await deleteFolder(currentTeam.id, folder.id);
+                          if (ok) { toast.success('Folder deleted'); loadTickets(); }
+                          else toast.error('Failed to delete folder');
+                        }
+                      }}
+                      onChangeVisibility={() => handleChangeVisibility(folder.id)}
+                      onMoveUp={folderIdx > 0 ? () => handleMoveFolder(folder.id, 'up') : undefined}
+                      onMoveDown={folderIdx < privateFolders.length - 1 ? () => handleMoveFolder(folder.id, 'down') : undefined}
+                      isDragActive={!!draggingTicketId}
+                      draggingTicketId={draggingTicketId}
+                      onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
+                      currentUserId={currentUserId}
+                      tickets={tickets}
+                    />
+                    {isExpanded && (
+                      <FolderBody
+                        isDragActive={!!draggingTicketId}
+                        draggingTicketId={draggingTicketId}
+                        onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
+                        folder={folder}
+                        currentUserId={currentUserId}
+                        tickets={tickets}
+                      >
+                        {folderTickets.length > 0 && (
+                          <div>
+                            {folderTickets.map((ticket) => (
+                              <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
+                            ))}
+                          </div>
+                        )}
+                        <InlineFolderAdd folderId={folder.id} />
+                      </FolderBody>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* FOLDERS section header — only when both sections exist */}
+          {privateFolders.length > 0 && teamFolders.length > 0 && (
+            <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider bg-[var(--bg-subtle)]/60 border-b border-[var(--border-subtle)]">
+              Folders
+            </div>
+          )}
+          {teamFolders.map((folder, folderIdx) => {
             const folderTickets = folderTicketsMap[folder.id] || [];
             const isExpanded = expandedFolders.has(folder.id);
             return (
@@ -535,20 +762,28 @@ export default function TicketsListPage() {
                       else toast.error('Failed to delete folder');
                     }
                   }}
+                  onChangeVisibility={() => handleChangeVisibility(folder.id)}
+                  onMoveUp={folderIdx > 0 ? () => handleMoveFolder(folder.id, 'up') : undefined}
+                  onMoveDown={folderIdx < teamFolders.length - 1 ? () => handleMoveFolder(folder.id, 'down') : undefined}
                   isDragActive={!!draggingTicketId}
                   draggingTicketId={draggingTicketId}
                   onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
+                  currentUserId={currentUserId}
+                  tickets={tickets}
                 />
                 {isExpanded && (
                   <FolderBody
                     isDragActive={!!draggingTicketId}
                     draggingTicketId={draggingTicketId}
                     onTicketDrop={(ticketId) => handleTicketDrop(ticketId, folder.id)}
+                    folder={folder}
+                    currentUserId={currentUserId}
+                    tickets={tickets}
                   >
                     {folderTickets.length > 0 && (
                       <div>
                         {folderTickets.map((ticket) => (
-                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested />
+                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
                         ))}
                       </div>
                     )}
@@ -568,7 +803,7 @@ export default function TicketsListPage() {
           {unfiledTickets.length > 0 && (
             <div>
               {unfiledTickets.map((ticket) => (
-                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
               ))}
             </div>
           )}
@@ -577,6 +812,64 @@ export default function TicketsListPage() {
           <InlineRootAdd />
         </div>
       )}
+
+      {/* Header context menu for column management */}
+      {headerContextMenu && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setHeaderContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setHeaderContextMenu(null); }} />
+          <div
+            className="fixed z-50 w-48 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg"
+            style={{ left: headerContextMenu.x, top: headerContextMenu.y }}
+          >
+            <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-1">Show/Hide Columns</p>
+            {columnConfig.order.map((col) => (
+              <button
+                key={col}
+                onClick={() => { if (currentTeam?.id) toggleColumn(currentTeam.id, col); }}
+                className="w-full text-left px-2 py-1 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-2"
+              >
+                <input
+                  type="checkbox"
+                  checked={!columnConfig.hidden.has(col)}
+                  readOnly
+                  className="accent-[var(--primary)] pointer-events-none"
+                />
+                {col.charAt(0).toUpperCase() + col.slice(1)}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Scope change confirmation dialog */}
+      <AlertDialog open={!!scopeChangeDialog} onOpenChange={(open) => { if (!open) setScopeChangeDialog(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change folder visibility</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <span>Making <span className="font-medium text-[var(--text)]">{scopeChangeDialog?.folderName}</span> {scopeChangeDialog?.newScope === 'private' ? 'private' : 'team visible'} will affect these tickets:</span>
+                {scopeChangeDialog?.affectedTickets && (
+                  <ul className="mt-1.5 space-y-0.5 text-sm">
+                    {scopeChangeDialog.affectedTickets.slice(0, 10).map((t: any, i: number) => (
+                      <li key={i} className="truncate text-[var(--text-secondary)]">{'\u2022'} {t.title || t.id}</li>
+                    ))}
+                    {scopeChangeDialog.affectedTickets.length > 10 && (
+                      <li className="text-[var(--text-tertiary)]">and {scopeChangeDialog.affectedTickets.length - 10} more...</li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmScopeChange}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Archived tickets section */}
       {!isLoading && !isInitialLoad && !loadError && (
@@ -595,23 +888,36 @@ export default function TicketsListPage() {
 }
 
 // Folder body wrapper — also a drop target so users can drop anywhere in the folder area
-function FolderBody({ isDragActive, draggingTicketId, onTicketDrop, children }: {
+function FolderBody({ isDragActive, draggingTicketId, onTicketDrop, children, folder, currentUserId, tickets }: {
   isDragActive: boolean;
   draggingTicketId: string | null;
   onTicketDrop: (ticketId: string) => void;
   children: React.ReactNode;
+  folder?: FolderResponse;
+  currentUserId?: string | null;
+  tickets?: any[];
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Check if drop is allowed (scope-aware)
+  const isDropBlocked = folder?.scope === 'private' && draggingTicketId && tickets
+    ? (() => {
+        const ticket = tickets.find((t: any) => t.id === draggingTicketId);
+        return ticket && ticket.createdBy !== currentUserId;
+      })()
+    : false;
 
   return (
     <div
       className={`transition-colors ${
-        isDragOver ? 'bg-blue-500/5' : isDragActive ? 'bg-blue-500/[0.02]' : ''
+        isDropBlocked
+          ? 'bg-red-500/5 opacity-60'
+          : isDragOver ? 'bg-blue-500/5' : isDragActive ? 'bg-blue-500/[0.02]' : ''
       }`}
       onDragOver={(e) => {
         if (!isDragActive) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
+        e.dataTransfer.dropEffect = isDropBlocked ? 'none' : 'move';
         setIsDragOver(true);
       }}
       onDragLeave={(e) => {
@@ -623,6 +929,7 @@ function FolderBody({ isDragActive, draggingTicketId, onTicketDrop, children }: 
       onDrop={(e) => {
         e.preventDefault();
         setIsDragOver(false);
+        if (isDropBlocked) return;
         const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
         if (ticketId) onTicketDrop(ticketId);
       }}
@@ -662,23 +969,43 @@ function UnfiledDropZone({ draggingTicketId, onTicketDrop }: { draggingTicketId:
   );
 }
 
+// Column label map
+const COLUMN_LABELS: Record<ColumnId, string> = {
+  status: 'Status',
+  priority: 'Priority',
+  assignee: 'Assignee',
+  creator: 'Creator',
+  updated: 'Updated',
+  score: 'Score',
+};
+
+// Breakpoint visibility: sm columns vs md columns
+const SM_COLUMNS: Set<ColumnId> = new Set(['status', 'priority']);
+const MD_COLUMNS: Set<ColumnId> = new Set(['assignee', 'creator', 'updated']);
+
 // Grid column header row
-function TicketGridHeader() {
+function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { visibleColumns?: ColumnId[]; mdGridTemplate?: string; onContextMenu?: (e: React.MouseEvent) => void }) {
+  const cols = visibleColumns || ['status', 'priority', 'assignee', 'creator', 'updated', 'score'] as ColumnId[];
+
   return (
-    <div className="ticket-grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none">
+    <div
+      className="ticket-grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
+      style={mdGridTemplate ? { gridTemplateColumns: undefined } : undefined}
+      onContextMenu={onContextMenu}
+    >
       <span className="pl-6">Title</span>
-      <span className="hidden sm:block">Status</span>
-      <span className="hidden sm:block">Priority</span>
-      <span className="hidden md:block">Assignee</span>
-      <span className="hidden md:block">Updated</span>
-      <span className="text-center">Score</span>
+      {cols.map((col) => {
+        if (col === 'score') return <span key={col} className="text-center">{COLUMN_LABELS[col]}</span>;
+        const hiddenClass = SM_COLUMNS.has(col) ? 'hidden sm:block' : MD_COLUMNS.has(col) ? 'hidden md:block' : '';
+        return <span key={col} className={hiddenClass}>{COLUMN_LABELS[col]}</span>;
+      })}
       <span />
     </div>
   );
 }
 
 // Folder section header with collapse, rename, delete + drop target
-function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, onRename, onDelete, isDragActive, draggingTicketId, onTicketDrop }: {
+function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, onRename, onDelete, onChangeVisibility, onMoveUp, onMoveDown, isDragActive, draggingTicketId, onTicketDrop, currentUserId, tickets }: {
   folder: FolderResponse;
   ticketCount: number;
   ticketNames: string[];
@@ -686,9 +1013,14 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
   onToggle: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onChangeVisibility?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   isDragActive?: boolean;
   draggingTicketId?: string | null;
   onTicketDrop?: (ticketId: string) => void;
+  currentUserId?: string | null;
+  tickets?: any[];
 }) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
@@ -725,25 +1057,36 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
     setIsRenaming(false);
   };
 
+  // Check if drop is allowed (scope-aware)
+  const isDropBlocked = folder.scope === 'private' && draggingTicketId && tickets
+    ? (() => {
+        const ticket = tickets.find((t: any) => t.id === draggingTicketId);
+        return ticket && ticket.createdBy !== currentUserId;
+      })()
+    : false;
+
   return (
     <div
       className={`group/folder sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] ${
-        isDragOver
-          ? 'ring-2 ring-[var(--blue)] ring-inset bg-blue-500/10'
-          : isDragActive
-            ? 'ring-1 ring-[var(--blue)]/40 ring-inset bg-blue-500/5'
-            : ''
+        isDropBlocked
+          ? 'ring-1 ring-red-500/40 ring-inset bg-red-500/5 opacity-60'
+          : isDragOver
+            ? 'ring-2 ring-[var(--blue)] ring-inset bg-blue-500/10'
+            : isDragActive
+              ? 'ring-1 ring-[var(--blue)]/40 ring-inset bg-blue-500/5'
+              : ''
       }`}
       onDragOver={(e) => {
         if (!isDragActive) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
+        e.dataTransfer.dropEffect = isDropBlocked ? 'none' : 'move';
         setIsDragOver(true);
       }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={(e) => {
         e.preventDefault();
         setIsDragOver(false);
+        if (isDropBlocked) return;
         const ticketId = e.dataTransfer.getData('text/plain') || draggingTicketId;
         if (ticketId && onTicketDrop) onTicketDrop(ticketId);
       }}
@@ -755,6 +1098,7 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
           }`}
         />
         <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
+        {folder.scope === 'private' && <Lock className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />}
         {isRenaming ? (
           <input
             ref={renameInputRef}
@@ -784,11 +1128,27 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
             <MoreVertical className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36">
+        <DropdownMenuContent align="end" className="w-44">
           <DropdownMenuItem onClick={() => { setRenameValue(folder.name); setIsRenaming(true); }}>
             <Pencil className="h-4 w-4 mr-2" />
             Rename
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onChangeVisibility?.()}>
+            {folder.scope === 'private' ? <Globe className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+            {folder.scope === 'private' ? 'Make team visible' : 'Make private'}
+          </DropdownMenuItem>
+          {onMoveUp && (
+            <DropdownMenuItem onClick={() => onMoveUp()}>
+              <ChevronUp className="h-4 w-4 mr-2" />
+              Move up
+            </DropdownMenuItem>
+          )}
+          {onMoveDown && (
+            <DropdownMenuItem onClick={() => onMoveDown()}>
+              <ChevronDown className="h-4 w-4 mr-2" />
+              Move down
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-500 focus:text-red-500">
             <Trash2 className="h-4 w-4 mr-2" />
@@ -1168,12 +1528,15 @@ function ArchivedSection({
 }
 
 // Grid-based ticket row
-function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
+function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, currentUserId, visibleColumns, mdGridTemplate }: {
   ticket: any;
   folders?: FolderResponse[];
   onDragStart?: (ticketId: string) => void;
   onDragEnd?: () => void;
   nested?: boolean;
+  currentUserId?: string | null;
+  visibleColumns?: ColumnId[];
+  mdGridTemplate?: string;
 }) {
   const router = useRouter();
   const { deleteTicket, archiveTicket, loadTickets } = useTicketsStore();
@@ -1192,6 +1555,62 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
     const success = await deleteTicket(ticket.id);
     if (success) toast.success('Ticket deleted');
     else toast.error('Failed to delete ticket');
+  };
+
+  // Filter out private folders when the ticket doesn't belong to current user
+  const movableFolders = folders.filter((f) => {
+    if (f.id === ticket.folderId) return false;
+    if (f.scope === 'private' && ticket.createdBy !== currentUserId) return false;
+    return true;
+  });
+
+  const cols = visibleColumns || ['status', 'priority', 'assignee', 'creator', 'updated', 'score'] as ColumnId[];
+
+  // Column rendering map
+  const renderColumn = (col: ColumnId) => {
+    switch (col) {
+      case 'status':
+        return (
+          <Link key={col} href={href} className="hidden sm:flex items-center gap-1.5 py-3">
+            <TicketLifecycleInfo currentStatus={ticket.status} trigger="hover">
+              <StatusCell ticket={ticket} />
+            </TicketLifecycleInfo>
+            {ticket.status === 'forged' && <WaitBadge forgedAt={ticket.forgedAt} />}
+          </Link>
+        );
+      case 'priority':
+        return (
+          <Link key={col} href={href} className="hidden sm:flex items-center py-3">
+            <PriorityCell priority={ticket.priority} />
+          </Link>
+        );
+      case 'assignee':
+        return (
+          <div key={col} className="hidden md:flex items-center py-3">
+            <AssigneeCell ticket={ticket} teamMembers={teamMembers} />
+          </div>
+        );
+      case 'creator':
+        return (
+          <div key={col} className="hidden md:flex items-center py-3">
+            <CreatorCell ticket={ticket} teamMembers={teamMembers} />
+          </div>
+        );
+      case 'updated':
+        return (
+          <Link key={col} href={href} className="hidden md:flex items-center py-3">
+            <span className="text-[11px] text-[var(--text-tertiary)]">{getRelativeTime(ticket.updatedAt)}</span>
+          </Link>
+        );
+      case 'score':
+        return (
+          <Link key={col} href={href} className="flex items-center justify-center py-3">
+            <ProgressRing ticket={ticket} />
+          </Link>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -1236,36 +1655,11 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
         }`}>
           {ticket.title}
         </span>
-        {ticketStatus === 'needs-resume' && <span className="flex-shrink-0 text-red-500 text-xs">❌</span>}
+        {ticketStatus === 'needs-resume' && <span className="flex-shrink-0 text-red-500 text-xs">{'\u274C'}</span>}
       </Link>
 
-      {/* Status */}
-      <Link href={href} className="hidden sm:flex items-center gap-1.5 py-3">
-        <TicketLifecycleInfo currentStatus={ticket.status} trigger="hover">
-          <StatusCell ticket={ticket} />
-        </TicketLifecycleInfo>
-        {ticket.status === 'forged' && <WaitBadge forgedAt={ticket.forgedAt} />}
-      </Link>
-
-      {/* Priority */}
-      <Link href={href} className="hidden sm:flex items-center py-3">
-        <PriorityCell priority={ticket.priority} />
-      </Link>
-
-      {/* Assignee */}
-      <div className="hidden md:flex items-center py-3">
-        <AssigneeCell ticket={ticket} teamMembers={teamMembers} />
-      </div>
-
-      {/* Updated */}
-      <Link href={href} className="hidden md:flex items-center py-3">
-        <span className="text-[11px] text-[var(--text-tertiary)]">{getRelativeTime(ticket.updatedAt)}</span>
-      </Link>
-
-      {/* Progress ring */}
-      <Link href={href} className="flex items-center justify-center py-3">
-        <ProgressRing ticket={ticket} />
-      </Link>
+      {/* Dynamic columns */}
+      {cols.map(renderColumn)}
 
       {/* Actions */}
       <div className="flex items-center justify-center py-3">
@@ -1287,7 +1681,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
               <UserPlus className="h-4 w-4 mr-2" />
               Assign
             </DropdownMenuItem>
-            {folders.length > 0 && (
+            {(movableFolders.length > 0 || ticket.folderId) && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <FolderInput className="h-4 w-4 mr-2" />
@@ -1307,9 +1701,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
                       Unfiled
                     </DropdownMenuItem>
                   )}
-                  {folders
-                    .filter((f) => f.id !== ticket.folderId)
-                    .map((folder) => (
+                  {movableFolders.map((folder) => (
                       <DropdownMenuItem key={folder.id} onSelect={() => {
                         const targetFolderId = folder.id;
                         const targetFolderName = folder.name;
@@ -1321,6 +1713,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested }: {
                         }
                       }}>
                         <FolderOpen className="h-4 w-4 mr-2" />
+                        {folder.scope === 'private' && <Lock className="h-3 w-3 mr-1 text-[var(--text-tertiary)]" />}
                         {folder.name}
                       </DropdownMenuItem>
                     ))}
@@ -1410,6 +1803,16 @@ function AssigneeCell({ ticket, teamMembers }: { ticket: any; teamMembers: any[]
         )}
       </div>
     </div>
+  );
+}
+
+function CreatorCell({ ticket, teamMembers }: { ticket: any; teamMembers: any[] }) {
+  const member = ticket.createdBy ? teamMembers.find((m) => m.userId === ticket.createdBy) : null;
+  const name = member ? (member.displayName || member.email || null) : null;
+  return name ? (
+    <span className="text-[11px] text-[var(--text-secondary)] truncate block max-w-full cursor-default">{name}</span>
+  ) : (
+    <span className="text-[11px] text-[var(--text-tertiary)]/40 cursor-default">{'\u2014'}</span>
   );
 }
 

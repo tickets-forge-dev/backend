@@ -6,6 +6,7 @@ export interface FolderResponse {
   name: string;
   teamId: string;
   createdBy: string;
+  scope: 'team' | 'private';
   createdAt: string;
   updatedAt: string;
 }
@@ -24,10 +25,10 @@ export class FolderService {
     return response.data.folders;
   }
 
-  async create(teamId: string, name: string): Promise<FolderResponse> {
+  async create(teamId: string, name: string, scope: 'team' | 'private' = 'team'): Promise<FolderResponse> {
     const response = await this.client.post<{ success: boolean; folder: FolderResponse }>(
       `/teams/${teamId}/folders`,
-      { name },
+      { name, scope },
     );
     return response.data.folder;
   }
@@ -46,5 +47,13 @@ export class FolderService {
 
   async moveTicket(teamId: string, ticketId: string, folderId: string | null): Promise<void> {
     await this.client.patch(`/teams/${teamId}/folders/move-ticket/${ticketId}`, { folderId });
+  }
+
+  async updateScope(teamId: string, folderId: string, scope: 'team' | 'private', confirm?: boolean): Promise<{ folder?: FolderResponse; affectedTickets?: any[] }> {
+    const response = await this.client.patch(
+      `/teams/${teamId}/folders/${folderId}/scope`,
+      { scope, confirm },
+    );
+    return response.data;
   }
 }
