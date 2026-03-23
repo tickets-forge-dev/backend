@@ -485,7 +485,7 @@ export function TicketDetailLayout({
           <AlertDialogHeader>
             <AlertDialogTitle>Approve without developer review?</AlertDialogTitle>
             <AlertDialogDescription>
-              This ticket hasn&apos;t been reviewed by a developer yet. The spec may miss technical details that only a developer would catch.
+              This ticket hasn&apos;t been reviewed by a developer yet. <strong>The spec may miss technical details</strong> that only a developer would catch.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
