@@ -177,11 +177,9 @@ export function TicketDetailLayout({
   const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent);
   const [showSkipReviewWarning, setShowSkipReviewWarning] = useState(false);
 
-  const [skipReviewConfirmed, setSkipReviewConfirmed] = useState(false);
-
   const handleApprove = async () => {
     // If approving from DEV_REFINING (skipping developer review), show warning first
-    if (isDevRefining && !skipReviewConfirmed) {
+    if (isDevRefining) {
       setShowSkipReviewWarning(true);
       return;
     }
@@ -492,10 +490,16 @@ export function TicketDetailLayout({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                setSkipReviewConfirmed(true);
                 setShowSkipReviewWarning(false);
-                // Use setTimeout to let state update before re-calling
-                setTimeout(() => handleApprove(), 0);
+                // Go straight to approval flow — skip the warning check
+                if (!ticket.assignedTo) {
+                  assignedDuringNudge.current = false;
+                  assignAttempted.current = false;
+                  setPendingApproval(true);
+                  onAssignDialogOpenChange?.(true);
+                } else {
+                  executeApproval(false);
+                }
               }}
               className="bg-amber-600 hover:bg-amber-700"
             >
