@@ -105,8 +105,7 @@ describe('ApproveTicketUseCase', () => {
       AECStatus.DRAFT,
       AECStatus.FORGED,
       AECStatus.EXECUTING,
-      AECStatus.DEV_REFINING,
-    ])('throws BadRequestException when status is %s (not REVIEW)', async (status) => {
+    ])('throws BadRequestException when status is %s (not approvable)', async (status) => {
       const mockAEC = makeMockAEC({ status });
       aecRepository.findById.mockResolvedValue(mockAEC);
 

@@ -11,6 +11,16 @@ import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { Button } from '@/core/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/core/components/ui/alert-dialog';
 import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
@@ -161,9 +171,21 @@ export function TicketDetailLayout({
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
+  const hasTechSpecContent = !!ticket.techSpec;
   const isWaitingForApproval = ticket.status === 'review';
+  const isDevRefining = ticket.status === 'dev-refining';
+  const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent);
+  const [showSkipReviewWarning, setShowSkipReviewWarning] = useState(false);
+
+  const [skipReviewConfirmed, setSkipReviewConfirmed] = useState(false);
 
   const handleApprove = async () => {
+    // If approving from DEV_REFINING (skipping developer review), show warning first
+    if (isDevRefining && !skipReviewConfirmed) {
+      setShowSkipReviewWarning(true);
+      return;
+    }
+
     // If unassigned, nudge PM to assign a developer first
     if (!ticket.assignedTo) {
       assignedDuringNudge.current = false;
@@ -429,6 +451,59 @@ export function TicketDetailLayout({
           </Button>
         </div>
       )}
+
+      {/* Approve without developer review — for DEV_REFINING tickets with a spec */}
+      {isDevRefining && hasTechSpecContent && !hasReviewSession && (
+        <div className="flex items-center gap-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-5 py-4">
+          <ShieldCheck className="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              Spec is ready — approve without developer review?
+            </p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+              You can approve now or wait for a developer to refine the spec first.
+            </p>
+          </div>
+          <Button
+            onClick={handleApprove}
+            disabled={isApproving}
+            className="bg-amber-600 hover:bg-amber-700 text-white flex-shrink-0"
+          >
+            {isApproving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 mr-2" />
+            )}
+            {isApproving ? 'Approving...' : 'Approve Ticket'}
+          </Button>
+        </div>
+      )}
+
+      {/* Warning dialog when approving without developer review */}
+      <AlertDialog open={showSkipReviewWarning} onOpenChange={setShowSkipReviewWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve without developer review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This ticket hasn&apos;t been reviewed by a developer yet. The spec may miss technical details that only a developer would catch.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setSkipReviewConfirmed(true);
+                setShowSkipReviewWarning(false);
+                // Use setTimeout to let state update before re-calling
+                setTimeout(() => handleApprove(), 0);
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Approve anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Refine with Questions — shown for draft tickets that have a spec but no questions answered */}
       {ticket.status === 'draft' && hasTechSpec && (
