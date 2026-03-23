@@ -9,28 +9,23 @@ export default function AuthLayout({
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Panel - Brand & Visual (35%) */}
       <div className="hidden lg:flex lg:w-[35%] relative overflow-hidden bg-[#0a0a0a] flex-col items-center justify-center p-12">
-        {/* Animated gradient orbs */}
+        {/* Static gradient orbs — soft ambient glow */}
         <div className="absolute inset-0 overflow-hidden">
           <div
-            className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] rounded-full opacity-20"
-            style={{
-              background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)',
-              animation: 'float 8s ease-in-out infinite',
-            }}
+            className="absolute -top-[30%] -left-[15%] w-[70%] h-[70%] rounded-full opacity-20"
+            style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 65%)' }}
           />
           <div
-            className="absolute -bottom-[30%] -right-[10%] w-[70%] h-[70%] rounded-full opacity-15"
-            style={{
-              background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)',
-              animation: 'float 10s ease-in-out infinite reverse',
-            }}
+            className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full opacity-15"
+            style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 65%)' }}
           />
           <div
-            className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full opacity-10"
-            style={{
-              background: 'radial-gradient(circle, #10b981 0%, transparent 70%)',
-              animation: 'float 12s ease-in-out infinite 2s',
-            }}
+            className="absolute top-[25%] right-[5%] w-[45%] h-[45%] rounded-full opacity-10"
+            style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 65%)' }}
+          />
+          <div
+            className="absolute top-[40%] left-[20%] w-[50%] h-[50%] rounded-full opacity-15"
+            style={{ background: 'radial-gradient(circle, #f97316 0%, #f59e0b 30%, transparent 65%)' }}
           />
         </div>
 
@@ -45,38 +40,48 @@ export default function AuthLayout({
         />
 
         {/* Brand content */}
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center max-w-[320px]">
           <div className="flex justify-center mb-6">
             <img
               src="/forge-icon.png"
               alt="forge"
-              width={140}
-              height={140}
+              width={120}
+              height={120}
               className="drop-shadow-2xl"
             />
           </div>
           <h1>
             <ForgeBrand size="lg" className="text-white" />
           </h1>
-          <p className="text-[var(--text-md)] text-[#a1a1aa] mt-3 max-w-[280px] leading-relaxed">
-            Modern ticketing for teams that ship
+          <p className="text-lg text-[#e4e4e7] mt-3 font-medium leading-snug">
+            Dev-ready tickets.
+            <br />
+            Every single time.
           </p>
+          <p className="text-sm text-[#71717a] mt-2 leading-relaxed">
+            PMs miss technical context. Forge doesn&apos;t.
+          </p>
+
+          {/* Flow steps */}
+          <div className="mt-10 space-y-3 text-left">
+            {[
+              { step: 'Describe', detail: 'What you want built', color: 'bg-purple-400' },
+              { step: 'AI Refines', detail: 'Fills gaps with code context', color: 'bg-violet-400' },
+              { step: 'Approve', detail: 'PM and developer both sign off', color: 'bg-amber-400' },
+              { step: 'Develop', detail: 'Build from the spec, not guesswork', color: 'bg-emerald-400' },
+            ].map((s) => (
+              <div key={s.step} className="flex items-center gap-3">
+                <span className={`w-1.5 h-1.5 rounded-full ${s.color} shrink-0`} />
+                <span className="text-[13px] text-[#a1a1aa]">
+                  <span className="text-[#e4e4e7] font-medium">{s.step}</span>
+                  {' — '}{s.detail}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Bottom attribution */}
-        <div className="absolute bottom-8 left-0 right-0 text-center">
-          <p className="text-[var(--text-xs)] text-[#52525b]">
-            Built for engineering teams
-          </p>
-        </div>
-
-        <style>{`
-          @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(10px, -20px) scale(1.05); }
-            66% { transform: translate(-10px, 10px) scale(0.95); }
-          }
-        `}</style>
+        {/* No CSS animations — static orbs avoid Linux/Chrome GPU timing bugs */}
       </div>
 
       {/* Right Panel - Login/Onboarding (65%) - ALWAYS DARK */}
