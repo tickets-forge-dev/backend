@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
+import { AECStatus } from '../../domain/value-objects/AECStatus';
 import { TeamMemberRepository } from '../../../teams/application/ports/TeamMemberRepository';
 import { Role } from '../../../teams/domain/Role';
 import { NotificationService } from '../../../notifications/notification.service';
@@ -60,7 +61,11 @@ export class AssignTicketUseCase {
 
     // 5. Assign or unassign
     if (command.userId === null) {
-      // Unassign - no further validation needed
+      // Unassign — if ticket is in a developer-dependent step, revert to draft
+      const devDependentStatuses = [AECStatus.DEV_REFINING, AECStatus.REVIEW];
+      if (devDependentStatuses.includes(aec.status)) {
+        aec.sendBack(AECStatus.DRAFT);
+      }
       aec.unassign();
     } else {
       // Assign - validate target user

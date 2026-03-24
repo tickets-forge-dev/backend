@@ -45,8 +45,8 @@ export class ApproveTicketUseCase {
       throw new ForbiddenException('Ticket does not belong to your team');
     }
 
-    // 3. Validate status precondition — allow from REVIEW or DEV_REFINING
-    const approvableStatuses = [AECStatus.REVIEW, AECStatus.DEV_REFINING];
+    // 3. Validate status precondition — allow from REVIEW, DEV_REFINING, or DRAFT (PM-only workflow)
+    const approvableStatuses = [AECStatus.REVIEW, AECStatus.DEV_REFINING, AECStatus.DRAFT];
     if (!approvableStatuses.includes(aec.status)) {
       throw new BadRequestException(
         `Ticket cannot be approved in its current status: ${aec.status}`,

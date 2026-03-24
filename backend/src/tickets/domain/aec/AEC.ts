@@ -487,8 +487,7 @@ export class AEC {
 
   /**
    * Move the ticket backward in the lifecycle.
-   * Lifecycle order: draft(0) → dev-refining(1) → review(2) → forged(3)
-   * Status 'executing' maps to the same level as 'forged' (3).
+   * Lifecycle order: draft(0) → dev-refining(1) → review(2) → forged(3) → executing(4) → complete(5)
    */
   sendBack(targetStatus: AECStatus): void {
     const lifecycleOrder: Record<string, number> = {
@@ -496,7 +495,8 @@ export class AEC {
       [AECStatus.DEV_REFINING]: 1,
       [AECStatus.REVIEW]: 2,
       [AECStatus.FORGED]: 3,
-      [AECStatus.EXECUTING]: 3,
+      [AECStatus.EXECUTING]: 4,
+      [AECStatus.COMPLETE]: 5,
     };
 
     const currentLevel = lifecycleOrder[this._status];

@@ -72,7 +72,8 @@ export class UpdateAECUseCase {
       [AECStatus.DEV_REFINING]: 1,
       [AECStatus.REVIEW]: 2,
       [AECStatus.FORGED]: 3,
-      [AECStatus.EXECUTING]: 3,
+      [AECStatus.EXECUTING]: 4,
+      [AECStatus.COMPLETE]: 5,
     };
 
     const currentLevel = lifecycleOrder[aec.status];
@@ -92,7 +93,21 @@ export class UpdateAECUseCase {
       case AECStatus.DRAFT:
         aec.revertToDraft();
         break;
+      case AECStatus.EXECUTING:
+        // Transition FORGED → EXECUTING from the web UI (no branch name)
+        if (aec.status === AECStatus.FORGED) {
+          aec.startImplementation('manual');
+        } else {
+          throw new InvalidStateTransitionError(
+            `Cannot transition to executing from ${aec.status}. Ticket must be in forged status.`,
+          );
+        }
+        break;
       case AECStatus.COMPLETE:
+        // Chain through executing if coming from forged
+        if (aec.status === AECStatus.FORGED) {
+          aec.startImplementation('manual');
+        }
         aec.markComplete();
         break;
       case AECStatus.DEV_REFINING:

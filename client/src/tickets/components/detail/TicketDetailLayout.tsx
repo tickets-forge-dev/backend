@@ -177,7 +177,8 @@ export function TicketDetailLayout({
   const hasTechSpecContent = !!ticket.techSpec;
   const isWaitingForApproval = ticket.status === 'review';
   const isDevRefining = ticket.status === 'dev-refining';
-  const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent);
+  const isDraft = ticket.status === 'draft';
+  const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent) || (isDraft && hasTechSpecContent);
   const [showSkipReviewWarning, setShowSkipReviewWarning] = useState(false);
 
   const handleApprove = async () => {
@@ -449,6 +450,33 @@ export function TicketDetailLayout({
               <ShieldCheck className="h-4 w-4 mr-2" />
             )}
             {isApproving ? 'Approving...' : 'Approve Ticket'}
+          </Button>
+        </div>
+      )}
+
+      {/* Approve directly from draft — PM-only workflow, no developer needed */}
+      {isDraft && hasTechSpecContent && (
+        <div className="flex items-center gap-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-5 py-4">
+          <ShieldCheck className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              Spec is ready — approve and mark as Ready?
+            </p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+              You can approve now, or assign a developer to review and refine the spec first.
+            </p>
+          </div>
+          <Button
+            onClick={handleApprove}
+            disabled={isApproving}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white flex-shrink-0"
+          >
+            {isApproving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 mr-2" />
+            )}
+            Approve
           </Button>
         </div>
       )}
