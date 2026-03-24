@@ -172,6 +172,15 @@ export class FinalizeSpecUseCase {
     //   );
     // }
 
+    // HTML wireframe generation (fire-and-forget)
+    if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
+      this.generateHtmlWireframeInBackground(aec.id, techSpec, {
+        userId: aec.createdBy,
+        teamId: aec.teamId,
+        ticketId: aec.id,
+      });
+    }
+
     return aec;
   }
 
@@ -229,6 +238,62 @@ export class FinalizeSpecUseCase {
       .catch((error) => {
         console.error(
           `✨ [FinalizeSpecUseCase] Background Excalidraw generation failed for AEC ${aecId}:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      });
+  }
+
+  /**
+   * Generate HTML wireframe preview in background and patch the AEC when done.
+   * Fire-and-forget — does not block the spec finalization response.
+   */
+  private generateHtmlWireframeInBackground(
+    aecId: string,
+    techSpec: any,
+    trackingContext?: { userId?: string; teamId?: string; ticketId?: string },
+  ): void {
+    console.log(`✨ [FinalizeSpecUseCase] Starting background HTML wireframe generation for AEC ${aecId}`);
+
+    const asciiWireframes = (techSpec.visualExpectations?.expectations ?? [])
+      .filter((e: any) => e.wireframe)
+      .map((e: any) => `## ${e.screen} (${e.state})\n${e.wireframe}`)
+      .join('\n\n');
+
+    if (!asciiWireframes) {
+      console.log(`✨ [FinalizeSpecUseCase] No ASCII wireframes found for AEC ${aecId}, skipping HTML generation`);
+      return;
+    }
+
+    const solutionContext = typeof techSpec.solution === 'object' && techSpec.solution !== null
+      ? JSON.stringify(techSpec.solution)
+      : String(techSpec.solution ?? '');
+
+    this.techSpecGenerator
+      .generateHtmlWireframe(techSpec.title, asciiWireframes, solutionContext, trackingContext)
+      .then(async (html) => {
+        if (!html) {
+          console.log(`✨ [FinalizeSpecUseCase] HTML wireframe generation returned null for AEC ${aecId}`);
+          return;
+        }
+
+        // Re-load the AEC and patch the wireframeHtml
+        const aec = await this.aecRepository.findById(aecId);
+        if (!aec || !aec.techSpec) {
+          console.warn(`✨ [FinalizeSpecUseCase] AEC ${aecId} not found or has no techSpec for HTML wireframe patch`);
+          return;
+        }
+
+        aec.setTechSpec({
+          ...aec.techSpec,
+          wireframeHtml: html,
+        });
+
+        await this.aecRepository.save(aec);
+        console.log(`✨ [FinalizeSpecUseCase] HTML wireframe saved for AEC ${aecId} (${html.length} chars)`);
+      })
+      .catch((error) => {
+        console.error(
+          `✨ [FinalizeSpecUseCase] Background HTML wireframe generation failed for AEC ${aecId}:`,
           error instanceof Error ? error.message : String(error),
         );
       });

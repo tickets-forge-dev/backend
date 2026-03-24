@@ -876,6 +876,7 @@ export function TicketDetailLayout({
                 ticketDescription={ticket.description}
                 references={ticket.designReferences || []}
                 visualExpectations={ticket.techSpec?.visualExpectations}
+                wireframeHtml={ticket.techSpec?.wireframeHtml}
                 onAddDesignReference={onAddDesignReference}
                 onRemoveDesignReference={onRemoveDesignReference}
                 onRefreshDesignReference={onRefreshDesignReference}

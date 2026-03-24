@@ -2614,6 +2614,110 @@ Output ONLY this JSON:
   }
 
   /**
+   * Generates a self-contained HTML wireframe from ASCII wireframes.
+   * Uses the fast model (Haiku) for low-cost, fast generation.
+   * Returns raw HTML string — no JSON parsing.
+   */
+  async generateHtmlWireframe(
+    title: string,
+    asciiWireframes: string,
+    solutionContext: string,
+    trackingContext?: { userId?: string; teamId?: string; ticketId?: string },
+  ): Promise<string | null> {
+    const model = this.fastModel ?? this.llmModel;
+    if (!model) {
+      this.logger.warn('No LLM configured — skipping HTML wireframe generation');
+      return null;
+    }
+
+    try {
+      const systemPrompt = `You are a wireframe rendering agent. Convert ASCII wireframes into a single self-contained HTML document. Output ONLY the HTML — no markdown fences, no explanation, no preamble. Start with <!DOCTYPE html>.`;
+
+      const userPrompt = `Convert these ASCII wireframes into an interactive HTML preview.
+
+## Ticket: ${title}
+
+## ASCII Wireframes
+${asciiWireframes}
+
+## Solution Context
+${solutionContext}
+
+## Requirements
+- Self-contained HTML with all CSS in a <style> block — no external dependencies
+- Dark theme: background #0f1117, cards #1a1d27, borders #2a2d3a, text #e0e0e0, headings #ffffff, accent #6366f1
+- One section per screen/view from the wireframes
+- Below each section, add an amber callout bar (background #78350f/#fef3c7 text) explaining behaviors and interactions
+- Responsive fluid layout that looks good at any width
+- No JavaScript — pure HTML/CSS only
+- Use system font stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif
+- Cards with subtle border-radius (8px) and the border color above
+- Generous padding and spacing for readability
+- Body must have overflow-y: auto to allow scrolling within an iframe`;
+
+      const modelId = this.fastModel ? this.fastModelId : (this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL);
+
+      const { text, usage } = await generateText({
+        model,
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxOutputTokens: 8192,
+        temperature: 0.3,
+      });
+
+      // Track token usage if context provided
+      const ctx = trackingContext;
+      if (ctx?.userId && usage) {
+        const costUsd = this.telemetryService.computeLLMCost(
+          modelId,
+          usage.inputTokens ?? 0,
+          usage.outputTokens ?? 0,
+        );
+        this.telemetryService.trackCost(ctx.userId, {
+          service: 'anthropic',
+          tokens_input: usage.inputTokens ?? 0,
+          tokens_output: usage.outputTokens ?? 0,
+          cost_usd: costUsd,
+          model: modelId,
+          operation: 'html_wireframe_generation',
+          ticket_id: ctx.ticketId,
+        });
+
+        if (ctx.teamId) {
+          const month = new Date().toISOString().slice(0, 7);
+          const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+          this.usageBudgetRepository.incrementTokens(ctx.teamId, month, totalTokens).catch((err: any) => {
+            this.logger.warn(`Failed to increment token usage: ${err.message}`);
+          });
+        }
+      }
+
+      // Basic validation — must look like HTML
+      if (!text || (!text.includes('<html') && !text.includes('<!DOCTYPE'))) {
+        this.logger.warn('HTML wireframe generation returned non-HTML content');
+        return null;
+      }
+
+      // Strip markdown code fences if the LLM wrapped them
+      let html = text.trim();
+      if (html.startsWith('```')) {
+        html = html.replace(/^```(?:html)?\n?/, '').replace(/\n?```$/, '').trim();
+      }
+
+      // Check for truncated output
+      if (!html.includes('</html>')) {
+        this.logger.warn('HTML wireframe appears truncated (missing </html>)');
+        return null;
+      }
+
+      return html;
+    } catch (error) {
+      this.logger.warn(`HTML wireframe generation failed: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
    * Refines existing Excalidraw wireframe elements based on user instruction.
    *
    * Takes current elements + natural language instruction, returns modified elements.

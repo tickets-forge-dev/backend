@@ -223,6 +223,7 @@ export interface TechSpec {
     coverageGoal?: number;
   };
   visualExpectations?: VisualExpectationsSpec;
+  wireframeHtml?: string | null; // HTML wireframe preview (rendered in sandboxed iframe)
   bugDetails?: BugDetailsSpec;
   dependencies?: PackageDependency[]; // New packages/dependencies required for this feature
 }

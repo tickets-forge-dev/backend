@@ -19,6 +19,7 @@ interface DesignTabProps {
   ticketDescription: string | null;
   references: DesignReference[];
   visualExpectations?: VisualExpectationsSpec;
+  wireframeHtml?: string | null;
   onAddDesignReference: (url: string, title?: string) => Promise<void>;
   onRemoveDesignReference: (referenceId: string) => Promise<void>;
   onRefreshDesignReference?: (referenceId: string) => Promise<void>;
@@ -31,6 +32,7 @@ export function DesignTab({
   ticketDescription,
   references,
   visualExpectations,
+  wireframeHtml,
   onAddDesignReference,
   onRemoveDesignReference,
   onRefreshDesignReference,
@@ -272,6 +274,7 @@ export function DesignTab({
               expectations={visualExpectations!.expectations}
               flowDiagram={visualExpectations!.flowDiagram}
               excalidrawData={visualExpectations!.excalidrawData}
+              wireframeHtml={wireframeHtml}
               ticketId={ticketId}
               onSaveExcalidraw={handleSaveExcalidraw}
             />

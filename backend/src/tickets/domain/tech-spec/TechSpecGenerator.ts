@@ -352,6 +352,7 @@ export interface TechSpec {
   layeredFileChanges?: LayeredFileChanges; // File changes organized by layer
   testPlan?: TestPlan; // Comprehensive test plan
   visualExpectations?: VisualExpectations; // Visual QA expectations with wireframes
+  wireframeHtml?: string | null; // Self-contained HTML wireframe preview generated from ASCII wireframes
   bugDetails?: BugDetails; // Bug-specific reproduction steps (only for type === 'bug')
   dependencies?: PackageDependency[]; // New packages/dependencies required for this feature
   designTokens?: {
@@ -611,4 +612,15 @@ export interface TechSpecGenerator {
     wireframeContext?: string,
     wireframeImageUrls?: string[],
   ): Promise<ExcalidrawData | null | undefined>;
+
+  /**
+   * Generates an HTML wireframe preview from ASCII wireframes.
+   * Called as a deferred background task after the main spec is saved.
+   */
+  generateHtmlWireframe(
+    title: string,
+    asciiWireframes: string,
+    solutionContext: string,
+    trackingContext?: { userId?: string; teamId?: string; ticketId?: string },
+  ): Promise<string | null>;
 }

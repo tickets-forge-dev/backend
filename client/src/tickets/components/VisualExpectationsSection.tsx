@@ -124,6 +124,7 @@ interface VisualExpectationsSectionProps {
   expectations: VisualExpectationSpec[];
   flowDiagram?: string;
   excalidrawData?: ExcalidrawDataSpec;
+  wireframeHtml?: string | null;
   ticketId?: string;
   onSaveExcalidraw?: (data: ExcalidrawDataSpec) => Promise<void>;
 }
@@ -133,6 +134,7 @@ export function VisualExpectationsSection({
   expectations,
   flowDiagram,
   excalidrawData,
+  wireframeHtml,
   ticketId,
   onSaveExcalidraw,
 }: VisualExpectationsSectionProps) {
@@ -162,6 +164,24 @@ export function VisualExpectationsSection({
           onSave={onSaveExcalidraw}
         />
       )} */}
+
+      {/* HTML Wireframe Preview */}
+      {wireframeHtml && (
+        <div className="space-y-2">
+          <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
+            Wireframe Preview
+          </p>
+          <div className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
+            <iframe
+              srcDoc={wireframeHtml}
+              sandbox=""
+              title="Wireframe Preview"
+              className="w-full border-0"
+              style={{ height: '600px' }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
       <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">

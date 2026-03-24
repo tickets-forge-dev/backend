@@ -98,6 +98,41 @@ export class ReEnrichWithQAUseCase {
     // 8. Persist
     await this.aecRepository.save(aec);
 
+    // Fire-and-forget HTML wireframe regeneration
+    if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
+      const asciiWireframes = techSpec.visualExpectations.expectations
+        .filter((e: any) => e.wireframe)
+        .map((e: any) => `## ${e.screen} (${e.state})\n${e.wireframe}`)
+        .join('\n\n');
+
+      if (asciiWireframes) {
+        const solutionContext = typeof techSpec.solution === 'object' && techSpec.solution !== null
+          ? JSON.stringify(techSpec.solution)
+          : String(techSpec.solution ?? '');
+
+        this.techSpecGenerator
+          .generateHtmlWireframe(techSpec.title, asciiWireframes, solutionContext, {
+            userId: command.requestingUserId,
+            teamId: command.teamId,
+            ticketId: command.ticketId,
+          })
+          .then(async (html) => {
+            if (!html) return;
+            const freshAec = await this.aecRepository.findById(command.ticketId);
+            if (!freshAec?.techSpec) return;
+            freshAec.setTechSpec({ ...freshAec.techSpec, wireframeHtml: html });
+            await this.aecRepository.save(freshAec);
+            console.log(`[ReEnrichWithQAUseCase] HTML wireframe saved for ticket ${command.ticketId}`);
+          })
+          .catch((error) => {
+            console.error(
+              `[ReEnrichWithQAUseCase] HTML wireframe generation failed for ticket ${command.ticketId}:`,
+              error instanceof Error ? error.message : String(error),
+            );
+          });
+      }
+    }
+
     return aec;
   }
 
