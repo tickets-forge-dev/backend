@@ -7,6 +7,7 @@ import { Lightbulb, Bug, ClipboardList, Folder, PenLine, FileUp, Mic, MicOff } f
 import { useFoldersStore } from '@/stores/folders.store';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { MarkdownInput } from './MarkdownInput';
+import { VoiceWaveform } from './VoiceWaveform';
 
 /**
  * DetailsStep — First step in the wizard.
@@ -44,19 +45,37 @@ export function DetailsStep() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [input.title, setTitle]);
 
-  // Speech-to-text via Web Speech API
+  // Speech-to-text via Web Speech API + audio visualizer
   const [isListening, setIsListening] = useState(false);
+  const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  const toggleSpeechToText = useCallback(() => {
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    if (micStream) {
+      micStream.getTracks().forEach(t => t.stop());
+      setMicStream(null);
+    }
+    setIsListening(false);
+  }, [micStream]);
+
+  const toggleSpeechToText = useCallback(async () => {
+    if (isListening) {
+      stopListening();
       return;
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
+
+    // Get mic stream for the waveform visualizer
+    let stream: MediaStream | null = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicStream(stream);
+    } catch {
+      // Mic permission denied — still allow speech recognition without visualizer
+    }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
@@ -66,13 +85,10 @@ export function DetailsStep() {
     let finalTranscript = '';
 
     recognition.onresult = (event: any) => {
-      let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += transcript;
-        } else {
-          interim = transcript;
         }
       }
       if (finalTranscript) {
@@ -82,13 +98,21 @@ export function DetailsStep() {
       }
     };
 
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => {
+      stream?.getTracks().forEach(t => t.stop());
+      setMicStream(null);
+      setIsListening(false);
+    };
+    recognition.onend = () => {
+      stream?.getTracks().forEach(t => t.stop());
+      setMicStream(null);
+      setIsListening(false);
+    };
 
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
-  }, [isListening, input.title, setTitle]);
+  }, [isListening, stopListening, input.title, setTitle]);
 
   const hasSpeechSupport = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
@@ -251,6 +275,17 @@ export function DetailsStep() {
             </button>
           </div>
         </div>
+        {/* Voice waveform visualizer — shows real-time audio when dictating */}
+        {isListening && (
+          <div className="rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-2 flex items-center gap-3">
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+            </span>
+            <VoiceWaveform stream={micStream} className="flex-1" />
+            <span className="text-[10px] text-[var(--text-tertiary)] flex-shrink-0">Listening...</span>
+          </div>
+        )}
         <MarkdownInput
           value={input.title}
           onChange={setTitle}
