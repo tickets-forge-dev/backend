@@ -5,16 +5,16 @@ Status: drafted
 ## Story
 
 As a developer who wants to use Forge,
-I want to install the CLI with `npm install -g @forge/cli`,
+I want to install the CLI with `npm i forge-aec`,
 so that I can authenticate, browse tickets, and run AI-assisted implementations without manual setup.
 
 ## Acceptance Criteria
 
-1. `forge-cli/package.json` has `"publishConfig": { "access": "public" }` so `@forge/cli` publishes as a public scoped npm package.
+1. `forge-cli/package.json` has `"publishConfig": { "access": "public" }` so `forge-aec` publishes as a public scoped npm package.
 2. `forge-cli/src/config.ts` has the production backend URL as the default for `API_URL` (not `localhost`). Devs can override via `FORGE_API_URL` env var.
 3. `npm run build` succeeds with no errors — `dist/` is clean.
-4. `npm publish` succeeds — package is live on npm registry as `@forge/cli`.
-5. `npm install -g @forge/cli && forge --version` works on a clean machine.
+4. `npm publish` succeeds — package is live on npm registry as `forge-aec`.
+5. `npm i forge-aec && forge --version` works on a clean machine.
 
 ## Tasks / Subtasks
 
@@ -29,14 +29,14 @@ so that I can authenticate, browse tickets, and run AI-assisted implementations 
   - For initial publish `0.1.0` is fine; bump to `0.2.0` if changes were made post-Epic 5
 - [ ] Task 5: `npm login` + `npm publish --access public` (AC: 4)
 - [ ] Task 6: Verify install from registry (AC: 5)
-  - On a clean terminal (or temp dir): `npm install -g @forge/cli && forge --version`
+  - On a clean terminal (or temp dir): `npm i forge-aec && forge --version`
 
 ## Dev Notes
 
 **Production URL:** The Render service is named `forge-api`. Confirm the deployed URL before Task 2.
 Likely: `https://forge-api.onrender.com/api` — but verify in Render dashboard.
 
-**Scoped package on npm:** `@forge/cli` requires either:
+**Scoped package on npm:** `forge-aec` requires either:
 - `publishConfig.access = "public"` → free, visible to everyone
 - A paid npm org plan → private, team-only install
 
