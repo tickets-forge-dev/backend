@@ -116,6 +116,27 @@ export function DetailsStep() {
 
   const hasSpeechSupport = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
+  const descriptionRef = useRef<HTMLDivElement>(null);
+
+  // 'T' hotkey to toggle dictation (only when not typing in an input/textarea)
+  useEffect(() => {
+    if (!hasSpeechSupport) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 't' || e.key === 'T') {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable) return;
+        e.preventDefault();
+        toggleSpeechToText();
+        // Scroll description into view when starting
+        if (!isListening) {
+          descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [hasSpeechSupport, toggleSpeechToText, isListening]);
+
   // Load folders on mount
   useEffect(() => {
     if (currentTeam?.id) {
@@ -227,10 +248,13 @@ export function DetailsStep() {
       )}
 
       {/* Description — Primary focus area */}
-      <div className="space-y-3 p-5 rounded-lg border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/10 shadow-sm">
+      <div ref={descriptionRef} className="space-y-3 p-5 rounded-lg border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/10 shadow-sm">
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Ticket Description
+            {hasSpeechSupport && !isListening && (
+              <kbd className="ml-2 inline-flex items-center px-1.5 py-0.5 text-[10px] font-normal text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded">T</kbd>
+            )}
           </label>
           <div className="flex items-center gap-2">
             {hasSpeechSupport && (
