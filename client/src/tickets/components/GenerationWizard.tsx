@@ -176,6 +176,11 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     }
   }, [activeJobId, cancelJob, setError]);
 
+  // Handler: cancel foreground analysis (SSE stream)
+  const handleCancelAnalysis = useCallback(() => {
+    useWizardStore.getState().cancelAnalysis();
+  }, []);
+
   const isBranchesLoading = useTicketsStore((s) => s.isBranchesLoading);
 
   // Validation for the Details step
@@ -314,15 +319,15 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {renderStage()}
       </div>
 
-      {/* Generation Progress Dialog — only during background job generation */}
-      {loading && isBackgroundJob && (resolvedPhase || currentPhase) && (
+      {/* Progress Dialog — shown during both foreground analysis and background job generation */}
+      {loading && (resolvedPhase || currentPhase) && (
         <AnalysisProgressDialog
           currentPhase={resolvedPhase}
           message={loadingMessage}
           percent={resolvedPercent}
           hasRepository={hasRepository}
           onSendToBackground={handleSendToBackground}
-          onCancel={handleCancelJob}
+          onCancel={isBackgroundJob ? handleCancelJob : handleCancelAnalysis}
         />
       )}
 
