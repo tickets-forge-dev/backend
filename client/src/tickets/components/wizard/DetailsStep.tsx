@@ -45,6 +45,8 @@ export function DetailsStep() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [input.title, setTitle]);
 
+  const descriptionRef = useRef<HTMLDivElement>(null);
+
   // Subtle audio cues for recording start/stop
   const playTone = useCallback((freq: number, duration: number, volume = 0.08) => {
     try {
@@ -74,6 +76,10 @@ export function DetailsStep() {
   const [isListening, setIsListening] = useState(false);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
+  const textRef = useRef(input.title); // Always-current text value (avoids stale closures)
+
+  // Keep ref in sync with store
+  useEffect(() => { textRef.current = input.title; }, [input.title]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();
@@ -83,6 +89,15 @@ export function DetailsStep() {
     }
     setIsListening(false);
   }, [micStream]);
+
+  // Focus textarea and move cursor to end after speech updates
+  const focusEnd = useCallback(() => {
+    const textarea = descriptionRef.current?.querySelector('textarea');
+    if (textarea) {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    }
+  }, []);
 
   const toggleSpeechToText = useCallback(async () => {
     if (isListening) {
@@ -108,19 +123,18 @@ export function DetailsStep() {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    let finalTranscript = '';
-
     recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += transcript;
+          const transcript = event.results[i][0].transcript;
+          const current = textRef.current;
+          const separator = current && !current.endsWith(' ') && !current.endsWith('\n') ? ' ' : '';
+          const updated = current + separator + transcript;
+          setTitle(updated);
+          textRef.current = updated;
+          // Move cursor to end on next frame
+          requestAnimationFrame(focusEnd);
         }
-      }
-      if (finalTranscript) {
-        const separator = input.title && !input.title.endsWith(' ') && !input.title.endsWith('\n') ? ' ' : '';
-        setTitle(input.title + separator + finalTranscript);
-        finalTranscript = '';
       }
     };
 
@@ -139,13 +153,12 @@ export function DetailsStep() {
     recognition.start();
     playStartBeep();
     setIsListening(true);
-  }, [isListening, stopListening, playStartBeep, playStopBeep, input.title, setTitle]);
+    requestAnimationFrame(focusEnd);
+  }, [isListening, stopListening, playStartBeep, playStopBeep, setTitle, focusEnd]);
 
   const hasSpeechSupport = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
-  const descriptionRef = useRef<HTMLDivElement>(null);
-
-  // 'T' hotkey to toggle dictation (only when not typing in an input/textarea)
+  // 'S' hotkey to toggle dictation (only when not typing in an input/textarea)
   useEffect(() => {
     if (!hasSpeechSupport) return;
     const handler = (e: KeyboardEvent) => {

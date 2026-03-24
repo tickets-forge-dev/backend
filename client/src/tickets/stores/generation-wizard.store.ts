@@ -59,6 +59,7 @@ interface WizardSnapshot {
   timestamp: number;
   includeRepository: boolean; // AC#3: Persist repository inclusion preference
   includeWireframes: boolean;
+  includeHtmlWireframes?: boolean;
   wireframeContext: string;
   wireframeImageIds: string[];
   includeApiSpec: boolean;
