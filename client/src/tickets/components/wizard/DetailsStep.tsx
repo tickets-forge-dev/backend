@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
-import { Lightbulb, Bug, ClipboardList, Folder, PenLine, FileUp } from 'lucide-react';
+import { Lightbulb, Bug, ClipboardList, Folder, PenLine, FileUp, Mic, MicOff } from 'lucide-react';
 import { useFoldersStore } from '@/stores/folders.store';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { MarkdownInput } from './MarkdownInput';
@@ -43,6 +43,54 @@ export function DetailsStep() {
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [input.title, setTitle]);
+
+  // Speech-to-text via Web Speech API
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleSpeechToText = useCallback(() => {
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    let finalTranscript = '';
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interim = transcript;
+        }
+      }
+      if (finalTranscript) {
+        const separator = input.title && !input.title.endsWith(' ') && !input.title.endsWith('\n') ? ' ' : '';
+        setTitle(input.title + separator + finalTranscript);
+        finalTranscript = '';
+      }
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }, [isListening, input.title, setTitle]);
+
+  const hasSpeechSupport = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
   // Load folders on mount
   useEffect(() => {
@@ -161,6 +209,21 @@ export function DetailsStep() {
             Ticket Description
           </label>
           <div className="flex items-center gap-2">
+            {hasSpeechSupport && (
+              <button
+                type="button"
+                onClick={toggleSpeechToText}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors border ${
+                  isListening
+                    ? 'text-red-500 border-red-500/40 bg-red-500/10 hover:bg-red-500/20'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text)] border-[var(--border-subtle)] hover:border-[var(--border)] hover:bg-[var(--bg-hover)]'
+                }`}
+                title={isListening ? 'Stop recording' : 'Dictate description'}
+              >
+                {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                {isListening ? 'Stop' : 'Dictate'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
