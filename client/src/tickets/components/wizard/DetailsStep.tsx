@@ -263,7 +263,7 @@ export function DetailsStep() {
                     ? 'text-red-500 border-red-500/40 bg-red-500/10 hover:bg-red-500/20'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text)] border-[var(--border-subtle)] hover:border-[var(--border)] hover:bg-[var(--bg-hover)]'
                 }`}
-                title={isListening ? 'Stop recording (T)' : 'Dictate description (T)'}
+                title={isListening ? 'Stop recording (T)' : 'Speak description (T)'}
               >
                 {isListening ? (
                   <>
@@ -274,7 +274,7 @@ export function DetailsStep() {
                 ) : (
                   <>
                     <Mic className="h-3.5 w-3.5" />
-                    Dictate
+                    Speak
                     <kbd className="inline-flex items-center px-1 py-0 text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded leading-tight">T</kbd>
                   </>
                 )}
