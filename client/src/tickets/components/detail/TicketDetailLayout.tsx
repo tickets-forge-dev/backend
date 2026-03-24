@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useUIStore } from '@/stores/ui.store';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
@@ -102,6 +103,8 @@ export function TicketDetailLayout({
   const hasTechSpec = !!ticket.techSpec;
   const { approveTicket, reEnrichTicket } = useTicketsStore();
   const { ticketService } = useServices();
+  const { sidebarCollapsed } = useUIStore();
+  const sideNavLeft = sidebarCollapsed ? 'left-[calc(4rem+1rem)]' : 'left-[calc(var(--nav-width)+1rem)]';
   const [isApproving, setIsApproving] = useState(false);
   const [isReEnriching, setIsReEnriching] = useState(false);
   const [isAecExpanded, setIsAecExpanded] = useState(false);
@@ -509,8 +512,8 @@ export function TicketDetailLayout({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Refine with Questions — shown for draft tickets that have a spec but no questions answered */}
-      {ticket.status === 'draft' && hasTechSpec && (
+      {/* Refine with Questions — shown only when the creator skipped clarification questions */}
+      {ticket.status === 'draft' && hasTechSpec && ticket.maxRounds === 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3">
           <MessageSquare className="h-4 w-4 text-blue-500 flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -657,7 +660,7 @@ export function TicketDetailLayout({
           </div>
 
           {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
-          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+1rem)] top-32 w-[88px] z-10">
+          <div className={`hidden xl:block fixed ${sideNavLeft} top-32 w-[88px] z-10`}>
             <nav className="space-y-0.5">
               {specSections.map((s) => (
                 <button
@@ -847,7 +850,7 @@ export function TicketDetailLayout({
           </div>
 
           {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
-          <div className="hidden xl:block fixed left-[calc(var(--nav-width)+1rem)] top-32 w-[88px] z-10">
+          <div className={`hidden xl:block fixed ${sideNavLeft} top-32 w-[88px] z-10`}>
             <nav className="space-y-0.5">
               {techSections.map((s) => (
                 <button

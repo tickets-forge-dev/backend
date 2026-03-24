@@ -20,8 +20,10 @@ export function GenerationOptionsStep() {
     type,
     input,
     includeWireframes,
+    includeHtmlWireframes,
     wireframeContext,
     setIncludeWireframes,
+    setIncludeHtmlWireframes,
     setWireframeContext,
     includeApiSpec,
     apiSpecDeferred,
@@ -160,40 +162,64 @@ export function GenerationOptionsStep() {
           icon={<Paintbrush className={`h-5 w-5 flex-shrink-0 ${includeWireframes ? 'text-green-600 dark:text-green-400' : 'text-[var(--text-tertiary)]'}`} />}
           enabled={includeWireframes}
           onToggle={handleWireframeToggle}
-          forceExpanded={showValidationError}
-          collapsedHint="Describe the UI layout (required)"
+          forceExpanded={true}
         >
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-[var(--text-secondary)]">
-                Describe the UI <span className="text-red-400">*</span>
+          <div className="space-y-4">
+            {/* Sub-switches */}
+            <div className="space-y-2">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">Basic wireframes</span>
+                  <span className="text-[10px] text-[var(--text-tertiary)]">ASCII layout specs for developers</span>
+                </div>
+                <div className="relative w-8 h-[18px] rounded-full bg-green-600 flex-shrink-0 cursor-not-allowed opacity-60" title="Always included with wireframe guidance">
+                  <div className="absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm translate-x-[14px]" />
+                </div>
               </label>
-              <button
-                type="button"
-                onClick={handleGenerateUIDescription}
-                disabled={isGeneratingUI || !input.title}
-                className="inline-flex items-center gap-1 text-[11px] text-purple-500 hover:text-purple-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {isGeneratingUI ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3 w-3" />
-                )}
-                {isGeneratingUI ? 'Generating...' : 'Generate with AI'}
-              </button>
+              <label className="flex items-center justify-between cursor-pointer group" onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">Hi-res wireframes</span>
+                  <span className="text-[10px] text-[var(--text-tertiary)]">Interactive HTML/CSS preview</span>
+                </div>
+                <div className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 ${includeHtmlWireframes ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${includeHtmlWireframes ? 'translate-x-[14px]' : 'translate-x-[3px]'}`} />
+                </div>
+              </label>
             </div>
-            <textarea
-              value={wireframeContext}
-              onChange={(e) => setWireframeContext(e.target.value)}
-              placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
-              rows={3}
-              className={`w-full rounded-md border bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none ${
-                wireframeContextMissing ? 'border-red-400/50' : 'border-[var(--border-subtle)]'
-              }`}
-            />
-            {wireframeContextMissing && (
-              <p className="text-[11px] text-red-400 mt-1">Describe the layout so the AI can generate accurate wireframes</p>
-            )}
+
+            {/* UI Description */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-[var(--text-secondary)]">
+                  Describe the UI <span className="text-red-400">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateUIDescription}
+                  disabled={isGeneratingUI || !input.title}
+                  className="inline-flex items-center gap-1 text-[11px] text-purple-500 hover:text-purple-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isGeneratingUI ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  {isGeneratingUI ? 'Generating...' : 'Generate with AI'}
+                </button>
+              </div>
+              <textarea
+                value={wireframeContext}
+                onChange={(e) => setWireframeContext(e.target.value)}
+                placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
+                rows={3}
+                className={`w-full rounded-md border bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none ${
+                  wireframeContextMissing ? 'border-red-400/50' : 'border-[var(--border-subtle)]'
+                }`}
+              />
+              {wireframeContextMissing && (
+                <p className="text-[11px] text-red-400 mt-1">Describe the layout so the AI can generate accurate wireframes</p>
+              )}
+            </div>
           </div>
         </ToggleOptionCard>
 

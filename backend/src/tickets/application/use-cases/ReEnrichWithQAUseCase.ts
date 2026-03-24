@@ -98,8 +98,8 @@ export class ReEnrichWithQAUseCase {
     // 8. Persist
     await this.aecRepository.save(aec);
 
-    // Fire-and-forget HTML wireframe regeneration
-    if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
+    // Fire-and-forget HTML wireframe regeneration — only when user opted in
+    if (aec.includeHtmlWireframes && aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
       const asciiWireframes = techSpec.visualExpectations.expectations
         .filter((e: any) => e.wireframe)
         .map((e: any) => `## ${e.screen} (${e.state})\n${e.wireframe}`)

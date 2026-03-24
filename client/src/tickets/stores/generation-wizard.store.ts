@@ -81,6 +81,7 @@ function saveSnapshot(state: WizardState): void {
       timestamp: Date.now(),
       includeRepository: state.includeRepository, // AC#3: Persist repository inclusion
       includeWireframes: state.includeWireframes,
+      includeHtmlWireframes: state.includeHtmlWireframes,
       wireframeContext: state.wireframeContext,
       wireframeImageIds: state.wireframeImageIds,
       includeApiSpec: state.includeApiSpec,
@@ -222,6 +223,7 @@ export interface WizardState {
 
   // Epic 14: Generation options
   includeWireframes: boolean;
+  includeHtmlWireframes: boolean; // Hi-res HTML/CSS wireframes (uses Sonnet)
   wireframeContext: string;
   wireframeImageIds: string[];
   includeApiSpec: boolean;
@@ -308,6 +310,7 @@ export interface WizardActions {
   setPriority: (priority: string) => void;
   setIncludeRepository: (include: boolean) => void; // AC#3: Toggle repository inclusion
   setIncludeWireframes: (include: boolean) => void;
+  setIncludeHtmlWireframes: (include: boolean) => void;
   setWireframeContext: (context: string) => void;
   addWireframeImage: (imageId: string) => void;
   removeWireframeImage: (imageId: string) => void;
@@ -413,6 +416,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // If GitHub connected, default to true (backward compatibility for developers)
   includeRepository: useSettingsStore.getState().githubConnected,
   includeWireframes: true,
+  includeHtmlWireframes: false,
   wireframeContext: '',
   wireframeImageIds: [],
   includeApiSpec: true,
@@ -527,8 +531,9 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   // Epic 14: Generation options actions
   setIncludeWireframes: (include: boolean) => set(include
     ? { includeWireframes: true }
-    : { includeWireframes: false, wireframeContext: '', wireframeImageIds: [] },
+    : { includeWireframes: false, includeHtmlWireframes: false, wireframeContext: '', wireframeImageIds: [] },
   ),
+  setIncludeHtmlWireframes: (include: boolean) => set({ includeHtmlWireframes: include }),
   setWireframeContext: (context: string) => set({ wireframeContext: context }),
   addWireframeImage: (imageId: string) => set((state) => ({
     wireframeImageIds: [...state.wireframeImageIds, imageId],
@@ -667,6 +672,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       reproductionSteps: snapshot.reproductionSteps ?? [],
       includeRepository: snapshot.includeRepository ?? true,
       includeWireframes: snapshot.includeWireframes ?? true,
+      includeHtmlWireframes: snapshot.includeHtmlWireframes ?? false,
       wireframeContext: snapshot.wireframeContext ?? '',
       wireframeImageIds: snapshot.wireframeImageIds ?? [],
       includeApiSpec: snapshot.includeApiSpec ?? true,
@@ -990,6 +996,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       // Include generation options
       requestBody.includeWireframes = state.includeWireframes;
+      requestBody.includeHtmlWireframes = state.includeHtmlWireframes;
       if (state.includeWireframes && state.wireframeContext) {
         requestBody.wireframeContext = state.wireframeContext;
       }

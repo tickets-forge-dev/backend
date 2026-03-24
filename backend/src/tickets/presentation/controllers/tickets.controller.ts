@@ -442,6 +442,7 @@ export class TicketsController {
         reproductionSteps: dto.reproductionSteps,
         // Story 14-3: Generation preferences
         includeWireframes: dto.includeWireframes,
+        includeHtmlWireframes: dto.includeHtmlWireframes,
         includeApiSpec: dto.includeApiSpec,
         apiSpecDeferred: dto.apiSpecDeferred,
         wireframeContext: dto.wireframeContext,
@@ -1423,6 +1424,7 @@ export class TicketsController {
       tagIds: filteredTagIds, // Ticket tags (filtered by visibility)
       // Story 14-3: Generation preferences
       includeWireframes: aec.includeWireframes ?? true,
+      includeHtmlWireframes: aec.includeHtmlWireframes ?? false,
       includeApiSpec: aec.includeApiSpec ?? true,
       apiSpecDeferred: aec.apiSpecDeferred ?? false,
       wireframeContext: aec.wireframeContext ?? null,

@@ -87,6 +87,7 @@ export interface AECDocument {
   tagIds?: string[]; // Ticket tags
   // Story 14-3: Generation preferences
   includeWireframes?: boolean;
+  includeHtmlWireframes?: boolean;
   includeApiSpec?: boolean;
   apiSpecDeferred?: boolean;
   wireframeContext?: string | null;
@@ -255,6 +256,7 @@ export class AECMapper {
       doc.tagIds ?? [], // Ticket tags
       // Story 14-3: Generation preferences (default true for backward compat)
       doc.includeWireframes ?? true,
+      doc.includeHtmlWireframes ?? false,
       doc.includeApiSpec ?? true,
       doc.apiSpecDeferred ?? false,
       doc.wireframeContext ?? null,
@@ -340,6 +342,7 @@ export class AECMapper {
       tagIds: aec.tagIds ?? [], // Ticket tags
       // Story 14-3: Generation preferences
       includeWireframes: aec.includeWireframes,
+      includeHtmlWireframes: aec.includeHtmlWireframes,
       includeApiSpec: aec.includeApiSpec,
       apiSpecDeferred: aec.apiSpecDeferred,
       wireframeContext: aec.wireframeContext ?? null,

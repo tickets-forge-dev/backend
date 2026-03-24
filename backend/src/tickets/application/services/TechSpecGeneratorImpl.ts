@@ -2624,7 +2624,8 @@ Output ONLY this JSON:
     solutionContext: string,
     trackingContext?: { userId?: string; teamId?: string; ticketId?: string },
   ): Promise<string | null> {
-    const model = this.fastModel ?? this.llmModel;
+    // Use main model (Sonnet) for high-quality HTML/CSS wireframes
+    const model = this.llmModel ?? this.fastModel;
     if (!model) {
       this.logger.warn('No LLM configured — skipping HTML wireframe generation');
       return null;
@@ -2655,7 +2656,7 @@ ${solutionContext}
 - Generous padding and spacing for readability
 - Body must have overflow-y: auto to allow scrolling within an iframe`;
 
-      const modelId = this.fastModel ? this.fastModelId : (this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL);
+      const modelId = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
 
       const { text, usage } = await generateText({
         model,

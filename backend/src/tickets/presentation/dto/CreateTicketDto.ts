@@ -64,6 +64,10 @@ export class CreateTicketDto {
 
   @IsOptional()
   @IsBoolean()
+  includeHtmlWireframes?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   includeApiSpec?: boolean;
 
   @IsOptional()

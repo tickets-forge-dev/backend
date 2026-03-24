@@ -172,8 +172,8 @@ export class FinalizeSpecUseCase {
     //   );
     // }
 
-    // HTML wireframe generation (fire-and-forget)
-    if (aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
+    // HTML wireframe generation (fire-and-forget) — only when user opted in
+    if (aec.includeHtmlWireframes && aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
       this.generateHtmlWireframeInBackground(aec.id, techSpec, {
         userId: aec.createdBy,
         teamId: aec.teamId,

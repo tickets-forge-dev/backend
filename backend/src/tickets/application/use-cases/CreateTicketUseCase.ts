@@ -35,6 +35,7 @@ export interface CreateTicketCommand {
   folderId?: string | null;
   // Story 14-3: Generation preferences
   includeWireframes?: boolean;
+  includeHtmlWireframes?: boolean;
   includeApiSpec?: boolean;
   apiSpecDeferred?: boolean;
   wireframeContext?: string;
@@ -122,6 +123,7 @@ export class CreateTicketUseCase {
       // Story 14-3: Generation preferences
       {
         includeWireframes: command.includeWireframes,
+        includeHtmlWireframes: command.includeHtmlWireframes,
         includeApiSpec: command.includeApiSpec,
         apiSpecDeferred: command.apiSpecDeferred,
         wireframeContext: command.wireframeContext,

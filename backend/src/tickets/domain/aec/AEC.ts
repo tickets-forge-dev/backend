@@ -82,6 +82,7 @@ export class AEC {
     private _tagIds: string[] = [], // Ticket tags
     // Story 14-3: Generation preferences
     private _includeWireframes: boolean = true,
+    private _includeHtmlWireframes: boolean = false,
     private _includeApiSpec: boolean = true,
     private _apiSpecDeferred: boolean = false,
     private _wireframeContext: string | null = null,
@@ -104,6 +105,7 @@ export class AEC {
     assignedTo?: string | null,
     generationPreferences?: {
       includeWireframes?: boolean;
+      includeHtmlWireframes?: boolean;
       includeApiSpec?: boolean;
       apiSpecDeferred?: boolean;
       wireframeContext?: string;
@@ -162,6 +164,7 @@ export class AEC {
       tagIds ?? [], // _tagIds
       // Story 14-3: Generation preferences
       generationPreferences?.includeWireframes ?? true,
+      generationPreferences?.includeHtmlWireframes ?? false,
       generationPreferences?.includeApiSpec ?? true,
       generationPreferences?.apiSpecDeferred ?? false,
       generationPreferences?.wireframeContext ?? null,
@@ -214,6 +217,7 @@ export class AEC {
     tagIds?: string[],
     // Story 14-3: Generation preferences
     includeWireframes?: boolean,
+    includeHtmlWireframes?: boolean,
     includeApiSpec?: boolean,
     apiSpecDeferred?: boolean,
     wireframeContext?: string | null,
@@ -267,6 +271,7 @@ export class AEC {
       tagIds ?? [],
       // Story 14-3: Generation preferences (default true for backward compat)
       includeWireframes ?? true,
+      includeHtmlWireframes ?? false,
       includeApiSpec ?? true,
       apiSpecDeferred ?? false,
       wireframeContext ?? null,
@@ -807,6 +812,10 @@ export class AEC {
   // Story 14-3: Generation preferences getters
   get includeWireframes(): boolean {
     return this._includeWireframes;
+  }
+
+  get includeHtmlWireframes(): boolean {
+    return this._includeHtmlWireframes;
   }
 
   get includeApiSpec(): boolean {
