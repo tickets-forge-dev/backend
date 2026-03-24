@@ -77,9 +77,13 @@ export function DetailsStep() {
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
   const textRef = useRef(input.title); // Always-current text value (avoids stale closures)
+  const baseTextRef = useRef(''); // Text before current speech session started
+  const interimRef = useRef(''); // Current interim (unfinished) transcript
 
-  // Keep ref in sync with store
-  useEffect(() => { textRef.current = input.title; }, [input.title]);
+  // Keep ref in sync with store (only when not listening — avoid overwriting during speech)
+  useEffect(() => {
+    if (!isListening) textRef.current = input.title;
+  }, [input.title, isListening]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();
@@ -124,17 +128,37 @@ export function DetailsStep() {
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: any) => {
+      let finalPart = '';
+      let interimPart = '';
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          const transcript = event.results[i][0].transcript;
-          const current = textRef.current;
-          const separator = current && !current.endsWith(' ') && !current.endsWith('\n') ? ' ' : '';
-          const updated = current + separator + transcript;
-          setTitle(updated);
-          textRef.current = updated;
-          // Move cursor to end on next frame
-          requestAnimationFrame(focusEnd);
+          finalPart += transcript;
+        } else {
+          interimPart += transcript;
         }
+      }
+
+      // Commit final text permanently
+      if (finalPart) {
+        const base = textRef.current;
+        const separator = base && !base.endsWith(' ') && !base.endsWith('\n') ? ' ' : '';
+        const updated = base + separator + finalPart;
+        textRef.current = updated;
+        baseTextRef.current = updated;
+        interimRef.current = '';
+        setTitle(updated);
+        requestAnimationFrame(focusEnd);
+      }
+
+      // Show interim text live (not committed — will be replaced)
+      if (interimPart && !finalPart) {
+        interimRef.current = interimPart;
+        const base = textRef.current;
+        const separator = base && !base.endsWith(' ') && !base.endsWith('\n') ? ' ' : '';
+        setTitle(base + separator + interimPart);
+        requestAnimationFrame(focusEnd);
       }
     };
 
@@ -149,6 +173,8 @@ export function DetailsStep() {
       setIsListening(false);
     };
 
+    baseTextRef.current = textRef.current;
+    interimRef.current = '';
     recognitionRef.current = recognition;
     recognition.start();
     playStartBeep();
