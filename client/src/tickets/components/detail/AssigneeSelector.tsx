@@ -286,7 +286,7 @@ export function AssigneeSelector({
 function DevCliInfo() {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const command = 'npm install -g @anthropic-forge/cli';
+  const command = 'npm install -g forge-aec';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(command);

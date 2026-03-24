@@ -31,7 +31,7 @@ export function TwoInterfaces() {
               <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-4">
                 Run <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">forge login</code>, open Claude Code, and type <code className="text-[var(--text)] bg-[var(--bg-subtle)] px-1 py-0.5 rounded text-xs">/forge:list</code> — browse tickets, pick one, and start implementing with full codebase context.
               </p>
-              <CopyCommand command="npm install -g @anthropic-forge/cli" />
+              <CopyCommand command="npm install -g forge-aec" />
             </div>
           </div>
         </div>
