@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertTriangle, ArrowRight, Lock, Plus } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
@@ -73,25 +73,34 @@ export function OverviewCard({
   const { teamMembers } = useTeamStore();
   const { tags } = useTagsStore();
   const { ticketService } = useServices();
-  const { loadTickets } = useTicketsStore();
+  const { refreshTicket } = useTicketsStore();
   const creatorMember = ticket.createdBy ? teamMembers.find((m) => m.userId === ticket.createdBy) : null;
   const creatorName = creatorMember ? (creatorMember.displayName || creatorMember.email || null) : null;
 
-  // Resolve tag IDs to tag objects
+  // Optimistic local tag IDs so pills render immediately after selection
+  const [localTagIds, setLocalTagIds] = useState<string[]>(ticket.tagIds ?? []);
+
+  // Sync when the authoritative ticket data arrives
+  useEffect(() => {
+    setLocalTagIds(ticket.tagIds ?? []);
+  }, [ticket.tagIds]);
+
+  // Resolve tag IDs to tag objects using optimistic local state
   const visibleTicketTags = useMemo(() => {
-    const ticketTagIds = ticket.tagIds ?? [];
-    if (ticketTagIds.length === 0) return [];
-    return tags.filter(t => ticketTagIds.includes(t.id));
-  }, [ticket.tagIds, tags]);
+    if (localTagIds.length === 0) return [];
+    return tags.filter(t => localTagIds.includes(t.id));
+  }, [localTagIds, tags]);
 
   const handleTagsChange = useCallback(async (tagIds: string[]) => {
+    setLocalTagIds(tagIds);
     try {
       await ticketService.updateTicketTags(ticket.id, tagIds);
-      loadTickets();
+      refreshTicket(ticket.id);
     } catch {
-      // Silently fail — TagPicker handles UI
+      // Revert optimistic update on failure
+      setLocalTagIds(ticket.tagIds ?? []);
     }
-  }, [ticket.id, ticketService, loadTickets]);
+  }, [ticket.id, ticket.tagIds, ticketService, refreshTicket]);
 
   // Find current and next step for the progress dots
   const currentIdx = LIFECYCLE_STEPS.findIndex(
@@ -145,7 +154,7 @@ export function OverviewCard({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="w-56 p-0">
-              <TagPicker ticketId={ticket.id} currentTagIds={ticket.tagIds ?? []} onTagsChange={handleTagsChange} />
+              <TagPicker ticketId={ticket.id} currentTagIds={localTagIds} onTagsChange={handleTagsChange} />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

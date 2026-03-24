@@ -69,6 +69,8 @@ interface TicketsState {
   createTicket: (title: string, description?: string) => Promise<AECResponse | null>;
   loadTickets: () => Promise<void>;
   fetchTicket: (id: string) => Promise<void>;
+  /** Re-fetches the current ticket without clearing it or showing a loader */
+  refreshTicket: (id: string) => Promise<void>;
   fetchQuota: () => Promise<void>;
   updateTicket: (
     id: string,
@@ -254,6 +256,16 @@ export const useTicketsStore = create<TicketsState>((set, get) => {
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to load ticket';
       set({ isLoading: false, fetchError: errorMessage });
+    }
+  },
+
+  refreshTicket: async (id: string) => {
+    try {
+      const { ticketService } = useServices();
+      const ticket = await ticketService.getById(id);
+      set({ currentTicket: ticket });
+    } catch {
+      // Silent refresh — don't overwrite existing data on failure
     }
   },
 

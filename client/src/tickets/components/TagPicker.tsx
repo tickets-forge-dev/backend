@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Lock, Globe, Check, Search } from 'lucide-react';
 import { useTagsStore } from '@/stores/tags.store';
 import { useTeamStore } from '@/teams/stores/team.store';
@@ -21,6 +21,14 @@ export function TagPicker({ ticketId, currentTagIds, onTagsChange }: TagPickerPr
   const [newTagScope, setNewTagScope] = useState<'team' | 'private'>('team');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Optimistic local state so checkmarks update immediately on click
+  const [selectedIds, setSelectedIds] = useState<string[]>(currentTagIds);
+
+  // Sync local state when the authoritative prop catches up
+  useEffect(() => {
+    setSelectedIds(currentTagIds);
+  }, [currentTagIds]);
+
   const filteredTags = useMemo(() => {
     if (!search.trim()) return tags;
     const lower = search.toLowerCase();
@@ -33,9 +41,10 @@ export function TagPicker({ ticketId, currentTagIds, onTagsChange }: TagPickerPr
   }, [tags, search]);
 
   const handleToggleTag = (tagId: string) => {
-    const next = currentTagIds.includes(tagId)
-      ? currentTagIds.filter(id => id !== tagId)
-      : [...currentTagIds, tagId];
+    const next = selectedIds.includes(tagId)
+      ? selectedIds.filter(id => id !== tagId)
+      : [...selectedIds, tagId];
+    setSelectedIds(next);
     onTagsChange(next);
   };
 
@@ -45,7 +54,9 @@ export function TagPicker({ ticketId, currentTagIds, onTagsChange }: TagPickerPr
     try {
       const tag = await createTag(currentTeam.id, search.trim(), newTagColor, newTagScope);
       if (tag) {
-        onTagsChange([...currentTagIds, tag.id]);
+        const next = [...selectedIds, tag.id];
+        setSelectedIds(next);
+        onTagsChange(next);
         setSearch('');
         setIsCreating(false);
         setNewTagColor('blue');
@@ -79,7 +90,7 @@ export function TagPicker({ ticketId, currentTagIds, onTagsChange }: TagPickerPr
       <div className="max-h-48 overflow-y-auto space-y-0.5">
         {filteredTags.map(tag => {
           const color = getTagColor(tag.color);
-          const isSelected = currentTagIds.includes(tag.id);
+          const isSelected = selectedIds.includes(tag.id);
           return (
             <button
               key={tag.id}
