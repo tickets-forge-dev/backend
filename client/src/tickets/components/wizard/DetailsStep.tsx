@@ -122,7 +122,7 @@ export function DetailsStep() {
   useEffect(() => {
     if (!hasSpeechSupport) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 't' || e.key === 'T') {
+      if (e.key === 's' || e.key === 'S') {
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable) return;
         e.preventDefault();
@@ -263,7 +263,7 @@ export function DetailsStep() {
                     ? 'text-red-500 border-red-500/40 bg-red-500/10 hover:bg-red-500/20'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text)] border-[var(--border-subtle)] hover:border-[var(--border)] hover:bg-[var(--bg-hover)]'
                 }`}
-                title={isListening ? 'Stop recording (T)' : 'Speak description (T)'}
+                title={isListening ? 'Stop recording (S)' : 'Speak description (S)'}
               >
                 {isListening ? (
                   <>
@@ -275,7 +275,7 @@ export function DetailsStep() {
                   <>
                     <Mic className="h-3.5 w-3.5" />
                     Speak
-                    <kbd className="inline-flex items-center px-1 py-0 text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded leading-tight">T</kbd>
+                    <kbd className="hidden sm:inline-flex items-center px-1 py-0 text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded leading-tight">S</kbd>
                   </>
                 )}
               </button>
