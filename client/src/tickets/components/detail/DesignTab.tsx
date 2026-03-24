@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { type DesignReference } from '@repo/shared-types';
-import { Eye, Figma, Loader2, Sparkles, RefreshCw } from 'lucide-react';
+import { Eye, Figma, Loader2, Sparkles, RefreshCw, Monitor, Code2, ChevronDown } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/core/components/ui/button';
 import { DesignReferencesSection } from './DesignReferencesSection';
@@ -194,122 +194,77 @@ export function DesignTab({
 
   return (
     <div className="space-y-8 p-5">
-      {/* ─── AI-Generated Wireframes ─── */}
+      {/* ─── Section 1: Wireframes (for humans) ─── */}
       {hasVisualExpectations ? (
-        <div>
-          <div className="flex items-center justify-between mb-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <Eye className="w-4 h-4 text-purple-500" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-[var(--text)]">Visual QA Expectations</h3>
-                <p className="text-[11px] text-[var(--text-tertiary)]">AI-generated wireframes and screen expectations</p>
-              </div>
+              <Monitor className="w-4 h-4 text-purple-500" />
+              <h3 className="text-sm font-medium text-[var(--text)]">Wireframes</h3>
+              <span className="text-[10px] text-[var(--text-tertiary)]">Visual preview for stakeholders</span>
             </div>
             <Button
               onClick={() => setShowRegenerateForm(!showRegenerateForm)}
               variant="ghost"
               size="sm"
-              className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+              className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] h-7 text-xs"
             >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              <RefreshCw className="w-3 h-3 mr-1" />
               Regenerate
             </Button>
           </div>
 
+          {/* Hi-res wireframe preview button */}
+          <VisualExpectationsSection
+            summary={visualExpectations!.summary}
+            expectations={visualExpectations!.expectations}
+            flowDiagram={visualExpectations!.flowDiagram}
+            excalidrawData={visualExpectations!.excalidrawData}
+            wireframeHtml={wireframeHtml}
+            ticketId={ticketId}
+            onSaveExcalidraw={handleSaveExcalidraw}
+          />
+
           {/* Regenerate form (collapsible) */}
           {showRegenerateForm && (
-            <div className="rounded-lg border border-dashed border-purple-500/20 bg-purple-500/5 p-5 mb-4">
+            <div className="rounded-lg border border-dashed border-purple-500/20 bg-purple-500/5 p-5">
               <div className="flex flex-col items-center text-center gap-3">
                 <p className="text-xs text-[var(--text-secondary)]">
-                  Provide a new UI description to regenerate wireframes
+                  Describe the UI to regenerate wireframes
                 </p>
                 {wireframeContextForm}
                 <div className="flex items-center gap-2 mt-1">
-                  <Button
-                    onClick={() => setShowRegenerateForm(false)}
-                    variant="ghost"
-                    size="sm"
-                    disabled={isGeneratingWireframes}
-                  >
+                  <Button onClick={() => setShowRegenerateForm(false)} variant="ghost" size="sm" disabled={isGeneratingWireframes}>
                     Cancel
                   </Button>
-                  <Button
-                    onClick={handleGenerateWireframes}
-                    disabled={isGeneratingWireframes}
-                    variant="outline"
-                    size="sm"
-                  >
+                  <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm">
                     {isGeneratingWireframes ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                        Regenerating...
-                      </>
+                      <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Regenerating...</>
                     ) : (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                        Regenerate Wireframes
-                      </>
+                      <><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Regenerate</>
                     )}
                   </Button>
                 </div>
               </div>
             </div>
           )}
-
-          <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
-            <VisualExpectationsSection
-              summary={visualExpectations!.summary}
-              expectations={visualExpectations!.expectations}
-              flowDiagram={visualExpectations!.flowDiagram}
-              excalidrawData={visualExpectations!.excalidrawData}
-              wireframeHtml={wireframeHtml}
-              ticketId={ticketId}
-              onSaveExcalidraw={handleSaveExcalidraw}
-            />
-          </div>
         </div>
       ) : (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <Eye className="w-4 h-4 text-purple-500" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-[var(--text)]">Visual QA Expectations</h3>
-              <p className="text-[11px] text-[var(--text-tertiary)]">AI-generated wireframes and screen expectations</p>
-            </div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Monitor className="w-4 h-4 text-purple-500" />
+            <h3 className="text-sm font-medium text-[var(--text)]">Wireframes</h3>
           </div>
-          <div className="rounded-lg border border-dashed border-[var(--border-subtle)] p-8">
+          <div className="rounded-lg border border-dashed border-[var(--border-subtle)] p-6">
             <div className="flex flex-col items-center text-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-[var(--text-secondary)]">No wireframes generated</p>
-                <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
-                  Generate AI wireframes showing expected screen states, layouts, and user flows
-                </p>
-              </div>
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              <p className="text-sm text-[var(--text-secondary)]">No wireframes yet</p>
               {wireframeContextForm}
-              <Button
-                onClick={handleGenerateWireframes}
-                disabled={isGeneratingWireframes}
-                variant="outline"
-                size="sm"
-                className="mt-1"
-              >
+              <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm" className="mt-1">
                 {isGeneratingWireframes ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                    Generating...
-                  </>
+                  <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generating...</>
                 ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    Generate Wireframes
-                  </>
+                  <><Sparkles className="w-3.5 h-3.5 mr-1.5" />Generate Wireframes</>
                 )}
               </Button>
             </div>
@@ -317,7 +272,6 @@ export function DesignTab({
         </div>
       )}
 
-      {/* Divider between sections */}
       <div className="border-t border-[var(--border-subtle)]" />
 
       {/* ─── External Design References (Figma, Loom, etc.) ─── */}

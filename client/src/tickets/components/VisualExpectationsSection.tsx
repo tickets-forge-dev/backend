@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, Copy, Check, ChevronDown, ArrowRight, X, Monitor } from 'lucide-react';
+import { Eye, Copy, Check, ChevronDown, ArrowRight, X, Monitor, Code2 } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import type { VisualExpectationsSpec, VisualExpectationSpec, ExcalidrawDataSpec } from '@/types/question-refinement';
 import { ExcalidrawEditor } from './ExcalidrawEditor';
@@ -140,6 +140,7 @@ export function VisualExpectationsSection({
 }: VisualExpectationsSectionProps) {
   const [showFlow, setShowFlow] = useState(false);
   const [showHtmlPreview, setShowHtmlPreview] = useState(false);
+  const [showAsciiSpecs, setShowAsciiSpecs] = useState(false);
 
   if (!expectations || expectations.length === 0) {
     return (
@@ -203,31 +204,43 @@ export function VisualExpectationsSection({
         })}
       </div>
 
-      {/* Flow diagram toggle */}
-      {flowDiagram && (
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowFlow((v) => !v)}
-            className="gap-1.5 text-xs h-7"
-          >
-            <ArrowRight className="h-3.5 w-3.5" />
-            {showFlow ? 'Hide' : 'Show'} User Flow
-          </Button>
-          {showFlow && (
-            <div className="mt-2">
-              <WireframeBlock wireframe={flowDiagram} />
-            </div>
-          )}
-        </div>
-      )}
+      {/* ─── ASCII Screen Specs (for coding agents) — collapsed by default ─── */}
+      <div className="rounded-lg border border-[var(--border-subtle)]">
+        <button
+          onClick={() => setShowAsciiSpecs(!showAsciiSpecs)}
+          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[var(--bg-hover)] transition-colors rounded-lg"
+        >
+          <Code2 className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
+          <span className="text-xs font-medium text-[var(--text-secondary)] flex-1">
+            Screen Specifications
+          </span>
+          <span className="text-[10px] text-[var(--text-tertiary)] mr-1">{expectations.length} screens</span>
+          <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform ${showAsciiSpecs ? 'rotate-180' : ''}`} />
+        </button>
 
-      {/* Expectation cards */}
-      <div className="space-y-2">
-        {expectations.map((expectation, idx) => (
-          <ExpectationCard key={idx} expectation={expectation} index={idx} />
-        ))}
+        {showAsciiSpecs && (
+          <div className="border-t border-[var(--border-subtle)] px-3 py-3 space-y-2">
+            {/* Flow diagram */}
+            {flowDiagram && (
+              <div className="mb-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowFlow((v) => !v)} className="gap-1.5 text-xs h-7">
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  {showFlow ? 'Hide' : 'Show'} User Flow
+                </Button>
+                {showFlow && (
+                  <div className="mt-2">
+                    <WireframeBlock wireframe={flowDiagram} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Expectation cards */}
+            {expectations.map((expectation, idx) => (
+              <ExpectationCard key={idx} expectation={expectation} index={idx} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Hi-res wireframe dialog */}
