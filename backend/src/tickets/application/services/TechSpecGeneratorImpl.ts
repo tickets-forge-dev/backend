@@ -3546,7 +3546,14 @@ Rules:
 - Frame questions for product owners, not engineers
 - Use clear, non-technical language
 - Do NOT ask about implementation details, library choices, or database schemas
-- DO ask about user experience, business rules, scope, and edge cases`;
+- DO ask about user experience, business rules, scope, and edge cases
+
+Brevity:
+- Keep "question" under 15 words — direct and scannable
+- Keep "context" to 1 short sentence (max 20 words) — why it matters, not a lecture
+- Keep "impact" to 1 short sentence — how it changes the spec
+- Prefer radio/select with 2-4 clear options over open-ended text
+- Options should be short labels (2-5 words each), not full sentences`;
   }
 
   /**
