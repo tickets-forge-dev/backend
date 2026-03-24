@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, Check, X, Minus } from 'lucide-react';
+import { Loader2, Check, X, Minus, AlertTriangle } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import type { GenerationJobClient } from '@/stores/jobs.store';
 
@@ -29,6 +29,7 @@ function formatElapsed(from: Date): string {
  */
 export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardProps) {
   const [elapsed, setElapsed] = useState(() => formatElapsed(job.createdAt));
+  const [sinceUpdate, setSinceUpdate] = useState(0);
 
   // Update elapsed time every second for active jobs
   useEffect(() => {
@@ -36,12 +37,16 @@ export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardPr
 
     const interval = setInterval(() => {
       setElapsed(formatElapsed(job.createdAt));
+      setSinceUpdate(Math.floor((Date.now() - job.updatedAt.getTime()) / 1000));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [job.status, job.createdAt]);
+  }, [job.status, job.createdAt, job.updatedAt]);
 
+  const isActive = job.status === 'running' || job.status === 'retrying';
   const isCancelled = job.status === 'cancelled';
+  // Job is "stale" if no backend update for 60s+ while supposedly active
+  const isStale = isActive && sinceUpdate > 60;
 
   return (
     <div
@@ -58,10 +63,20 @@ export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardPr
       </div>
 
       {/* Phase text */}
-      {(job.status === 'running' || job.status === 'retrying') && job.phase && (
+      {isActive && job.phase && (
         <p className="text-[10px] text-[var(--text-tertiary)] truncate pl-5">
           {job.phase}
         </p>
+      )}
+
+      {/* Stale warning — no backend update for 60s+ */}
+      {isStale && (
+        <div className="flex items-center gap-1 pl-5">
+          <AlertTriangle className="h-2.5 w-2.5 text-amber-500 flex-shrink-0" />
+          <p className="text-[10px] text-amber-500">
+            No update for {sinceUpdate}s — may be stuck
+          </p>
+        </div>
       )}
 
       {/* Error text */}
@@ -83,11 +98,11 @@ export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardPr
 
       {/* Footer: elapsed time + action button */}
       <div className="flex items-center justify-between pl-5">
-        <span className="text-[10px] text-[var(--text-tertiary)]">
+        <span className={`text-[10px] ${isStale ? 'text-amber-500' : 'text-[var(--text-tertiary)]'}`}>
           {elapsed}
         </span>
 
-        {(job.status === 'running' || job.status === 'retrying') && (
+        {isActive && (
           <Button
             variant="ghost"
             size="sm"
