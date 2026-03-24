@@ -204,15 +204,43 @@ export function Stage3Draft() {
   const isSubmitting = roundStatus === 'submitting' || roundStatus === 'finalizing';
   const isGenerating = roundStatus === 'generating';
 
-  // Select a predefined option → answer + fetch next question
+  const isMultiSelect = currentQuestion?.type === 'checkbox';
+
+  // Multi-select: local state for toggled options before submission
+  const [multiSelected, setMultiSelected] = useState<string[]>([]);
+
+  // Reset multi-select when question changes
+  useEffect(() => {
+    setMultiSelected([]);
+  }, [currentQuestion?.id]);
+
+  // Toggle an option for multi-select
+  const toggleMultiOption = useCallback((option: string) => {
+    setMultiSelected(prev =>
+      prev.includes(option) ? prev.filter(o => o !== option) : [...prev, option]
+    );
+  }, []);
+
+  // Submit multi-select answer
+  const submitMultiSelect = useCallback(() => {
+    if (!currentQuestion || multiSelected.length === 0) return;
+    answerQuestion(currentQuestion.id, multiSelected);
+    setMultiSelected([]);
+    fetchNextQuestion();
+  }, [currentQuestion, multiSelected, answerQuestion, fetchNextQuestion]);
+
+  // Select a predefined option → answer + fetch next question (single-select)
   const selectOption = useCallback((option: string) => {
     if (!currentQuestion) return;
+    if (isMultiSelect) {
+      toggleMultiOption(option);
+      return;
+    }
     setShowCustomInput(false);
     setCustomAnswer('');
     answerQuestion(currentQuestion.id, option);
-    // Fetch next question from LLM (it will see this answer)
     fetchNextQuestion();
-  }, [currentQuestion, answerQuestion, fetchNextQuestion]);
+  }, [currentQuestion, isMultiSelect, toggleMultiOption, answerQuestion, fetchNextQuestion]);
 
   // Submit custom typed answer → answer + fetch next question
   const submitCustom = useCallback(() => {
@@ -654,7 +682,9 @@ export function Stage3Draft() {
                   {(currentQuestion.options || []).length > 0 ? (
                     <>
                       {(currentQuestion.options || []).map((option, idx) => {
-                        const isSelected = currentAnswer === option;
+                        const isSelected = isMultiSelect
+                          ? multiSelected.includes(option)
+                          : currentAnswer === option;
                         return (
                           <button
                             key={option}
@@ -671,7 +701,7 @@ export function Stage3Draft() {
                           >
                             <div
                               className={`
-                                w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center
+                                w-5 h-5 ${isMultiSelect ? 'rounded' : 'rounded-full'} border-2 flex-shrink-0 flex items-center justify-center
                                 transition-all
                                 ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 dark:border-gray-600'}
                               `}
@@ -684,6 +714,17 @@ export function Stage3Draft() {
                           </button>
                         );
                       })}
+
+                      {/* Multi-select: Continue button */}
+                      {isMultiSelect && multiSelected.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={submitMultiSelect}
+                          className="w-full p-3 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                        >
+                          Continue with {multiSelected.length} selected
+                        </button>
+                      )}
 
                       {/* "Type your own answer" option */}
                       <button
