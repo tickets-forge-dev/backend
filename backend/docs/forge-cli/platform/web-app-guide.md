@@ -20,17 +20,46 @@ The dashboard shows all tickets for your team, with filtering and sorting option
 | **Type** | Feature, Bug, Task |
 | **Assignee** | Any team member |
 
-### Ticket List
+### Ticket Grid
 
-Each ticket card shows:
+The ticket grid is a responsive table that adapts to your screen size:
+
+| Breakpoint | Columns shown |
+|------------|---------------|
+| Mobile (<640px) | Title, Score, Actions |
+| sm (640px+) | + Status, Priority |
+| md (768px+) | + Assignee, Updated |
+| lg (1024px+) | + Creator, Tags, Type |
+
+Each row shows:
 - Title and ticket ID
 - Current status badge
 - Priority indicator
 - Type label
 - Assignee avatar
+- Creator name
+- Tags (colored labels)
 - Readiness score (when available)
 - Last updated timestamp
 - Folder location (if filed)
+
+### Column Management
+
+Customize which columns are visible and their order:
+
+- Click the **column settings** icon in the grid header
+- Toggle columns on/off
+- Drag columns to reorder them
+- Your preferences persist across sessions
+
+### Ticket Tags
+
+Add colored tags to tickets for quick categorization:
+
+- Click the **tag icon** on any ticket or use the detail view
+- Create new tags with custom names and colors
+- Filter the grid by tags
+- Tags are team-scoped — all members see the same tag library
 
 Tickets can be organized into **folders** for grouping related work. See [Ticket Folders](#ticket-folders) below.
 
@@ -62,10 +91,20 @@ To move a ticket back to the root feed, drag it to the **"Unfiled"** drop zone (
 - Click the chevron to expand — tickets inside appear indented with a visual connector
 - Unfiled tickets appear below all folders
 
+### Folder Scope
+
+Folders can be set to different visibility levels:
+
+| Scope | Who sees it |
+|-------|-------------|
+| **Team** | All team members see and can use the folder |
+| **Private** | Only you see the folder |
+
 ### Managing Folders
 
 Right-click a folder (or click the three-dot icon) to:
 - **Rename** — Inline edit the folder name
+- **Reorder** — Drag folders up/down to change their sort order
 - **Delete** — Removes the folder; all tickets inside move back to the root feed
 
 ### Expand/Collapse State
@@ -88,12 +127,43 @@ Navigate to **Create Ticket** from the dashboard.
 
 | Field | Description |
 |-------|-------------|
-| **Description** | Freeform context — user stories, background, links |
+| **Description** | Freeform context — user stories, background, links. Supports voice dictation (see below). |
 | **Type** | `feature` (new functionality), `bug` (fix), or `task` (chore/maintenance) |
 | **Priority** | `low`, `medium`, `high`, or `urgent` |
 | **Assignee** | Developer responsible for execution |
 
 The ticket is created in **Draft** status.
+
+## Voice Dictation
+
+Instead of typing, speak your ticket description using the built-in speech-to-text feature:
+
+- Press **S** on your keyboard or click the **Speak** button to start recording
+- A real-time **waveform visualizer** shows audio input
+- **Interim results** appear as you speak, so you can see what's being transcribed
+- Press **S** again or click the button to stop
+- Audio feedback: a subtle beep plays on start and stop
+
+Voice dictation uses the browser's built-in Web Speech API — no additional setup needed.
+
+## Generation Options
+
+During ticket creation, you can optionally enable AI-generated wireframes and API specifications. These appear as toggles in the **Generation Options** step of the wizard.
+
+| Option | Default (Feature) | Default (Bug/Task) | What it generates |
+|--------|-------------------|---------------------|-------------------|
+| **Wireframes** | On | Off | HTML wireframe preview based on the ticket description |
+| **API Spec** | On | Off | REST endpoint definitions with request/response schemas |
+
+### HTML Wireframes
+
+When wireframes are enabled, Forge generates an interactive HTML wireframe that shows the proposed UI. The wireframe:
+
+- Uses your project's design tokens (colors, fonts, spacing) when a repository is connected
+- Opens in a large dialog (90% viewport width) for detailed inspection
+- Can be regenerated if the first result doesn't match your vision
+
+The wireframe appears in the **Design** tab of the ticket detail view alongside any manually attached design references.
 
 ## AI Question Rounds
 
@@ -107,6 +177,8 @@ After creating a ticket, Forge's AI generates clarification questions based on y
 | Reference existing patterns in the codebase | Leave answers blank |
 | Call out edge cases and error scenarios | Only describe the happy path |
 | Mention constraints (performance, security) | Assume the AI knows your context |
+
+Questions may include **multi-select checkboxes** when multiple options apply (e.g., "Which platforms should this support?"). Select all that are relevant.
 
 ### What Happens Next
 
@@ -228,6 +300,35 @@ For larger documents, use the **Breakdown** feature:
 5. Each becomes an independent AEC that goes through the standard lifecycle
 
 This is useful for turning a product brief into an actionable backlog.
+
+## Background Jobs & Notifications
+
+Spec generation and codebase analysis run as background jobs. Forge keeps you informed throughout:
+
+### Progress Tracking
+
+- An **elapsed time counter** shows how long the analysis has been running
+- You can **send a job to the background** and continue working — Forge notifies you when it's done
+
+### Notifications
+
+When a background job completes:
+- A **completion chime** plays (audio notification)
+- A **browser notification** appears if the tab is not focused (requires notification permission)
+
+### Job Recovery
+
+If a job gets stuck (e.g., due to a network issue):
+
+| Indicator | What it means |
+|-----------|---------------|
+| **Stale warning** | Job has been running longer than expected — a yellow warning appears |
+| **Recover button** | Click to manually retry the stuck job |
+| **Auto-recovery** | Forge automatically detects and recovers stale jobs when possible |
+
+You can also **cancel** a running job and start over.
+
+---
 
 ## Team & Workspace Settings
 

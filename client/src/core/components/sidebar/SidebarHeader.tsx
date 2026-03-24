@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LogOut, Settings, BookOpen, FileText, Shield } from 'lucide-react';
+import { LogOut, Settings, BookOpen, FileText, Shield, HelpCircle } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import {
   DropdownMenu,
@@ -103,6 +103,13 @@ export function SidebarHeader() {
           >
             <BookOpen className="mr-2 h-4 w-4" />
             Show Onboarding
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push('/docs')}
+            className="cursor-pointer"
+          >
+            <HelpCircle className="mr-2 h-4 w-4" />
+            Docs
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

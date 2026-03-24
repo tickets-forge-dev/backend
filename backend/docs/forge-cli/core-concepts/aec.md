@@ -67,7 +67,9 @@ Patterns and conventions detected from the codebase:
 - Related modules and dependencies
 - Test patterns to follow
 
-### Assumptions & Scope
+### Scope — The Boundary That Prevents Rework
+
+One of the most valuable sections of the AEC. Scope defines what this ticket covers and — just as importantly — what it does NOT cover.
 
 **In scope:**
 - Login and logout flows
@@ -82,6 +84,8 @@ Patterns and conventions detected from the codebase:
 **Assumptions:**
 - Firebase Auth handles token refresh
 - Existing rate-limit middleware can be reused
+
+This is how Forge prevents scope creep. When someone asks "can you also add password reset?" during implementation, the answer is clear: it's out of scope for this ticket. No debate, no rework — it's in the contract.
 
 ### Readiness Score
 

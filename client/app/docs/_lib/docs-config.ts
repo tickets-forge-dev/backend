@@ -21,12 +21,32 @@ export const docsConfig: DocCategory[] = [
     ],
   },
   {
-    title: 'Platform',
-    slug: 'platform',
+    title: 'Core Concepts',
+    slug: 'core-concepts',
     pages: [
       { title: 'The AEC', slug: 'aec', description: 'Anatomy of a verified execution contract' },
       { title: 'Ticket Lifecycle', slug: 'ticket-lifecycle', description: 'Status flow from Draft to Complete' },
-      { title: 'Web App Guide', slug: 'web-app-guide', description: 'Every feature in the forge web app' },
+      { title: 'Team Workflows', slug: 'team-workflows', description: 'How PMs and developers collaborate — and the different ways to use Forge' },
+    ],
+  },
+  {
+    title: 'Creating Tickets',
+    slug: 'creating-tickets',
+    pages: [
+      { title: 'Ticket Wizard', slug: 'ticket-wizard', description: 'Step-by-step guided ticket creation with AI clarification' },
+      { title: 'Voice Dictation', slug: 'voice-dictation', description: 'Speak your ticket description with real-time transcription' },
+      { title: 'Generation Options', slug: 'generation-options', description: 'AI wireframes, API specs, and what gets generated' },
+      { title: 'Importing & Exporting', slug: 'importing-exporting', description: 'Sync tickets with Jira and Linear' },
+    ],
+  },
+  {
+    title: 'Managing Tickets',
+    slug: 'managing-tickets',
+    pages: [
+      { title: 'Dashboard & Grid', slug: 'dashboard-grid', description: 'Filtering, sorting, columns, and responsive layout' },
+      { title: 'Folders & Tags', slug: 'folders-tags', description: 'Organize tickets with folders, tags, and drag-and-drop' },
+      { title: 'Review & Approval', slug: 'review-approval', description: 'Developer review, re-baking specs, and PM approval' },
+      { title: 'Design References', slug: 'design-references', description: 'Figma, Loom links, wireframes, and attachments' },
     ],
   },
   {

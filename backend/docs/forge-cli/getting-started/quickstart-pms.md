@@ -30,7 +30,7 @@ The wizard opens with a clean input screen. Fill in:
 - Type: Feature, Bug, or Task
 - Priority: Low, Medium, High, or Urgent
 
-**Ticket Description** — The main input. Describe what you want built in plain language. Be specific about the outcome, not the implementation.
+**Ticket Description** — The main input. Describe what you want built in plain language. Be specific about the outcome, not the implementation. You can also press **S** to dictate your description using speech-to-text.
 
 | Good | Bad |
 |------|-----|
@@ -44,6 +44,15 @@ Minimum 2 words, maximum 500 characters. The AI uses this to generate clarificat
 **Reference Materials** (optional) — Upload images, PDFs, or docs as additional context. Useful for mockups, PRDs, or design references.
 
 Click **Next** to proceed. If you included a repository, Forge analyzes it first (you'll see a progress indicator).
+
+## Step 2b: Generation Options
+
+Before questions begin, you can toggle optional AI generation:
+
+- **Wireframes** — Generate an interactive HTML wireframe of the proposed UI
+- **API Spec** — Generate REST endpoint definitions
+
+For Features, both are enabled by default. For Bugs and Tasks, both are off. You can toggle them freely. These appear in the ticket's **Design** and **Technical** tabs after generation.
 
 ## Step 3: Answer Clarification Questions
 
@@ -82,7 +91,7 @@ The ticket detail page shows everything about your AEC in three tabs:
 | Tab | What's Inside |
 |-----|--------------|
 | **Spec** | Problem statement, acceptance criteria, scope (in/out), solution approach, visual QA expectations |
-| **Design** | Figma and Loom links — add design references here |
+| **Design** | Generated wireframes, Figma/Loom links, design references |
 | **Technical** | File changes, API endpoints, dependencies, test plan, tech stack |
 
 The **AEC Crown Card** at the top shows the full contract in XML format (click "Show" to expand). This is what AI agents and developers execute against.

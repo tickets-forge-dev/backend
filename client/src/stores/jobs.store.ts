@@ -48,11 +48,19 @@ function notifyJobComplete(title: string) {
   } catch { /* notification unavailable */ }
 }
 
-/** Request notification permission (call once on user interaction) */
+/** Request notification permission — only prompt once, persist the decision */
 function requestNotificationPermission() {
-  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-    Notification.requestPermission().catch(() => {});
-  }
+  if (typeof Notification === 'undefined') return;
+  // Already granted or denied by the browser — no need to ask
+  if (Notification.permission !== 'default') return;
+  // User already dismissed our prompt before — don't ask again
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('forge-notification-prompted') === 'true') return;
+
+  Notification.requestPermission().then(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('forge-notification-prompted', 'true');
+    }
+  }).catch(() => {});
 }
 
 export interface GenerationJobClient {

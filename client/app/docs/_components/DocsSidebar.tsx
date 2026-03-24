@@ -3,13 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { ChevronDown, Rocket, Layers, Terminal, LifeBuoy } from 'lucide-react';
+import { ChevronDown, Rocket, Layers, Terminal, LifeBuoy, Shield, PenTool, FolderKanban } from 'lucide-react';
 import { docsConfig, getPageHref } from '../_lib/docs-config';
 
 const categoryIcons: Record<string, React.ReactNode> = {
   'getting-started': <Rocket className="w-4 h-4" />,
-  'platform': <Layers className="w-4 h-4" />,
+  'core-concepts': <Layers className="w-4 h-4" />,
+  'creating-tickets': <PenTool className="w-4 h-4" />,
+  'managing-tickets': <FolderKanban className="w-4 h-4" />,
   'cli-and-mcp': <Terminal className="w-4 h-4" />,
+  'security': <Shield className="w-4 h-4" />,
   'troubleshooting': <LifeBuoy className="w-4 h-4" />,
 };
 

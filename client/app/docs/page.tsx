@@ -1,11 +1,14 @@
 import Link from 'next/link';
-import { Rocket, Layers, Terminal, LifeBuoy } from 'lucide-react';
+import { Rocket, Layers, Terminal, LifeBuoy, Shield, PenTool, FolderKanban } from 'lucide-react';
 import { docsConfig, getPageHref } from './_lib/docs-config';
 
 const categoryIcons: Record<string, React.ReactNode> = {
   'getting-started': <Rocket className="w-5 h-5" />,
-  'platform': <Layers className="w-5 h-5" />,
+  'core-concepts': <Layers className="w-5 h-5" />,
+  'creating-tickets': <PenTool className="w-5 h-5" />,
+  'managing-tickets': <FolderKanban className="w-5 h-5" />,
   'cli-and-mcp': <Terminal className="w-5 h-5" />,
+  'security': <Shield className="w-5 h-5" />,
   'troubleshooting': <LifeBuoy className="w-5 h-5" />,
 };
 
@@ -37,7 +40,7 @@ export default function DocsIndexPage() {
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Every command, flag, and environment variable</p>
         </Link>
         <Link
-          href="/docs/platform/aec"
+          href="/docs/core-concepts/aec"
           className="group rounded-lg border border-[var(--border-subtle)] p-5 hover:border-[var(--primary)]/40 transition-colors"
         >
           <Layers className="w-6 h-6 text-[var(--text-secondary)] mb-3 group-hover:text-[var(--primary)] transition-colors" />

@@ -123,9 +123,33 @@ const components: Components = {
   hr: () => (
     <hr className="border-[var(--border-subtle)] my-8" />
   ),
-  img: ({ src, alt }) => (
-    <img src={src} alt={alt || ''} className="rounded-xl border border-[var(--border-subtle)] my-6 w-full" />
-  ),
+  img: ({ src, alt }) => {
+    // Render .html assets as embedded iframes
+    if (src && src.endsWith('.html')) {
+      return (
+        <div className="my-6 rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+          {alt && (
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
+              <div>
+                <p className="text-sm font-medium text-[var(--text)]">{alt}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">Live preview — AI-generated from a ticket description</p>
+              </div>
+            </div>
+          )}
+          <iframe
+            src={src}
+            sandbox=""
+            title={alt || 'Embedded preview'}
+            className="w-full border-0"
+            style={{ minHeight: '600px' }}
+          />
+        </div>
+      );
+    }
+    return (
+      <img src={src} alt={alt || ''} className="rounded-xl border border-[var(--border-subtle)] my-6 w-full" />
+    );
+  },
   strong: ({ children }) => (
     <strong className="font-semibold text-[var(--text)]">{children}</strong>
   ),
