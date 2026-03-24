@@ -51,12 +51,19 @@ export function JobsPanel() {
     prevActiveCount.current = activeJobs.length;
   }, [activeJobs.length]);
 
+  const { poll } = useJobsStore();
+
   const handleCancel = async (jobId: string) => {
     try {
       await cancelJob(jobId);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to cancel job';
-      toast.error(message);
+      // If job already completed/failed, just refresh — not a real error
+      if (message.includes('not active')) {
+        await poll();
+      } else {
+        toast.error(message);
+      }
     }
   };
 
@@ -65,7 +72,12 @@ export function JobsPanel() {
       await retryJob(jobId);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to retry job';
-      toast.error(message);
+      // If job already completed, just refresh
+      if (message.includes('not active')) {
+        await poll();
+      } else {
+        toast.error(message);
+      }
     }
   };
 
