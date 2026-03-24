@@ -89,6 +89,37 @@ export class GenerateWireframesUseCase {
 
     console.log(`✨ [GenerateWireframesUseCase] Generated ${visualExpectations.expectations.length} visual expectations for ticket ${command.ticketId}`);
 
+    // Regenerate HTML wireframe if enabled (fire-and-forget)
+    if (aec.includeHtmlWireframes && visualExpectations.expectations?.length) {
+      const asciiWireframes = visualExpectations.expectations
+        .filter((e: any) => e.wireframe)
+        .map((e: any) => `## ${e.screen} (${e.state})\n${e.wireframe}`)
+        .join('\n\n');
+
+      if (asciiWireframes) {
+        const solutionContext = typeof techSpec.solution === 'object' && techSpec.solution !== null
+          ? JSON.stringify(techSpec.solution)
+          : String(techSpec.solution ?? '');
+
+        this.techSpecGenerator
+          .generateHtmlWireframe(techSpec.title, asciiWireframes, solutionContext, {
+            teamId: command.teamId,
+            ticketId: command.ticketId,
+          })
+          .then(async (html) => {
+            if (!html) return;
+            const freshAec = await this.aecRepository.findById(command.ticketId);
+            if (!freshAec?.techSpec) return;
+            freshAec.setTechSpec({ ...freshAec.techSpec, wireframeHtml: html });
+            await this.aecRepository.save(freshAec);
+            console.log(`✨ [GenerateWireframesUseCase] HTML wireframe saved for ticket ${command.ticketId} (${html.length} chars)`);
+          })
+          .catch((error) => {
+            console.error(`✨ [GenerateWireframesUseCase] HTML wireframe generation failed: ${error instanceof Error ? error.message : String(error)}`);
+          });
+      }
+    }
+
     return aec;
   }
 }
