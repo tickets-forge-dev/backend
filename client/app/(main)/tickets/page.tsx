@@ -329,15 +329,16 @@ export default function TicketsListPage() {
 
     return (
       <div className="flex flex-1 min-h-0">
-      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6">
-      {/* Filter, Sort & Actions bar */}
+      <div className="flex-1 flex flex-col min-h-0">
+      {/* Filter, Sort & Actions bar — outside scroll container so dropdowns aren't clipped */}
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {/* Search — full width on mobile */}
         <div className="relative w-full sm:flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
           <Input
             placeholder="Search tickets..."
-            className="pl-9 pr-8 text-xs sm:text-sm"
+            className="pl-9 pr-8 text-xs sm:text-sm border-[var(--border-subtle)]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -375,7 +376,7 @@ export default function TicketsListPage() {
           {showSortMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
-              <div className="absolute left-0 sm:right-0 right-0 top-full mt-1 z-50 min-w-[180px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg">
+              <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 z-50 min-w-[180px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] p-1.5 shadow-lg">
                 {[
                   { value: 'updated' as SortBy, label: 'Recently updated' },
                   { value: 'created' as SortBy, label: 'Recently created' },
@@ -411,7 +412,7 @@ export default function TicketsListPage() {
           {showFilter && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 w-56 sm:w-auto sm:min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg space-y-2">
+              <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 z-50 w-56 sm:w-auto sm:min-w-[160px] rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] p-1.5 shadow-lg space-y-2">
                 {/* Priority */}
                 <div>
                   <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Priority</p>
@@ -433,7 +434,7 @@ export default function TicketsListPage() {
                   ))}
                 </div>
                 {/* Type */}
-                <div className="border-t border-[var(--border)]/30 pt-2">
+                <div className="border-t border-[var(--border-subtle)] pt-2">
                   <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-0.5">Type</p>
                   {[
                     { value: 'all', label: 'All' },
@@ -453,7 +454,7 @@ export default function TicketsListPage() {
                 </div>
                 {/* Tags */}
                 {tags.length > 0 && (
-                  <div className="border-t border-[var(--border)]/30 pt-2">
+                  <div className="border-t border-[var(--border-subtle)] pt-2">
                     <div className="flex items-center justify-between px-2 mb-0.5">
                       <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Tags</p>
                       {tagFilter.length > 0 && (
@@ -500,7 +501,7 @@ export default function TicketsListPage() {
           {showColumnMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowColumnMenu(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg">
+              <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] p-1.5 shadow-lg">
                 <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-1">Columns</p>
                 <div className="px-2 py-1 text-xs text-[var(--text-tertiary)]/50 flex items-center gap-2">
                   <GripVertical className="h-3 w-3 opacity-0" />
@@ -558,7 +559,7 @@ export default function TicketsListPage() {
                   <input type="checkbox" checked disabled className="accent-[var(--primary)] opacity-40" />
                   Actions
                 </div>
-                <div className="border-t border-[var(--border)]/30 mt-1 pt-1">
+                <div className="border-t border-[var(--border-subtle)] mt-1 pt-1">
                   <button
                     onClick={() => { if (currentTeam?.id) resetToDefaults(currentTeam.id); }}
                     className="w-full text-left px-2 py-1 rounded-md text-xs text-[var(--primary)] hover:bg-[var(--bg-hover)] transition-colors"
@@ -587,7 +588,7 @@ export default function TicketsListPage() {
         {quota && !quota.canCreate ? (
           <div className="relative group flex-shrink-0">
             <CreationMenu disabled={true} />
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-1.5 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg">
               Ticket limit reached ({quota.ticketsCreatedToday}/{quota.dailyTicketLimit})
             </div>
           </div>
@@ -598,7 +599,9 @@ export default function TicketsListPage() {
         )}
         </div>
       </div>
+      </div>
 
+      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
       {/* Loading state: Show skeletons on initial load or when loading */}
       {(isLoading || isInitialLoad) && (
         <div className="space-y-1.5">
@@ -954,7 +957,7 @@ export default function TicketsListPage() {
         <>
           <div className="fixed inset-0 z-50" onClick={() => setHeaderContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setHeaderContextMenu(null); }} />
           <div
-            className="fixed z-50 w-48 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]/40 p-1.5 shadow-lg"
+            className="fixed z-50 w-48 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] p-1.5 shadow-lg"
             style={{ left: headerContextMenu.x, top: headerContextMenu.y }}
           >
             <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider px-2 mb-1">Show/Hide Columns</p>
@@ -1017,6 +1020,7 @@ export default function TicketsListPage() {
           onUnarchive={unarchiveTicket}
         />
       )}
+    </div>
     </div>
     <JobsPanel />
     </div>
@@ -2104,7 +2108,7 @@ function ProgressRing({ ticket }: { ticket: any }) {
         {readinessScore}
       </span>
       {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/progress:block whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border)]/40 px-2 py-1 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg z-50">
+      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/progress:block whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2 py-1 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg z-50">
         {getProgressTooltip()}
       </div>
     </div>
