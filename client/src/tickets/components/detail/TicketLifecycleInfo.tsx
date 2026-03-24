@@ -2,12 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { LIFECYCLE_STEPS, EXECUTE_STATUSES, TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
+import { LIFECYCLE_STEPS, TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
 
 function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { currentStatus: string; onTransition?: (status: string) => void; hasAssignee?: boolean }) {
-  // Always 4 fixed steps. Executing/complete all map to the "Forged" step.
   const currentIdx = LIFECYCLE_STEPS.findIndex(
-    (s) => s.key === currentStatus || (s.key === 'forged' && EXECUTE_STATUSES.has(currentStatus)),
+    (s) => s.key === currentStatus,
   );
 
   return (
@@ -16,9 +15,7 @@ function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { c
 
       <div className="space-y-0">
         {LIFECYCLE_STEPS.map((step, i) => {
-          const isCurrent =
-            step.key === currentStatus ||
-            (step.key === 'forged' && EXECUTE_STATUSES.has(currentStatus));
+          const isCurrent = step.key === currentStatus;
           const isLast = i === LIFECYCLE_STEPS.length - 1;
           const statusCfg = TICKET_STATUS_CONFIG[step.key];
           const isClickable = onTransition && !isCurrent;

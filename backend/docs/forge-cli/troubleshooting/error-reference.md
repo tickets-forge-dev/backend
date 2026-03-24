@@ -118,7 +118,7 @@ Each diagnostic check has a specific fix when it fails:
 | **Config file** | `NOT FOUND — ~/.forge/config.json missing` | Run `forge login` |
 | **Config file** | `INVALID — config.json is not valid JSON` | Run `forge logout` then `forge login` |
 | **Authenticated** | `NOT SET — no email in config` | Run `forge login` |
-| **API reachable** | `UNREACHABLE — cannot connect to <url>` | Check network/firewall. Verify `FORGE_API_URL` if set |
+| **API reachable** | `UNREACHABLE — cannot connect` | Check your network connection |
 | **Token valid** | `EXPIRED — access token has expired` | Run `forge login` (auto-refresh failed) |
 | **Claude CLI** | `NOT FOUND — 'claude' command not in PATH` | Install [Claude Code](https://claude.com/claude-code) |
 | **MCP registered** | `NOT FOUND — .mcp.json missing or no forge entry` | Run `forge mcp install` |

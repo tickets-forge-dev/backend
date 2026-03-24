@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertTriangle, ArrowRight, Lock, Plus } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
-import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
+import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS } from '../../config/ticketStatusConfig';
 import type { AECResponse } from '@/services/ticket.service';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { useAuthStore } from '@/stores/auth.store';
@@ -109,7 +109,7 @@ export function OverviewCard({
 
   // Find current and next step for the progress dots
   const currentIdx = LIFECYCLE_STEPS.findIndex(
-    (s) => s.key === ticket.status || (s.key === 'forged' && EXECUTE_STATUSES.has(ticket.status)),
+    (s) => s.key === ticket.status,
   );
 
   return (

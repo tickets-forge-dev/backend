@@ -101,13 +101,13 @@ Check the current status, then refer to the [Ticket Lifecycle](/docs/platform/ti
 
 Common examples:
 - `forge review` only works on **Dev-Refining** tickets
-- `forge execute` only works on **Forged** or **Executing** tickets
+- `forge develop` only works on **Forged** or **Executing** tickets
 
 ---
 
 ### "Not a git repository"
 
-**Cause:** You're running a command that needs git context (like `forge execute`) from outside a git repository.
+**Cause:** You're running a command that needs git context (like `forge develop`) from outside a git repository.
 
 **Fix:**
 ```bash
@@ -124,7 +124,7 @@ Ensure you're in the root of a git repository (the directory containing `.git`).
 
 **Fix:**
 ```bash
-npm install -g @anthropic/forge-cli
+npm install -g @anthropic-forge/cli
 ```
 
 If already installed, check your PATH:

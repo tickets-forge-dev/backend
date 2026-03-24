@@ -12,13 +12,7 @@ This guide gets you from zero to executing tickets. You'll install the CLI, auth
 ## Step 1: Install the CLI
 
 ```bash
-npm install -g @anthropic/forge-cli
-```
-```bash
-pnpm add -g @anthropic/forge-cli
-```
-```bash
-yarn global add @anthropic/forge-cli
+npm install -g @anthropic-forge/cli
 ```
 
 Verify the installation:
@@ -41,13 +35,10 @@ $ forge login
   Opening browser for authentication...
 
   If the browser doesn't open, visit:
-    https://app.forgeaec.com/auth/device
-
   Enter this code when prompted: ABCD-1234
 
   Waiting for authorization... Done!
   Authenticated as jane@example.com
-  Credentials saved to ~/.forge/config.json
 ```
 
 Log in with Google or GitHub in the browser, enter the code, and you're authenticated.
@@ -63,11 +54,11 @@ forge doctor
 ```
 $ forge doctor
 
-  Config file        ~/.forge/config.json    OK
+  Config file        OK
   Authenticated      jane@example.com        OK
-  API reachable      https://api.forgeaec.com   OK
+  API reachable      OK
   Token valid        Expires in 29d          OK
-  Claude CLI         v1.2.3 installed        OK
+  Claude CLI         Installed               OK
   MCP registered     (not configured)        WARN
 
   5/6 checks passed. Run 'forge mcp install' to fix MCP.
@@ -145,17 +136,11 @@ This starts an interactive session where Forgy (the developer agent) guides you 
 
 You can skip Q&A by typing `*start` to go straight to branch creation.
 
-## Step 6: Execute a Ticket
+## Step 6: Implement
 
-With your branch created and the ticket in **Executing** status, implement it:
+With `forge develop`, the AI agent creates your branch, transitions the ticket to **Executing**, and begins implementation. It reads the full AEC — acceptance criteria, file changes, API contracts, scope — and builds the feature. You review and approve each change.
 
-```bash
-forge execute aec_8f3a2b1c-...
-```
-
-The AI reads the full AEC — acceptance criteria, file changes, API contracts, scope — and implements the ticket. It creates files, modifies existing code, and follows the spec. You stay in the loop to review and approve each change.
-
-The ticket auto-assigns to you and transitions to **Executing** status.
+When you're done, mark the ticket as **Done** from the web app or via the MCP `update_ticket_status` tool.
 
 ## Quick Reference
 
@@ -167,8 +152,7 @@ The ticket auto-assigns to you and transitions to **Executing** status.
 | `forge mcp install` | Register MCP tools for your AI assistant |
 | `forge show <id>` | View a ticket's full AEC |
 | `forge review <id>` | Start an interactive review session |
-| `forge develop <id>` | Start guided implementation prep with AI agent |
-| `forge execute <id>` | Implement a ticket with AI assistance |
+| `forge develop <id>` | Start AI-assisted implementation |
 | `forge logout` | Clear credentials |
 
 ## What's Next?

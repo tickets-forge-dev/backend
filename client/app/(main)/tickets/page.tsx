@@ -1401,8 +1401,9 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
 }
 
 // Shared helpers
-function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'draft' | 'in-progress' | 'needs-resume' {
+function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'executing' | 'draft' | 'in-progress' | 'needs-resume' {
   if (ticket.status === 'complete') return 'complete';
+  if (ticket.status === 'executing') return 'executing';
   const isPartial = ticket.status === 'draft' && ticket.techSpec &&
     (ticket.techSpec.qualityScore === 0 || ticket.techSpec.qualityScore === undefined);
   if (isPartial) return 'needs-resume';

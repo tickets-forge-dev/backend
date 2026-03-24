@@ -9,16 +9,10 @@ The Forge CLI is how developers interact with tickets from the terminal. This pa
 
 ## Installation
 
-Install globally via your preferred package manager:
+Install globally via npm:
 
 ```bash
-npm install -g @anthropic/forge-cli
-```
-```bash
-pnpm add -g @anthropic/forge-cli
-```
-```bash
-yarn global add @anthropic/forge-cli
+npm install -g @anthropic-forge/cli
 ```
 
 Verify the installation:
@@ -28,6 +22,22 @@ forge --version
 ```
 
 > :construction: Requires Node.js 20 or later. Run `node --version` to check.
+
+## Updating
+
+Update to the latest version:
+
+```bash
+npm update -g @anthropic-forge/cli
+```
+
+Verify the update:
+
+```bash
+forge --version
+```
+
+> :blue_book: We recommend updating regularly — new features and bug fixes ship frequently.
 
 ## Authentication
 
@@ -48,16 +58,12 @@ $ forge login
 
   Opening browser for authentication...
 
-  If the browser doesn't open automatically, visit:
-    https://app.forge.dev/auth/device
-
   Enter this code when prompted:
     ABCD-1234
 
   Waiting for authorization...
 
   Success! Authenticated as jane@example.com
-  Credentials saved to ~/.forge/config.json
 ```
 
 **How it works:**
@@ -77,18 +83,7 @@ $ forge login
 | macOS / Linux | `~/.forge/config.json` | `0600` (owner read/write only) |
 | Windows | `%USERPROFILE%\.forge\config.json` | Standard user permissions |
 
-The config file contains:
-
-```json
-{
-  "apiUrl": "https://api.forge.dev",
-  "appUrl": "https://app.forge.dev",
-  "accessToken": "eyJ...",
-  "refreshToken": "eyJ...",
-  "email": "jane@example.com",
-  "teamId": "team_abc123"
-}
-```
+Credentials are stored securely with restricted file permissions. Tokens refresh automatically in the background.
 
 > :construction: Never share or commit your config file. It contains authentication tokens.
 
@@ -123,11 +118,10 @@ forge logout
 
 ```
 $ forge logout
-Credentials cleared from ~/.forge/config.json
 Logged out successfully.
 ```
 
-This deletes the access token, refresh token, and user information from the config file. The config file itself is preserved with default settings.
+This clears all stored credentials.
 
 ## Diagnostics
 
@@ -144,12 +138,12 @@ $ forge doctor
 
   Forge Doctor — Checking your setup
 
-  1. Config file        ~/.forge/config.json       OK
+  1. Config file        OK
   2. Authenticated      jane@example.com           OK
-  3. API reachable      https://api.forge.dev      OK
+  3. API reachable      OK
   4. Token valid        Expires in 29d             OK
-  5. Claude CLI         v1.2.3 installed           OK
-  6. MCP registered     .mcp.json configured       OK
+  5. Claude CLI         Installed                  OK
+  6. MCP registered     Configured                 OK
 
   All 6 checks passed. You're ready to go.
 ```
@@ -158,11 +152,11 @@ $ forge doctor
 
 | Check | What It Verifies | Fix If Failed |
 |-------|-----------------|---------------|
-| Config file | `~/.forge/config.json` exists and is valid JSON | Run `forge login` to create it |
-| Authenticated | Config contains user email and tokens | Run `forge login` |
-| API reachable | HTTPS connection to API server succeeds | Check network, firewall, or `FORGE_API_URL` |
-| Token valid | Access token is not expired | Automatic refresh on next call, or `forge login` |
-| Claude CLI | `claude` command is available in PATH | Install Claude Code |
-| MCP registered | `.mcp.json` exists with Forge server config | Run `forge mcp install` |
+| Config file | Credentials file exists and is valid | Run `forge login` |
+| Authenticated | You're signed in | Run `forge login` |
+| API reachable | Connection to Forge servers succeeds | Check your network |
+| Token valid | Auth token is not expired | Automatic refresh, or `forge login` |
+| Claude CLI | Claude Code is installed | Install Claude Code |
+| MCP registered | MCP server is configured for your AI assistant | Run `forge mcp install` |
 
 > :thumbsup: Run `forge doctor` first whenever something isn't working. It catches the most common issues.

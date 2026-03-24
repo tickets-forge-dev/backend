@@ -69,8 +69,7 @@ Which CLI commands work at each status:
 |---------|-------|-------------|--------|--------|-----------|---------|
 | `forge show <id>` | Yes | Yes | Yes | Yes | Yes | Yes |
 | `forge review <id>` | — | Yes | — | — | — | — |
-| `forge develop <id>` | — | — | — | Yes | — | — |
-| `forge execute <id>` | — | — | — | Yes | Yes | — |
+| `forge develop <id>` | — | — | — | Yes | Yes | — |
 
 ## Drift Detection
 
@@ -144,5 +143,5 @@ PM creates ticket
 Tickets can be assigned to a developer at any status except **Complete**:
 
 - PM assigns via the web app
-- CLI commands like `forge execute` can auto-assign the current user
+- CLI commands like `forge develop` can auto-assign the current user
 - A completed ticket must be reverted to Draft before reassignment

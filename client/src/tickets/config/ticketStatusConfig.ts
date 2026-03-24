@@ -69,9 +69,11 @@ export const LIFECYCLE_STEPS: Array<{ key: string; label: string; description: s
   { key: 'dev-refining', label: 'Dev-Refine', description: 'Developer reviews and refines the spec', note: 'Optional — skip if no developer needed', optional: true },
   { key: 'review', label: 'Review (PM)', description: "PM reviews the developer's changes", note: 'Only when a developer submits changes', optional: true },
   { key: 'forged', label: 'Ready', description: 'Approved — ready for the developer to pick up' },
+  { key: 'executing', label: 'Executing', description: 'Developer or AI agent is implementing' },
+  { key: 'complete', label: 'Done', description: 'Implementation is complete' },
 ];
 
-/** Statuses that map to the final "Forged" lifecycle step for highlighting. */
+/** Statuses where the AEC is locked and verified — used for crown card styling. */
 export const EXECUTE_STATUSES = new Set(['forged', 'executing', 'complete']);
 
 export function getStatusLabel(status: string): string {
