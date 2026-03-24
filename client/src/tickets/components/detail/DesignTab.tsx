@@ -194,105 +194,92 @@ export function DesignTab({
 
   return (
     <div className="space-y-8 p-5">
-      {/* ─── Section 1: Wireframes (for humans) ─── */}
-      {hasVisualExpectations ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Monitor className="w-4 h-4 text-purple-500" />
-              <h3 className="text-sm font-medium text-[var(--text)]">Wireframes</h3>
-              <span className="text-[10px] text-[var(--text-tertiary)]">Visual preview for stakeholders</span>
-            </div>
-            <Button
-              onClick={() => setShowRegenerateForm(!showRegenerateForm)}
-              variant="ghost"
-              size="sm"
-              className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] h-7 text-xs"
-            >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              Regenerate
-            </Button>
-          </div>
-
-          {/* Hi-res wireframe preview button */}
-          <VisualExpectationsSection
-            summary={visualExpectations!.summary}
-            expectations={visualExpectations!.expectations}
-            flowDiagram={visualExpectations!.flowDiagram}
-            excalidrawData={visualExpectations!.excalidrawData}
-            wireframeHtml={wireframeHtml}
-            ticketId={ticketId}
-            onSaveExcalidraw={handleSaveExcalidraw}
-          />
-
-          {/* Regenerate form (collapsible) */}
-          {showRegenerateForm && (
-            <div className="rounded-lg border border-dashed border-purple-500/20 bg-purple-500/5 p-5">
-              <div className="flex flex-col items-center text-center gap-3">
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Describe the UI to regenerate wireframes
-                </p>
-                {wireframeContextForm}
-                <div className="flex items-center gap-2 mt-1">
-                  <Button onClick={() => setShowRegenerateForm(false)} variant="ghost" size="sm" disabled={isGeneratingWireframes}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm">
-                    {isGeneratingWireframes ? (
-                      <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Regenerating...</>
-                    ) : (
-                      <><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Regenerate</>
-                    )}
-                  </Button>
-                </div>
+      {/* ─── Card 1: Wireframes ─── */}
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-hidden">
+        {hasVisualExpectations ? (
+          <>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)]">
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-purple-400" />
+                <h3 className="text-sm font-medium text-[var(--text)]">Wireframes</h3>
               </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Monitor className="w-4 h-4 text-purple-500" />
-            <h3 className="text-sm font-medium text-[var(--text)]">Wireframes</h3>
-          </div>
-          <div className="rounded-lg border border-dashed border-[var(--border-subtle)] p-6">
-            <div className="flex flex-col items-center text-center gap-3">
-              <Sparkles className="w-5 h-5 text-purple-400" />
-              <p className="text-sm text-[var(--text-secondary)]">No wireframes yet</p>
-              {wireframeContextForm}
-              <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm" className="mt-1">
-                {isGeneratingWireframes ? (
-                  <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generating...</>
-                ) : (
-                  <><Sparkles className="w-3.5 h-3.5 mr-1.5" />Generate Wireframes</>
-                )}
+              <Button
+                onClick={() => setShowRegenerateForm(!showRegenerateForm)}
+                variant="ghost"
+                size="sm"
+                className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] h-7 text-xs"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Regenerate
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+            <div className="p-5 space-y-4">
+              <VisualExpectationsSection
+                summary={visualExpectations!.summary}
+                expectations={visualExpectations!.expectations}
+                flowDiagram={visualExpectations!.flowDiagram}
+                excalidrawData={visualExpectations!.excalidrawData}
+                wireframeHtml={wireframeHtml}
+                ticketId={ticketId}
+                onSaveExcalidraw={handleSaveExcalidraw}
+              />
 
-      <div className="border-t border-[var(--border-subtle)]" />
+              {showRegenerateForm && (
+                <div className="rounded-lg border border-dashed border-purple-500/20 bg-purple-500/5 p-5">
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <p className="text-xs text-[var(--text-secondary)]">Describe the UI to regenerate wireframes</p>
+                    {wireframeContextForm}
+                    <div className="flex items-center gap-2 mt-1">
+                      <Button onClick={() => setShowRegenerateForm(false)} variant="ghost" size="sm" disabled={isGeneratingWireframes}>Cancel</Button>
+                      <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm">
+                        {isGeneratingWireframes ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Regenerating...</> : <><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Regenerate</>}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="px-5 py-3 border-b border-[var(--border-subtle)]">
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-purple-400" />
+                <h3 className="text-sm font-medium text-[var(--text)]">Wireframes</h3>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="flex flex-col items-center text-center gap-3 py-4">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                <p className="text-sm text-[var(--text-secondary)]">No wireframes yet</p>
+                {wireframeContextForm}
+                <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm" className="mt-1">
+                  {isGeneratingWireframes ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generating...</> : <><Sparkles className="w-3.5 h-3.5 mr-1.5" />Generate Wireframes</>}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
-      {/* ─── External Design References (Figma, Loom, etc.) ─── */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
-            <Figma className="w-4 h-4 text-blue-500" />
-          </div>
-          <div>
+      {/* ─── Card 2: Design References ─── */}
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-hidden">
+        <div className="px-5 py-3 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center gap-2">
+            <Figma className="w-4 h-4 text-blue-400" />
             <h3 className="text-sm font-medium text-[var(--text)]">Design References</h3>
-            <p className="text-[11px] text-[var(--text-tertiary)]">Link designs to extract colors, themes, layouts, and component specs</p>
           </div>
         </div>
-        <DesignReferencesSection
-          references={references}
-          onAdd={() => setShowAddDialog(true)}
-          onRemove={onRemoveDesignReference}
-          onRefresh={onRefreshDesignReference}
-          readOnly={false}
-          isFigmaConnected={isFigmaConnected}
-        />
+        <div className="p-5">
+          <DesignReferencesSection
+            references={references}
+            onAdd={() => setShowAddDialog(true)}
+            onRemove={onRemoveDesignReference}
+            onRefresh={onRefreshDesignReference}
+            readOnly={false}
+            isFigmaConnected={isFigmaConnected}
+          />
+        </div>
       </div>
 
       {showAddDialog && (
