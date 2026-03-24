@@ -2623,6 +2623,7 @@ Output ONLY this JSON:
     asciiWireframes: string,
     solutionContext: string,
     trackingContext?: { userId?: string; teamId?: string; ticketId?: string },
+    designContext?: { designTokens?: TechSpec['designTokens']; stack?: TechSpec['stack'] },
   ): Promise<string | null> {
     // Use main model (Sonnet) for high-quality HTML/CSS wireframes
     const model = this.llmModel ?? this.fastModel;
@@ -2634,6 +2635,27 @@ Output ONLY this JSON:
     try {
       const systemPrompt = `You are a wireframe rendering agent. Convert ASCII wireframes into a single self-contained HTML document. Output ONLY the HTML — no markdown fences, no explanation, no preamble. Start with <!DOCTYPE html>.`;
 
+      // Build design context from tech spec if available
+      let designBlock = '';
+      if (designContext?.designTokens) {
+        const dt = designContext.designTokens;
+        const parts: string[] = [];
+        if (dt.colors?.length) parts.push(`Colors: ${dt.colors.map(c => `${c.name}: ${c.value}`).join(', ')}`);
+        if (dt.typography?.length) parts.push(`Typography: ${dt.typography.map(t => `${t.name}: ${t.value}`).join(', ')}`);
+        if (dt.spacing?.length) parts.push(`Spacing: ${dt.spacing.map(s => `${s.name}: ${s.value}`).join(', ')}`);
+        if (dt.shadows?.length) parts.push(`Shadows: ${dt.shadows.map(s => `${s.name}: ${s.value}`).join(', ')}`);
+        if (parts.length) designBlock = `\n\n## Project Design Tokens (use these instead of defaults)\n${parts.join('\n')}`;
+      }
+
+      let stackBlock = '';
+      if (designContext?.stack?.framework) {
+        stackBlock = `\n\n## Tech Stack\nFramework: ${designContext.stack.framework}${designContext.stack.language ? `, Language: ${designContext.stack.language}` : ''}`;
+      }
+
+      const defaultTheme = !designContext?.designTokens?.colors?.length
+        ? '\n- Dark theme: background #0f1117, cards #1a1d27, borders #2a2d3a, text #e0e0e0, headings #ffffff, accent #6366f1'
+        : '\n- Use the project design tokens above for colors, typography, and spacing. Fall back to a dark theme if tokens are incomplete.';
+
       const userPrompt = `Convert these ASCII wireframes into an interactive HTML preview.
 
 ## Ticket: ${title}
@@ -2642,11 +2664,10 @@ Output ONLY this JSON:
 ${asciiWireframes}
 
 ## Solution Context
-${solutionContext}
+${solutionContext}${designBlock}${stackBlock}
 
 ## Requirements
-- Self-contained HTML with all CSS in a <style> block — no external dependencies
-- Dark theme: background #0f1117, cards #1a1d27, borders #2a2d3a, text #e0e0e0, headings #ffffff, accent #6366f1
+- Self-contained HTML with all CSS in a <style> block — no external dependencies${defaultTheme}
 - One section per screen/view from the wireframes
 - Below each section, add an amber callout bar (background #78350f/#fef3c7 text) explaining behaviors and interactions
 - Responsive fluid layout that looks good at any width
@@ -2654,7 +2675,8 @@ ${solutionContext}
 - Use system font stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif
 - Cards with subtle border-radius (8px) and the border color above
 - Generous padding and spacing for readability
-- Body must have overflow-y: auto to allow scrolling within an iframe`;
+- Body must have overflow-y: auto to allow scrolling within an iframe
+- If project design tokens are provided, match the project's visual style closely`;
 
       const modelId = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
 

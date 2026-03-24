@@ -189,7 +189,7 @@ export class BackgroundFinalizationService {
             userId: aec.createdBy,
             teamId: aec.teamId,
             ticketId: aec.id,
-          })
+          }, { designTokens: techSpec.designTokens, stack: techSpec.stack })
           .then(async (html) => {
             if (!html) return;
             const freshAec = await this.aecRepository.findById(aecId);

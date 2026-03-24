@@ -269,7 +269,7 @@ export class FinalizeSpecUseCase {
       : String(techSpec.solution ?? '');
 
     this.techSpecGenerator
-      .generateHtmlWireframe(techSpec.title, asciiWireframes, solutionContext, trackingContext)
+      .generateHtmlWireframe(techSpec.title, asciiWireframes, solutionContext, trackingContext, { designTokens: techSpec.designTokens, stack: techSpec.stack })
       .then(async (html) => {
         if (!html) {
           console.log(`✨ [FinalizeSpecUseCase] HTML wireframe generation returned null for AEC ${aecId}`);

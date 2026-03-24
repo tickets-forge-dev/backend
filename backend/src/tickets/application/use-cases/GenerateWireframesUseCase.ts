@@ -105,7 +105,7 @@ export class GenerateWireframesUseCase {
           .generateHtmlWireframe(techSpec.title, asciiWireframes, solutionContext, {
             teamId: command.teamId,
             ticketId: command.ticketId,
-          })
+          }, { designTokens: techSpec.designTokens, stack: techSpec.stack })
           .then(async (html) => {
             if (!html) return;
             const freshAec = await this.aecRepository.findById(command.ticketId);

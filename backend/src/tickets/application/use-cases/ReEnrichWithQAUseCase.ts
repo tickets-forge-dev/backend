@@ -115,7 +115,7 @@ export class ReEnrichWithQAUseCase {
             userId: command.requestingUserId,
             teamId: command.teamId,
             ticketId: command.ticketId,
-          })
+          }, { designTokens: techSpec.designTokens, stack: techSpec.stack })
           .then(async (html) => {
             if (!html) return;
             const freshAec = await this.aecRepository.findById(command.ticketId);

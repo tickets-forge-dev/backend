@@ -622,5 +622,6 @@ export interface TechSpecGenerator {
     asciiWireframes: string,
     solutionContext: string,
     trackingContext?: { userId?: string; teamId?: string; ticketId?: string },
+    designContext?: { designTokens?: TechSpec['designTokens']; stack?: TechSpec['stack'] },
   ): Promise<string | null>;
 }
