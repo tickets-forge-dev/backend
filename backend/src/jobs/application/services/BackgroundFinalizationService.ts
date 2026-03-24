@@ -172,6 +172,7 @@ export class BackgroundFinalizationService {
     await this.aecRepository.save(aec);
 
     // HTML wireframe generation (fire-and-forget) — only when user opted in
+    this.logger.log(`[HTML Wireframe Check] includeHtmlWireframes=${aec.includeHtmlWireframes}, includeWireframes=${aec.includeWireframes}, expectations=${techSpec.visualExpectations?.expectations?.length ?? 0}`);
     if (aec.includeHtmlWireframes && aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
       const asciiWireframes = techSpec.visualExpectations.expectations
         .filter((e: any) => e.wireframe)

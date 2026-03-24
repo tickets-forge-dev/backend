@@ -172,14 +172,19 @@ export function GenerationOptionsStep() {
                 </div>
               </label>
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}>
+                <div
+                  className="flex items-center gap-2 cursor-pointer flex-1"
+                  onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}
+                  role="switch"
+                  aria-checked={includeHtmlWireframes}
+                >
                   <span className="text-xs font-medium text-[var(--text-secondary)]">Hi-res wireframes</span>
                   <span className="text-[10px] text-[var(--text-tertiary)]">Interactive HTML/CSS preview</span>
-                </label>
+                </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowWireframePreview(true)}
+                    onClick={(e) => { e.stopPropagation(); setShowWireframePreview(true); }}
                     className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                   >
                     <Eye className="h-3 w-3" />
