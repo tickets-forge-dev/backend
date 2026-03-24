@@ -124,6 +124,13 @@ export function GenerationOptionsStep() {
 
   // ── Continue ──
 
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    if (!loading) { setElapsedSeconds(0); return; }
+    const interval = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [loading]);
+
   const handleContinue = useCallback(() => {
     analyzeRepository();
   }, [analyzeRepository]);
@@ -364,7 +371,7 @@ export function GenerationOptionsStep() {
           {loading ? (
             <>
               <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              Analyzing...
+              Analyzing... <span className="text-[var(--text-tertiary)] ml-0.5">({elapsedSeconds}s)</span>
             </>
           ) : 'Continue'}
         </Button>
