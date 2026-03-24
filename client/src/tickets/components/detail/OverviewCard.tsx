@@ -7,6 +7,7 @@ import { TicketLifecycleInfo } from './TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import type { AECResponse } from '@/services/ticket.service';
 import { useTeamStore } from '@/teams/stores/team.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { useTagsStore } from '@/stores/tags.store';
 import { useServices } from '@/services/index';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -74,8 +75,12 @@ export function OverviewCard({
   const { tags } = useTagsStore();
   const { ticketService } = useServices();
   const { refreshTicket } = useTicketsStore();
+  const { user } = useAuthStore();
   const creatorMember = ticket.createdBy ? teamMembers.find((m) => m.userId === ticket.createdBy) : null;
-  const creatorName = creatorMember ? (creatorMember.displayName || creatorMember.email || null) : null;
+  // Fall back to current user's display name if teamMembers hasn't loaded the creator yet
+  const creatorName = creatorMember
+    ? (creatorMember.displayName || creatorMember.email || null)
+    : (ticket.createdBy === user?.uid ? (user.displayName || user.email || null) : null);
 
   // Optimistic local tag IDs so pills render immediately after selection
   const [localTagIds, setLocalTagIds] = useState<string[]>(ticket.tagIds ?? []);
