@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, Copy, Check, ChevronDown, ArrowRight } from 'lucide-react';
+import { Eye, Copy, Check, ChevronDown, ArrowRight, X, Monitor } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import type { VisualExpectationsSpec, VisualExpectationSpec, ExcalidrawDataSpec } from '@/types/question-refinement';
 import { ExcalidrawEditor } from './ExcalidrawEditor';
@@ -139,6 +139,7 @@ export function VisualExpectationsSection({
   onSaveExcalidraw,
 }: VisualExpectationsSectionProps) {
   const [showFlow, setShowFlow] = useState(false);
+  const [showHtmlPreview, setShowHtmlPreview] = useState(false);
 
   if (!expectations || expectations.length === 0) {
     return (
@@ -165,22 +166,24 @@ export function VisualExpectationsSection({
         />
       )} */}
 
-      {/* HTML Wireframe Preview */}
+      {/* HTML Wireframe Preview — opens in a dialog */}
       {wireframeHtml && (
-        <div className="space-y-2">
-          <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase">
-            Wireframe Preview
-          </p>
-          <div className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
-            <iframe
-              srcDoc={wireframeHtml}
-              sandbox=""
-              title="Wireframe Preview"
-              className="w-full border-0"
-              style={{ height: '600px' }}
-            />
+        <button
+          onClick={() => setShowHtmlPreview(true)}
+          className="w-full flex items-center gap-3 p-4 rounded-lg border border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-blue-500/5 hover:from-purple-500/10 hover:to-blue-500/10 transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-purple-500/15 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/25 transition-colors">
+            <Monitor className="w-5 h-5 text-purple-400" />
           </div>
-        </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[var(--text)]">Hi-res Wireframe Preview</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Interactive HTML/CSS mockup of the screens — click to open</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-purple-400 text-xs font-medium flex-shrink-0">
+            <Eye className="w-4 h-4" />
+            View
+          </div>
+        </button>
       )}
 
       {/* Summary */}
@@ -226,6 +229,32 @@ export function VisualExpectationsSection({
           <ExpectationCard key={idx} expectation={expectation} index={idx} />
         ))}
       </div>
+
+      {/* Hi-res wireframe dialog */}
+      {showHtmlPreview && wireframeHtml && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowHtmlPreview(false)}>
+          <div className="bg-[var(--bg)] rounded-xl border border-[var(--border-subtle)] shadow-2xl w-[90vw] max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)] flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Monitor className="h-4 w-4 text-purple-400" />
+                <h3 className="text-sm font-medium text-[var(--text)]">Hi-res Wireframe Preview</h3>
+              </div>
+              <button onClick={() => setShowHtmlPreview(false)} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text)] transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                srcDoc={wireframeHtml}
+                sandbox=""
+                title="Wireframe Preview"
+                className="w-full h-full border-0"
+                style={{ minHeight: '70vh' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -47,8 +47,6 @@ export function DesignTab({
   const [showRegenerateForm, setShowRegenerateForm] = useState(false);
   const ticketService = useMemo(() => new TicketService(), []);
 
-  const wireframeContextMissing = !wireframeContext.trim();
-
   // Clear validation error when user starts typing
   useEffect(() => {
     if (wireframeContext.trim()) {
@@ -100,10 +98,6 @@ export function DesignTab({
   }, [ticketTitle, ticketDescription]);
 
   const handleGenerateWireframes = useCallback(async () => {
-    if (wireframeContextMissing) {
-      setShowValidationError(true);
-      return;
-    }
     setIsGeneratingWireframes(true);
     try {
       await ticketService.generateWireframes(ticketId, wireframeContext);
@@ -116,7 +110,7 @@ export function DesignTab({
     } finally {
       setIsGeneratingWireframes(false);
     }
-  }, [ticketId, wireframeContext, wireframeContextMissing, ticketService, onRefresh]);
+  }, [ticketId, wireframeContext, ticketService, onRefresh]);
 
   // Check Figma connection status on mount
   useEffect(() => {
@@ -170,7 +164,7 @@ export function DesignTab({
     <div className="w-full max-w-md">
       <div className="flex items-center justify-between mb-1.5">
         <label className="text-xs font-medium text-[var(--text-secondary)]">
-          Describe the UI <span className="text-red-400">*</span>
+          Describe the UI
         </label>
         <button
           type="button"
@@ -191,14 +185,10 @@ export function DesignTab({
         onChange={(e) => setWireframeContext(e.target.value)}
         placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
         rows={3}
-        className={`w-full rounded-md border bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-purple-500/30 resize-none ${
-          showValidationError && wireframeContextMissing ? 'border-red-400/50' : 'border-[var(--border-subtle)]'
-        }`}
+        className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-purple-500/30 resize-none"
         disabled={isGeneratingWireframes}
       />
-      {showValidationError && wireframeContextMissing && (
-        <p className="text-[11px] text-red-400 mt-1">Describe the layout so the AI can generate accurate wireframes</p>
-      )}
+      <p className="text-[11px] text-[var(--text-tertiary)] mt-1">Optional — helps regenerate more accurate wireframes</p>
     </div>
   );
 
