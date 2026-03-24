@@ -45,6 +45,31 @@ export function DetailsStep() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [input.title, setTitle]);
 
+  // Subtle audio cues for recording start/stop
+  const playTone = useCallback((freq: number, duration: number, volume = 0.08) => {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(volume, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+      setTimeout(() => ctx.close(), (duration + 0.1) * 1000);
+    } catch { /* audio context unavailable */ }
+  }, []);
+
+  const playStartBeep = useCallback(() => {
+    playTone(880, 0.12);  // A5 — short high beep
+  }, [playTone]);
+
+  const playStopBeep = useCallback(() => {
+    playTone(440, 0.15);  // A4 — slightly longer, lower tone
+  }, [playTone]);
+
   // Speech-to-text via Web Speech API + audio visualizer
   const [isListening, setIsListening] = useState(false);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
@@ -61,6 +86,7 @@ export function DetailsStep() {
 
   const toggleSpeechToText = useCallback(async () => {
     if (isListening) {
+      playStopBeep();
       stopListening();
       return;
     }
@@ -111,8 +137,9 @@ export function DetailsStep() {
 
     recognitionRef.current = recognition;
     recognition.start();
+    playStartBeep();
     setIsListening(true);
-  }, [isListening, stopListening, input.title, setTitle]);
+  }, [isListening, stopListening, playStartBeep, playStopBeep, input.title, setTitle]);
 
   const hasSpeechSupport = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
