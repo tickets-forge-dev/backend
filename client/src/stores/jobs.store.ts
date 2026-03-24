@@ -7,6 +7,54 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 const POLL_INTERVAL_ACTIVE = 2000;  // 2s when jobs are running
 const POLL_INTERVAL_IDLE = 10000;   // 10s when no active jobs
 
+/** Play a pleasant completion chime using Web Audio API */
+function playCompletionSound() {
+  try {
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+    // Two-note chime: C5 → E5
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.value = 523; // C5
+    osc1.connect(gain);
+    osc1.start(now);
+    osc1.stop(now + 0.15);
+
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.value = 659; // E5
+    osc2.connect(gain);
+    osc2.start(now + 0.15);
+    osc2.stop(now + 0.4);
+
+    setTimeout(() => ctx.close(), 700);
+  } catch { /* audio unavailable */ }
+}
+
+/** Send a browser notification if the page is not visible */
+function notifyJobComplete(title: string) {
+  if (typeof document === 'undefined' || document.visibilityState === 'visible') return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    new Notification('Forge — Ticket Ready', {
+      body: title ? `"${title}" is ready for review` : 'Your ticket spec is ready',
+      icon: '/forge-icon.png',
+    });
+  } catch { /* notification unavailable */ }
+}
+
+/** Request notification permission (call once on user interaction) */
+function requestNotificationPermission() {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
 export interface GenerationJobClient {
   id: string;
   teamId: string;
@@ -108,13 +156,29 @@ export const useJobsStore = create<JobsState>((set, get) => ({
     let timer: ReturnType<typeof setTimeout> | null = null;
     let stopped = false;
 
+    // Request notification permission early
+    requestNotificationPermission();
+
     const fetchJobs = async () => {
       try {
         const res = await authFetch('/jobs');
         if (!res.ok) return;
         const data = (await res.json()) as Record<string, unknown>[];
-        const jobs = data.map(mapJob);
-        set({ jobs, isSubscribed: true });
+        const newJobs = data.map(mapJob);
+
+        // Detect newly completed jobs (was running/retrying, now completed)
+        const oldJobs = get().jobs;
+        for (const job of newJobs) {
+          if (job.status === 'completed') {
+            const prev = oldJobs.find(j => j.id === job.id);
+            if (prev && (prev.status === 'running' || prev.status === 'retrying')) {
+              playCompletionSound();
+              notifyJobComplete(job.ticketTitle);
+            }
+          }
+        }
+
+        set({ jobs: newJobs, isSubscribed: true });
       } catch {
         // Silently ignore poll failures — will retry on next tick
       }
