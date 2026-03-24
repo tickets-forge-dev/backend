@@ -171,6 +171,38 @@ export class BackgroundFinalizationService {
     aec.setTechSpec(techSpec);
     await this.aecRepository.save(aec);
 
+    // HTML wireframe generation (fire-and-forget) — only when user opted in
+    if (aec.includeHtmlWireframes && aec.includeWireframes && techSpec.visualExpectations?.expectations?.length) {
+      const asciiWireframes = techSpec.visualExpectations.expectations
+        .filter((e: any) => e.wireframe)
+        .map((e: any) => `## ${e.screen} (${e.state})\n${e.wireframe}`)
+        .join('\n\n');
+
+      if (asciiWireframes) {
+        const solutionContext = typeof techSpec.solution === 'object' && techSpec.solution !== null
+          ? JSON.stringify(techSpec.solution)
+          : String(techSpec.solution ?? '');
+
+        this.techSpecGenerator
+          .generateHtmlWireframe(techSpec.title, asciiWireframes, solutionContext, {
+            userId: aec.createdBy,
+            teamId: aec.teamId,
+            ticketId: aec.id,
+          })
+          .then(async (html) => {
+            if (!html) return;
+            const freshAec = await this.aecRepository.findById(aecId);
+            if (!freshAec?.techSpec) return;
+            freshAec.setTechSpec({ ...freshAec.techSpec, wireframeHtml: html });
+            await this.aecRepository.save(freshAec);
+            this.logger.log(`HTML wireframe saved for ticket ${aecId} (${html.length} chars)`);
+          })
+          .catch((error) => {
+            this.logger.warn(`HTML wireframe generation failed for ${aecId}: ${error instanceof Error ? error.message : String(error)}`);
+          });
+      }
+    }
+
     // Phase 7: Mark job completed
     await progressCallback.onPhaseUpdate('completed', 100);
 
