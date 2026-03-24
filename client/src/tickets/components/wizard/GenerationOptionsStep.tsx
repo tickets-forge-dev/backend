@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
-import { Paintbrush, Zap, SkipForward, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { Paintbrush, Zap, SkipForward, Plus, Trash2, Sparkles, Loader2, Eye, X } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { ToggleOptionCard } from './ToggleOptionCard';
 import { auth } from '@/lib/firebase';
@@ -119,26 +119,14 @@ export function GenerationOptionsStep() {
     setApiContext(updated.map((e) => `${e.method} ${e.route}`).join('\n'));
   }, [manualEndpoints, setApiContext]);
 
+  // ── Hi-res wireframe preview ──
+  const [showWireframePreview, setShowWireframePreview] = useState(false);
+
   // ── Continue ──
 
-  const wireframeContextMissing = includeWireframes && !wireframeContext.trim();
-  const [showValidationError, setShowValidationError] = useState(false);
-
   const handleContinue = useCallback(() => {
-    if (wireframeContextMissing) {
-      setShowValidationError(true);
-      return;
-    }
-    setShowValidationError(false);
     analyzeRepository();
-  }, [analyzeRepository, wireframeContextMissing]);
-
-  // Clear validation error when user starts typing
-  useEffect(() => {
-    if (wireframeContext.trim()) {
-      setShowValidationError(false);
-    }
-  }, [wireframeContext]);
+  }, [analyzeRepository]);
 
   return (
     <div className="space-y-6">
@@ -176,22 +164,35 @@ export function GenerationOptionsStep() {
                   <div className="absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm translate-x-[14px]" />
                 </div>
               </label>
-              <label className="flex items-center justify-between cursor-pointer group" onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}>
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}>
                   <span className="text-xs font-medium text-[var(--text-secondary)]">Hi-res wireframes</span>
                   <span className="text-[10px] text-[var(--text-tertiary)]">Interactive HTML/CSS preview</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWireframePreview(true)}
+                    className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                  >
+                    <Eye className="h-3 w-3" />
+                    Example
+                  </button>
+                  <div
+                    onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}
+                    className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 cursor-pointer ${includeHtmlWireframes ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${includeHtmlWireframes ? 'translate-x-[14px]' : 'translate-x-[3px]'}`} />
+                  </div>
                 </div>
-                <div className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 ${includeHtmlWireframes ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                  <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${includeHtmlWireframes ? 'translate-x-[14px]' : 'translate-x-[3px]'}`} />
-                </div>
-              </label>
+              </div>
             </div>
 
             {/* UI Description */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">
-                  Describe the UI <span className="text-red-400">*</span>
+                  Describe the UI
                 </label>
                 <button
                   type="button"
@@ -212,13 +213,9 @@ export function GenerationOptionsStep() {
                 onChange={(e) => setWireframeContext(e.target.value)}
                 placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
                 rows={3}
-                className={`w-full rounded-md border bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none ${
-                  wireframeContextMissing ? 'border-red-400/50' : 'border-[var(--border-subtle)]'
-                }`}
+                className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none"
               />
-              {wireframeContextMissing && (
-                <p className="text-[11px] text-red-400 mt-1">Describe the layout so the AI can generate accurate wireframes</p>
-              )}
+              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">Optional — helps the AI generate more accurate wireframes</p>
             </div>
           </div>
         </ToggleOptionCard>
@@ -326,11 +323,6 @@ export function GenerationOptionsStep() {
       </div>
 
       {/* Validation Error Banner */}
-      {showValidationError && wireframeContextMissing && (
-        <p className="text-sm text-red-500 dark:text-red-400 bg-red-500/5 border border-red-500/20 rounded-lg px-4 py-2.5">
-          Please describe the UI layout above so the AI can generate accurate wireframes.
-        </p>
-      )}
 
       {/* Skip Questions Toggle */}
       <div
@@ -382,6 +374,32 @@ export function GenerationOptionsStep() {
           </Button>
         </div>
       </div>
+
+      {/* Hi-res wireframe example preview */}
+      {showWireframePreview && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowWireframePreview(false)}>
+          <div className="bg-[var(--bg)] rounded-xl border border-[var(--border-subtle)] shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)]">
+              <div>
+                <h3 className="text-sm font-medium text-[var(--text)]">Hi-res Wireframe Example</h3>
+                <p className="text-[11px] text-[var(--text-tertiary)]">This is what AI generates from your ticket description</p>
+              </div>
+              <button onClick={() => setShowWireframePreview(false)} className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text)] transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src="/assets/wireframe-example.html"
+                sandbox=""
+                title="Hi-res Wireframe Example"
+                className="w-full h-full border-0"
+                style={{ minHeight: '500px' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

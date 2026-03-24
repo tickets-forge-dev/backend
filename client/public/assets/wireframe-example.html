@@ -1,0 +1,452 @@
+:X<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticket Tags — Wireframes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; padding: 40px; }
+  h1 { font-size: 28px; color: #fff; margin-bottom: 8px; }
+  .subtitle { color: #888; font-size: 14px; margin-bottom: 48px; }
+  .wireframe { margin-bottom: 64px; }
+  .wireframe-title { font-size: 18px; font-weight: 600; color: #c0c0c0; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; }
+  .wireframe-desc { color: #888; font-size: 13px; margin-bottom: 16px; }
+  .frame { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 0; overflow: hidden; }
+
+  /* Grid styles */
+  .grid-header { display: grid; grid-template-columns: 1fr 110px 72px 100px 80px 64px 44px 32px; padding: 8px 16px; background: rgba(255,255,255,0.03); border-bottom: 1px solid #2a2d3a; font-size: 10px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 0.5px; align-items: center; }
+  .grid-row { display: grid; grid-template-columns: 1fr 110px 72px 100px 80px 64px 44px 32px; padding: 10px 16px; border-bottom: 1px solid #1e2130; align-items: center; }
+  .grid-row:hover { background: rgba(255,255,255,0.02); }
+  .grid-row:last-child { border-bottom: none; }
+
+  .title-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .type-icon { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; }
+  .type-feature { background: #f59e0b; }
+  .type-bug { background: #ef4444; }
+  .type-task { background: #3b82f6; }
+  .ticket-title { font-size: 13px; font-weight: 500; color: #c8c8d0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Tag pills */
+  .tag-pills { display: flex; gap: 4px; flex-shrink: 0; margin-left: 4px; }
+  .tag-pill { display: inline-flex; align-items: center; gap: 2px; padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+  .tag-pill .lock { font-size: 8px; opacity: 0.7; }
+  .tag-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .tag-blue { background: rgba(59,130,246,0.15); color: #3b82f6; }
+  .tag-green { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .tag-purple { background: rgba(168,85,247,0.15); color: #a855f7; }
+  .tag-orange { background: rgba(249,115,22,0.15); color: #f97316; }
+  .tag-teal { background: rgba(20,184,166,0.15); color: #14b8a6; }
+  .tag-yellow { background: rgba(234,179,8,0.15); color: #eab308; }
+  .tag-pink { background: rgba(236,72,153,0.15); color: #ec4899; }
+  .tag-overflow { font-size: 10px; color: #666; margin-left: 2px; }
+
+  .status { font-size: 11px; display: flex; align-items: center; gap: 5px; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-green { background: #22c55e; }
+  .dot-amber { background: #f59e0b; }
+  .dot-blue { background: #3b82f6; }
+  .priority { font-size: 11px; }
+  .p-high { color: #ef4444; }
+  .p-med { color: #f59e0b; }
+  .p-low { color: #22c55e; }
+  .assignee { font-size: 11px; color: #888; }
+  .creator { font-size: 11px; color: #888; }
+  .updated { font-size: 11px; color: #666; }
+  .score { font-size: 12px; font-weight: 600; color: #22c55e; text-align: center; width: 30px; height: 30px; border: 2px solid #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .score-low { color: #f59e0b; border-color: #f59e0b; }
+  .dots { color: #666; font-size: 16px; cursor: pointer; text-align: center; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #2a2d3a; }
+  .search-input { background: #12141c; border: 1px solid #2a2d3a; border-radius: 8px; padding: 8px 12px 8px 36px; color: #c0c0c0; font-size: 13px; flex: 1; max-width: 400px; position: relative; }
+  .toolbar-btn { background: #1e2130; border: 1px solid #2a2d3a; border-radius: 8px; padding: 7px 14px; font-size: 12px; color: #c0c0c0; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .toolbar-btn.active { border-color: #3b82f6; color: #3b82f6; }
+  .toolbar-primary { background: #3b82f6; border: none; color: #fff; }
+
+  /* Active tag filter pills in toolbar */
+  .active-filters { display: flex; gap: 6px; align-items: center; }
+  .active-filter-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; cursor: pointer; }
+  .active-filter-pill .x { font-size: 10px; opacity: 0.6; }
+
+  /* Dropdown menu */
+  .dropdown { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 4px; min-width: 180px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 13px; color: #c8c8d0; border-radius: 4px; cursor: pointer; }
+  .dropdown-item:hover { background: rgba(255,255,255,0.05); }
+  .dropdown-item .icon { width: 16px; height: 16px; border: 1px solid #555; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .dropdown-sep { height: 1px; background: #2a2d3a; margin: 4px 0; }
+  .dropdown-item.red { color: #ef4444; }
+
+  /* Tag picker */
+  .tag-picker { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 8px; min-width: 240px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .picker-search { width: 100%; background: #12141c; border: 1px solid #2a2d3a; border-radius: 6px; padding: 6px 10px; color: #c0c0c0; font-size: 12px; margin-bottom: 6px; }
+  .picker-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12px; color: #c8c8d0; border-radius: 4px; cursor: pointer; }
+  .picker-item:hover { background: rgba(255,255,255,0.05); }
+  .picker-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .picker-check { width: 14px; height: 14px; border: 1px solid #555; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9px; margin-left: auto; }
+  .picker-check.checked { background: #3b82f6; border-color: #3b82f6; }
+  .picker-create { display: flex; align-items: center; gap: 6px; padding: 6px 8px; font-size: 12px; color: #3b82f6; border-radius: 4px; cursor: pointer; border-top: 1px solid #2a2d3a; margin-top: 4px; padding-top: 10px; }
+
+  /* Create tag inline */
+  .create-inline { border-top: 1px solid #2a2d3a; margin-top: 6px; padding-top: 8px; }
+  .color-swatches { display: flex; gap: 4px; margin-bottom: 8px; }
+  .swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .swatch.selected { border-color: #fff; }
+  .scope-row { display: flex; align-items: center; gap: 8px; }
+  .scope-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #888; cursor: pointer; }
+  .confirm-btn { background: #22c55e; color: #fff; border: none; border-radius: 4px; padding: 3px 10px; font-size: 11px; cursor: pointer; margin-left: auto; }
+
+  /* Filter popover */
+  .filter-popover { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 12px; min-width: 260px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .filter-section { margin-bottom: 12px; }
+  .filter-label { font-size: 10px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .filter-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .filter-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; cursor: pointer; opacity: 0.5; transition: opacity 0.15s; }
+  .filter-tag.active { opacity: 1; box-shadow: 0 0 0 1px currentColor; }
+  .filter-clear { font-size: 11px; color: #3b82f6; cursor: pointer; margin-top: 6px; display: inline-block; }
+
+  /* Overview card */
+  .overview-card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 16px; }
+  .overview-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .overview-label { font-size: 11px; color: #666; min-width: 80px; }
+  .overview-value { font-size: 13px; color: #c8c8d0; }
+  .overview-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .add-tag-btn { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 99px; font-size: 10px; color: #666; border: 1px dashed #444; cursor: pointer; }
+
+  /* Layout helpers */
+  .side-by-side { display: flex; gap: 24px; align-items: flex-start; }
+  .side-by-side > * { flex: 1; }
+  .annotation { font-size: 11px; color: #f59e0b; margin-top: 8px; padding: 6px 10px; background: rgba(245,158,11,0.08); border-left: 2px solid #f59e0b; border-radius: 0 4px 4px 0; }
+  .section-divider { height: 1px; background: linear-gradient(to right, #2a2d3a, transparent); margin: 48px 0; }
+
+  .highlight-box { border: 2px dashed #3b82f6; border-radius: 8px; padding: 2px; position: relative; }
+  .highlight-label { position: absolute; top: -10px; left: 12px; background: #3b82f6; color: #fff; font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<h1>🏷️ Ticket Tags — Wireframes</h1>
+<p class="subtitle">All UI touchpoints where the tags feature appears</p>
+
+<!-- ==================== WIREFRAME 1: Grid with Tag Pills ==================== -->
+<div class="wireframe">
+  <div class="wireframe-title">1. Ticket Grid — Tag Pills Next to Title</div>
+  <div class="wireframe-desc">Small colored pills appear after the ticket title. Max 3 visible, "+N" for overflow. Private tags show a 🔒 icon.</div>
+  <div class="frame">
+    <div class="toolbar">
+      <div class="search-input">🔍 Search tickets...</div>
+      <div class="toolbar-btn">Recently updated ▾</div>
+      <div class="toolbar-btn active" title="Filter icon — highlighted when tag filter is active">⚙ Filters</div>
+      <div class="toolbar-btn">☰ Columns</div>
+      <div class="toolbar-btn">📁 New Folder</div>
+      <div class="toolbar-btn toolbar-primary">+ Create</div>
+    </div>
+    <div class="grid-header">
+      <span>Title</span><span>Status</span><span>Priority</span><span>Assignee</span><span>Creator</span><span>Updated</span><span style="text-align:center">Score</span><span></span>
+    </div>
+    <div class="grid-row">
+      <div class="title-cell">
+        <div class="type-icon type-feature"></div>
+        <span class="ticket-title">create user/password authentication</span>
+        <div class="highlight-box">
+          <div class="highlight-label">New</div>
+          <div class="tag-pills">
+            <span class="tag-pill tag-blue">sprint 1</span>
+            <span class="tag-pill tag-red">urgent</span>
+          </div>
+        </div>
+      </div>
+      <div class="status"><span class="status-dot dot-amber"></span> Define</div>
+      <div class="priority p-low">● Low</div>
+      <div class="assignee">Dan</div>
+      <div class="creator">Idan</div>
+      <div class="updated">1h</div>
+      <div class="score">91</div>
+      <div class="dots">⋮</div>
+    </div>
+    <div class="grid-row">
+      <div class="title-cell">
+        <div class="type-icon type-feature"></div>
+        <span class="ticket-title">create a welcome screen</span>
+        <div class="tag-pills">
+          <span class="tag-pill tag-blue">sprint 1</span>
+          <span class="tag-pill tag-green">frontend</span>
+          <span class="tag-pill tag-purple">design</span>
+          <span class="tag-overflow">+1</span>
+        </div>
+      </div>
+      <div class="status"><span class="status-dot dot-green"></span> Ready</div>
+      <div class="priority p-high">● High</div>
+      <div class="assignee">Idan</div>
+      <div class="creator">Idan</div>
+      <div class="updated">1h</div>
+      <div class="score">93</div>
+      <div class="dots">⋮</div>
+    </div>
+    <div class="grid-row">
+      <div class="title-cell">
+        <div class="type-icon type-bug"></div>
+        <span class="ticket-title">fix login timeout on slow connections</span>
+        <div class="tag-pills">
+          <span class="tag-pill tag-orange"><span class="lock">🔒</span> my review</span>
+        </div>
+      </div>
+      <div class="status"><span class="status-dot dot-blue"></span> Executing</div>
+      <div class="priority p-med">● Medium</div>
+      <div class="assignee">Dan</div>
+      <div class="creator">Dan</div>
+      <div class="updated">3h</div>
+      <div class="score score-low">78</div>
+      <div class="dots">⋮</div>
+    </div>
+    <div class="grid-row">
+      <div class="title-cell">
+        <div class="type-icon type-task"></div>
+        <span class="ticket-title">add stripe payment integration</span>
+      </div>
+      <div class="status"><span class="status-dot dot-amber"></span> Define</div>
+      <div class="priority p-low">● Low</div>
+      <div class="assignee">—</div>
+      <div class="creator">Idan</div>
+      <div class="updated">1h</div>
+      <div class="score">93</div>
+      <div class="dots">⋮</div>
+    </div>
+  </div>
+  <div class="annotation">Tag pills appear inline with the title. Private tags (like "my review") display a 🔒 lock icon. Overflow shows "+N".</div>
+</div>
+
+<!-- ==================== WIREFRAME 2: Three-dot Menu ==================== -->
+<div class="wireframe">
+  <div class="wireframe-title">2. Three-Dot Menu — "Tags..." Submenu</div>
+  <div class="wireframe-desc">New "Tags..." item between "Assign" and "Move to..." opens the TagPicker as a submenu.</div>
+  <div class="side-by-side">
+    <div>
+      <div class="dropdown">
+        <div class="dropdown-item"><span class="icon">↗</span> Open</div>
+        <div class="dropdown-item"><span class="icon">👤</span> Assign</div>
+        <div class="highlight-box" style="margin: 2px 0;">
+          <div class="highlight-label">New</div>
+          <div class="dropdown-item" style="color: #3b82f6;"><span class="icon">🏷</span> Tags... ▸</div>
+        </div>
+        <div class="dropdown-item"><span class="icon">📁</span> Move to... ▸</div>
+        <div class="dropdown-sep"></div>
+        <div class="dropdown-item"><span class="icon">📦</span> Archive</div>
+        <div class="dropdown-item red"><span class="icon">🗑</span> Delete</div>
+      </div>
+    </div>
+    <div>
+      <div style="margin-left: 20px;">
+        <div class="tag-picker">
+          <input class="picker-search" placeholder="Search or create tag..." value="">
+          <div class="picker-item">
+            <div class="picker-dot" style="background:#3b82f6"></div>
+            sprint 1
+            <div class="picker-check checked">✓</div>
+          </div>
+          <div class="picker-item">
+            <div class="picker-dot" style="background:#ef4444"></div>
+            urgent
+            <div class="picker-check checked">✓</div>
+          </div>
+          <div class="picker-item">
+            <div class="picker-dot" style="background:#22c55e"></div>
+            frontend
+            <div class="picker-check"></div>
+          </div>
+          <div class="picker-item">
+            <div class="picker-dot" style="background:#a855f7"></div>
+            design
+            <div class="picker-check"></div>
+          </div>
+          <div class="picker-item">
+            <div class="picker-dot" style="background:#f97316"></div>
+            🔒 my review
+            <div class="picker-check"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">TagPicker shows all visible tags with checkboxes. Checked = applied to this ticket. Private tags show 🔒 lock.</div>
+</div>
+
+<!-- ==================== WIREFRAME 3: Inline Tag Creation ==================== -->
+<div class="wireframe">
+  <div class="wireframe-title">3. TagPicker — Inline Tag Creation</div>
+  <div class="wireframe-desc">When typing a name that doesn't exist, "Create..." appears. Clicking reveals color swatches + scope toggle.</div>
+  <div class="side-by-side">
+    <div>
+      <p style="font-size: 12px; color: #888; margin-bottom: 8px;">Step 1: Type a new tag name</p>
+      <div class="tag-picker">
+        <input class="picker-search" value="sprint 2">
+        <div class="picker-item" style="color: #666; font-style: italic;">No matching tags</div>
+        <div class="picker-create">+ Create "sprint 2"</div>
+      </div>
+    </div>
+    <div>
+      <p style="font-size: 12px; color: #888; margin-bottom: 8px;">Step 2: Pick color & scope, then confirm</p>
+      <div class="tag-picker">
+        <input class="picker-search" value="sprint 2">
+        <div class="create-inline">
+          <div style="font-size: 11px; color: #888; margin-bottom: 6px;">Choose color:</div>
+          <div class="color-swatches">
+            <div class="swatch" style="background:#ef4444"></div>
+            <div class="swatch" style="background:#f97316"></div>
+            <div class="swatch" style="background:#eab308"></div>
+            <div class="swatch selected" style="background:#22c55e"></div>
+            <div class="swatch" style="background:#14b8a6"></div>
+            <div class="swatch" style="background:#3b82f6"></div>
+            <div class="swatch" style="background:#a855f7"></div>
+            <div class="swatch" style="background:#ec4899"></div>
+          </div>
+          <div class="scope-row">
+            <div class="scope-toggle">🌐 Team</div>
+            <span style="font-size:10px; color:#555">|</span>
+            <div class="scope-toggle" style="opacity:0.4">🔒 Private</div>
+            <button class="confirm-btn">✓ Create</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">8 preset color swatches. Scope toggle: Globe (team) / Lock (private). After creation, tag is auto-applied to the ticket.</div>
+</div>
+
+<!-- ==================== WIREFRAME 4: Filter Popover ==================== -->
+<div class="wireframe">
+  <div class="wireframe-title">4. Filter Popover — Tags Section</div>
+  <div class="wireframe-desc">New "Tags" section in the existing filter popover. Multi-select with AND logic.</div>
+  <div class="side-by-side">
+    <div>
+      <div class="filter-popover">
+        <div class="filter-section">
+          <div class="filter-label">Priority</div>
+          <div class="filter-tags">
+            <span class="filter-tag tag-red active">● High</span>
+            <span class="filter-tag tag-orange">● Medium</span>
+            <span class="filter-tag tag-green">● Low</span>
+          </div>
+        </div>
+        <div class="filter-section">
+          <div class="filter-label">Type</div>
+          <div class="filter-tags">
+            <span class="filter-tag tag-yellow">💡 Feature</span>
+            <span class="filter-tag tag-red">🐛 Bug</span>
+            <span class="filter-tag tag-blue">📋 Task</span>
+          </div>
+        </div>
+        <div class="filter-section">
+          <div class="highlight-box">
+            <div class="highlight-label">New</div>
+            <div style="padding: 8px;">
+              <div class="filter-label">Tags</div>
+              <div class="filter-tags">
+                <span class="filter-tag tag-blue active">sprint 1</span>
+                <span class="filter-tag tag-red">urgent</span>
+                <span class="filter-tag tag-green">frontend</span>
+                <span class="filter-tag tag-purple">design</span>
+                <span class="filter-tag tag-orange">🔒 my review</span>
+                <span class="filter-tag tag-teal">backend</span>
+              </div>
+              <span class="filter-clear">Clear tags</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="padding: 16px;">
+        <p style="font-size: 13px; color: #c0c0c0; margin-bottom: 12px;">When "sprint 1" is selected:</p>
+        <p style="font-size: 12px; color: #888; line-height: 1.6;">
+          ✅ Shows tickets tagged with "sprint 1"<br>
+          ❌ Hides tickets without "sprint 1" tag<br><br>
+          <strong style="color:#c0c0c0">AND logic:</strong> selecting both "sprint 1" + "urgent" shows only tickets that have <em>both</em> tags.
+        </p>
+        <div style="margin-top: 16px;">
+          <p style="font-size: 11px; color: #666; margin-bottom: 6px;">Filter icon in toolbar turns active:</p>
+          <div class="toolbar-btn active" style="display: inline-flex;">⚙ Filters <span style="background:#3b82f6; color:#fff; font-size:9px; padding:1px 5px; border-radius:99px; margin-left:4px;">1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">Tags appear as colored pills. Active = highlighted with border. "Clear tags" resets. Filter icon shows badge count.</div>
+</div>
+
+<!-- ==================== WIREFRAME 5: Ticket Detail View ==================== -->
+<div class="wireframe">
+  <div class="wireframe-title">5. Ticket Detail — OverviewCard</div>
+  <div class="wireframe-desc">Tag pills and "+ Add tag" button in the ticket detail overview card.</div>
+  <div class="overview-card" style="max-width: 500px;">
+    <div class="overview-row">
+      <div class="overview-label">Assignee</div>
+      <div class="overview-value">👤 Idan Ayalon</div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-label">Created by</div>
+      <div class="overview-value" style="font-size:11px; color:#888;">Idan Ayalon</div>
+    </div>
+    <div class="overview-row">
+      <div class="highlight-box">
+        <div class="highlight-label">New</div>
+        <div style="display:flex; align-items:center; gap:12px; padding: 4px 8px;">
+          <div class="overview-label">Tags</div>
+          <div class="overview-tags">
+            <span class="tag-pill tag-blue" style="font-size:11px; padding: 2px 10px;">sprint 1</span>
+            <span class="tag-pill tag-red" style="font-size:11px; padding: 2px 10px;">urgent</span>
+            <span class="tag-pill tag-green" style="font-size:11px; padding: 2px 10px;">frontend</span>
+            <div class="add-tag-btn">+ Add tag</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="overview-row" style="margin-top: 4px;">
+      <div class="overview-label">Status</div>
+      <div class="status"><span class="status-dot dot-green"></span> <span style="font-size:13px;">Ready</span></div>
+    </div>
+  </div>
+  <div class="annotation">Tags displayed as pills in the overview card. "+ Add tag" button opens the same TagPicker popover used in the grid.</div>
+</div>
+
+<!-- ==================== WIREFRAME 6: Color Palette Reference ==================== -->
+<div class="wireframe">
+  <div class="wireframe-title">6. Preset Color Palette</div>
+  <div class="wireframe-desc">8 preset colors available for tags. Stored as key strings in the database.</div>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap; padding: 20px;">
+    <div style="text-align:center">
+      <div class="swatch" style="background:#ef4444; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-red">red</span>
+    </div>
+    <div style="text-align:center">
+      <div class="swatch" style="background:#f97316; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-orange">orange</span>
+    </div>
+    <div style="text-align:center">
+      <div class="swatch" style="background:#eab308; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-yellow">yellow</span>
+    </div>
+    <div style="text-align:center">
+      <div class="swatch" style="background:#22c55e; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-green">green</span>
+    </div>
+    <div style="text-align:center">
+      <div class="swatch" style="background:#14b8a6; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-teal">teal</span>
+    </div>
+    <div style="text-align:center">
+      <div class="swatch" style="background:#3b82f6; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-blue">blue</span>
+    </div>
+    <div style="text-align:center">
+      <div class="swatch" style="background:#a855f7; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-purple">purple</span>
+    </div>
+    <div style="text-align:center">
+      <div class="swatch" style="background:#ec4899; width:36px; height:36px; margin: 0 auto 6px;"></div>
+      <span class="tag-pill tag-pink">pink</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
