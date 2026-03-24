@@ -124,8 +124,9 @@ const components: Components = {
     <hr className="border-[var(--border-subtle)] my-8" />
   ),
   img: ({ src, alt }) => {
+    const imgSrc = typeof src === 'string' ? src : undefined;
     // Render .html assets as embedded iframes
-    if (src && src.endsWith('.html')) {
+    if (imgSrc && imgSrc.endsWith('.html')) {
       return (
         <div className="my-6 rounded-xl border border-[var(--border-subtle)] overflow-hidden">
           {alt && (
@@ -137,7 +138,7 @@ const components: Components = {
             </div>
           )}
           <iframe
-            src={src}
+            src={imgSrc}
             sandbox=""
             title={alt || 'Embedded preview'}
             className="w-full border-0"
@@ -147,7 +148,7 @@ const components: Components = {
       );
     }
     return (
-      <img src={src} alt={alt || ''} className="rounded-xl border border-[var(--border-subtle)] my-6 w-full" />
+      <img src={imgSrc} alt={alt || ''} className="rounded-xl border border-[var(--border-subtle)] my-6 w-full" />
     );
   },
   strong: ({ children }) => (
