@@ -252,9 +252,6 @@ export function DetailsStep() {
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Ticket Description
-            {hasSpeechSupport && !isListening && (
-              <kbd className="ml-2 inline-flex items-center px-1.5 py-0.5 text-[10px] font-normal text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded">T</kbd>
-            )}
           </label>
           <div className="flex items-center gap-2">
             {hasSpeechSupport && (
@@ -266,10 +263,21 @@ export function DetailsStep() {
                     ? 'text-red-500 border-red-500/40 bg-red-500/10 hover:bg-red-500/20'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text)] border-[var(--border-subtle)] hover:border-[var(--border)] hover:bg-[var(--bg-hover)]'
                 }`}
-                title={isListening ? 'Stop recording' : 'Dictate description'}
+                title={isListening ? 'Stop recording (T)' : 'Dictate description (T)'}
               >
-                {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                {isListening ? 'Stop' : 'Dictate'}
+                {isListening ? (
+                  <>
+                    <MicOff className="h-3.5 w-3.5 flex-shrink-0" />
+                    <VoiceWaveform stream={micStream} />
+                    <span>Stop</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="h-3.5 w-3.5" />
+                    Dictate
+                    <kbd className="inline-flex items-center px-1 py-0 text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded leading-tight">T</kbd>
+                  </>
+                )}
               </button>
             )}
             <button
@@ -299,17 +307,6 @@ export function DetailsStep() {
             </button>
           </div>
         </div>
-        {/* Voice waveform visualizer — shows real-time audio when dictating */}
-        {isListening && (
-          <div className="rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-2 flex items-center gap-3">
-            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-            </span>
-            <VoiceWaveform stream={micStream} className="flex-1" />
-            <span className="text-[10px] text-[var(--text-tertiary)] flex-shrink-0">Listening...</span>
-          </div>
-        )}
         <MarkdownInput
           value={input.title}
           onChange={setTitle}
