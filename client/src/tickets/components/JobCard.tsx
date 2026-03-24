@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Loader2, Check, X, Minus, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Loader2, Check, X, Minus, AlertTriangle, RotateCw } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import type { GenerationJobClient } from '@/stores/jobs.store';
 
@@ -45,8 +45,27 @@ export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardPr
 
   const isActive = job.status === 'running' || job.status === 'retrying';
   const isCancelled = job.status === 'cancelled';
+  const [isRecovering, setIsRecovering] = useState(false);
+  const autoRecoveredRef = useRef(false);
+
   // Job is "stale" if no backend update for 60s+ while supposedly active
   const isStale = isActive && sinceUpdate > 60;
+
+  // Auto-recover after 120s of no activity (once per job)
+  useEffect(() => {
+    if (isActive && sinceUpdate > 120 && !autoRecoveredRef.current && !isRecovering) {
+      autoRecoveredRef.current = true;
+      setIsRecovering(true);
+      onRetry(job.id);
+      setTimeout(() => setIsRecovering(false), 3000);
+    }
+  }, [isActive, sinceUpdate, isRecovering, job.id, onRetry]);
+
+  const handleRecover = () => {
+    setIsRecovering(true);
+    onRetry(job.id);
+    setTimeout(() => setIsRecovering(false), 3000);
+  };
 
   return (
     <div
@@ -74,7 +93,7 @@ export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardPr
         <div className="flex items-center gap-1 pl-5">
           <AlertTriangle className="h-2.5 w-2.5 text-amber-500 flex-shrink-0" />
           <p className="text-[10px] text-amber-500">
-            No update for {sinceUpdate}s — may be stuck
+            {isRecovering ? 'Recovering...' : `No update for ${sinceUpdate}s — may be stuck`}
           </p>
         </div>
       )}
@@ -103,14 +122,27 @@ export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardPr
         </span>
 
         {isActive && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5 px-1.5 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text)]"
-            onClick={() => onCancel(job.id)}
-          >
-            Cancel
-          </Button>
+          <div className="flex items-center gap-1">
+            {isStale && !isRecovering && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1.5 text-[10px] text-amber-500 hover:text-amber-400"
+                onClick={handleRecover}
+              >
+                <RotateCw className="h-2.5 w-2.5 mr-0.5" />
+                Recover
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 px-1.5 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text)]"
+              onClick={() => onCancel(job.id)}
+            >
+              Cancel
+            </Button>
+          </div>
         )}
         {job.status === 'failed' && (
           <Button
