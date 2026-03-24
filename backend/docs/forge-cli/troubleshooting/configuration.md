@@ -50,7 +50,7 @@ git commit -m "Add Forge MCP configuration"
 ```
 
 Each developer still needs to:
-1. Have the Forge CLI installed (`npm install -g @anthropic-forge/cli`)
+1. Have the Forge CLI installed (`npm install -g forge-aec`)
 2. Be authenticated (`forge login`)
 
 The `.mcp.json` file contains no secrets — just the command to start the MCP server.

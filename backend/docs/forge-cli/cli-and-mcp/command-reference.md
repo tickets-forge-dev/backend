@@ -7,7 +7,7 @@ category: "CLI & MCP"
 ## Installation
 
 ```bash
-npm install -g @anthropic-forge/cli
+npm install -g forge-aec
 ```
 
 Verify it's working:

@@ -12,7 +12,7 @@ The Forge CLI is how developers interact with tickets from the terminal. This pa
 Install globally via npm:
 
 ```bash
-npm install -g @anthropic-forge/cli
+npm install -g forge-aec
 ```
 
 Verify the installation:
@@ -28,7 +28,7 @@ forge --version
 Update to the latest version:
 
 ```bash
-npm update -g @anthropic-forge/cli
+npm update -g forge-aec
 ```
 
 Verify the update:

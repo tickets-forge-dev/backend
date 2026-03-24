@@ -124,7 +124,7 @@ Ensure you're in the root of a git repository (the directory containing `.git`).
 
 **Fix:**
 ```bash
-npm install -g @anthropic-forge/cli
+npm install -g forge-aec
 ```
 
 If already installed, check your PATH:

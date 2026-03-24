@@ -12,7 +12,7 @@ This guide gets you from zero to executing tickets. You'll install the CLI, auth
 ## Step 1: Install the CLI
 
 ```bash
-npm install -g @anthropic-forge/cli
+npm install -g forge-aec
 ```
 
 Verify the installation:
