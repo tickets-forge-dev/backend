@@ -360,19 +360,14 @@ export function GenerationOptionsStep() {
         <Button variant="ghost" size="sm" onClick={prevStage} disabled={loading}>
           ← Back
         </Button>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={handleContinue}
-            disabled={loading}
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
-          >
-            Continue with defaults →
-          </button>
-          <Button onClick={handleContinue} disabled={loading} size="sm" className="min-w-[96px]">
-            {loading ? 'Analyzing...' : 'Continue'}
-          </Button>
-        </div>
+        <Button onClick={handleContinue} disabled={loading} size="sm" className="min-w-[96px]">
+          {loading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              Analyzing...
+            </>
+          ) : 'Continue'}
+        </Button>
       </div>
 
       {/* Hi-res wireframe example preview */}
