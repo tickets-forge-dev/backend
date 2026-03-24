@@ -397,7 +397,7 @@ export function GenerationOptionsStep() {
             </div>
             <div className="flex-1 overflow-hidden">
               <iframe
-                src="/assets/wireframe-example.html"
+                src="/assets/2026-03-23-ticket-tags-wireframes.html"
                 sandbox=""
                 title="Hi-res Wireframe Example"
                 className="w-full h-full border-0"

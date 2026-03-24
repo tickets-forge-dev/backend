@@ -129,20 +129,7 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
             </button>
           )}
 
-          {/* PRD Breakdown */}
-          <button
-            onClick={() => {
-              router.push('/tickets/breakdown');
-              setIsOpen(false);
-            }}
-            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-lg"
-          >
-            <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
-            <div className="text-left">
-              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">PRD Breakdown</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Bulk create from PRD analysis</p>
-            </div>
-          </button>
+          {/* PRD Breakdown - hidden until feature is ready */}
         </div>
       )}
     </div>
