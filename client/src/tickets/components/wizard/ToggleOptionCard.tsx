@@ -74,7 +74,7 @@ export function ToggleOptionCard({
   const borderClass = accentClass
     ? accentClass
     : enabled
-      ? 'border-l-2 border-l-green-500 border-green-500/40 bg-green-50/30 dark:bg-green-950/10'
+      ? 'border-[var(--border-hover)]'
       : 'border-[var(--border-subtle)] bg-[var(--bg-subtle)]';
 
   return (
@@ -109,7 +109,7 @@ export function ToggleOptionCard({
             toggleDisabled
               ? 'bg-gray-300 dark:bg-gray-600 opacity-50 cursor-not-allowed'
               : enabled
-                ? 'bg-green-600 cursor-pointer'
+                ? 'bg-[var(--text-tertiary)] cursor-pointer'
                 : 'bg-gray-300 dark:bg-gray-600 cursor-pointer'
           }`}
         >
@@ -139,7 +139,7 @@ export function ToggleOptionCard({
         <button
           type="button"
           onClick={handleExpandToggle}
-          className="w-full text-left px-4 pb-3 text-xs text-[var(--blue)] hover:underline"
+          className="w-full text-left px-4 pb-3 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:underline"
         >
           {collapsedHint || 'Click to add context (optional)'}
         </button>
