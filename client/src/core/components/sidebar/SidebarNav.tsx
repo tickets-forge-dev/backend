@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
-import { LayoutGrid, Settings, MessageCircle, Search } from 'lucide-react';
+import { LayoutGrid, Settings, MessageCircle, Search, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
@@ -38,6 +38,7 @@ export function SidebarNav() {
 
   const navigationItems = [
     { label: 'Workspace', href: '/tickets', icon: LayoutGrid },
+    { label: 'Profile', href: '/profile', icon: User },
     { label: 'Settings', href: '/settings', icon: Settings, attention: hasProfileAttention },
   ];
 
@@ -59,14 +60,14 @@ export function SidebarNav() {
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
                   isActive
-                    ? 'bg-[var(--bg-active)] text-[var(--text)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]'
+                    ? 'bg-[var(--bg-hover)] text-[var(--text)]'
+                    : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-secondary)]'
                 )}
               >
                 <span className="relative flex-shrink-0">
                   <Icon className="h-4 w-4" />
                   {showDot && (
-                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-500" />
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[var(--text-tertiary)]" />
                   )}
                 </span>
                 {!sidebarCollapsed && (
@@ -101,7 +102,7 @@ export function SidebarNav() {
         </li>
 
         {/* Feedback button - separator */}
-        <li className="my-2 border-t border-[var(--border)]" />
+        <li className="my-3" />
 
         {/* Feedback button */}
         <li>

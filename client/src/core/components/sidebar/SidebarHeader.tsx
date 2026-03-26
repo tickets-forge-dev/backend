@@ -39,7 +39,7 @@ export function SidebarHeader() {
   if (!user) return null;
 
   return (
-    <div className="border-b border-[var(--border)] p-3">
+    <div className="p-3">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -62,7 +62,7 @@ export function SidebarHeader() {
             {/* Name and email - hidden when collapsed */}
             {!sidebarCollapsed && (
               <div className="flex flex-col items-start overflow-hidden">
-                <p className="text-[var(--text-sm)] font-semibold text-[var(--text)] truncate w-full">
+                <p className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] truncate w-full">
                   {user.displayName || 'User'}
                 </p>
                 <p className="text-[11px] text-[var(--text-tertiary)] truncate w-full">

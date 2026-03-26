@@ -20,19 +20,9 @@ function UsageBar({ collapsed }: { collapsed: boolean }) {
   if (!quota) return null;
 
   const percent = quota.usagePercent;
-  const color =
-    percent >= 90
-      ? 'bg-red-500'
-      : percent >= 70
-        ? 'bg-amber-500'
-        : 'bg-emerald-500';
+  const color = 'bg-[var(--text-tertiary)]';
 
-  const dotColor =
-    percent >= 90
-      ? 'bg-red-500'
-      : percent >= 70
-        ? 'bg-amber-500'
-        : 'bg-emerald-500';
+  const dotColor = 'bg-[var(--text-tertiary)]';
 
   if (collapsed) {
     return (
@@ -77,7 +67,7 @@ export function SidebarFooter() {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
 
   return (
-    <div className="mt-auto border-t border-[var(--border)] p-2 space-y-2">
+    <div className="mt-auto p-2 space-y-2">
       <UsageBar collapsed={sidebarCollapsed} />
 
       <div className="flex items-center justify-between gap-1">
