@@ -31,12 +31,18 @@ The goal: blow the user away in 5 seconds with polished motion, focused copy, an
 --landing-body: 16px                        /* Landing body text */
 ```
 
-**Font weight philosophy:** 400 (body), 500 (nav/labels), 600 (headings only). Never 700 on landing page.
+**Font weight philosophy:** 400 (body/subtitles), 500 (headings, nav, labels). Never 600 or 700 on landing page. This is Linear's signature — medium weight feels refined, not heavy.
 
 **Letter-spacing:**
 - Hero headline: `-0.03em`
 - Section headings: `-0.025em`
 - Body: `0` (default)
+- Mono micro labels: `0.05em` (widened for readability at small sizes)
+
+**Monospace micro labels (Linear signature pattern):**
+- Font: JetBrains Mono, `11px`, uppercase, `--text-tertiary`, letter-spacing `0.05em`
+- Used for: section label badges ("WEB APP", "DEVELOPER TOOLS", "HOW IT WORKS"), metadata text
+- Example: the pill badge in the hero and the label badges in showcase sections
 
 **Font stack change:**
 - Remove `Space Grotesk` from `layout.tsx` — Inter handles headings too
@@ -53,9 +59,19 @@ The goal: blow the user away in 5 seconds with polished motion, focused copy, an
 
 ### Spacing Changes (landing only)
 
-- Section padding: `py-32 md:py-40` (up from `py-24`)
+Exact spacing values matching Linear's system:
+- `96px` between major sections (desktop), `48px` on mobile
+- `48px` between sub-sections within a section
+- `-4px` optical tightening margin after section headings (before subtitle/content)
 - Max content width: `max-w-6xl` (up from `max-w-4xl` / `max-w-5xl`)
 - Hero gets generous top padding for full-viewport feel
+
+New CSS custom properties:
+```css
+--landing-section-gap: 96px;
+--landing-subsection-gap: 48px;
+--landing-optical-tighten: -4px;
+```
 
 ### What Stays Unchanged
 
@@ -104,7 +120,7 @@ Every section uses `whileInView` with `viewport: { once: true, amount: 0.2 }` �
 
 **Content (top to bottom):**
 1. Pill badge — "AI-powered ticket specs", animated `fadeIn` + `scale(0.95 → 1)`, 400ms
-2. Headline — "Dev-ready tickets. Every single time." in white (no gradient text), Inter 600, `--landing-hero` size, `-0.03em` letter-spacing. Animation: `fadeUp`, 600ms, 100ms delay
+2. Headline — "Dev-ready tickets. Every single time." in white (no gradient text), Inter 500 (medium, not semibold), `--landing-hero` size, `-0.03em` letter-spacing. Animation: `fadeUp`, 600ms, 100ms delay
 3. Subtitle — single line, 18px, `--text-secondary`. Animation: `fadeUp`, 600ms, 200ms delay
 4. Two CTAs — "Get Started" (solid emerald, links to `/tickets`) + "See how it works" (ghost outline, smooth-scrolls to `#how-it-works`). Animation: `fadeUp`, 600ms, 300ms delay
 5. Product screenshot — `ticket-screenshot.png` in `/images/`. Animation: `fadeUp` + `scaleUp`, 800ms, 500ms delay
@@ -130,7 +146,7 @@ Every section uses `whileInView` with `viewport: { once: true, amount: 0.2 }` �
 - Thin vertical line (`1px`, `--border-subtle`) on the left
 - 4 steps vertically stacked, each with:
   - Colored dot on the timeline (purple → violet → amber → emerald)
-  - Title (Inter 500) + subtitle (`--text-secondary`)
+  - Title (Inter 500, `--text`) + subtitle (`--text-secondary`)
   - Subtle left border accent in step color (no filled background cards)
 - Section heading centered above
 
@@ -144,7 +160,7 @@ Every section uses `whileInView` with `viewport: { once: true, amount: 0.2 }` �
 
 **Layout:** Split — text left (40%), screenshot right (60%)
 
-- Left: label badge "Web App", heading "Create, review, and approve — all from the browser", 2-3 bullet points
+- Left: mono micro label "WEB APP" (JetBrains Mono, 11px, uppercase, `--text-tertiary`), heading "Create, review, and approve — all from the browser" (Inter 500), 2-3 bullet points
 - Right: `aec-screenshot.png` with perspective tilt (`rotateY(-3deg) rotateX(2deg)`), soft shadow, emerald glow behind
 
 **Animation:**
@@ -158,7 +174,7 @@ Every section uses `whileInView` with `viewport: { once: true, amount: 0.2 }` �
 **Layout:** Flipped — screenshot left (60%), text right (40%)
 
 - Left: `cli-screenshot.png` with mirrored tilt (`rotateY(3deg) rotateX(2deg)`), indigo glow behind
-- Right: label badge "Developer Tools", heading "Pick up tickets without leaving your IDE", bullet points, `npm i forge-aec` copy command
+- Right: mono micro label "DEVELOPER TOOLS" (JetBrains Mono, 11px, uppercase, `--text-tertiary`), heading "Pick up tickets without leaving your IDE" (Inter 500), bullet points, `npm i forge-aec` copy command
 
 **Animation:**
 - Screenshot: `slideFromLeft`, 800ms
@@ -176,7 +192,7 @@ Every section uses `whileInView` with `viewport: { once: true, amount: 0.2 }` �
 
 ### 7. Final CTA — `CTASection.tsx` (modify)
 
-- Heading bumped to `clamp(32px, 4vw, 48px)`, Inter 600
+- Heading bumped to `clamp(32px, 4vw, 48px)`, Inter 500
 - Button: emerald with hover glow `box-shadow: 0 0 40px rgba(16,185,129,0.3)`
 - Background: large centered radial gradient (emerald + indigo, ~15% opacity)
 - Animation: `fadeUp` on scroll enter
