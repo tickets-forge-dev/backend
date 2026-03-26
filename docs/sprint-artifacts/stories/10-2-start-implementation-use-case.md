@@ -10,9 +10,9 @@ so that the developer agent can programmatically start implementation.
 
 ## Acceptance Criteria
 
-1. **Given** a FORGED ticket **When** `POST /api/tickets/:id/start-implementation` is called with `{ branchName, qaItems? }` **Then** the ticket transitions to EXECUTING, the branch name and Q&A are stored, and the response includes `{ success, ticketId, branchName, status }`
+1. **Given** an APPROVED ticket **When** `POST /api/tickets/:id/start-implementation` is called with `{ branchName, qaItems? }` **Then** the ticket transitions to EXECUTING, the branch name and Q&A are stored, and the response includes `{ success, ticketId, branchName, status }`
 
-2. **Given** a ticket NOT in FORGED status **When** start-implementation is called **Then** a 400 error is returned with a descriptive message
+2. **Given** a ticket NOT in APPROVED status **When** start-implementation is called **Then** a 400 error is returned with a descriptive message
 
 3. **Given** valid input **When** the use case executes **Then** team ownership is verified via `x-team-id` header
 

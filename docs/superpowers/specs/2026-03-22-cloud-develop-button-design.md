@@ -6,7 +6,7 @@
 
 ## Summary
 
-A "Develop" button on approved tickets (status `FORGED`) that generates a draft Pull Request on the team's GitHub repo — without a developer touching a terminal. The PM clicks a button, Forge reads the codebase via GitHub API, generates code via Claude API, and opens a PR. A developer reviews and merges.
+A "Develop" button on approved tickets (status `APPROVED`) that generates a draft Pull Request on the team's GitHub repo — without a developer touching a terminal. The PM clicks a button, Forge reads the codebase via GitHub API, generates code via Claude API, and opens a PR. A developer reviews and merges.
 
 **Target user:** PMs on engineering teams who want to fast-track tickets out of the backlog. The PR is a first-pass draft — not production-ready — that a developer reviews and polishes.
 
@@ -40,7 +40,7 @@ Solo developers already use Claude Code directly. The Develop button serves PMs 
 ```
 PM in Forge web app                    Backend                         GitHub
 ─────────────────                    ───────                         ──────
-Ticket is FORGED (approved)
+Ticket is APPROVED
        │
        ▼
 Clicks "Develop" button
@@ -77,7 +77,7 @@ Backend creates ExecutionJob
  Link shown on ticket card
 ```
 
-**Ticket state change:** The ticket stays `FORGED` during execution. Only after the PR is successfully created does the ticket transition to `EXECUTING` via a new `startCloudExecution(branch, prUrl)` method on the AEC entity (does not require `qaItems` like the developer-initiated `startImplementation`). If execution fails, the ticket remains `FORGED` — the PM can retry or a developer can implement manually. This avoids the existing state machine's limitation where `EXECUTING` has no rollback path to `FORGED`.
+**Ticket state change:** The ticket stays `APPROVED` during execution. Only after the PR is successfully created does the ticket transition to `EXECUTING` via a new `startCloudExecution(branch, prUrl)` method on the AEC entity (does not require `qaItems` like the developer-initiated `startImplementation`). If execution fails, the ticket remains `APPROVED` — the PM can retry or a developer can implement manually. This avoids the existing state machine's limitation where `EXECUTING` has no rollback path to `APPROVED`.
 
 ---
 
@@ -211,9 +211,9 @@ Tracks the lifecycle of a single "Develop" execution. Separate from `GenerationJ
 | `failed` | — | Error occurred, message in `error` field |
 | `cancelled` | — | User cancelled, execution stopped |
 
-**Cancellation:** User can cancel an in-progress execution via a "Cancel" button in the detail dialog. `BackgroundExecutionService` checks a `cancelled` flag before each phase transition. If cancelled mid-generation, any partial work is discarded (no branch/PR created). The ticket remains `FORGED` since status transition only happens on success.
+**Cancellation:** User can cancel an in-progress execution via a "Cancel" button in the detail dialog. `BackgroundExecutionService` checks a `cancelled` flag before each phase transition. If cancelled mid-generation, any partial work is discarded (no branch/PR created). The ticket remains `APPROVED` since status transition only happens on success.
 
-**Failure handling:** On failure, the ExecutionJob moves to `failed` with an error message. The ticket stays `FORGED` — the PM can retry (creates a new ExecutionJob) or a developer can implement manually via CLI. No ticket state gets wedged.
+**Failure handling:** On failure, the ExecutionJob moves to `failed` with an error message. The ticket stays `APPROVED` — the PM can retry (creates a new ExecutionJob) or a developer can implement manually via CLI. No ticket state gets wedged.
 
 ### New subcollection: ExecutionEvents
 
@@ -431,7 +431,7 @@ When execution completes, the dialog shows the PR link, branch name, files chang
 
 The "Develop" button checks five conditions in order:
 
-1. Ticket status is `FORGED` (approved)
+1. Ticket status is `APPROVED`
 2. User is on a paid plan (Pro or Team)
 3. GitHub App is installed for the ticket's repo (resolved from the ticket's `ProjectProfile` which has `repoOwner` + `repoName`)
 4. Executions remaining > 0 for the billing period
