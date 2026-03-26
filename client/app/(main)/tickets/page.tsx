@@ -331,7 +331,7 @@ export default function TicketsListPage() {
       <div className="flex flex-1 min-h-0">
       <div className="flex-1 flex flex-col min-h-0">
       {/* Filter, Sort & Actions bar — outside scroll container so dropdowns aren't clipped */}
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+      <div className="w-full px-3 sm:px-6 pt-4 sm:pt-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {/* Search — full width on mobile */}
         <div className="relative w-full sm:flex-1 sm:max-w-md">
@@ -601,7 +601,7 @@ export default function TicketsListPage() {
       </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full px-3 sm:px-6 pt-4 sm:pt-6">
       {/* Loading state: Show skeletons on initial load or when loading */}
       {(isLoading || isInitialLoad) && (
         <div className="space-y-1.5">
@@ -624,7 +624,7 @@ export default function TicketsListPage() {
           <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
           {isCreatingFolder && (
             <form
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
@@ -722,7 +722,7 @@ export default function TicketsListPage() {
           {/* Inline folder creation */}
           {isCreatingFolder && (
             <form
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
@@ -791,7 +791,7 @@ export default function TicketsListPage() {
           {privateFolders.length > 0 && (
             <>
               {teamFolders.length > 0 && (
-                <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider bg-[var(--bg-subtle)]/60 border-b border-[var(--border-subtle)]">
+                <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-subtle)]">
                   My Folders
                 </div>
               )}
@@ -864,7 +864,7 @@ export default function TicketsListPage() {
 
           {/* FOLDERS section header — only when both sections exist */}
           {privateFolders.length > 0 && teamFolders.length > 0 && (
-            <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider bg-[var(--bg-subtle)]/60 border-b border-[var(--border-subtle)]">
+            <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-subtle)]">
               Folders
             </div>
           )}
@@ -1129,7 +1129,7 @@ function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { v
 
   return (
     <div
-      className="ticket-grid items-center px-3 sm:px-4 py-2 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
+      className="ticket-grid items-center px-3 sm:px-4 py-2 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
       style={mdGridTemplate ? { '--grid-cols': mdGridTemplate } as React.CSSProperties : undefined}
       onContextMenu={onContextMenu}
     >
@@ -1458,7 +1458,7 @@ function InlineFolderAdd({ folderId }: { folderId: string }) {
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+        className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 transition-colors cursor-pointer"
       >
         <Plus className="h-3 w-3" />
         <span>New ticket</span>
@@ -1526,7 +1526,7 @@ function InlineRootAdd() {
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+        className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 transition-colors cursor-pointer"
       >
         <Plus className="h-3 w-3" />
         <span>New ticket</span>
@@ -1695,7 +1695,7 @@ function ArchivedSection({
             archivedTickets.map((ticket) => (
               <div
                 key={ticket.id}
-                className="group flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)] transition-colors"
+                className="group flex items-center gap-3 px-3 sm:px-4 py-2.5 hover:bg-[var(--bg-hover)] transition-colors"
               >
                 <div className="flex-shrink-0 opacity-40">
                   {getTypeIcon(ticket.type)}
@@ -1860,7 +1860,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
         setIsDragging(false);
         onDragEnd?.();
       }}
-      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-pointer ${
+      className={`group ticket-grid items-center px-3 sm:px-4 py-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-pointer ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
       } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-white/[0.02] dark:bg-white/[0.02]' : ''}`}
       style={mdGridTemplate ? { '--grid-cols': mdGridTemplate } as React.CSSProperties : undefined}
