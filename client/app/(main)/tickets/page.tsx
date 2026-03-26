@@ -356,23 +356,13 @@ export default function TicketsListPage() {
         <div className="flex items-center gap-2">
         {/* Sort dropdown */}
         <div className="relative flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={() => setShowSortMenu(!showSortMenu)}
-            className="hidden sm:flex text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text)]"
+            className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors"
+            title={sortLabel}
           >
-            <span>{sortLabel}</span>
-            <ChevronDown className="h-4 w-4 ml-1" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowSortMenu(!showSortMenu)}
-            className="sm:hidden text-[var(--text-tertiary)]"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
           {showSortMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
@@ -401,14 +391,13 @@ export default function TicketsListPage() {
 
         {/* More filters button */}
         <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={() => setShowFilter((v) => !v)}
-            className={`${priorityFilter !== 'all' || typeFilter !== 'all' || tagFilter.length > 0 ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+            className={`h-7 w-7 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover)] transition-colors ${priorityFilter !== 'all' || typeFilter !== 'all' || tagFilter.length > 0 ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+            title="Filters"
           >
-            <SlidersHorizontal className="h-4 w-4" />
-          </Button>
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+          </button>
           {showFilter && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
@@ -489,15 +478,13 @@ export default function TicketsListPage() {
 
         {/* Column management */}
         <div className="relative hidden md:block">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowColumnMenu((v) => !v)}
-            className="text-[var(--text-tertiary)]"
+          <button
+            onClick={() => setShowColumnMenu(!showColumnMenu)}
+            className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors"
             title="Manage columns"
           >
-            <Columns3 className="h-4 w-4" />
-          </Button>
+            <Columns3 className="h-3.5 w-3.5" />
+          </button>
           {showColumnMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowColumnMenu(false)} />
@@ -576,15 +563,13 @@ export default function TicketsListPage() {
         <div className="flex-1" />
 
         {/* New Folder & Create */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={() => setIsCreatingFolder(true)}
-          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text)] flex-shrink-0"
+          className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors flex-shrink-0"
+          title="New Folder"
         >
-          <FolderPlus className="h-4 w-4 mr-1.5" />
-          <span className="hidden sm:inline">New Folder</span>
-        </Button>
+          <FolderPlus className="h-3.5 w-3.5" />
+        </button>
         {quota && !quota.canCreate ? (
           <div className="relative group flex-shrink-0">
             <CreationMenu disabled={true} />
