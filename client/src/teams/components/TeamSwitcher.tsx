@@ -87,7 +87,7 @@ export function TeamSwitcher() {
   const isOwner = currentTeam?.isOwner ?? false;
 
   return (
-    <div className="border-b border-[var(--border)] p-3">
+    <div className="px-2.5 pb-2">
       <div className="flex items-center gap-1">
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
@@ -95,36 +95,31 @@ export function TeamSwitcher() {
               variant="ghost"
               disabled={isSwitching}
               className={cn(
-                'flex-1 min-w-0 gap-2 py-2 h-auto',
+                'flex-1 min-w-0 gap-2 py-1 h-auto',
                 sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-2'
               )}
             >
-              {/* Left: Icon + Team Name */}
               <div className="flex items-center gap-2 min-w-0">
                 {isSwitching && sidebarCollapsed ? (
-                  <Loader2 className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
                 ) : (
-                  <Users className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+                  <Users className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
                 )}
                 {!sidebarCollapsed && (
-                  <span className="text-[var(--text-sm)] font-medium text-[var(--text)] truncate">
+                  <span className="text-[13px] text-[var(--text-tertiary)] truncate">
                     {currentTeamName}
                   </span>
                 )}
               </div>
-              {/* Right: Role Badge + Chevron/Loader */}
               {!sidebarCollapsed && (
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-1.5 py-0 text-[var(--text-secondary)]"
-                  >
+                  <span className="text-[10px] text-[var(--text-tertiary)]">
                     {currentTeam ? (isOwner ? 'Owner' : 'Member') : 'Private'}
-                  </Badge>
+                  </span>
                   {isSwitching ? (
-                    <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] animate-spin" />
+                    <Loader2 className="h-3 w-3 text-[var(--text-tertiary)] animate-spin" />
                   ) : (
-                    <ChevronDown className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                    <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" />
                   )}
                 </div>
               )}
