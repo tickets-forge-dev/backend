@@ -60,7 +60,7 @@ export class AEC {
     private _externalIssue: ExternalIssue | null,
     private _driftDetectedAt: Date | null,
     private _driftReason: string | null,
-    private _forgedAt: Date | null,
+    private _approvedAt: Date | null,
     private _repositoryContext: RepositoryContext | null,
     public readonly createdAt: Date,
     private _updatedAt: Date,
@@ -143,7 +143,7 @@ export class AEC {
       null,
       null,
       null,
-      null, // _forgedAt
+      null, // _approvedAt
       repositoryContext ?? null,
       new Date(),
       new Date(),
@@ -226,7 +226,7 @@ export class AEC {
     slug?: string | null,
     previousStatus?: AECStatus | null,
     generationJobId?: string | null,
-    forgedAt?: Date | null,
+    approvedAt?: Date | null,
   ): AEC {
     return new AEC(
       id,
@@ -250,7 +250,7 @@ export class AEC {
       externalIssue,
       driftDetectedAt,
       driftReason,
-      forgedAt ?? null,
+      approvedAt ?? null,
       repositoryContext,
       createdAt,
       updatedAt,
@@ -290,7 +290,7 @@ export class AEC {
     }
     this._validationResults = validationResults;
     this._readinessScore = this.calculateReadinessScore(validationResults);
-    this._status = AECStatus.DEV_REFINING;
+    this._status = AECStatus.DEFINED;
     this._updatedAt = new Date();
   }
 
@@ -322,22 +322,8 @@ export class AEC {
     return this._validationResults.some((r) => r.hasCriticalIssues());
   }
 
-  forge(codeSnapshot: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
-    if (this._status !== AECStatus.DEV_REFINING) {
-      throw new InvalidStateTransitionError(`Cannot forge from ${this._status}`);
-    }
-    if (this._readinessScore < 75) {
-      throw new InsufficientReadinessError(`Score ${this._readinessScore} < 75`);
-    }
-    this._codeSnapshot = codeSnapshot;
-    this._apiSnapshot = apiSnapshot ?? null;
-    this._status = AECStatus.FORGED;
-    this._forgedAt = new Date();
-    this._updatedAt = new Date();
-  }
-
   export(externalIssue: ExternalIssue): void {
-    if (this._status !== AECStatus.FORGED) {
+    if (this._status !== AECStatus.APPROVED) {
       throw new InvalidStateTransitionError(`Cannot export from ${this._status}`);
     }
     this._externalIssue = externalIssue;
@@ -351,9 +337,9 @@ export class AEC {
    * Stores the branch name and implementation Q&A session.
    */
   startImplementation(branchName: string, qaItems?: ReviewQAItem[]): void {
-    if (this._status !== AECStatus.FORGED) {
+    if (this._status !== AECStatus.APPROVED) {
       throw new InvalidStateTransitionError(
-        `Cannot start implementation from ${this._status}. Ticket must be in FORGED status.`,
+        `Cannot start implementation from ${this._status}. Ticket must be in APPROVED status.`,
       );
     }
     this._implementationBranch = branchName;
@@ -388,26 +374,26 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
-  markComplete(): void {
+  markDelivered(): void {
     if (this._status !== AECStatus.DRAFT && this._status !== AECStatus.EXECUTING) {
       throw new InvalidStateTransitionError(
-        `Cannot mark complete from ${this._status}. Only draft or executing tickets can be marked complete.`,
+        `Cannot mark delivered from ${this._status}. Only draft or executing tickets can be marked delivered.`,
       );
     }
-    this._status = AECStatus.COMPLETE;
+    this._status = AECStatus.DELIVERED;
     this._updatedAt = new Date();
   }
 
   revertToDraft(): void {
-    if (this._status !== AECStatus.COMPLETE) {
+    if (this._status !== AECStatus.DELIVERED) {
       throw new InvalidStateTransitionError(
-        `Cannot revert to draft from ${this._status}. Only complete tickets can be reverted.`,
+        `Cannot revert to draft from ${this._status}. Only delivered tickets can be reverted.`,
       );
     }
     this._status = AECStatus.DRAFT;
     // Clear tech spec when reverting to draft so user can modify and regenerate
     this._techSpec = null;
-    this._forgedAt = null;
+    this._approvedAt = null;
     this._updatedAt = new Date();
   }
 
@@ -458,7 +444,7 @@ export class AEC {
 
   // Assignment methods (Story 3.5-5: AC#1)
   assign(userId: string): void {
-    if (this._status === AECStatus.COMPLETE || this._status === AECStatus.ARCHIVED) {
+    if (this._status === AECStatus.DELIVERED || this._status === AECStatus.ARCHIVED) {
       throw new InvalidStateTransitionError(
         `Cannot assign a ${this._status} ticket.`,
       );
@@ -481,22 +467,22 @@ export class AEC {
       qaItems,
       submittedAt: new Date(),
     };
-    this._status = AECStatus.REVIEW;
+    this._status = AECStatus.REFINED;
     this._updatedAt = new Date();
   }
 
   /**
    * Move the ticket backward in the lifecycle.
-   * Lifecycle order: draft(0) → dev-refining(1) → review(2) → forged(3) → executing(4) → complete(5)
+   * Lifecycle order: draft(0) → defined(1) → refined(2) → approved(3) → executing(4) → delivered(5)
    */
   sendBack(targetStatus: AECStatus): void {
     const lifecycleOrder: Record<string, number> = {
       [AECStatus.DRAFT]: 0,
-      [AECStatus.DEV_REFINING]: 1,
-      [AECStatus.REVIEW]: 2,
-      [AECStatus.FORGED]: 3,
+      [AECStatus.DEFINED]: 1,
+      [AECStatus.REFINED]: 2,
+      [AECStatus.APPROVED]: 3,
       [AECStatus.EXECUTING]: 4,
-      [AECStatus.COMPLETE]: 5,
+      [AECStatus.DELIVERED]: 5,
     };
 
     const currentLevel = lifecycleOrder[this._status];
@@ -522,18 +508,18 @@ export class AEC {
       this._codeSnapshot = null;
       this._apiSnapshot = null;
     } else if (targetLevel <= 1) {
-      // Reverting to dev-refining: keep validation, clear snapshot
+      // Reverting to defined: keep validation, clear snapshot
       this._codeSnapshot = null;
       this._apiSnapshot = null;
     }
 
-    this._forgedAt = null;
+    this._approvedAt = null;
     this._status = targetStatus;
     this._updatedAt = new Date();
   }
 
   detectDrift(_reason: string): void {
-    if (![AECStatus.FORGED, AECStatus.EXECUTING].includes(this._status)) {
+    if (![AECStatus.APPROVED, AECStatus.EXECUTING].includes(this._status)) {
       return;
     }
     // Drift is tracked as a property, not a status change
@@ -639,14 +625,24 @@ export class AEC {
   }
 
   /**
-   * PM approves the ticket after reviewing developer Q&A and re-baked spec (Story 7-8)
-   *
-   * Transitions REVIEW → FORGED.
-   * Precondition check (status === REVIEW) is the use case's responsibility.
+   * Approve the ticket — transitions to APPROVED.
+   * Called by PM (no snapshots) or by automated pipeline (with snapshots).
+   * When called with snapshots, validates readiness score >= 75.
    */
-  approve(): void {
-    this._status = AECStatus.FORGED;
-    this._forgedAt = new Date();
+  approve(codeSnapshot?: CodeSnapshot, apiSnapshot?: ApiSnapshot): void {
+    if (codeSnapshot) {
+      // Automated path: requires DEFINED status and readiness threshold
+      if (this._status !== AECStatus.DEFINED) {
+        throw new InvalidStateTransitionError(`Cannot approve with snapshot from ${this._status}`);
+      }
+      if (this._readinessScore < 75) {
+        throw new InsufficientReadinessError(`Score ${this._readinessScore} < 75`);
+      }
+      this._codeSnapshot = codeSnapshot;
+      this._apiSnapshot = apiSnapshot ?? null;
+    }
+    this._status = AECStatus.APPROVED;
+    this._approvedAt = new Date();
     this._updatedAt = new Date();
   }
 
@@ -697,8 +693,8 @@ export class AEC {
   }
 
   markDrifted(reason: string): void {
-    if (this._status !== AECStatus.FORGED && this._status !== AECStatus.EXECUTING) {
-      // Only mark forged/executing tickets as drifted
+    if (this._status !== AECStatus.APPROVED && this._status !== AECStatus.EXECUTING) {
+      // Only mark approved/executing tickets as drifted
       return;
     }
     // Drift is tracked as a property, not a status change
@@ -770,8 +766,8 @@ export class AEC {
   get driftReason(): string | null {
     return this._driftReason;
   }
-  get forgedAt(): Date | null {
-    return this._forgedAt;
+  get approvedAt(): Date | null {
+    return this._approvedAt;
   }
   get repositoryContext(): RepositoryContext | null {
     return this._repositoryContext;
