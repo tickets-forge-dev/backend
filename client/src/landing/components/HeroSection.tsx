@@ -98,23 +98,16 @@ export function HeroSection() {
           Purpose-built for turning rough ideas into complete specs. Designed for the AI era.
         </motion.p>
 
-        {/* CTAs */}
+        {/* CTA */}
         <motion.div
-          className="flex items-center gap-4"
           variants={fadeUp}
           initial="hidden"
           animate="visible"
           transition={{ ...defaultTransition, delay: 0.3 }}
         >
-          <Link
-            href="/tickets"
-            className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--text)] px-6 text-sm font-medium text-[var(--bg)] transition-all hover:opacity-90 active:scale-[0.97]"
-          >
-            Get Started
-          </Link>
           <a
             href="#how-it-works"
-            className="inline-flex h-10 items-center justify-center text-sm font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+            className="inline-flex items-center text-sm font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
             onClick={(e) => {
               e.preventDefault();
               document
