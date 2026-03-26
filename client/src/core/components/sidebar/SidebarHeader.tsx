@@ -39,36 +39,31 @@ export function SidebarHeader() {
   if (!user) return null;
 
   return (
-    <div className="p-3">
+    <div className="px-2.5 py-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className={`w-full gap-3 py-2 h-auto ${sidebarCollapsed ? 'justify-center px-0' : 'justify-start px-2'}`}
+            className={`w-full gap-2 py-1 h-auto ${sidebarCollapsed ? 'justify-center px-0' : 'justify-start px-2'}`}
           >
-            {/* Avatar - always visible */}
+            {/* Avatar */}
             {user.photoURL && !imgError ? (
               <img
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
-                className="h-8 w-8 min-w-8 min-h-8 rounded-full flex-shrink-0 object-cover"
+                className="h-6 w-6 min-w-6 min-h-6 rounded-full flex-shrink-0 object-cover"
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="h-8 w-8 min-w-8 min-h-8 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center text-[var(--text-xs)] font-medium flex-shrink-0">
+              <div className="h-6 w-6 min-w-6 min-h-6 rounded-full bg-[var(--bg-hover)] text-[var(--text-tertiary)] flex items-center justify-center text-[10px] font-medium flex-shrink-0">
                 {getInitials(user.displayName)}
               </div>
             )}
-            {/* Name and email - hidden when collapsed */}
+            {/* Name only — email in dropdown */}
             {!sidebarCollapsed && (
-              <div className="flex flex-col items-start overflow-hidden">
-                <p className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] truncate w-full">
-                  {user.displayName || 'User'}
-                </p>
-                <p className="text-[11px] text-[var(--text-tertiary)] truncate w-full">
-                  {user.email}
-                </p>
-              </div>
+              <span className="text-[13px] font-medium text-[var(--text-secondary)] truncate">
+                {user.displayName || 'User'}
+              </span>
             )}
           </Button>
         </DropdownMenuTrigger>
