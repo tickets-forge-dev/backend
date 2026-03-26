@@ -352,8 +352,8 @@ export default function TicketsListPage() {
           )}
         </div>
 
-        {/* Sort, filter & actions row */}
-        <div className="flex items-center gap-2">
+        {/* Sort, filter & actions row — pushed right */}
+        <div className="flex items-center gap-1.5 ml-auto">
         {/* Sort dropdown */}
         <div className="relative flex-shrink-0">
           <button
@@ -558,9 +558,6 @@ export default function TicketsListPage() {
             </>
           )}
         </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
 
         {/* New Folder & Create */}
         <button
