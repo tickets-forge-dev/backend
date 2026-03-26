@@ -19,8 +19,8 @@ export interface ApproveTicketCommand {
 /**
  * ApproveTicketUseCase (Story 7-8)
  *
- * PM approves a ticket, transitioning it to FORGED.
- * Allowed from REVIEW (after developer refine) or DEV_REFINING (skip developer review).
+ * PM approves a ticket, transitioning it to APPROVED.
+ * Allowed from REFINED (after developer refine) or DEFINED (skip developer review).
  * Only PM and ADMIN roles can call this (enforced at controller guard level).
  */
 @Injectable()
@@ -45,8 +45,8 @@ export class ApproveTicketUseCase {
       throw new ForbiddenException('Ticket does not belong to your team');
     }
 
-    // 3. Validate status precondition — allow from REVIEW, DEV_REFINING, or DRAFT (PM-only workflow)
-    const approvableStatuses = [AECStatus.REVIEW, AECStatus.DEV_REFINING, AECStatus.DRAFT];
+    // 3. Validate status precondition — allow from REFINED, DEFINED, or DRAFT (PM-only workflow)
+    const approvableStatuses = [AECStatus.REFINED, AECStatus.DEFINED, AECStatus.DRAFT];
     if (!approvableStatuses.includes(aec.status)) {
       throw new BadRequestException(
         `Ticket cannot be approved in its current status: ${aec.status}`,

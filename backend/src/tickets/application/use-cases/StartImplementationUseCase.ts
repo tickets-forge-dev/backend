@@ -29,7 +29,7 @@ export interface StartImplementationResult {
  * StartImplementationUseCase (Story 10-2)
  *
  * Records the implementation branch and optional Q&A from the
- * forge Developer Agent, then transitions the ticket FORGED → EXECUTING.
+ * forge Developer Agent, then transitions the ticket APPROVED → EXECUTING.
  */
 @Injectable()
 export class StartImplementationUseCase {
@@ -50,7 +50,7 @@ export class StartImplementationUseCase {
       throw new ForbiddenException('Ticket does not belong to your workspace');
     }
 
-    // 3. Start implementation (transitions FORGED → EXECUTING)
+    // 3. Start implementation (transitions APPROVED → EXECUTING)
     try {
       aec.startImplementation(command.branchName, command.qaItems);
     } catch (error) {

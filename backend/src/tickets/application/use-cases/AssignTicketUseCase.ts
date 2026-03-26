@@ -62,7 +62,7 @@ export class AssignTicketUseCase {
     // 5. Assign or unassign
     if (command.userId === null) {
       // Unassign — if ticket is in a developer-dependent step, revert to draft
-      const devDependentStatuses = [AECStatus.DEV_REFINING, AECStatus.REVIEW];
+      const devDependentStatuses = [AECStatus.DEFINED, AECStatus.REFINED];
       if (devDependentStatuses.includes(aec.status)) {
         aec.sendBack(AECStatus.DRAFT);
       }
