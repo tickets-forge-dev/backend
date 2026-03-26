@@ -81,7 +81,7 @@ export interface AECResponse {
   wireframeContext?: string | null;
   wireframeImageAttachmentIds?: string[];
   apiContext?: string | null;
-  forgedAt: string | null;
+  approvedAt: string | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -272,7 +272,7 @@ export class TicketService {
     return response.data;
   }
 
-  // Story 7-8: PM approves ticket — transitions REVIEW → FORGED
+  // Story 7-8: PM approves ticket — transitions REFINED → APPROVED
   async approveTicket(ticketId: string): Promise<AECResponse> {
     const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/approve`, {});
     return response.data;
