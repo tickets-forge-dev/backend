@@ -31,7 +31,7 @@ function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { c
                 <div
                   className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                     isCurrent
-                      ? 'border-blue-500 bg-blue-500'
+                      ? 'border-[var(--text-secondary)] bg-[var(--text-secondary)]'
                       : isDimmed
                         ? 'border-dashed border-[var(--border)] bg-[var(--bg)]'
                         : 'border-[var(--border)] bg-[var(--bg)]'
@@ -51,11 +51,7 @@ function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { c
                 {isClickable && !isDimmed ? (
                   <button
                     onClick={() => onTransition(step.key)}
-                    className={`group/step inline-flex items-center gap-1.5 px-2 py-1 -mx-0.5 rounded-md text-[11px] font-medium leading-none transition-all cursor-pointer border border-transparent ${
-                      isBefore
-                        ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
-                        : 'text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/20'
-                    }`}
+                    className={`group/step inline-flex items-center gap-1.5 px-2 py-1 -mx-0.5 rounded-md text-[11px] font-medium leading-none transition-all cursor-pointer border border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)]`}
                   >
                     {isBefore ? '\u2190' : '\u2192'}
                     {step.label}
@@ -64,7 +60,7 @@ function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { c
                   <span
                     className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium leading-none ${
                       isCurrent
-                        ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold'
+                        ? 'bg-[var(--bg-hover)] text-[var(--text-secondary)] font-semibold'
                         : statusCfg?.badgeClass ?? 'text-[var(--text-secondary)]'
                     }`}
                   >

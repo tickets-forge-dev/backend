@@ -92,7 +92,7 @@ export function CollapsibleSection({
               }
               onExpandedChange?.(true);
             }}
-            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+            className="text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
           >
             Show More
           </button>
