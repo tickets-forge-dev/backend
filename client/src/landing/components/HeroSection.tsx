@@ -129,7 +129,7 @@ export function HeroSection() {
 
       {/* Hero Screenshot — stretches edge-to-edge */}
       <motion.div
-        className="relative w-full max-w-[90vw] lg:max-w-[80vw] mt-16"
+        className="relative w-full max-w-[96vw] lg:max-w-[92vw] mt-16"
         variants={scaleUp}
         initial="hidden"
         animate="visible"
