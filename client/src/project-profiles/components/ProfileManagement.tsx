@@ -92,17 +92,9 @@ export function ProfileManagement() {
 
   return (
     <>
-      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
+      <section className="space-y-3">
         <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
-              Connected Repositories
-            </h2>
-            <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-              Project profiles speed up ticket creation by caching your
-              repository structure.
-            </p>
-          </div>
+          <h2 className="text-sm font-medium text-[var(--text)]">Connected Repositories</h2>
           {unprofiledCount > 0 && (
             <Button
               variant="outline"
@@ -125,18 +117,17 @@ export function ProfileManagement() {
             <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-6 py-10 text-center">
-            <FolderGit2 className="mx-auto h-8 w-8 text-[var(--text-tertiary)]" />
-            <p className="mt-3 text-sm text-[var(--text-secondary)]">
-              No repositories connected. Connect GitHub and select repositories
-              in the Integrations section below.
+          <div className="rounded-lg border border-[var(--border-subtle)] px-5 py-8 text-center">
+            <FolderGit2 className="mx-auto h-6 w-6 text-[var(--text-tertiary)]" />
+            <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+              No repositories connected. Connect GitHub below.
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="rounded-lg border border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
             {rows.map((row) => (
+              <div key={`${row.repoOwner}/${row.repoName}`} className="px-5">
               <ProfileStatusCard
-                key={`${row.repoOwner}/${row.repoName}`}
                 profile={
                   row.profile ?? {
                     id: '',
@@ -167,6 +158,7 @@ export function ProfileManagement() {
                     : undefined
                 }
               />
+              </div>
             ))}
           </div>
         )}

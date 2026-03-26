@@ -216,7 +216,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
                 size="sm"
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="bg-[var(--purple)] hover:bg-[var(--purple)]/80"
+                className=""
               >
                 {isConnecting ? (
                   <>
@@ -279,7 +279,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
         <div className="space-y-5">
           {/* Connection Status */}
           <div className="flex items-center gap-2 text-[var(--text-sm)]">
-            <Check className="h-4 w-4 text-green-500" />
+            <Check className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
             <span className="text-[var(--text-secondary)]">
               Connected as <span className="font-medium text-[var(--text)]">{githubConnectionStatus.accountLogin}</span>
             </span>
@@ -290,9 +290,9 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
           {/* Success Message */}
           {saveSuccess && (
-            <div className="rounded-lg bg-green-500/10 p-3 flex items-start gap-2">
-              <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <p className="text-[var(--text-sm)] text-green-500">
+            <div className="rounded-lg border border-[var(--border-subtle)] p-3 flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-[var(--text-tertiary)] mt-0.5 flex-shrink-0" />
+              <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
                 Saved {localSelectedRepos.size} repositor{localSelectedRepos.size === 1 ? 'y' : 'ies'} successfully
               </p>
             </div>
@@ -300,9 +300,9 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
           {/* Currently Saved Repositories */}
           {selectedRepositories.length > 0 && (
-            <div className="rounded-lg bg-[var(--bg-hover)] p-3 space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" />
+                <Check className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
                 <p className="text-[var(--text-sm)] font-medium text-[var(--text)]">
                   {selectedRepositories.length} repositor{selectedRepositories.length === 1 ? 'y' : 'ies'} enabled for ticket generation
                 </p>
@@ -322,11 +322,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
             {/* Step 1: Select repos */}
             <div className="space-y-3">
               <div className="flex items-center gap-2.5">
-                <span className={`flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-semibold ${
-                  localSelectedRepos.size > 0
-                    ? 'bg-green-500/20 text-green-500'
-                    : 'bg-[var(--purple)]/20 text-[var(--purple)]'
-                }`}>
+                <span className="flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-medium bg-[var(--bg-hover)] text-[var(--text-tertiary)]">
                   {localSelectedRepos.size > 0 ? <Check className="h-3 w-3" /> : '1'}
                 </span>
                 <h4 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
@@ -381,7 +377,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
                           className="sr-only"
                         />
                         {localSelectedRepos.has(repo.id) ? (
-                          <CheckSquare2 className="h-4 w-4 text-[var(--purple)] flex-shrink-0 mt-0.5" />
+                          <CheckSquare2 className="h-4 w-4 text-[var(--text-secondary)] flex-shrink-0 mt-0.5" />
                         ) : (
                           <Square className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
                         )}
@@ -400,18 +396,14 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
             {/* Step 2: Save */}
             <div className="flex items-center gap-2.5 ml-0">
-              <span className={`flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-semibold ${
-                localSelectedRepos.size > 0
-                  ? 'bg-[var(--purple)]/20 text-[var(--purple)]'
-                  : 'bg-[var(--bg-hover)] text-[var(--text-tertiary)]'
-              }`}>
+              <span className="flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-medium bg-[var(--bg-hover)] text-[var(--text-tertiary)]">
                 2
               </span>
               <Button
                 size="sm"
                 onClick={handleSaveSelection}
                 disabled={isSaving || isLoadingRepositories || localSelectedRepos.size === 0}
-                className="bg-[var(--purple)] hover:bg-[var(--purple)]/80 disabled:opacity-40"
+                className="disabled:opacity-40"
               >
                 {isSaving ? (
                   <>
