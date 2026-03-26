@@ -57,7 +57,7 @@ export function SidebarNav() {
                 onClick={closeMobileSidebar}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                  'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors',
                   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
                   isActive
                     ? 'bg-[var(--bg-hover)] text-[var(--text)]'
@@ -65,7 +65,7 @@ export function SidebarNav() {
                 )}
               >
                 <span className="relative flex-shrink-0">
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-3.5 w-3.5" />
                   {showDot && (
                     <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[var(--text-tertiary)]" />
                   )}
@@ -84,12 +84,12 @@ export function SidebarNav() {
             onClick={() => { setCommandPaletteOpen(true); closeMobileSidebar(); }}
             title={`Command palette (${isMac ? '⌘' : 'Ctrl+'}K)`}
             className={cn(
-              'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+              'w-full flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
               'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]'
             )}
           >
-            <Search className="h-4 w-4 flex-shrink-0" />
+            <Search className="h-3.5 w-3.5 flex-shrink-0" />
             {!sidebarCollapsed && (
               <span className="flex-1 text-left truncate">Command</span>
             )}
@@ -110,12 +110,12 @@ export function SidebarNav() {
             onClick={() => { openFeedback(); closeMobileSidebar(); }}
             title="Send feedback"
             className={cn(
-              'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+              'w-full flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
               'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]'
             )}
           >
-            <MessageCircle className="h-4 w-4 flex-shrink-0" />
+            <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
             {!sidebarCollapsed && (
               <span className="truncate">Feedback</span>
             )}
