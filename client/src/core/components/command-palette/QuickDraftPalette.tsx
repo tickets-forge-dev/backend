@@ -25,9 +25,9 @@ type DraftType = 'feature' | 'bug' | 'task';
 type DraftPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 const TYPE_OPTIONS: { value: DraftType; label: string; icon: React.ElementType; color: string }[] = [
-  { value: 'feature', label: 'Feature', icon: Lightbulb, color: 'text-amber-500' },
-  { value: 'bug', label: 'Bug', icon: Bug, color: 'text-red-500' },
-  { value: 'task', label: 'Task', icon: ClipboardList, color: 'text-blue-500' },
+  { value: 'feature', label: 'Feature', icon: Lightbulb, color: 'text-[var(--text-tertiary)]' },
+  { value: 'bug', label: 'Bug', icon: Bug, color: 'text-[var(--text-tertiary)]' },
+  { value: 'task', label: 'Task', icon: ClipboardList, color: 'text-[var(--text-tertiary)]' },
 ];
 
 const PRIORITY_OPTIONS: { value: DraftPriority; label: string; color: string }[] = [

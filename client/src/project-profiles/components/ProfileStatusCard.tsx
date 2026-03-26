@@ -1,10 +1,8 @@
 'use client';
 
 import { RefreshCw, Eye, Trash2, GitBranch, FileText, Clock, GitCommit, Scan } from 'lucide-react';
-import { Button } from '@/core/components/ui/button';
 import { ProfileStatusBadge } from './ProfileStatusBadge';
 
-/** Simple relative time — avoids date-fns dependency */
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (seconds < 60) return 'just now';
@@ -35,101 +33,73 @@ interface ProfileStatusCardProps {
 }
 
 export function ProfileStatusCard({ profile, onRescan, onDelete, onView }: ProfileStatusCardProps) {
-  const { repoOwner, repoName, branch, status, scannedAt, fileCount, techStack, commitSha, error } = profile;
+  const { repoOwner, repoName, branch, status, scannedAt, fileCount, commitSha, error } = profile;
 
   return (
-    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] p-4 space-y-3">
-      {/* Header */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[13px] font-medium text-[var(--text)]">
-          {repoOwner}/{repoName}
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-subtle)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
-          <GitBranch className="h-3 w-3" />
-          {branch}
-        </span>
-        {status !== null ? (
-          <ProfileStatusBadge status={status} techStack={techStack} />
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-hover)] px-2.5 py-1 text-xs text-[var(--text-tertiary)]">
-            Not profiled
+    <div className="flex items-center gap-3 py-3">
+      {/* Left: repo info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[13px] font-medium text-[var(--text)]">
+            {repoOwner}/{repoName}
           </span>
-        )}
-      </div>
-
-      {/* Body — Ready */}
-      {status === 'ready' && (
-        <div className="space-y-2">
-          {techStack.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {techStack.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full bg-[var(--bg-hover)] px-2 py-0.5 text-xs text-[var(--text-secondary)]"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
+          <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
+            <GitBranch className="h-3 w-3" />
+            {branch}
+          </span>
+          {status !== null ? (
+            <ProfileStatusBadge status={status} techStack={profile.techStack} />
+          ) : (
+            <span className="text-[11px] text-[var(--text-tertiary)]">Not profiled</span>
           )}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-tertiary)]">
+        </div>
+        {/* Metadata row */}
+        {status === 'ready' && (
+          <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[var(--text-tertiary)]">
             <span className="inline-flex items-center gap-1">
-              <FileText className="h-3 w-3" />
+              <FileText className="h-2.5 w-2.5" />
               {fileCount} files
             </span>
             {scannedAt && (
               <span className="inline-flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+                <Clock className="h-2.5 w-2.5" />
                 {timeAgo(scannedAt)}
               </span>
             )}
             {commitSha && (
               <span className="inline-flex items-center gap-1 font-mono">
-                <GitCommit className="h-3 w-3" />
+                <GitCommit className="h-2.5 w-2.5" />
                 {commitSha.slice(0, 7)}
               </span>
             )}
           </div>
-        </div>
-      )}
+        )}
+        {status === 'failed' && error && (
+          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{error}</p>
+        )}
+      </div>
 
-      {/* Body — Not profiled */}
-      {status === null && (
-        <p className="text-xs text-[var(--text-tertiary)]">
-          This repository hasn&apos;t been scanned yet. Scan it to speed up ticket creation.
-        </p>
-      )}
-
-      {/* Body — Failed */}
-      {status === 'failed' && error && (
-        <p className="text-xs text-red-500">{error}</p>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center gap-1.5 pt-1">
+      {/* Right: actions */}
+      <div className="flex items-center gap-1 flex-shrink-0">
         {status === null && onRescan && (
-          <Button variant="outline" size="sm" onClick={onRescan}>
+          <button onClick={onRescan} className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors" title="Scan Now">
             <Scan className="h-3.5 w-3.5" />
-            Scan Now
-          </Button>
+          </button>
         )}
         {status !== null && onRescan && (
-          <Button variant="ghost" size="sm" onClick={onRescan}>
+          <button onClick={onRescan} className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors" title="Re-scan">
             <RefreshCw className="h-3.5 w-3.5" />
-            Re-scan
-          </Button>
+          </button>
         )}
         {status === 'ready' && onView && (
-          <Button variant="ghost" size="sm" onClick={onView}>
+          <button onClick={onView} className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors" title="View Profile">
             <Eye className="h-3.5 w-3.5" />
-            View Profile
-          </Button>
+          </button>
         )}
         {onDelete && (
-          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600" onClick={onDelete}>
+          <button onClick={onDelete} className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors" title="Delete">
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
-          </Button>
+          </button>
         )}
       </div>
     </div>

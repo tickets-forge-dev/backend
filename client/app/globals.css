@@ -56,7 +56,7 @@ details summary::-webkit-details-marker { display: none; }
   /* Button text - soft white that's easy on eyes */
   --text-button: #ffffff;
 
-  /* Typography - Inter + JetBrains Mono + Space Grotesk (loaded via next/font) */
+  /* Typography - Inter + JetBrains Mono (loaded via next/font) */
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
@@ -92,6 +92,17 @@ details summary::-webkit-details-marker { display: none; }
   --space-12: 48px;
   --space-16: 64px;
   --space-20: 80px;
+
+  /* Landing Page Typography */
+  --landing-hero: clamp(40px, 6vw, 72px);
+  --landing-heading: clamp(28px, 4vw, 44px);
+  --landing-subtitle: 18px;
+  --landing-body: 16px;
+
+  /* Landing Page Spacing (Linear-matched) */
+  --landing-section-gap: 96px;
+  --landing-subsection-gap: 48px;
+  --landing-optical-tighten: -4px;
 
   /* Layout Spacing - Generous like Linear */
   --section-gap: 48px;   /* Between major sections */
@@ -158,6 +169,12 @@ details summary::-webkit-details-marker { display: none; }
     /* Shadows darker and more prominent */
     --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
     --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.6);
+
+    /* Atmosphere */
+    --bg-gradient-start: #0a0a0a;
+    --bg-gradient-end: #111113;
+    --glow-primary: rgba(99, 102, 241, 0.15);
+    --glow-accent: rgba(16, 185, 129, 0.10);
   }
 }
 
@@ -193,6 +210,12 @@ details summary::-webkit-details-marker { display: none; }
 
   --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.6);
+
+  /* Atmosphere */
+  --bg-gradient-start: #0a0a0a;
+  --bg-gradient-end: #111113;
+  --glow-primary: rgba(99, 102, 241, 0.15);
+  --glow-accent: rgba(16, 185, 129, 0.10);
 }
 
 /* Light Mode - Forced via data attribute */
@@ -528,55 +551,6 @@ input[type="checkbox"]:checked:hover {
 
 .animate-pulse {
   animation: smoothPulse 2.5s ease-in-out infinite !important;
-}
-
-/* forge ember particles — pixelated fire sprinkles */
-@keyframes ember-rise {
-  0% {
-    transform: translateY(0) translateX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.7;
-  }
-  60% {
-    opacity: 0.4;
-  }
-  100% {
-    transform: translateY(-200px) translateX(var(--ember-drift));
-    opacity: 0;
-  }
-}
-
-@keyframes ember-rise-slow {
-  0% {
-    transform: translateY(0) translateX(0);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.3;
-  }
-  100% {
-    transform: translateY(-160px) translateX(var(--ember-drift));
-    opacity: 0;
-  }
-}
-
-.ember-particle {
-  position: absolute;
-  bottom: 0;
-  image-rendering: pixelated;
-  animation: ember-rise var(--ember-duration) var(--ember-delay) infinite;
-}
-
-.ember-particle-slow {
-  position: absolute;
-  bottom: 0;
-  image-rendering: pixelated;
-  animation: ember-rise-slow var(--ember-duration) var(--ember-delay) infinite;
 }
 
 /* ============================================ */

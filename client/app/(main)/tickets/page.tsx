@@ -50,12 +50,12 @@ type SortDirection = 'desc' | 'asc';
 function getTypeIcon(type: string | null) {
   switch (type) {
     case 'bug':
-      return <Bug className="h-3.5 w-3.5 text-red-500" />;
+      return <Bug className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />;
     case 'task':
-      return <ClipboardList className="h-3.5 w-3.5 text-blue-500" />;
+      return <ClipboardList className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />;
     case 'feature':
     default:
-      return <Lightbulb className="h-3.5 w-3.5 text-amber-500" />;
+      return <Lightbulb className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />;
   }
 }
 
@@ -331,7 +331,7 @@ export default function TicketsListPage() {
       <div className="flex flex-1 min-h-0">
       <div className="flex-1 flex flex-col min-h-0">
       {/* Filter, Sort & Actions bar — outside scroll container so dropdowns aren't clipped */}
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+      <div className="w-full px-3 sm:px-6 pt-4 sm:pt-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {/* Search — full width on mobile */}
         <div className="relative w-full sm:flex-1 sm:max-w-md">
@@ -352,27 +352,17 @@ export default function TicketsListPage() {
           )}
         </div>
 
-        {/* Sort, filter & actions row */}
-        <div className="flex items-center gap-2">
+        {/* Sort, filter & actions row — pushed right */}
+        <div className="flex items-center gap-1.5 ml-auto">
         {/* Sort dropdown */}
         <div className="relative flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={() => setShowSortMenu(!showSortMenu)}
-            className="hidden sm:flex text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text)]"
+            className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors"
+            title={sortLabel}
           >
-            <span>{sortLabel}</span>
-            <ChevronDown className="h-4 w-4 ml-1" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowSortMenu(!showSortMenu)}
-            className="sm:hidden text-[var(--text-tertiary)]"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
           {showSortMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
@@ -401,14 +391,13 @@ export default function TicketsListPage() {
 
         {/* More filters button */}
         <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={() => setShowFilter((v) => !v)}
-            className={`${priorityFilter !== 'all' || typeFilter !== 'all' || tagFilter.length > 0 ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+            className={`h-7 w-7 rounded-full flex items-center justify-center hover:bg-[var(--bg-hover)] transition-colors ${priorityFilter !== 'all' || typeFilter !== 'all' || tagFilter.length > 0 ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+            title="Filters"
           >
-            <SlidersHorizontal className="h-4 w-4" />
-          </Button>
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+          </button>
           {showFilter && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowFilter(false)} />
@@ -489,15 +478,13 @@ export default function TicketsListPage() {
 
         {/* Column management */}
         <div className="relative hidden md:block">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowColumnMenu((v) => !v)}
-            className="text-[var(--text-tertiary)]"
+          <button
+            onClick={() => setShowColumnMenu(!showColumnMenu)}
+            className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors"
             title="Manage columns"
           >
-            <Columns3 className="h-4 w-4" />
-          </Button>
+            <Columns3 className="h-3.5 w-3.5" />
+          </button>
           {showColumnMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowColumnMenu(false)} />
@@ -572,19 +559,14 @@ export default function TicketsListPage() {
           )}
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
         {/* New Folder & Create */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={() => setIsCreatingFolder(true)}
-          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text)] flex-shrink-0"
+          className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors flex-shrink-0"
+          title="New Folder"
         >
-          <FolderPlus className="h-4 w-4 mr-1.5" />
-          <span className="hidden sm:inline">New Folder</span>
-        </Button>
+          <FolderPlus className="h-3.5 w-3.5" />
+        </button>
         {quota && !quota.canCreate ? (
           <div className="relative group flex-shrink-0">
             <CreationMenu disabled={true} />
@@ -601,7 +583,7 @@ export default function TicketsListPage() {
       </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full max-w-7xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 w-full px-3 sm:px-6 pt-4 sm:pt-6">
       {/* Loading state: Show skeletons on initial load or when loading */}
       {(isLoading || isInitialLoad) && (
         <div className="space-y-1.5">
@@ -620,11 +602,11 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isLoading && !isInitialLoad && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
-        <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+        <div>
           <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
           {isCreatingFolder && (
             <form
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
@@ -669,7 +651,7 @@ export default function TicketsListPage() {
               <button
                 type="submit"
                 disabled={!newFolderName.trim() || isSubmittingFolder}
-                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text)] disabled:opacity-30 transition-colors"
                 aria-label="Create folder"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -715,14 +697,14 @@ export default function TicketsListPage() {
       )}
 
       {!isLoading && !isInitialLoad && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
-        <div className="rounded-lg overflow-hidden  border border-[var(--border-subtle)]">
+        <div>
           {/* Column headers */}
           <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onContextMenu={(e) => { e.preventDefault(); setHeaderContextMenu({ x: e.clientX, y: e.clientY }); }} />
 
           {/* Inline folder creation */}
           {isCreatingFolder && (
             <form
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]"
+              className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newFolderName.trim() || !currentTeam?.id || isSubmittingFolder) return;
@@ -767,7 +749,7 @@ export default function TicketsListPage() {
               <button
                 type="submit"
                 disabled={!newFolderName.trim() || isSubmittingFolder}
-                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text)] disabled:opacity-30 transition-colors"
                 aria-label="Create folder"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -791,7 +773,7 @@ export default function TicketsListPage() {
           {privateFolders.length > 0 && (
             <>
               {teamFolders.length > 0 && (
-                <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider bg-[var(--bg-subtle)]/60 border-b border-[var(--border-subtle)]">
+                <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-subtle)]">
                   My Folders
                 </div>
               )}
@@ -864,7 +846,7 @@ export default function TicketsListPage() {
 
           {/* FOLDERS section header — only when both sections exist */}
           {privateFolders.length > 0 && teamFolders.length > 0 && (
-            <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider bg-[var(--bg-subtle)]/60 border-b border-[var(--border-subtle)]">
+            <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-subtle)]">
               Folders
             </div>
           )}
@@ -1129,7 +1111,7 @@ function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { v
 
   return (
     <div
-      className="ticket-grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
+      className="ticket-grid items-center px-3 sm:px-4 py-2 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
       style={mdGridTemplate ? { '--grid-cols': mdGridTemplate } as React.CSSProperties : undefined}
       onContextMenu={onContextMenu}
     >
@@ -1219,7 +1201,7 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
 
   return (
     <div
-      className={`group/folder sticky top-0 z-10 flex items-center gap-0 px-1 sm:px-2 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] relative ${
+      className={`group/folder sticky top-0 z-10 flex items-center gap-0 px-1 sm:px-2 py-2 hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] relative ${
         showDropAbove ? 'border-t-2 border-t-[var(--blue)]' : ''
       } ${
         showDropBelow ? 'border-b-2 border-b-[var(--blue)]' : ''
@@ -1298,7 +1280,7 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
             !isExpanded ? '-rotate-90' : ''
           }`}
         />
-        <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
+        <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
         {folder.scope === 'private' && <Lock className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />}
         {isRenaming ? (
           <input
@@ -1458,7 +1440,7 @@ function InlineFolderAdd({ folderId }: { folderId: string }) {
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+        className="w-full flex items-center gap-2 pl-10 pr-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 transition-colors cursor-pointer"
       >
         <Plus className="h-3 w-3" />
         <span>New ticket</span>
@@ -1526,7 +1508,7 @@ function InlineRootAdd() {
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 border-b border-[var(--border-subtle)] transition-colors cursor-pointer"
+        className="w-full flex items-center gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/50 transition-colors cursor-pointer"
       >
         <Plus className="h-3 w-3" />
         <span>New ticket</span>
@@ -1571,12 +1553,12 @@ function getRelativeTime(date: string | Date) {
 function StatusCell({ ticket }: { ticket: any }) {
   const ticketStatus = getTicketStatusKey(ticket);
   if (ticketStatus === 'needs-resume') return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-red-500 truncate">
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] truncate">
       <span className="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0" />Needs Resume
     </span>
   );
   if (isTicketInProgress(ticket)) return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-blue-500 truncate">
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] truncate">
       <span className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0" />In Progress
     </span>
   );
@@ -1591,17 +1573,17 @@ function StatusCell({ ticket }: { ticket: any }) {
 
 function PriorityCell({ priority }: { priority: string | null }) {
   if (!priority) return <span className="text-[11px] text-[var(--text-tertiary)]">—</span>;
-  const map: Record<string, { dot: string; label: string }> = {
-    low:    { dot: 'bg-green-500',  label: 'Low'    },
-    medium: { dot: 'bg-yellow-500', label: 'Medium' },
-    high:   { dot: 'bg-orange-500', label: 'High'   },
-    urgent: { dot: 'bg-red-500',    label: 'Urgent' },
+  const map: Record<string, string> = {
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    urgent: 'Urgent',
   };
-  const c = map[priority];
-  if (!c) return null;
+  const label = map[priority];
+  if (!label) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] truncate">
-      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${c.dot}`} />{c.label}
+    <span className="text-[11px] text-[var(--text-tertiary)] truncate">
+      {label}
     </span>
   );
 }
@@ -1682,7 +1664,7 @@ function ArchivedSection({
       </button>
 
       {showArchived && (
-        <div className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
+        <div>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
@@ -1695,7 +1677,7 @@ function ArchivedSection({
             archivedTickets.map((ticket) => (
               <div
                 key={ticket.id}
-                className="group flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)] transition-colors"
+                className="group flex items-center gap-3 px-3 sm:px-4 py-2.5 hover:bg-[var(--bg-hover)] transition-colors"
               >
                 <div className="flex-shrink-0 opacity-40">
                   {getTypeIcon(ticket.type)}
@@ -1860,7 +1842,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
         setIsDragging(false);
         onDragEnd?.();
       }}
-      className={`group ticket-grid items-center px-3 sm:px-4 py-0 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-pointer ${
+      className={`group ticket-grid items-center px-3 sm:px-4 py-0 hover:bg-[var(--bg-hover)] transition-colors cursor-grab active:cursor-grabbing [&_a]:cursor-pointer ${
         ticketStatus === 'needs-resume' ? 'bg-red-500/5' : ''
       } ${isDragging ? 'opacity-50' : ''} ${nested ? 'bg-white/[0.02] dark:bg-white/[0.02]' : ''}`}
       style={mdGridTemplate ? { '--grid-cols': mdGridTemplate } as React.CSSProperties : undefined}
@@ -1871,8 +1853,8 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
         <span className="flex-shrink-0">{getTypeIcon(ticket.type)}</span>
         <span className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
           ticketStatus === 'needs-input' || ticketStatus === 'needs-resume'
-            ? 'font-semibold text-[var(--text)]'
-            : 'font-medium text-[var(--text-secondary)]'
+            ? 'font-medium text-[var(--text)]'
+            : 'font-normal text-[var(--text-secondary)]'
         }`}>
           {ticket.title}
         </span>
@@ -2066,10 +2048,7 @@ function ProgressRing({ ticket }: { ticket: any }) {
 
   // Get progress color based on score
   const getProgressColor = () => {
-    if (readinessScore === 0) return 'var(--text-tertiary)';
-    if (readinessScore < 65) return '#3b82f6'; // blue
-    if (readinessScore < 85) return '#f59e0b'; // amber
-    return '#22c55e'; // green
+    return 'var(--text-tertiary)';
   };
 
   const progressColor = getProgressColor();

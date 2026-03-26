@@ -182,7 +182,7 @@ export function JiraIntegration() {
       {/* Connected */}
       {!isLoading && status?.connected && (
         <div className="flex items-center gap-2 text-[var(--text-sm)]">
-          <Check className="h-4 w-4 text-green-500" />
+          <Check className="h-4 w-4 text-[var(--text-tertiary)]" />
           <span className="text-[var(--text-secondary)]">
             Connected to <span className="font-medium text-[var(--text)]">{status.jiraUrl}</span>
           </span>

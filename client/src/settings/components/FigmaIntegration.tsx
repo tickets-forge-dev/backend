@@ -234,15 +234,15 @@ export function FigmaIntegration() {
 
           {isConnected && (
             <div className="mb-3">
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-medium">
                 ✓ Connected ({connectionMethod === 'oauth' ? 'OAuth' : 'Token'})
               </span>
             </div>
           )}
 
           {isConnected && (
-            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-900 dark:text-blue-200">
+            <div className="mt-3 p-3 bg-[var(--bg-subtle)] rounded border border-[var(--border-subtle)]">
+              <p className="text-sm text-[var(--text-secondary)]">
                 ✓ Figma is connected via {connectionMethod === 'oauth' ? 'OAuth' : 'Personal Access Token'}. Design file metadata will be automatically fetched when you add Figma links to
                 tickets.
               </p>
@@ -259,7 +259,7 @@ export function FigmaIntegration() {
             <div className="mt-4 space-y-3">
               {showTokenInput && (
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-[var(--text-secondary)]">
                     Personal Access Token
                   </label>
                   <input
@@ -267,21 +267,21 @@ export function FigmaIntegration() {
                     value={personalToken}
                     onChange={(e) => setPersonalToken(e.target.value)}
                     placeholder="figd_xxxxxxxxxxxx"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-[var(--border-subtle)] rounded-md bg-[var(--bg)] text-[var(--text)] focus:ring-2 focus:ring-[var(--border)] focus:border-transparent"
                     disabled={isLoading}
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-[var(--text-tertiary)]">
                     Get your token from{' '}
                     <a
                       href="https://www.figma.com/settings"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-[var(--text-secondary)] hover:underline"
                     >
                       Figma Settings → Security → Personal Access Tokens
                     </a>
                     <br />
-                    <strong className="text-gray-700 dark:text-gray-300">Required scopes:</strong> file_content:read, file_metadata:read, current_user:read
+                    <strong className="text-[var(--text-secondary)]">Required scopes:</strong> file_content:read, file_metadata:read, current_user:read
                   </p>
                 </div>
               )}
@@ -305,7 +305,7 @@ export function FigmaIntegration() {
               <button
                 onClick={() => setShowTokenInput(true)}
                 disabled={isLoading}
-                className="px-4 py-2 bg-transparent hover:bg-[var(--bg-hover)] border border-white hover:border-white/80 text-green-500 hover:text-green-400 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-transparent hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text)] rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
               >
                 Connect Figma
               </button>

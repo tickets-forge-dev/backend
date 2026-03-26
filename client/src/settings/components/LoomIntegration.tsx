@@ -120,34 +120,34 @@ export function LoomIntegration() {
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    <div className="rounded-lg border border-[var(--border-subtle)] p-6">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            📹 Loom
+          <h3 className="text-[var(--text-base)] font-medium text-[var(--text)] flex items-center gap-2">
+            Loom
             {isConnected && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-medium">
                 ✓ Connected
               </span>
             )}
           </h3>
 
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-2">
             Connect Loom to fetch video metadata including title, duration, and thumbnails to provide rich context for
             video references in ticket specifications.
           </p>
 
           {isConnected && (
-            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-900 dark:text-blue-200">
+            <div className="mt-3 p-3 bg-[var(--bg-subtle)] rounded border border-[var(--border-subtle)]">
+              <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
                 ✓ Loom is connected. Video metadata will be automatically fetched when you add Loom links to tickets.
               </p>
             </div>
           )}
 
           {error && (
-            <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
-              <p className="text-sm text-red-900 dark:text-red-200">{error}</p>
+            <div className="mt-3 p-3 bg-red-500/10 rounded border border-red-500/20">
+              <p className="text-[var(--text-sm)] text-[var(--red)]">{error}</p>
             </div>
           )}
         </div>
@@ -159,7 +159,7 @@ export function LoomIntegration() {
             {/* <button
               onClick={handleReconnect}
               disabled={isLoading}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-[var(--text-secondary)] bg-[var(--bg-hover)] hover:bg-[var(--bg)] rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
             >
               {isLoading ? 'Reconnecting...' : 'Reconnect'}
             </button> */}
@@ -167,7 +167,7 @@ export function LoomIntegration() {
             <button
               onClick={handleDisconnect}
               disabled={isLoading}
-              className="px-4 py-2 text-red-700 dark:text-red-400 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-[var(--red)] bg-red-500/10 hover:bg-red-500/20 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
             >
               {isLoading ? 'Disconnecting...' : 'Disconnect'}
             </button>
@@ -176,7 +176,7 @@ export function LoomIntegration() {
           <button
             onClick={handleConnect}
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-[var(--bg-hover)] hover:bg-[var(--bg)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text)] rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
           >
             {isLoading ? 'Loading...' : 'Connect Loom'}
           </button>

@@ -142,7 +142,7 @@ export function GenerationOptionsStep() {
         <h2 className="text-lg font-semibold text-[var(--text)]">Generation Options</h2>
         <p className="text-sm text-[var(--text-secondary)] mt-1">
           Choose what to include in the generated spec.{' '}
-          <span className={isFeature ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}>
+          <span className={isFeature ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}>
             {hintText}
           </span>
         </p>
@@ -154,7 +154,7 @@ export function GenerationOptionsStep() {
         <ToggleOptionCard
           title="UI / Wireframe Guidance"
           description="Layout guidance, visual QA, components"
-          icon={<Paintbrush className={`h-5 w-5 flex-shrink-0 ${includeWireframes ? 'text-green-600 dark:text-green-400' : 'text-[var(--text-tertiary)]'}`} />}
+          icon={<Paintbrush className={`h-5 w-5 flex-shrink-0 ${includeWireframes ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`} />}
           enabled={includeWireframes}
           onToggle={handleWireframeToggle}
           forceExpanded={true}
@@ -167,7 +167,7 @@ export function GenerationOptionsStep() {
                   <span className="text-xs font-medium text-[var(--text-secondary)]">Basic wireframes</span>
                   <span className="text-[10px] text-[var(--text-tertiary)]">ASCII layout specs for developers</span>
                 </div>
-                <div className="relative w-8 h-[18px] rounded-full bg-green-600 flex-shrink-0 cursor-not-allowed opacity-60" title="Always included with wireframe guidance">
+                <div className="relative w-8 h-[18px] rounded-full bg-[var(--text-tertiary)] flex-shrink-0 cursor-not-allowed opacity-60" title="Always included with wireframe guidance">
                   <div className="absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm translate-x-[14px]" />
                 </div>
               </label>
@@ -192,7 +192,7 @@ export function GenerationOptionsStep() {
                   </button>
                   <div
                     onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}
-                    className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 cursor-pointer ${includeHtmlWireframes ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 cursor-pointer ${includeHtmlWireframes ? 'bg-[var(--text-tertiary)]' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
                     <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${includeHtmlWireframes ? 'translate-x-[14px]' : 'translate-x-[3px]'}`} />
                   </div>
@@ -210,7 +210,7 @@ export function GenerationOptionsStep() {
                   type="button"
                   onClick={handleGenerateUIDescription}
                   disabled={isGeneratingUI || !input.title}
-                  className="inline-flex items-center gap-1 text-[11px] text-purple-500 hover:text-purple-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {isGeneratingUI ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -225,7 +225,7 @@ export function GenerationOptionsStep() {
                 onChange={(e) => setWireframeContext(e.target.value)}
                 placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
                 rows={3}
-                className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] resize-none"
+                className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--border-hover)] resize-none"
               />
               <p className="text-[11px] text-[var(--text-tertiary)] mt-1">Optional — helps the AI generate more accurate wireframes</p>
             </div>
@@ -238,9 +238,9 @@ export function GenerationOptionsStep() {
           description={apiSpecDeferred ? 'Developer will decide during dev-refine' : 'REST endpoint specs, payloads, routes'}
           icon={<Zap className={`h-5 w-5 flex-shrink-0 ${
             apiSpecDeferred
-              ? 'text-blue-500 dark:text-blue-400'
+              ? 'text-[var(--text-secondary)]'
               : includeApiSpec
-                ? 'text-green-600 dark:text-green-400'
+                ? 'text-[var(--text-secondary)]'
                 : 'text-[var(--text-tertiary)]'
           }`} />}
           enabled={includeApiSpec && !apiSpecDeferred}
@@ -248,7 +248,7 @@ export function GenerationOptionsStep() {
           toggleDisabled={apiSpecDeferred}
           accentClass={
             apiSpecDeferred
-              ? 'border-l-2 border-l-blue-500 border-blue-500/40 bg-blue-50/30 dark:bg-blue-950/10'
+              ? 'border-[var(--border-hover)]'
               : undefined
           }
           footer={
@@ -258,7 +258,7 @@ export function GenerationOptionsStep() {
                   type="checkbox"
                   checked={apiSpecDeferred}
                   onChange={handleDeferToggle}
-                  className="h-4 w-4 rounded border-[var(--border)] text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-[var(--border)] text-[var(--text-secondary)] focus:ring-[var(--border-hover)]"
                 />
                 <span className="text-xs text-[var(--text-secondary)]">
                   Let developer decide during dev-refine
@@ -282,7 +282,7 @@ export function GenerationOptionsStep() {
               <div className="space-y-1.5">
                 {manualEndpoints.map((ep, i) => (
                   <div key={i} className="flex items-center gap-2 group">
-                    <span className="text-[11px] font-mono font-medium text-blue-500 w-14 flex-shrink-0">{ep.method}</span>
+                    <span className="text-[11px] font-mono font-medium text-[var(--text-secondary)] w-14 flex-shrink-0">{ep.method}</span>
                     <span className="text-xs font-mono text-[var(--text-secondary)] flex-1 truncate">{ep.route}</span>
                     <button
                       type="button"

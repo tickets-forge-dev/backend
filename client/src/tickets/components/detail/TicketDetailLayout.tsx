@@ -338,16 +338,16 @@ export function TicketDetailLayout({
                 </div>
               ))}
 
-              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg space-y-3">
-                <p className="text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
-                  <MessageSquare className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div className="p-4 border border-[var(--border-subtle)] bg-[var(--bg-subtle)] rounded-lg space-y-3">
+                <p className="text-sm text-[var(--text-secondary)] flex items-start gap-2">
+                  <MessageSquare className="h-4 w-4 flex-shrink-0 mt-0.5 text-[var(--text-tertiary)]" />
                   <span><strong>Answer these questions</strong> to generate the technical specification</span>
                 </p>
-                <p className="text-xs text-amber-600 dark:text-amber-500">
+                <p className="text-xs text-[var(--text-tertiary)]">
                   The system will guide you through each question one by one, and then automatically create the full technical specification based on your answers.
                 </p>
                 <Link href={`/tickets/create?resume=${ticketId}`}>
-                  <Button className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white">
+                  <Button className="w-full mt-3" variant="outline">
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Answer Questions Now
                   </Button>
@@ -378,7 +378,8 @@ export function TicketDetailLayout({
                 <Button
                   onClick={handleApprove}
                   disabled={isApproving}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  variant="outline"
+                  className="w-full"
                 >
                   {isApproving ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -429,8 +430,8 @@ export function TicketDetailLayout({
 
       {/* Approval banner — always visible when ticket is in review with developer Q&A */}
       {isWaitingForApproval && hasReviewSession && (
-        <div className="flex items-center gap-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-5 py-4">
-          <ShieldCheck className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+        <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
+          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Developer review complete — {ticket.reviewSession!.qaItems.length} question{ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''} answered
@@ -442,7 +443,8 @@ export function TicketDetailLayout({
           <Button
             onClick={handleApprove}
             disabled={isApproving}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white flex-shrink-0"
+            variant="outline"
+            className="flex-shrink-0"
           >
             {isApproving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -456,8 +458,8 @@ export function TicketDetailLayout({
 
       {/* Approve directly from draft — PM-only workflow, no developer needed */}
       {isDraft && hasTechSpecContent && (
-        <div className="flex items-center gap-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-5 py-4">
-          <ShieldCheck className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+        <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
+          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Spec is ready — approve and mark as Ready?
@@ -469,7 +471,8 @@ export function TicketDetailLayout({
           <Button
             onClick={handleApprove}
             disabled={isApproving}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white flex-shrink-0"
+            variant="outline"
+            className="flex-shrink-0"
           >
             {isApproving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -483,8 +486,8 @@ export function TicketDetailLayout({
 
       {/* Approve without developer review — for DEV_REFINING tickets with a spec */}
       {isDevRefining && hasTechSpecContent && !hasReviewSession && (
-        <div className="flex items-center gap-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-5 py-4">
-          <ShieldCheck className="h-5 w-5 text-amber-500 flex-shrink-0" />
+        <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
+          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Spec is ready — approve without developer review?
@@ -496,7 +499,8 @@ export function TicketDetailLayout({
           <Button
             onClick={handleApprove}
             disabled={isApproving}
-            className="bg-amber-600 hover:bg-amber-700 text-white flex-shrink-0"
+            variant="outline"
+            className="flex-shrink-0"
           >
             {isApproving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -532,7 +536,6 @@ export function TicketDetailLayout({
                   executeApproval(false);
                 }
               }}
-              className="bg-amber-600 hover:bg-amber-700"
             >
               Approve anyway
             </AlertDialogAction>
@@ -543,7 +546,7 @@ export function TicketDetailLayout({
       {/* Refine with Questions — shown only when the creator skipped clarification questions */}
       {ticket.status === 'draft' && hasTechSpec && ticket.maxRounds === 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3">
-          <MessageSquare className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <MessageSquare className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm text-[var(--text-secondary)]">
               Want a better spec? Answer clarification questions to refine it.
@@ -578,7 +581,8 @@ export function TicketDetailLayout({
               <Button
                 onClick={handleApprove}
                 disabled={isApproving}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                variant="outline"
+                className="w-full"
               >
                 {isApproving ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -599,21 +603,21 @@ export function TicketDetailLayout({
 
           <TabsTrigger
             value="spec"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none gap-1.5"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
           >
             <FileText className="h-3.5 w-3.5" />
             Spec
           </TabsTrigger>
           <TabsTrigger
             value="design"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none gap-1.5"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
           >
             <Palette className="h-3.5 w-3.5" />
             Design
           </TabsTrigger>
           <TabsTrigger
             value="technical"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 transition-all rounded-none gap-1.5"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
           >
             <Code2 className="h-3.5 w-3.5" />
             Technical
@@ -642,11 +646,7 @@ export function TicketDetailLayout({
               </span>
             )}
             {qualityScore !== undefined && (
-              <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${
-                qualityScore >= 80 ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
-                qualityScore >= 50 ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' :
-                'bg-red-500/10 text-red-600 dark:text-red-400'
-              }`}>
+              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium bg-[var(--bg-hover)] text-[var(--text-secondary)]">
                 {qualityScore}%
               </span>
             )}
@@ -718,11 +718,11 @@ export function TicketDetailLayout({
             const statusCfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
 
             return (
-              <div className={`max-w-3xl xl:max-w-4xl mx-auto mb-6 relative rounded-xl border ${isForged ? 'border-amber-500/15' : 'border-[var(--border-subtle)]'} bg-[var(--bg-subtle)]/50 overflow-hidden`}>
+              <div className={`max-w-3xl xl:max-w-4xl mx-auto mb-6 relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/50 overflow-hidden`}>
                 <div className="px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isForged ? 'bg-amber-500/10' : 'bg-[var(--bg-hover)]'}`}>
-                      <ShieldCheck className={`w-4.5 h-4.5 ${isForged ? 'text-amber-500/60' : 'text-[var(--text-tertiary)]'}`} />
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg-hover)]">
+                      <ShieldCheck className="w-4.5 h-4.5 text-[var(--text-tertiary)]" />
                     </div>
                     <div>
                       <p className={`text-sm font-semibold ${isForged ? 'text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>

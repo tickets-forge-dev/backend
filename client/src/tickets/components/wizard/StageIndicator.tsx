@@ -47,7 +47,7 @@ export function StageIndicator({ currentStage, nextButton, ticketType }: StageIn
                   <div
                     className={`w-3 sm:w-6 h-px flex-shrink-0 ${
                       i <= currentIdx
-                        ? 'bg-green-600 dark:bg-green-500'
+                        ? 'bg-[var(--text-tertiary)]'
                         : 'bg-[var(--border)]'
                     }`}
                   />
@@ -60,9 +60,9 @@ export function StageIndicator({ currentStage, nextButton, ticketType }: StageIn
                       flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-medium flex-shrink-0
                       ${
                         isCurrent
-                          ? 'bg-[var(--blue)] text-white ring-2 ring-[var(--blue)]/30'
+                          ? 'bg-[var(--text-secondary)] text-[var(--bg)]'
                           : isCompleted
-                            ? 'bg-green-600 dark:bg-green-500 text-white'
+                            ? 'bg-[var(--text-tertiary)] text-[var(--bg)]'
                             : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border)]'
                       }
                     `}

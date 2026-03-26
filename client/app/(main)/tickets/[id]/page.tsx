@@ -1052,7 +1052,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             href={currentTicket.externalIssue.issueUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)] transition-colors"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
@@ -1067,7 +1067,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <DialogTitle>
               {needsAssignWarning ? (
                 <span className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  <AlertTriangle className="h-5 w-5 text-[var(--text-tertiary)]" />
                   No Developer Assigned
                 </span>
               ) : (
@@ -1318,7 +1318,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                     }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
                       exportSections.has(section.id)
-                        ? 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                        ? 'border-[var(--border-hover)] bg-[var(--bg-hover)] text-[var(--text)] shadow-sm'
                         : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]'
                     }`}
                   >
@@ -1559,7 +1559,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                   <div className="grid grid-cols-2 gap-4">
                     {currentTicket?.techSpec?.inScope?.length > 0 && (
                       <div>
-                        <h3 className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">In Scope</h3>
+                        <h3 className="text-sm font-semibold text-[var(--text)] mb-2">In Scope</h3>
                         <ul className="space-y-1 text-xs text-[var(--text-secondary)]">
                           {currentTicket.techSpec.inScope.slice(0, 3).map((item: string, i: number) => (
                             <li key={i} className="flex gap-2">
@@ -1600,7 +1600,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                       {currentTicket.techSpec.apiChanges.endpoints.slice(0, 3).map((endpoint: any, i: number) => (
                         <div key={i} className="p-2 bg-[var(--bg-hover)] rounded font-mono">
                           <p className="font-medium text-[var(--text)]">
-                            <span className="text-blue-500">{endpoint.method}</span> {endpoint.route}
+                            <span className="text-[var(--text-secondary)]">{endpoint.method}</span> {endpoint.route}
                           </p>
                           <p className="text-[var(--text-tertiary)]">{endpoint.description}</p>
                         </div>
@@ -1640,9 +1640,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-2">File Changes Summary</h3>
                     <div className="text-sm text-[var(--text-secondary)] space-y-1">
                       <p>Total files: <span className="font-medium text-[var(--text)]">{currentTicket.techSpec.fileChanges.length}</span></p>
-                      <p>Create: <span className="font-medium text-green-500">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'create').length}</span></p>
-                      <p>Modify: <span className="font-medium text-blue-500">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'modify').length}</span></p>
-                      <p>Delete: <span className="font-medium text-red-500">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'delete').length}</span></p>
+                      <p>Create: <span className="font-medium text-[var(--text-secondary)]">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'create').length}</span></p>
+                      <p>Modify: <span className="font-medium text-[var(--text-secondary)]">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'modify').length}</span></p>
+                      <p>Delete: <span className="font-medium text-[var(--text-secondary)]">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'delete').length}</span></p>
                     </div>
                   </div>
                 )}
@@ -1672,7 +1672,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                       </span>
                       <div className="h-1.5 w-24 bg-[var(--border)] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-green-500"
+                          className="h-full bg-[var(--text-tertiary)]"
                           style={{ width: `${currentTicket?.techSpec?.qualityScore || 0}%` }}
                         />
                       </div>

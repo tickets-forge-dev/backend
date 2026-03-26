@@ -67,7 +67,7 @@ export function SpecificationTab({
             const ps = normalizeProblemStatement(techSpec.problemStatement);
             return ps.narrative ? (
               <div className="space-y-3">
-                <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--primary)]/40">
+                <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--text-tertiary)]">
                   Problem Statement
                 </h3>
                 <div className="space-y-3">
@@ -111,10 +111,10 @@ export function SpecificationTab({
                     {typeof ac === 'string' ? (
                       <span><span className="text-[var(--text-tertiary)] mr-2">-</span>{ac}</span>
                     ) : (
-                      <div className="space-y-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-4 py-3">
-                        <p><span className="font-medium text-blue-500 mr-1">Given</span> {ac.given}</p>
-                        <p><span className="font-medium text-amber-500 mr-1">When</span> {ac.when}</p>
-                        <p><span className="font-medium text-green-500 mr-1">Then</span> {ac.then}</p>
+                      <div className="space-y-1.5 bg-[var(--bg-subtle)] rounded-lg px-4 py-3">
+                        <p><span className="font-semibold text-[var(--text)] mr-1">Given</span> {ac.given}</p>
+                        <p><span className="font-semibold text-[var(--text)] mr-1">When</span> {ac.when}</p>
+                        <p><span className="font-semibold text-[var(--text)] mr-1">Then</span> {ac.then}</p>
                       </div>
                     )}
                   </EditableItem>
@@ -132,7 +132,7 @@ export function SpecificationTab({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {techSpec.inScope?.length > 0 && (
                 <div className="rounded-lg bg-[var(--bg-hover)] p-3 space-y-2">
-                  <h4 className="text-[var(--text-xs)] font-medium text-green-600 dark:text-green-400 uppercase">
+                  <h4 className="text-[var(--text-xs)] font-medium text-[var(--text)] uppercase">
                     In Scope
                   </h4>
                   <ul className="space-y-2 text-[var(--text-sm)] text-[var(--text-secondary)]">

@@ -26,7 +26,7 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     description: 'Developer reviews and refines the spec',
     badgeClass: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     dotClass: 'bg-purple-500',
-    textClass: 'text-purple-500',
+    textClass: 'text-[var(--text-tertiary)]',
     cliIcon: '🔧',
   },
   review: {
@@ -34,7 +34,7 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     description: "PM reviews the developer's changes",
     badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     dotClass: 'bg-amber-500',
-    textClass: 'text-amber-500',
+    textClass: 'text-[var(--text-tertiary)]',
     cliIcon: '⏳',
   },
   forged: {
@@ -42,7 +42,7 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     description: 'Approved — ready for the developer to pick up',
     badgeClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
     dotClass: 'bg-emerald-500',
-    textClass: 'text-emerald-500',
+    textClass: 'text-[var(--text-tertiary)]',
     cliIcon: '✅',
   },
   executing: {
@@ -50,7 +50,7 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     description: 'Being built or sent to issue tracker',
     badgeClass: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     dotClass: 'bg-blue-500',
-    textClass: 'text-blue-500',
+    textClass: 'text-[var(--text-tertiary)]',
     cliIcon: '🚀',
   },
   complete: {
@@ -58,7 +58,7 @@ export const TICKET_STATUS_CONFIG: Record<string, StatusConfig> = {
     description: 'Ticket is complete',
     badgeClass: 'bg-green-500/15 text-green-600 dark:text-green-400',
     dotClass: 'bg-green-500',
-    textClass: 'text-green-500',
+    textClass: 'text-[var(--text-tertiary)]',
     cliIcon: '✅',
   },
 };
