@@ -6,7 +6,6 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import {
   fadeUp,
-  fadeIn,
   scaleUp,
   defaultTransition,
   heroTransition,
@@ -32,7 +31,8 @@ export function HeroSection() {
         paddingBottom: 'var(--landing-section-gap)',
       }}
     >
-      {/* Background glows */}
+      {/* Background glows — opacities intentionally lower than design tokens,
+          these are hero-specific decorative accents at reduced intensity */}
       <div
         className="absolute inset-0 pointer-events-none"
         aria-hidden="true"
@@ -131,7 +131,7 @@ export function HeroSection() {
         initial="hidden"
         animate="visible"
         transition={{ ...heroTransition, delay: 0.5 }}
-        style={{ y: screenshotY }}
+        style={{ y: screenshotY, perspective: '2000px' }}
       >
         {/* Ambient glow behind screenshot */}
         <div
@@ -147,7 +147,6 @@ export function HeroSection() {
         <motion.div
           className="relative rounded-2xl border border-[var(--border-subtle)] overflow-hidden"
           style={{
-            perspective: '2000px',
             rotateX,
             boxShadow: '0 40px 80px rgba(0,0,0,0.5)',
           }}

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import {
   slideFromLeft,
   slideFromRight,
-  scaleUp,
   viewportConfig,
 } from '@/landing/lib/motion-variants';
 

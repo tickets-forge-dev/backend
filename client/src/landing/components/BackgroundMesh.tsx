@@ -4,6 +4,9 @@ export function BackgroundMesh() {
       className="fixed inset-0 pointer-events-none z-0"
       aria-hidden="true"
     >
+      {/* Glow opacities are intentionally lower than --glow-primary/--glow-accent tokens
+          since this is a global background layer — subtler than per-section glows */}
+
       {/* Top — indigo glow (hero area) */}
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px]"

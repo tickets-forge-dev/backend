@@ -50,15 +50,6 @@ export const staggerContainer: Variants = {
   },
 };
 
-export const staggerContainerFast: Variants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
 // --- Shared viewport config ---
 // Trigger once when 20% of element is visible
 export const viewportConfig = { once: true, amount: 0.2 } as const;

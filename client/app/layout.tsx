@@ -20,7 +20,6 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
-
 export const metadata: Metadata = {
   title: 'forge',
   description: 'Stop shipping half-baked tickets. forge turns rough ideas into complete, development-ready tickets.',
