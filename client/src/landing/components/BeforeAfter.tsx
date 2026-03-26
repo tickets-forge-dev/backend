@@ -22,7 +22,7 @@ const slackMessages = [
   { name: 'Jordan', initials: 'JR', color: '#4a9eff', text: 'built it with Google only, separate table', time: '1:15 PM' },
   { name: 'Alex', initials: 'AP', color: '#e87461', text: 'wait we needed GitHub too, and auth table already has a provider column', time: '1:16 PM' },
   { name: 'Jordan', initials: 'JR', color: '#4a9eff', text: '\u{1F643}', time: '1:16 PM' },
-] as const;
+] satisfies { name: string; initials: string; color: string; text: string; time: string; subtle?: boolean }[];
 
 const specSections = {
   title: 'Add Social Login (Google + GitHub)',
