@@ -1129,7 +1129,7 @@ function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { v
 
   return (
     <div
-      className="ticket-grid items-center px-3 sm:px-4 py-2 bg-[var(--bg-subtle)]/40 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
+      className="ticket-grid items-center px-3 sm:px-4 py-2 border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none"
       style={mdGridTemplate ? { '--grid-cols': mdGridTemplate } as React.CSSProperties : undefined}
       onContextMenu={onContextMenu}
     >
@@ -1219,7 +1219,7 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
 
   return (
     <div
-      className={`group/folder sticky top-0 z-10 flex items-center gap-0 px-1 sm:px-2 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] relative ${
+      className={`group/folder sticky top-0 z-10 flex items-center gap-0 px-1 sm:px-2 py-2 hover:bg-[var(--bg-hover)] transition-all border-b border-[var(--border-subtle)] relative ${
         showDropAbove ? 'border-t-2 border-t-[var(--blue)]' : ''
       } ${
         showDropBelow ? 'border-b-2 border-b-[var(--blue)]' : ''
@@ -1298,7 +1298,7 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
             !isExpanded ? '-rotate-90' : ''
           }`}
         />
-        <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
+        <FolderOpen className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
         {folder.scope === 'private' && <Lock className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />}
         {isRenaming ? (
           <input
@@ -1571,12 +1571,12 @@ function getRelativeTime(date: string | Date) {
 function StatusCell({ ticket }: { ticket: any }) {
   const ticketStatus = getTicketStatusKey(ticket);
   if (ticketStatus === 'needs-resume') return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-red-500 truncate">
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] truncate">
       <span className="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0" />Needs Resume
     </span>
   );
   if (isTicketInProgress(ticket)) return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-blue-500 truncate">
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] truncate">
       <span className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0" />In Progress
     </span>
   );
@@ -1591,17 +1591,17 @@ function StatusCell({ ticket }: { ticket: any }) {
 
 function PriorityCell({ priority }: { priority: string | null }) {
   if (!priority) return <span className="text-[11px] text-[var(--text-tertiary)]">—</span>;
-  const map: Record<string, { dot: string; label: string }> = {
-    low:    { dot: 'bg-green-500',  label: 'Low'    },
-    medium: { dot: 'bg-yellow-500', label: 'Medium' },
-    high:   { dot: 'bg-orange-500', label: 'High'   },
-    urgent: { dot: 'bg-red-500',    label: 'Urgent' },
+  const map: Record<string, string> = {
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    urgent: 'Urgent',
   };
-  const c = map[priority];
-  if (!c) return null;
+  const label = map[priority];
+  if (!label) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] truncate">
-      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${c.dot}`} />{c.label}
+    <span className="text-[11px] text-[var(--text-tertiary)] truncate">
+      {label}
     </span>
   );
 }
@@ -1871,8 +1871,8 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
         <span className="flex-shrink-0">{getTypeIcon(ticket.type)}</span>
         <span className={`text-[var(--text-sm)] truncate group-hover:text-[var(--text)] transition-colors ${
           ticketStatus === 'needs-input' || ticketStatus === 'needs-resume'
-            ? 'font-semibold text-[var(--text)]'
-            : 'font-medium text-[var(--text-secondary)]'
+            ? 'font-medium text-[var(--text)]'
+            : 'font-normal text-[var(--text-secondary)]'
         }`}>
           {ticket.title}
         </span>
@@ -2066,10 +2066,7 @@ function ProgressRing({ ticket }: { ticket: any }) {
 
   // Get progress color based on score
   const getProgressColor = () => {
-    if (readinessScore === 0) return 'var(--text-tertiary)';
-    if (readinessScore < 65) return '#3b82f6'; // blue
-    if (readinessScore < 85) return '#f59e0b'; // amber
-    return '#22c55e'; // green
+    return 'var(--text-tertiary)';
   };
 
   const progressColor = getProgressColor();
