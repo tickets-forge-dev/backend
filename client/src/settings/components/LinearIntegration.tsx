@@ -131,7 +131,7 @@ export function LinearIntegration() {
       {/* Connected */}
       {!isLoading && status?.connected && (
         <div className="flex items-center gap-2 text-[var(--text-sm)]">
-          <Check className="h-4 w-4 text-green-500" />
+          <Check className="h-4 w-4 text-[var(--text-tertiary)]" />
           <span className="text-[var(--text-secondary)]">
             Connected as <span className="font-medium text-[var(--text)]">{status.userName}</span>
           </span>
