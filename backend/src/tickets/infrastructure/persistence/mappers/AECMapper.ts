@@ -96,6 +96,7 @@ export interface AECDocument {
   slug?: string | null;
   previousStatus?: string | null;
   generationJobId?: string | null;
+  approvedAt?: Timestamp | null;
   forgedAt?: Timestamp | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
@@ -105,10 +106,16 @@ export interface AECDocument {
 
 /** Migration map: old Firestore status values → new AECStatus values */
 const STATUS_MIGRATION: Record<string, string> = {
-  'validated': 'dev-refining',
-  'waiting-for-approval': 'review',
-  'ready': 'forged',
+  // Legacy v1 status names
+  'validated': 'defined',
+  'waiting-for-approval': 'refined',
+  'ready': 'approved',
   'created': 'executing',
+  // v2 → v3 lifecycle rename
+  'dev-refining': 'defined',
+  'review': 'refined',
+  'forged': 'approved',
+  'complete': 'delivered',
   // 'drifted' handled separately below (depends on externalIssue)
 };
 
@@ -195,7 +202,7 @@ export class AECMapper {
     // Migrate old status values to new AECStatus enum
     let migratedStatus: string;
     if (doc.status === 'drifted') {
-      migratedStatus = doc.externalIssue ? 'executing' : 'forged';
+      migratedStatus = doc.externalIssue ? 'executing' : 'approved';
     } else {
       migratedStatus = STATUS_MIGRATION[doc.status] ?? doc.status;
     }
@@ -265,7 +272,7 @@ export class AECMapper {
       doc.slug ?? null,
       (doc.previousStatus as AECStatus) ?? null,
       doc.generationJobId ?? null,
-      doc.forgedAt ? toDate(doc.forgedAt) : null,
+      (doc.approvedAt ?? doc.forgedAt) ? toDate((doc.approvedAt ?? doc.forgedAt)!) : null,
     );
   }
 
@@ -351,7 +358,7 @@ export class AECMapper {
       slug: aec.slug ?? null,
       previousStatus: aec.previousStatus ?? null,
       generationJobId: aec.generationJobId ?? null,
-      forgedAt: aec.forgedAt ? Timestamp.fromDate(aec.forgedAt) : null,
+      approvedAt: aec.approvedAt ? Timestamp.fromDate(aec.approvedAt) : null,
     };
   }
 }
