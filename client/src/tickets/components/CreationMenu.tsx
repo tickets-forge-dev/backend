@@ -66,19 +66,19 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
 
       {/* Floating Menu */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-xl z-50">
+        <div className="absolute top-full right-0 mt-2 w-64 bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg shadow-lg dark:shadow-xl z-50">
           {/* Create Feature */}
           <button
             onClick={() => {
               router.push('/tickets/create?mode=new&type=feature');
               setIsOpen(false);
             }}
-            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors first:rounded-t-lg border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors first:rounded-t-lg border-b border-[var(--border-subtle)] last:border-b-0"
           >
-            <Lightbulb className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <Lightbulb className="w-5 h-5 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
             <div className="text-left">
-              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create Feature</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">New feature with analysis</p>
+              <p className="font-medium text-sm text-[var(--text)]">Create Feature</p>
+              <p className="text-xs text-[var(--text-secondary)]">New feature with analysis</p>
             </div>
           </button>
 
@@ -88,12 +88,12 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
               router.push('/tickets/create?mode=new&type=bug');
               setIsOpen(false);
             }}
-            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)] last:border-b-0"
           >
-            <Bug className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <Bug className="w-5 h-5 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
             <div className="text-left">
-              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create Bug Report</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Bug with reproduction steps</p>
+              <p className="font-medium text-sm text-[var(--text)]">Create Bug Report</p>
+              <p className="text-xs text-[var(--text-secondary)]">Bug with reproduction steps</p>
             </div>
           </button>
 
@@ -103,12 +103,12 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
               router.push('/tickets/create?mode=new&type=task');
               setIsOpen(false);
             }}
-            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)] last:border-b-0"
           >
-            <ClipboardList className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <ClipboardList className="w-5 h-5 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
             <div className="text-left">
-              <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Create Task</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Task with requirements</p>
+              <p className="font-medium text-sm text-[var(--text)]">Create Task</p>
+              <p className="text-xs text-[var(--text-secondary)]">Task with requirements</p>
             </div>
           </button>
 
@@ -119,12 +119,12 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
                 router.push('/tickets/create?mode=import');
                 setIsOpen(false);
               }}
-              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)] last:border-b-0"
             >
-              <Upload className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+              <Upload className="w-5 h-5 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
               <div className="text-left">
-                <p className="font-medium text-sm text-slate-900 dark:text-slate-100">Import Ticket</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400">From Jira or Linear issue</p>
+                <p className="font-medium text-sm text-[var(--text)]">Import Ticket</p>
+                <p className="text-xs text-[var(--text-secondary)]">From Jira or Linear issue</p>
               </div>
             </button>
           )}

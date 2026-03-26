@@ -329,7 +329,7 @@ export function MarkdownInput({
           <button
             type="button"
             onClick={() => setInternalFullscreen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--purple)] hover:text-[var(--text)] border border-[var(--purple)]/40 hover:border-[var(--purple)] rounded-md transition-colors hover:bg-[var(--purple)]/10"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-md transition-colors hover:bg-[var(--bg-hover)]"
             title="Open full markdown editor"
           >
             <PenLine className="h-3.5 w-3.5" />

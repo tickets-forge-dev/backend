@@ -314,7 +314,7 @@ export function DetailsStep() {
       )}
 
       {/* Description — Primary focus area */}
-      <div ref={descriptionRef} className="space-y-3 p-5 rounded-lg border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/10 shadow-sm">
+      <div ref={descriptionRef} className="space-y-3 p-5 rounded-lg border border-[var(--border-subtle)]">
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Ticket Description
@@ -387,7 +387,7 @@ export function DetailsStep() {
         {input.title.length > 0 && input.title.trim().split(/\s+/).filter(Boolean).length < 2 && (
           <span
             role="alert"
-            className="text-xs text-amber-600 dark:text-amber-400"
+            className="text-xs text-[var(--text-tertiary)]"
           >
             Description must be at least 2 words
           </span>

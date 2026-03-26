@@ -50,12 +50,12 @@ type SortDirection = 'desc' | 'asc';
 function getTypeIcon(type: string | null) {
   switch (type) {
     case 'bug':
-      return <Bug className="h-3.5 w-3.5 text-red-500" />;
+      return <Bug className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />;
     case 'task':
-      return <ClipboardList className="h-3.5 w-3.5 text-blue-500" />;
+      return <ClipboardList className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />;
     case 'feature':
     default:
-      return <Lightbulb className="h-3.5 w-3.5 text-amber-500" />;
+      return <Lightbulb className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />;
   }
 }
 
@@ -669,7 +669,7 @@ export default function TicketsListPage() {
               <button
                 type="submit"
                 disabled={!newFolderName.trim() || isSubmittingFolder}
-                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text)] disabled:opacity-30 transition-colors"
                 aria-label="Create folder"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -767,7 +767,7 @@ export default function TicketsListPage() {
               <button
                 type="submit"
                 disabled={!newFolderName.trim() || isSubmittingFolder}
-                className="p-1 rounded hover:bg-[var(--bg-hover)] text-green-500 hover:text-green-400 disabled:opacity-30 transition-colors"
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text)] disabled:opacity-30 transition-colors"
                 aria-label="Create folder"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
