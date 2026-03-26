@@ -620,7 +620,7 @@ export default function TicketsListPage() {
 
       {/* Tickets list */}
       {!isLoading && !isInitialLoad && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
-        <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+        <div>
           <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
           {isCreatingFolder && (
             <form
@@ -715,7 +715,7 @@ export default function TicketsListPage() {
       )}
 
       {!isLoading && !isInitialLoad && !loadError && (filteredTickets.length > 0 || folders.length > 0) && (
-        <div className="rounded-lg overflow-hidden  border border-[var(--border-subtle)]">
+        <div>
           {/* Column headers */}
           <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onContextMenu={(e) => { e.preventDefault(); setHeaderContextMenu({ x: e.clientX, y: e.clientY }); }} />
 
@@ -1682,7 +1682,7 @@ function ArchivedSection({
       </button>
 
       {showArchived && (
-        <div className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
+        <div>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
