@@ -1430,7 +1430,7 @@ export class TicketsController {
       wireframeContext: aec.wireframeContext ?? null,
       wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds ?? [],
       apiContext: aec.apiContext ?? null,
-      forgedAt: aec.forgedAt?.toISOString() ?? null,
+      approvedAt: aec.approvedAt?.toISOString() ?? null,
       createdBy: aec.createdBy ?? null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
