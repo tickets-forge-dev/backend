@@ -16,7 +16,7 @@ function makeMockAEC(overrides: {
   return {
     id: TICKET_ID,
     teamId: overrides.teamId ?? TEAM_ID,
-    status: overrides.status ?? AECStatus.REVIEW,
+    status: overrides.status ?? AECStatus.REFINED,
     title: 'Add login rate limiting',
     assignedTo: overrides.assignedTo ?? null,
     approve: jest.fn(),
@@ -59,7 +59,7 @@ describe('ApproveTicketUseCase', () => {
     });
 
     it('does not throw when ticket status is REVIEW', async () => {
-      const mockAEC = makeMockAEC({ status: AECStatus.REVIEW });
+      const mockAEC = makeMockAEC({ status: AECStatus.REFINED });
       aecRepository.findById.mockResolvedValue(mockAEC);
 
       await expect(
@@ -102,8 +102,7 @@ describe('ApproveTicketUseCase', () => {
 
   describe('Error Cases — Status Precondition', () => {
     it.each([
-      AECStatus.DRAFT,
-      AECStatus.FORGED,
+      AECStatus.APPROVED,
       AECStatus.EXECUTING,
     ])('throws BadRequestException when status is %s (not approvable)', async (status) => {
       const mockAEC = makeMockAEC({ status });
