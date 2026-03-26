@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AuthInitializer } from '@/src/components/AuthInitializer';
 import { PostHogProvider } from '@/src/components/PostHogProvider';
@@ -20,12 +20,6 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['500', '600', '700'],
-});
 
 export const metadata: Metadata = {
   title: 'forge',
@@ -63,7 +57,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`preload ${inter.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}>
+      <body className={`preload ${inter.variable} ${jetbrainsMono.variable}`}>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

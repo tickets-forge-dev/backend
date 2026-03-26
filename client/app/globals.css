@@ -93,6 +93,17 @@ details summary::-webkit-details-marker { display: none; }
   --space-16: 64px;
   --space-20: 80px;
 
+  /* Landing Page Typography */
+  --landing-hero: clamp(40px, 6vw, 72px);
+  --landing-heading: clamp(28px, 4vw, 44px);
+  --landing-subtitle: 18px;
+  --landing-body: 16px;
+
+  /* Landing Page Spacing (Linear-matched) */
+  --landing-section-gap: 96px;
+  --landing-subsection-gap: 48px;
+  --landing-optical-tighten: -4px;
+
   /* Layout Spacing - Generous like Linear */
   --section-gap: 48px;   /* Between major sections */
   --card-gap: 16px;      /* Between cards/items */
@@ -158,6 +169,12 @@ details summary::-webkit-details-marker { display: none; }
     /* Shadows darker and more prominent */
     --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
     --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.6);
+
+    /* Atmosphere */
+    --bg-gradient-start: #0a0a0a;
+    --bg-gradient-end: #111113;
+    --glow-primary: rgba(99, 102, 241, 0.15);
+    --glow-accent: rgba(16, 185, 129, 0.10);
   }
 }
 
@@ -193,6 +210,12 @@ details summary::-webkit-details-marker { display: none; }
 
   --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.6);
+
+  /* Atmosphere */
+  --bg-gradient-start: #0a0a0a;
+  --bg-gradient-end: #111113;
+  --glow-primary: rgba(99, 102, 241, 0.15);
+  --glow-accent: rgba(16, 185, 129, 0.10);
 }
 
 /* Light Mode - Forced via data attribute */
