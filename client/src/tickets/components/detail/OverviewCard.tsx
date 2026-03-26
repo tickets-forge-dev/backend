@@ -25,15 +25,15 @@ const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> 
     assigned: 'Fill in details, then hand off to the developer for refinement',
     unassigned: 'Fill in details — assign a developer for code-aware refinement, or export / download as-is',
   },
-  'dev-refining': {
+  defined: {
     assigned: 'Developer is reviewing and refining the spec with code context',
     unassigned: 'Developer is reviewing and refining the spec with code context',
   },
-  review: {
-    assigned: 'PM reviews the developer\'s changes before forging',
-    unassigned: 'PM reviews the developer\'s changes before forging',
+  refined: {
+    assigned: 'PM reviews the developer\'s changes before approving',
+    unassigned: 'PM reviews the developer\'s changes before approving',
   },
-  forged: {
+  approved: {
     assigned: 'AEC is final — ready to execute or export',
     unassigned: 'AEC is final — export to Jira, download, or use however you like',
   },
@@ -41,7 +41,7 @@ const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> 
     assigned: 'Being built or pushed to your issue tracker',
     unassigned: 'Being built or pushed to your issue tracker',
   },
-  complete: {
+  delivered: {
     assigned: 'This ticket is done',
     unassigned: 'This ticket is done',
   },

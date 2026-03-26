@@ -175,8 +175,8 @@ export function TicketDetailLayout({
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
   const hasTechSpecContent = !!ticket.techSpec;
-  const isWaitingForApproval = ticket.status === 'review';
-  const isDevRefining = ticket.status === 'dev-refining';
+  const isWaitingForApproval = ticket.status === 'refined';
+  const isDevRefining = ticket.status === 'defined';
   const isDraft = ticket.status === 'draft';
   const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent) || (isDraft && hasTechSpecContent);
   const [showSkipReviewWarning, setShowSkipReviewWarning] = useState(false);

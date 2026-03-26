@@ -1384,7 +1384,7 @@ function FolderHeader({ folder, ticketCount, ticketNames, isExpanded, onToggle, 
 
 // Shared helpers
 function getTicketStatusKey(ticket: any): 'needs-input' | 'complete' | 'executing' | 'draft' | 'in-progress' | 'needs-resume' {
-  if (ticket.status === 'complete') return 'complete';
+  if (ticket.status === 'delivered') return 'complete';
   if (ticket.status === 'executing') return 'executing';
   const isPartial = ticket.status === 'draft' && ticket.techSpec &&
     (ticket.techSpec.qualityScore === 0 || ticket.techSpec.qualityScore === undefined);
@@ -1588,10 +1588,10 @@ function PriorityCell({ priority }: { priority: string | null }) {
   );
 }
 
-function WaitBadge({ forgedAt }: { forgedAt: string | null }) {
-  if (!forgedAt) return null;
+function WaitBadge({ approvedAt }: { approvedAt: string | null }) {
+  if (!approvedAt) return null;
 
-  const days = Math.floor((Date.now() - new Date(forgedAt).getTime()) / (1000 * 60 * 60 * 24));
+  const days = Math.floor((Date.now() - new Date(approvedAt).getTime()) / (1000 * 60 * 60 * 24));
   if (days === 0) return null; // approved today, no badge
 
   const color = days <= 1
@@ -1777,7 +1777,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
             <TicketLifecycleInfo currentStatus={ticket.status} trigger="hover">
               <StatusCell ticket={ticket} />
             </TicketLifecycleInfo>
-            {ticket.status === 'forged' && <WaitBadge forgedAt={ticket.forgedAt} />}
+            {ticket.status === 'approved' && <WaitBadge approvedAt={ticket.approvedAt} />}
           </Link>
         );
       case 'priority':
@@ -1993,11 +1993,11 @@ function getLifecycleInfo(ticket: any): { label: string; colorClass: string; dot
   if (key === 'in-progress') return { label: 'Being Enriched', colorClass: 'text-blue-500', dot: 'bg-blue-500', next: 'AI is generating the technical spec' };
   if (key === 'needs-input') return { label: 'Needs Input', colorClass: 'text-amber-500', dot: 'bg-amber-500', next: 'Answer the questions to continue' };
   const map: Record<string, { label: string; colorClass: string; dot: string; next: string }> = {
-    complete:              { label: 'Done',              colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
-    forged:                { label: 'Ready',             colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'Run forge execute to implement' },
-    review:                { label: 'Review (PM)',       colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'PM needs to review and approve' },
-    executing:             { label: 'Executing',         colorClass: 'text-blue-500',               dot: 'bg-blue-500',               next: 'Review and merge the implementation' },
-    'dev-refining':        { label: 'Dev-Refine',        colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Developer reviews and refines the spec' },
+    delivered:             { label: 'Delivered',          colorClass: 'text-green-500',              dot: 'bg-green-500',              next: 'Ready to ship' },
+    approved:              { label: 'Approved',           colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'Run forge execute to implement' },
+    refined:               { label: 'Refined',            colorClass: 'text-amber-500',              dot: 'bg-amber-500',              next: 'PM needs to review and approve' },
+    executing:             { label: 'Executing',          colorClass: 'text-blue-500',               dot: 'bg-blue-500',               next: 'Review and merge the implementation' },
+    defined:               { label: 'Defined',            colorClass: 'text-purple-500',             dot: 'bg-purple-500',             next: 'Developer reviews and refines the spec' },
     draft:                 { label: 'Define',            colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: 'Complete the ticket enrichment flow' },
   };
   return map[ticket.status] ?? { label: 'Unknown', colorClass: 'text-[var(--text-tertiary)]', dot: 'bg-[var(--text-tertiary)]', next: '' };
