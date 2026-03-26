@@ -60,7 +60,7 @@ export function StageIndicator({ currentStage, nextButton, ticketType }: StageIn
                       flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-medium flex-shrink-0
                       ${
                         isCurrent
-                          ? 'bg-[var(--text)] text-[var(--bg)] ring-2 ring-[var(--text)]/20'
+                          ? 'bg-[var(--text-secondary)] text-[var(--bg)]'
                           : isCompleted
                             ? 'bg-[var(--text-tertiary)] text-[var(--bg)]'
                             : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border)]'
