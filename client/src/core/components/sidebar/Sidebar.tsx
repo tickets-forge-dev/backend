@@ -36,7 +36,7 @@ export function Sidebar() {
       <aside
         aria-label="Main navigation"
         className={cn(
-          'fixed left-0 top-0 h-screen bg-[var(--bg)] border-r border-[var(--border)]',
+          'fixed left-0 top-0 h-screen bg-[var(--bg)]',
           'flex flex-col',
           'transition-all duration-200 ease-in-out',
           'z-[var(--z-sticky)]',

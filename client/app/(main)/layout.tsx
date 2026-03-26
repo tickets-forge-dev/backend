@@ -78,14 +78,12 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main content with margin for sidebar */}
       <main
         className={cn(
-          'min-h-screen transition-all duration-200 bg-[var(--bg)]',
+          'min-h-screen transition-all duration-200 bg-[var(--bg-subtle)]',
           'md:mt-0 mt-14',
           sidebarCollapsed ? 'ml-0 md:ml-16' : 'ml-0 md:ml-[var(--nav-width)]'
         )}
       >
-        <div className="px-6 py-12">
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );
