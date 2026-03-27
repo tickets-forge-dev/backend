@@ -84,7 +84,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
-  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, refreshTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
   const { currentTeam, teamMembers, loadTeamMembers } = useTeamStore();
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
@@ -122,6 +122,17 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       fetchTicket(ticketId);
     }
   }, [ticketId, fetchTicket]);
+
+  // Silent poll every 15s so external status changes (e.g. MCP start_implementation) are reflected
+  useEffect(() => {
+    if (!ticketId) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshTicket(ticketId);
+      }
+    }, 15_000);
+    return () => clearInterval(interval);
+  }, [ticketId, refreshTicket]);
 
   // Ensure team members are loaded (needed for "Created by" name resolution)
   useEffect(() => {
