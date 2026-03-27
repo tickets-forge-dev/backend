@@ -66,6 +66,7 @@ import { ReEnrichWithQAUseCase } from './application/use-cases/ReEnrichWithQAUse
 import { ApproveTicketUseCase } from './application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from './application/use-cases/StartImplementationUseCase';
 import { RecordExecutionEventUseCase } from './application/use-cases/RecordExecutionEventUseCase';
+import { SubmitSettlementUseCase } from './application/use-cases/SubmitSettlementUseCase';
 import { RefineWireframeUseCase } from './application/use-cases/RefineWireframeUseCase';
 import { GenerateWireframesUseCase } from './application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from './application/use-cases/ArchiveAECUseCase';
@@ -124,6 +125,7 @@ import { TagsModule } from '../tags/tags.module';
     ApproveTicketUseCase,
     StartImplementationUseCase,
     RecordExecutionEventUseCase,
+    SubmitSettlementUseCase,
     RefineWireframeUseCase,
     GenerateWireframesUseCase,
     ArchiveAECUseCase,

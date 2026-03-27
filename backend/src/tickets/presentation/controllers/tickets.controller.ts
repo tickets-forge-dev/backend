@@ -105,6 +105,8 @@ import { StartImplementationUseCase } from '../../application/use-cases/StartImp
 import { StartImplementationDto } from '../dto/StartImplementationDto';
 import { RecordExecutionEventUseCase } from '../../application/use-cases/RecordExecutionEventUseCase';
 import { RecordExecutionEventDto } from '../dto/RecordExecutionEventDto';
+import { SubmitSettlementUseCase } from '../../application/use-cases/SubmitSettlementUseCase';
+import { SubmitSettlementDto } from '../dto/SubmitSettlementDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
 import { GenerateWireframesUseCase } from '../../application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
@@ -170,6 +172,7 @@ export class TicketsController {
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
     private readonly recordExecutionEventUseCase: RecordExecutionEventUseCase,
+    private readonly submitSettlementUseCase: SubmitSettlementUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
     private readonly generateWireframesUseCase: GenerateWireframesUseCase,
     private readonly archiveAECUseCase: ArchiveAECUseCase,
@@ -753,6 +756,26 @@ export class TicketsController {
       type: dto.type,
       title: dto.title,
       description: dto.description,
+    });
+  }
+
+  /**
+   * Called by the MCP server when the developer agent finishes execution.
+   * Submits a settlement payload that transitions EXECUTING → DELIVERED.
+   */
+  @Post(':id/settle')
+  async submitSettlement(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: SubmitSettlementDto,
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    return this.submitSettlementUseCase.execute({
+      ticketId: aecId,
+      teamId,
+      executionSummary: dto.executionSummary,
+      filesChanged: dto.filesChanged,
+      divergences: dto.divergences ?? [],
     });
   }
 
