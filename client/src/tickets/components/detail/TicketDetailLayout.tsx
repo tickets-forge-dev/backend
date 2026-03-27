@@ -380,6 +380,8 @@ export function TicketDetailLayout({
             title="Developer Review Q&A"
             badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
             defaultExpanded={true}
+            variant={isWaitingForApproval ? 'attention' : 'default'}
+            attentionLabel={isWaitingForApproval ? 'Action needed' : undefined}
           >
             <ReviewSessionSection
               qaItems={ticket.reviewSession!.qaItems}
@@ -650,6 +652,8 @@ export function TicketDetailLayout({
           title="Developer Review Q&A"
           badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
           defaultExpanded={false}
+          variant={isWaitingForApproval ? 'attention' : 'default'}
+          attentionLabel={isWaitingForApproval ? 'Action needed' : undefined}
         >
           <ReviewSessionSection
             qaItems={ticket.reviewSession!.qaItems}
