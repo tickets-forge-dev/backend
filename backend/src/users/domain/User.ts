@@ -171,6 +171,24 @@ export class User {
     );
   }
 
+  updateDisplayName(displayName: string): User {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      throw new Error('Display name cannot be empty');
+    }
+
+    return new User(
+      this.userId,
+      this.email,
+      trimmed,
+      this.photoURL,
+      this.currentTeamId,
+      this.teams,
+      this.createdAt,
+      new Date(),
+    );
+  }
+
   switchTeam(teamId: TeamId | null): User {
     // Switching to personal workspace (null)
     if (teamId === null) {

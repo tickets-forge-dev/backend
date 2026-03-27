@@ -139,7 +139,7 @@ export default function SettingsPage() {
             <RoleSettings />
           </div>
           <Link
-            href="/settings/profile"
+            href="/profile"
             className="flex items-center justify-between px-5 py-4 text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors first:rounded-t-lg last:rounded-b-lg"
           >
             <div className="flex items-center gap-3">

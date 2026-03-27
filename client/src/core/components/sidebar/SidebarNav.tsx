@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
-import { LayoutGrid, Settings, MessageCircle, Search, User, ClipboardList } from 'lucide-react';
+import { LayoutGrid, Settings, MessageCircle, Search, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { useFeedbackStore } from '@/stores/feedback.store';
@@ -39,7 +39,6 @@ export function SidebarNav() {
   const navigationItems = [
     { label: 'Workspace', href: '/tickets', icon: LayoutGrid },
     { label: 'Records', href: '/records', icon: ClipboardList },
-    { label: 'Profile', href: '/profile', icon: User },
     { label: 'Settings', href: '/settings', icon: Settings, attention: hasProfileAttention },
   ];
 
