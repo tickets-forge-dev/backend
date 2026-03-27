@@ -18,7 +18,7 @@ export interface SubmitReviewSessionResult {
  * SubmitReviewSessionUseCase (Story 6-12)
  *
  * Stores Q&A pairs from the CLI reviewer agent on the ticket
- * and transitions status to REVIEW so the PM
+ * and transitions status to REFINED so the PM
  * can review the answers and trigger a re-bake.
  */
 @Injectable()

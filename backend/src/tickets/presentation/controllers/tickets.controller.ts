@@ -728,7 +728,7 @@ export class TicketsController {
 
   /**
    * Submit a review session from the CLI reviewer agent (Story 6-12)
-   * Stores Q&A pairs and transitions ticket to REVIEW.
+   * Stores Q&A pairs and transitions ticket to REFINED.
    */
   @Post(':id/review-session')
   async submitReviewSession(
@@ -746,7 +746,7 @@ export class TicketsController {
 
   /**
    * Start implementation via the forge Developer Agent (Story 10-2)
-   * Records branch name and optional Q&A, transitions FORGED → EXECUTING.
+   * Records branch name and optional Q&A, transitions APPROVED → EXECUTING.
    */
   @Post(':id/start-implementation')
   async startImplementation(
@@ -901,7 +901,7 @@ export class TicketsController {
    * PM triggers this after reviewing the developer's Q&A answers.
    * Calls TechSpecGenerator.generateWithAnswers() with stored Q&A as context,
    * then updates ticket's techSpec and acceptanceCriteria.
-   * Status stays REVIEW (approve is Story 7-8).
+   * Status stays REFINED (approve is Story 7-8).
    */
   @Post(':id/re-enrich')
   async reEnrichTicket(
@@ -928,8 +928,8 @@ export class TicketsController {
   /**
    * Approve ticket after PM reviews developer Q&A and re-baked spec (Story 7-8)
    *
-   * Transitions REVIEW → FORGED so the developer can execute the ticket.
-   * Returns 400 if ticket is not in REVIEW status.
+   * Transitions REFINED → APPROVED so the developer can execute the ticket.
+   * Returns 400 if ticket is not in REFINED status.
    */
   @Post(':id/approve')
   async approveTicket(

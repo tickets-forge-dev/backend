@@ -349,7 +349,7 @@ export class AEC {
 
   /**
    * Start implementation via the forge Developer Agent (Story 10-1).
-   * Transitions FORGED → EXECUTING without requiring an ExternalIssue.
+   * Transitions APPROVED → EXECUTING without requiring an ExternalIssue.
    * Stores the branch name and implementation Q&A session.
    */
   startImplementation(branchName: string, qaItems?: ReviewQAItem[]): void {
@@ -476,7 +476,7 @@ export class AEC {
 
   /**
    * Submit a review session with Q&A pairs from the CLI reviewer agent.
-   * Transitions the ticket to REVIEW so the PM can review.
+   * Transitions the ticket to REFINED so the PM can review.
    */
   submitReviewSession(qaItems: ReviewQAItem[]): void {
     this._reviewSession = {

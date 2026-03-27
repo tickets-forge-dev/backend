@@ -13,6 +13,7 @@ import {
   EstimationParams,
 } from '../../application/services/estimation-engine.interface';
 import { Estimate } from '../../domain/value-objects/Estimate';
+import { AECStatus } from '../../domain/value-objects/AECStatus';
 
 @Injectable()
 export class EstimationEngineService implements IEstimationEngine {
@@ -118,7 +119,7 @@ export class EstimationEngineService implements IEstimationEngine {
         .collection('aecs')
         .where('repositoryContext.repositoryName', '==', repositoryName)
         .where('type', '==', ticketType)
-        .where('status', 'in', ['executing', 'defined', 'dev-refining', 'created', 'validated'])
+        .where('status', 'in', [AECStatus.EXECUTING, AECStatus.DEFINED, AECStatus.DELIVERED, 'dev-refining', 'created', 'validated'])
         .limit(10)
         .get();
 
