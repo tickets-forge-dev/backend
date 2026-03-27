@@ -951,7 +951,6 @@ export function TicketDetailLayout({
           <TabsContent value="delivered" className="mt-6">
             <div className="max-w-3xl xl:max-w-4xl mx-auto">
               <ChangeRecordTab
-                ticketId={ticketId}
                 changeRecord={ticket.changeRecord}
                 onReviewDelivery={onReviewDelivery}
               />
