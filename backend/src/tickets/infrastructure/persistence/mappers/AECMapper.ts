@@ -1,5 +1,6 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
+import { ChangeRecordStatus } from '../../../domain/value-objects/ChangeRecord';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { Attachment } from '../../../domain/value-objects/Attachment';
@@ -98,6 +99,20 @@ export interface AECDocument {
   generationJobId?: string | null;
   approvedAt?: Timestamp | null;
   forgedAt?: Timestamp | null;
+  executionEvents?: any[];
+  changeRecord?: {
+    executionSummary: string;
+    decisions: any[];
+    risks: any[];
+    scopeChanges: any[];
+    filesChanged: any[];
+    divergences: any[];
+    hasDivergence: boolean;
+    status: string;
+    reviewNote: string | null;
+    reviewedAt: Timestamp | null;
+    submittedAt: Timestamp;
+  } | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
@@ -273,6 +288,24 @@ export class AECMapper {
       (doc.previousStatus as AECStatus) ?? null,
       doc.generationJobId ?? null,
       (doc.approvedAt ?? doc.forgedAt) ? toDate((doc.approvedAt ?? doc.forgedAt)!) : null,
+      // Execution events — stored as plain objects, dates need conversion
+      (doc.executionEvents || []).map((e: any) => ({
+        ...e,
+        createdAt: toDate(e.createdAt),
+      })),
+      // Change Record
+      doc.changeRecord
+        ? {
+            ...doc.changeRecord,
+            status: doc.changeRecord.status as ChangeRecordStatus,
+            reviewedAt: doc.changeRecord.reviewedAt ? toDate(doc.changeRecord.reviewedAt) : null,
+            submittedAt: toDate(doc.changeRecord.submittedAt),
+            // Convert event dates within the record
+            decisions: (doc.changeRecord.decisions || []).map((e: any) => ({ ...e, createdAt: toDate(e.createdAt) })),
+            risks: (doc.changeRecord.risks || []).map((e: any) => ({ ...e, createdAt: toDate(e.createdAt) })),
+            scopeChanges: (doc.changeRecord.scopeChanges || []).map((e: any) => ({ ...e, createdAt: toDate(e.createdAt) })),
+          }
+        : null,
     );
   }
 
@@ -359,6 +392,36 @@ export class AECMapper {
       previousStatus: aec.previousStatus ?? null,
       generationJobId: aec.generationJobId ?? null,
       approvedAt: aec.approvedAt ? Timestamp.fromDate(aec.approvedAt) : null,
+      executionEvents: aec.executionEvents.map((e) => ({
+        ...e,
+        createdAt: Timestamp.fromDate(e.createdAt),
+      })),
+      changeRecord: aec.changeRecord
+        ? {
+            executionSummary: aec.changeRecord.executionSummary,
+            filesChanged: aec.changeRecord.filesChanged,
+            divergences: aec.changeRecord.divergences,
+            hasDivergence: aec.changeRecord.hasDivergence,
+            status: aec.changeRecord.status,
+            reviewNote: aec.changeRecord.reviewNote,
+            reviewedAt: aec.changeRecord.reviewedAt
+              ? Timestamp.fromDate(aec.changeRecord.reviewedAt)
+              : null,
+            submittedAt: Timestamp.fromDate(aec.changeRecord.submittedAt),
+            decisions: aec.changeRecord.decisions.map((e) => ({
+              ...e,
+              createdAt: Timestamp.fromDate(e.createdAt),
+            })),
+            risks: aec.changeRecord.risks.map((e) => ({
+              ...e,
+              createdAt: Timestamp.fromDate(e.createdAt),
+            })),
+            scopeChanges: aec.changeRecord.scopeChanges.map((e) => ({
+              ...e,
+              createdAt: Timestamp.fromDate(e.createdAt),
+            })),
+          }
+        : null,
     };
   }
 }
