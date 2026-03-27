@@ -21,6 +21,7 @@ import { EditItemDialog, type EditState } from '@/src/tickets/components/EditIte
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
 import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
+import { useTeamStore } from '@/teams/stores/team.store';
 import { toast } from 'sonner';
 
 interface TicketDetailPageProps {
@@ -85,6 +86,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
+  const { currentTeam, teamMembers, loadTeamMembers } = useTeamStore();
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -120,6 +122,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       fetchTicket(ticketId);
     }
   }, [ticketId, fetchTicket]);
+
+  // Ensure team members are loaded (needed for "Created by" name resolution)
+  useEffect(() => {
+    if (currentTeam?.id && teamMembers.length === 0) {
+      loadTeamMembers(currentTeam.id);
+    }
+  }, [currentTeam?.id, teamMembers.length, loadTeamMembers]);
 
 
   // Sync description draft when ticket loads
@@ -1088,7 +1097,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             </DialogTitle>
             <DialogDescription>
               {needsAssignWarning
-                ? 'Dev-Refine requires a developer to review and refine the spec. No developer is currently assigned to this ticket.'
+                ? 'Dev Review requires a developer to review and refine the spec. No developer is currently assigned to this ticket.'
                 : `This will move the ticket from ${getStatusLabel(currentTicket.status)} to ${getStatusLabel(pendingTransition ?? '')}.`
               }
             </DialogDescription>

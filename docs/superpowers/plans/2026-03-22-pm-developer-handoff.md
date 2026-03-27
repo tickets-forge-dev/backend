@@ -462,7 +462,7 @@ if (filter === 'mine') {
 
 ```bash
 git add forge-cli/src/mcp/tools/list-tickets.ts
-git commit -m "feat: show wait time and priority sort in /forge:list mine
+git commit -m "feat: show wait time and priority sort in /forge:tickets mine
 
 FORGED tickets show 'waiting X days' column. Results sorted by
 priority (urgent first) when using filter: mine."
@@ -488,7 +488,7 @@ Expected: Clean compile.
 2. PM clicks "Approve" → unassigned → nudge dialog appears
 3. PM picks a developer → assign fires → approve fires → `forgedAt` set → email sent
 4. Ticket grid shows "Approved" badge with "2 days" in amber
-5. Developer runs `/forge:list` with `filter: mine` → sees ticket with "2 days" waiting, sorted by priority
+5. Developer runs `/forge:tickets` with `filter: mine` → sees ticket with "2 days" waiting, sorted by priority
 6. Developer picks ticket → starts implementation
 
 - [ ] **Step 4: Commit any remaining changes (if any)**

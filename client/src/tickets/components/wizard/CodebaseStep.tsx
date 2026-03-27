@@ -241,8 +241,8 @@ const lifecycleSteps = [
   {
     icon: Rocket,
     color: 'text-green-500',
-    title: 'Approved and executed',
-    description: 'PM approves the final spec. The developer runs guided implementation — the AI builds exactly what was agreed.',
+    title: 'Ready and executed',
+    description: 'PM marks the spec as Ready. The developer runs guided implementation — the AI builds exactly what was agreed.',
   },
 ];
 

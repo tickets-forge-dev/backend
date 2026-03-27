@@ -118,6 +118,7 @@ export interface AECResponse {
   apiContext?: string | null;
   approvedAt: string | null;
   createdBy: string | null;
+  createdByName?: string | null;
   createdAt: string;
   updatedAt: string;
   executionEvents: ExecutionEventResponse[];

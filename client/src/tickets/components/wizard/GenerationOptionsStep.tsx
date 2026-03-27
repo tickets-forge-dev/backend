@@ -235,7 +235,7 @@ export function GenerationOptionsStep() {
         {/* ─── API Card ─── */}
         <ToggleOptionCard
           title="API Endpoints"
-          description={apiSpecDeferred ? 'Developer will decide during dev-refine' : 'REST endpoint specs, payloads, routes'}
+          description={apiSpecDeferred ? 'Developer will decide during Dev Review' : 'REST endpoint specs, payloads, routes'}
           icon={<Zap className={`h-5 w-5 flex-shrink-0 ${
             apiSpecDeferred
               ? 'text-[var(--text-secondary)]'
@@ -261,7 +261,7 @@ export function GenerationOptionsStep() {
                   className="h-4 w-4 rounded border-[var(--border)] text-[var(--text-secondary)] focus:ring-[var(--border-hover)]"
                 />
                 <span className="text-xs text-[var(--text-secondary)]">
-                  Let developer decide during dev-refine
+                  Let developer decide during Dev Review
                 </span>
               </label>
               {apiSpecDeferred && (

@@ -29,15 +29,15 @@ const LOGIN_SEQUENCE: Line[] = [
 
 /* ── Scene 2: Claude Code — list tickets & develop ─────────── */
 const CLAUDE_SEQUENCE: Line[] = [
-  { text: '> /forge:list', type: 'user', delay: 0 },
+  { text: '> /forge:tickets', type: 'user', delay: 0 },
   { text: '', type: 'empty', delay: 400 },
-  { text: '▼  forge.list_tickets(status: "approved")', type: 'tool', delay: 300 },
+  { text: '▼  forge.list_tickets(status: "ready")', type: 'tool', delay: 300 },
   { text: '', type: 'empty', delay: 500 },
-  { text: '  AEC-2437  Add webhook retry logic      Approved', type: 'dim', delay: 200 },
-  { text: '  AEC-2501  Rate limiter for API v2       Approved', type: 'dim', delay: 150 },
-  { text: '  AEC-2489  Fix email template rendering  Approved', type: 'dim', delay: 150 },
+  { text: '  AEC-2437  Add webhook retry logic      Ready', type: 'dim', delay: 200 },
+  { text: '  AEC-2501  Rate limiter for API v2       Ready', type: 'dim', delay: 150 },
+  { text: '  AEC-2489  Fix email template rendering  Ready', type: 'dim', delay: 150 },
   { text: '', type: 'empty', delay: 300 },
-  { text: '3 approved tickets. Which would you like to develop?', type: 'claude', delay: 300 },
+  { text: '3 ready tickets. Which would you like to develop?', type: 'claude', delay: 300 },
   { text: '', type: 'empty', delay: 700 },
   { text: '> develop AEC-2437', type: 'user', delay: 0 },
   { text: '', type: 'empty', delay: 400 },

@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2 } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -184,6 +184,16 @@ export function TicketDetailLayout({
   const isDraft = ticket.status === 'draft';
   const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent) || (isDraft && hasTechSpecContent);
   const [showSkipReviewWarning, setShowSkipReviewWarning] = useState(false);
+
+  const handleSendToReview = () => {
+    if (!ticket.assignedTo) {
+      // Open assign dialog — after assignment, user can transition to defined
+      onAssignDialogOpenChange?.(true);
+      return;
+    }
+    // Transition to defined (developer review)
+    onStatusTransition?.('defined');
+  };
 
   const handleApprove = async () => {
     // If approving from DEV_REFINING (skipping developer review), show warning first
@@ -460,31 +470,66 @@ export function TicketDetailLayout({
         </div>
       )}
 
-      {/* Approve directly from draft — PM-only workflow, no developer needed */}
+      {/* Draft CTA — guide PM toward developer review (refine-first flow) */}
       {isDraft && hasTechSpecContent && (
         <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
-          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--text-primary)]">
-              Spec is ready — approve and mark as Ready?
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
-              You can approve now, or assign a developer to review and refine the spec first.
-            </p>
-          </div>
-          <Button
-            onClick={handleApprove}
-            disabled={isApproving}
-            variant="outline"
-            className="flex-shrink-0"
-          >
-            {isApproving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <ShieldCheck className="h-4 w-4 mr-2" />
-            )}
-            Approve
-          </Button>
+          {ticket.assignedTo ? (
+            <>
+              <ArrowRight className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Ready for developer review
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                  Send the spec to the developer for code-aware refinement
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  {isApproving ? 'Approving...' : 'or approve directly →'}
+                </button>
+                <Button
+                  onClick={handleSendToReview}
+                  variant="outline"
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Send to Review
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Ready for developer review
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                  Assign a developer to refine the spec with code context
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  {isApproving ? 'Approving...' : 'or approve without review →'}
+                </button>
+                <Button
+                  onClick={handleSendToReview}
+                  variant="outline"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Assign Developer
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

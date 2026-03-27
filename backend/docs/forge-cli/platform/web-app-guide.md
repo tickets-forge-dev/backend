@@ -15,7 +15,7 @@ The dashboard shows all tickets for your team, with filtering and sorting option
 
 | Filter | Options |
 |--------|---------|
-| **Status** | Draft, Defined, Refined, Approved, Executing, Delivered |
+| **Status** | Define, Dev Review, PM Review, Ready, Executing, Done |
 | **Priority** | Low, Medium, High, Urgent |
 | **Type** | Feature, Bug, Task |
 | **Assignee** | Any team member |
@@ -193,7 +193,7 @@ You can review and edit the spec before moving forward.
 
 ## Review Session
 
-When a developer submits a review via the CLI (`forge review`), the ticket transitions to **Refined** status. You'll see the developer's Q&A pairs in the ticket detail view.
+When a developer submits a review via the CLI (`forge review`), the ticket transitions to **PM Review** status. You'll see the developer's Q&A pairs in the ticket detail view.
 
 ### Reading Developer Q&A
 
@@ -217,7 +217,7 @@ You can re-bake multiple times until the spec is right.
 
 ### Approving
 
-When the spec looks good, click **Approve**. The ticket transitions from **Refined** to **Approved**.
+When the spec looks good, click **Approve**. The ticket transitions from **PM Review** to **Ready**.
 
 > :thumbsup: Approving locks the AEC. The developer now has a verified contract to execute against.
 
@@ -226,7 +226,7 @@ When the spec looks good, click **Approve**. The ticket transitions from **Refin
 Assign a team member from the ticket detail view:
 - Select from the assignee dropdown
 - The assigned developer receives access to the ticket via CLI
-- Assignment works at any status except Delivered
+- Assignment works at any status except Done
 
 To unassign, clear the assignee field.
 
@@ -260,7 +260,7 @@ Attachments are available to both the web app and CLI users.
 
 ## Exporting Tickets
 
-Push an Approved ticket to your project tracker:
+Push a Ready ticket to your project tracker:
 
 ### Linear
 Export directly to a Linear workspace. The AEC content is formatted as a Linear issue with:

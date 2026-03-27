@@ -540,7 +540,20 @@ export class TicketsController {
         .filter((t) => t.getScope() === 'team' || (t.getScope() === 'private' && t.getCreatedBy() === userId))
         .map((t) => t.getId()),
     );
-    return this.mapToResponse(aec, visibleTagIds);
+    const response = this.mapToResponse(aec, visibleTagIds);
+
+    // Resolve creator display name from Firebase Auth
+    let createdByName: string | null = null;
+    if (aec.createdBy) {
+      try {
+        const creator = await this.firebaseService.getAuth().getUser(aec.createdBy);
+        createdByName = creator.displayName || creator.email || null;
+      } catch {
+        // User may have been deleted — ignore
+      }
+    }
+
+    return { ...response, createdByName };
   }
 
   @Get()

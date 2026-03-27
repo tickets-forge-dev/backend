@@ -119,9 +119,9 @@ Transition a ticket to a new status.
 
 **Returns:** Updated ticket data.
 
-**Use case:** The AI transitions tickets during execution — for example, moving from Approved to Executing when starting work.
+**Use case:** The AI transitions tickets during execution — for example, moving from Ready to Executing when starting work.
 
-> :construction: Status transitions are enforced by the domain model. Invalid transitions (e.g., Draft to Approved) will be rejected.
+> :construction: Status transitions are enforced by the domain model. Invalid transitions (e.g., Define to Ready) will be rejected.
 
 ---
 
@@ -136,7 +136,7 @@ Submit a set of Q&A pairs from a review session.
 
 **Returns:** Updated ticket data with the review session attached.
 
-**Use case:** After the AI completes a review session (asking and answering technical questions), it submits the Q&A pairs to the API. The ticket transitions to Refined status.
+**Use case:** After the AI completes a review session (asking and answering technical questions), it submits the Q&A pairs to the API. The ticket transitions to PM Review status.
 
 ---
 
@@ -236,7 +236,7 @@ Configures the AI as a **dev-executor** — an experienced developer who impleme
 4. Fetches repository context via `get_repository_context`
 5. Presents the AI with a complete implementation brief
 
-**When to use:** When you want the AI to implement an Approved ticket end-to-end.
+**When to use:** When you want the AI to implement a Ready ticket end-to-end.
 
 ---
 

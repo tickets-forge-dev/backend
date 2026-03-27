@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Ticket {
   title: string;
-  status: 'Ready' | 'Draft' | 'Refining' | 'Approved';
+  status: 'Ready' | 'Draft' | 'Dev Review' | 'Define';
   priority: 'Urgent' | 'High' | 'Medium' | 'Low';
   assignee: string;
   score: number;
@@ -14,20 +14,19 @@ interface Ticket {
 const TICKETS: Ticket[] = [
   { title: 'Add webhook retry logic', status: 'Ready', priority: 'Urgent', assignee: 'Idan A.', score: 94, delay: 0 },
   { title: 'Login flow for GitHub OAuth', status: 'Ready', priority: 'High', assignee: 'Idan A.', score: 88, delay: 120 },
-  { title: 'As a user I want to be able...', status: 'Refining', priority: 'High', assignee: 'Idan A.', score: 72, delay: 240 },
-  { title: 'Update the onboarding UX', status: 'Draft', priority: 'Medium', assignee: 'Idan A.', score: 45, delay: 360 },
-  { title: 'Can\'t login with GitHub SSO', status: 'Draft', priority: 'High', assignee: '\u2014', score: 31, delay: 480 },
-  { title: 'As a user I can\'t access forge...', status: 'Draft', priority: 'Low', assignee: '\u2014', score: 28, delay: 600 },
-  { title: 'As a user I want to have bet...', status: 'Draft', priority: 'Medium', assignee: '\u2014', score: 22, delay: 720 },
-  { title: 'As a PM I want to add labels...', status: 'Draft', priority: 'Low', assignee: 'Idan A.', score: 18, delay: 840 },
+  { title: 'As a user I want to be able...', status: 'Dev Review', priority: 'High', assignee: 'Idan A.', score: 72, delay: 240 },
+  { title: 'Update the onboarding UX', status: 'Define', priority: 'Medium', assignee: 'Idan A.', score: 45, delay: 360 },
+  { title: 'Can\'t login with GitHub SSO', status: 'Define', priority: 'High', assignee: '\u2014', score: 31, delay: 480 },
+  { title: 'As a user I can\'t access forge...', status: 'Define', priority: 'Low', assignee: '\u2014', score: 28, delay: 600 },
+  { title: 'As a user I want to have bet...', status: 'Define', priority: 'Medium', assignee: '\u2014', score: 22, delay: 720 },
+  { title: 'As a PM I want to add labels...', status: 'Define', priority: 'Low', assignee: 'Idan A.', score: 18, delay: 840 },
 ];
 
 function statusColor(status: Ticket['status']) {
   switch (status) {
     case 'Ready': return 'bg-emerald-500/20 text-emerald-400';
-    case 'Approved': return 'bg-blue-500/20 text-blue-400';
-    case 'Refining': return 'bg-amber-500/20 text-amber-400';
-    case 'Draft': return 'bg-[#333] text-[#888]';
+    case 'Dev Review': return 'bg-purple-500/20 text-purple-400';
+    case 'Define': return 'bg-[#333] text-[#888]';
   }
 }
 

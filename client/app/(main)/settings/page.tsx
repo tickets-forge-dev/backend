@@ -27,6 +27,11 @@ function UsageSection() {
   const percent = quota.usagePercent;
   const barColor = 'bg-[var(--text-tertiary)]';
 
+  // Tokens reset on the 1st of next month
+  const now = new Date();
+  const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const resetLabel = resetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
   const formatTokens = (n: number) =>
     n >= 1_000_000
       ? `${(n / 1_000_000).toFixed(1)}M`
@@ -43,7 +48,7 @@ function UsageSection() {
           <div className="flex items-center justify-between text-[var(--text-sm)]">
             <div>
               <p className="font-medium text-[var(--text)]">Token usage</p>
-              <p className="text-[var(--text-tertiary)] text-[11px] mt-0.5">{percent}% of monthly allowance</p>
+              <p className="text-[var(--text-tertiary)] text-[11px] mt-0.5">{percent}% of monthly allowance · Resets {resetLabel}</p>
             </div>
             <span className="text-[var(--text-secondary)] text-xs">
               {formatTokens(quota.tokensUsed)} / {formatTokens(quota.tokenLimit)}

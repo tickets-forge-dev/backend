@@ -56,9 +56,9 @@ function DesktopFlowDiagram() {
         <circle cx="512" cy="52" r="12" fill="#8b5cf6" />
         <text x="512" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">AI</text>
 
-        {/* Node 3: Dev-Refine */}
+        {/* Node 3: Dev Review */}
         <rect x="600" y="50" width="230" height="80" rx="16" fill="#18181b" stroke="#3b82f6" strokeWidth="1.5" />
-        <text x="715" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev-Refine</text>
+        <text x="715" y="82" textAnchor="middle" fill="#e4e4e7" fontSize="15" fontWeight="600" fontFamily="system-ui">Dev Review</text>
         <text x="715" y="106" textAnchor="middle" fill="#a1a1aa" fontSize="11" fontFamily="system-ui">Enriches with code context</text>
         <circle cx="812" cy="52" r="12" fill="#3b82f6" />
         <text x="812" y="56" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">MCP</text>
@@ -75,7 +75,7 @@ function DesktopFlowDiagram() {
         <circle cx="522" cy="202" r="12" fill="#f59e0b" />
         <text x="522" y="206" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="system-ui">Web</text>
 
-        {/* Arrow from Dev-Refine down to Review */}
+        {/* Arrow from Dev Review down to Review */}
         <line x1="715" y1="200" x2="540" y2="230" stroke="#525252" strokeWidth="2" markerEnd="url(#arrow-gray)" />
 
         {/* ROW 3: Ticket Ready */}
@@ -133,16 +133,16 @@ function MobileFlowDiagram() {
 
       <div className="w-full max-w-[300px] rounded-2xl border border-blue-500/50 bg-[#18181b] p-5 text-center relative">
         <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-[10px]">MCP</div>
-        <p className="font-semibold text-[15px] mb-1">Dev-Refine</p>
+        <p className="font-semibold text-[15px] mb-1">Dev Review</p>
         <p className="text-[var(--text-secondary)] text-xs">Enriches with code context</p>
       </div>
       <ArrowDownIcon />
 
       <div className="w-full max-w-[300px] rounded-2xl border border-amber-500/50 bg-[#18181b] p-5 text-center relative">
         <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-[10px]">Web</div>
-        <p className="font-semibold text-[15px] mb-1">Review &amp; Approve</p>
+        <p className="font-semibold text-[15px] mb-1">PM Review</p>
         <p className="text-[var(--text-secondary)] text-xs">Validates intent is preserved</p>
-        <p className="text-purple-400 text-[11px] mt-2">&#8635; needs more context? back to Dev-Refine</p>
+        <p className="text-purple-400 text-[11px] mt-2">&#8635; needs more context? back to Dev Review</p>
       </div>
       <ArrowDownIcon />
 

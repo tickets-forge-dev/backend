@@ -45,7 +45,7 @@ function MockTerminal() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[var(--text-tertiary)]">$</span>
-            <span className="text-[var(--text-secondary)]">forge list</span>
+            <span className="text-[var(--text-secondary)]">forge tickets</span>
           </div>
           <div className="mt-2 space-y-1.5 pl-4">
             <div className="flex items-center gap-4">

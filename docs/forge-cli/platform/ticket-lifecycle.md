@@ -7,7 +7,7 @@ Every ticket in Forge moves through a defined lifecycle from initial draft to de
 ## Lifecycle Flow
 
 ```
-Draft → Defined → Refined → Approved → Executing → Delivered
+Define → Dev Review → PM Review → Ready → Executing → Done
 ```
 
 Tickets can also be **Archived** from any status.
@@ -16,12 +16,12 @@ Tickets can also be **Archived** from any status.
 
 | Status | Value | Description |
 |--------|-------|-------------|
-| `Draft` | `draft` | Initial state. Ticket has been created but not yet worked on. |
-| `Defined` | `defined` | A developer has begun refining the ticket. Spec generation may be in progress. |
-| `Refined` | `refined` | The spec is complete. The ticket has been reviewed and is awaiting PM approval. |
-| `Approved` | `approved` | PM has approved the ticket. Ready for a developer to begin implementation. |
-| `Executing` | `executing` | A developer has started implementation. Branch is created and linked. |
-| `Delivered` | `delivered` | Implementation is complete. PR created or work shipped. |
+| `Define` | `draft` | Initial state. PM creates and defines the ticket. |
+| `Dev Review` | `defined` | Developer reviews and refines the spec with code context. Optional — skip if no developer needed. |
+| `PM Review` | `refined` | PM reviews the developer's changes before approving. Only when a developer submits changes. |
+| `Ready` | `approved` | PM has marked the ticket as ready. Available for a developer to begin implementation. |
+| `Executing` | `executing` | Developer or AI agent is implementing. Branch is created and linked. |
+| `Done` | `delivered` | Implementation is complete. PR created or work shipped. |
 | `Archived` | `archived` | Ticket is no longer active. Can be set from any status. |
 
 ## Transition Rules
@@ -31,6 +31,7 @@ Tickets can also be **Archived** from any status.
 | `draft` | `defined` | Developer starts spec generation (`forge review`) |
 | `defined` | `refined` | Review session submitted (`forge review` completes) |
 | `refined` | `approved` | PM approves ticket (web UI or `update_ticket_status`) |
+| `draft` | `approved` | PM approves directly (skipping Dev Review) |
 | `approved` | `executing` | Developer starts implementation (`forge develop`) |
 | `executing` | `delivered` | Developer marks ticket delivered |
 | Any | `archived` | PM or developer archives the ticket |

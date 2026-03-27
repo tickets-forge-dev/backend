@@ -91,12 +91,12 @@ forge logout
 
 | Status | Value | CLI Visible |
 |--------|-------|-------------|
-| Draft | `draft` | Yes |
-| Defined | `defined` | Yes |
-| Refined | `refined` | Yes |
-| Approved | `approved` | Yes |
+| Define | `draft` | Yes |
+| Dev Review | `defined` | Yes |
+| PM Review | `refined` | Yes |
+| Ready | `approved` | Yes |
 | Executing | `executing` | Yes |
-| Delivered | `delivered` | Yes |
+| Done | `delivered` | Yes |
 | Archived | `archived` | Yes |
 
 ## Environment Variables
