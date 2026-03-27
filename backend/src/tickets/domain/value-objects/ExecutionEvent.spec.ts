@@ -1,4 +1,4 @@
-import { ExecutionEvent, ExecutionEventType, createExecutionEvent } from './ExecutionEvent';
+import { ExecutionEventType, createExecutionEvent } from './ExecutionEvent';
 
 describe('ExecutionEvent', () => {
   it('creates a decision event with all fields', () => {

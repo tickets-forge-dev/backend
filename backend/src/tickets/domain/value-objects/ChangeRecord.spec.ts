@@ -1,5 +1,4 @@
 import {
-  ChangeRecord,
   ChangeRecordStatus,
   FileChange,
   Divergence,
