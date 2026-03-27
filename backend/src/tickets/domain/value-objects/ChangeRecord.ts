@@ -61,6 +61,9 @@ export function createChangeRecord(input: CreateChangeRecordInput): ChangeRecord
 }
 
 export function acceptChangeRecord(record: ChangeRecord): ChangeRecord {
+  if (record.status !== ChangeRecordStatus.AWAITING_REVIEW) {
+    throw new Error(`Cannot accept a change record that is ${record.status}`);
+  }
   return {
     ...record,
     status: ChangeRecordStatus.ACCEPTED,
@@ -69,6 +72,9 @@ export function acceptChangeRecord(record: ChangeRecord): ChangeRecord {
 }
 
 export function requestChangesOnRecord(record: ChangeRecord, note: string): ChangeRecord {
+  if (record.status !== ChangeRecordStatus.AWAITING_REVIEW) {
+    throw new Error(`Cannot request changes on a change record that is ${record.status}`);
+  }
   if (!note || note.trim().length === 0) {
     throw new Error('Review note is required when requesting changes');
   }

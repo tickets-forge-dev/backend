@@ -30,7 +30,10 @@ export class ReviewDeliveryUseCase {
       if (command.action === 'accept') {
         aec.acceptDelivery();
       } else {
-        aec.requestChanges(command.note ?? '');
+        if (!command.note || command.note.trim().length === 0) {
+          throw new BadRequestException('Note is required when requesting changes');
+        }
+        aec.requestChanges(command.note);
       }
 
       await this.aecRepository.save(aec);

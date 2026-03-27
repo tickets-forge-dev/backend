@@ -218,6 +218,20 @@ describe('AEC — Execution Events & Change Record', () => {
       expect(aec.changeRecord!.hasDivergence).toBe(false);
     });
 
+    it('works with zero execution events', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      aec.deliver({
+        executionSummary: 'Simple implementation',
+        filesChanged: [{ path: 'src/index.ts', additions: 5, deletions: 0 }],
+        divergences: [],
+      });
+
+      expect(aec.status).toBe(AECStatus.DELIVERED);
+      expect(aec.changeRecord!.decisions).toHaveLength(0);
+      expect(aec.changeRecord!.risks).toHaveLength(0);
+      expect(aec.changeRecord!.scopeChanges).toHaveLength(0);
+    });
+
     it('throws if not EXECUTING', () => {
       const aec = makeAEC({ status: AECStatus.APPROVED });
       expect(() =>
@@ -233,45 +247,67 @@ describe('AEC — Execution Events & Change Record', () => {
   describe('acceptDelivery()', () => {
     it('sets Change Record to ACCEPTED', () => {
       const aec = makeAEC({ status: AECStatus.EXECUTING });
-      aec.deliver({
-        executionSummary: 'Done',
-        filesChanged: [],
-        divergences: [],
-      });
+      aec.deliver({ executionSummary: 'Done', filesChanged: [], divergences: [] });
 
       aec.acceptDelivery();
 
       expect(aec.changeRecord!.status).toBe(ChangeRecordStatus.ACCEPTED);
       expect(aec.changeRecord!.reviewedAt).toBeInstanceOf(Date);
-      expect(aec.status).toBe(AECStatus.DELIVERED); // stays DELIVERED
+      expect(aec.status).toBe(AECStatus.DELIVERED);
     });
 
     it('throws if no Change Record', () => {
       const aec = makeAEC({ status: AECStatus.DELIVERED });
       expect(() => aec.acceptDelivery()).toThrow('Change Record');
     });
+
+    it('throws on double-accept', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      aec.deliver({ executionSummary: 'Done', filesChanged: [], divergences: [] });
+      aec.acceptDelivery();
+
+      expect(() => aec.acceptDelivery()).toThrow('already');
+    });
   });
 
   describe('requestChanges()', () => {
     it('sends ticket back to EXECUTING with note', () => {
       const aec = makeAEC({ status: AECStatus.EXECUTING });
-      aec.deliver({
-        executionSummary: 'Done',
-        filesChanged: [],
-        divergences: [],
-      });
+      aec.deliver({ executionSummary: 'Done', filesChanged: [], divergences: [] });
 
       aec.requestChanges('Please use sliding window as specified');
 
       expect(aec.status).toBe(AECStatus.EXECUTING);
       expect(aec.changeRecord!.status).toBe(ChangeRecordStatus.CHANGES_REQUESTED);
       expect(aec.changeRecord!.reviewNote).toBe('Please use sliding window as specified');
-      expect(aec.executionEvents).toHaveLength(0); // events cleared
+      expect(aec.executionEvents).toHaveLength(0);
     });
 
     it('throws if not DELIVERED', () => {
       const aec = makeAEC({ status: AECStatus.EXECUTING });
       expect(() => aec.requestChanges('fix it')).toThrow('DELIVERED');
+    });
+
+    it('throws after accept (cannot request changes on accepted delivery)', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      aec.deliver({ executionSummary: 'Done', filesChanged: [], divergences: [] });
+      aec.acceptDelivery();
+
+      expect(() => aec.requestChanges('Nope')).toThrow('already');
+    });
+  });
+
+  describe('sendBack() from DELIVERED', () => {
+    it('clears changeRecord and executionEvents', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      aec.recordExecutionEvent({ type: ExecutionEventType.DECISION, title: 'test', description: 'test' });
+      aec.deliver({ executionSummary: 'Done', filesChanged: [], divergences: [] });
+
+      aec.sendBack(AECStatus.DRAFT);
+
+      expect(aec.status).toBe(AECStatus.DRAFT);
+      expect(aec.changeRecord).toBeNull();
+      expect(aec.executionEvents).toHaveLength(0);
     });
   });
 });

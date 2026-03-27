@@ -1,4 +1,4 @@
-import { IsString, IsIn, IsNotEmpty } from 'class-validator';
+import { IsString, IsIn, IsNotEmpty, MaxLength } from 'class-validator';
 
 export class RecordExecutionEventDto {
   @IsIn(['decision', 'risk', 'scope_change'])
@@ -6,9 +6,11 @@ export class RecordExecutionEventDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(500)
   title!: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(10000)
   description!: string;
 }

@@ -529,6 +529,12 @@ export class AEC {
       this._apiSnapshot = null;
     }
 
+    // Clear Change Record data when sending back from DELIVERED
+    if (currentLevel === 5) {
+      this._changeRecord = null;
+      this._executionEvents = [];
+    }
+
     this._approvedAt = null;
     this._status = targetStatus;
     this._updatedAt = new Date();

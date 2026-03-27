@@ -98,6 +98,20 @@ describe('ChangeRecord', () => {
       expect(accepted.status).toBe(ChangeRecordStatus.ACCEPTED);
       expect(accepted.reviewedAt).toBeInstanceOf(Date);
     });
+
+    it('throws if already ACCEPTED (double-accept)', () => {
+      const record = createChangeRecord({ executionSummary: 'Done', events: [], filesChanged: [], divergences: [] });
+      const accepted = acceptChangeRecord(record);
+
+      expect(() => acceptChangeRecord(accepted)).toThrow('Cannot accept');
+    });
+
+    it('throws if CHANGES_REQUESTED', () => {
+      const record = createChangeRecord({ executionSummary: 'Done', events: [], filesChanged: [], divergences: [] });
+      const rejected = requestChangesOnRecord(record, 'Fix it');
+
+      expect(() => acceptChangeRecord(rejected)).toThrow('Cannot accept');
+    });
   });
 
   describe('requestChanges', () => {
@@ -117,14 +131,15 @@ describe('ChangeRecord', () => {
     });
 
     it('throws if note is empty', () => {
-      const record = createChangeRecord({
-        executionSummary: 'Done',
-        events: [],
-        filesChanged: [],
-        divergences: [],
-      });
-
+      const record = createChangeRecord({ executionSummary: 'Done', events: [], filesChanged: [], divergences: [] });
       expect(() => requestChangesOnRecord(record, '')).toThrow('Review note is required');
+    });
+
+    it('throws if already ACCEPTED', () => {
+      const record = createChangeRecord({ executionSummary: 'Done', events: [], filesChanged: [], divergences: [] });
+      const accepted = acceptChangeRecord(record);
+
+      expect(() => requestChangesOnRecord(accepted, 'Nope')).toThrow('Cannot request changes');
     });
   });
 });

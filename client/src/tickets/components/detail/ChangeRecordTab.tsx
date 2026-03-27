@@ -5,12 +5,11 @@ import type { ChangeRecordResponse } from '@/services/ticket.service';
 import { DivergenceCard } from './DivergenceCard';
 
 interface ChangeRecordTabProps {
-  ticketId: string;
   changeRecord: ChangeRecordResponse;
   onReviewDelivery: (action: 'accept' | 'request_changes', note?: string) => Promise<void>;
 }
 
-export function ChangeRecordTab({ ticketId, changeRecord, onReviewDelivery }: ChangeRecordTabProps) {
+export function ChangeRecordTab({ changeRecord, onReviewDelivery }: ChangeRecordTabProps) {
   const [loading, setLoading] = useState(false);
   const [rejectNote, setRejectNote] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
