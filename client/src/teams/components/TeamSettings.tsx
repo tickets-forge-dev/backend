@@ -67,7 +67,7 @@ export function TeamSettings() {
       });
       setIsEditing(false);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to update team');
+      setSaveError(err instanceof Error ? err.message : 'Failed to update project');
     } finally {
       setIsSaving(false);
     }
@@ -107,7 +107,7 @@ export function TeamSettings() {
   if (isLoading && !currentTeam) {
     return (
       <div className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-        Loading team settings...
+        Loading project settings...
       </div>
     );
   }
@@ -126,7 +126,7 @@ export function TeamSettings() {
   if (!currentTeam) {
     return (
       <div className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-        No team selected. Please select a team from the sidebar.
+        No project selected. Please select a project from the sidebar.
       </div>
     );
   }
@@ -155,7 +155,7 @@ export function TeamSettings() {
         </div>
         {isOwner && !isEditing && (
           <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-            Edit Team
+            Edit Project
           </Button>
         )}
       </div>
@@ -165,12 +165,12 @@ export function TeamSettings() {
         <div className="space-y-4 rounded-lg border border-[var(--border)] p-4 bg-[var(--bg)]">
           {/* Team Name */}
           <div className="space-y-2">
-            <Label htmlFor="team-name">Team Name</Label>
+            <Label htmlFor="team-name">Project Name</Label>
             <Input
               id="team-name"
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
-              placeholder="Enter team name"
+              placeholder="Enter project name"
               minLength={3}
               maxLength={50}
             />
@@ -184,7 +184,7 @@ export function TeamSettings() {
             <div className="space-y-0.5">
               <Label htmlFor="allow-invites">Allow Member Invites</Label>
               <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                Let team members invite others
+                Let project members invite others
               </p>
             </div>
             <input
@@ -225,7 +225,7 @@ export function TeamSettings() {
       {!isOwner && (
         <div className="rounded-lg border border-[var(--border)] p-4 bg-[var(--bg-subtle)]">
           <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Only team owners can edit team settings.
+            Only project owners can edit project settings.
           </p>
         </div>
       )}
@@ -238,7 +238,7 @@ export function TeamSettings() {
               Danger Zone
             </h3>
             <p className="mt-1 text-[var(--text-xs)] text-red-600/70 dark:text-red-400/70">
-              Irreversible actions that affect your entire team
+              Irreversible actions that affect your entire project
             </p>
           </div>
           <Button
@@ -247,7 +247,7 @@ export function TeamSettings() {
             onClick={() => setShowDeleteDialog(true)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete Team
+            Delete Project
           </Button>
         </div>
       )}
@@ -256,10 +256,10 @@ export function TeamSettings() {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Team</DialogTitle>
+            <DialogTitle>Delete Project</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete <strong>{currentTeam.name}</strong>? This action
-              cannot be undone. All team members will lose access.
+              cannot be undone. All project members will lose access.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -271,7 +271,7 @@ export function TeamSettings() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete Team'}
+              {isDeleting ? 'Deleting...' : 'Delete Project'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -9,6 +9,7 @@ import { FinalizeSpecUseCase } from './FinalizeSpecUseCase';
 export interface SubmitQuestionAnswersCommand {
   aecId: string;
   teamId: string;
+  userId: string;
   answers: Record<string, string | string[]>; // questionId -> answer mapping
   /** If true, only record answers without triggering spec finalization */
   saveOnly?: boolean;
@@ -80,6 +81,7 @@ export class SubmitQuestionAnswersUseCase {
     const aecWithSpec = await this.finalizeSpecUseCase.execute({
       aecId: command.aecId,
       teamId: command.teamId,
+      userId: command.userId,
     });
 
     console.log(`✅ [SubmitQuestionAnswersUseCase] Tech spec finalized`);

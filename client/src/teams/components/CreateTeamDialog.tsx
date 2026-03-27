@@ -43,13 +43,13 @@ export function CreateTeamDialog({ trigger, open, onOpenChange, onSuccess }: Cre
   const validateName = (name: string): string | null => {
     const trimmed = name.trim();
     if (!trimmed) {
-      return 'Team name is required';
+      return 'Project name is required';
     }
     if (trimmed.length < 3) {
-      return 'Team name must be at least 3 characters';
+      return 'Project name must be at least 3 characters';
     }
     if (trimmed.length > 50) {
-      return 'Team name must be less than 50 characters';
+      return 'Project name must be less than 50 characters';
     }
     return null;
   };
@@ -86,7 +86,7 @@ export function CreateTeamDialog({ trigger, open, onOpenChange, onSuccess }: Cre
       await createTeam(teamName.trim());
 
       // Success!
-      toast.success('Team created! You are the Admin.');
+      toast.success('Project created! You are the Admin.');
 
       // Reset form and close dialog
       setTeamName('');
@@ -96,7 +96,7 @@ export function CreateTeamDialog({ trigger, open, onOpenChange, onSuccess }: Cre
       onSuccess?.();
     } catch (error) {
       // Error handling
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create team';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create project';
       toast.error(errorMessage);
       setValidationError(errorMessage);
     } finally {
@@ -119,20 +119,20 @@ export function CreateTeamDialog({ trigger, open, onOpenChange, onSuccess }: Cre
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create Team</DialogTitle>
+            <DialogTitle>Create Project</DialogTitle>
             <DialogDescription>
-              Create a new team to collaborate with others. You will be the team admin.
+              Create a new project to collaborate with others. You will be the project admin.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             <div className="space-y-2">
               <label htmlFor="teamName" className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                Team Name
+                Project Name
               </label>
               <Input
                 id="teamName"
-                placeholder="e.g., Engineering Team"
+                placeholder="e.g., Engineering Project"
                 value={teamName}
                 onChange={handleNameChange}
                 onBlur={handleNameBlur}
@@ -144,7 +144,7 @@ export function CreateTeamDialog({ trigger, open, onOpenChange, onSuccess }: Cre
                 <p className="text-[var(--text-xs)] text-red-500 mt-1">{validationError}</p>
               )}
               <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                Must be 3-50 characters
+                Must be 3-50 characters. You can invite team members after creating.
               </p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export function CreateTeamDialog({ trigger, open, onOpenChange, onSuccess }: Cre
               ) : (
                 <>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Team
+                  Create Project
                 </>
               )}
             </Button>

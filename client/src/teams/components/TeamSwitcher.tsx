@@ -77,7 +77,7 @@ export function TeamSwitcher() {
     return (
       <div className="border-b border-[var(--border)] p-3">
         <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] text-center">
-          Failed to load teams
+          Failed to load projects
         </div>
       </div>
     );
@@ -88,6 +88,11 @@ export function TeamSwitcher() {
 
   return (
     <div className="px-2.5 pb-2">
+      {!sidebarCollapsed && (
+        <span className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]/50 px-2 mb-1 block">
+          Project
+        </span>
+      )}
       <div className="flex items-center gap-1">
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
@@ -133,7 +138,7 @@ export function TeamSwitcher() {
           className="w-64 z-[var(--z-modal)]"
         >
           <DropdownMenuLabel className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-normal">
-            Switch Team
+            Switch Project
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {/* Personal Workspace Option */}
@@ -156,7 +161,7 @@ export function TeamSwitcher() {
           {/* Team List */}
           {teams.length === 0 ? (
             <div className="px-2 py-6 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
-              No teams available
+              No projects available
             </div>
           ) : (
             teams.map((team) => (
@@ -187,7 +192,7 @@ export function TeamSwitcher() {
                 className="cursor-pointer"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                <span className="text-[var(--text-sm)]">Create Team</span>
+                <span className="text-[var(--text-sm)]">Create Project</span>
               </DropdownMenuItem>
             }
             onSuccess={() => {
@@ -200,7 +205,7 @@ export function TeamSwitcher() {
       {currentTeam && !sidebarCollapsed && (
         <Link
           href={`/teams/${currentTeam.id}`}
-          title="Team settings"
+          title="Project settings"
           className={cn(
             'flex items-center justify-center rounded-md p-1.5 flex-shrink-0 transition-colors',
             'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'

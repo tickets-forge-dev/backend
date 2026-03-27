@@ -28,6 +28,7 @@ export class FirestoreTeamRepository {
       name: teamObj.name,
       slug: teamObj.slug,
       ownerId: teamObj.ownerId,
+      organizationId: teamObj.organizationId,
       settings: {
         defaultWorkspaceId: teamObj.settings.defaultWorkspaceId ?? null,
         allowMemberInvites: teamObj.settings.allowMemberInvites,
@@ -107,6 +108,7 @@ export class FirestoreTeamRepository {
       .update({
         name: teamObj.name,
         slug: teamObj.slug,
+        organizationId: teamObj.organizationId,
         settings: {
           defaultWorkspaceId: teamObj.settings.defaultWorkspaceId ?? null,
           allowMemberInvites: teamObj.settings.allowMemberInvites,
@@ -181,6 +183,7 @@ export class FirestoreTeamRepository {
         name: data.name,
         slug: data.slug,
         ownerId: data.ownerId,
+        organizationId: data.organizationId || '',
         settings: settings.toObject(),
         createdAt: createdAt,
         updatedAt: updatedAt,

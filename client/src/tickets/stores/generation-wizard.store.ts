@@ -57,6 +57,7 @@ interface WizardSnapshot {
   context: WizardState['context'];
   reproductionSteps: ReproductionStepSpec[];
   timestamp: number;
+  teamId?: string; // Project isolation: snapshots are only recoverable within the same project
   includeRepository: boolean; // AC#3: Persist repository inclusion preference
   includeWireframes: boolean;
   includeHtmlWireframes?: boolean;
@@ -80,6 +81,7 @@ function saveSnapshot(state: WizardState): void {
       context: state.context,
       reproductionSteps: state.reproductionSteps,
       timestamp: Date.now(),
+      teamId: useTeamStore.getState().currentTeam?.id ?? undefined,
       includeRepository: state.includeRepository, // AC#3: Persist repository inclusion
       includeWireframes: state.includeWireframes,
       includeHtmlWireframes: state.includeHtmlWireframes,
@@ -103,6 +105,11 @@ function loadSnapshot(): WizardSnapshot | null {
     // Discard snapshots older than 24h
     if (Date.now() - snapshot.timestamp > SNAPSHOT_TTL_MS) {
       localStorage.removeItem(WIZARD_STORAGE_KEY);
+      return null;
+    }
+    // Discard snapshots from a different project
+    const currentTeamId = useTeamStore.getState().currentTeam?.id ?? undefined;
+    if (snapshot.teamId !== currentTeamId) {
       return null;
     }
     // Migrate numeric currentStage → named WizardStage

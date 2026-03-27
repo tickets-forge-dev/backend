@@ -29,6 +29,7 @@ export class UserFactory {
     displayName: string;
     photoURL?: string;
     avatarEmoji?: string | null;
+    organizationId?: string | null;
     currentTeamId: string | null;
     teams: string[];
     createdAt: Date | string;
@@ -54,6 +55,7 @@ export class UserFactory {
       data.displayName,
       data.photoURL,
       data.avatarEmoji ?? null,
+      data.organizationId ?? null,
       currentTeamId,
       teams,
       createdAt,

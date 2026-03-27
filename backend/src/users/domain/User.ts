@@ -12,6 +12,7 @@ export class User {
   private readonly displayName: string;
   private readonly photoURL?: string;
   private readonly avatarEmoji: string | null;
+  private readonly organizationId: string | null;
   private readonly currentTeamId: TeamId | null;
   private readonly teams: TeamId[];
   private readonly createdAt: Date;
@@ -23,6 +24,7 @@ export class User {
     displayName: string,
     photoURL: string | undefined,
     avatarEmoji: string | null,
+    organizationId: string | null,
     currentTeamId: TeamId | null,
     teams: TeamId[],
     createdAt: Date,
@@ -33,6 +35,7 @@ export class User {
     this.displayName = displayName;
     this.photoURL = photoURL;
     this.avatarEmoji = avatarEmoji;
+    this.organizationId = organizationId;
     this.currentTeamId = currentTeamId;
     this.teams = teams;
     this.createdAt = createdAt;
@@ -60,6 +63,7 @@ export class User {
       displayName.trim() || email.split('@')[0],
       photoURL,
       avatarEmoji ?? null,
+      null, // No organization initially
       null, // No team initially
       [], // Empty teams array
       new Date(),
@@ -73,6 +77,7 @@ export class User {
     displayName: string,
     photoURL: string | undefined,
     avatarEmoji: string | null,
+    organizationId: string | null,
     currentTeamId: TeamId | null,
     teams: TeamId[],
     createdAt: Date,
@@ -84,6 +89,7 @@ export class User {
       displayName,
       photoURL,
       avatarEmoji,
+      organizationId,
       currentTeamId,
       teams,
       createdAt,
@@ -112,6 +118,10 @@ export class User {
     return this.avatarEmoji;
   }
 
+  getOrganizationId(): string | null {
+    return this.organizationId;
+  }
+
   getCurrentTeamId(): TeamId | null {
     return this.currentTeamId;
   }
@@ -137,6 +147,21 @@ export class User {
     return this.teams.some((t) => t.equals(teamId));
   }
 
+  setOrganizationId(orgId: string): User {
+    return new User(
+      this.userId,
+      this.email,
+      this.displayName,
+      this.photoURL,
+      this.avatarEmoji,
+      orgId,
+      this.currentTeamId,
+      this.teams,
+      this.createdAt,
+      new Date(),
+    );
+  }
+
   addTeam(teamId: TeamId): User {
     if (this.isMemberOfTeam(teamId)) {
       return this; // Already a member, no change
@@ -151,6 +176,7 @@ export class User {
       this.displayName,
       this.photoURL,
       this.avatarEmoji,
+      this.organizationId,
       updatedCurrentTeamId,
       updatedTeams,
       this.createdAt,
@@ -177,6 +203,7 @@ export class User {
       this.displayName,
       this.photoURL,
       this.avatarEmoji,
+      this.organizationId,
       updatedCurrentTeamId,
       updatedTeams,
       this.createdAt,
@@ -196,6 +223,7 @@ export class User {
       trimmed,
       this.photoURL,
       this.avatarEmoji,
+      this.organizationId,
       this.currentTeamId,
       this.teams,
       this.createdAt,
@@ -215,6 +243,7 @@ export class User {
         this.displayName,
         this.photoURL,
         this.avatarEmoji,
+        this.organizationId,
         null,
         this.teams,
         this.createdAt,
@@ -239,6 +268,7 @@ export class User {
       this.displayName,
       this.photoURL,
       this.avatarEmoji,
+      this.organizationId,
       teamId,
       this.teams,
       this.createdAt,
@@ -257,6 +287,7 @@ export class User {
       this.displayName,
       photoURL,
       avatarEmoji,
+      this.organizationId,
       this.currentTeamId,
       this.teams,
       this.createdAt,
@@ -272,6 +303,7 @@ export class User {
       displayName: this.displayName,
       photoURL: this.photoURL,
       avatarEmoji: this.avatarEmoji,
+      organizationId: this.organizationId,
       currentTeamId: this.currentTeamId?.getValue() || null,
       teams: this.teams.map((t) => t.getValue()),
       createdAt: this.createdAt.toISOString(),

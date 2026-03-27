@@ -26,6 +26,10 @@ import {
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
 import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
+import {
   TechSpecGenerator,
   TechSpecInput,
   ProblemStatement,
@@ -567,6 +571,8 @@ export class TechSpecGeneratorImpl implements TechSpecGenerator {
     private readonly telemetryService: TelemetryService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY)
+    private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
   ) {
     const provider = this.configService.get<string>('LLM_PROVIDER') || 'anthropic';
 
@@ -2291,6 +2297,14 @@ Rewritten text (definitive, unambiguous):`;
               this.logger.warn(`Failed to increment token usage: ${err.message}`);
             });
           }
+
+          if (ctx?.userId) {
+            const userMonth = new Date().toISOString().slice(0, 7);
+            const userTotalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+            this.userUsageBudgetRepository.incrementTokens(ctx.userId, userMonth, userTotalTokens).catch((err) => {
+              this.logger.warn(`Failed to increment user token usage: ${err.message}`);
+            });
+          }
         }
 
         this.logger.debug(`LLM response (${this.providerName}): ${text.length} chars`);
@@ -2365,6 +2379,14 @@ Rewritten text (definitive, unambiguous):`;
             const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
             this.usageBudgetRepository.incrementTokens(ctx.teamId, month, totalTokens).catch((err) => {
               this.logger.warn(`Failed to increment token usage: ${err.message}`);
+            });
+          }
+
+          if (ctx?.userId) {
+            const userMonth = new Date().toISOString().slice(0, 7);
+            const userTotalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+            this.userUsageBudgetRepository.incrementTokens(ctx.userId, userMonth, userTotalTokens).catch((err) => {
+              this.logger.warn(`Failed to increment user token usage: ${err.message}`);
             });
           }
         }
@@ -2445,6 +2467,14 @@ Rewritten text (definitive, unambiguous):`;
             const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
             this.usageBudgetRepository.incrementTokens(ctx.teamId, month, totalTokens).catch((err) => {
               this.logger.warn(`Failed to increment token usage: ${err.message}`);
+            });
+          }
+
+          if (ctx?.userId) {
+            const userMonth = new Date().toISOString().slice(0, 7);
+            const userTotalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+            this.userUsageBudgetRepository.incrementTokens(ctx.userId, userMonth, userTotalTokens).catch((err) => {
+              this.logger.warn(`Failed to increment user token usage: ${err.message}`);
             });
           }
         }
@@ -2711,6 +2741,14 @@ ${solutionContext}${designBlock}${stackBlock}
           const totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
           this.usageBudgetRepository.incrementTokens(ctx.teamId, month, totalTokens).catch((err: any) => {
             this.logger.warn(`Failed to increment token usage: ${err.message}`);
+          });
+        }
+
+        if (ctx?.userId) {
+          const userMonth = new Date().toISOString().slice(0, 7);
+          const userTotalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+          this.userUsageBudgetRepository.incrementTokens(ctx.userId, userMonth, userTotalTokens).catch((err: any) => {
+            this.logger.warn(`Failed to increment user token usage: ${err.message}`);
           });
         }
       }

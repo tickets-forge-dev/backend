@@ -16,6 +16,7 @@ import { TagsModule } from './tags/tags.module';
 import { JobsModule } from './jobs/jobs.module';
 import { ProjectProfilesModule } from './project-profiles/project-profiles.module';
 import { UsersModule } from './users/users.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
       envFilePath: '.env',
     }),
     SharedModule,
+    OrganizationsModule,
     AuthModule,
     TeamsModule, // CRITICAL FIX: Register teams endpoints
     WorkspacesModule,

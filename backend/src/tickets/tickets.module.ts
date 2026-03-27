@@ -78,6 +78,8 @@ import { TeamsModule } from '../teams/teams.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UsageBudgetRepository';
 import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUsageBudgetRepository';
+import { USER_USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UserUsageBudgetRepository';
+import { FirestoreUserUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUserUsageBudgetRepository';
 import { ProjectProfilesModule } from '../project-profiles/project-profiles.module';
 import { FoldersModule } from '../folders/folders.module';
 import { TagsModule } from '../tags/tags.module';
@@ -172,6 +174,10 @@ import { TagsModule } from '../tags/tags.module';
       useClass: FirestoreUsageBudgetRepository,
     },
     {
+      provide: USER_USAGE_BUDGET_REPOSITORY,
+      useClass: FirestoreUserUsageBudgetRepository,
+    },
+    {
       provide: DRIFT_DETECTOR,
       useClass: DriftDetectorService,
     },
@@ -217,6 +223,7 @@ import { TagsModule } from '../tags/tags.module';
     EstimateEffortUseCase,
     AEC_REPOSITORY,
     USAGE_BUDGET_REPOSITORY,
+    USER_USAGE_BUDGET_REPOSITORY,
     DRIFT_DETECTOR,
     ESTIMATION_ENGINE,
     TECH_SPEC_GENERATOR,

@@ -41,9 +41,9 @@ export function OverviewTab({ team }: OverviewTabProps) {
             )}
           </div>
 
-          {/* Team ID */}
+          {/* Project ID */}
           <div>
-            <p className="text-sm text-[var(--text-muted)]">Team ID</p>
+            <p className="text-sm text-[var(--text-muted)]">Project ID</p>
             <p className="mt-1 font-mono text-sm text-[var(--text)]">{team.id}</p>
           </div>
 
@@ -55,7 +55,7 @@ export function OverviewTab({ team }: OverviewTabProps) {
                 <Users className="h-5 w-5 text-[var(--primary)]" />
               </div>
               <div>
-                <p className="text-sm text-[var(--text-muted)]">Team Members</p>
+                <p className="text-sm text-[var(--text-muted)]">Project Members</p>
                 <p className="mt-1 text-2xl font-semibold text-[var(--text)]">
                   {activeMembers + pendingInvites}
                 </p>
@@ -79,15 +79,15 @@ export function OverviewTab({ team }: OverviewTabProps) {
         </div>
       </div>
 
-      {/* Team Slug */}
+      {/* Project Slug */}
       <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/30 p-6">
         <div>
-          <p className="text-sm font-medium text-[var(--text)]">Team Slug</p>
+          <p className="text-sm font-medium text-[var(--text)]">Project Slug</p>
           <p className="mt-2 font-mono text-sm text-[var(--text-muted)]">
             {team.slug}
           </p>
           <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Used in URLs and API requests to identify this team
+            Used in URLs and API requests to identify this project
           </p>
         </div>
       </div>

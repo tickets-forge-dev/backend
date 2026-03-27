@@ -39,6 +39,10 @@ import {
   UsageBudgetRepository,
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
+import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -183,6 +187,8 @@ export class TicketsController {
     private readonly telemetry: TelemetryService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY)
+    private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
     private readonly firebaseService: FirebaseService,
     @Inject(PROJECT_PROFILE_REPOSITORY)
     private readonly projectProfileRepository: ProjectProfileRepository,
@@ -477,23 +483,27 @@ export class TicketsController {
   @Get('quota')
   async getQuota(
     @TeamId() teamId: string,
+    @UserId() userId: string,
   ) {
     const month = new Date().toISOString().slice(0, 7);
-    const budget = await this.usageBudgetRepository.getOrCreate(teamId, month);
-    const usagePercent = budget.tokenLimit > 0
-      ? Math.round((budget.tokensUsed / budget.tokenLimit) * 100)
+    const userBudget = await this.userUsageBudgetRepository.getOrCreate(userId, month);
+    const teamBudget = await this.usageBudgetRepository.getOrCreate(teamId, month);
+    const usagePercent = userBudget.tokenLimit > 0
+      ? Math.round((userBudget.tokensUsed / userBudget.tokenLimit) * 100)
       : 0;
     const canCreate =
-      budget.tokensUsed < budget.tokenLimit &&
-      budget.ticketsCreatedToday < budget.dailyTicketLimit;
+      userBudget.tokensUsed < userBudget.tokenLimit &&
+      userBudget.ticketsCreatedToday < userBudget.dailyTicketLimit;
 
     return {
-      tokensUsed: budget.tokensUsed,
-      tokenLimit: budget.tokenLimit,
-      ticketsCreatedToday: budget.ticketsCreatedToday,
-      dailyTicketLimit: budget.dailyTicketLimit,
+      tokensUsed: userBudget.tokensUsed,
+      tokenLimit: userBudget.tokenLimit,
+      ticketsCreatedToday: userBudget.ticketsCreatedToday,
+      dailyTicketLimit: userBudget.dailyTicketLimit,
       canCreate,
       usagePercent,
+      subscriptionTier: userBudget.subscriptionTier,
+      teamTokensUsed: teamBudget.tokensUsed,
     };
   }
 
@@ -1006,6 +1016,7 @@ export class TicketsController {
       const aec = await this.submitQuestionAnswersUseCase.execute({
         aecId,
         teamId,
+        userId,
         answers: dto.answers ?? {},
         saveOnly: dto.saveOnly,
       });
@@ -1042,12 +1053,13 @@ export class TicketsController {
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
   @Post(':id/finalize')
-  async finalizeSpec(@TeamId() teamId: string, @Param('id') id: string) {
+  async finalizeSpec(@TeamId() teamId: string, @UserId() userId: string, @Param('id') id: string) {
     const aecId = await this.resolveTicketId(id, teamId);
     try {
       const aec = await this.finalizeSpecUseCase.execute({
         aecId,
         teamId,
+        userId,
       });
 
       return this.mapToResponse(aec);
@@ -1450,7 +1462,12 @@ export class TicketsController {
    */
   private async resolveTicketId(idOrSlug: string, teamId: string): Promise<string> {
     if (idOrSlug.startsWith('aec_')) {
-      return idOrSlug;
+      // Verify ticket belongs to this team (prevents cross-project access by ID)
+      const aec = await this.aecRepository.findByIdInTeam(idOrSlug, teamId);
+      if (!aec) {
+        throw new NotFoundException('Ticket not found');
+      }
+      return aec.id;
     }
     const aec = await this.aecRepository.findBySlug(idOrSlug, teamId);
     if (!aec) {
@@ -1686,7 +1703,7 @@ export class TicketsController {
         repositoryOwner: dto.repositoryOwner,
         repositoryName: dto.repositoryName,
         projectName: dto.projectName,
-        workspaceId: teamId, teamId,
+        workspaceId: teamId, teamId, userId,
         onProgress: (step: string, message: string) => {
           // Stream progress events as analysis proceeds
           res.write(`data: ${JSON.stringify({
@@ -1841,6 +1858,7 @@ export class TicketsController {
   @Post('bulk/finalize')
   async finalizeMultipleTickets(
     @TeamId() teamId: string,
+    @UserId() userId: string,
     @Body() dto: BulkFinalizeDto,
     @Res() res: Response,
   ) {
@@ -1856,6 +1874,7 @@ export class TicketsController {
     try {
       const result = await this.finalizeMultipleTicketsUseCase.execute({
         teamId,
+        userId,
         answers: dto.answers,
         onProgress: (event) => {
           // Send progress event via SSE

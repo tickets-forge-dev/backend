@@ -23,6 +23,10 @@ import {
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
 import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
+import {
   PRDBreakdownCommand,
   PRDBreakdownResult,
   PRDBreakdownTicket,
@@ -63,6 +67,8 @@ export class PRDBreakdownService implements OnModuleInit {
     private readonly telemetryService: TelemetryService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY)
+    private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
   ) {}
 
   onModuleInit() {
@@ -505,6 +511,14 @@ Guidelines:
       const totalTokens = inputTokens + outputTokens;
       this.usageBudgetRepository.incrementTokens(trackingContext.teamId, month, totalTokens).catch((err) => {
         this.logger.warn(`Failed to increment token usage: ${err.message}`);
+      });
+    }
+
+    if (trackingContext?.userId) {
+      const userMonth = new Date().toISOString().slice(0, 7);
+      const userTotalTokens = inputTokens + outputTokens;
+      this.userUsageBudgetRepository.incrementTokens(trackingContext.userId, userMonth, userTotalTokens).catch((err) => {
+        this.logger.warn(`Failed to increment user token usage: ${err.message}`);
       });
     }
   }

@@ -13,6 +13,10 @@ import {
   UsageBudgetRepository,
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
+import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
 import { NotificationService } from '../../../notifications/notification.service';
 import {
   ProjectProfileRepository,
@@ -25,6 +29,7 @@ import {
 export interface FinalizeSpecCommand {
   aecId: string;
   teamId: string;
+  userId?: string;
 }
 
 /**
@@ -70,6 +75,8 @@ export class FinalizeSpecUseCase {
     private readonly githubFileService: GitHubFileService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY)
+    private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
     private readonly notificationService: NotificationService,
     @Inject(PROJECT_PROFILE_REPOSITORY)
     private readonly projectProfileRepository: ProjectProfileRepository,
@@ -81,16 +88,6 @@ export class FinalizeSpecUseCase {
   async execute(command: FinalizeSpecCommand): Promise<AEC> {
     console.log(`✨ [FinalizeSpecUseCase] Finalizing spec for AEC ${command.aecId}`);
 
-    // Check token budget before LLM calls
-    const month = new Date().toISOString().slice(0, 7);
-    const budget = await this.usageBudgetRepository.getOrCreate(command.teamId, month);
-    if (budget.tokensUsed >= budget.tokenLimit) {
-      throw new ForbiddenException({
-        message: `Token quota exceeded: ${budget.tokensUsed}/${budget.tokenLimit}`,
-        code: 'QUOTA_EXCEEDED',
-      });
-    }
-
     // Load AEC
     const aec = await this.aecRepository.findById(command.aecId);
     if (!aec) {
@@ -100,6 +97,17 @@ export class FinalizeSpecUseCase {
     // Verify workspace ownership
     if (aec.teamId !== command.teamId) {
       throw new BadRequestException('Workspace mismatch');
+    }
+
+    // Check token budget before LLM calls (user-level enforcement)
+    const month = new Date().toISOString().slice(0, 7);
+    const userId = command.userId ?? aec.createdBy;
+    const budget = await this.userUsageBudgetRepository.getOrCreate(userId, month);
+    if (budget.tokensUsed >= budget.tokenLimit) {
+      throw new ForbiddenException({
+        message: `Token quota exceeded: ${budget.tokensUsed}/${budget.tokenLimit}`,
+        code: 'QUOTA_EXCEEDED',
+      });
     }
 
     // Get question answers (single set, no rounds)
