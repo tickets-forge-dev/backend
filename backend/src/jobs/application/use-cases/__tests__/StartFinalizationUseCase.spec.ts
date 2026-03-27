@@ -166,13 +166,22 @@ describe('StartFinalizationUseCase', () => {
     });
 
     it('should throw ConflictException when AEC has no answers', async () => {
-      // Given: AEC without answers
+      // Given: AEC with questions but no answers
       const aec = AEC.createDraft(
         defaultCommand.teamId,
         defaultCommand.userId,
         'Test Ticket',
         'Description',
       );
+      // Add questions so the no-answers validation is triggered
+      aec.setQuestions([
+        {
+          id: 'q1',
+          question: 'What framework?',
+          type: 'radio' as const,
+          options: ['React', 'Vue'],
+        },
+      ]);
       mockAecRepository.findById.mockResolvedValue(aec);
 
       // When/Then

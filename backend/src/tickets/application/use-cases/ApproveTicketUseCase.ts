@@ -53,7 +53,7 @@ export class ApproveTicketUseCase {
       );
     }
 
-    // 4. Approve — transitions to FORGED
+    // 4. Approve — transitions to APPROVED
     aec.approve();
 
     // 5. Persist

@@ -57,7 +57,7 @@ After adding the config, restart your AI assistant.
 
 ## MCP Tools
 
-The Forge MCP server exposes 6 tools that AI assistants can call:
+The Forge MCP server exposes 10 tools that AI assistants can call:
 
 ### `get_ticket_context`
 
@@ -119,9 +119,9 @@ Transition a ticket to a new status.
 
 **Returns:** Updated ticket data.
 
-**Use case:** The AI transitions tickets during execution — for example, moving from Forged to Executing when starting work.
+**Use case:** The AI transitions tickets during execution — for example, moving from Approved to Executing when starting work.
 
-> :construction: Status transitions are enforced by the domain model. Invalid transitions (e.g., Draft to Forged) will be rejected.
+> :construction: Status transitions are enforced by the domain model. Invalid transitions (e.g., Draft to Approved) will be rejected.
 
 ---
 
@@ -136,7 +136,7 @@ Submit a set of Q&A pairs from a review session.
 
 **Returns:** Updated ticket data with the review session attached.
 
-**Use case:** After the AI completes a review session (asking and answering technical questions), it submits the Q&A pairs to the API. The ticket transitions to Review status.
+**Use case:** After the AI completes a review session (asking and answering technical questions), it submits the Q&A pairs to the API. The ticket transitions to Refined status.
 
 ---
 
@@ -156,6 +156,71 @@ Record a developer's implementation branch and transition the ticket to Executin
 
 ---
 
+### `report_decision`
+
+Record a key decision made during implementation. Posts an execution event of type `decision` to the ticket.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ticketId` | string | Yes | The ticket ID |
+| `summary` | string | Yes | Short description of the decision made |
+| `rationale` | string | No | Why this decision was made |
+
+**Returns:** The created execution event.
+
+**Backend endpoint:** `POST /tickets/:id/execution-events` with `{ "type": "decision", ... }`
+
+---
+
+### `report_risk`
+
+Record a risk or blocker identified during implementation. Posts an execution event of type `risk` to the ticket.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ticketId` | string | Yes | The ticket ID |
+| `summary` | string | Yes | Short description of the risk |
+| `severity` | string | No | Risk severity: `low`, `medium`, or `high` |
+
+**Returns:** The created execution event.
+
+**Backend endpoint:** `POST /tickets/:id/execution-events` with `{ "type": "risk", ... }`
+
+---
+
+### `report_scope_change`
+
+Record a scope deviation from the original AEC. Posts an execution event of type `scope_change` to the ticket.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ticketId` | string | Yes | The ticket ID |
+| `summary` | string | Yes | What changed from the original scope |
+| `reason` | string | No | Why the scope change was necessary |
+
+**Returns:** The created execution event.
+
+**Backend endpoint:** `POST /tickets/:id/execution-events` with `{ "type": "scope_change", ... }`
+
+---
+
+### `submit_settlement`
+
+Submit the final implementation summary, create a Change Record, and transition the ticket from `executing` to `delivered`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ticketId` | string | Yes | The ticket ID |
+| `summary` | string | Yes | High-level summary of what was implemented |
+| `filesChanged` | array | No | List of file paths that were modified |
+| `prUrl` | string | No | URL of the pull request |
+
+**Returns:** Updated ticket in `delivered` status with an attached Change Record.
+
+**Backend endpoint:** `POST /tickets/:id/settle` — creates a Change Record and transitions the ticket to `delivered`.
+
+---
+
 ## MCP Prompts
 
 The Forge MCP server also provides 3 prompts — pre-built personas that configure the AI for specific workflows.
@@ -171,7 +236,7 @@ Configures the AI as a **dev-executor** — an experienced developer who impleme
 4. Fetches repository context via `get_repository_context`
 5. Presents the AI with a complete implementation brief
 
-**When to use:** When you want the AI to implement a Forged ticket end-to-end.
+**When to use:** When you want the AI to implement an Approved ticket end-to-end.
 
 ---
 

@@ -7,7 +7,7 @@ The Forge CLI embeds an MCP (Model Context Protocol) server that exposes ticket 
 The MCP server starts automatically when you run a `forge` command that requires it:
 
 ```bash
-forge review <ticketId>   # starts MCP for the review agent
+forge review <ticketId>   # starts MCP for the refine agent
 forge develop <ticketId>  # starts MCP for the developer agent
 ```
 
@@ -157,6 +157,124 @@ Records that implementation has started on a ticket. Transitions ticket from `ap
   }
 }
 ```
+
+### `report_decision`
+
+Records a key decision made during implementation. Posts an execution event of type `decision` to the ticket.
+
+```json
+{
+  "name": "report_decision",
+  "description": "Record a key decision made during implementation.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ticketId": { "type": "string" },
+      "summary": {
+        "type": "string",
+        "description": "Short description of the decision made"
+      },
+      "rationale": {
+        "type": "string",
+        "description": "Why this decision was made"
+      }
+    },
+    "required": ["ticketId", "summary"]
+  }
+}
+```
+
+**Backend endpoint:** `POST /tickets/:id/execution-events` with `{ "type": "decision", ... }`
+
+### `report_risk`
+
+Records a risk or blocker identified during implementation. Posts an execution event of type `risk` to the ticket.
+
+```json
+{
+  "name": "report_risk",
+  "description": "Record a risk or blocker identified during implementation.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ticketId": { "type": "string" },
+      "summary": {
+        "type": "string",
+        "description": "Short description of the risk"
+      },
+      "severity": {
+        "type": "string",
+        "enum": ["low", "medium", "high"],
+        "description": "Risk severity level"
+      }
+    },
+    "required": ["ticketId", "summary"]
+  }
+}
+```
+
+**Backend endpoint:** `POST /tickets/:id/execution-events` with `{ "type": "risk", ... }`
+
+### `report_scope_change`
+
+Records a scope deviation from the original AEC. Posts an execution event of type `scope_change` to the ticket.
+
+```json
+{
+  "name": "report_scope_change",
+  "description": "Record a scope change or deviation from the original spec.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ticketId": { "type": "string" },
+      "summary": {
+        "type": "string",
+        "description": "What changed from the original scope"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Why the scope change was necessary"
+      }
+    },
+    "required": ["ticketId", "summary"]
+  }
+}
+```
+
+**Backend endpoint:** `POST /tickets/:id/execution-events` with `{ "type": "scope_change", ... }`
+
+### `submit_settlement`
+
+Submits the final implementation summary, creates a Change Record, and transitions the ticket from `executing` to `delivered`.
+
+```json
+{
+  "name": "submit_settlement",
+  "description": "Submit implementation summary and transition ticket to DELIVERED. Creates a Change Record.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "ticketId": { "type": "string" },
+      "summary": {
+        "type": "string",
+        "description": "High-level summary of what was implemented"
+      },
+      "filesChanged": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of files that were modified"
+      },
+      "prUrl": {
+        "type": "string",
+        "description": "URL of the pull request (optional)"
+      }
+    },
+    "required": ["ticketId", "summary"]
+  }
+}
+```
+
+**Backend endpoint:** `POST /tickets/:id/settle` — creates a Change Record and transitions the ticket to `delivered`.
 
 ## Available MCP Prompts
 
