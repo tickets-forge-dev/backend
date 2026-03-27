@@ -10,7 +10,12 @@ import { FirestoreUserRepository } from '../../infrastructure/persistence/Firest
 export class GetUserProfileUseCase {
   constructor(private readonly userRepository: FirestoreUserRepository) {}
 
-  async execute(userId: string): Promise<{ firstName: string; lastName: string }> {
+  async execute(userId: string): Promise<{
+    firstName: string;
+    lastName: string;
+    photoURL: string | undefined;
+    avatarEmoji: string | null;
+  }> {
     const user = await this.userRepository.getById(userId);
     if (!user) {
       throw new NotFoundException(`User ${userId} not found`);
@@ -21,6 +26,11 @@ export class GetUserProfileUseCase {
     const firstName = parts[0] || '';
     const lastName = parts.slice(1).join(' ') || '';
 
-    return { firstName, lastName };
+    return {
+      firstName,
+      lastName,
+      photoURL: user.getPhotoURL(),
+      avatarEmoji: user.getAvatarEmoji(),
+    };
   }
 }

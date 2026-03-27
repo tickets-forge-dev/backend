@@ -13,6 +13,7 @@ import {
 } from '@/core/components/ui/dropdown-menu';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
+import { useUserStore } from '@/stores/user-store';
 import { useState } from 'react';
 
 // Get user initials for avatar
@@ -29,6 +30,7 @@ export function SidebarHeader() {
   const router = useRouter();
   const { user, signOut } = useAuthStore();
   const { sidebarCollapsed, resetOnboarding } = useUIStore();
+  const avatarEmoji = useUserStore((s) => s.profile?.avatarEmoji);
   const [imgError, setImgError] = useState(false);
 
   const handleSignOut = async () => {
@@ -46,8 +48,12 @@ export function SidebarHeader() {
             variant="ghost"
             className={`w-full gap-2 py-1 h-auto ${sidebarCollapsed ? 'justify-center px-0' : 'justify-start px-2'}`}
           >
-            {/* Avatar */}
-            {user.photoURL && !imgError ? (
+            {/* Avatar: emoji > photo > initials */}
+            {avatarEmoji ? (
+              <div className="h-6 w-6 min-w-6 min-h-6 rounded-full bg-[var(--bg-hover)] flex items-center justify-center flex-shrink-0">
+                <span className="text-sm leading-none">{avatarEmoji}</span>
+              </div>
+            ) : user.photoURL && !imgError ? (
               <img
                 src={user.photoURL}
                 alt={user.displayName || 'User'}

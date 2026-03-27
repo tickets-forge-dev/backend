@@ -29,6 +29,7 @@ export class FirestoreUserRepository {
         email: userObj.email,
         displayName: userObj.displayName,
         photoURL: userObj.photoURL || null,
+        avatarEmoji: userObj.avatarEmoji || null,
         currentTeamId: userObj.currentTeamId,
         teams: userObj.teams,
         createdAt: new Date(userObj.createdAt),
@@ -90,6 +91,7 @@ export class FirestoreUserRepository {
       .update({
         displayName: userObj.displayName,
         photoURL: userObj.photoURL || null,
+        avatarEmoji: userObj.avatarEmoji || null,
         currentTeamId: userObj.currentTeamId,
         teams: userObj.teams,
         updatedAt: new Date(userObj.updatedAt),
@@ -130,6 +132,7 @@ export class FirestoreUserRepository {
         email: data.email,
         displayName: data.displayName,
         photoURL: data.photoURL || undefined,
+        avatarEmoji: data.avatarEmoji || null,
         currentTeamId: data.currentTeamId || null,
         teams: data.teams || [],
         createdAt: createdAt,

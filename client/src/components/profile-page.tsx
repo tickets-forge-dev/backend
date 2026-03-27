@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useUserStore } from '@/stores/user-store';
 import { UserApiService } from '@/src/api/user-api';
 import { validateProfileField } from '@/src/utils/validation';
+import { AvatarEditor } from './avatar-editor';
 
 const userApi = new UserApiService();
 
@@ -113,6 +114,19 @@ export function ProfilePage() {
           </Button>
         </Link>
       </div>
+
+      {/* Avatar */}
+      <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-4">
+        <div>
+          <h2 className="text-[var(--text-md)] font-medium text-[var(--text)]">
+            Avatar
+          </h2>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Upload a photo or choose an emoji
+          </p>
+        </div>
+        <AvatarEditor />
+      </section>
 
       {/* Profile Form */}
       <section className="rounded-lg bg-[var(--bg-subtle)] p-6 space-y-6">

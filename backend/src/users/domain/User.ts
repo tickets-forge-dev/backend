@@ -11,6 +11,7 @@ export class User {
   private readonly email: string;
   private readonly displayName: string;
   private readonly photoURL?: string;
+  private readonly avatarEmoji: string | null;
   private readonly currentTeamId: TeamId | null;
   private readonly teams: TeamId[];
   private readonly createdAt: Date;
@@ -21,6 +22,7 @@ export class User {
     email: string,
     displayName: string,
     photoURL: string | undefined,
+    avatarEmoji: string | null,
     currentTeamId: TeamId | null,
     teams: TeamId[],
     createdAt: Date,
@@ -30,6 +32,7 @@ export class User {
     this.email = email;
     this.displayName = displayName;
     this.photoURL = photoURL;
+    this.avatarEmoji = avatarEmoji;
     this.currentTeamId = currentTeamId;
     this.teams = teams;
     this.createdAt = createdAt;
@@ -42,6 +45,7 @@ export class User {
     email: string,
     displayName: string,
     photoURL?: string,
+    avatarEmoji?: string | null,
   ): User {
     if (!userId || userId.trim().length === 0) {
       throw new Error('User ID is required');
@@ -55,6 +59,7 @@ export class User {
       email.trim(),
       displayName.trim() || email.split('@')[0],
       photoURL,
+      avatarEmoji ?? null,
       null, // No team initially
       [], // Empty teams array
       new Date(),
@@ -67,6 +72,7 @@ export class User {
     email: string,
     displayName: string,
     photoURL: string | undefined,
+    avatarEmoji: string | null,
     currentTeamId: TeamId | null,
     teams: TeamId[],
     createdAt: Date,
@@ -77,6 +83,7 @@ export class User {
       email,
       displayName,
       photoURL,
+      avatarEmoji,
       currentTeamId,
       teams,
       createdAt,
@@ -99,6 +106,10 @@ export class User {
 
   getPhotoURL(): string | undefined {
     return this.photoURL;
+  }
+
+  getAvatarEmoji(): string | null {
+    return this.avatarEmoji;
   }
 
   getCurrentTeamId(): TeamId | null {
@@ -139,6 +150,7 @@ export class User {
       this.email,
       this.displayName,
       this.photoURL,
+      this.avatarEmoji,
       updatedCurrentTeamId,
       updatedTeams,
       this.createdAt,
@@ -164,6 +176,7 @@ export class User {
       this.email,
       this.displayName,
       this.photoURL,
+      this.avatarEmoji,
       updatedCurrentTeamId,
       updatedTeams,
       this.createdAt,
@@ -182,6 +195,7 @@ export class User {
       this.email,
       trimmed,
       this.photoURL,
+      this.avatarEmoji,
       this.currentTeamId,
       this.teams,
       this.createdAt,
@@ -200,6 +214,7 @@ export class User {
         this.email,
         this.displayName,
         this.photoURL,
+        this.avatarEmoji,
         null,
         this.teams,
         this.createdAt,
@@ -223,7 +238,26 @@ export class User {
       this.email,
       this.displayName,
       this.photoURL,
+      this.avatarEmoji,
       teamId,
+      this.teams,
+      this.createdAt,
+      new Date(),
+    );
+  }
+
+  /**
+   * Update avatar - either photo URL or emoji
+   * Setting a photo clears the emoji, setting an emoji clears the photo.
+   */
+  updateAvatar(photoURL: string | undefined, avatarEmoji: string | null): User {
+    return new User(
+      this.userId,
+      this.email,
+      this.displayName,
+      photoURL,
+      avatarEmoji,
+      this.currentTeamId,
       this.teams,
       this.createdAt,
       new Date(),
@@ -237,6 +271,7 @@ export class User {
       email: this.email,
       displayName: this.displayName,
       photoURL: this.photoURL,
+      avatarEmoji: this.avatarEmoji,
       currentTeamId: this.currentTeamId?.getValue() || null,
       teams: this.teams.map((t) => t.getValue()),
       createdAt: this.createdAt.toISOString(),
