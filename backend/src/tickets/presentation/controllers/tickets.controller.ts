@@ -1505,6 +1505,37 @@ export class TicketsController {
       createdBy: aec.createdBy ?? null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
+      executionEvents: (aec.executionEvents ?? []).map((e: any) => ({
+        id: e.id,
+        type: e.type,
+        title: e.title,
+        description: e.description,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      changeRecord: aec.changeRecord
+        ? {
+            executionSummary: aec.changeRecord.executionSummary,
+            decisions: aec.changeRecord.decisions.map((e: any) => ({
+              id: e.id, type: e.type, title: e.title, description: e.description,
+              createdAt: e.createdAt.toISOString(),
+            })),
+            risks: aec.changeRecord.risks.map((e: any) => ({
+              id: e.id, type: e.type, title: e.title, description: e.description,
+              createdAt: e.createdAt.toISOString(),
+            })),
+            scopeChanges: aec.changeRecord.scopeChanges.map((e: any) => ({
+              id: e.id, type: e.type, title: e.title, description: e.description,
+              createdAt: e.createdAt.toISOString(),
+            })),
+            filesChanged: aec.changeRecord.filesChanged,
+            divergences: aec.changeRecord.divergences,
+            hasDivergence: aec.changeRecord.hasDivergence,
+            status: aec.changeRecord.status,
+            reviewNote: aec.changeRecord.reviewNote,
+            reviewedAt: aec.changeRecord.reviewedAt?.toISOString() ?? null,
+            submittedAt: aec.changeRecord.submittedAt.toISOString(),
+          }
+        : null,
     };
   }
 

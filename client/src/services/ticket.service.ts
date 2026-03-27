@@ -13,6 +13,41 @@ export interface CreateTicketRequest {
   folderId?: string;
 }
 
+export interface FileChange {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+export interface Divergence {
+  area: string;
+  intended: string;
+  actual: string;
+  justification: string;
+}
+
+export interface ExecutionEventResponse {
+  id: string;
+  type: 'decision' | 'risk' | 'scope_change';
+  title: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface ChangeRecordResponse {
+  executionSummary: string;
+  decisions: ExecutionEventResponse[];
+  risks: ExecutionEventResponse[];
+  scopeChanges: ExecutionEventResponse[];
+  filesChanged: FileChange[];
+  divergences: Divergence[];
+  hasDivergence: boolean;
+  status: 'awaiting_review' | 'accepted' | 'changes_requested';
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  submittedAt: string;
+}
+
 export interface AttachmentResponse {
   id: string;
   fileName: string;
@@ -85,6 +120,8 @@ export interface AECResponse {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  executionEvents: ExecutionEventResponse[];
+  changeRecord: ChangeRecordResponse | null;
 }
 
 export class TicketService {
@@ -311,6 +348,19 @@ export class TicketService {
       { instruction, currentElements },
     );
     return response.data.elements;
+  }
+
+  // Review a delivery (accept or request changes)
+  async reviewDelivery(
+    ticketId: string,
+    action: 'accept' | 'request_changes',
+    note?: string,
+  ): Promise<{ success: boolean }> {
+    const response = await this.client.post<{ success: boolean }>(
+      `/tickets/${ticketId}/review-delivery`,
+      { action, note },
+    );
+    return response.data;
   }
 }
 
