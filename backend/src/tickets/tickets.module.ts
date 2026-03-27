@@ -67,6 +67,7 @@ import { ApproveTicketUseCase } from './application/use-cases/ApproveTicketUseCa
 import { StartImplementationUseCase } from './application/use-cases/StartImplementationUseCase';
 import { RecordExecutionEventUseCase } from './application/use-cases/RecordExecutionEventUseCase';
 import { SubmitSettlementUseCase } from './application/use-cases/SubmitSettlementUseCase';
+import { ReviewDeliveryUseCase } from './application/use-cases/ReviewDeliveryUseCase';
 import { RefineWireframeUseCase } from './application/use-cases/RefineWireframeUseCase';
 import { GenerateWireframesUseCase } from './application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from './application/use-cases/ArchiveAECUseCase';
@@ -126,6 +127,7 @@ import { TagsModule } from '../tags/tags.module';
     StartImplementationUseCase,
     RecordExecutionEventUseCase,
     SubmitSettlementUseCase,
+    ReviewDeliveryUseCase,
     RefineWireframeUseCase,
     GenerateWireframesUseCase,
     ArchiveAECUseCase,

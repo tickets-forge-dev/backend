@@ -107,6 +107,8 @@ import { RecordExecutionEventUseCase } from '../../application/use-cases/RecordE
 import { RecordExecutionEventDto } from '../dto/RecordExecutionEventDto';
 import { SubmitSettlementUseCase } from '../../application/use-cases/SubmitSettlementUseCase';
 import { SubmitSettlementDto } from '../dto/SubmitSettlementDto';
+import { ReviewDeliveryUseCase } from '../../application/use-cases/ReviewDeliveryUseCase';
+import { ReviewDeliveryDto } from '../dto/ReviewDeliveryDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
 import { GenerateWireframesUseCase } from '../../application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
@@ -173,6 +175,7 @@ export class TicketsController {
     private readonly startImplementationUseCase: StartImplementationUseCase,
     private readonly recordExecutionEventUseCase: RecordExecutionEventUseCase,
     private readonly submitSettlementUseCase: SubmitSettlementUseCase,
+    private readonly reviewDeliveryUseCase: ReviewDeliveryUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
     private readonly generateWireframesUseCase: GenerateWireframesUseCase,
     private readonly archiveAECUseCase: ArchiveAECUseCase,
@@ -776,6 +779,26 @@ export class TicketsController {
       executionSummary: dto.executionSummary,
       filesChanged: dto.filesChanged,
       divergences: dto.divergences ?? [],
+    });
+  }
+
+  /**
+   * PM reviews a delivered ticket — accepts or requests changes.
+   * Accept keeps status DELIVERED and marks ChangeRecord as ACCEPTED.
+   * Request changes sends ticket back to EXECUTING with a note.
+   */
+  @Post(':id/review-delivery')
+  async reviewDelivery(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: ReviewDeliveryDto,
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    return this.reviewDeliveryUseCase.execute({
+      ticketId: aecId,
+      teamId,
+      action: dto.action,
+      note: dto.note,
     });
   }
 
