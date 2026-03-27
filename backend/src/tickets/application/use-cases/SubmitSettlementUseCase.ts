@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject, Logger } from '@nestjs/common';
 import { AECRepository, AEC_REPOSITORY } from '../ports/AECRepository';
 import { InvalidStateTransitionError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { FileChange, Divergence } from '../../domain/value-objects/ChangeRecord';
+import { NotificationService } from '../../../notifications/notification.service';
 
 export interface SubmitSettlementCommand {
   ticketId: string;
@@ -13,9 +14,12 @@ export interface SubmitSettlementCommand {
 
 @Injectable()
 export class SubmitSettlementUseCase {
+  private readonly logger = new Logger(SubmitSettlementUseCase.name);
+
   constructor(
     @Inject(AEC_REPOSITORY)
     private readonly aecRepository: AECRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(command: SubmitSettlementCommand) {
@@ -36,6 +40,13 @@ export class SubmitSettlementUseCase {
       });
 
       await this.aecRepository.save(aec);
+
+      // Notify ticket creator that delivery is ready for review (fire-and-forget)
+      if (aec.createdBy) {
+        void this.notificationService
+          .notifyTicketReadyForReview(command.ticketId, aec.createdBy, aec.title)
+          .catch((err) => this.logger.warn('Notification failed (settlement)', err));
+      }
 
       return { success: true, ticketId: aec.id, status: aec.status };
     } catch (error) {
