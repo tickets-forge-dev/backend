@@ -109,7 +109,7 @@ export function ToggleOptionCard({
             toggleDisabled
               ? 'bg-gray-300 dark:bg-gray-600 opacity-50 cursor-not-allowed'
               : enabled
-                ? 'bg-[var(--text-tertiary)] cursor-pointer'
+                ? 'bg-emerald-500/60 cursor-pointer'
                 : 'bg-gray-300 dark:bg-gray-600 cursor-pointer'
           }`}
         >

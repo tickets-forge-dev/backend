@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -111,6 +111,8 @@ export function TicketDetailLayout({
   const sideNavLeft = sidebarCollapsed ? 'left-[calc(4rem+1rem)]' : 'left-[calc(var(--nav-width)+1rem)]';
   const [isApproving, setIsApproving] = useState(false);
   const [isReEnriching, setIsReEnriching] = useState(false);
+  const [cliCopied, setCliCopied] = useState(false);
+  const [cliHowToOpen, setCliHowToOpen] = useState(false);
   const [isAecExpanded, setIsAecExpanded] = useState(false);
   const [aecXml, setAecXml] = useState<string | null>(null);
   const [isLoadingXml, setIsLoadingXml] = useState(false);
@@ -472,6 +474,8 @@ export function TicketDetailLayout({
 
       {/* Draft CTA — guide PM toward developer review (refine-first flow) */}
       {isDraft && hasTechSpecContent && (
+        <div>
+        <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)]/50 mb-2">Next Action</p>
         <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
           {ticket.assignedTo ? (
             <>
@@ -531,6 +535,7 @@ export function TicketDetailLayout({
             </>
           )}
         </div>
+        </div>
       )}
 
       {/* Approve without developer review — for DEV_REFINING tickets with a spec */}
@@ -542,8 +547,37 @@ export function TicketDetailLayout({
               Spec is ready — approve without developer review?
             </p>
             <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
-              You can approve now or wait for a developer to refine the spec first.
+              Approve now or wait for a developer to refine the spec first.
             </p>
+            <button
+              onClick={() => setCliHowToOpen(!cliHowToOpen)}
+              className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+            >
+              <ChevronRight className={`h-3 w-3 transition-transform ${cliHowToOpen ? 'rotate-90' : ''}`} />
+              How it works
+            </button>
+            {cliHowToOpen && (
+              <div className="mt-2 pl-4 space-y-2">
+                <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+                  <span className="text-[var(--text-secondary)] font-medium">Stage: Dev Review</span> — The developer runs <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge review</code> (or <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">/forge:review</code> in Claude Code) to enrich the spec with real code context. Next, the PM approves the ticket. Then the developer can run <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge develop</code> to implement it.
+                </p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText('npm i forge-aec');
+                    setCliCopied(true);
+                    setTimeout(() => setCliCopied(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--border)] transition-colors group"
+                >
+                  <code className="text-[10px] text-[var(--text-secondary)] font-mono">npm i forge-aec</code>
+                  {cliCopied ? (
+                    <Check className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-3 w-3 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
           <Button
             onClick={handleApprove}

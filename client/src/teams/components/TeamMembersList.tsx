@@ -48,31 +48,31 @@ export function TeamMembersList({
     setRemoveDialogOpen(true);
   };
 
-  const getRoleBadgeVariant = (role: string) => {
+  const getRoleBadgeClass = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'destructive'; // Red
+        return 'bg-amber-500/10 text-amber-500 border-transparent';
       case 'developer':
-        return 'default'; // Blue
+        return 'bg-violet-500/10 text-violet-500 border-transparent';
       case 'pm':
-        return 'secondary'; // Purple/gray
+        return 'bg-blue-500/10 text-blue-500 border-transparent';
       case 'qa':
-        return 'outline'; // Green outline
+        return 'bg-emerald-500/10 text-emerald-500 border-transparent';
       default:
-        return 'default';
+        return 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-transparent';
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'active':
-        return 'default'; // Green
+        return 'bg-emerald-500/10 text-emerald-500 border-transparent';
       case 'invited':
-        return 'secondary'; // Amber
+        return 'bg-amber-500/10 text-amber-500 border-transparent';
       case 'removed':
-        return 'outline'; // Gray
+        return 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] border-transparent';
       default:
-        return 'outline';
+        return 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] border-transparent';
     }
   };
 
@@ -154,14 +154,14 @@ export function TeamMembersList({
 
                   {/* Role Badge */}
                   <td className="px-4 py-3">
-                    <Badge variant={getRoleBadgeVariant(member.role)} className="capitalize">
+                    <Badge variant="outline" className={`capitalize ${getRoleBadgeClass(member.role)}`}>
                       {member.role}
                     </Badge>
                   </td>
 
                   {/* Status Badge */}
                   <td className="px-4 py-3">
-                    <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
+                    <Badge variant="outline" className={`capitalize ${getStatusBadgeClass(member.status)}`}>
                       {member.status}
                     </Badge>
                   </td>

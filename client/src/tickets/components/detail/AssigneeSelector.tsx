@@ -96,11 +96,11 @@ export function AssigneeSelector({
 
   const handleAssign = async (userId: string | null) => {
     setIsAssigning(true);
+    // Close dialog immediately (optimistic) — assignment continues in background
+    setDialogOpen(false);
+    onExternalOpenChange?.(false);
     try {
-      const success = await onAssign(userId);
-      if (success) {
-        setDialogOpen(false);
-      }
+      await onAssign(userId);
     } finally {
       setIsAssigning(false);
     }
