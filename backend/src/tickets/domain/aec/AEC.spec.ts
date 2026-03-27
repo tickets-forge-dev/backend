@@ -1,5 +1,7 @@
 import { AEC } from './AEC';
 import { AECStatus } from '../value-objects/AECStatus';
+import { ExecutionEventType } from '../value-objects/ExecutionEvent';
+import { ChangeRecordStatus } from '../value-objects/ChangeRecord';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -164,6 +166,112 @@ describe('AEC — approvedAt timestamp', () => {
 
       expect(aec.approvedAt).toBeNull();
       expect(aec.status).toBe(AECStatus.DRAFT);
+    });
+  });
+});
+
+describe('AEC — Execution Events & Change Record', () => {
+  describe('recordExecutionEvent()', () => {
+    it('records an event when EXECUTING', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      const event = aec.recordExecutionEvent({
+        type: ExecutionEventType.DECISION,
+        title: 'Used token bucket',
+        description: 'Better burst handling',
+      });
+
+      expect(event.id).toMatch(/^evt_/);
+      expect(aec.executionEvents).toHaveLength(1);
+    });
+
+    it('throws if not EXECUTING', () => {
+      const aec = makeAEC({ status: AECStatus.APPROVED });
+      expect(() =>
+        aec.recordExecutionEvent({
+          type: ExecutionEventType.DECISION,
+          title: 'test',
+          description: 'test',
+        }),
+      ).toThrow('EXECUTING');
+    });
+  });
+
+  describe('deliver()', () => {
+    it('creates Change Record and transitions to DELIVERED', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      aec.recordExecutionEvent({
+        type: ExecutionEventType.DECISION,
+        title: 'Used token bucket',
+        description: 'Better burst handling',
+      });
+
+      aec.deliver({
+        executionSummary: 'Added rate limiting',
+        filesChanged: [{ path: 'src/rate-limit.ts', additions: 100, deletions: 0 }],
+        divergences: [],
+      });
+
+      expect(aec.status).toBe(AECStatus.DELIVERED);
+      expect(aec.changeRecord).not.toBeNull();
+      expect(aec.changeRecord!.status).toBe(ChangeRecordStatus.AWAITING_REVIEW);
+      expect(aec.changeRecord!.decisions).toHaveLength(1);
+      expect(aec.changeRecord!.hasDivergence).toBe(false);
+    });
+
+    it('throws if not EXECUTING', () => {
+      const aec = makeAEC({ status: AECStatus.APPROVED });
+      expect(() =>
+        aec.deliver({
+          executionSummary: 'Done',
+          filesChanged: [],
+          divergences: [],
+        }),
+      ).toThrow('EXECUTING');
+    });
+  });
+
+  describe('acceptDelivery()', () => {
+    it('sets Change Record to ACCEPTED', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      aec.deliver({
+        executionSummary: 'Done',
+        filesChanged: [],
+        divergences: [],
+      });
+
+      aec.acceptDelivery();
+
+      expect(aec.changeRecord!.status).toBe(ChangeRecordStatus.ACCEPTED);
+      expect(aec.changeRecord!.reviewedAt).toBeInstanceOf(Date);
+      expect(aec.status).toBe(AECStatus.DELIVERED); // stays DELIVERED
+    });
+
+    it('throws if no Change Record', () => {
+      const aec = makeAEC({ status: AECStatus.DELIVERED });
+      expect(() => aec.acceptDelivery()).toThrow('Change Record');
+    });
+  });
+
+  describe('requestChanges()', () => {
+    it('sends ticket back to EXECUTING with note', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      aec.deliver({
+        executionSummary: 'Done',
+        filesChanged: [],
+        divergences: [],
+      });
+
+      aec.requestChanges('Please use sliding window as specified');
+
+      expect(aec.status).toBe(AECStatus.EXECUTING);
+      expect(aec.changeRecord!.status).toBe(ChangeRecordStatus.CHANGES_REQUESTED);
+      expect(aec.changeRecord!.reviewNote).toBe('Please use sliding window as specified');
+      expect(aec.executionEvents).toHaveLength(0); // events cleared
+    });
+
+    it('throws if not DELIVERED', () => {
+      const aec = makeAEC({ status: AECStatus.EXECUTING });
+      expect(() => aec.requestChanges('fix it')).toThrow('DELIVERED');
     });
   });
 });

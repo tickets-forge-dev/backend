@@ -20,6 +20,16 @@ import {
   InsufficientReadinessError,
 } from '../../../shared/domain/exceptions/DomainExceptions';
 import { randomUUID } from 'crypto';
+import { ExecutionEvent, createExecutionEvent, CreateExecutionEventInput } from '../value-objects/ExecutionEvent';
+import {
+  ChangeRecord,
+  ChangeRecordStatus,
+  FileChange,
+  Divergence,
+  createChangeRecord,
+  acceptChangeRecord,
+  requestChangesOnRecord,
+} from '../value-objects/ChangeRecord';
 
 export interface ReviewQAItem {
   question: string;
@@ -91,6 +101,8 @@ export class AEC {
     private _slug: string | null = null,
     private _previousStatus: AECStatus | null = null,
     private _generationJobId: string | null = null,
+    private _executionEvents: ExecutionEvent[] = [],
+    private _changeRecord: ChangeRecord | null = null,
   ) {}
 
   // Factory method for creating new draft
@@ -227,6 +239,8 @@ export class AEC {
     previousStatus?: AECStatus | null,
     generationJobId?: string | null,
     approvedAt?: Date | null,
+    executionEvents?: ExecutionEvent[],
+    changeRecord?: ChangeRecord | null,
   ): AEC {
     return new AEC(
       id,
@@ -280,6 +294,8 @@ export class AEC {
       slug ?? null,
       previousStatus ?? null,
       generationJobId ?? null,
+      executionEvents ?? [],
+      changeRecord ?? null,
     );
   }
 
@@ -703,6 +719,97 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Record an execution event during implementation.
+   * Events accumulate and are later aggregated into a Change Record.
+   */
+  recordExecutionEvent(input: CreateExecutionEventInput): ExecutionEvent {
+    if (this._status !== AECStatus.EXECUTING) {
+      throw new InvalidStateTransitionError(
+        `Cannot record execution event in ${this._status} status. Ticket must be EXECUTING.`,
+      );
+    }
+    const event = createExecutionEvent(input);
+    this._executionEvents.push(event);
+    this._updatedAt = new Date();
+    return event;
+  }
+
+  /**
+   * Deliver the ticket with a Change Record.
+   * Aggregates execution events + settlement payload into a ChangeRecord.
+   * Transitions EXECUTING → DELIVERED.
+   */
+  deliver(settlement: {
+    executionSummary: string;
+    filesChanged: FileChange[];
+    divergences: Divergence[];
+  }): void {
+    if (this._status !== AECStatus.EXECUTING) {
+      throw new InvalidStateTransitionError(
+        `Cannot deliver from ${this._status}. Ticket must be EXECUTING.`,
+      );
+    }
+
+    this._changeRecord = createChangeRecord({
+      executionSummary: settlement.executionSummary,
+      events: this._executionEvents,
+      filesChanged: settlement.filesChanged,
+      divergences: settlement.divergences,
+    });
+    this._status = AECStatus.DELIVERED;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * PM accepts the delivery. Sets Change Record status to ACCEPTED.
+   */
+  acceptDelivery(): void {
+    if (this._status !== AECStatus.DELIVERED) {
+      throw new InvalidStateTransitionError(
+        `Cannot accept delivery in ${this._status} status. Ticket must be DELIVERED.`,
+      );
+    }
+    if (!this._changeRecord) {
+      throw new InvalidStateTransitionError(
+        'Cannot accept delivery without a Change Record.',
+      );
+    }
+    if (this._changeRecord.status !== ChangeRecordStatus.AWAITING_REVIEW) {
+      throw new InvalidStateTransitionError(
+        `Cannot accept delivery — Change Record is already ${this._changeRecord.status}.`,
+      );
+    }
+    this._changeRecord = acceptChangeRecord(this._changeRecord);
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * PM requests changes on the delivery. Sends ticket back to EXECUTING.
+   * The Change Record is preserved with CHANGES_REQUESTED status for reference.
+   */
+  requestChanges(note: string): void {
+    if (this._status !== AECStatus.DELIVERED) {
+      throw new InvalidStateTransitionError(
+        `Cannot request changes in ${this._status} status. Ticket must be DELIVERED.`,
+      );
+    }
+    if (!this._changeRecord) {
+      throw new InvalidStateTransitionError(
+        'Cannot request changes without a Change Record.',
+      );
+    }
+    if (this._changeRecord.status !== ChangeRecordStatus.AWAITING_REVIEW) {
+      throw new InvalidStateTransitionError(
+        `Cannot request changes — Change Record is already ${this._changeRecord.status}.`,
+      );
+    }
+    this._changeRecord = requestChangesOnRecord(this._changeRecord, note);
+    this._executionEvents = []; // Clear events for the next round
+    this._status = AECStatus.EXECUTING;
+    this._updatedAt = new Date();
+  }
+
   // Private helper
   private calculateReadinessScore(results: ValidationResult[]): number {
     if (results.length === 0) return 0;
@@ -997,5 +1104,13 @@ export class AEC {
       }
       this._updatedAt = new Date();
     }
+  }
+
+  get executionEvents(): ExecutionEvent[] {
+    return [...this._executionEvents];
+  }
+
+  get changeRecord(): ChangeRecord | null {
+    return this._changeRecord;
   }
 }
