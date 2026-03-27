@@ -836,6 +836,17 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     toast.success(`Saved ${acceptedEndpoints.length} API endpoint${acceptedEndpoints.length !== 1 ? 's' : ''}`);
   };
 
+  const handleReviewDelivery = async (action: 'accept' | 'request_changes', note?: string) => {
+    if (!ticketId) return;
+    try {
+      await ticketService.reviewDelivery(ticketId, action, note);
+      await fetchTicket(ticketId);
+      toast.success(action === 'accept' ? 'Delivery accepted' : 'Changes requested');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to review delivery');
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-[var(--content-max)] xl:max-w-[1040px] mx-auto">
       {/* Top bar */}
@@ -992,6 +1003,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onStatusTransition={handleStatusTransition}
         assignDialogOpen={forceAssignOpen}
         onAssignDialogOpenChange={setForceAssignOpen}
+        onReviewDelivery={handleReviewDelivery}
       />
 
       {/* Notes Section - at bottom */}

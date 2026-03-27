@@ -11,6 +11,7 @@ import { OverviewCard } from './OverviewCard';
 import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
+import { ChangeRecordTab } from './ChangeRecordTab';
 import { Button } from '@/core/components/ui/button';
 import {
   AlertDialog,
@@ -68,6 +69,8 @@ interface TicketDetailLayoutProps {
   // Assign dialog control (for lifecycle warning)
   assignDialogOpen?: boolean;
   onAssignDialogOpenChange?: (open: boolean) => void;
+  // Delivery review
+  onReviewDelivery?: (action: 'accept' | 'request_changes', note?: string) => Promise<void>;
 }
 
 export function TicketDetailLayout({
@@ -97,6 +100,7 @@ export function TicketDetailLayout({
   onStatusTransition,
   assignDialogOpen,
   onAssignDialogOpenChange,
+  onReviewDelivery,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -622,6 +626,18 @@ export function TicketDetailLayout({
             <Code2 className="h-3.5 w-3.5" />
             Technical
           </TabsTrigger>
+          {ticket.changeRecord && (
+            <TabsTrigger
+              value="delivered"
+              className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+            >
+              <GitPullRequest className="h-3.5 w-3.5" />
+              Delivered
+              {ticket.changeRecord.status === 'awaiting_review' && (
+                <span className="ml-1 w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+              )}
+            </TabsTrigger>
+          )}
           </TabsList>
 
           {/* Metadata chips — type, priority, quality */}
@@ -930,6 +946,18 @@ export function TicketDetailLayout({
             )}
           </div>
         </TabsContent>
+
+        {ticket.changeRecord && onReviewDelivery && (
+          <TabsContent value="delivered" className="mt-6">
+            <div className="max-w-3xl xl:max-w-4xl mx-auto">
+              <ChangeRecordTab
+                ticketId={ticketId}
+                changeRecord={ticket.changeRecord}
+                onReviewDelivery={onReviewDelivery}
+              />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
