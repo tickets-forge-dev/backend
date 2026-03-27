@@ -4,42 +4,42 @@ import { Type } from 'class-transformer';
 export class FileChangeDto {
   @IsString()
   @IsNotEmpty()
-  path: string;
+  path!: string;
 
   @IsNumber()
-  additions: number;
+  additions!: number;
 
   @IsNumber()
-  deletions: number;
+  deletions!: number;
 }
 
 export class DivergenceDto {
   @IsString()
   @IsNotEmpty()
-  area: string;
+  area!: string;
 
   @IsString()
   @IsNotEmpty()
-  intended: string;
+  intended!: string;
 
   @IsString()
   @IsNotEmpty()
-  actual: string;
+  actual!: string;
 
   @IsString()
   @IsNotEmpty()
-  justification: string;
+  justification!: string;
 }
 
 export class SubmitSettlementDto {
   @IsString()
   @IsNotEmpty()
-  executionSummary: string;
+  executionSummary!: string;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FileChangeDto)
-  filesChanged: FileChangeDto[];
+  filesChanged!: FileChangeDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
