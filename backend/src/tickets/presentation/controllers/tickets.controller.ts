@@ -103,6 +103,8 @@ import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQ
 import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
 import { StartImplementationDto } from '../dto/StartImplementationDto';
+import { RecordExecutionEventUseCase } from '../../application/use-cases/RecordExecutionEventUseCase';
+import { RecordExecutionEventDto } from '../dto/RecordExecutionEventDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
 import { GenerateWireframesUseCase } from '../../application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
@@ -167,6 +169,7 @@ export class TicketsController {
     private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
+    private readonly recordExecutionEventUseCase: RecordExecutionEventUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
     private readonly generateWireframesUseCase: GenerateWireframesUseCase,
     private readonly archiveAECUseCase: ArchiveAECUseCase,
@@ -728,6 +731,28 @@ export class TicketsController {
       teamId,
       branchName: dto.branchName,
       qaItems: dto.qaItems,
+    });
+  }
+
+  /**
+   * Record an execution event during implementation (decisions, risks, scope changes)
+   *
+   * Called by the MCP server when the developer agent reports decisions,
+   * risks, or scope changes during EXECUTING status.
+   */
+  @Post(':id/execution-events')
+  async recordExecutionEvent(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: RecordExecutionEventDto,
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    return this.recordExecutionEventUseCase.execute({
+      ticketId: aecId,
+      teamId,
+      type: dto.type,
+      title: dto.title,
+      description: dto.description,
     });
   }
 
