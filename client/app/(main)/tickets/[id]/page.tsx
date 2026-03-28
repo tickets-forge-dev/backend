@@ -1026,8 +1026,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
       />
 
-      {/* Notes Section - at bottom */}
-      <div className="pt-4 border-t border-[var(--border)]">
+      {/* Notes Section */}
+      <div className="px-1">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-[var(--text)]">Notes</h3>
           <div className="flex items-center gap-1">
