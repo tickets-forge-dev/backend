@@ -69,6 +69,7 @@ export interface AECResponse {
   type: string | null;
   priority: string | null;
   assignedTo: string | null; // Story 3.5-5: User ID of assigned developer (null if unassigned)
+  implementationBranch: string | null;
   readinessScore: number;
   generationState: {
     currentStep: number;

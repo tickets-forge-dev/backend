@@ -1520,6 +1520,7 @@ export class TicketsController {
       attachments: aec.attachments ?? [],
       designReferences: aec.designReferences ?? [],
       assignedTo: aec.assignedTo ?? null,
+      implementationBranch: aec.implementationBranch ?? null,
       reviewSession: aec.reviewSession ?? null, // Story 6-12
       folderId: aec.folderId ?? null, // Story 12-2: ticket folder organization
       tagIds: filteredTagIds, // Ticket tags (filtered by visibility)

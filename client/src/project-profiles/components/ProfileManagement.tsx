@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, FolderGit2, Zap } from 'lucide-react';
+import { Loader2, FolderGit2, Zap, Info } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { useProjectProfileStore, type ProjectProfileSummary } from '../stores/project-profile.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -111,6 +111,21 @@ export function ProfileManagement() {
             </Button>
           )}
         </div>
+
+        {/* Unprofiled warning banner */}
+        {unprofiledCount > 0 && !scanningAll && rows.length > 0 && (
+          <div className="rounded-lg bg-amber-500/10 p-3 flex items-start gap-2">
+            <Info className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-[var(--text-sm)] text-amber-500">
+                {unprofiledCount} repositor{unprofiledCount === 1 ? 'y has' : 'ies have'} not been profiled yet
+              </p>
+              <p className="text-[var(--text-xs)] text-amber-500/70 mt-0.5">
+                Profiling analyzes your codebase so tickets are context-aware. Click &quot;Scan All&quot; above or scan individual repos below.
+              </p>
+            </div>
+          </div>
+        )}
 
         {isLoading && rows.length === 0 ? (
           <div className="flex items-center justify-center py-12">

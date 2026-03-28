@@ -251,6 +251,7 @@ export default function TicketsListPage() {
         const matchesSearch =
           debouncedSearch === '' ||
           ticket.title.toLowerCase().includes(lowercaseSearch) ||
+          ticket.slug?.toLowerCase().includes(lowercaseSearch) ||
           ticket.description?.toLowerCase().includes(lowercaseSearch);
 
         const matchesPriority =
@@ -309,6 +310,23 @@ export default function TicketsListPage() {
 
     return { folderTicketsMap: map, unfiledTickets: unfiled };
   }, [filteredTickets]);
+
+  // When searching, auto-expand folders that contain matching tickets
+  const isSearchActive = debouncedSearch !== '' || priorityFilter !== 'all' || typeFilter !== 'all' || tagFilter.length > 0;
+  const searchMatchedFolderIds = useMemo(() => {
+    if (!isSearchActive) return null;
+    return new Set(Object.keys(folderTicketsMap));
+  }, [isSearchActive, folderTicketsMap]);
+
+  const isFolderExpanded = useCallback((folderId: string) => {
+    if (searchMatchedFolderIds) return searchMatchedFolderIds.has(folderId);
+    return expandedFolders.has(folderId);
+  }, [searchMatchedFolderIds, expandedFolders]);
+
+  const isFolderVisible = useCallback((folderId: string) => {
+    if (!searchMatchedFolderIds) return true;
+    return searchMatchedFolderIds.has(folderId);
+  }, [searchMatchedFolderIds]);
 
   // Save preferences when they change
   useEffect(() => {
@@ -769,17 +787,17 @@ export default function TicketsListPage() {
             </form>
           )}
 
-          {/* MY FOLDERS section — only if user has private folders */}
-          {privateFolders.length > 0 && (
+          {/* MY FOLDERS section — only if user has visible private folders */}
+          {privateFolders.some((f) => isFolderVisible(f.id)) && (
             <>
-              {teamFolders.length > 0 && (
+              {teamFolders.some((f) => isFolderVisible(f.id)) && (
                 <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-subtle)]">
                   My Folders
                 </div>
               )}
-              {privateFolders.map((folder, folderIdx) => {
+              {privateFolders.filter((f) => isFolderVisible(f.id)).map((folder, folderIdx) => {
                 const folderTickets = folderTicketsMap[folder.id] || [];
-                const isExpanded = expandedFolders.has(folder.id);
+                const isExpanded = isFolderExpanded(folder.id);
                 return (
                   <div key={folder.id}>
                     <FolderHeader
@@ -844,15 +862,15 @@ export default function TicketsListPage() {
             </>
           )}
 
-          {/* FOLDERS section header — only when both sections exist */}
-          {privateFolders.length > 0 && teamFolders.length > 0 && (
+          {/* FOLDERS section header — only when both sections have visible folders */}
+          {privateFolders.some((f) => isFolderVisible(f.id)) && teamFolders.some((f) => isFolderVisible(f.id)) && (
             <div className="px-4 py-1.5 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-subtle)]">
               Folders
             </div>
           )}
-          {teamFolders.map((folder, folderIdx) => {
+          {teamFolders.filter((f) => isFolderVisible(f.id)).map((folder, folderIdx) => {
             const folderTickets = folderTicketsMap[folder.id] || [];
-            const isExpanded = expandedFolders.has(folder.id);
+            const isExpanded = isFolderExpanded(folder.id);
             return (
               <div key={folder.id}>
                 <FolderHeader
