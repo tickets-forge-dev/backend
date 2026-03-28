@@ -1027,7 +1027,7 @@ export function TicketDetailLayout({
           <div className="max-w-3xl xl:max-w-4xl mx-auto">
             {ticket.changeRecord ? (
               <ChangeRecordTab
-                changeRecord={ticket.changeRecord}
+                ticket={ticket}
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">

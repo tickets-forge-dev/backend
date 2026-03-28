@@ -50,10 +50,10 @@ export function ChangeRecordTimeline() {
   }, [tickets, search, teamMembers, filters]);
 
   // Date range only affects the timeline view
+  // Parse as local time (append T00:00:00) to avoid UTC/local mismatch
   const timelineTickets = useMemo(() => {
-    const fromDate = new Date(dateRange.from);
-    const toDate = new Date(dateRange.to);
-    toDate.setHours(23, 59, 59, 999);
+    const fromDate = new Date(dateRange.from + 'T00:00:00');
+    const toDate = new Date(dateRange.to + 'T23:59:59.999');
     return filteredTickets.filter((t) => {
       const d = new Date(t.changeRecord!.submittedAt);
       return d >= fromDate && d <= toDate;
