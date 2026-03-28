@@ -14,98 +14,81 @@ export function RecordDetailPanel({ ticket }: RecordDetailPanelProps) {
   const cr = ticket.changeRecord!;
 
   return (
-    <div className="border border-[var(--border-subtle)] rounded-xl bg-[var(--bg-primary)] overflow-hidden">
+    <div className="border border-[var(--border-subtle)] rounded-lg overflow-hidden bg-[var(--bg-subtle)]">
       {/* Header */}
-      <div className="px-4 sm:px-5 py-4 border-b border-[var(--border-subtle)]">
+      <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
         <button
           onClick={() => router.push(`/tickets/${ticket.slug || ticket.id}`)}
-          className="text-[15px] font-semibold text-[var(--text-primary)] hover:text-purple-400 transition-colors inline-flex items-center gap-1.5"
+          className="text-[13px] font-medium text-[var(--text-primary)] hover:text-purple-400 transition-colors inline-flex items-center gap-1.5"
         >
           {ticket.title}
-          <ExternalLink className="w-3.5 h-3.5 opacity-40 shrink-0" />
+          <ExternalLink className="w-3 h-3 opacity-40 shrink-0" />
         </button>
-        <div className="text-[12px] text-[var(--text-tertiary)] mt-1">
+        <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
           Delivered {new Date(cr.submittedAt).toLocaleDateString()}
         </div>
       </div>
 
-      {/* Body: main + sidebar */}
-      <div className="px-4 sm:px-5 py-4 flex flex-col lg:flex-row gap-6">
-        {/* Main content */}
-        <div className="flex-1 min-w-0 space-y-4">
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1.5 font-semibold">
-              Execution Summary
-            </div>
-            <div className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-              {cr.executionSummary}
-            </div>
-          </div>
-
-          {cr.divergences.length > 0 && (
-            <div className="space-y-2">
-              <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
-                Divergences ({cr.divergences.length})
-              </div>
-              {cr.divergences.map((d, i) => (
-                <DivergenceCard key={i} divergence={d} />
-              ))}
-            </div>
-          )}
-
-          {cr.filesChanged.length > 0 && (
-            <div className="border-t border-[var(--border-subtle)] pt-4">
-              <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-2 font-semibold">
-                Code Changes
-                <span className="font-normal ml-2">{cr.filesChanged.length} files</span>
-              </div>
-              <div className="space-y-0.5">
-                {cr.filesChanged.map((f, i) => (
-                  <div key={i} className="flex justify-between items-center text-[12px] font-mono py-0.5">
-                    <span className="text-[var(--text-tertiary)] truncate">{f.path}</span>
-                    <span className="shrink-0 ml-3">
-                      {f.additions > 0 && <span className="text-green-500">+{f.additions}</span>}
-                      {f.deletions > 0 && <span className="text-red-500 ml-1.5">−{f.deletions}</span>}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      <div className="px-4 py-3 space-y-3">
+        {/* Summary */}
+        <div>
+          <div className="text-[9px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium mb-1">Summary</div>
+          <div className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{cr.executionSummary}</div>
         </div>
 
-        {/* Sidebar: events */}
-        {(cr.decisions.length > 0 || cr.risks.length > 0 || cr.scopeChanges.length > 0) && (
-          <div className="w-full lg:w-[260px] shrink-0 border-t lg:border-t-0 lg:border-l border-[var(--border-subtle)] pt-4 lg:pt-0 lg:pl-6">
-            <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-3 font-semibold">
-              Execution Events
+        {/* Divergences */}
+        {cr.divergences.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[9px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">
+              Divergences ({cr.divergences.length})
             </div>
-            <div className="space-y-2.5">
+            {cr.divergences.map((d, i) => (
+              <DivergenceCard key={i} divergence={d} />
+            ))}
+          </div>
+        )}
+
+        {/* Execution Events */}
+        {(cr.decisions.length > 0 || cr.risks.length > 0 || cr.scopeChanges.length > 0) && (
+          <div>
+            <div className="text-[9px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium mb-1.5">Events</div>
+            <div className="space-y-1.5">
               {cr.decisions.map((e) => (
-                <div key={e.id} className="flex gap-2 text-[12px]">
-                  <span className="text-purple-400 shrink-0">💡</span>
-                  <div>
-                    <div className="font-medium text-[var(--text-primary)]">{e.title}</div>
-                    <div className="text-[var(--text-tertiary)] mt-0.5">{e.description}</div>
-                  </div>
+                <div key={e.id} className="flex gap-1.5 text-[10px]">
+                  <span className="shrink-0">💡</span>
+                  <span><span className="text-[var(--text-primary)]">{e.title}</span> <span className="text-[var(--text-tertiary)]">— {e.description}</span></span>
                 </div>
               ))}
               {cr.risks.map((e) => (
-                <div key={e.id} className="flex gap-2 text-[12px]">
-                  <span className="text-amber-500 shrink-0">⚠️</span>
-                  <div>
-                    <div className="font-medium text-[var(--text-primary)]">{e.title}</div>
-                    <div className="text-[var(--text-tertiary)] mt-0.5">{e.description}</div>
-                  </div>
+                <div key={e.id} className="flex gap-1.5 text-[10px]">
+                  <span className="shrink-0">⚠️</span>
+                  <span><span className="text-[var(--text-primary)]">{e.title}</span> <span className="text-[var(--text-tertiary)]">— {e.description}</span></span>
                 </div>
               ))}
               {cr.scopeChanges.map((e) => (
-                <div key={e.id} className="flex gap-2 text-[12px]">
-                  <span className="text-blue-400 shrink-0">📐</span>
-                  <div>
-                    <div className="font-medium text-[var(--text-primary)]">{e.title}</div>
-                    <div className="text-[var(--text-tertiary)] mt-0.5">{e.description}</div>
-                  </div>
+                <div key={e.id} className="flex gap-1.5 text-[10px]">
+                  <span className="shrink-0">📐</span>
+                  <span><span className="text-[var(--text-primary)]">{e.title}</span> <span className="text-[var(--text-tertiary)]">— {e.description}</span></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Code Changes */}
+        {cr.filesChanged.length > 0 && (
+          <div className="border-t border-[var(--border-subtle)] pt-3">
+            <div className="text-[9px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium mb-1.5">
+              Files <span className="font-normal">{cr.filesChanged.length}</span>
+            </div>
+            <div className="space-y-0.5 font-mono text-[9px]">
+              {cr.filesChanged.map((f, i) => (
+                <div key={i} className="flex justify-between text-[var(--text-tertiary)]">
+                  <span className="truncate">{f.path}</span>
+                  <span className="shrink-0 ml-2">
+                    {f.additions > 0 && <span className="text-green-500">+{f.additions}</span>}
+                    {f.deletions > 0 && <span className="text-red-500 ml-1">-{f.deletions}</span>}
+                  </span>
                 </div>
               ))}
             </div>
