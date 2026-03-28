@@ -119,7 +119,7 @@ export class EstimationEngineService implements IEstimationEngine {
         .collection('aecs')
         .where('repositoryContext.repositoryName', '==', repositoryName)
         .where('type', '==', ticketType)
-        .where('status', 'in', [AECStatus.EXECUTING, AECStatus.DEFINED, AECStatus.DELIVERED, 'dev-refining', 'created', 'validated'])
+        .where('status', 'in', [AECStatus.EXECUTING, AECStatus.DEFINED, AECStatus.DELIVERED])
         .limit(10)
         .get();
 

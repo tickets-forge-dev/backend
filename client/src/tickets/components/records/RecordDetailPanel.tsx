@@ -44,17 +44,17 @@ export function RecordDetailPanel({ ticket, onReviewDelivery }: RecordDetailPane
   return (
     <div className="border border-[var(--border-subtle)] rounded-xl bg-[var(--bg-primary)] overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 flex justify-between items-start border-b border-[var(--border-subtle)]">
-        <div>
+      <div className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 border-b border-[var(--border-subtle)]">
+        <div className="min-w-0">
           <button
             onClick={() => router.push(`/tickets/${ticket.slug || ticket.id}`)}
             className="text-[15px] font-semibold text-[var(--text-primary)] hover:text-purple-400 transition-colors inline-flex items-center gap-1.5"
           >
             {ticket.title}
-            <ExternalLink className="w-3.5 h-3.5 opacity-40" />
+            <ExternalLink className="w-3.5 h-3.5 opacity-40 shrink-0" />
           </button>
           <div className="flex items-center gap-2 mt-1">
-            <div className={`w-2 h-2 rounded-full ${
+            <div className={`w-2 h-2 rounded-full shrink-0 ${
               isAwaitingReview ? 'bg-amber-500' : cr.status === 'accepted' ? 'bg-green-500' : 'bg-red-500'
             }`} />
             <span className={`text-[12px] ${
@@ -89,7 +89,7 @@ export function RecordDetailPanel({ ticket, onReviewDelivery }: RecordDetailPane
 
       {/* Reject form */}
       {showRejectForm && isAwaitingReview && (
-        <div className="px-5 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
+        <div className="px-4 sm:px-5 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
           <textarea
             value={rejectNote}
             onChange={(e) => setRejectNote(e.target.value)}
@@ -117,14 +117,14 @@ export function RecordDetailPanel({ ticket, onReviewDelivery }: RecordDetailPane
 
       {/* Review note */}
       {cr.reviewNote && (
-        <div className="px-5 py-3 border-b border-[var(--border-subtle)] bg-red-500/[0.03]">
+        <div className="px-4 sm:px-5 py-3 border-b border-[var(--border-subtle)] bg-red-500/[0.03]">
           <div className="text-[11px] uppercase tracking-wider text-red-500/60 mb-1">Changes Requested</div>
           <div className="text-[13px] text-[var(--text-secondary)]">{cr.reviewNote}</div>
         </div>
       )}
 
       {/* Body: main + sidebar */}
-      <div className="px-5 py-4 flex gap-6">
+      <div className="px-4 sm:px-5 py-4 flex flex-col lg:flex-row gap-6">
         {/* Main content */}
         <div className="flex-1 min-w-0 space-y-4">
           <div>
@@ -170,7 +170,7 @@ export function RecordDetailPanel({ ticket, onReviewDelivery }: RecordDetailPane
 
         {/* Sidebar: events */}
         {(cr.decisions.length > 0 || cr.risks.length > 0 || cr.scopeChanges.length > 0) && (
-          <div className="w-[260px] shrink-0 border-l border-[var(--border-subtle)] pl-6">
+          <div className="w-full lg:w-[260px] shrink-0 border-t lg:border-t-0 lg:border-l border-[var(--border-subtle)] pt-4 lg:pt-0 lg:pl-6">
             <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-3 font-semibold">
               Execution Events
             </div>

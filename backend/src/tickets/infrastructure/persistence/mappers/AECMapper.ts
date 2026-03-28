@@ -98,7 +98,6 @@ export interface AECDocument {
   previousStatus?: string | null;
   generationJobId?: string | null;
   approvedAt?: Timestamp | null;
-  forgedAt?: Timestamp | null;
   executionEvents?: any[];
   changeRecord?: {
     executionSummary: string;
@@ -118,21 +117,6 @@ export interface AECDocument {
   currentRound?: number;
   maxRounds?: number;
 }
-
-/** Migration map: old Firestore status values → new AECStatus values */
-const STATUS_MIGRATION: Record<string, string> = {
-  // Legacy v1 status names
-  'validated': 'defined',
-  'waiting-for-approval': 'refined',
-  'ready': 'approved',
-  'created': 'executing',
-  // v2 → v3 lifecycle rename
-  'dev-refining': 'defined',
-  'review': 'refined',
-  'forged': 'approved',
-  'complete': 'delivered',
-  // 'drifted' handled separately below (depends on externalIssue)
-};
 
 export class AECMapper {
   static toDomain(doc: AECDocument): AEC {
@@ -214,19 +198,11 @@ export class AECMapper {
         metadata: ref.metadata ? { ...ref.metadata } : undefined,
       })) as DesignReference[];
 
-    // Migrate old status values to new AECStatus enum
-    let migratedStatus: string;
-    if (doc.status === 'drifted') {
-      migratedStatus = doc.externalIssue ? 'executing' : 'approved';
-    } else {
-      migratedStatus = STATUS_MIGRATION[doc.status] ?? doc.status;
-    }
-
     return AEC.reconstitute(
       doc.id,
       doc.teamId,
-      doc.createdBy || 'unknown', // Backward compatibility: fallback for old documents
-      migratedStatus as AECStatus,
+      doc.createdBy || 'unknown',
+      doc.status as AECStatus,
       doc.title,
       doc.description,
       doc.type as TicketType | null,
@@ -287,7 +263,7 @@ export class AECMapper {
       doc.slug ?? null,
       (doc.previousStatus as AECStatus) ?? null,
       doc.generationJobId ?? null,
-      (doc.approvedAt ?? doc.forgedAt) ? toDate((doc.approvedAt ?? doc.forgedAt)!) : null,
+      doc.approvedAt ? toDate(doc.approvedAt) : null,
       // Execution events — stored as plain objects, dates need conversion
       (doc.executionEvents || []).map((e: any) => ({
         ...e,
