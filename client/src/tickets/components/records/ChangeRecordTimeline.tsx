@@ -120,15 +120,9 @@ export function ChangeRecordTimeline() {
           <RecordDetailPanel ticket={selectedTicket} />
         )}
 
-        {/* Mobile sidebar (stacks below) */}
-        {filteredTickets.length > 0 && (
-          <div className="lg:hidden">
-            <RecordSidebar tickets={filteredTickets} selectedId={selectedId} onSelect={setSelectedId} />
-          </div>
-        )}
       </div>
 
-      {/* Desktop sidebar */}
+      {/* Sidebar (handles desktop/mobile internally) */}
       {filteredTickets.length > 0 && (
         <RecordSidebar tickets={filteredTickets} selectedId={selectedId} onSelect={setSelectedId} />
       )}

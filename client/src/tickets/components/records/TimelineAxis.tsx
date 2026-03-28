@@ -97,31 +97,34 @@ export function TimelineAxis({ tickets, selectedId, onSelect, isCardMode }: Time
 
                     {/* CARD MODE */}
                     {isCardMode && (
-                      <div className={`flex flex-col items-center ${isAbove ? 'justify-end pb-[18px]' : 'justify-start pt-[18px]'}`}
-                        style={{ minHeight: '120px', order: 0 }}
-                      >
-                        {/* Card (above or below the line) */}
-                        <div
-                          className={`w-[100px] rounded-md border p-2 text-left transition-all duration-300 ${
-                            isSelected
-                              ? 'border-[#8b5cf644] bg-[#8b5cf608]'
-                              : 'border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[#8b5cf622]'
-                          } ${isAbove ? 'mb-2' : 'mt-2'}`}
-                          style={{ order: isAbove ? 0 : 2 }}
-                        >
-                          <div className={`text-[9px] font-medium truncate ${
-                            isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
-                          }`}>
-                            {t.title}
-                          </div>
-                          <div className="text-[7px] text-[var(--text-tertiary)] mt-0.5">
-                            {cr.filesChanged.length} files
-                            {(totalAdditions > 0 || totalDeletions > 0) && (
-                              <> · <span className="text-green-500">+{totalAdditions}</span> <span className="text-red-500">-{totalDeletions}</span></>
-                            )}
-                          </div>
-                          {cr.hasDivergence && (
-                            <div className="text-[7px] text-amber-500 mt-0.5">⚡ divergence</div>
+                      <div className="flex flex-col items-center" style={{ minHeight: '120px' }}>
+                        {/* Top area: card if above, date if below */}
+                        <div className="flex-1 flex flex-col justify-end items-center pb-2">
+                          {isAbove ? (
+                            <div
+                              className={`w-[100px] rounded-md border p-2 text-left transition-all duration-300 ${
+                                isSelected
+                                  ? 'border-[#8b5cf644] bg-[#8b5cf608]'
+                                  : 'border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[#8b5cf622]'
+                              }`}
+                            >
+                              <div className={`text-[9px] font-medium truncate ${
+                                isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                              }`}>{t.title}</div>
+                              <div className="text-[7px] text-[var(--text-tertiary)] mt-0.5">
+                                {cr.filesChanged.length} files
+                                {(totalAdditions > 0 || totalDeletions > 0) && (
+                                  <> · <span className="text-green-500">+{totalAdditions}</span> <span className="text-red-500">-{totalDeletions}</span></>
+                                )}
+                              </div>
+                              {cr.hasDivergence && (
+                                <div className="text-[7px] text-amber-500 mt-0.5">⚡ divergence</div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className={`text-[7px] ${isSelected ? 'text-[#c4b5fd]' : 'text-[#52525b]'}`}>
+                              {formatDate(cr.submittedAt)}
+                            </div>
                           )}
                         </div>
 
@@ -136,15 +139,37 @@ export function TimelineAxis({ tickets, selectedId, onSelect, isCardMode }: Time
                               ? '0 0 0 2px #13101e, 0 0 0 3.5px #8b5cf644, 0 0 12px #8b5cf644'
                               : '0 0 4px #8b5cf633',
                             opacity: isSelected ? 1 : 0.7,
-                            order: 1,
                           }}
                         />
 
-                        {/* Date label */}
-                        <div className={`text-[7px] mt-1 ${
-                          isSelected ? 'text-[#c4b5fd]' : 'text-[#52525b]'
-                        }`} style={{ order: isAbove ? 2 : 0 }}>
-                          {formatDate(cr.submittedAt)}
+                        {/* Bottom area: date if above, card if below */}
+                        <div className="flex-1 flex flex-col justify-start items-center pt-2">
+                          {!isAbove ? (
+                            <div
+                              className={`w-[100px] rounded-md border p-2 text-left transition-all duration-300 ${
+                                isSelected
+                                  ? 'border-[#8b5cf644] bg-[#8b5cf608]'
+                                  : 'border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[#8b5cf622]'
+                              }`}
+                            >
+                              <div className={`text-[9px] font-medium truncate ${
+                                isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                              }`}>{t.title}</div>
+                              <div className="text-[7px] text-[var(--text-tertiary)] mt-0.5">
+                                {cr.filesChanged.length} files
+                                {(totalAdditions > 0 || totalDeletions > 0) && (
+                                  <> · <span className="text-green-500">+{totalAdditions}</span> <span className="text-red-500">-{totalDeletions}</span></>
+                                )}
+                              </div>
+                              {cr.hasDivergence && (
+                                <div className="text-[7px] text-amber-500 mt-0.5">⚡ divergence</div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className={`text-[7px] ${isSelected ? 'text-[#c4b5fd]' : 'text-[#52525b]'}`}>
+                              {formatDate(cr.submittedAt)}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
