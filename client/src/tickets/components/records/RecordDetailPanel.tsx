@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AECResponse } from '@/services/ticket.service';
 import { DivergenceCard } from '../detail/DivergenceCard';
@@ -8,120 +7,27 @@ import { ExternalLink } from 'lucide-react';
 
 interface RecordDetailPanelProps {
   ticket: AECResponse;
-  onReviewDelivery: (ticketId: string, action: 'accept' | 'request_changes', note?: string) => Promise<void>;
 }
 
-export function RecordDetailPanel({ ticket, onReviewDelivery }: RecordDetailPanelProps) {
+export function RecordDetailPanel({ ticket }: RecordDetailPanelProps) {
   const router = useRouter();
   const cr = ticket.changeRecord!;
-  const [loading, setLoading] = useState(false);
-  const [rejectNote, setRejectNote] = useState('');
-  const [showRejectForm, setShowRejectForm] = useState(false);
-
-  const isAwaitingReview = cr.status === 'awaiting_review';
-
-  const handleAccept = async () => {
-    setLoading(true);
-    try {
-      await onReviewDelivery(ticket.id, 'accept');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRequestChanges = async () => {
-    if (!rejectNote.trim()) return;
-    setLoading(true);
-    try {
-      await onReviewDelivery(ticket.id, 'request_changes', rejectNote);
-      setRejectNote('');
-      setShowRejectForm(false);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="border border-[var(--border-subtle)] rounded-xl bg-[var(--bg-primary)] overflow-hidden">
       {/* Header */}
-      <div className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 border-b border-[var(--border-subtle)]">
-        <div className="min-w-0">
-          <button
-            onClick={() => router.push(`/tickets/${ticket.slug || ticket.id}`)}
-            className="text-[15px] font-semibold text-[var(--text-primary)] hover:text-purple-400 transition-colors inline-flex items-center gap-1.5"
-          >
-            {ticket.title}
-            <ExternalLink className="w-3.5 h-3.5 opacity-40 shrink-0" />
-          </button>
-          <div className="flex items-center gap-2 mt-1">
-            <div className={`w-2 h-2 rounded-full shrink-0 ${
-              isAwaitingReview ? 'bg-amber-500' : cr.status === 'accepted' ? 'bg-green-500' : 'bg-red-500'
-            }`} />
-            <span className={`text-[12px] ${
-              isAwaitingReview ? 'text-amber-500/70' : cr.status === 'accepted' ? 'text-green-500/70' : 'text-red-500/70'
-            }`}>
-              {isAwaitingReview ? 'Awaiting PM review' : cr.status === 'accepted' ? 'Accepted' : 'Changes requested'}
-            </span>
-            <span className="text-[12px] text-[var(--text-tertiary)]">
-              · Delivered {new Date(cr.submittedAt).toLocaleDateString()}
-            </span>
-          </div>
+      <div className="px-4 sm:px-5 py-4 border-b border-[var(--border-subtle)]">
+        <button
+          onClick={() => router.push(`/tickets/${ticket.slug || ticket.id}`)}
+          className="text-[15px] font-semibold text-[var(--text-primary)] hover:text-purple-400 transition-colors inline-flex items-center gap-1.5"
+        >
+          {ticket.title}
+          <ExternalLink className="w-3.5 h-3.5 opacity-40 shrink-0" />
+        </button>
+        <div className="text-[12px] text-[var(--text-tertiary)] mt-1">
+          Delivered {new Date(cr.submittedAt).toLocaleDateString()}
         </div>
-        {isAwaitingReview && (
-          <div className="flex gap-2 shrink-0">
-            <button
-              onClick={() => setShowRejectForm(!showRejectForm)}
-              disabled={loading}
-              className="bg-[var(--bg-hover)] border border-[var(--border-subtle)] text-[var(--text-secondary)] px-3 py-1.5 rounded-md text-[13px] hover:bg-[var(--bg-active)] transition-colors"
-            >
-              Request Changes
-            </button>
-            <button
-              onClick={handleAccept}
-              disabled={loading}
-              className="bg-green-600 text-white px-3 py-1.5 rounded-md text-[13px] font-medium hover:bg-green-700 transition-colors"
-            >
-              Accept
-            </button>
-          </div>
-        )}
       </div>
-
-      {/* Reject form */}
-      {showRejectForm && isAwaitingReview && (
-        <div className="px-4 sm:px-5 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
-          <textarea
-            value={rejectNote}
-            onChange={(e) => setRejectNote(e.target.value)}
-            placeholder="What needs to change?"
-            className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-md p-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] resize-none"
-            rows={3}
-          />
-          <div className="flex justify-end gap-2 mt-2">
-            <button
-              onClick={() => setShowRejectForm(false)}
-              className="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleRequestChanges}
-              disabled={loading || !rejectNote.trim()}
-              className="bg-red-600 text-white px-3 py-1.5 rounded-md text-[13px] font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-            >
-              Send Back
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Review note */}
-      {cr.reviewNote && (
-        <div className="px-4 sm:px-5 py-3 border-b border-[var(--border-subtle)] bg-red-500/[0.03]">
-          <div className="text-[11px] uppercase tracking-wider text-red-500/60 mb-1">Changes Requested</div>
-          <div className="text-[13px] text-[var(--text-secondary)]">{cr.reviewNote}</div>
-        </div>
-      )}
 
       {/* Body: main + sidebar */}
       <div className="px-4 sm:px-5 py-4 flex flex-col lg:flex-row gap-6">

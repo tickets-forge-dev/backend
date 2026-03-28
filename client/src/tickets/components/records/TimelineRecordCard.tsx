@@ -20,21 +20,6 @@ function formatTimeAgo(dateStr: string): string {
 
 export function TimelineRecordCard({ ticket, isSelected, onClick }: TimelineRecordCardProps) {
   const cr = ticket.changeRecord!;
-  const statusColor = cr.status === 'awaiting_review'
-    ? 'bg-amber-500'
-    : cr.status === 'accepted'
-      ? 'bg-green-500'
-      : 'bg-red-500';
-  const statusLabel = cr.status === 'awaiting_review'
-    ? 'Awaiting Review'
-    : cr.status === 'accepted'
-      ? 'Accepted'
-      : 'Changes Requested';
-  const statusTextColor = cr.status === 'awaiting_review'
-    ? 'text-amber-500/70'
-    : cr.status === 'accepted'
-      ? 'text-green-500/70'
-      : 'text-red-500/70';
 
   const totalAdditions = cr.filesChanged.reduce((sum, f) => sum + f.additions, 0);
   const totalDeletions = cr.filesChanged.reduce((sum, f) => sum + f.deletions, 0);
@@ -48,10 +33,6 @@ export function TimelineRecordCard({ ticket, isSelected, onClick }: TimelineReco
           : 'border-[var(--border-subtle)] bg-[var(--bg-hover)] hover:border-purple-500/20 hover:bg-purple-500/[0.03]'
       }`}
     >
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <div className={`w-[6px] h-[6px] rounded-full ${statusColor} shrink-0`} />
-        <span className={`text-[11px] ${statusTextColor} truncate`}>{statusLabel}</span>
-      </div>
       <div className="text-[13px] font-medium text-[var(--text-primary)] leading-tight mb-1.5 line-clamp-2">
         {ticket.title}
       </div>

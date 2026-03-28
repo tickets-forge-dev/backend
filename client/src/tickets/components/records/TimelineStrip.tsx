@@ -117,14 +117,8 @@ export function TimelineStrip({ tickets, selectedId, onSelect }: TimelineStripPr
                       key={t.id}
                       onClick={() => onSelect(t.id)}
                       title={t.title}
-                      className={`w-3 h-3 rounded-full border-2 transition-all hover:scale-150 ${
+                      className={`w-3 h-3 rounded-full border-2 transition-all hover:scale-150 bg-purple-400 border-purple-400/30 ${
                         selectedId === t.id ? 'ring-2 ring-purple-500/30' : ''
-                      } ${
-                        t.changeRecord!.status === 'awaiting_review'
-                          ? 'bg-amber-500 border-amber-500/30'
-                          : t.changeRecord!.status === 'accepted'
-                            ? 'bg-green-500 border-green-500/30'
-                            : 'bg-red-500 border-red-500/30'
                       }`}
                     />
                   ),
