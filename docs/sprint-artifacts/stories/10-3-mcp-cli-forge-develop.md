@@ -10,13 +10,13 @@ so that the BMAD developer agent can create my branch and start implementation p
 
 ## Acceptance Criteria
 
-1. **Given** a FORGED ticket **When** the developer runs `forge develop <ticketId>` **Then** the CLI validates the ticket status, starts the MCP server, and outputs instructions for invoking the developer agent
+1. **Given** an APPROVED ticket **When** the developer runs `forge develop <ticketId>` **Then** the CLI validates the ticket status, starts the MCP server, and outputs instructions for invoking the developer agent
 
 2. **Given** the MCP server is running from `forge develop` **When** the AI calls `start_implementation({ ticketId, branchName, qaItems })` **Then** the tool calls `POST /api/tickets/:id/start-implementation` and returns `{ success, ticketId, branchName, status }`
 
 3. **Given** a new `forge-develop` MCP prompt **When** invoked **Then** it loads the dev-implementer persona, fetches ticket context + file changes + repo context, and returns a structured prompt message
 
-4. **Given** a ticket NOT in FORGED status **When** `forge develop <ticketId>` is run **Then** the CLI shows an error: "Ticket must be in FORGED status to start implementation"
+4. **Given** a ticket NOT in APPROVED status **When** `forge develop <ticketId>` is run **Then** the CLI shows an error: "Ticket must be in APPROVED status to start implementation"
 
 5. **Given** the `start_implementation` tool fails **When** the backend rejects it **Then** the tool returns `isError: true` with a descriptive message
 
@@ -45,7 +45,7 @@ so that the BMAD developer agent can create my branch and start implementation p
 
 - [ ] Task 4: Create forge develop CLI command (AC: 1, 4)
   - [ ] Create `forge-cli/src/commands/develop.ts`
-  - [ ] Mirror `review.ts` pattern: fetch ticket, validate status ∈ {FORGED}, start MCP, wait SIGINT
+  - [ ] Mirror `review.ts` pattern: fetch ticket, validate status ∈ {APPROVED}, start MCP, wait SIGINT
   - [ ] Output: "Run the forge-developer BMAD agent in Claude Code to start"
 
 - [ ] Task 5: Register everything (AC: all)

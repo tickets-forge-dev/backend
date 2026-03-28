@@ -12,6 +12,10 @@ import {
   UsageBudgetRepository,
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
+import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
 import { QuotaExceededError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { FirestoreTeamRepository } from '../../../teams/infrastructure/persistence/FirestoreTeamRepository';
 import { TeamId } from '../../../teams/domain/TeamId';
@@ -54,6 +58,8 @@ export class CreateTicketUseCase {
     private readonly githubTokenService: GitHubTokenService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY)
+    private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
     private readonly teamRepository: FirestoreTeamRepository,
   ) {}
 
@@ -61,7 +67,7 @@ export class CreateTicketUseCase {
     // Check quota before creating ticket
     const today = new Date().toISOString().slice(0, 10);
     const month = today.slice(0, 7);
-    const budget = await this.usageBudgetRepository.getOrCreate(command.teamId, month);
+    const budget = await this.userUsageBudgetRepository.getOrCreate(command.userId, month);
 
     if (budget.tokensUsed >= budget.tokenLimit) {
       throw new QuotaExceededError(budget.tokensUsed, budget.tokenLimit);
@@ -147,8 +153,9 @@ export class CreateTicketUseCase {
     // Persist draft
     await this.aecRepository.save(aec);
 
-    // Increment daily ticket counter
+    // Increment daily ticket counter (team-level for analytics + user-level for enforcement)
     await this.usageBudgetRepository.incrementDailyTickets(command.teamId, today);
+    await this.userUsageBudgetRepository.incrementDailyTickets(command.userId, today);
 
     return aec;
   }

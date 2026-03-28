@@ -165,7 +165,7 @@ These tools can write entire features, refactor codebases, generate tests.
 
 **The insight:** You can't skip steps. The PM MUST clarify. The developer MUST review. That's not friction — that's the quality gate that eliminates the $3-4M/year waste.
 
-**Visual suggestion:** A clean 4-step horizontal flow diagram. Each step has an icon and a brief description. An arrow connects them left to right. Below the flow, show the status progression: DRAFT → FORGED → READY → EXECUTING → COMPLETED. Make it feel like a state machine — structured and inevitable.
+**Visual suggestion:** A clean 4-step horizontal flow diagram. Each step has an icon and a brief description. An arrow connects them left to right. Below the flow, show the status progression: DRAFT → APPROVED → REFINED → EXECUTING → DELIVERED. Make it feel like a state machine — structured and inevitable.
 
 ---
 
@@ -368,7 +368,7 @@ These tools can write entire features, refactor codebases, generate tests.
 
 **Architecture highlights:**
 - **Clean Architecture:** Presentation → Application → Domain ← Infrastructure. Domain has zero framework dependencies.
-- **Agent Execution Contract (AEC):** Core domain entity with explicit state machine lifecycle: DRAFT → FORGED → READY → EXECUTING → COMPLETED
+- **Agent Execution Contract (AEC):** Core domain entity with explicit state machine lifecycle: DRAFT → DEFINED → REFINED → APPROVED → EXECUTING → DELIVERED
 - **Two-layer codebase analysis:** Static project profile (big picture) + dynamic file reads (ticket-specific context)
 - **MCP standard:** Any compatible AI tool can consume Forge tickets natively
 

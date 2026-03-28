@@ -8,6 +8,8 @@ import { FirestoreUserRepository } from '../../../users/infrastructure/persisten
 import { TeamMemberRepository } from '../ports/TeamMemberRepository';
 import { InvalidTeamException } from '../../domain/exceptions/InvalidTeamException';
 import { UserFactory } from '../../../users/domain/UserFactory';
+import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '../../../organizations/application/ports/OrganizationRepository';
+import { Organization } from '../../../organizations/domain/Organization';
 
 export interface CreateTeamCommand {
   userId: string;
@@ -46,6 +48,8 @@ export class CreateTeamUseCase {
     private readonly userRepository: FirestoreUserRepository,
     @Inject('TeamMemberRepository')
     private readonly memberRepository: TeamMemberRepository,
+    @Inject(ORGANIZATION_REPOSITORY)
+    private readonly organizationRepository: OrganizationRepository,
   ) {}
 
   async execute(command: CreateTeamCommand): Promise<CreateTeamResult> {
@@ -59,12 +63,24 @@ export class CreateTeamUseCase {
       await this.userRepository.save(user);
     }
 
+    // Resolve user's organization (auto-create personal org if missing)
+    let organizationId = user.getOrganizationId();
+    if (!organizationId) {
+      const displayName = user.getDisplayName() || command.userEmail.split('@')[0];
+      const personalOrg = Organization.createPersonal(command.userId, displayName);
+      await this.organizationRepository.save(personalOrg);
+      organizationId = personalOrg.getId().getValue();
+      user = user.setOrganizationId(organizationId);
+      await this.userRepository.save(user);
+    }
+
     // Create team with owner's workspace as default
     // This ensures team members share the same workspace and can see each other's tickets
     const ownerWorkspaceId = `ws_${command.userId.substring(0, 12)}`;
     const team = TeamFactory.createTeam(
       command.teamName,
       command.userId,
+      organizationId,
       TeamSettings.create(
         ownerWorkspaceId,
         command.allowMemberInvites ?? true,

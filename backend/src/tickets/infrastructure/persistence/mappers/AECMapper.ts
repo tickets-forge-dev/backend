@@ -1,5 +1,6 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
+import { ChangeRecordStatus } from '../../../domain/value-objects/ChangeRecord';
 import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { Attachment } from '../../../domain/value-objects/Attachment';
@@ -96,21 +97,26 @@ export interface AECDocument {
   slug?: string | null;
   previousStatus?: string | null;
   generationJobId?: string | null;
-  forgedAt?: Timestamp | null;
+  approvedAt?: Timestamp | null;
+  executionEvents?: any[];
+  changeRecord?: {
+    executionSummary: string;
+    decisions: any[];
+    risks: any[];
+    scopeChanges: any[];
+    filesChanged: any[];
+    divergences: any[];
+    hasDivergence: boolean;
+    status: string;
+    reviewNote: string | null;
+    reviewedAt: Timestamp | null;
+    submittedAt: Timestamp;
+  } | null;
   // Legacy fields (kept for backward compatibility, deprecated)
   questionRounds?: QuestionRoundDocument[];
   currentRound?: number;
   maxRounds?: number;
 }
-
-/** Migration map: old Firestore status values → new AECStatus values */
-const STATUS_MIGRATION: Record<string, string> = {
-  'validated': 'dev-refining',
-  'waiting-for-approval': 'review',
-  'ready': 'forged',
-  'created': 'executing',
-  // 'drifted' handled separately below (depends on externalIssue)
-};
 
 export class AECMapper {
   static toDomain(doc: AECDocument): AEC {
@@ -192,19 +198,11 @@ export class AECMapper {
         metadata: ref.metadata ? { ...ref.metadata } : undefined,
       })) as DesignReference[];
 
-    // Migrate old status values to new AECStatus enum
-    let migratedStatus: string;
-    if (doc.status === 'drifted') {
-      migratedStatus = doc.externalIssue ? 'executing' : 'forged';
-    } else {
-      migratedStatus = STATUS_MIGRATION[doc.status] ?? doc.status;
-    }
-
     return AEC.reconstitute(
       doc.id,
       doc.teamId,
-      doc.createdBy || 'unknown', // Backward compatibility: fallback for old documents
-      migratedStatus as AECStatus,
+      doc.createdBy || 'unknown',
+      doc.status as AECStatus,
       doc.title,
       doc.description,
       doc.type as TicketType | null,
@@ -265,7 +263,25 @@ export class AECMapper {
       doc.slug ?? null,
       (doc.previousStatus as AECStatus) ?? null,
       doc.generationJobId ?? null,
-      doc.forgedAt ? toDate(doc.forgedAt) : null,
+      doc.approvedAt ? toDate(doc.approvedAt) : null,
+      // Execution events — stored as plain objects, dates need conversion
+      (doc.executionEvents || []).map((e: any) => ({
+        ...e,
+        createdAt: toDate(e.createdAt),
+      })),
+      // Change Record
+      doc.changeRecord
+        ? {
+            ...doc.changeRecord,
+            status: doc.changeRecord.status as ChangeRecordStatus,
+            reviewedAt: doc.changeRecord.reviewedAt ? toDate(doc.changeRecord.reviewedAt) : null,
+            submittedAt: toDate(doc.changeRecord.submittedAt),
+            // Convert event dates within the record
+            decisions: (doc.changeRecord.decisions || []).map((e: any) => ({ ...e, createdAt: toDate(e.createdAt) })),
+            risks: (doc.changeRecord.risks || []).map((e: any) => ({ ...e, createdAt: toDate(e.createdAt) })),
+            scopeChanges: (doc.changeRecord.scopeChanges || []).map((e: any) => ({ ...e, createdAt: toDate(e.createdAt) })),
+          }
+        : null,
     );
   }
 
@@ -351,7 +367,37 @@ export class AECMapper {
       slug: aec.slug ?? null,
       previousStatus: aec.previousStatus ?? null,
       generationJobId: aec.generationJobId ?? null,
-      forgedAt: aec.forgedAt ? Timestamp.fromDate(aec.forgedAt) : null,
+      approvedAt: aec.approvedAt ? Timestamp.fromDate(aec.approvedAt) : null,
+      executionEvents: aec.executionEvents.map((e) => ({
+        ...e,
+        createdAt: Timestamp.fromDate(e.createdAt),
+      })),
+      changeRecord: aec.changeRecord
+        ? {
+            executionSummary: aec.changeRecord.executionSummary,
+            filesChanged: aec.changeRecord.filesChanged,
+            divergences: aec.changeRecord.divergences,
+            hasDivergence: aec.changeRecord.hasDivergence,
+            status: aec.changeRecord.status,
+            reviewNote: aec.changeRecord.reviewNote,
+            reviewedAt: aec.changeRecord.reviewedAt
+              ? Timestamp.fromDate(aec.changeRecord.reviewedAt)
+              : null,
+            submittedAt: Timestamp.fromDate(aec.changeRecord.submittedAt),
+            decisions: aec.changeRecord.decisions.map((e) => ({
+              ...e,
+              createdAt: Timestamp.fromDate(e.createdAt),
+            })),
+            risks: aec.changeRecord.risks.map((e) => ({
+              ...e,
+              createdAt: Timestamp.fromDate(e.createdAt),
+            })),
+            scopeChanges: aec.changeRecord.scopeChanges.map((e) => ({
+              ...e,
+              createdAt: Timestamp.fromDate(e.createdAt),
+            })),
+          }
+        : null,
     };
   }
 }

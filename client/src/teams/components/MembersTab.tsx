@@ -32,9 +32,9 @@ export function MembersTab({ teamId }: MembersTabProps) {
       {/* Header + Invite Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-[var(--text)]">Team Members</h3>
+          <h3 className="text-lg font-semibold text-[var(--text)]">Project Members</h3>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Manage team members and their roles
+            Manage project members and their roles
           </p>
         </div>
         {isOwner && (

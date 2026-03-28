@@ -10,9 +10,9 @@ so that the developer agent can record how implementation started.
 
 ## Acceptance Criteria
 
-1. **Given** a FORGED AEC ticket **When** `aec.startImplementation(branchName, qaItems)` is called **Then** the ticket transitions to EXECUTING, stores the branch name and implementation session with timestamp
+1. **Given** an APPROVED AEC ticket **When** `aec.startImplementation(branchName, qaItems)` is called **Then** the ticket transitions to EXECUTING, stores the branch name and implementation session with timestamp
 
-2. **Given** a ticket NOT in FORGED status **When** `startImplementation()` is called **Then** an `InvalidStateTransitionError` is thrown
+2. **Given** a ticket NOT in APPROVED status **When** `startImplementation()` is called **Then** an `InvalidStateTransitionError` is thrown
 
 3. **Given** an AEC with implementation data **When** persisted to Firestore and reconstituted **Then** `implementationBranch`, `implementationSession` are correctly round-tripped
 
@@ -28,7 +28,7 @@ so that the developer agent can record how implementation started.
   - [ ] Add `_implementationBranch: string | null = null` field
   - [ ] Add `_implementationSession: ImplementationSession | null = null` field
   - [ ] Add `startImplementation(branchName: string, qaItems?: ReviewQAItem[])` method
-    - Guard: throw `InvalidStateTransitionError` if status !== FORGED
+    - Guard: throw `InvalidStateTransitionError` if status !== APPROVED
     - Set `_implementationBranch = branchName`
     - Set `_implementationSession = { qaItems: qaItems ?? [], branchName, startedAt: new Date() }`
     - Transition `_status = AECStatus.EXECUTING`

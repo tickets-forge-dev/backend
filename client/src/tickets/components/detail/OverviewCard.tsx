@@ -22,28 +22,28 @@ import {
 /** Maps current status → hint with and without a developer assigned. */
 const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> = {
   draft: {
-    assigned: 'Fill in details, then hand off to the developer for refinement',
-    unassigned: 'Fill in details — assign a developer for code-aware refinement, or export / download as-is',
+    assigned: 'Fill in details, then send to the developer for code-aware refinement',
+    unassigned: 'Assign a developer for code-aware refinement, or approve as-is',
   },
-  'dev-refining': {
+  defined: {
     assigned: 'Developer is reviewing and refining the spec with code context',
     unassigned: 'Developer is reviewing and refining the spec with code context',
   },
-  review: {
-    assigned: 'PM reviews the developer\'s changes before forging',
-    unassigned: 'PM reviews the developer\'s changes before forging',
+  refined: {
+    assigned: 'PM reviews the developer\'s changes before marking Ready',
+    unassigned: 'PM reviews the developer\'s changes before marking Ready',
   },
-  forged: {
-    assigned: 'AEC is final — ready to execute or export',
-    unassigned: 'AEC is final — export to Jira, download, or use however you like',
+  approved: {
+    assigned: 'Spec is ready — execute or export to your issue tracker',
+    unassigned: 'Spec is ready — export to Jira, download, or use however you like',
   },
   executing: {
     assigned: 'Being built or pushed to your issue tracker',
     unassigned: 'Being built or pushed to your issue tracker',
   },
-  complete: {
-    assigned: 'This ticket is done',
-    unassigned: 'This ticket is done',
+  delivered: {
+    assigned: 'Implementation is complete',
+    unassigned: 'Implementation is complete',
   },
 };
 
@@ -77,10 +77,11 @@ export function OverviewCard({
   const { refreshTicket } = useTicketsStore();
   const { user } = useAuthStore();
   const creatorMember = ticket.createdBy ? teamMembers.find((m) => m.userId === ticket.createdBy) : null;
-  // Fall back to current user's display name if teamMembers hasn't loaded the creator yet
-  const creatorName = creatorMember
-    ? (creatorMember.displayName || creatorMember.email || null)
-    : (ticket.createdBy === user?.uid ? (user.displayName || user.email || null) : null);
+  // Resolve creator name: backend-provided name → team member → current user (if creator) → null
+  const creatorName = ticket.createdByName
+    || creatorMember?.displayName
+    || creatorMember?.email
+    || (ticket.createdBy && ticket.createdBy === user?.uid ? (user?.displayName || user?.email || null) : null);
 
   // Optimistic local tag IDs so pills render immediately after selection
   const [localTagIds, setLocalTagIds] = useState<string[]>(ticket.tagIds ?? []);

@@ -40,11 +40,11 @@ The review agent (Epic 6) proved the pattern: structured Q&A via AskUserQuestion
 
 ### Domain Layer
 - `ImplementationSession` interface: `{ qaItems: ReviewQAItem[], branchName: string, startedAt: Date }`
-- AEC gains `startImplementation(branchName, qaItems?)` transition (FORGED → EXECUTING)
+- AEC gains `startImplementation(branchName, qaItems?)` transition (APPROVED → EXECUTING)
 - AEC gains `implementationBranch` and `implementationSession` fields
 
 ### Application Layer
-- `StartImplementationUseCase` — validates FORGED status, calls domain method, persists
+- `StartImplementationUseCase` — validates APPROVED status, calls domain method, persists
 
 ### Infrastructure Layer
 - `AECMapper` updated for new fields
@@ -73,7 +73,7 @@ The agent generates this automatically — no human input, no typos, no wrong fo
 
 ```
 Developer: forge develop <ticketId>
-  → CLI validates ticket is FORGED, starts MCP server
+  → CLI validates ticket is APPROVED, starts MCP server
 
 Developer invokes Forgy (BMAD agent):
   → Phase 1 — Load:
@@ -95,7 +95,7 @@ Developer invokes Forgy (BMAD agent):
       Generate branch name: forge/<aec-id>-<slug>
       Run: git checkout -b <branch>
       Call MCP: start_implementation({ ticketId, branchName, qaItems })
-      Backend: FORGED → EXECUTING, stores branch + Q&A
+      Backend: APPROVED → EXECUTING, stores branch + Q&A
       Display: "You're set. {N} files to change, {M} tests to write."
 ```
 
@@ -115,4 +115,4 @@ Strictly sequential — each story builds on the previous.
 | Forgy character (not new) | Developers build relationship with one assistant |
 | AskUserQuestion (not text Q&A) | Proven pattern from forge-reviewer, structured options |
 | Branch created by agent (not human) | Eliminates naming errors, guarantees linkability |
-| FORGED → EXECUTING transition | Clear status signal that implementation has begun |
+| APPROVED → EXECUTING transition | Clear status signal that implementation has begun |

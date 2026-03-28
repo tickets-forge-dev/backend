@@ -15,6 +15,8 @@ import { FoldersModule } from './folders/folders.module';
 import { TagsModule } from './tags/tags.module';
 import { JobsModule } from './jobs/jobs.module';
 import { ProjectProfilesModule } from './project-profiles/project-profiles.module';
+import { UsersModule } from './users/users.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { ProjectProfilesModule } from './project-profiles/project-profiles.modul
       envFilePath: '.env',
     }),
     SharedModule,
+    OrganizationsModule,
     AuthModule,
     TeamsModule, // CRITICAL FIX: Register teams endpoints
     WorkspacesModule,
@@ -37,6 +40,7 @@ import { ProjectProfilesModule } from './project-profiles/project-profiles.modul
     TagsModule,
     JobsModule,
     ProjectProfilesModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],

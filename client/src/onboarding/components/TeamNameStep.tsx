@@ -23,15 +23,15 @@ export function TeamNameStep() {
     const trimmed = name.trim();
 
     if (!trimmed) {
-      return 'Team name is required';
+      return 'Project name is required';
     }
 
     if (trimmed.length < 3) {
-      return 'Team name must be at least 3 characters';
+      return 'Project name must be at least 3 characters';
     }
 
     if (trimmed.length > 50) {
-      return 'Team name must not exceed 50 characters';
+      return 'Project name must not exceed 50 characters';
     }
 
     return null;
@@ -69,7 +69,7 @@ export function TeamNameStep() {
       // Get Firebase ID token
       const user = auth.currentUser;
       if (!user) {
-        throw new Error('You must be signed in to create a team');
+        throw new Error('You must be signed in to create a project');
       }
 
       const idToken = await user.getIdToken();
@@ -92,7 +92,7 @@ export function TeamNameStep() {
       router.push('/onboarding/role-selection');
     } catch (err: any) {
       console.error('❌ [TeamNameStep] Failed to create team:', err);
-      setError(err.message || 'Failed to create team. Please try again.');
+      setError(err.message || 'Failed to create project. Please try again.');
     } finally {
       setIsCreating(false);
     }
@@ -103,7 +103,7 @@ export function TeamNameStep() {
       {/* Heading */}
       <div>
         <h2 className="text-[var(--text-xl)] font-semibold text-white">
-          Name your team
+          Name your project
         </h2>
         <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-1">
           This will be your workspace for managing tickets and collaborating with your team.
@@ -117,7 +117,7 @@ export function TeamNameStep() {
             type="text"
             value={teamName}
             onChange={handleChange}
-            placeholder="e.g., Acme Corp, Sarah's Team"
+            placeholder="e.g., Acme Corp, My Project"
             disabled={isCreating}
             className={`bg-[#18181b] border-[#27272a] text-white placeholder:text-[#71717a] ${
               validationError ? 'border-red-500' : ''
@@ -169,7 +169,7 @@ export function TeamNameStep() {
               Creating...
             </span>
           ) : (
-            'Create Team'
+            'Create Project'
           )}
         </button>
       </form>

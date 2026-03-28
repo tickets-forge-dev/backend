@@ -15,6 +15,7 @@ export class Team {
   private readonly name: string;
   private readonly slug: string;
   private readonly ownerId: string;
+  private readonly organizationId: string;
   private readonly settings: TeamSettings;
   private readonly createdAt: Date;
   private readonly updatedAt: Date;
@@ -25,6 +26,7 @@ export class Team {
     name: string,
     slug: string,
     ownerId: string,
+    organizationId: string,
     settings: TeamSettings,
     createdAt: Date,
     updatedAt: Date,
@@ -34,6 +36,7 @@ export class Team {
     this.name = name;
     this.slug = slug;
     this.ownerId = ownerId;
+    this.organizationId = organizationId;
     this.settings = settings;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -44,6 +47,7 @@ export class Team {
   static create(
     name: string,
     ownerId: string,
+    organizationId: string,
     settings: TeamSettings = TeamSettings.default(),
   ): Team {
     // Validate name
@@ -62,6 +66,7 @@ export class Team {
       name.trim(),
       slug,
       ownerId.trim(),
+      organizationId,
       settings,
       new Date(),
       new Date(),
@@ -73,12 +78,13 @@ export class Team {
     name: string,
     slug: string,
     ownerId: string,
+    organizationId: string,
     settings: TeamSettings,
     createdAt: Date,
     updatedAt: Date,
     deletedAt?: Date,
   ): Team {
-    return new Team(id, name, slug, ownerId, settings, createdAt, updatedAt, deletedAt);
+    return new Team(id, name, slug, ownerId, organizationId, settings, createdAt, updatedAt, deletedAt);
   }
 
   // Getters
@@ -96,6 +102,10 @@ export class Team {
 
   getOwnerId(): string {
     return this.ownerId;
+  }
+
+  getOrganizationId(): string {
+    return this.organizationId;
   }
 
   getSettings(): TeamSettings {
@@ -133,6 +143,7 @@ export class Team {
       trimmedName,
       newSlug,
       this.ownerId,
+      this.organizationId,
       this.settings,
       this.createdAt,
       new Date(),
@@ -146,6 +157,7 @@ export class Team {
       this.name,
       this.slug,
       this.ownerId,
+      this.organizationId,
       newSettings,
       this.createdAt,
       new Date(),
@@ -159,6 +171,7 @@ export class Team {
       this.name,
       this.slug,
       this.ownerId,
+      this.organizationId,
       this.settings,
       this.createdAt,
       new Date(), // Update updatedAt
@@ -194,6 +207,7 @@ export class Team {
       name: this.name,
       slug: this.slug,
       ownerId: this.ownerId,
+      organizationId: this.organizationId,
       settings: this.settings.toObject(),
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),

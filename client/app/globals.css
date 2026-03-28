@@ -316,6 +316,31 @@ body {
   scrollbar-color: var(--gray-700) transparent;
 }
 
+/* Timeline scroll — dark thin scrollbar, visible only on hover */
+.timeline-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.timeline-scroll:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+.timeline-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.timeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.timeline-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+.timeline-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+.timeline-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* Smooth transitions between themes */
 * {
   transition: background-color 200ms ease-in-out,
@@ -522,6 +547,18 @@ input[type="checkbox"]:checked:hover {
 /* ============================================ */
 /* ANIMATIONS */
 /* ============================================ */
+
+/* Record detail panel slide-in */
+@keyframes recordSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* Smooth fade transition for analysis loader messages */
 @keyframes fadeIn {

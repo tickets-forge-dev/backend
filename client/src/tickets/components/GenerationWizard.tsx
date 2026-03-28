@@ -270,10 +270,10 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   };
 
   return (
-    <div className="relative w-full h-full bg-white dark:bg-gray-950">
+    <div className="relative w-full h-full">
       {/* Stage Indicator - Hide only after ticket is fully generated (generate stage with a draft) */}
       {!(draftAecId && currentStage === 'generate') && (
-        <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+        <div className="border-b border-[var(--border-subtle)]">
           <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6 flex items-center gap-3">
             <button
               onClick={() => router.push('/tickets')}

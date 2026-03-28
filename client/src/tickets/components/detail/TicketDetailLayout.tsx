@@ -11,6 +11,7 @@ import { OverviewCard } from './OverviewCard';
 import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
+import { ChangeRecordTab } from './ChangeRecordTab';
 import { Button } from '@/core/components/ui/button';
 import {
   AlertDialog,
@@ -22,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2 } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -68,6 +69,7 @@ interface TicketDetailLayoutProps {
   // Assign dialog control (for lifecycle warning)
   assignDialogOpen?: boolean;
   onAssignDialogOpenChange?: (open: boolean) => void;
+  // Delivery review
 }
 
 export function TicketDetailLayout({
@@ -107,6 +109,8 @@ export function TicketDetailLayout({
   const sideNavLeft = sidebarCollapsed ? 'left-[calc(4rem+1rem)]' : 'left-[calc(var(--nav-width)+1rem)]';
   const [isApproving, setIsApproving] = useState(false);
   const [isReEnriching, setIsReEnriching] = useState(false);
+  const [cliCopied, setCliCopied] = useState(false);
+  const [cliHowToOpen, setCliHowToOpen] = useState(false);
   const [isAecExpanded, setIsAecExpanded] = useState(false);
   const [aecXml, setAecXml] = useState<string | null>(null);
   const [isLoadingXml, setIsLoadingXml] = useState(false);
@@ -175,11 +179,21 @@ export function TicketDetailLayout({
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
   const hasTechSpecContent = !!ticket.techSpec;
-  const isWaitingForApproval = ticket.status === 'review';
-  const isDevRefining = ticket.status === 'dev-refining';
+  const isWaitingForApproval = ticket.status === 'refined';
+  const isDevRefining = ticket.status === 'defined';
   const isDraft = ticket.status === 'draft';
   const canApprove = isWaitingForApproval || (isDevRefining && hasTechSpecContent) || (isDraft && hasTechSpecContent);
   const [showSkipReviewWarning, setShowSkipReviewWarning] = useState(false);
+
+  const handleSendToReview = () => {
+    if (!ticket.assignedTo) {
+      // Open assign dialog — after assignment, user can transition to defined
+      onAssignDialogOpenChange?.(true);
+      return;
+    }
+    // Transition to defined (developer review)
+    onStatusTransition?.('defined');
+  };
 
   const handleApprove = async () => {
     // If approving from DEV_REFINING (skipping developer review), show warning first
@@ -364,6 +378,8 @@ export function TicketDetailLayout({
             title="Developer Review Q&A"
             badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
             defaultExpanded={true}
+            variant={isWaitingForApproval ? 'attention' : 'default'}
+            attentionLabel={isWaitingForApproval ? 'Action needed' : undefined}
           >
             <ReviewSessionSection
               qaItems={ticket.reviewSession!.qaItems}
@@ -456,31 +472,69 @@ export function TicketDetailLayout({
         </div>
       )}
 
-      {/* Approve directly from draft — PM-only workflow, no developer needed */}
+      {/* Draft CTA — guide PM toward developer review (refine-first flow) */}
       {isDraft && hasTechSpecContent && (
+        <div>
+        <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)]/50 mb-2">Next Action</p>
         <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
-          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--text-primary)]">
-              Spec is ready — approve and mark as Ready?
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
-              You can approve now, or assign a developer to review and refine the spec first.
-            </p>
-          </div>
-          <Button
-            onClick={handleApprove}
-            disabled={isApproving}
-            variant="outline"
-            className="flex-shrink-0"
-          >
-            {isApproving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <ShieldCheck className="h-4 w-4 mr-2" />
-            )}
-            Approve
-          </Button>
+          {ticket.assignedTo ? (
+            <>
+              <ArrowRight className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Ready for developer review
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                  Send the spec to the developer for code-aware refinement
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  {isApproving ? 'Approving...' : 'or approve directly →'}
+                </button>
+                <Button
+                  onClick={handleSendToReview}
+                  variant="outline"
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Send to Review
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Ready for developer review
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                  Assign a developer to refine the spec with code context
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  {isApproving ? 'Approving...' : 'or approve without review →'}
+                </button>
+                <Button
+                  onClick={handleSendToReview}
+                  variant="outline"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Assign Developer
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
         </div>
       )}
 
@@ -493,8 +547,37 @@ export function TicketDetailLayout({
               Spec is ready — approve without developer review?
             </p>
             <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
-              You can approve now or wait for a developer to refine the spec first.
+              Approve now or wait for a developer to refine the spec first.
             </p>
+            <button
+              onClick={() => setCliHowToOpen(!cliHowToOpen)}
+              className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+            >
+              <ChevronRight className={`h-3 w-3 transition-transform ${cliHowToOpen ? 'rotate-90' : ''}`} />
+              How it works
+            </button>
+            {cliHowToOpen && (
+              <div className="mt-2 pl-4 space-y-2">
+                <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+                  <span className="text-[var(--text-secondary)] font-medium">Stage: Dev Review</span> — The developer runs <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge review</code> (or <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">/forge:review</code> in Claude Code) to enrich the spec with real code context. Next, the PM approves the ticket. Then the developer can run <code className="text-[var(--text-secondary)] bg-[var(--bg-hover)] px-1 py-px rounded text-[10px]">forge develop</code> to implement it.
+                </p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText('npm i forge-aec');
+                    setCliCopied(true);
+                    setTimeout(() => setCliCopied(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--border)] transition-colors group"
+                >
+                  <code className="text-[10px] text-[var(--text-secondary)] font-mono">npm i forge-aec</code>
+                  {cliCopied ? (
+                    <Check className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-3 w-3 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
           <Button
             onClick={handleApprove}
@@ -567,6 +650,8 @@ export function TicketDetailLayout({
           title="Developer Review Q&A"
           badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
           defaultExpanded={false}
+          variant={isWaitingForApproval ? 'attention' : 'default'}
+          attentionLabel={isWaitingForApproval ? 'Action needed' : undefined}
         >
           <ReviewSessionSection
             qaItems={ticket.reviewSession!.qaItems}
@@ -621,6 +706,13 @@ export function TicketDetailLayout({
           >
             <Code2 className="h-3.5 w-3.5" />
             Technical
+          </TabsTrigger>
+          <TabsTrigger
+            value="delivered"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+          >
+            <GitPullRequest className="h-3.5 w-3.5" />
+            Record
           </TabsTrigger>
           </TabsList>
 
@@ -926,6 +1018,30 @@ export function TicketDetailLayout({
                     <p className="text-xs text-[var(--text-tertiary)] mt-1">Design links (Figma, Loom, etc.) will appear here</p>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="delivered" className="mt-6">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
+            {ticket.changeRecord ? (
+              <ChangeRecordTab
+                changeRecord={ticket.changeRecord}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-10 h-10 rounded-full bg-[var(--bg-hover)] flex items-center justify-center mb-3">
+                  <GitPullRequest className="h-5 w-5 text-[var(--text-tertiary)]" />
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] mb-1">No Change Record yet</p>
+                <p className="text-[13px] text-[var(--text-tertiary)] max-w-sm">
+                  {ticket.status === 'executing'
+                    ? 'A developer is working on this ticket. The Change Record will appear here when they deliver their work.'
+                    : ticket.status === 'approved'
+                      ? 'The Change Record will be created when a developer starts and completes implementation.'
+                      : 'The Change Record is created when the ticket is implemented and delivered for review.'}
+                </p>
               </div>
             )}
           </div>

@@ -21,6 +21,7 @@ import { EditItemDialog, type EditState } from '@/src/tickets/components/EditIte
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
 import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
+import { useTeamStore } from '@/teams/stores/team.store';
 import { toast } from 'sonner';
 
 interface TicketDetailPageProps {
@@ -83,8 +84,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
-  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, refreshTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
   const { ticketService, linearService, jiraService } = useServices();
+  const { currentTeam, teamMembers, loadTeamMembers } = useTeamStore();
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -120,6 +122,24 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       fetchTicket(ticketId);
     }
   }, [ticketId, fetchTicket]);
+
+  // Silent poll every 15s so external status changes (e.g. MCP start_implementation) are reflected
+  useEffect(() => {
+    if (!ticketId) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshTicket(ticketId);
+      }
+    }, 15_000);
+    return () => clearInterval(interval);
+  }, [ticketId, refreshTicket]);
+
+  // Ensure team members are loaded (needed for "Created by" name resolution)
+  useEffect(() => {
+    if (currentTeam?.id && teamMembers.length === 0) {
+      loadTeamMembers(currentTeam.id);
+    }
+  }, [currentTeam?.id, teamMembers.length, loadTeamMembers]);
 
 
   // Sync description draft when ticket loads
@@ -708,7 +728,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
   const handleMarkAsReady = async () => {
     if (!ticketId) return;
-    const success = await updateTicket(ticketId, { status: 'forged' });
+    const success = await updateTicket(ticketId, { status: 'approved' });
     if (success) {
       setShowStatusConfirm(false);
     }
@@ -716,7 +736,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
   const handleStatusTransition = (status: string) => {
     if (!ticketId) return;
-    if (status === 'dev-refining') {
+    if (status === 'defined') {
       // Re-fetch fresh ticket to get latest assignedTo
       const fresh = useTicketsStore.getState().currentTicket;
       console.log('[lifecycle] assignedTo =', JSON.stringify(fresh?.assignedTo));
@@ -836,10 +856,21 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     toast.success(`Saved ${acceptedEndpoints.length} API endpoint${acceptedEndpoints.length !== 1 ? 's' : ''}`);
   };
 
+  const handleReviewDelivery = async (action: 'accept' | 'request_changes', note?: string) => {
+    if (!ticketId) return;
+    try {
+      await ticketService.reviewDelivery(ticketId, action, note);
+      await fetchTicket(ticketId);
+      toast.success(action === 'accept' ? 'Delivery accepted' : 'Changes requested');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to review delivery');
+    }
+  };
+
   return (
-    <div className="space-y-4 max-w-[var(--content-max)] xl:max-w-[1040px] mx-auto">
+    <div className="space-y-4 max-w-[var(--content-max)] xl:max-w-[1040px] mx-auto px-4 sm:px-6">
       {/* Top bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push('/tickets')} className="-ml-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -992,10 +1023,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onStatusTransition={handleStatusTransition}
         assignDialogOpen={forceAssignOpen}
         onAssignDialogOpenChange={setForceAssignOpen}
+
       />
 
-      {/* Notes Section - at bottom */}
-      <div className="pt-4 border-t border-[var(--border)]">
+      {/* Notes Section */}
+      <div className="px-1">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-[var(--text)]">Notes</h3>
           <div className="flex items-center gap-1">
@@ -1076,7 +1108,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             </DialogTitle>
             <DialogDescription>
               {needsAssignWarning
-                ? 'Dev-Refine requires a developer to review and refine the spec. No developer is currently assigned to this ticket.'
+                ? 'Dev Review requires a developer to review and refine the spec. No developer is currently assigned to this ticket.'
                 : `This will move the ticket from ${getStatusLabel(currentTicket.status)} to ${getStatusLabel(pendingTransition ?? '')}.`
               }
             </DialogDescription>

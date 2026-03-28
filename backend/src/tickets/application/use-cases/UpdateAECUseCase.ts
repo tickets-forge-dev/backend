@@ -69,11 +69,11 @@ export class UpdateAECUseCase {
     // Determine if this is a backward transition
     const lifecycleOrder: Record<string, number> = {
       [AECStatus.DRAFT]: 0,
-      [AECStatus.DEV_REFINING]: 1,
-      [AECStatus.REVIEW]: 2,
-      [AECStatus.FORGED]: 3,
+      [AECStatus.DEFINED]: 1,
+      [AECStatus.REFINED]: 2,
+      [AECStatus.APPROVED]: 3,
       [AECStatus.EXECUTING]: 4,
-      [AECStatus.COMPLETE]: 5,
+      [AECStatus.DELIVERED]: 5,
     };
 
     const currentLevel = lifecycleOrder[aec.status];
@@ -94,38 +94,38 @@ export class UpdateAECUseCase {
         aec.revertToDraft();
         break;
       case AECStatus.EXECUTING:
-        // Transition FORGED → EXECUTING from the web UI (no branch name)
-        if (aec.status === AECStatus.FORGED) {
+        // Transition APPROVED → EXECUTING from the web UI (no branch name)
+        if (aec.status === AECStatus.APPROVED) {
           aec.startImplementation('manual');
         } else {
           throw new InvalidStateTransitionError(
-            `Cannot transition to executing from ${aec.status}. Ticket must be in forged status.`,
+            `Cannot transition to executing from ${aec.status}. Ticket must be in approved status.`,
           );
         }
         break;
-      case AECStatus.COMPLETE:
-        // Chain through executing if coming from forged
-        if (aec.status === AECStatus.FORGED) {
+      case AECStatus.DELIVERED:
+        // Chain through executing if coming from approved
+        if (aec.status === AECStatus.APPROVED) {
           aec.startImplementation('manual');
         }
-        aec.markComplete();
+        aec.markDelivered();
         break;
-      case AECStatus.DEV_REFINING:
+      case AECStatus.DEFINED:
         aec.startDevRefine(this.createAutoPassValidation());
         break;
-      case AECStatus.REVIEW:
+      case AECStatus.REFINED:
         // Forward: submit an empty review session to transition
         aec.submitReviewSession([]);
         break;
-      case AECStatus.FORGED:
-        // If draft, start dev-refine first then forge
+      case AECStatus.APPROVED:
+        // If draft, start dev-refine first then approve
         if (aec.status === AECStatus.DRAFT) {
           aec.startDevRefine(this.createAutoPassValidation());
         }
-        if (aec.status === AECStatus.REVIEW) {
+        if (aec.status === AECStatus.REFINED) {
           aec.approve();
         } else {
-          aec.forge({ commitSha: 'manual', indexId: 'manual' });
+          aec.approve({ commitSha: 'manual', indexId: 'manual' });
         }
         break;
       default:

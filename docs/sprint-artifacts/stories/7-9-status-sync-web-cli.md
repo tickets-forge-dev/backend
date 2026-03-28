@@ -5,17 +5,17 @@ Status: review
 ## Story
 
 As a developer,
-I want `forge list`, `forge review`, `forge execute`, and the web ticket list to correctly display and validate all ticket statuses (including `waiting-for-approval` and `ready`),
+I want `forge tickets`, `forge review`, `forge execute`, and the web ticket list to correctly display and validate all ticket statuses (including `waiting-for-approval` and `ready`),
 so that status transitions from the PM approval flow are immediately visible and actionable in both interfaces.
 
 ## Acceptance Criteria
 
 1. CLI `AECStatus` enum values match the backend API response format exactly (lowercase hyphenated: `'draft'`, `'ready'`, `'waiting-for-approval'`, `'created'`, etc.).
-2. `forge list` displays a correct status icon (⏳, 🚀, 📝, etc.) for all ticket statuses — no `❓` for tickets with `ready` or `waiting-for-approval` status.
+2. `forge tickets` displays a correct status icon (⏳, 🚀, 📝, etc.) for all ticket statuses — no `❓` for tickets with `ready` or `waiting-for-approval` status.
 3. `forge review <ticketId>` accepts tickets with status `ready` (post-approval flow) — the `REVIEW_VALID_STATUSES` check passes for real API responses.
 4. `forge execute <ticketId>` accepts tickets with status `ready` — the `EXECUTE_VALID_STATUSES` check passes for real API responses.
 5. `update_ticket_status` MCP tool sends lowercase hyphenated status values to the backend (currently sends uppercase like `'CREATED'`; backend expects `'created'`).
-6. Status text displayed via `forge show` and `forge list` replaces hyphens with spaces for readability (e.g., `waiting-for-approval` → `waiting for approval`).
+6. Status text displayed via `forge show` and `forge tickets` replaces hyphens with spaces for readability (e.g., `waiting-for-approval` → `waiting for approval`).
 7. All existing CLI tests continue to pass after updating enum values.
 8. Web UI ticket list correctly shows `'waiting-for-approval'` tickets with amber "Awaiting Review" badge — confirmed present, no changes needed.
 9. `tsc --noEmit` → 0 errors in forge-cli.
@@ -177,7 +177,7 @@ No blocking issues.
 | AC# | Description | Status | Evidence |
 |-----|-------------|--------|----------|
 | AC1 | CLI AECStatus enum lowercase hyphenated | IMPLEMENTED | `forge-cli/src/types/ticket.ts:3-11` |
-| AC2 | `forge list` shows correct icons, no ❓ | IMPLEMENTED | `formatters.ts` STATUS_ICONS uses `[AECStatus.READY]` computed key |
+| AC2 | `forge tickets` shows correct icons, no ❓ | IMPLEMENTED | `formatters.ts` STATUS_ICONS uses `[AECStatus.READY]` computed key |
 | AC3 | `forge review` accepts `ready` status | IMPLEMENTED | `review.ts:9-10` REVIEW_VALID_STATUSES includes `AECStatus.READY = 'ready'` |
 | AC4 | `forge execute` accepts `ready` status | IMPLEMENTED | (same pattern as review.ts) |
 | AC5 | `update_ticket_status` sends lowercase values | IMPLEMENTED | Enum fix propagates to MCP tool |

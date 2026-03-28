@@ -8,6 +8,8 @@ import {
   generateApprovalEmailText,
   generateReviewEmailHtml,
   generateReviewEmailText,
+  generateImplementationStartedEmailHtml,
+  generateImplementationStartedEmailText,
 } from './templates/notification-email.template';
 
 @Injectable()
@@ -109,6 +111,36 @@ export class NotificationService {
       this.logger.log(`Review notification sent to ${email} for ticket ${ticketId}`);
     } catch (error) {
       this.logger.warn(`Failed to send review notification for ticket ${ticketId}`, error);
+    }
+  }
+
+  async notifyImplementationStarted(
+    ticketId: string,
+    creatorUserId: string,
+    ticketTitle: string,
+  ): Promise<void> {
+    try {
+      const user = await this.userRepository.getById(creatorUserId);
+      if (!user) {
+        this.logger.warn(`Cannot send implementation-started notification: user ${creatorUserId} not found`);
+        return;
+      }
+
+      const email = user.getEmail();
+      if (!email) {
+        this.logger.warn(`Cannot send implementation-started notification: user ${creatorUserId} has no email`);
+        return;
+      }
+
+      const ticketUrl = `${this.appUrl}/tickets/${ticketId}`;
+      const subject = `[Forge] Development started: ${ticketTitle}`;
+      const textBody = generateImplementationStartedEmailText({ ticketTitle, ticketUrl });
+      const htmlBody = generateImplementationStartedEmailHtml({ ticketTitle, ticketUrl });
+
+      await this.emailService.sendEmail(email, subject, textBody, htmlBody);
+      this.logger.log(`Implementation-started notification sent to ${email} for ticket ${ticketId}`);
+    } catch (error) {
+      this.logger.warn(`Failed to send implementation-started notification for ticket ${ticketId}`, error);
     }
   }
 }

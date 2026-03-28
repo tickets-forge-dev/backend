@@ -39,7 +39,7 @@
 
 2. **Forge isn't a ticketing system. It's a contract negotiation engine.** The AEC (Agent Execution Contract) is the core — a verified, structured agreement between the person who wants something and the person (or agent) who builds it.
 
-3. **The AEC ownership model:** PM drafts intent → Forge asks AI-driven questions → Ticket moves to "Dev-Refine" → Developer enriches with code context via their tools (Claude Code, Cursor, Windsurf) → Developer marks ready for review → PM approves → AEC is forged → Execution.
+3. **The AEC ownership model:** PM drafts intent → Forge asks AI-driven questions → Ticket moves to "Dev Review" → Developer enriches with code context via their tools (Claude Code, Cursor, Windsurf) → Developer marks ready for review → PM approves → AEC is forged → Execution.
 
 4. **Two enrichment paths exist:** Best path is developer enrichment via CLI/MCP. Easy path is auto-enrichment via Git connection from the web UI. Both are valid, developer path produces superior results.
 

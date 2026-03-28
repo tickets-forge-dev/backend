@@ -77,9 +77,9 @@ export function InviteMemberDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Invite Team Member</DialogTitle>
+          <DialogTitle>Invite Project Member</DialogTitle>
           <DialogDescription>
-            Send an invitation to join your team. They will receive an email with instructions.
+            Send an invitation to join your project. They will receive an email with instructions.
           </DialogDescription>
         </DialogHeader>
 

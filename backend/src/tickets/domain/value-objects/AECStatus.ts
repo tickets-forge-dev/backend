@@ -1,10 +1,10 @@
 export enum AECStatus {
   DRAFT = 'draft',
-  DEV_REFINING = 'dev-refining',
-  REVIEW = 'review',
-  FORGED = 'forged',
+  DEFINED = 'defined',
+  REFINED = 'refined',
+  APPROVED = 'approved',
   EXECUTING = 'executing',
-  COMPLETE = 'complete',
+  DELIVERED = 'delivered',
   ARCHIVED = 'archived',
 }
 

@@ -22,6 +22,11 @@ export interface ReviewEmailData {
   ticketUrl: string;
 }
 
+export interface ImplementationStartedEmailData {
+  ticketTitle: string;
+  ticketUrl: string;
+}
+
 /**
  * Shared email shell — wraps content in a consistent layout with inline styles.
  */
@@ -169,6 +174,36 @@ Ticket ready for review
 The spec for ${data.ticketTitle} has been finalized and is ready for your review.
 
 Review and approve the ticket:
+${data.ticketUrl}
+
+This is an automated notification from Forge.
+  `.trim();
+}
+
+// ─── Implementation Started ─────────────────────────────────
+
+export function generateImplementationStartedEmailHtml(data: ImplementationStartedEmailData): string {
+  return emailShell('Development Started', `
+    <h1 style="font-size:22px;font-weight:600;color:#111;margin:0 0 16px 0;letter-spacing:-0.3px;">Development has started</h1>
+    <p style="font-size:15px;color:#555;line-height:1.6;margin:0 0 8px 0;">
+      A developer has started working on <strong style="color:#111;">${escapeHtml(data.ticketTitle)}</strong>.
+    </p>
+    <p style="font-size:15px;color:#555;line-height:1.6;margin:0;">
+      You'll be notified again when the work is ready for review.
+    </p>
+    ${emailButton(data.ticketUrl, 'View Ticket', '#3b82f6')}
+  `);
+}
+
+export function generateImplementationStartedEmailText(data: ImplementationStartedEmailData): string {
+  return `
+Development has started
+
+A developer has started working on: ${data.ticketTitle}
+
+You'll be notified again when the work is ready for review.
+
+View the ticket:
 ${data.ticketUrl}
 
 This is an automated notification from Forge.

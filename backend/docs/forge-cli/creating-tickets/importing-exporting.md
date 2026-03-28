@@ -28,7 +28,7 @@ Imported tickets arrive as **Drafts**. You can then:
 
 ## Exporting Tickets
 
-Push a Forged ticket to your project tracker.
+Push an Approved ticket to your project tracker.
 
 ### To Linear
 

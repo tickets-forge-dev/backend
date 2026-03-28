@@ -42,6 +42,7 @@ interface TicketFinalizationResult {
  */
 export interface FinalizeMultipleCommand {
   teamId: string;
+  userId: string;
   answers: QuestionAnswer[];
   onProgress?: (event: EnrichmentProgressEvent) => void;
 }
@@ -117,6 +118,7 @@ export class FinalizeMultipleTicketsUseCase {
           item.ticket,
           index + 1, // agentId (1, 2, 3)
           answersByTicketId.get(item.id) || [],
+          command.userId,
           command.onProgress,
         ),
       ),
@@ -175,6 +177,7 @@ export class FinalizeMultipleTicketsUseCase {
     ticket: any,
     agentId: number,
     answers: QuestionAnswer[],
+    userId: string,
     onProgress?: (event: EnrichmentProgressEvent) => void,
   ): Promise<TicketFinalizationResult> {
     const ticketId = ticket.id;
@@ -207,6 +210,7 @@ export class FinalizeMultipleTicketsUseCase {
       await this.submitQuestionAnswersUseCase.execute({
         aecId: ticketId,
         teamId: ticket.teamId,
+        userId,
         answers: answerRecord,
       });
 

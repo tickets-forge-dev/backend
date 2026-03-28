@@ -52,9 +52,9 @@ export default function TeamSettingsPage() {
     setIsSaving(true);
     try {
       await updateTeam(currentTeam.id, { name: teamName.trim() });
-      toast.success('Team name updated successfully');
+      toast.success('Project name updated successfully');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update team');
+      toast.error(error instanceof Error ? error.message : 'Failed to update project');
     } finally {
       setIsSaving(false);
     }
@@ -66,7 +66,7 @@ export default function TeamSettingsPage() {
     setIsDeleting(true);
     try {
       await deleteTeam(currentTeam.id);
-      toast.success('Team deleted successfully');
+      toast.success('Project deleted successfully');
 
       // Navigate based on remaining teams
       if (teams.length > 1) {
@@ -75,10 +75,10 @@ export default function TeamSettingsPage() {
       } else {
         // No teams left - redirect to home with prompt to create new team
         router.push('/');
-        toast.info('Create a new team to get started');
+        toast.info('Create a new project to get started');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete team');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete project');
       setIsDeleting(false);
     }
   };
@@ -96,7 +96,7 @@ export default function TeamSettingsPage() {
   if (!currentTeam) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <p className="text-[var(--text-secondary)] mb-4">No team selected</p>
+        <p className="text-[var(--text-secondary)] mb-4">No project selected</p>
         <Button onClick={() => router.push('/')}>Go to Dashboard</Button>
       </div>
     );
@@ -106,14 +106,14 @@ export default function TeamSettingsPage() {
   if (!isOwner) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold mb-6">Team Settings</h1>
+        <h1 className="text-2xl font-semibold mb-6">Project Settings</h1>
         <div className="space-y-6 bg-[var(--bg-secondary)] p-6 rounded-lg border border-[var(--border)]">
           <div className="space-y-2">
-            <Label>Team Name</Label>
+            <Label>Project Name</Label>
             <Input value={currentTeam.name} disabled className="bg-[var(--bg-tertiary)]" />
           </div>
           <p className="text-sm text-[var(--text-tertiary)]">
-            Only team owners can modify team settings.
+            Only project owners can modify project settings.
           </p>
         </div>
       </div>
@@ -123,17 +123,17 @@ export default function TeamSettingsPage() {
   // Owner view (full access)
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-6">Team Settings</h1>
+      <h1 className="text-2xl font-semibold mb-6">Project Settings</h1>
 
-      {/* Team Name Section */}
+      {/* Project Name Section */}
       <div className="space-y-6 bg-[var(--bg-secondary)] p-6 rounded-lg border border-[var(--border)] mb-6">
         <div className="space-y-2">
-          <Label htmlFor="teamName">Team Name</Label>
+          <Label htmlFor="teamName">Project Name</Label>
           <Input
             id="teamName"
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            placeholder="Enter team name"
+            placeholder="Enter project name"
             disabled={isSaving}
           />
         </div>
@@ -152,7 +152,7 @@ export default function TeamSettingsPage() {
         <div>
           <h2 className="text-lg font-medium text-red-500 mb-1">Danger Zone</h2>
           <p className="text-sm text-[var(--text-secondary)]">
-            Deleting your team is permanent and cannot be undone.
+            Deleting your project is permanent and cannot be undone.
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export default function TeamSettingsPage() {
           <AlertDialogTrigger asChild>
             <Button variant="destructive" disabled={isDeleting}>
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete Team
+              Delete Project
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -168,7 +168,7 @@ export default function TeamSettingsPage() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This will permanently delete <strong>{currentTeam.name}</strong> and cannot be
-                undone. All workspaces, tickets, and team data will be removed.
+                undone. All workspaces, tickets, and project data will be removed.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -179,7 +179,7 @@ export default function TeamSettingsPage() {
                 disabled={isDeleting}
               >
                 {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Delete Team
+                Delete Project
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

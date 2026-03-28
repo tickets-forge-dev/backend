@@ -65,6 +65,9 @@ import { SubmitReviewSessionUseCase } from './application/use-cases/SubmitReview
 import { ReEnrichWithQAUseCase } from './application/use-cases/ReEnrichWithQAUseCase';
 import { ApproveTicketUseCase } from './application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from './application/use-cases/StartImplementationUseCase';
+import { RecordExecutionEventUseCase } from './application/use-cases/RecordExecutionEventUseCase';
+import { SubmitSettlementUseCase } from './application/use-cases/SubmitSettlementUseCase';
+import { ReviewDeliveryUseCase } from './application/use-cases/ReviewDeliveryUseCase';
 import { RefineWireframeUseCase } from './application/use-cases/RefineWireframeUseCase';
 import { GenerateWireframesUseCase } from './application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from './application/use-cases/ArchiveAECUseCase';
@@ -75,6 +78,8 @@ import { TeamsModule } from '../teams/teams.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UsageBudgetRepository';
 import { FirestoreUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUsageBudgetRepository';
+import { USER_USAGE_BUDGET_REPOSITORY } from '../shared/application/ports/UserUsageBudgetRepository';
+import { FirestoreUserUsageBudgetRepository } from '../shared/infrastructure/persistence/FirestoreUserUsageBudgetRepository';
 import { ProjectProfilesModule } from '../project-profiles/project-profiles.module';
 import { FoldersModule } from '../folders/folders.module';
 import { TagsModule } from '../tags/tags.module';
@@ -122,6 +127,9 @@ import { TagsModule } from '../tags/tags.module';
     ReEnrichWithQAUseCase,
     ApproveTicketUseCase,
     StartImplementationUseCase,
+    RecordExecutionEventUseCase,
+    SubmitSettlementUseCase,
+    ReviewDeliveryUseCase,
     RefineWireframeUseCase,
     GenerateWireframesUseCase,
     ArchiveAECUseCase,
@@ -164,6 +172,10 @@ import { TagsModule } from '../tags/tags.module';
     {
       provide: USAGE_BUDGET_REPOSITORY,
       useClass: FirestoreUsageBudgetRepository,
+    },
+    {
+      provide: USER_USAGE_BUDGET_REPOSITORY,
+      useClass: FirestoreUserUsageBudgetRepository,
     },
     {
       provide: DRIFT_DETECTOR,
@@ -211,6 +223,7 @@ import { TagsModule } from '../tags/tags.module';
     EstimateEffortUseCase,
     AEC_REPOSITORY,
     USAGE_BUDGET_REPOSITORY,
+    USER_USAGE_BUDGET_REPOSITORY,
     DRIFT_DETECTOR,
     ESTIMATION_ENGINE,
     TECH_SPEC_GENERATOR,

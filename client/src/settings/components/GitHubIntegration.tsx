@@ -18,6 +18,7 @@ import { Input } from '@/core/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/core/components/ui/dialog';
 import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useProjectProfileStore } from '@/project-profiles/stores/project-profile.store';
 import { GitHubRepositoryItem } from '@/services/github.service';
 import { Github, Check, AlertCircle, Loader2, Search, Square, CheckSquare2 } from 'lucide-react';
 
@@ -47,11 +48,14 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
     clearErrors,
   } = useSettingsStore();
 
+  const { triggerScan, startPolling, findByRepo } = useProjectProfileStore();
+
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [localSelectedRepos, setLocalSelectedRepos] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [profilingStarted, setProfilingStarted] = useState<string[]>([]);
 
   // Load connection status on mount and fetch repos if connected
   useEffect(() => {
@@ -136,14 +140,39 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
   const handleSaveSelection = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
+    setProfilingStarted([]);
     try {
       const selected = githubRepositories.filter((repo) =>
         localSelectedRepos.has(repo.id)
       );
+      const previousIds = new Set(selectedRepositories.map(r => r.id));
       await selectRepositories(gitHubService, selected);
       setSaveSuccess(true);
-      // Auto-dismiss success message after 3 seconds
       setTimeout(() => setSaveSuccess(false), 3000);
+
+      // Auto-trigger profiling for newly added repos
+      const newlyAdded = selected.filter(r => !previousIds.has(r.id));
+      if (newlyAdded.length > 0) {
+        const started: string[] = [];
+        for (const repo of newlyAdded) {
+          try {
+            const existing = await findByRepo(repo.owner, repo.name);
+            if (existing && (existing.status === 'ready' || existing.status === 'scanning' || existing.status === 'pending')) {
+              continue;
+            }
+            await triggerScan(repo.owner, repo.name, repo.defaultBranch);
+            startPolling(repo.owner, repo.name);
+            started.push(repo.fullName);
+          } catch {
+            // Non-blocking — profile can be triggered manually later
+            console.warn(`[GitHubIntegration] Failed to auto-profile ${repo.fullName}`);
+          }
+        }
+        if (started.length > 0) {
+          setProfilingStarted(started);
+          setTimeout(() => setProfilingStarted([]), 8000);
+        }
+      }
     } catch (error) {
       // Error handled by store
     } finally {
@@ -295,6 +324,21 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
               <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
                 Saved {localSelectedRepos.size} repositor{localSelectedRepos.size === 1 ? 'y' : 'ies'} successfully
               </p>
+            </div>
+          )}
+
+          {/* Auto-profiling Started */}
+          {profilingStarted.length > 0 && (
+            <div className="rounded-lg bg-blue-500/10 p-3 flex items-start gap-2">
+              <Loader2 className="h-3.5 w-3.5 text-blue-500 mt-0.5 flex-shrink-0 animate-spin" />
+              <div>
+                <p className="text-[var(--text-sm)] text-blue-500">
+                  Profiling started for {profilingStarted.length === 1 ? profilingStarted[0] : `${profilingStarted.length} repositories`}
+                </p>
+                <p className="text-[var(--text-xs)] text-blue-500/70 mt-0.5">
+                  This runs in the background. Profiles will be ready when you create tickets.
+                </p>
+              </div>
             </div>
           )}
 

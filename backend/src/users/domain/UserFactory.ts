@@ -15,8 +15,9 @@ export class UserFactory {
     email: string,
     displayName: string,
     photoURL?: string,
+    avatarEmoji?: string | null,
   ): User {
-    return User.create(userId, email, displayName, photoURL);
+    return User.create(userId, email, displayName, photoURL, avatarEmoji);
   }
 
   /**
@@ -27,6 +28,8 @@ export class UserFactory {
     email: string;
     displayName: string;
     photoURL?: string;
+    avatarEmoji?: string | null;
+    organizationId?: string | null;
     currentTeamId: string | null;
     teams: string[];
     createdAt: Date | string;
@@ -51,6 +54,8 @@ export class UserFactory {
       data.email,
       data.displayName,
       data.photoURL,
+      data.avatarEmoji ?? null,
+      data.organizationId ?? null,
       currentTeamId,
       teams,
       createdAt,

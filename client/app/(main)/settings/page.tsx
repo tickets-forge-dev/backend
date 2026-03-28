@@ -27,6 +27,11 @@ function UsageSection() {
   const percent = quota.usagePercent;
   const barColor = 'bg-[var(--text-tertiary)]';
 
+  // Tokens reset on the 1st of next month
+  const now = new Date();
+  const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const resetLabel = resetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
   const formatTokens = (n: number) =>
     n >= 1_000_000
       ? `${(n / 1_000_000).toFixed(1)}M`
@@ -43,7 +48,7 @@ function UsageSection() {
           <div className="flex items-center justify-between text-[var(--text-sm)]">
             <div>
               <p className="font-medium text-[var(--text)]">Token usage</p>
-              <p className="text-[var(--text-tertiary)] text-[11px] mt-0.5">{percent}% of monthly allowance</p>
+              <p className="text-[var(--text-tertiary)] text-[11px] mt-0.5">{percent}% of monthly allowance · Resets {resetLabel}</p>
             </div>
             <span className="text-[var(--text-secondary)] text-xs">
               {formatTokens(quota.tokensUsed)} / {formatTokens(quota.tokenLimit)}
@@ -139,7 +144,7 @@ export default function SettingsPage() {
             <RoleSettings />
           </div>
           <Link
-            href="/settings/profile"
+            href="/profile"
             className="flex items-center justify-between px-5 py-4 text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors first:rounded-t-lg last:rounded-b-lg"
           >
             <div className="flex items-center gap-3">

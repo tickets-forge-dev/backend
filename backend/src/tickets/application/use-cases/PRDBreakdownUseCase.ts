@@ -19,6 +19,10 @@ import {
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
 import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
+import {
   PRDBreakdownCommand,
   PRDBreakdownResult,
 } from '@tickets/domain/prd-breakdown/prd-breakdown.types';
@@ -28,6 +32,7 @@ import {
  */
 export interface PRDBreakdownExecuteCommand extends PRDBreakdownCommand {
   teamId: string;
+  userId: string;
   onProgress?: (step: string, message: string) => void;
 }
 
@@ -50,6 +55,8 @@ export class PRDBreakdownUseCase {
     private readonly prdBreakdownService: PRDBreakdownService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY)
+    private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
   ) {}
 
   /**
@@ -75,7 +82,7 @@ export class PRDBreakdownUseCase {
 
       // Check token budget before LLM calls
       const month = new Date().toISOString().slice(0, 7);
-      const budget = await this.usageBudgetRepository.getOrCreate(command.teamId, month);
+      const budget = await this.userUsageBudgetRepository.getOrCreate(command.userId, month);
       if (budget.tokensUsed >= budget.tokenLimit) {
         throw new ForbiddenException({
           message: `Token quota exceeded: ${budget.tokensUsed}/${budget.tokenLimit}`,
@@ -94,7 +101,7 @@ export class PRDBreakdownUseCase {
           ...command,
           onProgress: command.onProgress,
         },
-        { teamId: command.teamId },
+        { teamId: command.teamId, userId: command.userId },
       );
 
       const analysisTime = Date.now() - startTime;

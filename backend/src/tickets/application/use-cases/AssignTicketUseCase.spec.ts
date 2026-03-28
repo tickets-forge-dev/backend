@@ -564,7 +564,7 @@ describe('AssignTicketUseCase', () => {
       expect(mockAec.assignedTo).toBe(userId);
     });
 
-    it('should reject assignment on complete ticket (domain rule)', async () => {
+    it('should reject assignment on delivered ticket (domain rule)', async () => {
       // Given
       const ticketId = 'aec_123';
       const userId = 'user-456';
@@ -572,15 +572,15 @@ describe('AssignTicketUseCase', () => {
       const requestingUserId = 'pm-user-123';
 
       const mockAec = AEC.createDraft(teamId, requestingUserId, 'Test Ticket');
-      mockAec.markComplete(); // Mark as complete
+      mockAec.markDelivered(); // Mark as delivered
 
       mockAecRepository.findById.mockResolvedValue(mockAec);
       setupValidAuthMocks(requestingUserId, userId, teamId);
 
-      // When/Then: Domain enforces: cannot assign completed tickets
+      // When/Then: Domain enforces: cannot assign delivered tickets
       await expect(
         useCase.execute({ ticketId, userId, requestingUserId, teamId })
-      ).rejects.toThrow('Cannot assign a completed ticket. Revert to draft first.');
+      ).rejects.toThrow('Cannot assign a delivered ticket.');
 
       expect(mockAecRepository.save).not.toHaveBeenCalled();
     });

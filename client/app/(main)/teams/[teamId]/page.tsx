@@ -77,7 +77,7 @@ function TeamPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-[var(--text)]">{fullTeam.name}</h1>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Manage your team members, settings, and permissions
+          Manage your project members, settings, and permissions
         </p>
       </div>
 

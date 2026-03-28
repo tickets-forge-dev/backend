@@ -14,6 +14,10 @@ import {
   UsageBudgetRepository,
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
+import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
 import { GenerationJob } from '../../domain/GenerationJob';
 import { BackgroundFinalizationService } from '../services/BackgroundFinalizationService';
 
@@ -34,6 +38,7 @@ export class RetryJobUseCase {
     @Inject(JOB_REPOSITORY) private readonly jobRepository: JobRepository,
     @Inject(AEC_REPOSITORY) private readonly aecRepository: AECRepository,
     @Inject(USAGE_BUDGET_REPOSITORY) private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY) private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
     private readonly backgroundFinalizationService: BackgroundFinalizationService,
   ) {}
 
@@ -58,7 +63,7 @@ export class RetryJobUseCase {
 
     // 2. Check token budget
     const month = new Date().toISOString().slice(0, 7);
-    const budget = await this.usageBudgetRepository.getOrCreate(teamId, month);
+    const budget = await this.userUsageBudgetRepository.getOrCreate(userId, month);
     if (budget.tokensUsed >= budget.tokenLimit) {
       throw new ForbiddenException({
         message: `Token quota exceeded: ${budget.tokensUsed}/${budget.tokenLimit}`,

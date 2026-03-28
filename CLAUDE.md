@@ -81,12 +81,28 @@ Avoid extra visual containers.
 - `client/src/core/components/sidebar/SidebarFooter.tsx` - Theme toggle + collapse button
 - `client/src/stores/ui.store.ts` - Sidebar state (collapsed/expanded, persisted to localStorage)
 
+**Visual Style (Linear-Inspired — ALWAYS follow):**
+- **Minimalist and calm** — no visual noise, generous whitespace, soft contrasts
+- **Text hierarchy**: `text-[var(--text-primary)]` (headings), `text-[var(--text-secondary)]` (body), `text-[var(--text-tertiary)]` (meta/timestamps)
+- **Backgrounds**: `bg-[var(--bg-primary)]` (page), `bg-[var(--bg-hover)]` (subtle cards), never raw hex backgrounds
+- **Status colors**: amber (`amber-500`) = needs attention, green (`green-500`/`emerald-500`) = success/approved, red (`red-500`) = rejected/error, blue (`blue-500`) = in-progress, purple (`purple-500`/`violet-500`) = brand accent
+- **Interactive elements**: subtle hover states (`hover:bg-[var(--bg-active)]`), smooth transitions (`transition-colors`), no heavy box shadows
+- **Font sizes**: `text-[13px]` for body, `text-[12px]` for meta, `text-[11px]` for labels/badges, `text-sm` (14px) for section headings
+- **Spacing**: use Tailwind spacing scale (`gap-2`, `p-3.5`, `space-y-5`), prefer consistent rhythm
+- **Rounded corners**: `rounded-md` (6px) for buttons/badges, `rounded-lg` (8-10px) for cards/panels, `rounded-xl` (12-14px) for page sections
+- **Status badges**: colored background at 5-15% opacity + matching text (`bg-amber-500/10 text-amber-500`), never solid-fill badges
+- **Status dots**: small colored circles (`w-2 h-2 rounded-full bg-amber-500`) next to status text
+- **DO NOT use**: heavy borders, drop shadows, gradients, harsh contrasts, or generic "Bootstrap" aesthetics
+
 **Violation Indicators (Red Flags):**
 - ❌ Visible borders on every card (`border border-[var(--border)]/30`)
 - ❌ Harsh text colors in dark mode (`#fafafa` instead of `#e8e8e8`)
 - ❌ Sidebar missing or replaced with minimal header-only layout
 - ❌ Default browser scrollbars instead of custom styled ones
 - ❌ "Remove Card component" commits without replacing with consistent styling
+- ❌ Hardcoded hex colors instead of CSS variable tokens
+- ❌ Solid-fill status badges instead of translucent ones
+- ❌ Missing hover states on interactive elements
 
 **If Sidebar Gets Removed:**
 - Always check git diff against Feb 3 modernization commit (3ce28b6)

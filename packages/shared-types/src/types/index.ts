@@ -4,11 +4,11 @@ export type TicketType = 'feature' | 'bug' | 'task';
 
 export type AECStatus =
   | 'draft'
-  | 'dev-refining'
-  | 'review'
-  | 'forged'
+  | 'defined'
+  | 'refined'
+  | 'approved'
   | 'executing'
-  | 'complete'
+  | 'delivered'
   | 'archived';
 
 // More types will be added in subsequent stories

@@ -92,8 +92,8 @@ export function RemoveMemberDialog({
           <div className="text-sm text-[var(--text-muted)]">
             <p>This member will:</p>
             <ul className="mt-2 ml-4 list-disc space-y-1">
-              <li>Lose access to all team resources</li>
-              <li>No longer see team tickets or workspaces</li>
+              <li>Lose access to all project resources</li>
+              <li>No longer see project tickets or workspaces</li>
               <li>Be able to be re-invited in the future</li>
             </ul>
           </div>

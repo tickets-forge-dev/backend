@@ -39,6 +39,10 @@ import {
   UsageBudgetRepository,
   USAGE_BUDGET_REPOSITORY,
 } from '../../../shared/application/ports/UsageBudgetRepository';
+import {
+  UserUsageBudgetRepository,
+  USER_USAGE_BUDGET_REPOSITORY,
+} from '../../../shared/application/ports/UserUsageBudgetRepository';
 import { CODEBASE_ANALYZER } from '../../application/ports/CodebaseAnalyzerPort';
 import { PROJECT_STACK_DETECTOR } from '../../application/ports/ProjectStackDetectorPort';
 import { CodebaseAnalyzer } from '@tickets/domain/pattern-analysis/CodebaseAnalyzer';
@@ -103,6 +107,12 @@ import { ReEnrichWithQAUseCase } from '../../application/use-cases/ReEnrichWithQ
 import { ApproveTicketUseCase } from '../../application/use-cases/ApproveTicketUseCase';
 import { StartImplementationUseCase } from '../../application/use-cases/StartImplementationUseCase';
 import { StartImplementationDto } from '../dto/StartImplementationDto';
+import { RecordExecutionEventUseCase } from '../../application/use-cases/RecordExecutionEventUseCase';
+import { RecordExecutionEventDto } from '../dto/RecordExecutionEventDto';
+import { SubmitSettlementUseCase } from '../../application/use-cases/SubmitSettlementUseCase';
+import { SubmitSettlementDto } from '../dto/SubmitSettlementDto';
+import { ReviewDeliveryUseCase } from '../../application/use-cases/ReviewDeliveryUseCase';
+import { ReviewDeliveryDto } from '../dto/ReviewDeliveryDto';
 import { RefineWireframeUseCase } from '../../application/use-cases/RefineWireframeUseCase';
 import { GenerateWireframesUseCase } from '../../application/use-cases/GenerateWireframesUseCase';
 import { ArchiveAECUseCase } from '../../application/use-cases/ArchiveAECUseCase';
@@ -167,6 +177,9 @@ export class TicketsController {
     private readonly reEnrichWithQAUseCase: ReEnrichWithQAUseCase,
     private readonly approveTicketUseCase: ApproveTicketUseCase,
     private readonly startImplementationUseCase: StartImplementationUseCase,
+    private readonly recordExecutionEventUseCase: RecordExecutionEventUseCase,
+    private readonly submitSettlementUseCase: SubmitSettlementUseCase,
+    private readonly reviewDeliveryUseCase: ReviewDeliveryUseCase,
     private readonly refineWireframeUseCase: RefineWireframeUseCase,
     private readonly generateWireframesUseCase: GenerateWireframesUseCase,
     private readonly archiveAECUseCase: ArchiveAECUseCase,
@@ -174,6 +187,8 @@ export class TicketsController {
     private readonly telemetry: TelemetryService,
     @Inject(USAGE_BUDGET_REPOSITORY)
     private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(USER_USAGE_BUDGET_REPOSITORY)
+    private readonly userUsageBudgetRepository: UserUsageBudgetRepository,
     private readonly firebaseService: FirebaseService,
     @Inject(PROJECT_PROFILE_REPOSITORY)
     private readonly projectProfileRepository: ProjectProfileRepository,
@@ -468,23 +483,27 @@ export class TicketsController {
   @Get('quota')
   async getQuota(
     @TeamId() teamId: string,
+    @UserId() userId: string,
   ) {
     const month = new Date().toISOString().slice(0, 7);
-    const budget = await this.usageBudgetRepository.getOrCreate(teamId, month);
-    const usagePercent = budget.tokenLimit > 0
-      ? Math.round((budget.tokensUsed / budget.tokenLimit) * 100)
+    const userBudget = await this.userUsageBudgetRepository.getOrCreate(userId, month);
+    const teamBudget = await this.usageBudgetRepository.getOrCreate(teamId, month);
+    const usagePercent = userBudget.tokenLimit > 0
+      ? Math.round((userBudget.tokensUsed / userBudget.tokenLimit) * 100)
       : 0;
     const canCreate =
-      budget.tokensUsed < budget.tokenLimit &&
-      budget.ticketsCreatedToday < budget.dailyTicketLimit;
+      userBudget.tokensUsed < userBudget.tokenLimit &&
+      userBudget.ticketsCreatedToday < userBudget.dailyTicketLimit;
 
     return {
-      tokensUsed: budget.tokensUsed,
-      tokenLimit: budget.tokenLimit,
-      ticketsCreatedToday: budget.ticketsCreatedToday,
-      dailyTicketLimit: budget.dailyTicketLimit,
+      tokensUsed: userBudget.tokensUsed,
+      tokenLimit: userBudget.tokenLimit,
+      ticketsCreatedToday: userBudget.ticketsCreatedToday,
+      dailyTicketLimit: userBudget.dailyTicketLimit,
       canCreate,
       usagePercent,
+      subscriptionTier: userBudget.subscriptionTier,
+      teamTokensUsed: teamBudget.tokensUsed,
     };
   }
 
@@ -531,7 +550,20 @@ export class TicketsController {
         .filter((t) => t.getScope() === 'team' || (t.getScope() === 'private' && t.getCreatedBy() === userId))
         .map((t) => t.getId()),
     );
-    return this.mapToResponse(aec, visibleTagIds);
+    const response = this.mapToResponse(aec, visibleTagIds);
+
+    // Resolve creator display name from Firebase Auth
+    let createdByName: string | null = null;
+    if (aec.createdBy) {
+      try {
+        const creator = await this.firebaseService.getAuth().getUser(aec.createdBy);
+        createdByName = creator.displayName || creator.email || null;
+      } catch {
+        // User may have been deleted — ignore
+      }
+    }
+
+    return { ...response, createdByName };
   }
 
   @Get()
@@ -696,7 +728,7 @@ export class TicketsController {
 
   /**
    * Submit a review session from the CLI reviewer agent (Story 6-12)
-   * Stores Q&A pairs and transitions ticket to REVIEW.
+   * Stores Q&A pairs and transitions ticket to REFINED.
    */
   @Post(':id/review-session')
   async submitReviewSession(
@@ -714,7 +746,7 @@ export class TicketsController {
 
   /**
    * Start implementation via the forge Developer Agent (Story 10-2)
-   * Records branch name and optional Q&A, transitions FORGED → EXECUTING.
+   * Records branch name and optional Q&A, transitions APPROVED → EXECUTING.
    */
   @Post(':id/start-implementation')
   async startImplementation(
@@ -728,6 +760,68 @@ export class TicketsController {
       teamId,
       branchName: dto.branchName,
       qaItems: dto.qaItems,
+    });
+  }
+
+  /**
+   * Record an execution event during implementation (decisions, risks, scope changes)
+   *
+   * Called by the MCP server when the developer agent reports decisions,
+   * risks, or scope changes during EXECUTING status.
+   */
+  @Post(':id/execution-events')
+  async recordExecutionEvent(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: RecordExecutionEventDto,
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    return this.recordExecutionEventUseCase.execute({
+      ticketId: aecId,
+      teamId,
+      type: dto.type,
+      title: dto.title,
+      description: dto.description,
+    });
+  }
+
+  /**
+   * Called by the MCP server when the developer agent finishes execution.
+   * Submits a settlement payload that transitions EXECUTING → DELIVERED.
+   */
+  @Post(':id/settle')
+  async submitSettlement(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: SubmitSettlementDto,
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    return this.submitSettlementUseCase.execute({
+      ticketId: aecId,
+      teamId,
+      executionSummary: dto.executionSummary,
+      filesChanged: dto.filesChanged,
+      divergences: dto.divergences ?? [],
+    });
+  }
+
+  /**
+   * PM reviews a delivered ticket — accepts or requests changes.
+   * Accept keeps status DELIVERED and marks ChangeRecord as ACCEPTED.
+   * Request changes sends ticket back to EXECUTING with a note.
+   */
+  @Post(':id/review-delivery')
+  async reviewDelivery(
+    @TeamId() teamId: string,
+    @Param('id') id: string,
+    @Body() dto: ReviewDeliveryDto,
+  ) {
+    const aecId = await this.resolveTicketId(id, teamId);
+    return this.reviewDeliveryUseCase.execute({
+      ticketId: aecId,
+      teamId,
+      action: dto.action,
+      note: dto.note,
     });
   }
 
@@ -807,7 +901,7 @@ export class TicketsController {
    * PM triggers this after reviewing the developer's Q&A answers.
    * Calls TechSpecGenerator.generateWithAnswers() with stored Q&A as context,
    * then updates ticket's techSpec and acceptanceCriteria.
-   * Status stays REVIEW (approve is Story 7-8).
+   * Status stays REFINED (approve is Story 7-8).
    */
   @Post(':id/re-enrich')
   async reEnrichTicket(
@@ -834,8 +928,8 @@ export class TicketsController {
   /**
    * Approve ticket after PM reviews developer Q&A and re-baked spec (Story 7-8)
    *
-   * Transitions REVIEW → FORGED so the developer can execute the ticket.
-   * Returns 400 if ticket is not in REVIEW status.
+   * Transitions REFINED → APPROVED so the developer can execute the ticket.
+   * Returns 400 if ticket is not in REFINED status.
    */
   @Post(':id/approve')
   async approveTicket(
@@ -922,6 +1016,7 @@ export class TicketsController {
       const aec = await this.submitQuestionAnswersUseCase.execute({
         aecId,
         teamId,
+        userId,
         answers: dto.answers ?? {},
         saveOnly: dto.saveOnly,
       });
@@ -958,12 +1053,13 @@ export class TicketsController {
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
   @Post(':id/finalize')
-  async finalizeSpec(@TeamId() teamId: string, @Param('id') id: string) {
+  async finalizeSpec(@TeamId() teamId: string, @UserId() userId: string, @Param('id') id: string) {
     const aecId = await this.resolveTicketId(id, teamId);
     try {
       const aec = await this.finalizeSpecUseCase.execute({
         aecId,
         teamId,
+        userId,
       });
 
       return this.mapToResponse(aec);
@@ -1366,7 +1462,12 @@ export class TicketsController {
    */
   private async resolveTicketId(idOrSlug: string, teamId: string): Promise<string> {
     if (idOrSlug.startsWith('aec_')) {
-      return idOrSlug;
+      // Verify ticket belongs to this team (prevents cross-project access by ID)
+      const aec = await this.aecRepository.findByIdInTeam(idOrSlug, teamId);
+      if (!aec) {
+        throw new NotFoundException('Ticket not found');
+      }
+      return aec.id;
     }
     const aec = await this.aecRepository.findBySlug(idOrSlug, teamId);
     if (!aec) {
@@ -1419,6 +1520,7 @@ export class TicketsController {
       attachments: aec.attachments ?? [],
       designReferences: aec.designReferences ?? [],
       assignedTo: aec.assignedTo ?? null,
+      implementationBranch: aec.implementationBranch ?? null,
       reviewSession: aec.reviewSession ?? null, // Story 6-12
       folderId: aec.folderId ?? null, // Story 12-2: ticket folder organization
       tagIds: filteredTagIds, // Ticket tags (filtered by visibility)
@@ -1430,10 +1532,41 @@ export class TicketsController {
       wireframeContext: aec.wireframeContext ?? null,
       wireframeImageAttachmentIds: aec.wireframeImageAttachmentIds ?? [],
       apiContext: aec.apiContext ?? null,
-      forgedAt: aec.forgedAt?.toISOString() ?? null,
+      approvedAt: aec.approvedAt?.toISOString() ?? null,
       createdBy: aec.createdBy ?? null,
       createdAt: aec.createdAt,
       updatedAt: aec.updatedAt,
+      executionEvents: (aec.executionEvents ?? []).map((e: any) => ({
+        id: e.id,
+        type: e.type,
+        title: e.title,
+        description: e.description,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      changeRecord: aec.changeRecord
+        ? {
+            executionSummary: aec.changeRecord.executionSummary,
+            decisions: aec.changeRecord.decisions.map((e: any) => ({
+              id: e.id, type: e.type, title: e.title, description: e.description,
+              createdAt: e.createdAt.toISOString(),
+            })),
+            risks: aec.changeRecord.risks.map((e: any) => ({
+              id: e.id, type: e.type, title: e.title, description: e.description,
+              createdAt: e.createdAt.toISOString(),
+            })),
+            scopeChanges: aec.changeRecord.scopeChanges.map((e: any) => ({
+              id: e.id, type: e.type, title: e.title, description: e.description,
+              createdAt: e.createdAt.toISOString(),
+            })),
+            filesChanged: aec.changeRecord.filesChanged,
+            divergences: aec.changeRecord.divergences,
+            hasDivergence: aec.changeRecord.hasDivergence,
+            status: aec.changeRecord.status,
+            reviewNote: aec.changeRecord.reviewNote,
+            reviewedAt: aec.changeRecord.reviewedAt?.toISOString() ?? null,
+            submittedAt: aec.changeRecord.submittedAt.toISOString(),
+          }
+        : null,
     };
   }
 
@@ -1571,7 +1704,7 @@ export class TicketsController {
         repositoryOwner: dto.repositoryOwner,
         repositoryName: dto.repositoryName,
         projectName: dto.projectName,
-        workspaceId: teamId, teamId,
+        workspaceId: teamId, teamId, userId,
         onProgress: (step: string, message: string) => {
           // Stream progress events as analysis proceeds
           res.write(`data: ${JSON.stringify({
@@ -1726,6 +1859,7 @@ export class TicketsController {
   @Post('bulk/finalize')
   async finalizeMultipleTickets(
     @TeamId() teamId: string,
+    @UserId() userId: string,
     @Body() dto: BulkFinalizeDto,
     @Res() res: Response,
   ) {
@@ -1741,6 +1875,7 @@ export class TicketsController {
     try {
       const result = await this.finalizeMultipleTicketsUseCase.execute({
         teamId,
+        userId,
         answers: dto.answers,
         onProgress: (event) => {
           // Send progress event via SSE

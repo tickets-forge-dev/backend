@@ -15,9 +15,10 @@ export class TeamFactory {
   static createTeam(
     name: string,
     ownerId: string,
+    organizationId: string,
     settings: TeamSettings = TeamSettings.default(),
   ): Team {
-    return Team.create(name, ownerId, settings);
+    return Team.create(name, ownerId, organizationId, settings);
   }
 
   /**
@@ -29,6 +30,7 @@ export class TeamFactory {
     name: string;
     slug: string;
     ownerId: string;
+    organizationId?: string;
     settings: {
       defaultWorkspaceId?: string;
       allowMemberInvites: boolean;
@@ -62,6 +64,7 @@ export class TeamFactory {
       data.name,
       data.slug,
       data.ownerId,
+      data.organizationId || '',
       settings,
       createdAt,
       updatedAt,

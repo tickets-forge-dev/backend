@@ -13,6 +13,41 @@ export interface CreateTicketRequest {
   folderId?: string;
 }
 
+export interface FileChange {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+export interface Divergence {
+  area: string;
+  intended: string;
+  actual: string;
+  justification: string;
+}
+
+export interface ExecutionEventResponse {
+  id: string;
+  type: 'decision' | 'risk' | 'scope_change';
+  title: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface ChangeRecordResponse {
+  executionSummary: string;
+  decisions: ExecutionEventResponse[];
+  risks: ExecutionEventResponse[];
+  scopeChanges: ExecutionEventResponse[];
+  filesChanged: FileChange[];
+  divergences: Divergence[];
+  hasDivergence: boolean;
+  status: 'awaiting_review' | 'accepted' | 'changes_requested';
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  submittedAt: string;
+}
+
 export interface AttachmentResponse {
   id: string;
   fileName: string;
@@ -34,6 +69,7 @@ export interface AECResponse {
   type: string | null;
   priority: string | null;
   assignedTo: string | null; // Story 3.5-5: User ID of assigned developer (null if unassigned)
+  implementationBranch: string | null;
   readinessScore: number;
   generationState: {
     currentStep: number;
@@ -81,10 +117,13 @@ export interface AECResponse {
   wireframeContext?: string | null;
   wireframeImageAttachmentIds?: string[];
   apiContext?: string | null;
-  forgedAt: string | null;
+  approvedAt: string | null;
   createdBy: string | null;
+  createdByName?: string | null;
   createdAt: string;
   updatedAt: string;
+  executionEvents: ExecutionEventResponse[];
+  changeRecord: ChangeRecordResponse | null;
 }
 
 export class TicketService {
@@ -272,7 +311,7 @@ export class TicketService {
     return response.data;
   }
 
-  // Story 7-8: PM approves ticket — transitions REVIEW → FORGED
+  // Story 7-8: PM approves ticket — transitions REFINED → APPROVED
   async approveTicket(ticketId: string): Promise<AECResponse> {
     const response = await this.client.post<AECResponse>(`/tickets/${ticketId}/approve`, {});
     return response.data;
@@ -311,6 +350,19 @@ export class TicketService {
       { instruction, currentElements },
     );
     return response.data.elements;
+  }
+
+  // Review a delivery (accept or request changes)
+  async reviewDelivery(
+    ticketId: string,
+    action: 'accept' | 'request_changes',
+    note?: string,
+  ): Promise<{ success: boolean }> {
+    const response = await this.client.post<{ success: boolean }>(
+      `/tickets/${ticketId}/review-delivery`,
+      { action, note },
+    );
+    return response.data;
   }
 }
 
