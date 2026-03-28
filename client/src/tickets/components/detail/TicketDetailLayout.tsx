@@ -70,7 +70,6 @@ interface TicketDetailLayoutProps {
   assignDialogOpen?: boolean;
   onAssignDialogOpenChange?: (open: boolean) => void;
   // Delivery review
-  onReviewDelivery?: (action: 'accept' | 'request_changes', note?: string) => Promise<void>;
 }
 
 export function TicketDetailLayout({
@@ -100,7 +99,6 @@ export function TicketDetailLayout({
   onStatusTransition,
   assignDialogOpen,
   onAssignDialogOpenChange,
-  onReviewDelivery,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -715,9 +713,6 @@ export function TicketDetailLayout({
           >
             <GitPullRequest className="h-3.5 w-3.5" />
             Record
-            {ticket.changeRecord?.status === 'awaiting_review' && (
-              <span className="ml-1 w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-            )}
           </TabsTrigger>
           </TabsList>
 
@@ -1030,10 +1025,9 @@ export function TicketDetailLayout({
 
         <TabsContent value="delivered" className="mt-6">
           <div className="max-w-3xl xl:max-w-4xl mx-auto">
-            {ticket.changeRecord && onReviewDelivery ? (
+            {ticket.changeRecord ? (
               <ChangeRecordTab
                 changeRecord={ticket.changeRecord}
-                onReviewDelivery={onReviewDelivery}
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">

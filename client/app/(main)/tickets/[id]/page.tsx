@@ -868,7 +868,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   };
 
   return (
-    <div className="space-y-4 max-w-[var(--content-max)] xl:max-w-[1040px] mx-auto">
+    <div className="space-y-4 max-w-[var(--content-max)] xl:max-w-[1040px] mx-auto px-4 sm:px-6">
       {/* Top bar */}
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-3">
@@ -1023,7 +1023,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onStatusTransition={handleStatusTransition}
         assignDialogOpen={forceAssignOpen}
         onAssignDialogOpenChange={setForceAssignOpen}
-        onReviewDelivery={handleReviewDelivery}
+
       />
 
       {/* Notes Section - at bottom */}
