@@ -96,12 +96,12 @@ details summary::-webkit-details-marker { display: none; }
   /* Landing Page Typography */
   --landing-hero: clamp(40px, 6vw, 72px);
   --landing-heading: clamp(28px, 4vw, 44px);
-  --landing-subtitle: 18px;
-  --landing-body: 16px;
+  --landing-subtitle: clamp(15px, 2vw, 18px);
+  --landing-body: clamp(14px, 1.5vw, 16px);
 
   /* Landing Page Spacing (Linear-matched) */
-  --landing-section-gap: 96px;
-  --landing-subsection-gap: 48px;
+  --landing-section-gap: clamp(48px, 8vw, 96px);
+  --landing-subsection-gap: clamp(24px, 4vw, 48px);
   --landing-optical-tighten: -4px;
 
   /* Layout Spacing - Generous like Linear */
@@ -588,6 +588,28 @@ input[type="checkbox"]:checked:hover {
 
 .animate-pulse {
   animation: smoothPulse 2.5s ease-in-out infinite !important;
+}
+
+@keyframes progressShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-progress-shimmer {
+  background: linear-gradient(
+    90deg,
+    #3b82f6 0%,
+    #818cf8 25%,
+    #a78bfa 50%,
+    #818cf8 75%,
+    #3b82f6 100%
+  );
+  background-size: 200% 100%;
+  animation: progressShimmer 2s ease-in-out infinite;
 }
 
 /* ============================================ */

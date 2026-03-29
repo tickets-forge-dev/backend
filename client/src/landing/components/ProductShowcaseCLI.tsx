@@ -10,7 +10,7 @@ import {
 
 function MockTerminal() {
   return (
-    <div className="rounded-2xl border border-[var(--border-subtle)] overflow-hidden bg-[#0a0a0a] font-mono text-[13px] leading-relaxed">
+    <div className="rounded-2xl border border-[var(--border-subtle)] overflow-hidden bg-[#0a0a0a] font-mono text-[11px] sm:text-[13px] leading-relaxed">
       {/* Terminal header */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border-subtle)]">
         <span className="h-3 w-3 rounded-full bg-[#ff5f57]/80" />
@@ -20,7 +20,7 @@ function MockTerminal() {
       </div>
 
       {/* Terminal content */}
-      <div className="px-5 py-5 space-y-5">
+      <div className="px-3 py-3 sm:px-5 sm:py-5 space-y-4 sm:space-y-5">
         {/* Install */}
         <div>
           <div className="flex items-center gap-2">
@@ -47,24 +47,24 @@ function MockTerminal() {
             <span className="text-[var(--text-tertiary)]">$</span>
             <span className="text-[var(--text-secondary)]">forge tickets</span>
           </div>
-          <div className="mt-2 space-y-1.5 pl-4">
-            <div className="flex items-center gap-4">
-              <span className="text-[var(--text-tertiary)] w-8 text-right">#12</span>
-              <span className="text-[var(--text-secondary)] flex-1">Add SSO login with Google OAuth</span>
-              <span className="text-[var(--text-tertiary)] text-[11px]">Ready</span>
-              <span className="text-[var(--text-tertiary)] text-[11px] w-8 text-right">92%</span>
+          <div className="mt-2 space-y-1.5 pl-2 sm:pl-4 overflow-x-auto">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <span className="text-[var(--text-tertiary)] w-6 sm:w-8 text-right shrink-0">#12</span>
+              <span className="text-[var(--text-secondary)] flex-1 truncate">Add SSO login with Google OAuth</span>
+              <span className="text-[var(--text-tertiary)] text-[10px] sm:text-[11px] shrink-0">Ready</span>
+              <span className="text-[var(--text-tertiary)] text-[10px] sm:text-[11px] w-6 sm:w-8 text-right shrink-0">92%</span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[var(--text-tertiary)] w-8 text-right">#11</span>
-              <span className="text-[var(--text-secondary)] flex-1">Fix session expiry not redirecting</span>
-              <span className="text-[var(--text-tertiary)] text-[11px]">Ready</span>
-              <span className="text-[var(--text-tertiary)] text-[11px] w-8 text-right">95%</span>
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <span className="text-[var(--text-tertiary)] w-6 sm:w-8 text-right shrink-0">#11</span>
+              <span className="text-[var(--text-secondary)] flex-1 truncate">Fix session expiry not redirecting</span>
+              <span className="text-[var(--text-tertiary)] text-[10px] sm:text-[11px] shrink-0">Ready</span>
+              <span className="text-[var(--text-tertiary)] text-[10px] sm:text-[11px] w-6 sm:w-8 text-right shrink-0">95%</span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[var(--text-tertiary)] w-8 text-right">#8</span>
-              <span className="text-[var(--text-secondary)] flex-1">Add webhook events for status changes</span>
-              <span className="text-[var(--text-tertiary)] text-[11px]">Define</span>
-              <span className="text-[var(--text-tertiary)] text-[11px] w-8 text-right">0%</span>
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <span className="text-[var(--text-tertiary)] w-6 sm:w-8 text-right shrink-0">#8</span>
+              <span className="text-[var(--text-secondary)] flex-1 truncate">Add webhook events for status changes</span>
+              <span className="text-[var(--text-tertiary)] text-[10px] sm:text-[11px] shrink-0">Define</span>
+              <span className="text-[var(--text-tertiary)] text-[10px] sm:text-[11px] w-6 sm:w-8 text-right shrink-0">0%</span>
             </div>
           </div>
         </div>
@@ -118,10 +118,9 @@ export function ProductShowcaseCLI() {
               }}
             />
             <motion.div
-              className="relative"
+              className="relative md:[transform:perspective(2000px)_rotateY(3deg)_rotateX(2deg)]"
               style={{
-                boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
-                transform: 'perspective(2000px) rotateY(3deg) rotateX(2deg)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
               }}
             >
               <MockTerminal />

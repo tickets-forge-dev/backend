@@ -239,7 +239,7 @@ export function BeforeAfter() {
                       {specSections.files.map((file, i) => (
                         <code
                           key={i}
-                          className="text-xs text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-2 py-1 rounded border border-[var(--border-subtle)] font-mono w-fit"
+                          className="text-[10px] sm:text-xs text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-2 py-1 rounded border border-[var(--border-subtle)] font-mono w-fit max-w-full truncate"
                         >
                           {file}
                         </code>
