@@ -2,7 +2,8 @@
 
 **Date:** 2026-03-29
 **Status:** Draft
-**Supersedes:** Epic 16 (Two-Way MCP Bridge), Epic 17 (Cloud Develop API-Only)
+**Supersedes:** Epic 17 (Cloud Develop API-Only)
+**Complements:** Epic 16 (MCP Bridge — developer tier)
 
 ---
 
@@ -16,25 +17,164 @@ Close the loop on Forge's ticket lifecycle. A PM clicks "Develop" on an approved
 
 ---
 
-## Two Entry Points, Same Engine
+## Three-Tier Execution Model
 
-### 1. Ticket-First (Primary Flow)
+Forge offers three ways to execute a ticket, each suited to different complexity levels. Cloud Develop handles the small/medium work (Forge pays for tokens). Complex work goes to developers with the MCP CLI (developer uses their own Claude subscription). This protects Forge's margins while covering every use case.
 
-PM writes a detailed ticket with spec and acceptance criteria → clicks "Develop" → Claude implements → PR created → developer reviews.
+### Tier 1: Quick Flow (Cloud, auto-flight)
+
+PM types what they want → Claude implements immediately → PR + ticket auto-generated.
+
+```
+Pick repo → Type change → ⚡ Start → PR + ticket created → Dev reviews
+```
+
+**Best for:** Quick fixes, small changes, one-liners. "Just do this."
+**Token cost:** Forge pays (~$0.30-1.00 per session, small scope).
+
+### Tier 2: Cloud Develop (Cloud, auto-flight)
+
+PM writes a full ticket with spec → clicks "Develop" → Claude implements → PR created.
 
 ```
 Write ticket → Refine → Approve → ⚡ Develop → PR → Dev reviews
 ```
 
-### 2. Quick Change (Reverse Flow)
+**Best for:** Small/medium features, bug fixes with clear acceptance criteria.
+**Token cost:** Forge pays (~$1.00-2.50 per session).
 
-PM picks a repo and types what they want in plain text → Claude implements immediately → PR + ticket auto-generated for developer review.
+### Tier 3: Developer + MCP CLI (Local, interactive)
+
+PM writes ticket → assigns developer → developer runs `forge develop` in their terminal.
 
 ```
-Pick repo → Type change → ⚡ Start → PR + ticket auto-generated → Dev reviews
+Write ticket → Refine → Approve → Assign dev → Dev runs CLI → PR → PM reviews
 ```
 
-Both flows use the same sandbox, same CLI, same auto-flight, same monitoring UI. The only difference is the input: structured spec vs plain text.
+**Best for:** Complex features, architectural changes, large refactors, multi-file work that needs human judgment.
+**Token cost:** Developer pays (their own Claude subscription / API key). Forge cost: $0.
+
+### Why Three Tiers
+
+```
+Token economics:
+  Quick Flow:      ~$0.30-1.00    Forge pays ✓  (small scope, cheap)
+  Cloud Develop:   ~$1.00-2.50    Forge pays ✓  (medium scope, within plan margins)
+  Developer + MCP: ~$3.00-15.00   Dev pays ✓    (complex scope, expensive)
+
+Forge makes money on volume of Tier 1 + 2.
+Forge pays nothing for Tier 3 but still gets lifecycle tracking.
+```
+
+All three tiers produce the same outputs: PR on GitHub, Change Record in Forge, execution events logged. The lifecycle is identical — only the execution engine differs.
+
+### Product Matrix
+
+| | Quick Flow | Cloud Develop | Developer + MCP |
+|---|---|---|---|
+| **Entry point** | Sidebar button | Execute tab | Terminal |
+| **Ticket required** | No (created after) | Yes (APPROVED) | Yes (APPROVED) |
+| **Who implements** | Claude (auto-flight) | Claude (auto-flight) | Developer + Claude |
+| **Where** | E2B sandbox | E2B sandbox | Developer's machine |
+| **Who pays tokens** | Forge | Forge | Developer |
+| **Complexity** | Small only | Small/medium | Any (incl. complex) |
+| **PM can trigger** | Yes | Yes | No (needs dev) |
+| **Output** | PR + auto-ticket | PR | PR |
+| **Change Record** | Auto (MCP) | Auto (MCP) | Auto (MCP) |
+| **Cost to Forge** | ~$0.52 | ~$1.53 | $0 |
+
+---
+
+## Complexity Gating: Protecting Forge's Margins
+
+Cloud Develop (Tier 1 + 2) is limited to small/medium tickets. Complex tickets are guided toward Developer + MCP (Tier 3). This prevents expensive sessions from eating plan margins.
+
+### How Complexity Is Determined
+
+The spec already contains signals. No AI call needed — simple rules on data we already have:
+
+```typescript
+interface ComplexitySignals {
+  fileChangeCount: number;          // from techSpec.fileChanges
+  acceptanceCriteriaCount: number;  // from techSpec.acceptanceCriteria
+  hasArchitecturalKeywords: boolean;// migration, schema, refactor, redesign
+  hasMultiModuleChanges: boolean;   // changes span 3+ top-level directories
+  estimatedScope: 'small' | 'medium' | 'large';  // from spec generation
+}
+
+function getExecutionRecommendation(signals: ComplexitySignals): 'cloud' | 'developer' {
+  if (signals.fileChangeCount > 12) return 'developer';
+  if (signals.hasArchitecturalKeywords) return 'developer';
+  if (signals.hasMultiModuleChanges) return 'developer';
+  if (signals.acceptanceCriteriaCount > 8) return 'developer';
+  if (signals.estimatedScope === 'large') return 'developer';
+  return 'cloud';
+}
+```
+
+### UX: How It's Communicated
+
+**Small/medium ticket (Cloud recommended):**
+```
+┌─────────────────────────────────────────────────────────┐
+│ ✓ Ticket approved and ready                             │
+│                                                         │
+│  ┌──────────────────────────┐  ┌────────────────────┐  │
+│  │  ⚡ Develop               │  │ 👤 Assign Developer │  │
+│  │  Recommended for this     │  │                    │  │
+│  │  ticket. ~10-15 min.      │  │                    │  │
+│  │                           │  │                    │  │
+│  │  Reviewer: [@john ▾]      │  │                    │  │
+│  │  [Start Development]      │  │  [Assign]          │  │
+│  └──────────────────────────┘  └────────────────────┘  │
+│                                                         │
+│  17 of 20 developments remaining                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Complex ticket (Developer recommended):**
+```
+┌─────────────────────────────────────────────────────────┐
+│ ✓ Ticket approved and ready                             │
+│                                                         │
+│  ┌────────────────────────┐  ┌──────────────────────┐  │
+│  │ 👤 Assign Developer     │  │ ⚡ Develop            │  │
+│  │ Recommended — this      │  │ Not recommended.     │  │
+│  │ ticket involves         │  │ This ticket has 18   │  │
+│  │ architectural changes   │  │ file changes and     │  │
+│  │ across multiple modules.│  │ architectural scope. │  │
+│  │                         │  │                      │  │
+│  │ Developer: [@john ▾]    │  │                      │  │
+│  │ [Assign]                │  │                      │  │
+│  └────────────────────────┘  └──────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Complex ticket on future Scale plan ($199/mo):**
+```
+┌─────────────────────────────────────────────────────────┐
+│ ✓ Ticket approved and ready                             │
+│                                                         │
+│  ⚠ This is a complex ticket (18 files, architectural).  │
+│  Cloud Develop may produce partial results.             │
+│                                                         │
+│  ┌──────────────────────────┐  ┌────────────────────┐  │
+│  │  ⚡ Develop Anyway        │  │ 👤 Assign Developer │  │
+│  │  (Scale plan)             │  │ (recommended)      │  │
+│  └──────────────────────────┘  └────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Gating Rules by Plan
+
+| Plan | Cloud Develop Allowed | Complex Tickets |
+|---|---|---|
+| **Free** | 2 sessions, small/medium only | Blocked — "Assign a developer" |
+| **Pro** ($39) | 20 sessions, small/medium only | Blocked — "Assign a developer or upgrade" |
+| **Team** ($99) | 50 sessions, small/medium only | Blocked — "Assign a developer or upgrade" |
+| **Scale** ($199, future) | Unlimited, ALL complexities | Allowed with warning |
+
+For MVP (before Scale plan exists): complex tickets **cannot** use Cloud Develop. The "Develop" button is disabled with a clear message explaining why and suggesting the developer path.
 
 ---
 
@@ -82,14 +222,16 @@ Users never see an API key. They click "Develop" and it works. Forge provides th
 
 ### Pricing
 
-| Plan | Price | Developments/mo | Target |
-|---|---|---|---|
-| **Free** | $0 | 2 | Try it, get hooked |
-| **Pro** | $39/mo | 20 | Solo PMs, small teams |
-| **Team** | $99/mo | 50 | Growing teams |
-| **Scale** | $199/mo | Unlimited (fair use 100) | Ship fast |
+| Plan | Price | Cloud Developments/mo | Complexity | Target |
+|---|---|---|---|---|
+| **Free** | $0 | 2 | Small/medium only | Try it, get hooked |
+| **Pro** | $39/mo | 20 | Small/medium only | Solo PMs, small teams |
+| **Team** | $99/mo | 50 | Small/medium only | Growing teams |
+| **Scale** | $199/mo (future) | Unlimited | All including complex | Ship fast |
 
-BYOK exists as advanced escape hatch in Settings → API Keys.
+Complex tickets are guided to Developer + MCP (Tier 3) on Free/Pro/Team plans. This protects margins — complex sessions can burn $5-15 in tokens. The future Scale plan opens complex tickets to Cloud Develop for teams that want full autonomous development.
+
+BYOK exists as advanced escape hatch in Settings → API Keys (unlocks unlimited, all complexities).
 
 ### Cost Control
 
@@ -710,24 +852,36 @@ client/src/sessions/
 
 ## Cost Analysis
 
-### Per-Development Cost to Forge
+### Per-Development Cost to Forge (by Tier)
 
-| Component | Cost |
-|---|---|
-| E2B sandbox (15 min avg — faster with auto-flight) | $0.025 |
-| Claude API (Forge's key) | ~$1.50 avg |
-| Firestore writes | ~$0.001 |
-| **Total** | **~$1.53** |
+| Tier | E2B | Claude API | Total to Forge |
+|---|---|---|---|
+| Quick Flow (small) | $0.015 | ~$0.50 avg | **~$0.52** |
+| Cloud Develop (medium) | $0.025 | ~$1.50 avg | **~$1.53** |
+| Developer + MCP (complex) | $0 | $0 (dev pays) | **$0** |
 
-Note: auto-flight sessions are faster (no human wait time), reducing E2B cost.
+Auto-flight sessions are faster (no human wait time), reducing E2B cost. Developer tier costs Forge nothing — the developer uses their own Claude subscription.
+
+### Blended Cost Model
+
+Assuming typical usage distribution: 30% Quick Flow, 50% Cloud Develop, 20% Developer + MCP:
+
+```
+Blended cost per development to Forge:
+  (0.30 × $0.52) + (0.50 × $1.53) + (0.20 × $0) = $0.92 avg
+```
+
+This is significantly better than the $1.53 flat cost because developer-tier tickets (the expensive ones) cost Forge nothing.
 
 ### Infrastructure at Scale
 
-| Users | Monthly Devs | API Cost | Infra | Revenue | Margin |
-|---|---|---|---|---|---|
-| 100 | ~900 | $1,377 | $72 | $3,900 | **63%** |
-| 500 | ~4,500 | $6,885 | $200 | $19,500 | **64%** |
-| 1,000 | ~9,000 | $13,770 | $400 | $39,000 | **64%** |
+| Users | Monthly Devs | Forge-Paid Devs (80%) | API Cost | Infra | Revenue | Margin |
+|---|---|---|---|---|---|---|
+| 100 | ~900 | ~720 | $828 | $72 | $3,900 | **77%** |
+| 500 | ~4,500 | ~3,600 | $4,140 | $200 | $19,500 | **78%** |
+| 1,000 | ~9,000 | ~7,200 | $8,280 | $400 | $39,000 | **78%** |
+
+Margins jump from 63% → 78% because 20% of developments cost Forge $0.
 
 ---
 
@@ -756,9 +910,11 @@ Note: auto-flight sessions are faster (no human wait time), reducing E2B cost.
 | Epic | Relationship |
 |---|---|
 | Epic 15 (Project Profiles) | Prerequisite — profile provides context |
-| Epic 16 (MCP Bridge) | **Merged** — MCP runs in sandbox |
-| Epic 17 (Cloud Develop, API-only) | **Superseded** — real CLI replaces API-only |
-| Epic 6 (MCP Server) | Foundation — tool definitions reused |
+| Epic 16 (MCP Bridge) | **Complements** — Tier 3 (developer + CLI). MCP tools also reused inside sandbox for Tier 1+2 |
+| Epic 17 (Cloud Develop, API-only) | **Superseded** — real CLI replaces API-only approach |
+| Epic 6 (MCP Server) | Foundation — tool definitions reused in sandbox and local CLI |
+
+Epic 16 is NOT superseded — it's the Tier 3 developer path. When a complex ticket needs human judgment, the developer uses the MCP CLI locally with their own Claude subscription. Forge pays $0 in tokens but still gets lifecycle tracking, execution events, and Change Records. Epic 16 and Epic 18 are complementary tiers of the same product.
 
 ---
 
