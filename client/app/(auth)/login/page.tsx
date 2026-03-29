@@ -82,7 +82,16 @@ function LoginPageContent() {
       } else if (hasTeams) {
         router.push('/tickets');
       } else {
-        router.push('/onboarding/team-name');
+        // Magic link users lack profile data — route to profile setup first
+        const needsProfileSetup = user.providerData.length > 0
+          && user.providerData.every((p) => p.providerId === 'password')
+          && !user.displayName;
+
+        if (needsProfileSetup) {
+          router.push('/onboarding/profile-setup');
+        } else {
+          router.push('/onboarding/team-name');
+        }
       }
     }
   }, [user, hasTeams, router, searchParams]);
