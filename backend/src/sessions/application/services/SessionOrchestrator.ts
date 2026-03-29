@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { SessionRepository, SESSION_REPOSITORY } from '../ports/SessionRepository.port';
 import { SandboxPort, SandboxHandle, SandboxConfig, SANDBOX_PORT } from '../ports/SandboxPort';
 import { translateEvent, RawCliEvent, UiEvent } from './EventTranslator';
+import { NotificationService } from '../../../notifications/notification.service';
 
 export interface SessionProgressCallback {
   onEvent: (event: UiEvent) => void;
@@ -17,6 +18,7 @@ export class SessionOrchestrator {
   constructor(
     @Inject(SESSION_REPOSITORY) private readonly sessionRepository: SessionRepository,
     @Inject(SANDBOX_PORT) private readonly sandboxPort: SandboxPort,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async run(
@@ -99,6 +101,17 @@ export class SessionOrchestrator {
 
       callback.onComplete();
       this.logger.log(`Session ${sessionId} completed successfully`);
+
+      // Fire-and-forget: notify ticket creator that PR is ready for review
+      if (completedSession) {
+        void this.notificationService
+          .notifyTicketReadyForReview(
+            completedSession.ticketId,
+            completedSession.userId,
+            completedSession.ticketTitle,
+          )
+          .catch(() => {});
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Session ${sessionId} failed: ${errorMessage}`);

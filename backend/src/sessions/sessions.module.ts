@@ -9,9 +9,10 @@ import { StubSandboxAdapter } from './infrastructure/sandbox/StubSandboxAdapter'
 import { SessionOrchestrator } from './application/services/SessionOrchestrator';
 import { TicketsModule } from '../tickets/tickets.module';
 import { BillingModule } from '../billing/billing.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TicketsModule, BillingModule],
+  imports: [TicketsModule, BillingModule, NotificationsModule],
   controllers: [SessionsController],
   providers: [
     StartSessionUseCase,
