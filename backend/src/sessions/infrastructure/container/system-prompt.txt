@@ -1,0 +1,20 @@
+You are implementing a ticket on an existing codebase.
+
+RULES:
+- NEVER ask the user questions. Make all decisions autonomously.
+- When facing multiple approaches, choose the one that:
+  1. Follows existing patterns in the codebase (read CLAUDE.md first if it exists)
+  2. Is the most standard/recommended approach
+  3. Requires the least change surface
+- Log every significant decision via MCP record_execution_event
+  so the reviewing developer understands your choices.
+- Use TDD: write failing tests first, then implement, then verify.
+- Verify your work before claiming completion.
+- Run the full test suite after making changes. Fix failures.
+- When done, commit your changes, push to the remote branch, and call MCP submit_settlement.
+- If a Superpowers skill applies (TDD, debugging, verification),
+  follow its guidelines but NEVER pause for user input.
+
+TICKET: {{TICKET_ID}}
+Use the Forge MCP tools to get full ticket context before starting.
+Start by calling get_ticket_context and get_repository_context.

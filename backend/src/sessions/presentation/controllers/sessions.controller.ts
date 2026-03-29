@@ -10,6 +10,7 @@ import {
 import { Response } from 'express';
 import { StartSessionUseCase } from '../../application/use-cases/StartSessionUseCase';
 import { CancelSessionUseCase } from '../../application/use-cases/CancelSessionUseCase';
+import { SessionOrchestrator } from '../../application/services/SessionOrchestrator';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
@@ -23,6 +24,7 @@ export class SessionsController {
   constructor(
     private readonly startSessionUseCase: StartSessionUseCase,
     private readonly cancelSessionUseCase: CancelSessionUseCase,
+    private readonly sessionOrchestrator: SessionOrchestrator,
   ) {}
 
   @Post(':ticketId/start')
@@ -39,34 +41,75 @@ export class SessionsController {
       teamId,
     });
 
-    // 2. Set SSE headers (exact pattern from tickets controller)
+    // 2. Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
     const send = (data: Record<string, unknown>) => {
-      res.write(`data: ${JSON.stringify(data)}\n\n`);
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
     };
 
-    // 3. Send session lifecycle events
+    // 3. Send provisioning status
     send({ type: 'session.status', content: 'provisioning', toolUseId: sessionId });
-    send({ type: 'session.status', content: 'running' });
 
-    // TODO: In future tasks, SessionOrchestrator will:
-    // - Provision E2B sandbox
-    // - Start Claude Code CLI
-    // - Stream translated events via send()
-    // - Call send({ type: 'event.summary', ... }) on completion
-    // For now, send a placeholder completion after a brief delay
+    // 4. Handle client disconnect
+    let clientDisconnected = false;
+    res.on('close', () => {
+      clientDisconnected = true;
+      this.logger.log(`Session ${sessionId} SSE stream closed by client`);
+    });
 
-    // Placeholder: simulate a short session
-    send({ type: 'event.message', content: 'Cloud Develop session started. E2B sandbox integration coming soon.' });
-    send({ type: 'event.summary', costUsd: 0, durationMs: 0, numTurns: 0 });
+    // 5. Build sandbox config
+    const sandboxConfig = {
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+      githubToken: '', // TODO: Generate from GitHub App installation
+      forgeApiUrl: process.env.FORGE_API_URL || 'https://forge-api.onrender.com/api',
+      forgeSessionJwt: '', // TODO: Generate session-scoped JWT
+      ticketId,
+      repoUrl: '', // TODO: From ticket's project profile
+      branch: `feat/${ticketId.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      systemPrompt: '', // Loaded from template in real E2B adapter
+      maxDurationMs: 30 * 60 * 1000, // 30 minutes
+    };
 
-    res.end();
+    // 6. Run orchestrator (fire-and-forget style, streams via SSE)
+    try {
+      await this.sessionOrchestrator.run(sessionId, teamId, sandboxConfig, {
+        onEvent: (event) => {
+          if (!clientDisconnected) {
+            send(event as unknown as Record<string, unknown>);
+          }
+        },
+        onComplete: () => {
+          if (!clientDisconnected) {
+            send({ type: 'session.status', content: 'completed' });
+            res.end();
+          }
+        },
+        onError: (error) => {
+          if (!clientDisconnected) {
+            send({ type: 'session.status', content: 'failed', error });
+            res.end();
+          }
+        },
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Session ${sessionId} orchestration failed: ${errorMessage}`);
+      if (!clientDisconnected && !res.writableEnded) {
+        send({ type: 'session.status', content: 'failed', error: errorMessage });
+        res.end();
+      }
+    }
 
-    this.logger.log(`Session ${sessionId} SSE stream completed for ticket ${ticketId}`);
+    // If orchestrator completed but res not ended (edge case)
+    if (!res.writableEnded) {
+      res.end();
+    }
   }
 
   @Post(':sessionId/cancel')

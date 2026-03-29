@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "forge": {
+      "command": "node",
+      "args": ["/root/forge-mcp-server/index.js"],
+      "env": {
+        "FORGE_API_URL": "{{FORGE_API_URL}}",
+        "FORGE_SESSION_JWT": "{{FORGE_SESSION_JWT}}",
+        "TICKET_ID": "{{TICKET_ID}}"
+      }
+    }
+  }
+}
