@@ -1,0 +1,84 @@
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
+import { SessionRepository, SESSION_REPOSITORY } from '../ports/SessionRepository.port';
+import { USAGE_QUOTA_REPOSITORY } from '../../../billing/application/ports';
+import type { UsageQuotaRepository } from '../../../billing/application/ports/UsageQuotaRepository.port';
+import { AECRepository, AEC_REPOSITORY } from '../../../tickets/application/ports/AECRepository';
+import { AECStatus } from '../../../tickets/domain/value-objects/AECStatus';
+import { Session } from '../../domain/Session';
+
+export interface StartSessionCommand {
+  ticketId: string;
+  userId: string;
+  teamId: string;
+}
+
+@Injectable()
+export class StartSessionUseCase {
+  private readonly logger = new Logger(StartSessionUseCase.name);
+
+  constructor(
+    @Inject(SESSION_REPOSITORY) private readonly sessionRepository: SessionRepository,
+    @Inject(USAGE_QUOTA_REPOSITORY) private readonly quotaRepository: UsageQuotaRepository,
+    @Inject(AEC_REPOSITORY) private readonly aecRepository: AECRepository,
+  ) {}
+
+  async execute(command: StartSessionCommand): Promise<{ sessionId: string }> {
+    const { ticketId, userId, teamId } = command;
+
+    // 1. Load and validate ticket
+    const aec = await this.aecRepository.findById(ticketId);
+    if (!aec) {
+      throw new NotFoundException(`Ticket ${ticketId} not found`);
+    }
+    if (aec.teamId !== teamId) {
+      throw new ForbiddenException('Ticket does not belong to your team');
+    }
+    if (aec.status !== AECStatus.APPROVED) {
+      throw new ConflictException(`Ticket must be approved, currently: ${aec.status}`);
+    }
+
+    // 2. Check quota
+    const period = new Date().toISOString().slice(0, 7);
+    const quota = await this.quotaRepository.getOrCreate(teamId, period);
+    if (!quota.canStartSession()) {
+      throw new ForbiddenException({
+        message: `Development quota exhausted: ${quota.used}/${quota.limit}`,
+        code: 'QUOTA_EXCEEDED',
+      });
+    }
+
+    // 3. Check for existing active session
+    const existingSession = await this.sessionRepository.findActiveByTicket(ticketId, teamId);
+    if (existingSession) {
+      throw new ConflictException(`Ticket already has an active session: ${existingSession.id}`);
+    }
+
+    // 4. Resolve repo owner/name from repositoryContext (owner/repo format)
+    const repoContext = aec.repositoryContext;
+    const repoOwner = repoContext?.owner ?? '';
+    const repoName = repoContext?.repo ?? '';
+
+    // 5. Create session
+    const session = Session.createNew({
+      ticketId,
+      teamId,
+      userId,
+      ticketTitle: aec.title,
+      repoOwner,
+      repoName,
+      branch: `feat/${ticketId.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+    });
+
+    await this.sessionRepository.save(session);
+    this.logger.log(`Session ${session.id} created for ticket ${ticketId}`);
+
+    return { sessionId: session.id };
+  }
+}
