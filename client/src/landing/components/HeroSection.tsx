@@ -81,9 +81,9 @@ export function HeroSection() {
           animate="visible"
           transition={{ ...defaultTransition, delay: 0.1 }}
         >
-          Dev-ready tickets.
+          Tickets PMs love.
           <br />
-          Every single time.
+          That devs actually understand.
         </motion.h1>
 
         {/* Subtitle — small, muted */}

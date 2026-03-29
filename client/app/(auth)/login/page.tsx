@@ -176,7 +176,7 @@ function LoginPageContent() {
           forge
         </h1>
         <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-2">
-          Transform product intent into execution-ready tickets
+          Tickets PMs love. That devs actually understand.
         </p>
       </div>
 
