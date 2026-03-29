@@ -23,12 +23,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, Zap } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
 import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
+import { SessionMonitorView } from '@/src/sessions/components/SessionMonitorView';
 import { TICKET_STATUS_CONFIG, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { toast } from 'sonner';
@@ -714,6 +715,13 @@ export function TicketDetailLayout({
             <GitPullRequest className="h-3.5 w-3.5" />
             Record
           </TabsTrigger>
+          <TabsTrigger
+            value="execute"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            Execute
+          </TabsTrigger>
           </TabsList>
 
           {/* Metadata chips — type, priority, quality */}
@@ -1044,6 +1052,15 @@ export function TicketDetailLayout({
                 </p>
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="execute" className="mt-6">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
+            <SessionMonitorView
+              ticketId={ticket.id}
+              ticketStatus={ticket.status}
+            />
           </div>
         </TabsContent>
       </Tabs>
