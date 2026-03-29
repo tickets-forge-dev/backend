@@ -19,6 +19,7 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useServices } from '@/services/index';
 import { EditItemDialog, type EditState } from '@/src/tickets/components/EditItemDialog';
 import { ApiScanDialog } from '@/src/tickets/components/ApiScanDialog';
+import { ExportDialog } from '@/src/tickets/components/ExportDialog';
 import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetailLayout';
 import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
 import { useTeamStore } from '@/teams/stores/team.store';
@@ -84,32 +85,17 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedApis, setScannedApis] = useState<import('@/types/question-refinement').ApiEndpointSpec[]>([]);
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
-  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, refreshTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment, exportToLinear, exportToJira } = useTicketsStore();
-  const { ticketService, linearService, jiraService } = useServices();
+  const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, refreshTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment } = useTicketsStore();
+  const { ticketService } = useServices();
   const { currentTeam, teamMembers, loadTeamMembers } = useTeamStore();
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [exportPlatform, setExportPlatform] = useState<'linear' | 'jira'>('jira');
-  const [exportTeams, setExportTeams] = useState<Array<{ id: string; name: string; key: string }>>([]);
-  const [exportProjects, setExportProjects] = useState<Array<{ id: string; key: string; name: string }>>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-  const [selectedProjectKey, setSelectedProjectKey] = useState<string>('');
-  const [isExporting, setIsExporting] = useState(false);
-  const [isLoadingExportOptions, setIsLoadingExportOptions] = useState(false);
-  const [linearConnected, setLinearConnected] = useState<boolean | null>(null);
-  const [jiraConnected, setJiraConnected] = useState<boolean | null>(null);
   
   // Title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
-
-  // Export section selection and preview
-  const [exportSections, setExportSections] = useState<Set<string>>(
-    new Set(['problem', 'solution', 'criteria', 'files', 'api', 'dependencies', 'tests', 'scope']),
-  );
-  const [exportPreviewLoading, setExportPreviewLoading] = useState(false);
 
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
@@ -759,70 +745,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     }
   };
 
-  const handleOpenExport = async () => {
-    setShowExportDialog(true);
-    setSelectedTeamId('');
-    setSelectedProjectKey('');
-    setExportTeams([]);
-    setExportProjects([]);
-    setSelectedProjectKey('');
-
-    // Check Jira connection status
-    try {
-      const jiraStatus = await jiraService.getConnectionStatus();
-      const isJiraConnected = jiraStatus.connected;
-      setJiraConnected(isJiraConnected);
-
-      if (isJiraConnected) {
-        loadJiraProjects();
-      }
-    } catch {
-      setJiraConnected(false);
-    }
-  };
-
-  const loadJiraProjects = async () => {
-    setIsLoadingExportOptions(true);
-    try {
-      const projects = await jiraService.getProjects();
-      setExportProjects(projects);
-      if (projects.length === 1) setSelectedProjectKey(projects[0].key);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to load Jira projects');
-    } finally {
-      setIsLoadingExportOptions(false);
-    }
-  };
-
-  const handleExport = async () => {
-    if (!ticketId) return;
-    setIsExporting(true);
-    try {
-      if (!selectedProjectKey) return;
-      const result = await exportToJira(ticketId, selectedProjectKey, Array.from(exportSections));
-      if (result) {
-        toast.success(
-          <span>
-            Ticket created: <a href={result.issueUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">{result.issueKey}</a>
-          </span>,
-          {
-            style: {
-              backgroundColor: '#22c55e',
-              color: '#000000',
-            },
-          },
-        );
-        setShowExportDialog(false);
-      } else {
-        toast.error('Export failed');
-      }
-    } catch (err: any) {
-      toast.error(err?.message || 'Export failed');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!ticketId) return;
     const success = await deleteTicket(ticketId);
@@ -892,7 +814,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleOpenExport}
+              onClick={() => setShowExportDialog(true)}
             >
               <Upload className="h-3.5 w-3.5 mr-2" />
               Export
@@ -1284,110 +1206,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       </Dialog>
 
       {/* Export Dialog */}
-      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Export Ticket</DialogTitle>
-            <DialogDescription>
-              Export this ticket to an external project management tool.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            {/* Jira only */}
-
-            {/* Jira project selector */}
-            {isLoadingExportOptions ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
-                <span className="ml-2 text-sm text-[var(--text-secondary)]">Loading...</span>
-              </div>
-            ) : jiraConnected ? (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--text)]">Project</label>
-                <select
-                  value={selectedProjectKey}
-                  onChange={(e) => setSelectedProjectKey(e.target.value)}
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
-                >
-                  <option value="">Select a project...</option>
-                  {exportProjects.map((project) => (
-                    <option key={project.id} value={project.key}>
-                      {project.name} ({project.key})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <p className="text-xs text-[var(--text-tertiary)]">
-                Connect Jira in Settings to export tickets.
-              </p>
-            )}
-
-            {/* Section Selection */}
-            <div className="space-y-3 pt-4 border-t border-[var(--border)]">
-              <label className="text-sm font-medium text-[var(--text)]">Sections to Export</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'problem', label: 'Problem', icon: '📋' },
-                  { id: 'solution', label: 'Solution', icon: '💡' },
-                  { id: 'criteria', label: 'Criteria', icon: '✓' },
-                  { id: 'files', label: 'Files', icon: '📁' },
-                  { id: 'api', label: 'APIs', icon: '🔌' },
-                  { id: 'dependencies', label: 'Dependencies', icon: '📦' },
-                  { id: 'tests', label: 'Tests', icon: '🧪' },
-                  { id: 'scope', label: 'Scope', icon: '🎯' },
-                ].map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      const newSections = new Set(exportSections);
-                      if (newSections.has(section.id)) {
-                        newSections.delete(section.id);
-                      } else {
-                        newSections.add(section.id);
-                      }
-                      setExportSections(newSections);
-                    }}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
-                      exportSections.has(section.id)
-                        ? 'border-[var(--border-hover)] bg-[var(--bg-hover)] text-[var(--text)] shadow-sm'
-                        : 'border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]'
-                    }`}
-                  >
-                    <span className="text-base">{section.icon}</span>
-                    <span>{section.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExportDialog(false)} disabled={isExporting}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleExport}
-              disabled={
-                isExporting ||
-                !selectedProjectKey ||
-                !jiraConnected
-              }
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Export to Jira
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ExportDialog open={showExportDialog} onOpenChange={setShowExportDialog} ticketId={ticketId} />
 
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
@@ -1395,7 +1214,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           <DialogHeader>
             <DialogTitle>Ticket Preview</DialogTitle>
             <DialogDescription>
-              This is a comprehensive preview of your ticket. All sections below will be exported to Jira as markdown and JSON files.
+              This is a comprehensive preview of your ticket. All sections below will be exported as markdown and JSON files.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">

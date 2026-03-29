@@ -109,7 +109,7 @@ export function JobCard({ job, onCancel, onRetry, onView, onDismiss }: JobCardPr
       {(job.status === 'running' || job.status === 'retrying') && (
         <div className="w-full bg-[var(--border-subtle)] rounded-full h-1 overflow-hidden">
           <div
-            className="h-full bg-blue-500 transition-all duration-500 ease-out rounded-full"
+            className="h-full animate-progress-shimmer transition-all duration-500 ease-out rounded-full"
             style={{ width: `${job.percent}%` }}
           />
         </div>
