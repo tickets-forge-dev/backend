@@ -71,10 +71,9 @@ export function ProductShowcaseWeb() {
               }}
             />
             <motion.div
-              className="relative rounded-2xl border border-[var(--border-subtle)] overflow-hidden"
+              className="relative rounded-2xl border border-[var(--border-subtle)] overflow-hidden md:[transform:perspective(2000px)_rotateY(-3deg)_rotateX(2deg)]"
               style={{
-                boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
-                transform: 'perspective(2000px) rotateY(-3deg) rotateX(2deg)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
               }}
             >
               <Image

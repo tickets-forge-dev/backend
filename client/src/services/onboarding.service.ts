@@ -3,13 +3,16 @@
  * Handles persistence of onboarding state to localStorage
  */
 
-export type OnboardingState = 'signup' | 'team_created' | 'role_selected' | 'github_setup' | 'complete';
+export type OnboardingState = 'signup' | 'profile_setup' | 'team_created' | 'role_selected' | 'github_setup' | 'complete';
 
 export interface OnboardingProgress {
   currentState: OnboardingState;
   teamId?: string;
   teamName?: string;
   role?: 'admin' | 'developer' | 'pm' | 'qa';
+  firstName?: string;
+  lastName?: string;
+  avatarEmoji?: string;
   hasGitHub?: boolean;
   completedAt?: string;
 }
@@ -39,7 +42,7 @@ export class OnboardingService {
       const progress = JSON.parse(stored) as OnboardingProgress;
 
       // Validate state
-      const validStates: OnboardingState[] = ['signup', 'team_created', 'role_selected', 'github_setup', 'complete'];
+      const validStates: OnboardingState[] = ['signup', 'profile_setup', 'team_created', 'role_selected', 'github_setup', 'complete'];
       if (!validStates.includes(progress.currentState)) {
         console.warn('⚠️ [OnboardingService] Invalid state in storage, resetting');
         return null;

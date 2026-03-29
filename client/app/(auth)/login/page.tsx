@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/core/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
@@ -49,7 +49,30 @@ export default function LoginPage() {
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, hasTeams, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
+  const {
+    user,
+    hasTeams,
+    signInWithGoogle,
+    signInWithGitHub,
+    isLoading,
+    error,
+    clearError,
+    sendMagicLink,
+    completeMagicLinkSignIn,
+    resetMagicLink,
+    magicLinkSent,
+    magicLinkEmail,
+    magicLinkNeedsEmail,
+  } = useAuthStore();
+
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Detect magic link callback on page load
+  useEffect(() => {
+    completeMagicLinkSignIn(window.location.href);
+  }, [completeMagicLinkSignIn]);
 
   useEffect(() => {
     if (user && hasTeams !== null) {
@@ -59,7 +82,16 @@ function LoginPageContent() {
       } else if (hasTeams) {
         router.push('/tickets');
       } else {
-        router.push('/onboarding/team-name');
+        // Magic link users lack profile data — route to profile setup first
+        const needsProfileSetup = user.providerData.length > 0
+          && user.providerData.every((p) => p.providerId === 'password')
+          && !user.displayName;
+
+        if (needsProfileSetup) {
+          router.push('/onboarding/profile-setup');
+        } else {
+          router.push('/onboarding/team-name');
+        }
       }
     }
   }, [user, hasTeams, router, searchParams]);
@@ -72,6 +104,59 @@ function LoginPageContent() {
   const handleGitHubSignIn = async () => {
     clearError();
     await signInWithGitHub();
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError(null);
+
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setEmailError('Please enter your email address.');
+      return;
+    }
+
+    // Basic email format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+
+    clearError();
+    await sendMagicLink(trimmed);
+  };
+
+  const handleResend = useCallback(async () => {
+    if (resendCooldown > 0 || !magicLinkEmail) return;
+
+    clearError();
+    await sendMagicLink(magicLinkEmail);
+    setResendCooldown(30);
+  }, [resendCooldown, magicLinkEmail, clearError, sendMagicLink]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleDifferentEmail = () => {
+    resetMagicLink();
+    setEmail('');
+    setEmailError(null);
+  };
+
+  // Handle cross-device email re-entry
+  const handleCrossDeviceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+    localStorage.setItem('forgeEmailForSignIn', trimmed);
+    await completeMagicLinkSignIn(window.location.href);
   };
 
   return (
@@ -91,7 +176,7 @@ function LoginPageContent() {
           forge
         </h1>
         <p className="text-[var(--text-sm)] text-[#a1a1aa] mt-2">
-          Transform product intent into execution-ready tickets
+          Tickets PMs love. That devs actually understand.
         </p>
       </div>
 
@@ -156,7 +241,91 @@ function LoginPageContent() {
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#27272a]" />
         </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-[#0a0a0a] px-3 text-[#71717a]">or</span>
+        </div>
       </div>
+
+      {/* Magic Link Email Section */}
+      {magicLinkNeedsEmail ? (
+        /* Cross-device: user opened link in different browser */
+        <form onSubmit={handleCrossDeviceSubmit} className="space-y-3">
+          <p className="text-[13px] text-[#a1a1aa] text-center">
+            Enter the email you used to sign in
+          </p>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
+            placeholder="you@example.com"
+            className="w-full h-11 rounded-md border border-[#27272a] bg-[#18181b] px-3 text-white text-[13px] placeholder:text-[#71717a] focus:outline-none focus:border-[#7c3aed] transition-colors"
+            autoFocus
+          />
+          {emailError && (
+            <p className="text-[12px] text-red-400">{emailError}</p>
+          )}
+          <button
+            type="submit"
+            disabled={isLoading || !email.trim()}
+            className="w-full h-11 rounded-md bg-[#7c3aed] px-4 text-white text-[13px] font-medium hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:bg-[#27272a] disabled:text-[#52525b] transition-colors"
+          >
+            {isLoading ? 'Signing in...' : 'Continue'}
+          </button>
+        </form>
+      ) : magicLinkSent ? (
+        /* Email sent — check your inbox */
+        <div className="space-y-4 text-center">
+          <div className="text-3xl">{'\u2709\uFE0F'}</div>
+          <div>
+            <p className="text-[13px] font-medium text-white">Check your email</p>
+            <p className="text-[12px] text-[#a1a1aa] mt-1">
+              We sent a sign-in link to{' '}
+              <span className="text-white">{magicLinkEmail}</span>
+            </p>
+          </div>
+          <p className="text-[11px] text-[#71717a]">
+            Check your spam folder if you don&apos;t see it.
+          </p>
+          <div className="flex items-center justify-center gap-3 text-[12px]">
+            <button
+              onClick={handleResend}
+              disabled={resendCooldown > 0 || isLoading}
+              className="text-[#a1a1aa] hover:text-white disabled:text-[#52525b] transition-colors"
+            >
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend email'}
+            </button>
+            <span className="text-[#27272a]">|</span>
+            <button
+              onClick={handleDifferentEmail}
+              className="text-[#a1a1aa] hover:text-white transition-colors"
+            >
+              Use different email
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Default: email input */
+        <form onSubmit={handleEmailSubmit} className="space-y-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
+            placeholder="Enter your email address"
+            disabled={isLoading}
+            className="w-full h-11 rounded-md border border-[#27272a] bg-[#18181b] px-3 text-white text-[13px] placeholder:text-[#71717a] focus:outline-none focus:border-[#7c3aed] transition-colors"
+          />
+          {emailError && (
+            <p className="text-[12px] text-red-400">{emailError}</p>
+          )}
+          <button
+            type="submit"
+            disabled={isLoading || !email.trim()}
+            className="w-full h-11 rounded-md border border-[#27272a] bg-[#18181b] px-4 text-white text-[13px] font-medium hover:bg-[#27272a] hover:border-[#3f3f46] disabled:cursor-not-allowed disabled:bg-[#18181b] disabled:text-[#52525b] transition-colors"
+          >
+            {isLoading ? 'Sending...' : 'Continue with email'}
+          </button>
+        </form>
+      )}
 
       {/* Footer / Terms */}
       <p className="text-center text-[var(--text-xs)] text-[#71717a] leading-relaxed">

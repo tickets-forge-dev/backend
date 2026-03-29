@@ -54,9 +54,9 @@ export default function AuthLayout({
             <ForgeBrand size="lg" className="text-white" />
           </h1>
           <p className="text-lg text-[#e4e4e7] mt-3 font-medium leading-snug">
-            Dev-ready tickets.
+            Tickets PMs love.
             <br />
-            Every single time.
+            That devs actually understand.
           </p>
           <p className="text-sm text-[#71717a] mt-2 leading-relaxed">
             PMs miss technical context. Forge doesn&apos;t.

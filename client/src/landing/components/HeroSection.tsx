@@ -25,7 +25,7 @@ export function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative flex flex-col items-center px-4 overflow-hidden"
+      className="relative flex flex-col items-center px-4 overflow-x-hidden overflow-hidden"
       style={{
         paddingTop: 'var(--landing-section-gap)',
         paddingBottom: 'var(--landing-section-gap)',
@@ -81,9 +81,9 @@ export function HeroSection() {
           animate="visible"
           transition={{ ...defaultTransition, delay: 0.1 }}
         >
-          Dev-ready tickets.
+          Tickets PMs love.
           <br />
-          Every single time.
+          That devs actually understand.
         </motion.h1>
 
         {/* Subtitle — small, muted */}
@@ -122,7 +122,7 @@ export function HeroSection() {
 
       {/* Hero Screenshot — stretches edge-to-edge */}
       <motion.div
-        className="relative w-[100vw] -mx-4 mt-16 px-2"
+        className="relative w-full mt-10 sm:mt-16 px-0 sm:w-[100vw] sm:-mx-4 sm:px-2"
         variants={scaleUp}
         initial="hidden"
         animate="visible"

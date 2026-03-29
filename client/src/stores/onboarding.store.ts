@@ -8,11 +8,16 @@ interface OnboardingStore {
   teamId: string | null;
   teamName: string | null;
   role: 'admin' | 'developer' | 'pm' | 'qa' | null;
+  firstName: string | null;
+  lastName: string | null;
+  avatarEmoji: string | null;
   hasGitHub: boolean;
   isLoading: boolean;
   error: string | null;
 
   // Actions
+  enterProfileSetup: () => void;
+  completeProfile: (firstName: string, lastName: string, avatarEmoji?: string) => void;
   createTeam: (teamId: string, teamName: string) => void;
   selectRole: (role: 'admin' | 'developer' | 'pm' | 'qa') => void;
   setupGitHub: () => void;
@@ -29,6 +34,9 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   teamId: null,
   teamName: null,
   role: null,
+  firstName: null,
+  lastName: null,
+  avatarEmoji: null,
   hasGitHub: false,
   isLoading: false,
   error: null,
@@ -41,8 +49,8 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     const state = get();
 
     // Validate transition
-    if (state.currentState !== 'signup') {
-      console.error('❌ [OnboardingStore] Invalid transition: createTeam can only be called from signup state');
+    if (state.currentState !== 'signup' && state.currentState !== 'profile_setup') {
+      console.error('❌ [OnboardingStore] Invalid transition: createTeam can only be called from signup or profile_setup state');
       return;
     }
 
@@ -59,6 +67,51 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       currentState: newState,
       teamId,
       teamName,
+    });
+  },
+
+  /**
+   * Transition: signup → profile_setup
+   * Called when a magic link user is routed to the profile setup page
+   */
+  enterProfileSetup: () => {
+    const state = get();
+
+    if (state.currentState !== 'signup') {
+      return; // Already past signup, no-op
+    }
+
+    set({ currentState: 'profile_setup' });
+
+    onboardingService.saveProgress({
+      currentState: 'profile_setup',
+    });
+  },
+
+  /**
+   * Transition: profile_setup → team_created (after profile is saved)
+   */
+  completeProfile: (firstName: string, lastName: string, avatarEmoji?: string) => {
+    const state = get();
+
+    if (state.currentState !== 'signup' && state.currentState !== 'profile_setup') {
+      console.error('❌ [OnboardingStore] Invalid transition: completeProfile can only be called from signup or profile_setup state');
+      return;
+    }
+
+    const newState: OnboardingState = 'team_created';
+    set({
+      currentState: newState,
+      firstName,
+      lastName,
+      avatarEmoji: avatarEmoji || null,
+    });
+
+    onboardingService.saveProgress({
+      currentState: newState,
+      firstName,
+      lastName,
+      avatarEmoji,
     });
   },
 
@@ -163,6 +216,9 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       teamName: progress.teamName || null,
       role: progress.role || null,
       hasGitHub: progress.hasGitHub || false,
+      firstName: progress.firstName || null,
+      lastName: progress.lastName || null,
+      avatarEmoji: progress.avatarEmoji || null,
     });
   },
 
@@ -178,6 +234,9 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       hasGitHub: false,
       isLoading: false,
       error: null,
+      firstName: null,
+      lastName: null,
+      avatarEmoji: null,
     });
 
     onboardingService.clearProgress();

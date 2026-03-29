@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, GithubAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, GithubAuthProvider, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
 
 // Fetch Firebase configuration from backend at runtime
@@ -117,5 +117,15 @@ export const googleProvider = new GoogleAuthProvider();
 // GitHub provider with repo scope to fetch user's repositories
 export const githubProvider = new GithubAuthProvider();
 githubProvider.addScope('repo'); // Access to private repos
+
+// Magic link (passwordless email) helpers
+export { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink };
+
+export function getMagicLinkActionCodeSettings(): { url: string; handleCodeInApp: boolean } {
+  return {
+    url: `${window.location.origin}/login`,
+    handleCodeInApp: true,
+  };
+}
 
 export default app;

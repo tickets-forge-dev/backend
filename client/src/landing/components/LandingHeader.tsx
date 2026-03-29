@@ -23,10 +23,10 @@ export function LandingHeader() {
             forge
           </span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <Link
             href="/docs"
-            className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
+            className="hidden sm:inline text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
           >
             Docs
           </Link>
@@ -38,7 +38,7 @@ export function LandingHeader() {
           </Link>
           <Link
             href="/tickets"
-            className="hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-[var(--text)] px-4 text-sm font-medium text-[var(--bg)] transition-colors hover:opacity-90"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--text)] px-4 text-sm font-medium text-[var(--bg)] transition-colors hover:opacity-90"
           >
             Go to App
           </Link>

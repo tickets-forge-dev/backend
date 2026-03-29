@@ -16,7 +16,7 @@ export default function LandingPage() {
     <MotionConfig reducedMotion="user">
       <div
         data-theme="dark"
-        className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col font-sans selection:bg-[var(--primary)] selection:text-[var(--primary-bg)]"
+        className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col font-sans selection:bg-[var(--primary)] selection:text-[var(--primary-bg)] overflow-x-hidden"
       >
         <BackgroundMesh />
         <LandingHeader />
