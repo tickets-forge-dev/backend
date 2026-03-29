@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Input } from '@/core/components/ui/input';
 import { useOnboardingStore } from '@/stores/onboarding.store';
@@ -14,7 +15,12 @@ function getRandomEmoji(): string {
 
 export function ProfileSetupStep() {
   const router = useRouter();
-  const { completeProfile } = useOnboardingStore();
+  const { enterProfileSetup, completeProfile } = useOnboardingStore();
+
+  // Enter profile_setup state so it persists across refresh
+  useEffect(() => {
+    enterProfileSetup();
+  }, [enterProfileSetup]);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -92,6 +98,11 @@ export function ProfileSetupStep() {
           console.warn('[ProfileSetup] Failed to set avatar emoji, continuing...');
         }
       }
+
+      // Update Firebase user displayName (prevents redirect loop on next login)
+      await updateProfile(user, {
+        displayName: `${firstName.trim()} ${lastName.trim()}`,
+      });
 
       // Update onboarding state
       completeProfile(firstName.trim(), lastName.trim(), avatarEmoji);

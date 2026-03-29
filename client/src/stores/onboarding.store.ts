@@ -16,6 +16,7 @@ interface OnboardingStore {
   error: string | null;
 
   // Actions
+  enterProfileSetup: () => void;
   completeProfile: (firstName: string, lastName: string, avatarEmoji?: string) => void;
   createTeam: (teamId: string, teamName: string) => void;
   selectRole: (role: 'admin' | 'developer' | 'pm' | 'qa') => void;
@@ -70,8 +71,25 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   },
 
   /**
-   * Transition: signup → profile_setup (for magic link users without profile data)
-   * Or: profile_setup → team_created (after profile is saved)
+   * Transition: signup → profile_setup
+   * Called when a magic link user is routed to the profile setup page
+   */
+  enterProfileSetup: () => {
+    const state = get();
+
+    if (state.currentState !== 'signup') {
+      return; // Already past signup, no-op
+    }
+
+    set({ currentState: 'profile_setup' });
+
+    onboardingService.saveProgress({
+      currentState: 'profile_setup',
+    });
+  },
+
+  /**
+   * Transition: profile_setup → team_created (after profile is saved)
    */
   completeProfile: (firstName: string, lastName: string, avatarEmoji?: string) => {
     const state = get();
