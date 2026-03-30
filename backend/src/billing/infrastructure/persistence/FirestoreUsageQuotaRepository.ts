@@ -22,15 +22,21 @@ export class FirestoreUsageQuotaRepository implements UsageQuotaRepository {
     const firestore = this.getFirestore();
 
     try {
+      // Use 'session-quota' subcollection to avoid collision with existing
+      // token-based usage documents at teams/{teamId}/usage/{period}
       const snap = await firestore
         .collection('teams')
         .doc(teamId)
-        .collection('usage')
+        .collection('session-quota')
         .doc(period)
         .get();
 
       if (snap.exists) {
-        return UsageQuotaMapper.toDomain(snap.data() as UsageQuotaDocument);
+        const rawData = snap.data();
+        // Verify this is our session quota format (has 'limit' field)
+        if (rawData && typeof rawData.limit === 'number') {
+          return UsageQuotaMapper.toDomain(rawData as UsageQuotaDocument);
+        }
       }
 
       const quota = UsageQuota.createDefault(teamId, period);
@@ -50,7 +56,7 @@ export class FirestoreUsageQuotaRepository implements UsageQuotaRepository {
       await firestore
         .collection('teams')
         .doc(quota.teamId)
-        .collection('usage')
+        .collection('session-quota')
         .doc(quota.period)
         .set(doc as FirebaseFirestore.DocumentData, { merge: true });
     } catch (error) {

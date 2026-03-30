@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, Zap } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, Zap, StickyNote, Save } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -71,6 +71,12 @@ interface TicketDetailLayoutProps {
   assignDialogOpen?: boolean;
   onAssignDialogOpenChange?: (open: boolean) => void;
   // Delivery review
+  // Notes
+  descriptionDraft: string;
+  onDescriptionChange: (value: string) => void;
+  isDescriptionDirty: boolean;
+  isSavingDescription: boolean;
+  onSaveDescription: () => void;
 }
 
 export function TicketDetailLayout({
@@ -100,6 +106,11 @@ export function TicketDetailLayout({
   onStatusTransition,
   assignDialogOpen,
   onAssignDialogOpenChange,
+  descriptionDraft,
+  onDescriptionChange,
+  isDescriptionDirty,
+  isSavingDescription,
+  onSaveDescription,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -119,7 +130,9 @@ export function TicketDetailLayout({
   const assignedDuringNudge = useRef(false);
   const assignAttempted = useRef(false);
 
-  const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
+  const validTabs = ['spec', 'technical', 'design', 'delivered', 'execute', 'notes'];
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam && validTabs.includes(tabParam) ? tabParam : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
@@ -722,6 +735,13 @@ export function TicketDetailLayout({
             <Zap className="h-3.5 w-3.5" />
             Execute
           </TabsTrigger>
+          <TabsTrigger
+            value="notes"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+          >
+            <StickyNote className="h-3.5 w-3.5" />
+            Notes
+          </TabsTrigger>
           </TabsList>
 
           {/* Metadata chips — type, priority, quality */}
@@ -1060,6 +1080,45 @@ export function TicketDetailLayout({
             <SessionMonitorView
               ticketId={ticket.id}
               ticketStatus={ticket.status}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="notes" className="mt-6">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1">
+                {isDescriptionDirty && (
+                  <span className="text-[10px] text-[var(--text-tertiary)] mr-2">Unsaved</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!isDescriptionDirty || isSavingDescription}
+                  onClick={onSaveDescription}
+                  className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+                >
+                  {isSavingDescription ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : (
+                    <Save className="h-3 w-3 mr-1" />
+                  )}
+                  Save
+                </Button>
+              </div>
+            </div>
+            <textarea
+              value={descriptionDraft}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  if (isDescriptionDirty) onSaveDescription();
+                }
+              }}
+              placeholder="Add notes... (supports Markdown)"
+              rows={8}
+              className="w-full bg-[var(--bg-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed rounded-lg px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 transition-colors resize-y"
             />
           </div>
         </TabsContent>

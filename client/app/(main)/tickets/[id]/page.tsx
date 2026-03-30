@@ -945,50 +945,15 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onStatusTransition={handleStatusTransition}
         assignDialogOpen={forceAssignOpen}
         onAssignDialogOpenChange={setForceAssignOpen}
-
+        descriptionDraft={descriptionDraft}
+        onDescriptionChange={(value) => {
+          setDescriptionDraft(value);
+          setIsDescriptionDirty(value !== (currentTicket?.description || ''));
+        }}
+        isDescriptionDirty={isDescriptionDirty}
+        isSavingDescription={isSavingDescription}
+        onSaveDescription={handleSaveDescription}
       />
-
-      {/* Notes Section */}
-      <div className="px-1">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-[var(--text)]">Notes</h3>
-          <div className="flex items-center gap-1">
-            {isDescriptionDirty && (
-              <span className="text-[10px] text-[var(--text-tertiary)] mr-2">Unsaved</span>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!isDescriptionDirty || isSavingDescription}
-              onClick={handleSaveDescription}
-              className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
-            >
-              {isSavingDescription ? (
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              ) : (
-                <Save className="h-3 w-3 mr-1" />
-              )}
-              Save
-            </Button>
-          </div>
-        </div>
-        <textarea
-          value={descriptionDraft}
-          onChange={(e) => {
-            setDescriptionDraft(e.target.value);
-            setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              if (isDescriptionDirty) handleSaveDescription();
-            }
-          }}
-          placeholder="Add notes... (supports Markdown)"
-          rows={3}
-          className="w-full bg-[var(--bg-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed rounded-lg px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 transition-colors resize-y"
-        />
-      </div>
 
       {/* Footer with actions */}
       <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
