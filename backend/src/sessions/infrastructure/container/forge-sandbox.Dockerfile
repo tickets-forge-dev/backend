@@ -13,7 +13,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && rm -rf /var/lib/apt/lists/*
 
 # Claude Code CLI (pinned version — bump via weekly CI rebuild)
-RUN npm install -g @anthropic-ai/claude-code@1.0.34
+RUN npm install -g @anthropic-ai/claude-code@latest
 
 # Pre-create Claude config directory to skip first-run prompts
 # Claude Code uses ANTHROPIC_API_KEY from env — no login needed
