@@ -149,8 +149,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             set({
               status: 'completed',
               summary: {
-                prUrl: null,
-                prNumber: null,
+                prUrl: (event as any).prUrl ?? null,
+                prNumber: (event as any).prNumber ?? null,
+                branch: (event as any).branch ?? null,
+                repoFullName: (event as any).repoFullName ?? null,
                 filesChanged: event.numTurns ?? 0,
                 costUsd: event.costUsd ?? 0,
                 durationMs: event.durationMs ?? 0,

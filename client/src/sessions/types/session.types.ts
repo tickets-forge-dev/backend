@@ -36,6 +36,8 @@ export interface SessionEvent {
 export interface SessionSummary {
   prUrl: string | null;
   prNumber: number | null;
+  branch: string | null;
+  repoFullName: string | null;
   filesChanged: number;
   costUsd: number;
   durationMs: number;
