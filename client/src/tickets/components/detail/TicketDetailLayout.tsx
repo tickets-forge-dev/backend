@@ -23,13 +23,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, Zap, StickyNote, Save } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, StickyNote, Save } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
 import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
-import { SessionMonitorView } from '@/src/sessions/components';
+import { DevelopSessionBlade } from '@/src/sessions/components/organisms/DevelopSessionBlade';
+import { TicketDevelopButton } from '@/src/sessions/components/atoms/TicketDevelopButton';
+import { useSessionStore } from '@/src/sessions/stores/session.store';
 import { TICKET_STATUS_CONFIG, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { toast } from 'sonner';
@@ -130,7 +132,10 @@ export function TicketDetailLayout({
   const assignedDuringNudge = useRef(false);
   const assignAttempted = useRef(false);
 
-  const validTabs = ['spec', 'technical', 'design', 'delivered', 'execute', 'notes'];
+  const [developBladeOpen, setDevelopBladeOpen] = useState(false);
+  const sessionStatus = useSessionStore(state => state.status);
+
+  const validTabs = ['spec', 'technical', 'design', 'delivered', 'notes'];
   const tabParam = searchParams.get('tab');
   const initialTab = tabParam && validTabs.includes(tabParam) ? tabParam : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -729,19 +734,25 @@ export function TicketDetailLayout({
             Record
           </TabsTrigger>
           <TabsTrigger
-            value="execute"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
-          >
-            <Zap className="h-3.5 w-3.5" />
-            Execute
-          </TabsTrigger>
-          <TabsTrigger
             value="notes"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
           >
             <StickyNote className="h-3.5 w-3.5" />
             Notes
           </TabsTrigger>
+          {['approved', 'executing', 'delivered'].includes(ticket.status) && (
+            <div className="ml-auto flex items-center">
+              <TicketDevelopButton
+                onClick={() => setDevelopBladeOpen(true)}
+                disabled={false}
+                status={
+                  sessionStatus === 'running' || sessionStatus === 'provisioning' ? 'running'
+                  : ticket.status === 'delivered' || sessionStatus === 'completed' ? 'completed'
+                  : 'idle'
+                }
+              />
+            </div>
+          )}
           </TabsList>
         </div>
 
@@ -1047,15 +1058,6 @@ export function TicketDetailLayout({
           </div>
         </TabsContent>
 
-        <TabsContent value="execute" className="mt-6">
-          <div className="max-w-3xl xl:max-w-4xl mx-auto">
-            <SessionMonitorView
-              ticketId={ticket.id}
-              ticketStatus={ticket.status}
-            />
-          </div>
-        </TabsContent>
-
         <TabsContent value="notes" className="mt-6">
           <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-3">
@@ -1095,6 +1097,15 @@ export function TicketDetailLayout({
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Develop blade (slide-over panel) */}
+      <DevelopSessionBlade
+        open={developBladeOpen}
+        onClose={() => setDevelopBladeOpen(false)}
+        ticketId={ticket.id}
+        ticketTitle={ticket.title}
+        ticketStatus={ticket.status}
+      />
     </div>
   );
 }
