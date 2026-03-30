@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Zap } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { IconBadge } from '../atoms/IconBadge';
 import { QuotaDisplay } from '../molecules/QuotaDisplay';
@@ -23,7 +23,7 @@ export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButton
 
   return (
     <div className="flex flex-col items-center gap-4 py-16">
-      <IconBadge icon={Zap} color="violet" size="lg" />
+      <IconBadge icon={Play} color="emerald" size="lg" />
 
       <div className="text-center">
         <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1">
@@ -37,9 +37,9 @@ export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButton
       <button
         onClick={onStart}
         disabled={isDisabled}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-violet-500 hover:bg-violet-600 text-white text-[14px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[14px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <Zap className="w-4 h-4" />
+        <Play className="w-4 h-4" fill="currentColor" />
         Start Development
       </button>
 
