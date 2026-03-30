@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge — Product Vision</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #1a1a2e;
+    background: #ffffff;
+    font-size: 11pt;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 48px 56px;
+  }
+
+  /* Cover section */
+  .cover {
+    text-align: center;
+    padding: 80px 0 60px;
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 40px;
+    page-break-after: always;
+  }
+  .cover .logo {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+  }
+  .cover .logo span { color: #8b5cf6; }
+  .cover .tagline {
+    font-size: 20px;
+    font-weight: 300;
+    color: #555;
+    margin-bottom: 40px;
+    line-height: 1.4;
+  }
+  .cover .one-liner {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.06);
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: 1px solid rgba(139, 92, 246, 0.12);
+  }
+  .cover .meta {
+    margin-top: 48px;
+    font-size: 10pt;
+    color: #999;
+  }
+
+  /* Section headers */
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 36px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #8b5cf6;
+    display: inline-block;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 20px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  p {
+    margin-bottom: 12px;
+    color: #333;
+  }
+  p.lead {
+    font-size: 13pt;
+    font-weight: 300;
+    color: #555;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  strong { font-weight: 600; color: #1a1a2e; }
+  em { font-style: italic; color: #555; }
+
+  /* The problem/flow blocks */
+  .flow-block {
+    background: #f8f8fc;
+    border: 1px solid #e8e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 16px 0 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10pt;
+    color: #444;
+    line-height: 1.8;
+  }
+  .flow-block .highlight { color: #8b5cf6; font-weight: 500; }
+  .flow-block .muted { color: #999; }
+  .flow-block .green { color: #16a34a; }
+  .flow-block .red { color: #dc2626; }
+
+  /* Steps: Write / Develop / Review */
+  .steps {
+    display: flex;
+    gap: 16px;
+    margin: 20px 0 28px;
+  }
+  .step {
+    flex: 1;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e8e8f0;
+  }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #8b5cf6;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .step h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .step p {
+    font-size: 10pt;
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 10pt;
+  }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    background: #f4f0ff;
+    color: #5b3fc4;
+    font-weight: 600;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid #8b5cf6;
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    color: #444;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* Change Record */
+  .record {
+    background: #0f0f1a;
+    color: #ccc;
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px 0 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5pt;
+    line-height: 1.7;
+  }
+  .record .title {
+    color: #e8e8e8;
+    font-weight: 500;
+    font-size: 10pt;
+    margin-bottom: 4px;
+  }
+  .record .divider {
+    color: #333;
+    margin-bottom: 12px;
+  }
+  .record .label {
+    color: #8b5cf6;
+    font-weight: 500;
+  }
+  .record .decision { color: #c4b5fd; }
+  .record .risk { color: #fbbf24; }
+  .record .file-add { color: #4ade80; }
+  .record .file-mod { color: #60a5fa; }
+  .record .sub { color: #888; margin-left: 20px; display: block; }
+  .record .result { color: #4ade80; font-weight: 500; }
+
+  /* Comparison boxes */
+  .vs-grid {
+    display: flex;
+    gap: 14px;
+    margin: 16px 0 24px;
+  }
+  .vs-box {
+    flex: 1;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e8e8f0;
+  }
+  .vs-box.them { background: #fafafa; }
+  .vs-box.us { background: #f8f4ff; border-color: rgba(139,92,246,0.2); }
+  .vs-box h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 8px; }
+  .vs-box.us h4 { color: #8b5cf6; }
+  .vs-box p { font-size: 10pt; margin: 0; color: #555; }
+  .vs-box.us p { color: #333; }
+
+  /* Quote / highlight */
+  .quote {
+    text-align: center;
+    padding: 28px 40px;
+    margin: 32px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: #1a1a2e;
+    font-style: italic;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    line-height: 1.6;
+  }
+
+  /* Checklist */
+  .checklist {
+    columns: 2;
+    column-gap: 24px;
+    margin: 12px 0 24px;
+    list-style: none;
+  }
+  .checklist li {
+    padding: 4px 0 4px 22px;
+    position: relative;
+    font-size: 10pt;
+    color: #444;
+    break-inside: avoid;
+  }
+  .checklist li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #16a34a;
+    font-weight: 700;
+  }
+
+  /* Pill badges */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 9pt;
+    font-weight: 500;
+  }
+  .pill.purple { background: rgba(139,92,246,0.1); color: #7c3aed; }
+  .pill.green { background: rgba(22,163,74,0.1); color: #16a34a; }
+  .pill.amber { background: rgba(245,158,11,0.1); color: #d97706; }
+
+  /* Page break helpers */
+  .page-break { page-break-before: always; }
+  .no-break { page-break-inside: avoid; }
+
+  /* Tier diagram */
+  .tier-row {
+    display: flex;
+    gap: 14px;
+    margin: 16px 0 24px;
+  }
+  .tier-card {
+    flex: 1;
+    padding: 18px;
+    border-radius: 10px;
+    border: 1px solid #e8e8f0;
+    text-align: center;
+  }
+  .tier-card.t1 { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.03); }
+  .tier-card.t2 { border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.03); }
+  .tier-card.t3 { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.03); }
+  .tier-card .tier-icon { font-size: 24px; margin-bottom: 8px; }
+  .tier-card .tier-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .tier-card .tier-desc { font-size: 9.5pt; color: #666; line-height: 1.4; }
+  .tier-card .tier-cost { font-size: 9pt; color: #999; margin-top: 8px; }
+  .tier-card .tier-cost strong { color: #333; }
+
+  /* Footer */
+  .footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+    font-size: 9pt;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="logo"><span>⚡</span> Forge</div>
+    <div class="tagline">
+      From ticket to pull request.<br>
+      No terminal needed.
+    </div>
+    <div class="one-liner">
+      Ship features into your existing codebase — from your browser.
+    </div>
+    <div class="meta">
+      Product Vision &amp; Strategy — Confidential<br>
+      March 2026
+    </div>
+  </div>
+
+  <!-- THE PROBLEM -->
+  <h2>The Problem</h2>
+  <p class="lead">
+    Every engineering team has the same bottleneck. The PM knows exactly what needs to happen, but can't make it happen without a developer's time.
+  </p>
+  <div class="flow-block">
+    PM writes ticket → <span class="muted">ticket sits in backlog → weeks pass →</span> developer eventually picks it up<br>
+    <br>
+    <span class="muted">47 tickets in the backlog. Two developers.</span><br>
+    <span class="muted">Small fixes, bug patches, straightforward features — all waiting in line.</span><br>
+    <br>
+    <span class="highlight">What if the PM could just click a button?</span>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <h2>How Forge Works</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h4>Write</h4>
+      <p>PM describes what they need. Forge's AI generates a detailed spec with acceptance criteria, file changes, and test requirements.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h4>Develop</h4>
+      <p>PM clicks <strong>"Develop."</strong> Forge runs the real Claude Code CLI in a secure cloud sandbox. Auto-flight: no questions, just implements.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h4>Review</h4>
+      <p>A pull request appears on GitHub. The developer reviews it — not writing from scratch, but reviewing code that follows the team's patterns.</p>
+    </div>
+  </div>
+
+  <div class="flow-block" style="text-align: center;">
+    Write ticket → Refine → Approve → <span class="highlight">⚡ Develop</span> → PR created → Dev reviews → <span class="green">Ship</span>
+  </div>
+
+  <!-- THE CHANGE RECORD -->
+  <div class="page-break"></div>
+  <h2>The Change Record</h2>
+  <p class="lead">
+    This isn't "vibe coding." Every decision is documented. Every risk flagged. Every file tracked. The reviewing developer has full context without having been there.
+  </p>
+
+  <div class="record no-break">
+    <div class="title">Change Record for AEC-2437: Webhook Retry Logic</div>
+    <div class="divider">────────────────────────────────────────────────────────</div>
+    <br>
+    <span class="label">Execution Summary:</span><br>
+    Added exponential retry logic to the webhook delivery system<br>
+    using a dedicated Bull queue processor.<br>
+    <br>
+    <span class="label">Decisions Made:</span><br>
+    <span class="decision">✦ Used Bull queue pattern (not inline retry)</span>
+    <span class="sub">→ Matches existing BackgroundFinalizationService</span>
+    <span class="decision">✦ Exponential backoff: 1s, 2s, 4s, 8s</span>
+    <span class="sub">→ Industry standard, RFC 7231</span>
+    <span class="decision">✦ Max 5 retry attempts</span>
+    <span class="sub">→ Matches project's existing configurations</span>
+    <br>
+    <span class="label">Risks Identified:</span><br>
+    <span class="risk">⚠ No dead-letter queue for permanently failed webhooks</span>
+    <span class="sub">→ Logged for future ticket</span>
+    <br>
+    <span class="label">Files Changed:</span><br>
+    <span class="file-add">+ src/webhooks/webhook-retry.processor.ts  (+89 lines)</span><br>
+    <span class="file-mod">~ src/webhooks/webhooks.module.ts          (+12 -2)</span><br>
+    <span class="file-mod">~ src/webhooks/webhook.service.ts          (+23 -4)</span><br>
+    <span class="file-add">+ src/webhooks/__tests__/retry.spec.ts     (+124 lines)</span><br>
+    <br>
+    <span class="result">Tests: 18 passed, 0 failed</span><br>
+    <span class="result">PR: #42 on feat/aec-2437-webhook-retry</span>
+  </div>
+
+  <!-- THREE-TIER MODEL -->
+  <h2>The Three-Tier Model</h2>
+  <p>Forge adapts to the complexity of the work — and protects its margins in the process.</p>
+
+  <div class="tier-row no-break">
+    <div class="tier-card t1">
+      <div class="tier-icon">⚡</div>
+      <div class="tier-name">Quick Flow</div>
+      <div class="tier-desc">PM types what they need.<br>Claude implements instantly.<br>PR + ticket auto-created.</div>
+      <div class="tier-cost">Small fixes · <strong>~$0.52/dev</strong></div>
+    </div>
+    <div class="tier-card t2">
+      <div class="tier-icon">🚀</div>
+      <div class="tier-name">Cloud Develop</div>
+      <div class="tier-desc">PM writes ticket with spec.<br>Clicks "Develop."<br>Claude implements on auto-flight.</div>
+      <div class="tier-cost">Small/medium features · <strong>~$1.53/dev</strong></div>
+    </div>
+    <div class="tier-card t3">
+      <div class="tier-icon">👤</div>
+      <div class="tier-name">Developer + CLI</div>
+      <div class="tier-desc">Developer uses the CLI locally<br>with their own Claude subscription.<br>Full power for complex work.</div>
+      <div class="tier-cost">Complex/architectural · <strong>$0 to Forge</strong></div>
+    </div>
+  </div>
+
+  <p>Small/medium work → PM handles from browser (Forge earns revenue). Complex work → Developer handles with CLI (Forge cost: $0, still gets lifecycle tracking). <strong>The expensive stuff costs us nothing.</strong></p>
+
+  <!-- COMPETITIVE POSITIONING -->
+  <div class="page-break"></div>
+  <h2>Why Forge Wins</h2>
+
+  <div class="vs-grid no-break">
+    <div class="vs-box them">
+      <h4>Lovable / Bolt</h4>
+      <p>Build new apps from scratch. Can't touch your existing codebase. Prototype quality. No tests, no PR review, no audit trail.</p>
+    </div>
+    <div class="vs-box us">
+      <h4>Forge</h4>
+      <p>Ships features into your <strong>existing</strong> 500-file codebase. Production quality. Runs your tests. Creates PRs. Full Change Records.</p>
+    </div>
+  </div>
+  <div class="vs-grid no-break">
+    <div class="vs-box them">
+      <h4>Cursor / Copilot</h4>
+      <p>Developer tools in a terminal. Requires a developer to be present. Suggests lines of code, not entire features.</p>
+    </div>
+    <div class="vs-box us">
+      <h4>Forge</h4>
+      <p>PM tool in a browser. Developer reviews the PR after. Implements <strong>entire tickets</strong>, not lines.</p>
+    </div>
+  </div>
+  <div class="vs-grid no-break">
+    <div class="vs-box them">
+      <h4>Hiring a Developer</h4>
+      <p>$10,000–25,000/month. Weeks to onboard. Context switching between tickets. PM waits for availability.</p>
+    </div>
+    <div class="vs-box us">
+      <h4>Forge</h4>
+      <p>$39–99/month. Instant. Full codebase context. PM triggers development anytime. <strong>3-4x team throughput.</strong></p>
+    </div>
+  </div>
+
+  <!-- VALUE PROP -->
+  <h2>The Value Proposition</h2>
+  <p>Forge doesn't replace developers. It changes their role from <strong>writer</strong> to <strong>reviewer</strong>.</p>
+
+  <div class="flow-block no-break">
+    <strong>Without Forge:</strong><br>
+    2 developers at $24,000/mo total<br>
+    Ship ~20 features/month<br>
+    Cost per feature: ~$1,200<br>
+    PM waits for developer availability<br>
+    <br>
+    <strong><span class="highlight">With Forge:</span></strong><br>
+    2 developers at $24,000/mo total &nbsp;&nbsp;<span class="muted">← same headcount</span><br>
+    Forge Team at $99/mo &nbsp;&nbsp;<span class="muted">← tiny add-on</span><br>
+    Ship ~60-80 features/month &nbsp;&nbsp;<span class="green">← 3-4x throughput</span><br>
+    Cost per feature: ~$400<br>
+    PM triggers development anytime
+  </div>
+
+  <!-- BUSINESS MODEL -->
+  <h2>Business Model</h2>
+
+  <table>
+    <tr>
+      <th>Plan</th>
+      <th>Price</th>
+      <th>Cloud Developments</th>
+      <th>Target</th>
+    </tr>
+    <tr>
+      <td><span class="pill green">Free</span></td>
+      <td>$0</td>
+      <td>2/month</td>
+      <td>Try it, get hooked</td>
+    </tr>
+    <tr>
+      <td><span class="pill purple">Pro</span></td>
+      <td>$39/mo</td>
+      <td>20/month</td>
+      <td>Solo PMs, small teams</td>
+    </tr>
+    <tr>
+      <td><span class="pill purple">Team</span></td>
+      <td>$99/mo</td>
+      <td>50/month</td>
+      <td>Growing teams</td>
+    </tr>
+    <tr>
+      <td><span class="pill amber">Scale</span></td>
+      <td>$199/mo</td>
+      <td>Unlimited</td>
+      <td>Ship fast (future)</td>
+    </tr>
+  </table>
+
+  <p><strong>Gross margin: ~78%.</strong> Blended cost per development: ~$0.92 (expensive work handled by developers using their own tools = $0 to Forge).</p>
+
+  <!-- WHAT'S BUILT -->
+  <h2>What's Already Built</h2>
+  <p>Forge isn't a pitch deck. It's a working product.</p>
+
+  <ul class="checklist">
+    <li>AI-assisted ticket creation</li>
+    <li>Spec generation with acceptance criteria</li>
+    <li>Review Q&A system</li>
+    <li>Approval workflow</li>
+    <li>Project profiles (codebase context)</li>
+    <li>Change Record system</li>
+    <li>GitHub integration (OAuth + App)</li>
+    <li>MCP bridge for developer CLI</li>
+    <li>Real-time job monitoring</li>
+    <li>Email notifications</li>
+    <li>Team/workspace management</li>
+    <li>Linear-inspired design system</li>
+  </ul>
+
+  <p><strong>What's next:</strong> The "Develop" button — Cloud Develop (Epic 18). This is the feature that closes the loop and makes everything above 10x more valuable.</p>
+
+  <!-- CLOSING -->
+  <div class="quote">
+    "Your PM writes the ticket. Claude writes the code.<br>
+    Your developer reviews the PR.<br>
+    Everyone does what they're best at."
+  </div>
+
+  <div class="footer">
+    Forge — Confidential &middot; March 2026 &middot; forge-ai.dev
+  </div>
+
+</div>
+
+</body>
+</html>

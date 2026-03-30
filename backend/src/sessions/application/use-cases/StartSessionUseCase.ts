@@ -48,10 +48,18 @@ export class StartSessionUseCase {
 
     // 2. Check quota
     const period = new Date().toISOString().slice(0, 7);
-    const quota = await this.quotaRepository.getOrCreate(teamId, period);
-    if (!quota.canStartSession()) {
+    let quota;
+    try {
+      quota = await this.quotaRepository.getOrCreate(teamId, period);
+      this.logger.log(`Quota for team ${teamId}: ${quota.used}/${quota.limit} (remaining: ${quota.remaining})`);
+    } catch (quotaError) {
+      this.logger.warn(`Failed to check quota for team ${teamId}, allowing session: ${quotaError}`);
+      // If quota check fails, allow the session (fail-open for MVP)
+      quota = null;
+    }
+    if (quota && !quota.canStartSession()) {
       throw new ForbiddenException({
-        message: `Development quota exhausted: ${quota.used}/${quota.limit}`,
+        message: `Development quota exhausted: ${quota.used}/${quota.limit}. Upgrade your plan for more developments.`,
         code: 'QUOTA_EXCEEDED',
       });
     }
