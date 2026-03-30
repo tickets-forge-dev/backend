@@ -51,16 +51,23 @@ export class E2BSandboxAdapter implements SandboxPort {
     let stderrHandler: ((line: string) => void) | null = null;
     let exitHandler: ((code: number) => void) | null = null;
 
-    // Start Claude Code process in background
-    const claudeCommand = [
-      'bash -c "',
-      'set -a && source /root/.env && set +a && ',
-      `claude --output-format stream-json --verbose --system-prompt "$(cat /root/system_prompt.txt)" `,
-      `"Implement ticket ${config.ticketId}: clone ${config.repoUrl} branch ${config.branch} and complete the task."`,
-      '"',
-    ].join('');
+    // Write a launcher script to avoid shell quoting issues
+    const launcherScript = [
+      '#!/bin/bash',
+      'set -a',
+      'source /root/.env',
+      'set +a',
+      'exec claude \\',
+      '  -p "$(cat /root/system_prompt.txt)" \\',
+      '  --output-format stream-json \\',
+      '  --allowedTools "Read,Edit,Write,Bash,Glob,Grep,mcp__forge__*" \\',
+      '  --dangerously-skip-permissions \\',
+      '  --mcp-config /root/.forge-mcp.json',
+    ].join('\n');
 
-    const commandHandle = await sandbox.commands.run(claudeCommand, {
+    await sandbox.files.write('/root/start-claude.sh', launcherScript);
+
+    const commandHandle = await sandbox.commands.run('chmod +x /root/start-claude.sh && /root/start-claude.sh', {
       background: true,
       cwd: '/root',
       onStdout: (data: string) => {
