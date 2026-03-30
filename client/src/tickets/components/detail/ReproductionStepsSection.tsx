@@ -43,7 +43,7 @@ export function ReproductionStepsSection({
       id="reproduction-steps"
       title="Reproduction Steps"
       badge={`${bugDetails.reproductionSteps.length} steps`}
-      defaultExpanded={true}
+      defaultExpanded={false}
     >
       <div className="space-y-4">
         {/* Empty state - important notice */}
