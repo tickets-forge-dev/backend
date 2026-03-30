@@ -462,11 +462,7 @@ export function TicketDetailLayout({
         assignDialogOpen={assignDialogOpen}
         onAssignDialogOpenChange={handleAssignDialogOpenChange}
         pendingApproval={pendingApproval}
-      />
-
-      {/* Develop button — standalone prominent action */}
-      {['approved', 'executing', 'delivered'].includes(ticket.status) && (
-        <div className="flex items-center">
+        actionSlot={['approved', 'executing', 'delivered'].includes(ticket.status) ? (
           <TicketDevelopButton
             onClick={() => setDevelopBladeOpen(true)}
             disabled={false}
@@ -476,8 +472,10 @@ export function TicketDetailLayout({
               : 'idle'
             }
           />
-        </div>
-      )}
+        ) : undefined}
+      />
+
+      {/* Develop button removed from here — now passed via OverviewCard actionSlot */}
 
       {/* Approval banner — always visible when ticket is in review with developer Q&A */}
       {isWaitingForApproval && hasReviewSession && (

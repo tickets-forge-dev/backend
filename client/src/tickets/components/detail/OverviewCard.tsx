@@ -34,16 +34,16 @@ const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> 
     unassigned: 'PM reviews the developer\'s changes before marking Ready',
   },
   approved: {
-    assigned: 'Spec is ready — execute or export to your issue tracker',
-    unassigned: 'Spec is ready — export to Jira, download, or use however you like',
+    assigned: null,
+    unassigned: null,
   },
   executing: {
-    assigned: 'Being built or pushed to your issue tracker',
-    unassigned: 'Being built or pushed to your issue tracker',
+    assigned: null,
+    unassigned: null,
   },
   delivered: {
-    assigned: 'Implementation is complete',
-    unassigned: 'Implementation is complete',
+    assigned: null,
+    unassigned: null,
   },
 };
 
@@ -56,6 +56,8 @@ interface OverviewCardProps {
   onAssignDialogOpenChange?: (open: boolean) => void;
   /** When true, the assign dialog was opened as part of the approval nudge flow */
   pendingApproval?: boolean;
+  /** Optional action slot rendered in the bottom row (e.g., Develop button) */
+  actionSlot?: React.ReactNode;
 }
 
 export function OverviewCard({
@@ -66,6 +68,7 @@ export function OverviewCard({
   assignDialogOpen,
   onAssignDialogOpenChange,
   pendingApproval,
+  actionSlot,
 }: OverviewCardProps) {
   const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
   const isUnassigned = !ticket.assignedTo;
@@ -176,8 +179,8 @@ export function OverviewCard({
         )}
       </div>
 
-      {/* Bottom row: progress dots + next step hint */}
-      {hint && (
+      {/* Bottom row: progress dots + next step hint or action slot */}
+      {(hint || actionSlot) && (
         <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center gap-3">
           {/* Mini progress dots */}
           <div className="flex items-center gap-1 shrink-0">
@@ -193,12 +196,18 @@ export function OverviewCard({
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5 min-w-0">
-            <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
-            <p className="text-[11px] text-[var(--text-tertiary)] leading-tight truncate">
-              {hint}
-            </p>
-          </div>
+          {actionSlot ? (
+            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+              {actionSlot}
+            </div>
+          ) : hint ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
+              <p className="text-[11px] text-[var(--text-tertiary)] leading-tight truncate">
+                {hint}
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
     </div>
