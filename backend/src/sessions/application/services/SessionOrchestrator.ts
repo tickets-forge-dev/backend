@@ -50,6 +50,9 @@ export class SessionOrchestrator {
       session.markRunning(sandbox.id);
       await this.sessionRepository.save(session);
 
+      // Notify frontend that sandbox is ready and Claude is starting
+      callback.onEvent({ type: 'session.status', content: 'running' } as any);
+
       // 3. Stream stdout events
       let lastCostUsd = 0;
 

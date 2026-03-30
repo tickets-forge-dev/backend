@@ -101,7 +101,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         return;
       }
 
-      set({ status: 'running' });
+      // Don't set 'running' here — wait for session.status event from backend
+      // The backend sends 'provisioning' first, then 'running' when sandbox is ready
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response stream available');
@@ -134,7 +135,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           // Handle status updates
           if (event.type === 'session.status') {
             const newStatus = (event.content as unknown as SessionStatus) || currentState.status;
-            set({ status: newStatus, sessionId: event.toolUseId || currentState.sessionId });
+            const errorMsg = (event as unknown as Record<string, unknown>).error as string | undefined;
+            set({
+              status: newStatus,
+              sessionId: event.toolUseId || currentState.sessionId,
+              error: errorMsg || (newStatus === 'failed' ? 'Session failed' : currentState.error),
+            });
             continue;
           }
 

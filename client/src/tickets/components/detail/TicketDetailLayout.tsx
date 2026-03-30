@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, Zap, StickyNote, Save } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, Zap, StickyNote, Save } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -697,7 +697,7 @@ export function TicketDetailLayout({
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+        <div className="border-b border-gray-200 dark:border-gray-800">
           <TabsList className="flex bg-transparent h-auto p-0 border-b-0">
 
           <TabsTrigger
@@ -743,34 +743,6 @@ export function TicketDetailLayout({
             Notes
           </TabsTrigger>
           </TabsList>
-
-          {/* Metadata chips — type, priority, quality */}
-          <div className="flex items-center gap-2 pb-1">
-            {ticket.type && (
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                {ticket.type === 'feature' && <Lightbulb className="h-3 w-3" />}
-                {ticket.type === 'bug' && <Bug className="h-3 w-3" />}
-                {ticket.type === 'task' && <ClipboardList className="h-3 w-3" />}
-                {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
-              </span>
-            )}
-            {ticket.priority && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                <span className={`h-1.5 w-1.5 rounded-full ${
-                  ticket.priority === 'critical' ? 'bg-red-500' :
-                  ticket.priority === 'high' ? 'bg-orange-500' :
-                  ticket.priority === 'medium' ? 'bg-yellow-500' :
-                  'bg-gray-400'
-                }`} />
-                {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
-              </span>
-            )}
-            {qualityScore !== undefined && (
-              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium bg-[var(--bg-hover)] text-[var(--text-secondary)]">
-                {qualityScore}%
-              </span>
-            )}
-          </div>
         </div>
 
         <TabsContent value="spec" className="mt-6">
