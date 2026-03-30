@@ -2,7 +2,7 @@
 # E2B sandbox template for Cloud Develop sessions
 # Build: e2b template build --name "forge-dev" --dockerfile forge-sandbox.Dockerfile
 
-FROM e2b/base:latest
+FROM e2bdev/base:latest
 
 # System tools
 RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
