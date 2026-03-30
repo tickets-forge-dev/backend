@@ -53,6 +53,7 @@ export class E2BSandboxAdapter implements SandboxPort {
       'exec claude \\',
       '  -p "$(cat /home/user/system_prompt.txt)" \\',
       '  --output-format stream-json \\',
+      '  --verbose \\',
       '  --allowedTools "Read,Edit,Write,Bash,Glob,Grep,mcp__forge__*" \\',
       '  --dangerously-skip-permissions',
     ].join('\n');
