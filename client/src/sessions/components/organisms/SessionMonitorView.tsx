@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useSessionStore } from '../stores/session.store';
-import type { SessionEvent } from '../types/session.types';
+import { useSessionStore } from '../../stores/session.store';
+import type { SessionEvent } from '../../types/session.types';
 import { DevelopButton } from './DevelopButton';
 import { SessionProvisioningView } from './SessionProvisioningView';
 import { SessionMessage } from './SessionMessage';
-import { SessionToolCard } from './SessionToolCard';
 import { SessionToolGroup } from './SessionToolGroup';
 import { SessionSummary } from './SessionSummary';
+import { SessionStatusHeader } from './SessionStatusHeader';
 
 interface SessionMonitorViewProps {
   ticketId: string;
@@ -56,8 +56,6 @@ export function SessionMonitorView({ ticketId, ticketStatus }: SessionMonitorVie
 
   const renderGroups = useMemo(() => groupEvents(events), [events]);
 
-  const elapsed = `${Math.floor(elapsedSeconds / 60)}:${String(elapsedSeconds % 60).padStart(2, '0')}`;
-
   if (status === 'idle') {
     return (
       <DevelopButton
@@ -85,36 +83,11 @@ export function SessionMonitorView({ ticketId, ticketStatus }: SessionMonitorVie
 
   return (
     <div className="space-y-1">
-      {/* Header */}
-      <div className="flex items-center justify-between py-2 mb-2">
-        <div className="flex items-center gap-2">
-          {status === 'running' ? (
-            <>
-              <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse [animation-delay:150ms]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse [animation-delay:300ms]" />
-              </div>
-              <span className="text-[12px] text-violet-500 font-medium">Claude is working</span>
-            </>
-          ) : status === 'completed' ? (
-            <>
-              <span className="text-emerald-500 text-[13px]">&#10003;</span>
-              <span className="text-[12px] text-emerald-500 font-medium">Development complete</span>
-            </>
-          ) : (
-            <span className="text-[12px] text-[var(--text-tertiary)]">{status}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-3 text-[11px] text-[var(--text-tertiary)]">
-          <span>{elapsed}</span>
-          {status === 'running' && (
-            <button onClick={cancelSession} className="text-red-500 hover:text-red-400">
-              Cancel
-            </button>
-          )}
-        </div>
-      </div>
+      <SessionStatusHeader
+        status={status}
+        elapsedSeconds={elapsedSeconds}
+        onCancel={cancelSession}
+      />
 
       {/* Event stream */}
       <div className="space-y-3">

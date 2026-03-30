@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react';
 import { Zap } from 'lucide-react';
-import { useSessionStore } from '../stores/session.store';
+import { useSessionStore } from '../../stores/session.store';
+import { IconBadge } from '../atoms/IconBadge';
+import { QuotaDisplay } from '../molecules/QuotaDisplay';
 
 interface DevelopButtonProps {
   ticketId: string;
@@ -21,9 +23,7 @@ export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButton
 
   return (
     <div className="flex flex-col items-center gap-4 py-16">
-      <div className="w-14 h-14 rounded-xl bg-violet-500/10 flex items-center justify-center">
-        <Zap className="w-6 h-6 text-violet-500" />
-      </div>
+      <IconBadge icon={Zap} color="violet" size="lg" />
 
       <div className="text-center">
         <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1">
@@ -43,12 +43,7 @@ export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButton
         Start Development
       </button>
 
-      {quota && (
-        <p className="text-[11px] text-[var(--text-tertiary)]">
-          {quota.remaining} of {quota.limit} developments remaining &middot;{' '}
-          <span className="text-violet-500">{quota.plan} plan</span>
-        </p>
-      )}
+      <QuotaDisplay quota={quota} />
     </div>
   );
 }

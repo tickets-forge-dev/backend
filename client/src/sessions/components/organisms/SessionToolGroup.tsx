@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Search, ChevronRight } from 'lucide-react';
-import type { SessionEvent } from '../types/session.types';
+import type { SessionEvent } from '../../types/session.types';
 import { SessionToolCard } from './SessionToolCard';
 
 interface SessionToolGroupProps {

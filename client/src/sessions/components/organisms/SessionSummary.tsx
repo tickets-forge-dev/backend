@@ -1,21 +1,23 @@
 'use client';
 
 import { ExternalLink, GitPullRequest } from 'lucide-react';
-import type { SessionSummary as SummaryType } from '../types/session.types';
+import type { SessionSummary as SummaryType } from '../../types/session.types';
+import { ElapsedTimer } from '../atoms/ElapsedTimer';
 
 interface SessionSummaryProps {
   summary: SummaryType;
 }
 
 export function SessionSummary({ summary }: SessionSummaryProps) {
-  const durationMin = Math.floor((summary.durationMs || 0) / 60000);
-  const durationSec = Math.floor(((summary.durationMs || 0) % 60000) / 1000);
+  const totalSeconds = Math.floor((summary.durationMs || 0) / 1000);
 
   return (
     <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/5 p-4 space-y-3">
       <div className="flex items-center gap-2 text-[13px] font-medium text-emerald-500">
         <span>&#10003;</span>
-        Development complete &middot; {durationMin}:{String(durationSec).padStart(2, '0')}
+        <span>Development complete</span>
+        <span>&middot;</span>
+        <ElapsedTimer seconds={totalSeconds} />
       </div>
 
       <div className="flex gap-5 text-[12px]">
@@ -23,7 +25,6 @@ export function SessionSummary({ summary }: SessionSummaryProps) {
           <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Files</div>
           <div className="text-[var(--text-primary)] font-medium">{summary.filesChanged}</div>
         </div>
-        {/* Cost is internal — not shown to users on Forge-provided plans */}
       </div>
 
       {summary.prUrl && (

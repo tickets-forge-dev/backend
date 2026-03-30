@@ -29,7 +29,7 @@ import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
 import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
-import { SessionMonitorView } from '@/src/sessions/components/SessionMonitorView';
+import { SessionMonitorView } from '@/src/sessions/components';
 import { TICKET_STATUS_CONFIG, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { toast } from 'sonner';
