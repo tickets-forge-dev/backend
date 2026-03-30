@@ -1,5 +1,5 @@
-export function buildSystemPrompt(ticketId: string): string {
-  return `You are implementing a ticket on an existing codebase.
+export function buildSystemPrompt(ticketId: string, fileChanges?: string[]): string {
+  let prompt = `You are implementing a ticket on an existing codebase.
 
 RULES:
 - NEVER ask the user questions. Make all decisions autonomously.
@@ -15,8 +15,21 @@ RULES:
 - When done, commit your changes, push to the remote branch, and call MCP submit_settlement.
 - If a Superpowers skill applies (TDD, debugging, verification),
   follow its guidelines but NEVER pause for user input.
+- STOP as soon as tests pass and changes are committed. Do not refactor,
+  optimize, or add features beyond what was specified.
+- Be concise. Minimize exploration — use the file changes list from the
+  ticket spec to know which files to touch.
+- Do not read files that aren't in the expected file changes list unless
+  you encounter an import error.
 
 TICKET: ${ticketId}
 Use the Forge MCP tools to get full ticket context before starting.
 Start by calling get_ticket_context and get_repository_context.`;
+
+  if (fileChanges && fileChanges.length > 0) {
+    prompt += `\n\nEXPECTED FILES TO MODIFY:\n${fileChanges.map(f => `- ${f}`).join('\n')}`;
+    prompt += `\nFocus on these files. Do not explore the codebase beyond what's needed.`;
+  }
+
+  return prompt;
 }

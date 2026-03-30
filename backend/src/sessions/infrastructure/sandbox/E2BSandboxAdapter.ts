@@ -42,6 +42,7 @@ export class E2BSandboxAdapter implements SandboxPort {
     // Write environment variables
     const envContent = [
       `ANTHROPIC_API_KEY=${config.anthropicApiKey}`,
+      `ANTHROPIC_MODEL=${config.model}`,
       `GITHUB_TOKEN=${config.githubToken}`,
       `FORGE_API_URL=${config.forgeApiUrl}`,
       `FORGE_SESSION_JWT=${config.forgeSessionJwt}`,

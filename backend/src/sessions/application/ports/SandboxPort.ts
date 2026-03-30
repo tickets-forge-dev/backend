@@ -8,6 +8,8 @@ export interface SandboxConfig {
   branch: string;
   systemPrompt: string;
   maxDurationMs: number;
+  /** Anthropic model ID to use inside the sandbox (read by ANTHROPIC_MODEL env var) */
+  model: string;
   /** GitHub App installation ID — used for PR creation after completion */
   installationId?: number;
 }

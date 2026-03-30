@@ -45,7 +45,7 @@ export class SessionsController {
     @Res() res: Response,
   ): Promise<void> {
     // 1. Create session (validates ticket, quota, etc.)
-    const { sessionId, repoOwner, repoName, branch } = await this.startSessionUseCase.execute({
+    const { sessionId, repoOwner, repoName, branch, model, maxDurationMs, fileChanges } = await this.startSessionUseCase.execute({
       ticketId,
       userId,
       teamId,
@@ -93,8 +93,9 @@ export class SessionsController {
       ticketId,
       repoUrl,
       branch,
-      systemPrompt: buildSystemPrompt(ticketId),
-      maxDurationMs: 30 * 60 * 1000, // 30 minutes
+      systemPrompt: buildSystemPrompt(ticketId, fileChanges),
+      model,
+      maxDurationMs,
       installationId: installationId ?? undefined,
     };
 

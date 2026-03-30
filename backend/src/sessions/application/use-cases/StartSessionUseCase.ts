@@ -14,6 +14,7 @@ import { AECRepository, AEC_REPOSITORY } from '../../../tickets/application/port
 import { AECStatus } from '../../../tickets/domain/value-objects/AECStatus';
 import { InvalidStateTransitionError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { Session } from '../../domain/Session';
+import { analyzeComplexity } from '../services/ComplexityAnalyzer';
 
 export interface StartSessionCommand {
   ticketId: string;
@@ -31,7 +32,7 @@ export class StartSessionUseCase {
     @Inject(AEC_REPOSITORY) private readonly aecRepository: AECRepository,
   ) {}
 
-  async execute(command: StartSessionCommand): Promise<{ sessionId: string; repoOwner: string; repoName: string; branch: string }> {
+  async execute(command: StartSessionCommand): Promise<{ sessionId: string; repoOwner: string; repoName: string; branch: string; model: string; maxDurationMs: number; fileChanges: string[] }> {
     const { ticketId, userId, teamId } = command;
 
     // 1. Load and validate ticket
@@ -111,6 +112,27 @@ export class StartSessionUseCase {
     }
     await this.aecRepository.save(aec);
 
-    return { sessionId: session.id, repoOwner, repoName, branch: session.branch };
+    // 7. Analyze complexity to determine model + timeout
+    const fileChanges: string[] = (aec.techSpec?.fileChanges ?? []).map(fc => fc.path);
+    const complexity = analyzeComplexity({
+      fileChangeCount: fileChanges.length,
+      acceptanceCriteriaCount: (aec.techSpec?.acceptanceCriteria?.length ?? 0) as number,
+      scopeEstimate: ((aec.techSpec as any)?.estimatedScope ?? 'medium') as 'small' | 'medium' | 'large',
+      specText: `${aec.title} ${(aec.techSpec as any)?.problemStatement?.narrative ?? ''}`,
+    });
+
+    this.logger.log(
+      `Session ${session.id} model routing: ${complexity.model} (${complexity.reason})`,
+    );
+
+    return {
+      sessionId: session.id,
+      repoOwner,
+      repoName,
+      branch: session.branch,
+      model: complexity.model,
+      maxDurationMs: complexity.maxDurationMs,
+      fileChanges,
+    };
   }
 }
