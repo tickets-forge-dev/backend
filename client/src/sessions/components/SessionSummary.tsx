@@ -23,12 +23,7 @@ export function SessionSummary({ summary }: SessionSummaryProps) {
           <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Files</div>
           <div className="text-[var(--text-primary)] font-medium">{summary.filesChanged}</div>
         </div>
-        {summary.costUsd > 0 && (
-          <div>
-            <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Cost</div>
-            <div className="text-[var(--text-primary)] font-medium">${summary.costUsd.toFixed(2)}</div>
-          </div>
-        )}
+        {/* Cost is internal — not shown to users on Forge-provided plans */}
       </div>
 
       {summary.prUrl && (
