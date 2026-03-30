@@ -7,6 +7,7 @@ import { USAGE_QUOTA_REPOSITORY } from '../../../billing/application/ports';
 import type { UsageQuotaRepository } from '../../../billing/application/ports/UsageQuotaRepository.port';
 import { AECRepository, AEC_REPOSITORY } from '../../../tickets/application/ports/AECRepository';
 import { AECStatus } from '../../../tickets/domain/value-objects/AECStatus';
+import { GitHubAppTokenService } from '../../../github/application/services/github-app-token.service';
 
 export interface SessionProgressCallback {
   onEvent: (event: UiEvent) => void;
@@ -25,6 +26,7 @@ export class SessionOrchestrator {
     private readonly notificationService: NotificationService,
     @Inject(USAGE_QUOTA_REPOSITORY) private readonly quotaRepository: UsageQuotaRepository,
     @Inject(AEC_REPOSITORY) private readonly aecRepository: AECRepository,
+    private readonly githubAppTokenService: GitHubAppTokenService,
   ) {}
 
   async run(
@@ -101,12 +103,55 @@ export class SessionOrchestrator {
         });
       });
 
-      // 4. Mark session as completed
+      // 4. Create PR on GitHub before marking session completed
+      let prUrl = '';
+      let prNumber = 0;
+
+      if (config.installationId && config.repoUrl && config.branch) {
+        try {
+          // Parse owner/repo from repoUrl (e.g. https://github.com/owner/repo.git)
+          const repoMatch = config.repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+          if (repoMatch) {
+            const [, repoOwner, repoName] = repoMatch;
+            const pr = await this.githubAppTokenService.createPullRequest({
+              installationId: config.installationId,
+              owner: repoOwner,
+              repo: repoName,
+              head: config.branch,
+              base: 'main',
+              title: `feat: implement ticket via Cloud Develop`,
+              body: `This PR was created automatically by Forge Cloud Develop.\n\nClicked "Start Development" on ticket — Claude implemented the changes, ran tests, and pushed this branch.`,
+            });
+            if (pr) {
+              prUrl = pr.prUrl;
+              prNumber = pr.prNumber;
+            }
+          }
+        } catch (prError) {
+          this.logger.warn(`Failed to create PR for session ${sessionId}: ${prError}`);
+          // Don't fail the session — the code is pushed, PR is a nice-to-have
+        }
+      }
+
+      // Mark session as completed (with PR info if available)
       const completedSession = await this.sessionRepository.findById(sessionId, teamId);
       if (completedSession && completedSession.isActive()) {
-        completedSession.markCompleted(lastCostUsd, '', 0);
+        completedSession.markCompleted(lastCostUsd, prUrl, prNumber);
         await this.sessionRepository.save(completedSession);
       }
+
+      // Send summary event with PR details to frontend
+      const repoMatch = config.repoUrl?.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+      const repoFullName = repoMatch ? `${repoMatch[1]}/${repoMatch[2]}` : null;
+      callback.onEvent({
+        type: 'event.summary',
+        costUsd: lastCostUsd,
+        durationMs: completedSession ? Date.now() - completedSession.createdAt.getTime() : 0,
+        prUrl: prUrl || undefined,
+        prNumber: prNumber || undefined,
+        branch: config.branch || undefined,
+        repoFullName,
+      } as any);
 
       // 5. Deduct quota (fire-and-forget — don't fail the session if quota update fails)
       if (completedSession) {

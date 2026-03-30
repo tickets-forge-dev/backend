@@ -14,6 +14,8 @@ import { SessionStatusHeader } from './SessionStatusHeader';
 interface SessionMonitorViewProps {
   ticketId: string;
   ticketStatus: string;
+  /** Number of file changes from the ticket's tech spec — used for complexity warning */
+  fileChangeCount?: number;
 }
 
 function isToolEvent(type: string): boolean {
@@ -46,7 +48,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
   return groups;
 }
 
-export function SessionMonitorView({ ticketId, ticketStatus }: SessionMonitorViewProps) {
+export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset } = useSessionStore();
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export function SessionMonitorView({ ticketId, ticketStatus }: SessionMonitorVie
         ticketId={ticketId}
         ticketStatus={ticketStatus}
         onStart={() => startSession(ticketId)}
+        fileChangeCount={fileChangeCount}
       />
     );
   }

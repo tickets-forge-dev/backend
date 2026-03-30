@@ -7,6 +7,7 @@ import { useJobsStore } from '@/stores/jobs.store';
 import { JobCard } from './JobCard';
 import { toast } from 'sonner';
 import type { GenerationJobClient } from '@/stores/jobs.store';
+import { useSessionStore } from '@/src/sessions/stores/session.store';
 
 /**
  * Right-side jobs panel on the tickets page.
@@ -21,6 +22,12 @@ export function JobsPanel() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [completedCollapsed, setCompletedCollapsed] = useState(false);
   const prevActiveCount = useRef(0);
+
+  const sessionStatus = useSessionStore(s => s.status);
+  const sessionTicketId = useSessionStore(s => s.ticketId);
+  const sessionElapsed = useSessionStore(s => s.elapsedSeconds);
+  const isSessionActive = sessionStatus === 'provisioning' || sessionStatus === 'running';
+  const prevSessionActive = useRef(false);
 
   // Filter out dismissed and recently-cancelled jobs
   const visibleJobs = useMemo(() => {
@@ -50,6 +57,15 @@ export function JobsPanel() {
     }
     prevActiveCount.current = activeJobs.length;
   }, [activeJobs.length]);
+
+  // Auto-expand when a Cloud Develop session starts
+  useEffect(() => {
+    if (isSessionActive && !prevSessionActive.current) {
+      setCollapsed(false);
+      setMobileOpen(true);
+    }
+    prevSessionActive.current = isSessionActive;
+  }, [isSessionActive]);
 
   const { poll } = useJobsStore();
 
@@ -86,11 +102,42 @@ export function JobsPanel() {
     router.push(`/tickets/${ticketId}`);
   };
 
+  const elapsedMin = Math.floor(sessionElapsed / 60);
+  const elapsedSec = String(sessionElapsed % 60).padStart(2, '0');
+
   /** Shared panel content used in both desktop expanded and mobile overlay */
   const panelContent = (
     <div className="px-3 pb-3 flex flex-col gap-1.5">
+      {/* Active Cloud Develop session card */}
+      {isSessionActive && (
+        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-2.5 flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <Loader2 className="h-3 w-3 text-emerald-500 animate-spin flex-shrink-0" />
+            <span className="text-xs text-[var(--text-primary)] font-medium leading-tight flex-1 min-w-0 truncate">
+              Cloud Develop
+            </span>
+          </div>
+          <div className="flex items-center justify-between pl-4">
+            <span className="text-[10px] text-[var(--text-tertiary)]">
+              {sessionStatus === 'provisioning' ? 'Setting up sandbox...' : 'Claude is working'}
+            </span>
+            <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">
+              {elapsedMin}:{elapsedSec}
+            </span>
+          </div>
+          {sessionTicketId && (
+            <button
+              onClick={() => { setMobileOpen(false); router.push(`/tickets/${sessionTicketId}`); }}
+              className="text-[10px] text-emerald-500 hover:text-emerald-400 transition-colors pl-4 text-left"
+            >
+              View ticket →
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Empty state */}
-      {visibleJobs.length === 0 && (
+      {visibleJobs.length === 0 && !isSessionActive && (
         <p className="text-[10px] text-[var(--text-tertiary)] py-4 text-center">
           No active jobs
         </p>
@@ -164,10 +211,14 @@ export function JobsPanel() {
         title={visibleJobs.length > 0 ? `Jobs (${visibleJobs.length})` : 'Jobs'}
       >
         <div className="relative">
-          <Zap className="h-4 w-4 text-[var(--text-secondary)]" />
-          {visibleJobs.length > 0 && (
+          {isSessionActive ? (
+            <Loader2 className="h-4 w-4 text-emerald-500 animate-spin" />
+          ) : (
+            <Zap className="h-4 w-4 text-[var(--text-secondary)]" />
+          )}
+          {(visibleJobs.length > 0 || isSessionActive) && (
             <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-blue-500 text-white text-[8px] font-bold flex items-center justify-center px-0.5">
-              {visibleJobs.length}
+              {visibleJobs.length + (isSessionActive ? 1 : 0)}
             </span>
           )}
         </div>
@@ -217,12 +268,22 @@ export function JobsPanel() {
           {/* Zap icon with job count badge */}
           <div className="relative">
             <Zap className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
-            {visibleJobs.length > 0 && (
+            {(visibleJobs.length > 0 || isSessionActive) && (
               <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-blue-500 text-white text-[8px] font-bold flex items-center justify-center px-0.5">
-                {visibleJobs.length}
+                {visibleJobs.length + (isSessionActive ? 1 : 0)}
               </span>
             )}
           </div>
+
+          {/* Cloud Develop session mini-indicator */}
+          {isSessionActive && (
+            <div
+              className="relative flex items-center justify-center w-6 h-6 rounded-full cursor-default"
+              title={`Cloud Develop — ${sessionStatus === 'provisioning' ? 'Setting up...' : 'Running'} (${elapsedMin}:${elapsedSec})`}
+            >
+              <Loader2 className="h-2.5 w-2.5 text-emerald-500 animate-spin" />
+            </div>
+          )}
 
           {/* Mini job indicators */}
           {visibleJobs.map((job) => (

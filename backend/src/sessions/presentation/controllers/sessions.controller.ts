@@ -74,7 +74,7 @@ export class SessionsController {
     });
 
     // 5. Build sandbox config
-    const githubToken = await this.getGitHubToken(teamId, workspaceId);
+    const { token: githubToken, installationId } = await this.getGitHubToken(teamId, workspaceId);
     const repoUrl =
       repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}.git` : '';
 
@@ -95,6 +95,7 @@ export class SessionsController {
       branch,
       systemPrompt: buildSystemPrompt(ticketId),
       maxDurationMs: 30 * 60 * 1000, // 30 minutes
+      installationId: installationId ?? undefined,
     };
 
     // Fail-fast: validate required sandbox config before spinning up the sandbox
@@ -147,7 +148,10 @@ export class SessionsController {
     }
   }
 
-  private async getGitHubToken(teamId: string, workspaceId: string): Promise<string> {
+  private async getGitHubToken(
+    teamId: string,
+    workspaceId: string,
+  ): Promise<{ token: string; installationId: number | null }> {
     try {
       // Look up the GitHub integration using the legacy workspaceId (not teamId).
       // WorkspaceGuard derives workspaceId as ws_team_<prefix> for backward-compat
@@ -158,7 +162,8 @@ export class SessionsController {
         this.logger.log(
           `Found GitHub integration for workspace ${workspaceId} (team ${teamId}), installationId=${integration.installationId}`,
         );
-        return await this.githubAppTokenService.getInstallationToken(integration.installationId);
+        const token = await this.githubAppTokenService.getInstallationToken(integration.installationId);
+        return { token, installationId: integration.installationId };
       }
 
       // Fallback: no Firestore record found. This can happen when the GitHub App was
@@ -172,13 +177,14 @@ export class SessionsController {
       const installationId = await this.githubAppTokenService.getFirstInstallationId();
       if (!installationId) {
         this.logger.warn(`No GitHub App installations found — sandbox will run without a token`);
-        return '';
+        return { token: '', installationId: null };
       }
 
-      return await this.githubAppTokenService.getInstallationToken(installationId);
+      const token = await this.githubAppTokenService.getInstallationToken(installationId);
+      return { token, installationId };
     } catch (error) {
       this.logger.warn(`Failed to get GitHub token for team ${teamId}: ${error}`);
-      return '';
+      return { token: '', installationId: null };
     }
   }
 

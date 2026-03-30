@@ -1,25 +1,26 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Play } from 'lucide-react';
+import { Play, AlertTriangle } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { IconBadge } from '../atoms/IconBadge';
 import { QuotaDisplay } from '../molecules/QuotaDisplay';
 
-// TODO(complexity-gating): Add a `complexity` prop (e.g. 'low' | 'medium' | 'high') sourced from
-// the ticket's spec data. Pass it down from TicketDetailLayout → DevelopSessionBlade →
-// SessionMonitorView → DevelopButton. If complexity === 'high', show a warning banner before
-// allowing the user to start development (large tickets risk timeouts / partial completions).
+const FILE_CHANGE_COMPLEXITY_THRESHOLD = 12;
+
 interface DevelopButtonProps {
   ticketId: string;
   ticketStatus: string;
   onStart: () => void;
+  /** Number of file changes from the ticket's tech spec — used for complexity gating */
+  fileChangeCount?: number;
 }
 
-export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButtonProps) {
+export function DevelopButton({ ticketId, ticketStatus, onStart, fileChangeCount }: DevelopButtonProps) {
   const { status, quota, fetchQuota } = useSessionStore();
   const isLoading = status === 'provisioning' || status === 'running';
   const isDisabled = ticketStatus !== 'approved' || isLoading;
+  const isHighComplexity = typeof fileChangeCount === 'number' && fileChangeCount > FILE_CHANGE_COMPLEXITY_THRESHOLD;
 
   useEffect(() => {
     fetchQuota();
@@ -37,6 +38,15 @@ export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButton
           Claude will implement this ticket, run tests, and create a pull request for your team to review.
         </p>
       </div>
+
+      {isHighComplexity && (
+        <div className="flex items-start gap-2 text-[11px] text-amber-500 bg-amber-500/5 rounded-md px-3 py-2 border border-amber-500/10 max-w-sm">
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <span>
+            This ticket touches {fileChangeCount} files. Consider assigning a developer for complex work — large changes risk timeouts or partial completions.
+          </span>
+        </div>
+      )}
 
       <button
         onClick={onStart}

@@ -111,6 +111,56 @@ export class GitHubAppTokenService {
   }
 
   /**
+   * Create a pull request on GitHub using an installation token.
+   * Returns the PR URL and number, or null if creation fails.
+   */
+  async createPullRequest(params: {
+    installationId: number;
+    owner: string;
+    repo: string;
+    head: string;
+    base: string;
+    title: string;
+    body: string;
+  }): Promise<{ prUrl: string; prNumber: number } | null> {
+    try {
+      const token = await this.getInstallationToken(params.installationId);
+
+      const response = await fetch(
+        `https://api.github.com/repos/${params.owner}/${params.repo}/pulls`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: params.title,
+            body: params.body,
+            head: params.head,
+            base: params.base,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        this.logger.warn(`Failed to create PR: ${response.status} ${errorBody}`);
+        return null;
+      }
+
+      const data = (await response.json()) as { html_url: string; number: number };
+      this.logger.log(`Created PR #${data.number} for ${params.owner}/${params.repo}: ${data.html_url}`);
+      return { prUrl: data.html_url, prNumber: data.number };
+    } catch (error) {
+      this.logger.warn(`PR creation failed: ${error}`);
+      return null;
+    }
+  }
+
+  /**
    * Generate a JWT signed with the GitHub App's private key.
    * Valid for 10 minutes (GitHub's maximum).
    */

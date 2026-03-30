@@ -8,6 +8,8 @@ export interface SandboxConfig {
   branch: string;
   systemPrompt: string;
   maxDurationMs: number;
+  /** GitHub App installation ID — used for PR creation after completion */
+  installationId?: number;
 }
 
 export interface SandboxHandle {

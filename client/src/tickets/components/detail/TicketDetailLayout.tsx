@@ -1109,6 +1109,7 @@ export function TicketDetailLayout({
           ticketStatus={ticket.status}
           repoFullName={ticket.repositoryContext?.repositoryFullName}
           branch={ticket.repositoryContext?.branchName}
+          fileChangeCount={ticket.techSpec?.fileChanges?.length}
         />,
         document.body
       )}
