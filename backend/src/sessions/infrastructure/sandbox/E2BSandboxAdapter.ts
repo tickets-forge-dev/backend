@@ -1,20 +1,115 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Sandbox } from 'e2b';
 import { SandboxPort, SandboxConfig, SandboxHandle } from '../../application/ports/SandboxPort';
 
 @Injectable()
 export class E2BSandboxAdapter implements SandboxPort {
   private readonly logger = new Logger(E2BSandboxAdapter.name);
 
-  async create(_config: SandboxConfig): Promise<SandboxHandle> {
-    // TODO: Implement with E2B SDK when available
-    // const { Sandbox } = await import('e2b');
-    // const sandbox = await Sandbox.create('forge-dev', { timeoutMs: config.maxDurationMs });
-    // await sandbox.filesystem.write('/root/.env', `ANTHROPIC_API_KEY=${config.anthropicApiKey}\n...`);
-    // const process = await sandbox.process.start({ cmd: 'claude', args: [...], cwd: '/workspace' });
+  async create(config: SandboxConfig): Promise<SandboxHandle> {
+    const apiKey = process.env.E2B_API_KEY;
+    if (!apiKey) {
+      throw new Error('E2B_API_KEY environment variable is not set');
+    }
 
-    throw new Error(
-      'E2B sandbox adapter is not yet configured. ' +
-      'Set E2B_API_KEY environment variable or use StubSandboxAdapter for development.',
+    const templateName = process.env.E2B_TEMPLATE || 'base';
+
+    this.logger.log(
+      `Creating E2B sandbox (template: ${templateName}) for ticket ${config.ticketId}`,
     );
+
+    const sandbox = await Sandbox.create(templateName, {
+      timeoutMs: config.maxDurationMs,
+      apiKey,
+      metadata: {
+        ticketId: config.ticketId,
+      },
+    });
+
+    this.logger.log(`Sandbox ${sandbox.sandboxId} created`);
+
+    // Write environment variables file so Claude Code process can read them
+    const envContent = [
+      `ANTHROPIC_API_KEY=${config.anthropicApiKey}`,
+      `GITHUB_TOKEN=${config.githubToken}`,
+      `FORGE_API_URL=${config.forgeApiUrl}`,
+      `FORGE_SESSION_JWT=${config.forgeSessionJwt}`,
+      `TICKET_ID=${config.ticketId}`,
+      `REPO_URL=${config.repoUrl}`,
+      `BRANCH=${config.branch}`,
+    ].join('\n');
+
+    await sandbox.files.write('/root/.env', envContent);
+
+    // Write system prompt to a file the claude process can read
+    await sandbox.files.write('/root/system_prompt.txt', config.systemPrompt);
+
+    this.logger.log(`Environment and system prompt written to sandbox ${sandbox.sandboxId}`);
+
+    // Resolve stdout/stderr handlers after they are registered
+    let stdoutHandler: ((line: string) => void) | null = null;
+    let stderrHandler: ((line: string) => void) | null = null;
+    let exitHandler: ((code: number) => void) | null = null;
+
+    // Start Claude Code process in background
+    const claudeCommand = [
+      'bash -c "',
+      'set -a && source /root/.env && set +a && ',
+      `claude --output-format stream-json --verbose --system-prompt "$(cat /root/system_prompt.txt)" `,
+      `"Implement ticket ${config.ticketId}: clone ${config.repoUrl} branch ${config.branch} and complete the task."`,
+      '"',
+    ].join('');
+
+    const commandHandle = await sandbox.commands.run(claudeCommand, {
+      background: true,
+      cwd: '/root',
+      onStdout: (data: string) => {
+        if (stdoutHandler) {
+          stdoutHandler(data);
+        }
+      },
+      onStderr: (data: string) => {
+        if (stderrHandler) {
+          stderrHandler(data);
+        }
+      },
+      timeoutMs: config.maxDurationMs,
+    });
+
+    this.logger.log(`Claude Code process started in sandbox ${sandbox.sandboxId} (pid: ${commandHandle.pid})`);
+
+    // Wait for the command to exit and call exitHandler
+    commandHandle.wait().then((result) => {
+      this.logger.log(
+        `Sandbox ${sandbox.sandboxId} process exited with code ${result.exitCode}`,
+      );
+      if (exitHandler) {
+        exitHandler(result.exitCode ?? 0);
+      }
+    }).catch((err: Error) => {
+      this.logger.error(`Sandbox ${sandbox.sandboxId} process error: ${err.message}`);
+      if (exitHandler) {
+        exitHandler(1);
+      }
+    });
+
+    const logger = this.logger;
+
+    return {
+      id: sandbox.sandboxId,
+      onStdout(handler: (line: string) => void): void {
+        stdoutHandler = handler;
+      },
+      onStderr(handler: (line: string) => void): void {
+        stderrHandler = handler;
+      },
+      onExit(handler: (code: number) => void): void {
+        exitHandler = handler;
+      },
+      async destroy(): Promise<void> {
+        logger.log(`Killing sandbox ${sandbox.sandboxId}`);
+        await sandbox.kill();
+      },
+    };
   }
 }

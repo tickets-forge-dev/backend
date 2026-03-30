@@ -6,6 +6,7 @@ import { SESSION_REPOSITORY } from './application/ports';
 import { SANDBOX_PORT } from './application/ports/SandboxPort';
 import { FirestoreSessionRepository } from './infrastructure/persistence/FirestoreSessionRepository';
 import { StubSandboxAdapter } from './infrastructure/sandbox/StubSandboxAdapter';
+import { E2BSandboxAdapter } from './infrastructure/sandbox/E2BSandboxAdapter';
 import { SessionOrchestrator } from './application/services/SessionOrchestrator';
 import { TicketsModule } from '../tickets/tickets.module';
 import { BillingModule } from '../billing/billing.module';
@@ -24,7 +25,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
     },
     {
       provide: SANDBOX_PORT,
-      useClass: StubSandboxAdapter,
+      useFactory: () => {
+        if (process.env.E2B_API_KEY) {
+          return new E2BSandboxAdapter();
+        }
+        return new StubSandboxAdapter();
+      },
     },
   ],
   exports: [SESSION_REPOSITORY, SessionOrchestrator],
