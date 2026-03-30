@@ -15,16 +15,29 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # Claude Code CLI (pinned version — bump via weekly CI rebuild)
 RUN npm install -g @anthropic-ai/claude-code@1.0.34
 
+# Pre-create Claude config directory to skip first-run prompts
+# Claude Code uses ANTHROPIC_API_KEY from env — no login needed
+RUN mkdir -p /home/user/.claude && \
+    echo '{"hasCompletedOnboarding":true,"hasAcknowledgedTerms":true}' > /home/user/.claude/settings.json && \
+    chown -R user:user /home/user/.claude
+
+# Also set up for root (in case commands run as root)
+RUN mkdir -p /root/.claude && \
+    echo '{"hasCompletedOnboarding":true,"hasAcknowledgedTerms":true}' > /root/.claude/settings.json
+
 # Forge MCP server
-COPY forge-mcp-server/ /root/forge-mcp-server/
-RUN cd /root/forge-mcp-server && npm install && npm run build
+COPY forge-mcp-server/ /home/user/forge-mcp-server/
+RUN cd /home/user/forge-mcp-server && npm install && npm run build && \
+    chown -R user:user /home/user/forge-mcp-server
 
 # Bootstrap script
-COPY bootstrap.sh /root/bootstrap.sh
-RUN chmod +x /root/bootstrap.sh
+COPY bootstrap.sh /home/user/bootstrap.sh
+RUN chmod +x /home/user/bootstrap.sh && chown user:user /home/user/bootstrap.sh
 
 # MCP config template
-COPY forge-mcp-config.json /root/.forge-mcp-config-template.json
+COPY forge-mcp-config.json /home/user/.forge-mcp-config-template.json
+RUN chown user:user /home/user/.forge-mcp-config-template.json
 
 # System prompt template
-COPY system-prompt.txt /root/system-prompt-template.txt
+COPY system-prompt.txt /home/user/system-prompt-template.txt
+RUN chown user:user /home/user/system-prompt-template.txt
