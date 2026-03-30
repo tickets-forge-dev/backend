@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { SessionRepository, SESSION_REPOSITORY } from '../ports/SessionRepository.port';
@@ -11,6 +12,7 @@ import { USAGE_QUOTA_REPOSITORY } from '../../../billing/application/ports';
 import type { UsageQuotaRepository } from '../../../billing/application/ports/UsageQuotaRepository.port';
 import { AECRepository, AEC_REPOSITORY } from '../../../tickets/application/ports/AECRepository';
 import { AECStatus } from '../../../tickets/domain/value-objects/AECStatus';
+import { InvalidStateTransitionError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { Session } from '../../domain/Session';
 
 export interface StartSessionCommand {
@@ -78,6 +80,17 @@ export class StartSessionUseCase {
 
     await this.sessionRepository.save(session);
     this.logger.log(`Session ${session.id} created for ticket ${ticketId}`);
+
+    // 6. Transition ticket APPROVED → EXECUTING
+    try {
+      aec.startImplementation(session.branch);
+    } catch (error) {
+      if (error instanceof InvalidStateTransitionError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+    await this.aecRepository.save(aec);
 
     return { sessionId: session.id };
   }

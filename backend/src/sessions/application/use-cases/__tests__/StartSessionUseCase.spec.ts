@@ -18,14 +18,17 @@ describe('StartSessionUseCase', () => {
     save: jest.fn(),
   };
 
+  const mockAecEntity = {
+    id: 'aec-123',
+    teamId: 'team-1',
+    status: 'approved',
+    title: 'Add webhook retry',
+    repositoryContext: null,
+    startImplementation: jest.fn(),
+  };
+
   const mockAecRepo = {
-    findById: jest.fn().mockResolvedValue({
-      id: 'aec-123',
-      teamId: 'team-1',
-      status: 'approved',
-      title: 'Add webhook retry',
-      repositoryContext: null,
-    }),
+    findById: jest.fn().mockResolvedValue(mockAecEntity),
     save: jest.fn(),
   };
 
@@ -39,13 +42,8 @@ describe('StartSessionUseCase', () => {
     mockQuotaRepo.getOrCreate.mockResolvedValue(
       UsageQuota.createForPlan('team-1', '2026-03', 'pro'),
     );
-    mockAecRepo.findById.mockResolvedValue({
-      id: 'aec-123',
-      teamId: 'team-1',
-      status: 'approved',
-      title: 'Add webhook retry',
-      repositoryContext: null,
-    });
+    mockAecEntity.startImplementation.mockReset();
+    mockAecRepo.findById.mockResolvedValue(mockAecEntity);
     useCase = new StartSessionUseCase(
       mockSessionRepo as any,
       mockQuotaRepo as any,
@@ -86,6 +84,7 @@ describe('StartSessionUseCase', () => {
       status: 'approved',
       title: 'Test',
       repositoryContext: null,
+      startImplementation: jest.fn(),
     });
 
     await expect(
@@ -104,6 +103,7 @@ describe('StartSessionUseCase', () => {
       status: 'draft',
       title: 'Test',
       repositoryContext: null,
+      startImplementation: jest.fn(),
     });
 
     await expect(
@@ -128,6 +128,16 @@ describe('StartSessionUseCase', () => {
         teamId: 'team-1',
       }),
     ).rejects.toThrow(/quota/i);
+  });
+
+  it('should transition ticket to EXECUTING status', async () => {
+    await useCase.execute({ ticketId: 'aec-123', userId: 'user-1', teamId: 'team-1' });
+
+    expect(mockAecEntity.startImplementation).toHaveBeenCalledTimes(1);
+    expect(mockAecEntity.startImplementation).toHaveBeenCalledWith(
+      expect.stringContaining('aec-123'),
+    );
+    expect(mockAecRepo.save).toHaveBeenCalledTimes(1);
   });
 
   it('should throw ConflictException if ticket already has active session', async () => {
