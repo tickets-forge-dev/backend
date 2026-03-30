@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, type ReactPortal } from 'react';
+import { createPortal } from 'react-dom';
 import { useUIStore } from '@/stores/ui.store';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -463,6 +464,21 @@ export function TicketDetailLayout({
         pendingApproval={pendingApproval}
       />
 
+      {/* Develop button — standalone prominent action */}
+      {['approved', 'executing', 'delivered'].includes(ticket.status) && (
+        <div className="flex items-center">
+          <TicketDevelopButton
+            onClick={() => setDevelopBladeOpen(true)}
+            disabled={false}
+            status={
+              sessionStatus === 'running' || sessionStatus === 'provisioning' ? 'running'
+              : ticket.status === 'delivered' || sessionStatus === 'completed' ? 'completed'
+              : 'idle'
+            }
+          />
+        </div>
+      )}
+
       {/* Approval banner — always visible when ticket is in review with developer Q&A */}
       {isWaitingForApproval && hasReviewSession && (
         <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
@@ -740,19 +756,6 @@ export function TicketDetailLayout({
             <StickyNote className="h-3.5 w-3.5" />
             Notes
           </TabsTrigger>
-          {['approved', 'executing', 'delivered'].includes(ticket.status) && (
-            <div className="ml-auto flex items-center">
-              <TicketDevelopButton
-                onClick={() => setDevelopBladeOpen(true)}
-                disabled={false}
-                status={
-                  sessionStatus === 'running' || sessionStatus === 'provisioning' ? 'running'
-                  : ticket.status === 'delivered' || sessionStatus === 'completed' ? 'completed'
-                  : 'idle'
-                }
-              />
-            </div>
-          )}
           </TabsList>
         </div>
 
@@ -1098,14 +1101,19 @@ export function TicketDetailLayout({
         </TabsContent>
       </Tabs>
 
-      {/* Develop blade (slide-over panel) */}
-      <DevelopSessionBlade
-        open={developBladeOpen}
-        onClose={() => setDevelopBladeOpen(false)}
-        ticketId={ticket.id}
-        ticketTitle={ticket.title}
-        ticketStatus={ticket.status}
-      />
+      {/* Develop blade (slide-over panel) — rendered via portal for full viewport coverage */}
+      {typeof window !== 'undefined' && createPortal(
+        <DevelopSessionBlade
+          open={developBladeOpen}
+          onClose={() => setDevelopBladeOpen(false)}
+          ticketId={ticket.id}
+          ticketTitle={ticket.title}
+          ticketStatus={ticket.status}
+          repoFullName={ticket.repositoryContext?.repositoryFullName}
+          branch={ticket.repositoryContext?.branchName}
+        />,
+        document.body
+      )}
     </div>
   );
 }
