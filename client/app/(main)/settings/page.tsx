@@ -11,21 +11,20 @@ import { RoleSettings } from '@/src/settings/components/RoleSettings';
 import { ProfileManagement } from '@/project-profiles/components/ProfileManagement';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useSessionStore } from '@/src/sessions/stores/session.store';
 import Link from 'next/link';
-import { X, Monitor, Sun, Moon, User } from 'lucide-react';
+import { X, Monitor, Sun, Moon, User, FileText, Play, Info } from 'lucide-react';
 
 function UsageSection() {
-  const quota = useTicketsStore((s) => s.quota);
-  const fetchQuota = useTicketsStore((s) => s.fetchQuota);
+  const ticketQuota = useTicketsStore((s) => s.quota);
+  const fetchTicketQuota = useTicketsStore((s) => s.fetchQuota);
+  const sessionQuota = useSessionStore((s) => s.quota);
+  const fetchSessionQuota = useSessionStore((s) => s.fetchQuota);
 
   useEffect(() => {
-    fetchQuota();
-  }, [fetchQuota]);
-
-  if (!quota) return null;
-
-  const percent = quota.usagePercent;
-  const barColor = 'bg-[var(--text-tertiary)]';
+    fetchTicketQuota();
+    fetchSessionQuota();
+  }, [fetchTicketQuota, fetchSessionQuota]);
 
   // Tokens reset on the 1st of next month
   const now = new Date();
@@ -39,38 +38,99 @@ function UsageSection() {
         ? `${(n / 1_000).toFixed(0)}K`
         : String(n);
 
+  const tokenPercent = ticketQuota?.usagePercent ?? 0;
+  const sessionPercent = sessionQuota ? Math.round((sessionQuota.used / sessionQuota.limit) * 100) : 0;
+
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-medium text-[var(--text)]">Usage</h2>
       <div className="rounded-lg border border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
-        {/* Token usage */}
-        <div className="px-5 py-4 space-y-2">
-          <div className="flex items-center justify-between text-[var(--text-sm)]">
-            <div>
-              <p className="font-medium text-[var(--text)]">Token usage</p>
-              <p className="text-[var(--text-tertiary)] text-[11px] mt-0.5">{percent}% of monthly allowance · Resets {resetLabel}</p>
+
+        {/* Ticket Tokens — for spec generation */}
+        <div className="px-5 py-4 space-y-2.5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-6 h-6 rounded-md bg-violet-500/10 flex items-center justify-center">
+              <FileText className="w-3.5 h-3.5 text-violet-500" />
             </div>
-            <span className="text-[var(--text-secondary)] text-xs">
-              {formatTokens(quota.tokensUsed)} / {formatTokens(quota.tokenLimit)}
-            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-[var(--text)] flex items-center gap-1">
+                Ticket Tokens
+                <span className="group relative">
+                  <Info className="w-3 h-3 text-[var(--text-tertiary)] cursor-help" />
+                  <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-52 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-2 text-[10px] text-[var(--text-secondary)] shadow-lg leading-relaxed">
+                    Used when creating and refining tickets. Each ticket consumes AI tokens for spec generation, analysis, and Q&A. When your allowance is used up, token usage resets automatically on the 1st of each month.
+                  </span>
+                </span>
+              </p>
+              <p className="text-[11px] text-[var(--text-tertiary)]">AI tokens for spec generation and analysis</p>
+            </div>
+            {ticketQuota && (
+              <span className="text-[var(--text-secondary)] text-[12px] shrink-0">
+                {formatTokens(ticketQuota.tokensUsed)} / {formatTokens(ticketQuota.tokenLimit)}
+              </span>
+            )}
           </div>
-          <div className="h-1 rounded-full bg-[var(--bg-hover)] overflow-hidden">
+          <div className="h-1.5 rounded-full bg-[var(--bg-hover)] overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${barColor}`}
-              style={{ width: `${Math.min(percent, 100)}%` }}
+              className="h-full rounded-full bg-violet-500/60 transition-all"
+              style={{ width: `${Math.min(tokenPercent, 100)}%` }}
             />
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-[var(--text-tertiary)]">
+            <span>{tokenPercent}% used</span>
+            <span>Resets {resetLabel}</span>
+          </div>
+        </div>
+
+        {/* Development Sessions — for Cloud Develop */}
+        <div className="px-5 py-4 space-y-2.5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-6 h-6 rounded-md bg-emerald-500/10 flex items-center justify-center">
+              <Play className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-[var(--text)] flex items-center gap-1">
+                Development Sessions
+                <span className="group relative">
+                  <Info className="w-3 h-3 text-[var(--text-tertiary)] cursor-help" />
+                  <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-52 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-2 text-[10px] text-[var(--text-secondary)] shadow-lg leading-relaxed">
+                    Used when you click &quot;Develop&quot; on a ticket. Claude implements the feature in the cloud. When your sessions are used up, you can still assign tickets to developers who use their own tools.
+                  </span>
+                </span>
+              </p>
+              <p className="text-[11px] text-[var(--text-tertiary)]">Cloud Develop runs per month</p>
+            </div>
+            {sessionQuota ? (
+              <span className="text-[var(--text-secondary)] text-[12px] shrink-0">
+                {sessionQuota.used} / {sessionQuota.limit}
+              </span>
+            ) : (
+              <span className="text-[var(--text-tertiary)] text-[12px] shrink-0">—</span>
+            )}
+          </div>
+          <div className="h-1.5 rounded-full bg-[var(--bg-hover)] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-emerald-500/60 transition-all"
+              style={{ width: `${Math.min(sessionPercent, 100)}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-[var(--text-tertiary)]">
+            <span>{sessionQuota ? `${sessionQuota.remaining} remaining` : 'Loading...'}</span>
+            <span>Resets {resetLabel}</span>
           </div>
         </div>
 
         {/* Daily tickets */}
-        <div className="px-5 py-4 flex items-center justify-between text-[var(--text-sm)]">
+        <div className="px-5 py-3.5 flex items-center justify-between">
           <div>
-            <p className="font-medium text-[var(--text)]">Tickets created today</p>
-            <p className="text-[var(--text-tertiary)] text-[11px] mt-0.5">Daily creation limit</p>
+            <p className="text-[13px] font-medium text-[var(--text)]">Tickets created today</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Daily creation limit</p>
           </div>
-          <span className="text-[var(--text-secondary)] text-xs">
-            {quota.ticketsCreatedToday} / {quota.dailyTicketLimit}
-          </span>
+          {ticketQuota && (
+            <span className="text-[var(--text-secondary)] text-[12px]">
+              {ticketQuota.ticketsCreatedToday} / {ticketQuota.dailyTicketLimit}
+            </span>
+          )}
         </div>
       </div>
     </section>

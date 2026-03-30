@@ -1,7 +1,7 @@
 export type PlanTier = 'free' | 'pro' | 'team' | 'scale';
 
 const PLAN_LIMITS: Record<PlanTier, number> = {
-  free: 2,
+  free: 99, // TODO: revert to 2 after testing
   pro: 20,
   team: 50,
   scale: 100,
