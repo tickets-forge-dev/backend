@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Sandbox } from 'e2b';
+import { Sandbox } from '@e2b/code-interpreter';
 import { SandboxPort, SandboxConfig, SandboxHandle } from '../../application/ports/SandboxPort';
 
 @Injectable()
@@ -28,7 +28,7 @@ export class E2BSandboxAdapter implements SandboxPort {
 
     this.logger.log(`Sandbox ${sandbox.sandboxId} created`);
 
-    // Write environment variables file so Claude Code process can read them
+    // Write environment variables and system prompt to /home/user/ (default user home)
     const envContent = [
       `ANTHROPIC_API_KEY=${config.anthropicApiKey}`,
       `GITHUB_TOKEN=${config.githubToken}`,
@@ -39,37 +39,37 @@ export class E2BSandboxAdapter implements SandboxPort {
       `BRANCH=${config.branch}`,
     ].join('\n');
 
-    await sandbox.files.write('/root/.env', envContent);
-
-    // Write system prompt to a file the claude process can read
-    await sandbox.files.write('/root/system_prompt.txt', config.systemPrompt);
+    await sandbox.files.write('/home/user/.env', envContent);
+    await sandbox.files.write('/home/user/system_prompt.txt', config.systemPrompt);
 
     this.logger.log(`Environment and system prompt written to sandbox ${sandbox.sandboxId}`);
+
+    // Write launcher script
+    const launcherScript = [
+      '#!/bin/bash',
+      'set -a',
+      'source /home/user/.env',
+      'set +a',
+      'exec claude \\',
+      '  -p "$(cat /home/user/system_prompt.txt)" \\',
+      '  --output-format stream-json \\',
+      '  --allowedTools "Read,Edit,Write,Bash,Glob,Grep,mcp__forge__*" \\',
+      '  --dangerously-skip-permissions',
+    ].join('\n');
+
+    await sandbox.files.write('/home/user/start-claude.sh', launcherScript);
+
+    this.logger.log(`Launcher script written to sandbox ${sandbox.sandboxId}`);
 
     // Resolve stdout/stderr handlers after they are registered
     let stdoutHandler: ((line: string) => void) | null = null;
     let stderrHandler: ((line: string) => void) | null = null;
     let exitHandler: ((code: number) => void) | null = null;
 
-    // Write a launcher script to avoid shell quoting issues
-    const launcherScript = [
-      '#!/bin/bash',
-      'set -a',
-      'source /root/.env',
-      'set +a',
-      'exec claude \\',
-      '  -p "$(cat /root/system_prompt.txt)" \\',
-      '  --output-format stream-json \\',
-      '  --allowedTools "Read,Edit,Write,Bash,Glob,Grep,mcp__forge__*" \\',
-      '  --dangerously-skip-permissions \\',
-      '  --mcp-config /root/.forge-mcp.json',
-    ].join('\n');
-
-    await sandbox.files.write('/root/start-claude.sh', launcherScript);
-
-    const commandHandle = await sandbox.commands.run('chmod +x /root/start-claude.sh && /root/start-claude.sh', {
+    // Start the launcher script
+    const commandHandle = await sandbox.commands.run('chmod +x /home/user/start-claude.sh && /home/user/start-claude.sh', {
       background: true,
-      cwd: '/root',
+      cwd: '/home/user',
       onStdout: (data: string) => {
         if (stdoutHandler) {
           stdoutHandler(data);
