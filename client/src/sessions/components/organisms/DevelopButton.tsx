@@ -6,6 +6,10 @@ import { useSessionStore } from '../../stores/session.store';
 import { IconBadge } from '../atoms/IconBadge';
 import { QuotaDisplay } from '../molecules/QuotaDisplay';
 
+// TODO(complexity-gating): Add a `complexity` prop (e.g. 'low' | 'medium' | 'high') sourced from
+// the ticket's spec data. Pass it down from TicketDetailLayout → DevelopSessionBlade →
+// SessionMonitorView → DevelopButton. If complexity === 'high', show a warning banner before
+// allowing the user to start development (large tickets risk timeouts / partial completions).
 interface DevelopButtonProps {
   ticketId: string;
   ticketStatus: string;

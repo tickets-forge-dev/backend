@@ -9,6 +9,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { Response } from 'express';
+import * as jwt from 'jsonwebtoken';
 import { StartSessionUseCase } from '../../application/use-cases/StartSessionUseCase';
 import { CancelSessionUseCase } from '../../application/use-cases/CancelSessionUseCase';
 import { SessionOrchestrator } from '../../application/services/SessionOrchestrator';
@@ -77,17 +78,38 @@ export class SessionsController {
     const repoUrl =
       repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}.git` : '';
 
+    // Generate session-scoped JWT so the sandbox MCP server can call the Forge API
+    const sessionJwt = jwt.sign(
+      { sessionId, teamId, ticketId, type: 'session' },
+      process.env.JWT_INVITE_SECRET || 'forge-session-secret',
+      { expiresIn: '2h', algorithm: 'HS256' },
+    );
+
     const sandboxConfig = {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
       githubToken,
       forgeApiUrl: process.env.FORGE_API_URL || 'https://forge-x3i7.onrender.com/api',
-      forgeSessionJwt: '', // TODO: Generate session-scoped JWT
+      forgeSessionJwt: sessionJwt,
       ticketId,
       repoUrl,
       branch,
       systemPrompt: buildSystemPrompt(ticketId),
       maxDurationMs: 30 * 60 * 1000, // 30 minutes
     };
+
+    // Fail-fast: validate required sandbox config before spinning up the sandbox
+    const missingConfig: string[] = [];
+    if (!sandboxConfig.anthropicApiKey) missingConfig.push('ANTHROPIC_API_KEY');
+    if (!sandboxConfig.repoUrl)
+      missingConfig.push('Repository URL (no GitHub App installed or no repo connected)');
+
+    if (missingConfig.length > 0) {
+      const errorMsg = `Cannot start development: missing ${missingConfig.join(', ')}`;
+      this.logger.error(errorMsg);
+      send({ type: 'session.status', content: 'failed', error: errorMsg });
+      res.end();
+      return;
+    }
 
     // 6. Run orchestrator (fire-and-forget style, streams via SSE)
     try {

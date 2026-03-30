@@ -5,6 +5,8 @@ import { translateEvent, RawCliEvent, UiEvent } from './EventTranslator';
 import { NotificationService } from '../../../notifications/notification.service';
 import { USAGE_QUOTA_REPOSITORY } from '../../../billing/application/ports';
 import type { UsageQuotaRepository } from '../../../billing/application/ports/UsageQuotaRepository.port';
+import { AECRepository, AEC_REPOSITORY } from '../../../tickets/application/ports/AECRepository';
+import { AECStatus } from '../../../tickets/domain/value-objects/AECStatus';
 
 export interface SessionProgressCallback {
   onEvent: (event: UiEvent) => void;
@@ -22,6 +24,7 @@ export class SessionOrchestrator {
     @Inject(SANDBOX_PORT) private readonly sandboxPort: SandboxPort,
     private readonly notificationService: NotificationService,
     @Inject(USAGE_QUOTA_REPOSITORY) private readonly quotaRepository: UsageQuotaRepository,
+    @Inject(AEC_REPOSITORY) private readonly aecRepository: AECRepository,
   ) {}
 
   async run(
@@ -146,6 +149,18 @@ export class SessionOrchestrator {
       if (failedSession && failedSession.isActive()) {
         failedSession.markFailed(errorMessage);
         await this.sessionRepository.save(failedSession);
+
+        // Revert ticket from EXECUTING → APPROVED so the user can retry
+        try {
+          const aec = await this.aecRepository.findById(failedSession.ticketId);
+          if (aec && aec.status === AECStatus.EXECUTING) {
+            aec.sendBack(AECStatus.APPROVED);
+            await this.aecRepository.save(aec);
+            this.logger.log(`Reverted ticket ${failedSession.ticketId} from EXECUTING to APPROVED after session failure`);
+          }
+        } catch (rollbackError) {
+          this.logger.warn(`Failed to rollback ticket for session ${sessionId}: ${rollbackError}`);
+        }
       }
 
       callback.onError(errorMessage);
