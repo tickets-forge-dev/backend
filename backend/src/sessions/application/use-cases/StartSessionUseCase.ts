@@ -68,9 +68,9 @@ export class StartSessionUseCase {
     // 3. Check for existing active session
     const existingSession = await this.sessionRepository.findActiveByTicket(ticketId, teamId);
     if (existingSession) {
-      // If the session is stale (>5 min in provisioning, or >35 min in running), clean it up
+      // If the session is stale (>1 min in provisioning, or >35 min in running), clean it up
       const ageMs = Date.now() - existingSession.createdAt.getTime();
-      const isStaleProvisioning = existingSession.status === 'provisioning' && ageMs > 5 * 60 * 1000;
+      const isStaleProvisioning = existingSession.status === 'provisioning' && ageMs > 1 * 60 * 1000;
       const isStaleRunning = existingSession.status === 'running' && ageMs > 35 * 60 * 1000;
 
       if (isStaleProvisioning || isStaleRunning) {
@@ -78,7 +78,14 @@ export class StartSessionUseCase {
         existingSession.markFailed('Session timed out (stale cleanup)');
         await this.sessionRepository.save(existingSession);
       } else {
-        throw new ConflictException(`Ticket already has an active session: ${existingSession.id}`);
+        // Auto-cleanup: if it's been more than 2 minutes regardless of status, it's likely orphaned
+        if (ageMs > 2 * 60 * 1000) {
+          this.logger.warn(`Force-cleaning orphaned session ${existingSession.id} (status: ${existingSession.status}, age: ${Math.round(ageMs / 1000)}s)`);
+          existingSession.markFailed('Session orphaned (force cleanup on retry)');
+          await this.sessionRepository.save(existingSession);
+        } else {
+          throw new ConflictException(`Ticket already has an active session: ${existingSession.id}`);
+        }
       }
     }
 

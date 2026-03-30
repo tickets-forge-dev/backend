@@ -82,8 +82,13 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
   if (status === 'failed') {
     return (
       <div className="flex flex-col items-center gap-3 py-16">
-        <div className="text-[13px] text-red-500">{error || 'Session failed'}</div>
-        <button onClick={reset} className="text-[12px] text-violet-500 hover:underline">
+        <div className="text-[13px] text-red-500 font-medium">Session failed</div>
+        {error && (
+          <div className="max-w-md w-full rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3">
+            <pre className="text-[11px] text-red-400 font-mono whitespace-pre-wrap break-all leading-relaxed">{error}</pre>
+          </div>
+        )}
+        <button onClick={reset} className="text-[12px] text-[var(--primary)] hover:underline">
           Try again
         </button>
       </div>
@@ -108,6 +113,13 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
           const event = group.events[0];
           if (event.type === 'event.message') {
             return <SessionMessage key={event.id} content={event.content ?? ''} />;
+          }
+          if (event.type === 'event.stderr') {
+            return (
+              <div key={event.id || `stderr-${i}`} className="ml-8 px-3 py-1.5 rounded bg-red-500/10 text-[11px] text-red-400 font-mono whitespace-pre-wrap break-all">
+                {event.content}
+              </div>
+            );
           }
           // Skip thinking events in the list — shown as live indicator below
           return null;

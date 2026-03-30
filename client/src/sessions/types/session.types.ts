@@ -11,6 +11,7 @@ export type SessionEventType =
   | 'event.search'
   | 'event.tool_result'
   | 'event.summary'
+  | 'event.stderr'
   | 'event.unknown_tool';
 
 export interface SessionEvent {

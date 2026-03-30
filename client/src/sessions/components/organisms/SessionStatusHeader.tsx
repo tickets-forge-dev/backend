@@ -16,8 +16,8 @@ export function SessionStatusHeader({ status, elapsedSeconds, onCancel }: Sessio
       <div className="flex items-center gap-2">
         {status === 'running' ? (
           <>
-            <ProgressDots color="violet" />
-            <span className="text-[12px] text-violet-500 font-medium">Claude is working</span>
+            <ProgressDots color="blue" />
+            <span className="text-[12px] text-red-500 font-medium">Agent is working...</span>
           </>
         ) : status === 'completed' ? (
           <>

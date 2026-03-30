@@ -63,6 +63,7 @@ export class SessionOrchestrator {
 
       await new Promise<void>((resolve, reject) => {
         let buffer = '';
+        const stderrLines: string[] = [];
 
         sandbox!.onStdout((line: string) => {
           buffer += line;
@@ -91,14 +92,27 @@ export class SessionOrchestrator {
         });
 
         sandbox!.onStderr((line: string) => {
-          this.logger.warn(`Session ${sessionId} stderr: ${line}`);
+          const trimmed = line.trim();
+          if (trimmed) {
+            this.logger.warn(`Session ${sessionId} stderr: ${trimmed}`);
+            stderrLines.push(trimmed);
+            // Send stderr to frontend as a diagnostic event
+            callback.onEvent({
+              type: 'event.stderr',
+              content: trimmed,
+            } as any);
+          }
         });
 
         sandbox!.onExit((code: number) => {
           if (code === 0) {
             resolve();
           } else {
-            reject(new Error(`Claude Code exited with code ${code}`));
+            const lastStderr = stderrLines.slice(-5).join('\n');
+            const detail = lastStderr
+              ? `Claude Code exited with code ${code}:\n${lastStderr}`
+              : `Claude Code exited with code ${code}`;
+            reject(new Error(detail));
           }
         });
       });

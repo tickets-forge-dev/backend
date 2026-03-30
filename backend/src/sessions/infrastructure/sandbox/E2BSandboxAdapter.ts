@@ -2,6 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Sandbox } from '@e2b/code-interpreter';
 import { SandboxPort, SandboxConfig, SandboxHandle } from '../../application/ports/SandboxPort';
 
+/** Map full API model IDs to Claude Code CLI aliases */
+function toClaudeCodeModel(apiModel: string): string {
+  if (apiModel.includes('opus')) return 'opus';
+  if (apiModel.includes('haiku')) return 'haiku';
+  return 'sonnet'; // default
+}
+
 @Injectable()
 export class E2BSandboxAdapter implements SandboxPort {
   private readonly logger = new Logger(E2BSandboxAdapter.name);
@@ -39,73 +46,104 @@ export class E2BSandboxAdapter implements SandboxPort {
       }
     }
 
-    // Write environment variables
+    // Write environment variables (single-quoted to prevent bash expansion of special chars in tokens)
     const envContent = [
-      `ANTHROPIC_API_KEY=${config.anthropicApiKey}`,
-      `ANTHROPIC_MODEL=${config.model}`,
-      `GITHUB_TOKEN=${config.githubToken}`,
-      `FORGE_API_URL=${config.forgeApiUrl}`,
-      `FORGE_SESSION_JWT=${config.forgeSessionJwt}`,
-      `TICKET_ID=${config.ticketId}`,
-      `REPO_URL=${config.repoUrl}`,
-      `REPO_OWNER=${repoOwner}`,
-      `REPO_NAME=${repoName}`,
-      `BRANCH_NAME=${config.branch}`,
+      `ANTHROPIC_API_KEY='${config.anthropicApiKey}'`,
+      `ANTHROPIC_MODEL='${config.model}'`,
+      `GITHUB_TOKEN='${config.githubToken}'`,
+      `FORGE_API_URL='${config.forgeApiUrl}'`,
+      `FORGE_SESSION_JWT='${config.forgeSessionJwt}'`,
+      `TICKET_ID='${config.ticketId}'`,
+      `REPO_URL='${config.repoUrl}'`,
+      `REPO_OWNER='${repoOwner}'`,
+      `REPO_NAME='${repoName}'`,
+      `BRANCH_NAME='${config.branch}'`,
     ].join('\n');
+
+    // Log token presence (not values) for debugging
+    this.logger.log(`Sandbox ${sandbox.sandboxId} env: GITHUB_TOKEN=${config.githubToken ? `set (${config.githubToken.length} chars)` : 'EMPTY'}, REPO_URL=${config.repoUrl || 'EMPTY'}`);
 
     await sandbox.files.write('/home/user/.env', envContent);
     await sandbox.files.write('/home/user/system_prompt.txt', config.systemPrompt);
 
     this.logger.log(`Environment and system prompt written to sandbox ${sandbox.sandboxId}`);
 
-    // Run bootstrap script (clones repo, configures MCP, sets up git)
-    this.logger.log(`Running bootstrap script in sandbox ${sandbox.sandboxId}`);
-    const bootstrapResult = await sandbox.commands.run(
-      'chmod +x /home/user/bootstrap.sh && source /home/user/.env && /home/user/bootstrap.sh',
-      {
-        cwd: '/home/user',
-        timeoutMs: 120000, // 2 min timeout for clone
-      },
-    );
+    // Run bootstrap: clone repo + configure environment
+    this.logger.log(`Running bootstrap in sandbox ${sandbox.sandboxId}`);
+    const cloneCmd = config.repoUrl && config.githubToken
+      ? [
+          `git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password=${config.githubToken}"; }; f'`,
+          `git config --global user.name "Forge Cloud Develop"`,
+          `git config --global user.email "cloud-develop@forge-ai.dev"`,
+          `git clone "https://x-access-token:${config.githubToken}@github.com/${repoOwner}/${repoName}.git" /home/user/workspace`,
+          `cd /home/user/workspace && git checkout -b "${config.branch}"`,
+        ].join(' && ')
+      : 'mkdir -p /home/user/workspace';
+
+    // Also run the template bootstrap if it exists (for MCP config, etc.)
+    const bootstrapCmd = `${cloneCmd} && ([ -f /home/user/bootstrap.sh ] && chmod +x /home/user/bootstrap.sh && source /home/user/.env && /home/user/bootstrap.sh || true)`;
+
+    const bootstrapResult = await sandbox.commands.run(bootstrapCmd, {
+      cwd: '/home/user',
+      timeoutMs: 120000,
+    });
 
     if (bootstrapResult.exitCode !== 0) {
-      this.logger.warn(`Bootstrap stderr: ${bootstrapResult.stderr}`);
-      this.logger.warn(`Bootstrap stdout: ${bootstrapResult.stdout}`);
-      // Don't fail — Claude can still work without a repo (e.g., for testing)
-      this.logger.warn(`Bootstrap exited with code ${bootstrapResult.exitCode}, continuing anyway`);
+      this.logger.error(`Bootstrap failed (exit ${bootstrapResult.exitCode}) in sandbox ${sandbox.sandboxId}`);
+      if (bootstrapResult.stderr) this.logger.error(`Bootstrap stderr: ${bootstrapResult.stderr}`);
+      if (bootstrapResult.stdout) this.logger.warn(`Bootstrap stdout: ${bootstrapResult.stdout}`);
+      // Fail fast — if bootstrap fails, Claude won't have the repo or MCP configured
+      throw new Error(
+        `Sandbox bootstrap failed (exit ${bootstrapResult.exitCode}): ${bootstrapResult.stderr || bootstrapResult.stdout || 'unknown error'}`,
+      );
     } else {
       this.logger.log(`Bootstrap completed successfully in sandbox ${sandbox.sandboxId}`);
     }
 
-    // Write launcher script (runs AFTER bootstrap)
+    // Write MCP config AFTER bootstrap (bootstrap's sed overwrites the template file)
+    // Skip MCP if API URL is localhost — sandbox can't reach the host machine
+    const isLocalApi = config.forgeApiUrl.includes('localhost') || config.forgeApiUrl.includes('127.0.0.1');
+    this.logger.log(`Sandbox ${sandbox.sandboxId} FORGE_API_URL="${config.forgeApiUrl}" isLocal=${isLocalApi}`);
+    if (isLocalApi) {
+      this.logger.warn(`Sandbox ${sandbox.sandboxId}: Skipping MCP config — FORGE_API_URL is localhost (unreachable from sandbox)`);
+    } else {
+      const mcpConfig = {
+        mcpServers: {
+          forge: {
+            command: 'node',
+            args: ['/home/user/forge-mcp-server/dist/index.js'],
+            env: {
+              FORGE_API_URL: config.forgeApiUrl,
+              FORGE_SESSION_JWT: config.forgeSessionJwt,
+              TICKET_ID: config.ticketId,
+            },
+          },
+        },
+      };
+      await sandbox.files.write('/home/user/.forge-mcp.json', JSON.stringify(mcpConfig, null, 2));
+      this.logger.log(`MCP config written to sandbox ${sandbox.sandboxId}`);
+    }
+
+    // Pre-flight diagnostics
     const workDir = repoOwner && repoName ? '/home/user/workspace' : '/home/user';
-    const launcherScript = [
-      '#!/bin/bash',
-      'set -a',
-      'source /home/user/.env',
-      'set +a',
-      `cd ${workDir}`,
-      'exec claude \\',
-      '  -p "$(cat /home/user/system_prompt.txt)" \\',
-      '  --output-format stream-json \\',
-      '  --verbose \\',
-      '  --allowedTools "Read,Edit,Write,Bash,Glob,Grep,mcp__forge__*" \\',
-      '  --dangerously-skip-permissions',
-    ].join('\n');
 
-    await sandbox.files.write('/home/user/start-claude.sh', launcherScript);
+    this.logger.log(`Starting Claude Code in sandbox ${sandbox.sandboxId}`);
 
-    this.logger.log(`Launcher script written to sandbox ${sandbox.sandboxId}`);
-
+    this.logger.log(`Sandbox ${sandbox.sandboxId} using model alias: ${toClaudeCodeModel(config.model)} (from ${config.model})`);
     // Resolve stdout/stderr handlers after they are registered
     let stdoutHandler: ((line: string) => void) | null = null;
     let stderrHandler: ((line: string) => void) | null = null;
     let exitHandler: ((code: number) => void) | null = null;
 
-    // Start Claude Code
-    const commandHandle = await sandbox.commands.run('chmod +x /home/user/start-claude.sh && /home/user/start-claude.sh', {
-      background: true,
-      cwd: workDir,
+    const mcpFlag = isLocalApi ? '' : ' --mcp-config /home/user/.forge-mcp.json';
+    const commandHandle = await sandbox.commands.run(
+      `claude -p "Implement the ticket according to the system prompt instructions." --append-system-prompt-file /home/user/system_prompt.txt --output-format stream-json --verbose --model ${toClaudeCodeModel(config.model)} --max-turns 30 --dangerously-skip-permissions${mcpFlag}`,
+      {
+        background: true,
+        cwd: workDir,
+        envs: {
+          ANTHROPIC_API_KEY: config.anthropicApiKey,
+        },
       onStdout: (data: string) => {
         if (stdoutHandler) {
           stdoutHandler(data);
