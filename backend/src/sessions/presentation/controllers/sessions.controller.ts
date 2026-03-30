@@ -11,6 +11,7 @@ import { Response } from 'express';
 import { StartSessionUseCase } from '../../application/use-cases/StartSessionUseCase';
 import { CancelSessionUseCase } from '../../application/use-cases/CancelSessionUseCase';
 import { SessionOrchestrator } from '../../application/services/SessionOrchestrator';
+import { buildSystemPrompt } from '../../application/services/SystemPromptBuilder';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
@@ -72,7 +73,7 @@ export class SessionsController {
       ticketId,
       repoUrl: '', // TODO: From ticket's project profile
       branch: `feat/${ticketId.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
-      systemPrompt: '', // Loaded from template in real E2B adapter
+      systemPrompt: buildSystemPrompt(ticketId),
       maxDurationMs: 30 * 60 * 1000, // 30 minutes
     };
 
