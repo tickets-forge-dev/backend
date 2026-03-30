@@ -6,6 +6,7 @@ import {
   UseGuards,
   Res,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { StartSessionUseCase } from '../../application/use-cases/StartSessionUseCase';
@@ -16,6 +17,8 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
+import { GitHubAppTokenService } from '../../../github/application/services/github-app-token.service';
+import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
 
 @Controller('sessions')
 @UseGuards(FirebaseAuthGuard, WorkspaceGuard)
@@ -26,6 +29,9 @@ export class SessionsController {
     private readonly startSessionUseCase: StartSessionUseCase,
     private readonly cancelSessionUseCase: CancelSessionUseCase,
     private readonly sessionOrchestrator: SessionOrchestrator,
+    private readonly githubAppTokenService: GitHubAppTokenService,
+    @Inject(GITHUB_INTEGRATION_REPOSITORY)
+    private readonly githubIntegrationRepository: GitHubIntegrationRepository,
   ) {}
 
   @Post(':ticketId/start')
@@ -36,7 +42,7 @@ export class SessionsController {
     @Res() res: Response,
   ): Promise<void> {
     // 1. Create session (validates ticket, quota, etc.)
-    const { sessionId } = await this.startSessionUseCase.execute({
+    const { sessionId, repoOwner, repoName, branch } = await this.startSessionUseCase.execute({
       ticketId,
       userId,
       teamId,
@@ -65,14 +71,18 @@ export class SessionsController {
     });
 
     // 5. Build sandbox config
+    const githubToken = await this.getGitHubToken(teamId);
+    const repoUrl =
+      repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}.git` : '';
+
     const sandboxConfig = {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
-      githubToken: '', // TODO: Generate from GitHub App installation
+      githubToken,
       forgeApiUrl: process.env.FORGE_API_URL || 'https://forge-api.onrender.com/api',
       forgeSessionJwt: '', // TODO: Generate session-scoped JWT
       ticketId,
-      repoUrl: '', // TODO: From ticket's project profile
-      branch: `feat/${ticketId.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      repoUrl,
+      branch,
       systemPrompt: buildSystemPrompt(ticketId),
       maxDurationMs: 30 * 60 * 1000, // 30 minutes
     };
@@ -110,6 +120,20 @@ export class SessionsController {
     // If orchestrator completed but res not ended (edge case)
     if (!res.writableEnded) {
       res.end();
+    }
+  }
+
+  private async getGitHubToken(teamId: string): Promise<string> {
+    try {
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(teamId);
+      if (!integration) {
+        this.logger.warn(`No GitHub App installation found for team ${teamId}`);
+        return '';
+      }
+      return await this.githubAppTokenService.getInstallationToken(integration.installationId);
+    } catch (error) {
+      this.logger.warn(`Failed to get GitHub token for team ${teamId}: ${error}`);
+      return '';
     }
   }
 

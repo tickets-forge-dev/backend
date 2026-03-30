@@ -1,0 +1,99 @@
+/**
+ * GitHub App Token Service
+ *
+ * Generates short-lived installation access tokens for GitHub App integrations.
+ * Uses RS256-signed JWTs to authenticate as the GitHub App, then exchanges
+ * them for installation-scoped access tokens.
+ *
+ * Part of: P0-4 - GitHub App Token Generation
+ * Layer: Application (business logic)
+ */
+
+import { Injectable, Logger } from '@nestjs/common';
+import * as jwt from 'jsonwebtoken';
+
+interface InstallationToken {
+  token: string;
+  expiresAt: Date;
+}
+
+@Injectable()
+export class GitHubAppTokenService {
+  private readonly logger = new Logger(GitHubAppTokenService.name);
+  private cachedTokens = new Map<number, InstallationToken>();
+
+  /**
+   * Generate a short-lived installation access token for a GitHub App installation.
+   * Tokens are cached and reused until 5 minutes before expiry.
+   */
+  async getInstallationToken(installationId: number): Promise<string> {
+    // Check cache
+    const cached = this.cachedTokens.get(installationId);
+    if (cached && cached.expiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
+      return cached.token;
+    }
+
+    // Generate JWT signed with App private key
+    const appJwt = this.generateAppJwt();
+
+    // Exchange JWT for installation token
+    const response = await fetch(
+      `https://api.github.com/app/installations/${installationId}/access_tokens`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${appJwt}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Failed to get installation token: ${response.status} ${body}`);
+    }
+
+    const data = (await response.json()) as { token: string; expires_at: string };
+
+    const installationToken: InstallationToken = {
+      token: data.token,
+      expiresAt: new Date(data.expires_at),
+    };
+
+    this.cachedTokens.set(installationId, installationToken);
+    this.logger.log(
+      `Generated installation token for installation ${installationId}, expires ${data.expires_at}`,
+    );
+
+    return installationToken.token;
+  }
+
+  /**
+   * Generate a JWT signed with the GitHub App's private key.
+   * Valid for 10 minutes (GitHub's maximum).
+   */
+  private generateAppJwt(): string {
+    const appId = process.env.GITHUB_APP_ID;
+    const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
+
+    if (!appId || !privateKey) {
+      throw new Error('GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY must be set');
+    }
+
+    // Handle \n in env var (common when stored as single line)
+    const formattedKey = privateKey.replace(/\\n/g, '\n');
+
+    const now = Math.floor(Date.now() / 1000);
+
+    return jwt.sign(
+      {
+        iat: now - 60, // 60 seconds in the past (clock skew)
+        exp: now + 600, // 10 minutes
+        iss: appId,
+      },
+      formattedKey,
+      { algorithm: 'RS256' },
+    );
+  }
+}

@@ -31,7 +31,7 @@ export class StartSessionUseCase {
     @Inject(AEC_REPOSITORY) private readonly aecRepository: AECRepository,
   ) {}
 
-  async execute(command: StartSessionCommand): Promise<{ sessionId: string }> {
+  async execute(command: StartSessionCommand): Promise<{ sessionId: string; repoOwner: string; repoName: string; branch: string }> {
     const { ticketId, userId, teamId } = command;
 
     // 1. Load and validate ticket
@@ -92,6 +92,6 @@ export class StartSessionUseCase {
     }
     await this.aecRepository.save(aec);
 
-    return { sessionId: session.id };
+    return { sessionId: session.id, repoOwner, repoName, branch: session.branch };
   }
 }

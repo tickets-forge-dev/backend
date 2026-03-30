@@ -4,6 +4,7 @@ import { GitHubController } from './presentation/controllers/github.controller';
 import { GitHubOAuthController } from './presentation/controllers/github-oauth.controller';
 import { GitHubWebhookHandler } from './infrastructure/webhooks/github-webhook.handler';
 import { GitHubTokenService } from './application/services/github-token.service';
+import { GitHubAppTokenService } from './application/services/github-app-token.service';
 import { GitHubFileServiceImpl } from './infrastructure/github-file.service';
 import { GITHUB_INTEGRATION_REPOSITORY } from './domain/GitHubIntegrationRepository';
 import { FirestoreGitHubIntegrationRepository } from './infrastructure/persistence/firestore-github-integration.repository';
@@ -16,6 +17,7 @@ import { TicketsModule } from '../tickets/tickets.module';
   controllers: [GitHubController, GitHubOAuthController, GitHubWebhookHandler],
   providers: [
     GitHubTokenService,
+    GitHubAppTokenService,
     GitHubFileServiceImpl,
     {
       provide: GITHUB_INTEGRATION_REPOSITORY,
@@ -46,6 +48,6 @@ import { TicketsModule } from '../tickets/tickets.module';
       inject: [ConfigService],
     },
   ],
-  exports: [GitHubTokenService, GitHubFileServiceImpl, GITHUB_INTEGRATION_REPOSITORY],
+  exports: [GitHubTokenService, GitHubAppTokenService, GitHubFileServiceImpl, GITHUB_INTEGRATION_REPOSITORY],
 })
 export class GitHubModule {}
