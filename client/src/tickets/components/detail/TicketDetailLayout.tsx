@@ -1108,7 +1108,7 @@ export function TicketDetailLayout({
           ticketTitle={ticket.title}
           ticketStatus={ticket.status}
           repoFullName={ticket.repositoryContext?.repositoryFullName}
-          branch={ticket.repositoryContext?.branchName}
+          branch={`feat/${ticket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
           fileChangeCount={ticket.techSpec?.fileChanges?.length}
         />,
         document.body

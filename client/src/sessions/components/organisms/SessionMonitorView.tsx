@@ -16,6 +16,10 @@ interface SessionMonitorViewProps {
   ticketStatus: string;
   /** Number of file changes from the ticket's tech spec — used for complexity warning */
   fileChangeCount?: number;
+  /** Repository full name (owner/repo) */
+  repoFullName?: string;
+  /** Branch that will be created */
+  branch?: string;
 }
 
 function isToolEvent(type: string): boolean {
@@ -48,7 +52,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
   return groups;
 }
 
-export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount }: SessionMonitorViewProps) {
+export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset } = useSessionStore();
 
   useEffect(() => {
@@ -65,6 +69,8 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount }: 
         ticketStatus={ticketStatus}
         onStart={() => startSession(ticketId)}
         fileChangeCount={fileChangeCount}
+        repoFullName={repoFullName}
+        branch={branch}
       />
     );
   }

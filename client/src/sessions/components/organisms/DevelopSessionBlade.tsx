@@ -47,6 +47,8 @@ export function DevelopSessionBlade({ open, onClose, ticketId, ticketTitle, tick
         ticketId={ticketId}
         ticketStatus={ticketStatus}
         fileChangeCount={fileChangeCount}
+        repoFullName={repoFullName}
+        branch={branch}
       />
     </SlideOverPanel>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Play, AlertTriangle } from 'lucide-react';
+import { Play, AlertTriangle, FolderGit2, GitBranch } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { IconBadge } from '../atoms/IconBadge';
 import { QuotaDisplay } from '../molecules/QuotaDisplay';
@@ -14,9 +14,13 @@ interface DevelopButtonProps {
   onStart: () => void;
   /** Number of file changes from the ticket's tech spec — used for complexity gating */
   fileChangeCount?: number;
+  /** Repository full name (owner/repo) */
+  repoFullName?: string;
+  /** Branch that will be created */
+  branch?: string;
 }
 
-export function DevelopButton({ ticketId, ticketStatus, onStart, fileChangeCount }: DevelopButtonProps) {
+export function DevelopButton({ ticketId, ticketStatus, onStart, fileChangeCount, repoFullName, branch }: DevelopButtonProps) {
   const { status, quota, fetchQuota } = useSessionStore();
   const isLoading = status === 'provisioning' || status === 'running';
   const isDisabled = ticketStatus !== 'approved' || isLoading;
@@ -38,6 +42,22 @@ export function DevelopButton({ ticketId, ticketStatus, onStart, fileChangeCount
           Claude will implement this ticket, run tests, and create a pull request for your team to review.
         </p>
       </div>
+
+      {/* Project context — show where the code will be implemented */}
+      {repoFullName && (
+        <div className="w-full max-w-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <FolderGit2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+            <span className="text-[12px] text-[var(--text-secondary)] font-mono">{repoFullName}</span>
+          </div>
+          {branch && (
+            <div className="flex items-center gap-2">
+              <GitBranch className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+              <span className="text-[12px] text-[var(--text-secondary)] font-mono">{branch}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {isHighComplexity && (
         <div className="flex items-start gap-2 text-[11px] text-amber-500 bg-amber-500/5 rounded-md px-3 py-2 border border-amber-500/10 max-w-sm">
