@@ -349,7 +349,7 @@ export default function TicketsListPage() {
       <div className="flex flex-1 min-h-0">
       <div className="flex-1 flex flex-col min-h-0">
       {/* Filter, Sort & Actions bar — outside scroll container so dropdowns aren't clipped */}
-      <div className="w-full px-3 sm:px-6 pt-4 sm:pt-6">
+      <div className="w-full px-4 sm:px-10 lg:px-14 pt-4 sm:pt-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {/* Search — full width on mobile */}
         <div className="relative w-full sm:flex-1 sm:max-w-md">

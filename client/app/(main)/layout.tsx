@@ -84,8 +84,9 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           'p-0 md:p-2'
         )}
       >
-        <main className="min-h-[calc(100vh-16px)] bg-[var(--bg-subtle)] md:rounded-xl md:border md:border-[var(--border-subtle)] md:shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+        <main className="relative min-h-[calc(100vh-16px)] bg-[var(--bg-subtle)] md:rounded-xl md:border md:border-[var(--border-subtle)] md:shadow-[0_1px_3px_rgba(0,0,0,0.3)] overflow-hidden">
           {children}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[300px] bg-[radial-gradient(ellipse_80%_50%_at_50%_100%,rgba(120,119,198,0.08),transparent)]" />
         </main>
       </div>
     </div>

@@ -123,7 +123,7 @@ details summary::-webkit-details-marker { display: none; }
   /* Layout Constants */
   --content-max: 840px;  /* Main content (Linear's width) */
   --content-narrow: 640px; /* Forms, focused content */
-  --nav-width: 280px;    /* Sidebar (if used) */
+  --nav-width: 220px;    /* Sidebar — matches Linear's ratio */
 
   /* Z-Index Hierarchy */
   --z-base: 0;
