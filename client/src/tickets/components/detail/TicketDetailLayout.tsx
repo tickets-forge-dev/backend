@@ -169,7 +169,6 @@ export function TicketDetailLayout({
     { id: 'api-endpoints', label: 'API Endpoints', short: 'APIs' },
     { id: 'dependencies', label: 'Dependencies', short: 'Deps' },
     { id: 'test-plan', label: 'Test Plan', short: 'Tests' },
-    { id: 'stack', label: 'Stack', short: 'Stack' },
   ];
 
   const scrollTo = (tabPrefix: string, sectionId: string) => {
@@ -326,7 +325,7 @@ export function TicketDetailLayout({
             id="pending-questions"
             title="Questions to Answer"
             badge={`${ticket.questions.length} question${ticket.questions.length !== 1 ? 's' : ''}`}
-            defaultExpanded={true}
+            defaultExpanded={false}
           >
             <div className="space-y-6">
               {ticket.questions.map((question: any, idx: number) => (
@@ -397,7 +396,7 @@ export function TicketDetailLayout({
             id="review-session"
             title="Developer Review Q&A"
             badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
-            defaultExpanded={true}
+            defaultExpanded={false}
             variant={isWaitingForApproval ? 'attention' : 'default'}
             attentionLabel={isWaitingForApproval ? 'Action needed' : undefined}
           >
@@ -434,7 +433,7 @@ export function TicketDetailLayout({
           id="assets-attachments"
           title="Attachments"
           badge={ticket.attachments?.length ? `${ticket.attachments.length} files` : undefined}
-          defaultExpanded={true}
+          defaultExpanded={false}
         >
           <ImageAttachmentsGrid
             attachments={ticket.attachments || []}

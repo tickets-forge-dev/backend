@@ -339,6 +339,15 @@ export class TicketService {
     await this.client.patch(`/tickets/${ticketId}/tags`, { tagIds });
   }
 
+  async updateTicketRepository(
+    ticketId: string,
+    repositoryFullName: string,
+    branchName: string,
+  ): Promise<{ success: boolean }> {
+    const response = await this.client.patch(`/tickets/${ticketId}/repository`, { repositoryFullName, branchName });
+    return response.data;
+  }
+
   // Excalidraw wireframe refinement via AI
   async refineWireframe(
     ticketId: string,

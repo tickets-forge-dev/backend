@@ -1877,6 +1877,11 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
           {ticket.title}
         </span>
         {ticketStatus === 'needs-resume' && <span className="flex-shrink-0 text-red-500 text-xs">{'\u274C'}</span>}
+        {isDraft && (
+          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--text-tertiary)] bg-[var(--bg-hover)]">
+            Draft
+          </span>
+        )}
         {/* Tag pills */}
         {visibleTicketTags.length > 0 && (
           <span className="flex items-center gap-1 flex-shrink-0 ml-1">

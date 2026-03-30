@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { AlertTriangle, ArrowRight, Lock, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Lock, Plus, GitBranch, Pencil, Loader2 } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS } from '../../config/ticketStatusConfig';
@@ -18,6 +18,18 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/core/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/core/components/ui/dialog';
+import { Button } from '@/core/components/ui/button';
+import { RepositorySelector } from '../RepositorySelector';
+import { BranchSelector } from '../BranchSelector';
+import { useSettingsStore } from '@/stores/settings.store';
+import { toast } from 'sonner';
 
 /** Maps current status → hint with and without a developer assigned. */
 const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> = {
@@ -85,6 +97,26 @@ export function OverviewCard({
     || creatorMember?.displayName
     || creatorMember?.email
     || (ticket.createdBy && ticket.createdBy === user?.uid ? (user?.displayName || user?.email || null) : null);
+
+  // Repository connect dialog
+  const [repoDialogOpen, setRepoDialogOpen] = useState(false);
+  const [isSavingRepo, setIsSavingRepo] = useState(false);
+  const { selectedRepository, selectedBranch } = useTicketsStore();
+
+  const handleSaveRepository = async () => {
+    if (!selectedRepository || !selectedBranch) return;
+    setIsSavingRepo(true);
+    try {
+      await ticketService.updateTicketRepository(ticket.id, selectedRepository, selectedBranch);
+      await refreshTicket(ticket.id);
+      setRepoDialogOpen(false);
+      toast.success('Repository connected');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to connect repository');
+    } finally {
+      setIsSavingRepo(false);
+    }
+  };
 
   // Optimistic local tag IDs so pills render immediately after selection
   const [localTagIds, setLocalTagIds] = useState<string[]>(ticket.tagIds ?? []);
@@ -178,6 +210,60 @@ export function OverviewCard({
           </TicketLifecycleInfo>
         )}
       </div>
+
+      {/* Repository row */}
+      <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center gap-2">
+        <GitBranch className="h-3 w-3 text-[var(--text-tertiary)] shrink-0" />
+        {ticket.repositoryContext ? (
+          <button
+            onClick={() => setRepoDialogOpen(true)}
+            className="group flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
+          >
+            <span className="font-medium">{ticket.repositoryContext.repositoryFullName}</span>
+            <span className="text-[var(--text-tertiary)]">·</span>
+            <span>{ticket.repositoryContext.branchName}</span>
+            <Pencil className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setRepoDialogOpen(true)}
+            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--primary)] transition-colors"
+          >
+            Connect repository
+          </button>
+        )}
+      </div>
+
+      {/* Connect Repository Dialog */}
+      <Dialog open={repoDialogOpen} onOpenChange={setRepoDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">
+              {ticket.repositoryContext ? 'Change Repository' : 'Connect Repository'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--text-tertiary)]">
+              Link a GitHub repository for code-aware development.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <RepositorySelector />
+            <BranchSelector />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setRepoDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!selectedRepository || !selectedBranch || isSavingRepo}
+                onClick={handleSaveRepository}
+              >
+                {isSavingRepo && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                {isSavingRepo ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Bottom row: progress dots + next step hint or action slot */}
       {(hint || actionSlot) && (
