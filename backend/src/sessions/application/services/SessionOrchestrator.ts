@@ -3,6 +3,8 @@ import { SessionRepository, SESSION_REPOSITORY } from '../ports/SessionRepositor
 import { SandboxPort, SandboxHandle, SandboxConfig, SANDBOX_PORT } from '../ports/SandboxPort';
 import { translateEvent, RawCliEvent, UiEvent } from './EventTranslator';
 import { NotificationService } from '../../../notifications/notification.service';
+import { USAGE_QUOTA_REPOSITORY } from '../../../billing/application/ports';
+import type { UsageQuotaRepository } from '../../../billing/application/ports/UsageQuotaRepository.port';
 
 export interface SessionProgressCallback {
   onEvent: (event: UiEvent) => void;
@@ -19,6 +21,7 @@ export class SessionOrchestrator {
     @Inject(SESSION_REPOSITORY) private readonly sessionRepository: SessionRepository,
     @Inject(SANDBOX_PORT) private readonly sandboxPort: SandboxPort,
     private readonly notificationService: NotificationService,
+    @Inject(USAGE_QUOTA_REPOSITORY) private readonly quotaRepository: UsageQuotaRepository,
   ) {}
 
   async run(
@@ -97,6 +100,20 @@ export class SessionOrchestrator {
       if (completedSession && completedSession.isActive()) {
         completedSession.markCompleted(lastCostUsd, '', 0);
         await this.sessionRepository.save(completedSession);
+      }
+
+      // 5. Deduct quota (fire-and-forget — don't fail the session if quota update fails)
+      if (completedSession) {
+        try {
+          const period = new Date().toISOString().slice(0, 7);
+          const quota = await this.quotaRepository.getOrCreate(completedSession.teamId, period);
+          quota.deduct();
+          await this.quotaRepository.save(quota);
+          this.logger.log(`Quota deducted for team ${completedSession.teamId}, period ${period}`);
+        } catch (quotaError) {
+          this.logger.warn(`Failed to deduct quota for session ${sessionId}: ${quotaError}`);
+          // Don't fail the session — quota is a billing concern, not a session lifecycle concern
+        }
       }
 
       callback.onComplete();
