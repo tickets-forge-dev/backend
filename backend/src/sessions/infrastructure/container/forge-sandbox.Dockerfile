@@ -15,6 +15,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # Claude Code CLI (pinned version — bump via weekly CI rebuild)
 RUN npm install -g @anthropic-ai/claude-code@1.0.34
 
+# Forge MCP server
+COPY forge-mcp-server/ /root/forge-mcp-server/
+RUN cd /root/forge-mcp-server && npm install && npm run build
+
 # Bootstrap script
 COPY bootstrap.sh /root/bootstrap.sh
 RUN chmod +x /root/bootstrap.sh
