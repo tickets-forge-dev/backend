@@ -70,6 +70,47 @@ export class GitHubAppTokenService {
   }
 
   /**
+   * Get the first (and typically only) GitHub App installation.
+   * Used as a fallback when no installation ID is stored in Firestore.
+   * Returns null if no installations exist or if the app is not configured.
+   */
+  async getFirstInstallationId(): Promise<number | null> {
+    try {
+      const appJwt = this.generateAppJwt();
+
+      const response = await fetch('https://api.github.com/app/installations', {
+        headers: {
+          Authorization: `Bearer ${appJwt}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        this.logger.warn(`Failed to list GitHub App installations: ${response.status} ${body}`);
+        return null;
+      }
+
+      const installations = (await response.json()) as Array<{ id: number; account: { login: string } }>;
+
+      if (!installations || installations.length === 0) {
+        this.logger.warn('No GitHub App installations found');
+        return null;
+      }
+
+      this.logger.log(
+        `Found ${installations.length} GitHub App installation(s). Using first: ${installations[0].id} (${installations[0].account?.login})`,
+      );
+
+      return installations[0].id;
+    } catch (error) {
+      this.logger.warn(`Failed to list GitHub App installations: ${error}`);
+      return null;
+    }
+  }
+
+  /**
    * Generate a JWT signed with the GitHub App's private key.
    * Valid for 10 minutes (GitHub's maximum).
    */

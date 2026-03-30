@@ -17,6 +17,7 @@ import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseA
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
+import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { GitHubAppTokenService } from '../../../github/application/services/github-app-token.service';
 import { GitHubIntegrationRepository, GITHUB_INTEGRATION_REPOSITORY } from '../../../github/domain/GitHubIntegrationRepository';
 
@@ -38,6 +39,7 @@ export class SessionsController {
   async startSession(
     @Param('ticketId') ticketId: string,
     @TeamId() teamId: string,
+    @WorkspaceId() workspaceId: string,
     @UserId() userId: string,
     @Res() res: Response,
   ): Promise<void> {
@@ -71,7 +73,7 @@ export class SessionsController {
     });
 
     // 5. Build sandbox config
-    const githubToken = await this.getGitHubToken(teamId);
+    const githubToken = await this.getGitHubToken(teamId, workspaceId);
     const repoUrl =
       repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}.git` : '';
 
@@ -123,14 +125,35 @@ export class SessionsController {
     }
   }
 
-  private async getGitHubToken(teamId: string): Promise<string> {
+  private async getGitHubToken(teamId: string, workspaceId: string): Promise<string> {
     try {
-      const integration = await this.githubIntegrationRepository.findByWorkspaceId(teamId);
-      if (!integration) {
-        this.logger.warn(`No GitHub App installation found for team ${teamId}`);
+      // Look up the GitHub integration using the legacy workspaceId (not teamId).
+      // WorkspaceGuard derives workspaceId as ws_team_<prefix> for backward-compat
+      // with integrations stored before the teamId-based routing was introduced.
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
+
+      if (integration) {
+        this.logger.log(
+          `Found GitHub integration for workspace ${workspaceId} (team ${teamId}), installationId=${integration.installationId}`,
+        );
+        return await this.githubAppTokenService.getInstallationToken(integration.installationId);
+      }
+
+      // Fallback: no Firestore record found. This can happen when the GitHub App was
+      // installed on the org but the OAuth integration was never completed (or was
+      // stored under a different workspaceId).  Query the GitHub App API directly to
+      // get the first available installation ID.
+      this.logger.warn(
+        `No GitHub integration record found for workspace ${workspaceId} (team ${teamId}). Falling back to GitHub App installations API.`,
+      );
+
+      const installationId = await this.githubAppTokenService.getFirstInstallationId();
+      if (!installationId) {
+        this.logger.warn(`No GitHub App installations found — sandbox will run without a token`);
         return '';
       }
-      return await this.githubAppTokenService.getInstallationToken(integration.installationId);
+
+      return await this.githubAppTokenService.getInstallationToken(installationId);
     } catch (error) {
       this.logger.warn(`Failed to get GitHub token for team ${teamId}: ${error}`);
       return '';
