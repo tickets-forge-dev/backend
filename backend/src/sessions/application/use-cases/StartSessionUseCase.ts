@@ -67,7 +67,18 @@ export class StartSessionUseCase {
     // 3. Check for existing active session
     const existingSession = await this.sessionRepository.findActiveByTicket(ticketId, teamId);
     if (existingSession) {
-      throw new ConflictException(`Ticket already has an active session: ${existingSession.id}`);
+      // If the session is stale (>5 min in provisioning, or >35 min in running), clean it up
+      const ageMs = Date.now() - existingSession.createdAt.getTime();
+      const isStaleProvisioning = existingSession.status === 'provisioning' && ageMs > 5 * 60 * 1000;
+      const isStaleRunning = existingSession.status === 'running' && ageMs > 35 * 60 * 1000;
+
+      if (isStaleProvisioning || isStaleRunning) {
+        this.logger.warn(`Cleaning up stale session ${existingSession.id} (status: ${existingSession.status}, age: ${Math.round(ageMs / 1000)}s)`);
+        existingSession.markFailed('Session timed out (stale cleanup)');
+        await this.sessionRepository.save(existingSession);
+      } else {
+        throw new ConflictException(`Ticket already has an active session: ${existingSession.id}`);
+      }
     }
 
     // 4. Resolve repo owner/name from repositoryContext (owner/repo format)
