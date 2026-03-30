@@ -100,16 +100,17 @@ export function SessionMonitorView({ ticketId, ticketStatus }: SessionMonitorVie
           if (event.type === 'event.message') {
             return <SessionMessage key={event.id} content={event.content ?? ''} />;
           }
-          if (event.type === 'event.thinking') {
-            return (
-              <div key={event.id} className="ml-8 flex items-center gap-1.5 py-1">
-                <Loader2 className="w-3 h-3 text-violet-500 animate-spin" />
-                <span className="text-[11px] text-[var(--text-tertiary)]">Thinking...</span>
-              </div>
-            );
-          }
+          // Skip thinking events in the list — shown as live indicator below
           return null;
         })}
+
+        {/* Live thinking indicator — only shown when Claude is actively thinking */}
+        {status === 'running' && events.length > 0 && events[events.length - 1].type === 'event.thinking' && (
+          <div className="ml-8 flex items-center gap-1.5 py-1">
+            <Loader2 className="w-3 h-3 text-violet-500 animate-spin" />
+            <span className="text-[11px] text-[var(--text-tertiary)]">Thinking...</span>
+          </div>
+        )}
       </div>
 
       {/* Summary */}

@@ -78,7 +78,7 @@ export class SessionsController {
     const sandboxConfig = {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
       githubToken,
-      forgeApiUrl: process.env.FORGE_API_URL || 'https://forge-api.onrender.com/api',
+      forgeApiUrl: process.env.FORGE_API_URL || 'https://forge-x3i7.onrender.com/api',
       forgeSessionJwt: '', // TODO: Generate session-scoped JWT
       ticketId,
       repoUrl,
