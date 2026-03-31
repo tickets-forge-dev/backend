@@ -76,8 +76,10 @@ Pick 1-3 skills. If none are clearly helpful, return an empty array.`,
         maxOutputTokens: 300,
       });
 
-      this.logger.log(`Haiku response: ${text}`);
-      const parsed = JSON.parse(text);
+      // Strip markdown code fences if present (LLM sometimes wraps JSON in ```json...```)
+      const cleanText = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      this.logger.log(`Haiku response (cleaned): ${cleanText}`);
+      const parsed = JSON.parse(cleanText);
       const recs = (parsed.recommended || []).slice(0, 3);
       this.logger.log(`Recommended ${recs.length} skills: ${recs.map((r: any) => r.skillId).join(', ')}`);
       return { recommended: recs };
