@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import { Play, Zap, ArrowRight } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { useSkillsStore } from '../../stores/skills.store';
-import { QuotaDisplay } from '../molecules/QuotaDisplay';
 import { SkillPicker } from '../molecules/SkillPicker';
 
 interface DevelopButtonProps {
@@ -20,14 +18,10 @@ interface DevelopButtonProps {
 }
 
 export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButtonProps) {
-  const { status, quota, fetchQuota } = useSessionStore();
+  const { status } = useSessionStore();
   const { getEffectiveSkillIds } = useSkillsStore();
   const isLoading = status === 'provisioning' || status === 'running';
   const isDisabled = isLoading;
-
-  useEffect(() => {
-    fetchQuota();
-  }, [fetchQuota]);
 
   const handleStart = () => {
     const skillIds = getEffectiveSkillIds();
@@ -63,9 +57,6 @@ export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButton
           Start Development
           <ArrowRight className="w-3.5 h-3.5 ml-auto opacity-50" />
         </button>
-
-        {/* Quota */}
-        <QuotaDisplay quota={quota} />
       </div>
     </div>
   );
