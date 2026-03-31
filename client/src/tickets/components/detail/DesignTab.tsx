@@ -2,16 +2,18 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { type DesignReference } from '@repo/shared-types';
-import { Eye, Figma, Loader2, Sparkles, RefreshCw, Monitor, Code2, ChevronDown } from 'lucide-react';
+import { Figma, Loader2, Sparkles, Monitor, Pencil } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/core/components/ui/button';
 import { DesignReferencesSection } from './DesignReferencesSection';
 import { AddDesignLinkDialog } from './AddDesignLinkDialog';
+import { DesignEditBlade } from './DesignEditBlade';
 import { VisualExpectationsSection } from '@/src/tickets/components/VisualExpectationsSection';
 import type { VisualExpectationsSpec, ExcalidrawDataSpec } from '@/types/question-refinement';
 import { TicketService } from '@/services/ticket.service';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { toast } from 'sonner';
+import { createPortal } from 'react-dom';
 
 interface DesignTabProps {
   ticketId: string;
@@ -23,7 +25,7 @@ interface DesignTabProps {
   onAddDesignReference: (url: string, title?: string) => Promise<void>;
   onRemoveDesignReference: (referenceId: string) => Promise<void>;
   onRefreshDesignReference?: (referenceId: string) => Promise<void>;
-  onRefresh?: () => Promise<void>; // Callback to refresh ticket data
+  onRefresh?: () => Promise<void>;
 }
 
 export function DesignTab({
@@ -43,16 +45,8 @@ export function DesignTab({
   const [isGeneratingWireframes, setIsGeneratingWireframes] = useState(false);
   const [isGeneratingUIDesc, setIsGeneratingUIDesc] = useState(false);
   const [wireframeContext, setWireframeContext] = useState('');
-  const [showValidationError, setShowValidationError] = useState(false);
-  const [showRegenerateForm, setShowRegenerateForm] = useState(false);
+  const [editBladeOpen, setEditBladeOpen] = useState(false);
   const ticketService = useMemo(() => new TicketService(), []);
-
-  // Clear validation error when user starts typing
-  useEffect(() => {
-    if (wireframeContext.trim()) {
-      setShowValidationError(false);
-    }
-  }, [wireframeContext]);
 
   const handleSaveExcalidraw = useCallback(async (data: ExcalidrawDataSpec) => {
     await ticketService.update(ticketId, {
@@ -73,13 +67,10 @@ export function DesignTab({
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
       const user = auth.currentUser;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (user) {
-        headers['Authorization'] = `Bearer ${await user.getIdToken()}`;
-      }
+      if (user) headers['Authorization'] = `Bearer ${await user.getIdToken()}`;
       const teamId = useTeamStore.getState().currentTeam?.id;
-      if (teamId) {
-        headers['x-team-id'] = teamId;
-      }
+      if (teamId) headers['x-team-id'] = teamId;
+
       const res = await fetch(`${API_URL}/tickets/generate-ui-description`, {
         method: 'POST',
         headers,
@@ -102,7 +93,6 @@ export function DesignTab({
     try {
       await ticketService.generateWireframes(ticketId, wireframeContext);
       toast.success('Wireframes generated');
-      setShowRegenerateForm(false);
       if (onRefresh) await onRefresh();
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || 'Failed to generate wireframes';
@@ -128,7 +118,7 @@ export function DesignTab({
           setIsFigmaConnected(data.connected === true);
         }
       } catch {
-        // Silently fail — default to not connected
+        // Silently fail
       }
     };
     checkFigmaStatus();
@@ -139,16 +129,10 @@ export function DesignTab({
     const hasPendingMetadata = references.some(
       (ref) => ref.metadataFetchStatus === 'pending'
     );
-
     if (!hasPendingMetadata || !onRefresh) return;
-
-    // Start polling every 2 seconds while metadata is being fetched
     const interval = setInterval(() => {
-      onRefresh().catch((error) => {
-        console.error('Failed to refresh design metadata:', error);
-      });
+      onRefresh().catch(() => {});
     }, 2000);
-
     return () => clearInterval(interval);
   }, [references, onRefresh]);
 
@@ -159,61 +143,19 @@ export function DesignTab({
 
   const hasVisualExpectations = (visualExpectations?.expectations?.length ?? 0) > 0;
 
-  /** Shared wireframe context form used in both empty and regenerate states */
-  const wireframeContextForm = (
-    <div className="w-full max-w-md">
-      <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs font-medium text-[var(--text-secondary)]">
-          Describe the UI
-        </label>
-        <button
-          type="button"
-          onClick={handleGenerateUIDescription}
-          disabled={isGeneratingUIDesc || !ticketTitle}
-          className="inline-flex items-center gap-1 text-[11px] text-purple-500 hover:text-purple-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {isGeneratingUIDesc ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <Sparkles className="h-3 w-3" />
-          )}
-          {isGeneratingUIDesc ? 'Generating...' : 'Generate with AI'}
-        </button>
-      </div>
-      <textarea
-        value={wireframeContext}
-        onChange={(e) => setWireframeContext(e.target.value)}
-        placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
-        rows={3}
-        className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-purple-500/30 resize-none"
-        disabled={isGeneratingWireframes}
-      />
-      <p className="text-[11px] text-[var(--text-tertiary)] mt-1">Optional — helps regenerate more accurate wireframes</p>
-    </div>
-  );
-
   return (
     <div className="space-y-8 p-5">
       {/* ─── Card 1: Wireframes ─── */}
       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-hidden">
         {hasVisualExpectations ? (
           <>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)]">
+            <div className="flex items-center px-5 py-3 border-b border-[var(--border-subtle)]">
               <div className="flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-purple-400" />
                 <h3 className="text-sm font-medium text-[var(--text)]">Wireframes</h3>
               </div>
-              <Button
-                onClick={() => setShowRegenerateForm(!showRegenerateForm)}
-                variant="ghost"
-                size="sm"
-                className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] h-7 text-xs"
-              >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Regenerate
-              </Button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5">
               <VisualExpectationsSection
                 summary={visualExpectations!.summary}
                 expectations={visualExpectations!.expectations}
@@ -222,22 +164,8 @@ export function DesignTab({
                 wireframeHtml={wireframeHtml}
                 ticketId={ticketId}
                 onSaveExcalidraw={handleSaveExcalidraw}
+                onEditSpecifications={() => setEditBladeOpen(true)}
               />
-
-              {showRegenerateForm && (
-                <div className="rounded-lg border border-dashed border-purple-500/20 bg-purple-500/5 p-5">
-                  <div className="flex flex-col items-center text-center gap-3">
-                    <p className="text-xs text-[var(--text-secondary)]">Describe the UI to regenerate wireframes</p>
-                    {wireframeContextForm}
-                    <div className="flex items-center gap-2 mt-1">
-                      <Button onClick={() => setShowRegenerateForm(false)} variant="ghost" size="sm" disabled={isGeneratingWireframes}>Cancel</Button>
-                      <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm">
-                        {isGeneratingWireframes ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Regenerating...</> : <><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Regenerate</>}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </>
         ) : (
@@ -252,7 +180,9 @@ export function DesignTab({
               <div className="flex flex-col items-center text-center gap-3 py-4">
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 <p className="text-sm text-[var(--text-secondary)]">No wireframes yet</p>
-                {wireframeContextForm}
+                <p className="text-[11px] text-[var(--text-tertiary)] max-w-sm">
+                  Generate screen specifications from the ticket's acceptance criteria and solution.
+                </p>
                 <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm" className="mt-1">
                   {isGeneratingWireframes ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generating...</> : <><Sparkles className="w-3.5 h-3.5 mr-1.5" />Generate Wireframes</>}
                 </Button>
@@ -287,6 +217,19 @@ export function DesignTab({
           onAdd={handleAddDesignLink}
           onClose={() => setShowAddDialog(false)}
         />
+      )}
+
+      {/* Edit blade — rendered via portal */}
+      {typeof window !== 'undefined' && createPortal(
+        <DesignEditBlade
+          open={editBladeOpen}
+          onClose={() => setEditBladeOpen(false)}
+          ticketId={ticketId}
+          ticketTitle={ticketTitle}
+          ticketDescription={ticketDescription}
+          onRefresh={onRefresh}
+        />,
+        document.body
       )}
     </div>
   );

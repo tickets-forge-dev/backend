@@ -131,6 +131,7 @@ export class TicketService {
 
   constructor() {
     this.client = createApiClient();
+    this.client.defaults.timeout = 120000; // LLM operations (wireframes, enrichment) need time
 
     // Add team context header
     this.client.interceptors.request.use(async (config) => {

@@ -353,12 +353,12 @@ export class AEC {
    * Stores the branch name and implementation Q&A session.
    */
   startImplementation(branchName: string, qaItems?: ReviewQAItem[]): void {
-    const allowedStatuses = [AECStatus.APPROVED, AECStatus.EXECUTING, AECStatus.DELIVERED];
-    if (!allowedStatuses.includes(this._status)) {
-      throw new InvalidStateTransitionError(
-        `Cannot start implementation from ${this._status}. Ticket must be approved first.`,
-      );
+    // Quick flow: auto-approve from early lifecycle states
+    const earlyStatuses = [AECStatus.DRAFT, AECStatus.DEFINED, AECStatus.REFINED];
+    if (earlyStatuses.includes(this._status)) {
+      this._approvedAt = new Date();
     }
+
     this._implementationBranch = branchName;
     this._implementationSession = {
       qaItems: qaItems ?? [],

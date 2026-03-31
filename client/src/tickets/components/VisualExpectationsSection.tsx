@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, Copy, Check, ChevronDown, ArrowRight, X, Monitor, Code2 } from 'lucide-react';
+import { Eye, Copy, Check, ChevronDown, ArrowRight, X, Monitor, Code2, Pencil } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import type { VisualExpectationsSpec, VisualExpectationSpec, ExcalidrawDataSpec } from '@/types/question-refinement';
 import { ExcalidrawEditor } from './ExcalidrawEditor';
@@ -127,6 +127,7 @@ interface VisualExpectationsSectionProps {
   wireframeHtml?: string | null;
   ticketId?: string;
   onSaveExcalidraw?: (data: ExcalidrawDataSpec) => Promise<void>;
+  onEditSpecifications?: () => void;
 }
 
 export function VisualExpectationsSection({
@@ -137,6 +138,7 @@ export function VisualExpectationsSection({
   wireframeHtml,
   ticketId,
   onSaveExcalidraw,
+  onEditSpecifications,
 }: VisualExpectationsSectionProps) {
   const [showFlow, setShowFlow] = useState(false);
   const [showHtmlPreview, setShowHtmlPreview] = useState(false);
@@ -192,31 +194,31 @@ export function VisualExpectationsSection({
         {summary}
       </p>
 
-      {/* State overview badges */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {Object.entries(stateCounts).map(([state, count]) => {
-          const info = STATE_LABELS[state] || STATE_LABELS.default;
-          return (
-            <span key={state} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${info.color}`}>
-              {info.label}: {count}
-            </span>
-          );
-        })}
-      </div>
 
       {/* ─── ASCII Screen Specs (for coding agents) — collapsed by default ─── */}
       <div className="rounded-lg border border-[var(--border-subtle)]">
-        <button
-          onClick={() => setShowAsciiSpecs(!showAsciiSpecs)}
-          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[var(--bg-hover)] transition-colors rounded-lg"
-        >
-          <Code2 className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
-          <span className="text-xs font-medium text-[var(--text-secondary)] flex-1">
-            Screen Specifications
-          </span>
-          <span className="text-[10px] text-[var(--text-tertiary)] mr-1">{expectations.length} screens</span>
-          <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform ${showAsciiSpecs ? 'rotate-180' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <button
+            onClick={() => setShowAsciiSpecs(!showAsciiSpecs)}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left hover:bg-[var(--bg-hover)] transition-colors rounded-md -ml-1 px-1 py-0.5"
+          >
+            <Code2 className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
+            <span className="text-xs font-medium text-[var(--text-secondary)] flex-1">
+              Screen Specifications
+            </span>
+            <span className="text-[10px] text-[var(--text-tertiary)]">{expectations.length} screens</span>
+            <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform ${showAsciiSpecs ? 'rotate-180' : ''}`} />
+          </button>
+          {onEditSpecifications && (
+            <button
+              onClick={onEditSpecifications}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-active)] transition-colors shrink-0"
+            >
+              <Pencil className="w-2.5 h-2.5" />
+              Edit
+            </button>
+          )}
+        </div>
 
         {showAsciiSpecs && (
           <div className="border-t border-[var(--border-subtle)] px-3 py-3 space-y-2">
