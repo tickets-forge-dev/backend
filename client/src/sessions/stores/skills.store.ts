@@ -74,11 +74,14 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        set({
-          recommended: parsed,
-          selectedIds: parsed.map((r: SkillRecommendation) => r.skillId),
-        });
-        return;
+        // Only use cache if it has actual recommendations
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          set({
+            recommended: parsed,
+            selectedIds: parsed.map((r: SkillRecommendation) => r.skillId),
+          });
+          return;
+        }
       } catch { /* corrupted cache — refetch */ }
     }
 
@@ -96,12 +99,17 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       if (res.ok) {
         const data = await res.json();
         const recs = data.recommended || [];
-        sessionStorage.setItem(cacheKey, JSON.stringify(recs));
+        // Only cache non-empty results
+        if (recs.length > 0) {
+          sessionStorage.setItem(cacheKey, JSON.stringify(recs));
+        }
         set({
           recommended: recs,
           selectedIds: recs.map((r: SkillRecommendation) => r.skillId),
           isLoadingRecommendations: false,
         });
+      } else {
+        set({ isLoadingRecommendations: false });
       }
     } catch {
       set({ isLoadingRecommendations: false });
