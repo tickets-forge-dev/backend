@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
-import { Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, ShieldCheck, AlertCircle, CheckCircle2, Send } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 import type { SessionEvent } from '../../types/session.types';
@@ -209,7 +209,63 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         </div>
       )}
 
+      {/* Follow-up input — shown after completion */}
+      {status === 'completed' && (
+        <FollowUpInput
+          ticketId={ticketId}
+          onSubmit={(request) => {
+            reset();
+            startSession(ticketId, undefined, request);
+          }}
+        />
+      )}
+
       <div ref={bottomRef} />
+    </div>
+  );
+}
+
+/** Follow-up input — lets user request changes after development completes */
+function FollowUpInput({ ticketId, onSubmit }: { ticketId: string; onSubmit: (request: string) => void }) {
+  const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 300);
+  }, []);
+
+  const handleSend = () => {
+    const text = input.trim();
+    if (!text) return;
+    onSubmit(text);
+  };
+
+  return (
+    <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
+      <p className="text-[11px] text-[var(--text-tertiary)] mb-2">Request changes or continue developing</p>
+      <div className="flex items-end gap-2">
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder="e.g. Add retry logic to the webhook sender..."
+          rows={2}
+          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-hover)] resize-none scrollbar-thin"
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim()}
+          className="p-2 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[var(--text-secondary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+        >
+          <Send className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 }

@@ -41,6 +41,7 @@ export class SessionsController {
   async startSession(
     @Param('ticketId') ticketId: string,
     @Query('skills') skillsParam: string | undefined,
+    @Query('followUp') followUpParam: string | undefined,
     @TeamId() teamId: string,
     @WorkspaceId() workspaceId: string,
     @UserId() userId: string,
@@ -96,7 +97,7 @@ export class SessionsController {
       ticketId,
       repoUrl,
       branch,
-      systemPrompt: buildSystemPrompt(ticketId, fileChanges),
+      systemPrompt: buildSystemPrompt(ticketId, fileChanges, followUpParam),
       model,
       maxDurationMs,
       installationId: installationId ?? undefined,

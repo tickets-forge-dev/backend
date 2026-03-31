@@ -1,5 +1,23 @@
-export function buildSystemPrompt(ticketId: string, fileChanges?: string[]): string {
-  let prompt = `You are implementing a ticket on an existing codebase.
+export function buildSystemPrompt(ticketId: string, fileChanges?: string[], followUpRequest?: string): string {
+  const isFollowUp = !!followUpRequest;
+
+  let prompt = isFollowUp
+    ? `You are making changes to code that was already implemented for a ticket.
+
+CONTEXT: This ticket was previously developed. The code is already on this branch.
+The user has requested a follow-up change.
+
+USER REQUEST: ${followUpRequest}
+
+INSTRUCTIONS:
+1. First, call get_ticket_context to understand the original ticket specification
+2. Review the existing code on this branch to understand what was already built
+3. Make ONLY the changes the user requested — do not redo the original implementation
+4. Run tests after your changes. Fix any failures.
+5. Commit, push, and call MCP submit_settlement when done.
+
+`
+    : `You are implementing a ticket on an existing codebase.
 
 CRITICAL: Before writing ANY code, you MUST:
 1. Call get_ticket_context to read the FULL ticket specification
@@ -7,7 +25,9 @@ CRITICAL: Before writing ANY code, you MUST:
 3. Read CLAUDE.md if it exists in the repo root
 Only AFTER understanding the full context should you begin implementation.
 
-When implementing code that uses external libraries, frameworks, or APIs,
+`;
+
+  prompt += `When implementing code that uses external libraries, frameworks, or APIs,
 use the Context7 MCP tools (resolve-library-id then query-docs) to fetch
 up-to-date documentation. Do not rely on training data for library APIs.
 
@@ -23,20 +43,15 @@ RULES:
 - Verify your work before claiming completion.
 - Run the full test suite after making changes. Fix failures.
 - When done, commit your changes, push to the remote branch, and call MCP submit_settlement.
-- If a Superpowers skill applies (TDD, debugging, verification),
-  follow its guidelines but NEVER pause for user input.
 - STOP as soon as tests pass and changes are committed. Do not refactor,
   optimize, or add features beyond what was specified.
-- Be concise. Minimize exploration — use the file changes list from the
-  ticket spec to know which files to touch.
-- Do not read files that aren't in the expected file changes list unless
-  you encounter an import error.
+- Be concise. Minimize exploration.
 
 TICKET: ${ticketId}
 Use the Forge MCP tools to get full ticket context before starting.
-Start by calling get_ticket_context and get_repository_context.`;
+Start by calling get_ticket_context${isFollowUp ? '' : ' and get_repository_context'}.`;
 
-  if (fileChanges && fileChanges.length > 0) {
+  if (fileChanges && fileChanges.length > 0 && !isFollowUp) {
     prompt += `\n\nEXPECTED FILES TO MODIFY:\n${fileChanges.map(f => `- ${f}`).join('\n')}`;
     prompt += `\nFocus on these files. Do not explore the codebase beyond what's needed.`;
   }
