@@ -139,6 +139,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     return () => clearInterval(interval);
   }, [ticketId, refreshTicket]);
 
+  // Refresh ticket when session completes — updates status badge and lifecycle bar
+  useEffect(() => {
+    if (sessionStatus === 'completed' && ticketId) {
+      refreshTicket(ticketId);
+    }
+  }, [sessionStatus, ticketId, refreshTicket]);
+
   // Ensure team members are loaded (needed for "Created by" name resolution)
   useEffect(() => {
     if (currentTeam?.id && teamMembers.length === 0) {
@@ -844,8 +851,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           <TicketDevelopButton
             onClick={() => setDevelopBladeOpen(true)}
             status={
-              sessionStatus === 'running' || sessionStatus === 'provisioning' || currentTicket.status === 'executing' ? 'running'
-              : currentTicket.status === 'delivered' || sessionStatus === 'completed' ? 'completed'
+              sessionStatus === 'completed' || currentTicket.status === 'delivered' ? 'completed'
+              : sessionStatus === 'running' || sessionStatus === 'provisioning' || currentTicket.status === 'executing' ? 'running'
               : 'idle'
             }
 />
