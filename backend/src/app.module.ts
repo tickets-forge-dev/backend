@@ -18,6 +18,7 @@ import { ProjectProfilesModule } from './project-profiles/project-profiles.modul
 import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { SessionsModule } from './sessions/sessions.module';
+import { SkillsModule } from './skills/skills.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { SessionsModule } from './sessions/sessions.module';
     ProjectProfilesModule,
     UsersModule,
     SessionsModule,
+    SkillsModule,
   ],
   controllers: [],
   providers: [],
