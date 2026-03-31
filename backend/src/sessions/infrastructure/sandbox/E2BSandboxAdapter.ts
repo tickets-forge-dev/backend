@@ -118,6 +118,11 @@ export class E2BSandboxAdapter implements SandboxPort {
               TICKET_ID: config.ticketId,
             },
           },
+          context7: {
+            type: 'url',
+            url: 'https://mcp.context7.com/mcp',
+            headers: { CONTEXT7_API_KEY: process.env.CONTEXT7_API_KEY || '' },
+          },
         },
       };
       await sandbox.files.write('/home/user/.forge-mcp.json', JSON.stringify(mcpConfig, null, 2));
@@ -136,8 +141,9 @@ export class E2BSandboxAdapter implements SandboxPort {
     let exitHandler: ((code: number) => void) | null = null;
 
     const mcpFlag = isLocalApi ? '' : ' --mcp-config /home/user/.forge-mcp.json';
+    const pluginFlags = (config.skillIds || []).map(id => ` --plugin-dir /home/user/skills/${id}`).join('');
     const commandHandle = await sandbox.commands.run(
-      `claude -p "Implement the ticket according to the system prompt instructions." --append-system-prompt-file /home/user/system_prompt.txt --output-format stream-json --verbose --model ${toClaudeCodeModel(config.model)} --max-turns 30 --dangerously-skip-permissions${mcpFlag}`,
+      `claude -p "Implement the ticket according to the system prompt instructions." --append-system-prompt-file /home/user/system_prompt.txt --output-format stream-json --verbose --model ${toClaudeCodeModel(config.model)} --max-turns 30 --dangerously-skip-permissions${mcpFlag}${pluginFlags}`,
       {
         background: true,
         cwd: workDir,

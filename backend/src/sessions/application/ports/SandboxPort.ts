@@ -12,6 +12,8 @@ export interface SandboxConfig {
   model: string;
   /** GitHub App installation ID — used for PR creation after completion */
   installationId?: number;
+  /** Marketplace skill IDs to mount as --plugin-dir in the sandbox */
+  skillIds?: string[];
 }
 
 export interface SandboxHandle {

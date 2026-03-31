@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Param,
+  Query,
   HttpCode,
   UseGuards,
   Res,
@@ -39,11 +40,13 @@ export class SessionsController {
   @Post(':ticketId/start')
   async startSession(
     @Param('ticketId') ticketId: string,
+    @Query('skills') skillsParam: string | undefined,
     @TeamId() teamId: string,
     @WorkspaceId() workspaceId: string,
     @UserId() userId: string,
     @Res() res: Response,
   ): Promise<void> {
+    const skillIds = skillsParam ? skillsParam.split(',').filter(Boolean) : [];
     // 1. Create session (validates ticket, quota, etc.)
     const { sessionId, repoOwner, repoName, branch, model, maxDurationMs, fileChanges } = await this.startSessionUseCase.execute({
       ticketId,
@@ -97,6 +100,7 @@ export class SessionsController {
       model,
       maxDurationMs,
       installationId: installationId ?? undefined,
+      skillIds,
     };
 
     // Fail-fast: validate required sandbox config before spinning up the sandbox
