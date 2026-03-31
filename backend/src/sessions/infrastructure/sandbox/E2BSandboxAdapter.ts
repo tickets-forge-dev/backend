@@ -141,9 +141,12 @@ export class E2BSandboxAdapter implements SandboxPort {
     let exitHandler: ((code: number) => void) | null = null;
 
     const mcpFlag = isLocalApi ? '' : ' --mcp-config /home/user/.forge-mcp.json';
-    // Sanitize skill IDs — alphanumeric + hyphens only to prevent path traversal
-    const safeSkillIds = (config.skillIds || []).filter(id => /^[a-z0-9-]+$/.test(id));
-    const pluginFlags = safeSkillIds.map(id => ` --plugin-dir /home/user/skills/${id}`).join('');
+    // Core skills — always loaded, not user-selectable
+    const coreSkills = ['debug-first', 'verify-before-done', 'structured-execution', 'self-review'];
+    // User-selected skills — sanitize IDs to prevent path traversal
+    const userSkillIds = (config.skillIds || []).filter(id => /^[a-z0-9-]+$/.test(id));
+    const allSkillIds = [...new Set([...coreSkills, ...userSkillIds])];
+    const pluginFlags = allSkillIds.map(id => ` --plugin-dir /home/user/skills/${id}`).join('');
     const commandHandle = await sandbox.commands.run(
       `claude -p "Implement the ticket according to the system prompt instructions." --append-system-prompt-file /home/user/system_prompt.txt --output-format stream-json --verbose --model ${toClaudeCodeModel(config.model)} --max-turns 30 --dangerously-skip-permissions${mcpFlag}${pluginFlags}`,
       {
