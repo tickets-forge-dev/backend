@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { SkillsController } from './presentation/controllers/skills.controller';
 import { GetSkillCatalogUseCase } from './application/use-cases/GetSkillCatalogUseCase';
+import { RecommendSkillsUseCase } from './application/use-cases/RecommendSkillsUseCase';
 import { SKILL_REPOSITORY } from './application/ports/SkillRepository.port';
 import { FirestoreSkillRepository } from './infrastructure/persistence/FirestoreSkillRepository';
 import { SharedModule } from '../shared/shared.module';
+import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
-  imports: [SharedModule],
+  imports: [SharedModule, TicketsModule],
   controllers: [SkillsController],
   providers: [
     GetSkillCatalogUseCase,
+    RecommendSkillsUseCase,
     { provide: SKILL_REPOSITORY, useClass: FirestoreSkillRepository },
   ],
   exports: [SKILL_REPOSITORY, GetSkillCatalogUseCase],
