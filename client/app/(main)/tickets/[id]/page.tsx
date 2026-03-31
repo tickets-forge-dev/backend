@@ -844,7 +844,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           <TicketDevelopButton
             onClick={() => setDevelopBladeOpen(true)}
             status={
-              sessionStatus === 'running' || sessionStatus === 'provisioning' ? 'running'
+              sessionStatus === 'running' || sessionStatus === 'provisioning' || currentTicket.status === 'executing' ? 'running'
               : currentTicket.status === 'delivered' || sessionStatus === 'completed' ? 'completed'
               : 'idle'
             }

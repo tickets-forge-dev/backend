@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ExternalLink, GitPullRequest, GitBranch, Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import type { SessionSummary as SummaryType } from '../../types/session.types';
 import { ElapsedTimer } from '../atoms/ElapsedTimer';
 
@@ -117,6 +118,7 @@ export function SessionSummary({ summary }: SessionSummaryProps) {
               if (summary.prUrl) parts.push(`PR: ${summary.prUrl}`);
               if (summary.branch) parts.push(`Branch: ${summary.branch}`);
               await navigator.clipboard.writeText(parts.join('\n'));
+              toast.success('Copied');
             }}
             className="text-[11px] text-violet-500 hover:text-violet-400 transition-colors"
           >

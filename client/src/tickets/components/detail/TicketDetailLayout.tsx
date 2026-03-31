@@ -749,23 +749,6 @@ export function TicketDetailLayout({
         </div>
 
         <TabsContent value="spec" className="mt-6">
-          {/* Mobile section pills — shown below xl only */}
-          <div className="hidden sm:flex xl:hidden gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-            {specSections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollTo('spec', s.id)}
-                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
-                  activeSection === `spec-${s.id}`
-                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
-                }`}
-              >
-                {s.short}
-              </button>
-            ))}
-          </div>
-
           <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <SpecificationTab
               ticket={ticket}

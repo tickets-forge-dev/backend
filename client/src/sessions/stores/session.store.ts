@@ -8,6 +8,28 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 let _sessionAbortController: AbortController | undefined;
 let _eventCounter = 0;
 
+const SESSION_STORAGE_KEY = 'forge:session-state';
+
+function persistSession(ticketId: string, events: SessionEvent[], status: SessionStatus, summary: SessionSummary | null, elapsedSeconds: number) {
+  try {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ ticketId, events, status, summary, elapsedSeconds }));
+  } catch { /* quota exceeded — ignore */ }
+}
+
+function restoreSession(ticketId: string): { events: SessionEvent[]; status: SessionStatus; summary: SessionSummary | null; elapsedSeconds: number } | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.ticketId !== ticketId) return null;
+    return { events: data.events ?? [], status: data.status ?? 'idle', summary: data.summary ?? null, elapsedSeconds: data.elapsedSeconds ?? 0 };
+  } catch { return null; }
+}
+
+function clearPersistedSession() {
+  try { sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch {}
+}
+
 async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   const user = auth.currentUser;
   const incomingHeaders = (init?.headers as Record<string, string>) || {};
@@ -44,6 +66,7 @@ interface SessionState {
   startSession: (ticketId: string) => Promise<void>;
   cancelSession: () => Promise<void>;
   fetchQuota: () => Promise<void>;
+  restoreSession: (ticketId: string) => boolean;
   reset: () => void;
 }
 
@@ -146,18 +169,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
           // Handle summary (session complete)
           if (event.type === 'event.summary') {
-            set({
-              status: 'completed',
-              summary: {
-                prUrl: (event as any).prUrl ?? null,
-                prNumber: (event as any).prNumber ?? null,
-                branch: (event as any).branch ?? null,
-                repoFullName: (event as any).repoFullName ?? null,
-                filesChanged: event.numTurns ?? 0,
-                costUsd: event.costUsd ?? 0,
-                durationMs: event.durationMs ?? 0,
-              },
-            });
+            const summaryData = {
+              prUrl: (event as any).prUrl ?? null,
+              prNumber: (event as any).prNumber ?? null,
+              branch: (event as any).branch ?? null,
+              repoFullName: (event as any).repoFullName ?? null,
+              filesChanged: event.numTurns ?? 0,
+              costUsd: event.costUsd ?? 0,
+              durationMs: event.durationMs ?? 0,
+            };
+            set({ status: 'completed', summary: summaryData });
+            persistSession(ticketId, get().events, 'completed', summaryData, get().elapsedSeconds);
             clearInterval(timerInterval);
             continue;
           }
@@ -187,6 +209,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             newPending.set(event.toolUseId, newEvents.length - 1);
           }
           set({ events: newEvents, pendingTools: newPending });
+          persistSession(ticketId, newEvents, get().status, get().summary, get().elapsedSeconds);
         }
       }
 
@@ -240,7 +263,23 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
+  restoreSession: (ticketId: string) => {
+    const state = get();
+    if (state.status !== 'idle' || state.events.length > 0) return false;
+    const saved = restoreSession(ticketId);
+    if (!saved || saved.events.length === 0) return false;
+    set({
+      ticketId,
+      status: saved.status === 'running' ? 'completed' : saved.status,
+      events: saved.events,
+      summary: saved.summary,
+      elapsedSeconds: saved.elapsedSeconds,
+    });
+    return true;
+  },
+
   reset: () => {
+    clearPersistedSession();
     if (_sessionAbortController) {
       _sessionAbortController.abort();
       _sessionAbortController = undefined;

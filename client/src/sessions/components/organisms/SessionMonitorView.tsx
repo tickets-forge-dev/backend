@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
-import { Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 import type { SessionEvent } from '../../types/session.types';
@@ -54,11 +54,15 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
 }
 
 export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch }: SessionMonitorViewProps) {
-  const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset } = useSessionStore();
+  const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
 
   useEffect(() => {
     fetchQuota();
-  }, [fetchQuota]);
+    // Restore session from sessionStorage if the store is empty but ticket is executing/delivered
+    if (status === 'idle' && (ticketStatus === 'executing' || ticketStatus === 'delivered')) {
+      restoreSessionState(ticketId);
+    }
+  }, [fetchQuota, ticketId, ticketStatus]);
 
   const renderGroups = useMemo(() => groupEvents(events), [events]);
 
@@ -79,6 +83,39 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [events.length]);
+
+  // If store is idle but ticket is executing/delivered, show a resumed state
+  if (status === 'idle' && (ticketStatus === 'executing' || ticketStatus === 'delivered')) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-6">
+        <div className="w-full max-w-sm space-y-5 text-center">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/10 mb-1">
+            {ticketStatus === 'executing' ? (
+              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            )}
+          </div>
+          <h3 className="text-[15px] font-semibold text-[var(--text)]">
+            {ticketStatus === 'executing' ? 'Development in progress' : 'Development complete'}
+          </h3>
+          <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">
+            {ticketStatus === 'executing'
+              ? 'The AI agent is working on this ticket. The session was started before this page loaded.'
+              : 'This ticket has been developed. Check the Record tab for details.'}
+          </p>
+          {ticketStatus === 'executing' && (
+            <button
+              onClick={() => startSession(ticketId)}
+              className="px-4 py-2 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[12px] font-medium text-[var(--text)] transition-colors"
+            >
+              Restart Development
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (status === 'idle') {
     return (

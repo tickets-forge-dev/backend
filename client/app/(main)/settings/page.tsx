@@ -9,10 +9,11 @@ import { JiraIntegration } from '@/src/settings/components/JiraIntegration';
 import { FigmaIntegration } from '@/src/settings/components/FigmaIntegration';
 import { RoleSettings } from '@/src/settings/components/RoleSettings';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
+import { useFont, FONT_OPTIONS, type FontFamily } from '@/src/hooks/useFont';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSessionStore } from '@/src/sessions/stores/session.store';
 import Link from 'next/link';
-import { X, Monitor, Sun, Moon, User, FileText, Play, Info } from 'lucide-react';
+import { X, Monitor, Sun, Moon, User, FileText, Play, Info, Type } from 'lucide-react';
 
 function UsageSection() {
   const ticketQuota = useTicketsStore((s) => s.quota);
@@ -138,6 +139,7 @@ function UsageSection() {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { font, setFont } = useFont();
   return (
     <div className="space-y-8 max-w-[var(--content-max)] mx-auto px-6 py-10">
       {/* Header */}
@@ -188,6 +190,21 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="px-5 py-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-[var(--text)] text-[var(--text-sm)]">Font</p>
+              <p className="text-[var(--text-tertiary)] text-[11px] mt-0.5">Choose your preferred typeface</p>
+            </div>
+            <select
+              value={font}
+              onChange={(e) => setFont(e.target.value as FontFamily)}
+              className="rounded-lg bg-[var(--bg-hover)] border border-[var(--border-subtle)] px-3 py-1.5 text-[12px] font-medium text-[var(--text)] focus:outline-none focus:border-[var(--border-hover)] cursor-pointer"
+            >
+              {FONT_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
           </div>
         </div>
       </section>
