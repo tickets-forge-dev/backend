@@ -10,70 +10,61 @@ function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { c
   );
 
   return (
-    <div className="w-72 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] shadow-lg p-3">
-      <p className="text-xs font-semibold text-[var(--text)] mb-3">Ticket Lifecycle</p>
+    <div className="w-64 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] shadow-md p-3.5">
+      <p className="text-[11px] font-medium text-[var(--text-secondary)] mb-3">Lifecycle</p>
 
       <div className="space-y-0">
         {LIFECYCLE_STEPS.map((step, i) => {
           const isCurrent = step.key === currentStatus;
           const isLast = i === LIFECYCLE_STEPS.length - 1;
-          const statusCfg = TICKET_STATUS_CONFIG[step.key];
           const isClickable = onTransition && !isCurrent;
           const isBefore = currentIdx >= 0 && i < currentIdx;
-          const isAfter = currentIdx >= 0 && i > currentIdx;
-          // Dim optional steps when no developer is assigned and step hasn't been reached
           const isDimmed = !hasAssignee && step.optional && !isCurrent && !isBefore;
 
           return (
-            <div key={step.key} className={`flex gap-2.5 ${isDimmed ? 'opacity-40' : ''}`}>
+            <div key={step.key} className={`flex gap-2.5 ${isDimmed ? 'opacity-30' : ''}`}>
               {/* Vertical track */}
-              <div className="flex flex-col items-center w-4 shrink-0">
+              <div className="flex flex-col items-center w-3 shrink-0">
                 <div
-                  className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  className={`h-3 w-3 rounded-full flex items-center justify-center shrink-0 ${
                     isCurrent
-                      ? 'border-[var(--text-secondary)] bg-[var(--text-secondary)]'
-                      : isDimmed
-                        ? 'border-dashed border-[var(--border)] bg-[var(--bg)]'
-                        : 'border-[var(--border)] bg-[var(--bg)]'
+                      ? 'bg-blue-500'
+                      : isBefore
+                        ? 'bg-emerald-500/40'
+                        : 'border-2 border-white/20'
                   }`}
                 >
                   {isCurrent && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                    <div className="h-1 w-1 rounded-full bg-white" />
                   )}
                 </div>
                 {!isLast && (
-                  <div className={`w-px flex-1 min-h-[16px] ${isDimmed ? 'border-l border-dashed border-[var(--border)]' : 'bg-[var(--border)]'}`} />
+                  <div className={`w-px flex-1 min-h-[12px] ${
+                    isBefore ? 'bg-emerald-500/20' : 'bg-[var(--border-subtle)]'
+                  }`} />
                 )}
               </div>
 
               {/* Content */}
-              <div className={`pb-3 -mt-0.5 ${isLast ? 'pb-0' : ''}`}>
+              <div className={`pb-2.5 -mt-0.5 ${isLast ? 'pb-0' : ''}`}>
                 {isClickable && !isDimmed ? (
                   <button
                     onClick={() => onTransition(step.key)}
-                    className={`group/step inline-flex items-center gap-1.5 px-2 py-1 -mx-0.5 rounded-md text-[11px] font-medium leading-none transition-all cursor-pointer border border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)]`}
+                    className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
                   >
-                    {isBefore ? '\u2190' : '\u2192'}
                     {step.label}
                   </button>
                 ) : (
-                  <span
-                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium leading-none ${
-                      isCurrent
-                        ? 'bg-[var(--bg-hover)] text-[var(--text-secondary)] font-semibold'
-                        : statusCfg?.badgeClass ?? 'text-[var(--text-secondary)]'
-                    }`}
-                  >
+                  <span className={`text-[11px] font-medium ${
+                    isCurrent ? 'text-[var(--text)]' : 'text-[var(--text-tertiary)]'
+                  }`}>
                     {step.label}
-                    {isDimmed && <span className="ml-1 font-normal opacity-70">· optional</span>}
+                    {isDimmed && <span className="ml-1 font-normal opacity-70">· skip</span>}
                   </span>
                 )}
-                <p className={`text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug ${isClickable && !isDimmed ? 'ml-0.5' : ''}`}>
-                  {step.description}
-                </p>
-                {step.note && (
-                  <p className="text-[10px] opacity-60 text-[var(--text-tertiary)] mt-0.5 italic leading-snug">
-                    {step.note}
+                {isCurrent && (
+                  <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
+                    {step.description}
                   </p>
                 )}
               </div>
@@ -81,15 +72,6 @@ function LifecyclePanel({ currentStatus, onTransition, hasAssignee = true }: { c
           );
         })}
       </div>
-
-      {/* Footer hint when no developer */}
-      {!hasAssignee && (
-        <div className="mt-3 pt-2 border-t border-[var(--border-subtle)]">
-          <p className="text-[10px] text-[var(--text-tertiary)] leading-snug">
-            No developer assigned — you can export to Jira, download, or use this ticket as-is.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

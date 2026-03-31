@@ -805,7 +805,7 @@ export function TicketDetailLayout({
                         Agent Execution Contract
                       </p>
                       <p className="text-[10px] text-[var(--text-tertiary)]">
-                        {isForged ? 'Verified and ready for execution' : 'Draft — pending approval'}
+                        {isForged ? 'Instructions for the AI development agent' : 'Instructions for the AI development agent'}
                       </p>
                     </div>
                   </div>
@@ -877,69 +877,6 @@ export function TicketDetailLayout({
           })()}
 
           {/* Stats summary */}
-          {(() => {
-            const ts = ticket.techSpec;
-            const ac = ts?.acceptanceCriteria?.length || 0;
-            const api = ts?.apiChanges?.endpoints?.length || 0;
-            const files = ts?.fileChanges?.length || 0;
-            const tests = (ts?.testPlan?.unitTests?.length || 0) +
-              (ts?.testPlan?.integrationTests?.length || 0) +
-              (ts?.testPlan?.edgeCases?.length || 0);
-            const scope = (ts?.inScope?.length > 0 || ts?.outOfScope?.length > 0);
-            const hasAny = ac > 0 || api > 0 || files > 0 || tests > 0 || scope;
-            if (!hasAny) return null;
-            return (
-              <div className="max-w-3xl xl:max-w-4xl mx-auto mb-5 flex flex-wrap gap-x-5 gap-y-2 px-1">
-                {ac > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{ac} acceptance criteria</span>
-                  </div>
-                )}
-                {api > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <GitPullRequest className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{api} API endpoints</span>
-                  </div>
-                )}
-                {files > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <FileCode2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{files} files affected</span>
-                  </div>
-                )}
-                {tests > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <TestTube className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{tests} tests</span>
-                  </div>
-                )}
-                {scope && (
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">Scope defined</span>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Mobile section pills — shown below xl only */}
-          <div className="hidden sm:flex xl:hidden gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-            {techSections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollTo('technical', s.id)}
-                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
-                  activeSection === `technical-${s.id}`
-                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
-                }`}
-              >
-                {s.short}
-              </button>
-            ))}
-          </div>
 
           <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <ImplementationTab

@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus, Copy, Hash } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus, Copy, Hash, Plus, Lock } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -24,6 +24,14 @@ import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetail
 import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { toast } from 'sonner';
+import { useTagsStore } from '@/stores/tags.store';
+import { TagPicker } from '@/src/tickets/components/TagPicker';
+import { getTagColor } from '@/tickets/config/tagColors';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/core/components/ui/dropdown-menu';
 import { createPortal } from 'react-dom';
 import { useSessionStore } from '@/src/sessions/stores/session.store';
 import { DevelopSessionBlade } from '@/src/sessions/components/organisms/DevelopSessionBlade';
@@ -98,6 +106,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [developBladeOpen, setDevelopBladeOpen] = useState(false);
+  const [repoDialogOpen, setRepoDialogOpen] = useState(false);
+  const { tags } = useTagsStore();
+  const [localTagIds, setLocalTagIds] = useState<string[]>(currentTicket?.tagIds ?? []);
   const sessionStatus = useSessionStore(state => state.status);
   
   // Title editing state
@@ -899,9 +910,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         </div>
       </div>
 
-      {/* Ticket ID — click to reveal, click to copy */}
+      {/* Ticket ID + Git repo */}
       {!isEditingTitle && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowTicketIdVisible(!showTicketIdVisible)}
             className="inline-flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
@@ -921,6 +932,67 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               {currentTicket?.slug || ticketId}
               <Copy className="h-3 w-3" />
             </button>
+          )}
+          {currentTicket.repositoryContext ? (
+            <>
+              <span className="text-[var(--text-tertiary)]/30">·</span>
+              <button
+                onClick={() => setRepoDialogOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                {currentTicket.repositoryContext.repositoryFullName.split('/').pop()}
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-[var(--text-tertiary)]/30">·</span>
+              <button
+                onClick={() => setRepoDialogOpen(true)}
+                className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              >
+                Connect repo
+              </button>
+            </>
+          )}
+          {/* Tags */}
+          <span className="text-[var(--text-tertiary)]/30">·</span>
+          {tags.filter(t => localTagIds.includes(t.id)).map(tag => (
+            <span key={tag.id} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${getTagColor(tag.color).pill}`}>
+              {tag.scope === 'private' && <Lock className="h-2 w-2" />}
+              {tag.name}
+            </span>
+          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="inline-flex items-center gap-0.5 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">
+                <Plus className="h-2.5 w-2.5" />
+                Add tag
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 p-0">
+              <TagPicker
+                ticketId={currentTicket.id}
+                currentTagIds={localTagIds}
+                onTagsChange={async (tagIds) => {
+                  setLocalTagIds(tagIds);
+                  try {
+                    await ticketService.updateTicketTags(currentTicket.id, tagIds);
+                    refreshTicket(currentTicket.id);
+                  } catch {
+                    setLocalTagIds(currentTicket.tagIds ?? []);
+                  }
+                }}
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {currentTicket.createdBy && (
+            <>
+              <span className="text-[var(--text-tertiary)]/30">·</span>
+              <span className="text-[10px] text-[var(--text-tertiary)]">
+                {currentTicket.createdByName || teamMembers?.find(m => m.uid === currentTicket.createdBy)?.displayName || 'Unknown'}
+              </span>
+            </>
           )}
         </div>
       )}

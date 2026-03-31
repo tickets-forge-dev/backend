@@ -70,6 +70,9 @@ interface OverviewCardProps {
   pendingApproval?: boolean;
   /** Optional action slot rendered in the bottom row (e.g., Develop button) */
   actionSlot?: React.ReactNode;
+  /** External control for the repo dialog */
+  repoDialogOpen?: boolean;
+  onRepoDialogOpenChange?: (open: boolean) => void;
 }
 
 export function OverviewCard({
@@ -81,6 +84,8 @@ export function OverviewCard({
   onAssignDialogOpenChange,
   pendingApproval,
   actionSlot,
+  repoDialogOpen: externalRepoDialogOpen,
+  onRepoDialogOpenChange,
 }: OverviewCardProps) {
   const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
   const isUnassigned = !ticket.assignedTo;
@@ -98,8 +103,10 @@ export function OverviewCard({
     || creatorMember?.email
     || (ticket.createdBy && ticket.createdBy === user?.uid ? (user?.displayName || user?.email || null) : null);
 
-  // Repository connect dialog
-  const [repoDialogOpen, setRepoDialogOpen] = useState(false);
+  // Repository connect dialog — supports external control
+  const [internalRepoOpen, setInternalRepoOpen] = useState(false);
+  const repoDialogOpen = externalRepoDialogOpen ?? internalRepoOpen;
+  const setRepoDialogOpen = onRepoDialogOpenChange ?? setInternalRepoOpen;
   const [isSavingRepo, setIsSavingRepo] = useState(false);
   const { selectedRepository, selectedBranch } = useTicketsStore();
 
@@ -149,7 +156,7 @@ export function OverviewCard({
   );
 
   return (
-    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-3">
+    <div className="px-4 py-2.5">
       {/* Top row: Assignee ... Status badge */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative">
@@ -172,38 +179,13 @@ export function OverviewCard({
           )}
         </div>
 
-        {/* Created by — read only */}
-        {ticket.createdBy && (
-          <span className="text-[11px] text-[var(--text-tertiary)]">
-            Created by <span className="text-[var(--text-secondary)]">{creatorName ?? '—'}</span>
-          </span>
-        )}
-
-        {/* Tag pills + add tag */}
-        <div className="flex items-center gap-1 flex-1 min-w-0 justify-center">
-          {visibleTicketTags.map(tag => (
-            <span key={tag.id} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${getTagColor(tag.color).pill}`}>
-              {tag.scope === 'private' && <Lock className="h-2 w-2" />}
-              {tag.name}
-            </span>
-          ))}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors">
-                <Plus className="h-3 w-3" />
-                {visibleTicketTags.length === 0 && <span>Add tag</span>}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-56 p-0">
-              <TagPicker ticketId={ticket.id} currentTagIds={localTagIds} onTagsChange={handleTagsChange} />
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <div className="flex-1" />
 
         {/* Status badge — clicking opens lifecycle panel */}
         {ticket.status && (
           <TicketLifecycleInfo currentStatus={ticket.status} onTransition={onTransition} hasAssignee={!isUnassigned}>
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
+              <span className="text-[10px] opacity-60 font-normal">Status</span>
               {cfg.label}
               <svg className="h-3 w-3 opacity-50" viewBox="0 0 12 12" fill="none"><path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </span>
@@ -211,28 +193,6 @@ export function OverviewCard({
         )}
       </div>
 
-      {/* Repository row */}
-      <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center gap-2">
-        <GitBranch className="h-3 w-3 text-[var(--text-tertiary)] shrink-0" />
-        {ticket.repositoryContext ? (
-          <button
-            onClick={() => setRepoDialogOpen(true)}
-            className="group flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
-          >
-            <span className="font-medium">{ticket.repositoryContext.repositoryFullName}</span>
-            <span className="text-[var(--text-tertiary)]">·</span>
-            <span>{ticket.repositoryContext.branchName}</span>
-            <Pencil className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
-          </button>
-        ) : (
-          <button
-            onClick={() => setRepoDialogOpen(true)}
-            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--primary)] transition-colors"
-          >
-            Connect repository
-          </button>
-        )}
-      </div>
 
       {/* Connect Repository Dialog */}
       <Dialog open={repoDialogOpen} onOpenChange={setRepoDialogOpen}>

@@ -57,42 +57,7 @@ export function ImplementationTab({
     : 0;
 
   return (
-    <div className="space-y-8">
-      {/* Technical Summary */}
-      {techSpec && (
-        <div className="rounded-lg bg-[var(--bg-subtle)] p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {/* Estimate */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-[var(--text-tertiary)]" />
-                <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase">Estimate</span>
-              </div>
-              <p className="text-sm font-medium text-[var(--text)]">{estimateLabel}</p>
-            </div>
-
-            {/* Scope (Files + APIs) */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <FileCode className="h-4 w-4 text-[var(--text-tertiary)]" />
-                <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase">Scope</span>
-              </div>
-              <p className="text-sm font-medium text-[var(--text)]">
-                {fileCount} files{apiCount > 0 ? `, ${apiCount} APIs` : ''}
-              </p>
-            </div>
-
-            {/* Tests */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <FlaskConical className="h-4 w-4 text-[var(--text-tertiary)]" />
-                <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase">Tests</span>
-              </div>
-              <p className="text-sm font-medium text-[var(--text)]">{testCount} tests</p>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="divide-y divide-[var(--border-subtle)] [&>*]:py-3 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
 
       {/* File Changes */}
       {techSpec?.fileChanges?.length > 0 ? (
