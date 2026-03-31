@@ -221,13 +221,16 @@ POST /sessions/:ticketId/start?skills=clean-architecture,tdd
 
 ## Initial Skill Catalog (Seed Data)
 
-| ID | Name | Icon | Category | Description |
-|----|------|------|----------|-------------|
-| `clean-architecture` | Clean Architecture | 🏗 | architecture | Ports & adapters, domain isolation, layer boundaries |
-| `tdd` | Test-Driven Development | 🧪 | testing | Write tests first, red-green-refactor cycle |
-| `security-audit` | Security Audit | 🔒 | security | OWASP top 10 checks, input validation, auth patterns |
-| `code-review-ready` | Code Review Ready | 📋 | quality | Clean commits, documentation, readable code |
-| `performance` | Performance | ⚡ | quality | Profiling, optimization, lazy loading patterns |
+| ID | Name | Icon | Category | Card Description | Expanded Description |
+|----|------|------|----------|-----------------|---------------------|
+| `clean-architecture` | Clean Architecture | 🏗 | architecture | Keeps code organized and easy to change | Ensures the AI separates your code into clear layers — so business logic doesn't get tangled with databases, APIs, or UI. Makes the codebase easier to maintain and extend. |
+| `tdd` | Test-Driven Development | 🧪 | testing | Writes tests before code for fewer bugs | The AI writes automated tests first, then implements the feature to pass them. Catches bugs early and ensures everything works as specified. |
+| `security-audit` | Security Audit | 🔒 | security | Checks for vulnerabilities as it codes | Scans for common security issues like injection attacks, broken authentication, and data exposure. Follows industry-standard security checklists (OWASP). |
+| `code-review-ready` | Code Review Ready | 📋 | quality | Produces clean, well-documented code | The AI writes clear commit messages, adds comments where needed, and structures code so your team can review it quickly and confidently. |
+| `performance` | Performance | ⚡ | quality | Optimizes for speed and efficiency | Focuses on fast load times, efficient database queries, and minimal resource usage. Avoids common performance pitfalls. |
+
+**Card description** = one-liner shown on the toggle card in the Develop blade.
+**Expanded description** = shown on hover or tap for users who want more context.
 
 **You create the skill directories** at `backend/skills/<id>/` with SKILL.md + optional scripts.
 **I wire** the Firestore seeding, UI, sandbox injection, and Dockerfile changes.
