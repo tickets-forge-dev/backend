@@ -94,12 +94,44 @@ claude -p "Implement the ticket..." \
 
 **Always-on MCP server.** Not a user-selectable skill.
 
-**Setup:** During sandbox bootstrap (`bootstrap.sh`), run:
-```bash
-npx ctx7 setup --claude --api-key $CONTEXT7_API_KEY
+Context7 provides two tools to the agent:
+- `resolve-library-id` — resolves a library name to a Context7 ID
+- `query-docs` — retrieves up-to-date documentation for a library
+
+**Installation mode: MCP** (not CLI + Skills). The MCP server is a remote URL, no npm install needed.
+
+**Setup:** Add Context7 to the `.forge-mcp.json` config that's written to the sandbox:
+
+```json
+{
+  "mcpServers": {
+    "forge": {
+      "command": "node",
+      "args": ["/home/user/forge-mcp-server/dist/index.js"],
+      "env": { ... }
+    },
+    "context7": {
+      "type": "url",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
+    }
+  }
+}
 ```
 
-**Environment:** `CONTEXT7_API_KEY` stored in backend `.env`, passed to sandbox as an environment variable alongside `ANTHROPIC_API_KEY`.
+**Environment:** `CONTEXT7_API_KEY` stored in backend `.env`, passed to sandbox config and injected into the MCP JSON. The key is: `ctx7sk-433ebf06-58f8-44e8-852b-2915776f2855`.
+
+**System prompt addition:**
+```
+When implementing code that uses external libraries, frameworks, or APIs,
+use the Context7 MCP tools (resolve-library-id → query-docs) to fetch
+up-to-date documentation before writing code. Do not rely on training data
+for library APIs.
+```
+
+**No npm install, no `npx ctx7 setup`, no CLI tools needed.** The MCP server is remote — just a URL + API key in the config.
 
 ### System Prompt Changes
 
