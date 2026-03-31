@@ -20,6 +20,7 @@ Pluggable skills for the Cloud Develop sandbox. Users browse a curated skill cat
 | User selection | Collapsible section in Develop blade | Zero friction for quick flow, power for those who want it |
 | Selection memory | localStorage | Remembers last picks, no backend persistence needed |
 | Max skills | 3 per session | Prevents conflicting instructions and context bloat |
+| Auto mode | Forge auto-selects recommended skills based on ticket | Zero-friction default, user can override |
 | Context7 | Always-on MCP server, not user-selectable | Every session benefits from up-to-date library docs |
 | Ticket reading | Hardened system prompt | Agent MUST read full ticket before any code |
 
@@ -228,6 +229,47 @@ POST /sessions/:ticketId/start?skills=clean-architecture,tdd
 | `security-audit` | Security Audit | 🔒 | security | Checks for vulnerabilities as it codes | Scans for common security issues like injection attacks, broken authentication, and data exposure. Follows industry-standard security checklists (OWASP). |
 | `code-review-ready` | Code Review Ready | 📋 | quality | Produces clean, well-documented code | The AI writes clear commit messages, adds comments where needed, and structures code so your team can review it quickly and confidently. |
 | `performance` | Performance | ⚡ | quality | Optimizes for speed and efficiency | Focuses on fast load times, efficient database queries, and minimal resource usage. Avoids common performance pitfalls. |
+
+## Auto Mode
+
+The skills section has a toggle at the top: **Auto** (default) / **Manual**.
+
+**In Auto mode:**
+- Forge calls a lightweight AI endpoint to recommend skills for this ticket
+- The endpoint receives: ticket title, description, acceptance criteria, file change list, and the full skill catalog (names + descriptions)
+- A fast model (Haiku) returns up to 3 recommended skill IDs with one-line reasoning
+- User sees which skills were auto-picked (highlighted with "Recommended" badge)
+- User can override: toggle any skill on/off, still capped at 3
+- Switching to **Manual** clears auto-picks, user starts from scratch
+
+**Backend endpoint:** `POST /skills/recommend`
+```typescript
+// Request
+{ ticketId: string }
+
+// Response
+{
+  recommended: [
+    { skillId: "tdd", reason: "Ticket has 6 acceptance criteria — TDD ensures each is verified" },
+    { skillId: "security-audit", reason: "Ticket involves webhook endpoints with authentication" }
+  ]
+}
+```
+
+The LLM prompt is thin — just the ticket summary + skill catalog as a menu. Haiku responds in <1s. Cached per ticket (no re-call if user re-opens the blade).
+
+**In Manual mode:**
+- No auto-selection, user picks from scratch
+- Mode preference saved to localStorage
+
+**UI in the collapsed state:**
+```
+⚙ Skills     Auto · 2 recommended ▾
+```
+vs manual:
+```
+⚙ Skills     Manual · 1 of 3 ▾
+```
 
 **Card description** = one-liner shown on the toggle card in the Develop blade.
 **Expanded description** = shown on hover or tap for users who want more context.
