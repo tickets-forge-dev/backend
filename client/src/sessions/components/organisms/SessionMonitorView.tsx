@@ -122,7 +122,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       <DevelopButton
         ticketId={ticketId}
         ticketStatus={ticketStatus}
-        onStart={() => startSession(ticketId)}
+        onStart={(skillIds) => startSession(ticketId, skillIds)}
         fileChangeCount={fileChangeCount}
         repoFullName={repoFullName}
         branch={branch}

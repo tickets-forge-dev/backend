@@ -63,7 +63,7 @@ interface SessionState {
   elapsedSeconds: number;
   quota: QuotaInfo | null;
 
-  startSession: (ticketId: string) => Promise<void>;
+  startSession: (ticketId: string, skillIds?: string[]) => Promise<void>;
   cancelSession: () => Promise<void>;
   fetchQuota: () => Promise<void>;
   restoreSession: (ticketId: string) => boolean;
@@ -81,7 +81,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   elapsedSeconds: 0,
   quota: null,
 
-  startSession: async (ticketId: string) => {
+  startSession: async (ticketId: string, skillIds?: string[]) => {
     const state = get();
     if (state.status === 'running' || state.status === 'provisioning') return;
 
@@ -110,7 +110,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }, 1000);
 
     try {
-      const response = await authFetch(`/sessions/${ticketId}/start`, {
+      const skillsParam = skillIds?.length ? `?skills=${skillIds.join(',')}` : '';
+      const response = await authFetch(`/sessions/${ticketId}/start${skillsParam}`, {
         method: 'POST',
         signal: abortController.signal,
       });
