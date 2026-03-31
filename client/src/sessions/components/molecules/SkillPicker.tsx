@@ -92,11 +92,12 @@ export function SkillPicker({ ticketId }: SkillPickerProps) {
               const isSelected = effectiveIds.includes(skill.id);
               const isDisabled = !isSelected && effectiveIds.length >= 3 && mode === 'manual';
               const rec = recommended.find(r => r.skillId === skill.id);
+              const isDimmedInAuto = mode === 'auto' && !rec;
 
               return (
                 <div
                   key={skill.id}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 ${isDisabled ? 'opacity-30' : ''}`}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 ${isDisabled || isDimmedInAuto ? 'opacity-35' : ''}`}
                 >
                   <span className="shrink-0">
                     <SkillIcon name={skill.icon} />
