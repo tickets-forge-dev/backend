@@ -48,7 +48,12 @@ export function SkillPicker({ ticketId }: SkillPickerProps) {
           <span className="text-[12px] font-medium text-[var(--text-secondary)]">Skills</span>
         </div>
         <div className="flex items-center gap-2">
-          {isLoading ? (
+          {isLoadingRecommendations ? (
+            <span className="flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              Recognizing skills...
+            </span>
+          ) : isLoadingCatalog ? (
             <Loader2 className="w-3 h-3 text-[var(--text-tertiary)] animate-spin" />
           ) : (
             <span className="text-[10px] text-[var(--text-tertiary)]">
