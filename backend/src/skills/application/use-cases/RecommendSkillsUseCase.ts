@@ -76,12 +76,13 @@ Pick 1-3 skills. If none are clearly helpful, return an empty array.`,
         maxOutputTokens: 300,
       });
 
+      this.logger.log(`Haiku response: ${text}`);
       const parsed = JSON.parse(text);
-      return {
-        recommended: (parsed.recommended || []).slice(0, 3),
-      };
+      const recs = (parsed.recommended || []).slice(0, 3);
+      this.logger.log(`Recommended ${recs.length} skills: ${recs.map((r: any) => r.skillId).join(', ')}`);
+      return { recommended: recs };
     } catch (error) {
-      this.logger.warn(`Skill recommendation failed: ${error}`);
+      this.logger.error(`Skill recommendation failed: ${error}`);
       return { recommended: [] };
     }
   }
