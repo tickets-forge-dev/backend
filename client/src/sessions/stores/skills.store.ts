@@ -60,6 +60,8 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       if (res.ok) {
         const data = await res.json();
         set({ catalog: data, isLoadingCatalog: false });
+      } else {
+        set({ isLoadingCatalog: false });
       }
     } catch {
       set({ isLoadingCatalog: false });

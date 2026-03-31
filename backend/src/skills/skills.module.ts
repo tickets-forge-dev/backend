@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit, Inject, Logger } from '@nestjs/common';
 import { SkillsController } from './presentation/controllers/skills.controller';
 import { GetSkillCatalogUseCase } from './application/use-cases/GetSkillCatalogUseCase';
 import { RecommendSkillsUseCase } from './application/use-cases/RecommendSkillsUseCase';
@@ -17,4 +17,18 @@ import { TicketsModule } from '../tickets/tickets.module';
   ],
   exports: [SKILL_REPOSITORY, GetSkillCatalogUseCase],
 })
-export class SkillsModule {}
+export class SkillsModule implements OnModuleInit {
+  private readonly logger = new Logger(SkillsModule.name);
+
+  constructor(
+    @Inject(SKILL_REPOSITORY) private readonly skillRepository: FirestoreSkillRepository,
+  ) {}
+
+  async onModuleInit() {
+    try {
+      await this.skillRepository.seedIfEmpty();
+    } catch (error) {
+      this.logger.warn(`Skill seeding failed (non-fatal): ${error}`);
+    }
+  }
+}

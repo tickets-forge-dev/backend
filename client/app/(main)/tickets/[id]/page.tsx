@@ -990,7 +990,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <>
               <span className="text-[var(--text-tertiary)]/30">·</span>
               <span className="text-[10px] text-[var(--text-tertiary)]">
-                {currentTicket.createdByName || teamMembers?.find(m => m.uid === currentTicket.createdBy)?.displayName || 'Unknown'}
+                {currentTicket.createdByName || teamMembers?.find(m => m.userId === currentTicket.createdBy)?.displayName || 'Unknown'}
               </span>
             </>
           )}
