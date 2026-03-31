@@ -46,7 +46,7 @@ export function SpecificationTab({
   const isBugTicket = ticket.type === 'bug';
 
   return (
-    <div className="space-y-8">
+    <div className="divide-y divide-[var(--border-subtle)] [&>*]:py-3 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
       {/* 1. Reproduction Steps — FIRST for bug tickets */}
       {isBugTicket && techSpec?.bugDetails && (
         <div id="spec-reproduction-steps">

@@ -35,7 +35,17 @@ export class FirestoreUsageQuotaRepository implements UsageQuotaRepository {
         const rawData = snap.data();
         // Verify this is our session quota format (has 'limit' field)
         if (rawData && typeof rawData.limit === 'number') {
-          return UsageQuotaMapper.toDomain(rawData as UsageQuotaDocument);
+          const quota = UsageQuotaMapper.toDomain(rawData as UsageQuotaDocument);
+          // Upgrade limit if plan default increased (e.g. free 2→99)
+          const defaultQuota = UsageQuota.createDefault(teamId, period);
+          if (quota.limit < defaultQuota.limit) {
+            const upgraded = UsageQuota.reconstitute({
+              teamId, period, limit: defaultQuota.limit, used: quota.used,
+            });
+            await this.save(upgraded);
+            return upgraded;
+          }
+          return quota;
         }
       }
 

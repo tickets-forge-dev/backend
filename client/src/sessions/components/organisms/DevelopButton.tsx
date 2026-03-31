@@ -1,18 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Play, AlertTriangle, FolderGit2, GitBranch } from 'lucide-react';
+import { Play, Zap, ArrowRight } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
-import { IconBadge } from '../atoms/IconBadge';
 import { QuotaDisplay } from '../molecules/QuotaDisplay';
-
-const FILE_CHANGE_COMPLEXITY_THRESHOLD = 12;
 
 interface DevelopButtonProps {
   ticketId: string;
   ticketStatus: string;
   onStart: () => void;
-  /** Number of file changes from the ticket's tech spec — used for complexity gating */
+  /** Number of file changes from the ticket's tech spec */
   fileChangeCount?: number;
   /** Repository full name (owner/repo) */
   repoFullName?: string;
@@ -20,64 +17,45 @@ interface DevelopButtonProps {
   branch?: string;
 }
 
-export function DevelopButton({ ticketId, ticketStatus, onStart, fileChangeCount, repoFullName, branch }: DevelopButtonProps) {
+export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButtonProps) {
   const { status, quota, fetchQuota } = useSessionStore();
   const isLoading = status === 'provisioning' || status === 'running';
-  const isDisabled = ticketStatus !== 'approved' || isLoading;
-  const isHighComplexity = typeof fileChangeCount === 'number' && fileChangeCount > FILE_CHANGE_COMPLEXITY_THRESHOLD;
+  const isDisabled = isLoading;
 
   useEffect(() => {
     fetchQuota();
   }, [fetchQuota]);
 
   return (
-    <div className="flex flex-col items-center gap-4 py-16">
-      <IconBadge icon={Play} color="emerald" size="lg" />
-
-      <div className="text-center">
-        <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1">
-          Ready to develop
-        </h3>
-        <p className="text-[13px] text-[var(--text-secondary)] max-w-sm leading-relaxed">
-          Claude will implement this ticket, run tests, and create a pull request for your team to review.
-        </p>
-      </div>
-
-      {/* Project context — show where the code will be implemented */}
-      {repoFullName && (
-        <div className="w-full max-w-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-4 py-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <FolderGit2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-            <span className="text-[12px] text-[var(--text-secondary)] font-mono">{repoFullName}</span>
+    <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-6">
+      <div className="w-full max-w-sm space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 mb-1">
+            <Zap className="w-5 h-5 text-emerald-500" />
           </div>
-          {branch && (
-            <div className="flex items-center gap-2">
-              <GitBranch className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-              <span className="text-[12px] text-[var(--text-secondary)] font-mono">{branch}</span>
-            </div>
-          )}
+          <h3 className="text-[15px] font-semibold text-[var(--text)]">
+            Start development
+          </h3>
+          <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">
+            AI will implement, test, and open a PR.
+          </p>
         </div>
-      )}
 
-      {isHighComplexity && (
-        <div className="flex items-start gap-2 text-[11px] text-amber-500 bg-amber-500/5 rounded-md px-3 py-2 border border-amber-500/10 max-w-sm">
-          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-          <span>
-            This ticket touches {fileChangeCount} files. Consider assigning a developer for complex work — large changes risk timeouts or partial completions.
-          </span>
-        </div>
-      )}
+        {/* Start button */}
+        <button
+          onClick={onStart}
+          disabled={isDisabled}
+          className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:bg-[var(--bg-active)] text-[var(--text)] text-[13px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Play className="w-3.5 h-3.5" fill="currentColor" />
+          Start Development
+          <ArrowRight className="w-3.5 h-3.5 ml-auto opacity-50" />
+        </button>
 
-      <button
-        onClick={onStart}
-        disabled={isDisabled}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[14px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        <Play className="w-4 h-4" fill="currentColor" />
-        Start Development
-      </button>
-
-      <QuotaDisplay quota={quota} />
+        {/* Quota */}
+        <QuotaDisplay quota={quota} />
+      </div>
     </div>
   );
 }

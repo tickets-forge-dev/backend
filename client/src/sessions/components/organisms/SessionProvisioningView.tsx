@@ -10,7 +10,7 @@ interface SessionProvisioningViewProps {
 const STEPS = [
   { key: 'sandbox', label: 'Creating sandbox', icon: Cloud, status: 'active' as const },
   { key: 'clone', label: 'Cloning repository', icon: GitBranch, status: 'pending' as const },
-  { key: 'claude', label: 'Starting Claude Code', icon: Sparkles, status: 'pending' as const },
+  { key: 'agent', label: 'Starting AI agent', icon: Sparkles, status: 'pending' as const },
 ];
 
 export function SessionProvisioningView({ onCancel }: SessionProvisioningViewProps) {

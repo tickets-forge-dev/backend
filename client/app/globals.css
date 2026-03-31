@@ -576,6 +576,21 @@ input[type="checkbox"]:checked:hover {
   animation: fadeIn 400ms ease-out;
 }
 
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 200ms ease-out;
+}
+
 /* Smoother skeleton pulse — override Tailwind's aggressive default */
 @keyframes smoothPulse {
   0%, 100% {

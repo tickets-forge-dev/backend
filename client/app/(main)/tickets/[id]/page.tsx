@@ -24,6 +24,11 @@ import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetail
 import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { toast } from 'sonner';
+import { createPortal } from 'react-dom';
+import { useSessionStore } from '@/src/sessions/stores/session.store';
+import { DevelopSessionBlade } from '@/src/sessions/components/organisms/DevelopSessionBlade';
+import { TicketDevelopButton } from '@/src/sessions/components/atoms/TicketDevelopButton';
+import { FlowOnboardingDialog } from '@/src/tickets/components/FlowOnboardingDialog';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -91,6 +96,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [developBladeOpen, setDevelopBladeOpen] = useState(false);
+  const sessionStatus = useSessionStore(state => state.status);
   
   // Title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -801,26 +808,36 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
         </div>
         
-        {currentTicket?.techSpec && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPreviewDialog(true)}
-            >
-              <Eye className="h-3.5 w-3.5 mr-2" />
-              Preview
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowExportDialog(true)}
-            >
-              <Upload className="h-3.5 w-3.5 mr-2" />
-              Export
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {currentTicket?.techSpec && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPreviewDialog(true)}
+              >
+                <Eye className="h-3.5 w-3.5 mr-2" />
+                Preview
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExportDialog(true)}
+              >
+                <Upload className="h-3.5 w-3.5 mr-2" />
+                Export
+              </Button>
+            </>
+          )}
+          <TicketDevelopButton
+            onClick={() => setDevelopBladeOpen(true)}
+            status={
+              sessionStatus === 'running' || sessionStatus === 'provisioning' ? 'running'
+              : currentTicket.status === 'delivered' || sessionStatus === 'completed' ? 'completed'
+              : 'idle'
+            }
+/>
+        </div>
       </div>
 
       {/* Hero Header — Title */}
@@ -956,16 +973,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       />
 
       {/* Footer with actions */}
-      <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
-        <Button
-          variant="ghost"
-          onClick={() => setShowDeleteConfirm(true)}
-          className="text-[var(--red)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete Ticket
-        </Button>
-
+      <div className="flex items-center justify-end gap-3 pt-6 pb-8 border-t border-[var(--border)]">
         {techSpec && currentTicket.externalIssue && (
           <a
             href={currentTicket.externalIssue.issueUrl}
@@ -977,6 +985,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
           </a>
         )}
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--red)] transition-colors"
+        >
+          <Trash2 className="h-3 w-3" />
+          Delete
+        </button>
       </div>
 
       {/* Lifecycle Transition Confirmation Dialog */}
@@ -1550,6 +1565,24 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Develop session blade — always available */}
+      {typeof window !== 'undefined' && createPortal(
+        <DevelopSessionBlade
+          open={developBladeOpen}
+          onClose={() => setDevelopBladeOpen(false)}
+          ticketId={currentTicket.id}
+          ticketTitle={currentTicket.title}
+          ticketStatus={currentTicket.status}
+          repoFullName={currentTicket.repositoryContext?.repositoryFullName}
+          branch={`feat/${currentTicket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+          fileChangeCount={currentTicket.techSpec?.fileChanges?.length}
+        />,
+        document.body
+      )}
+
+      {/* First-time flow onboarding */}
+      <FlowOnboardingDialog />
     </div>
   );
 }

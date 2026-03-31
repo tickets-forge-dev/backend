@@ -20,7 +20,7 @@ export function StatusIcon({ status, size = 'sm', color = 'emerald' }: StatusIco
     case 'completed':
       return <Check className={`${sizeClass} ${colorMap[color]} shrink-0`} />;
     case 'loading':
-      return <Loader2 className={`${sizeClass} ${colorMap[color]} animate-spin shrink-0`} />;
+      return <div className={`w-1.5 h-1.5 rounded-full ${colorMap[color].replace('text-', 'bg-')} animate-pulse shrink-0`} />;
     case 'pending':
       return <div className={`${sizeClass} rounded-full bg-[var(--bg-hover)] shrink-0`} />;
   }

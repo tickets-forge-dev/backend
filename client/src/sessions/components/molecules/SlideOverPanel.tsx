@@ -18,7 +18,6 @@ export function SlideOverPanel({ open, onClose, title, subtitle, width = 'w-[480
   useEffect(() => {
     if (open) {
       setVisible(true);
-      // Trigger animation on next frame
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setAnimating(true);
@@ -27,7 +26,6 @@ export function SlideOverPanel({ open, onClose, title, subtitle, width = 'w-[480
       document.body.style.overflow = 'hidden';
     } else {
       setAnimating(false);
-      // Wait for animation to finish before unmounting
       const timer = setTimeout(() => {
         setVisible(false);
       }, 300);
@@ -46,34 +44,34 @@ export function SlideOverPanel({ open, onClose, title, subtitle, width = 'w-[480
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 ${
           animating ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
       />
       {/* Panel */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 ${width} max-w-full bg-[var(--bg)] border-l border-[var(--border-subtle)] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 right-0 z-50 ${width} max-w-full bg-[var(--bg)] border-l border-[var(--border-subtle)] flex flex-col transition-transform duration-300 ease-out ${
           animating ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
+        {/* Header — compact, Linear-style */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] shrink-0">
           <div className="min-w-0">
-            <h3 className="text-[14px] font-medium text-[var(--text-primary)]">{title}</h3>
+            <h3 className="text-[13px] font-medium text-[var(--text)]">{title}</h3>
             {subtitle && (
-              <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5 truncate">{subtitle}</p>
+              <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5 truncate">{subtitle}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0 ml-3"
+            className="p-1 rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0 ml-3"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
           {children}
         </div>
       </div>

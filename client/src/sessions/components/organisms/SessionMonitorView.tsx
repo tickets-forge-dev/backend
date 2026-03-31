@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
+import { Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
+import { useTicketsStore } from '@/stores/tickets.store';
 import type { SessionEvent } from '../../types/session.types';
 import { DevelopButton } from './DevelopButton';
 import { SessionProvisioningView } from './SessionProvisioningView';
@@ -57,10 +58,27 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
 
   useEffect(() => {
     fetchQuota();
-    return () => reset();
-  }, [fetchQuota, reset]);
+  }, [fetchQuota]);
 
   const renderGroups = useMemo(() => groupEvents(events), [events]);
+
+  // Auto-scroll: stick to bottom unless user scrolled up
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const userScrolledUp = useRef(false);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    userScrolledUp.current = !isAtBottom;
+  }, []);
+
+  useEffect(() => {
+    if (!userScrolledUp.current && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [events.length]);
 
   if (status === 'idle') {
     return (
@@ -80,15 +98,28 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
   }
 
   if (status === 'failed') {
+    const needsApproval = (error?.toLowerCase().includes('must be approved') || error?.toLowerCase().includes('approved status'))
+      && ['draft', 'defined', 'refined'].includes(ticketStatus);
+
+    if (needsApproval) {
+      return <NeedsApprovalView ticketId={ticketId} ticketStatus={ticketStatus} onReset={reset} />;
+    }
+
     return (
-      <div className="flex flex-col items-center gap-3 py-16">
-        <div className="text-[13px] text-red-500 font-medium">Session failed</div>
+      <div className="flex flex-col items-center gap-3 py-16 px-6">
+        <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-red-500/10">
+          <AlertCircle className="w-5 h-5 text-red-500" />
+        </div>
+        <p className="text-[13px] font-medium text-[var(--text)]">Something went wrong</p>
         {error && (
-          <div className="max-w-md w-full rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3">
-            <pre className="text-[11px] text-red-400 font-mono whitespace-pre-wrap break-all leading-relaxed">{error}</pre>
-          </div>
+          <p className="text-[12px] text-[var(--text-secondary)] text-center max-w-sm leading-relaxed">
+            {error}
+          </p>
         )}
-        <button onClick={reset} className="text-[12px] text-[var(--primary)] hover:underline">
+        <button
+          onClick={reset}
+          className="mt-2 px-4 py-1.5 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[12px] font-medium text-[var(--text)] transition-colors"
+        >
           Try again
         </button>
       </div>
@@ -96,7 +127,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
   }
 
   return (
-    <div className="space-y-1">
+    <div ref={containerRef} onScroll={handleScroll} className="space-y-1 px-4 py-3">
       <SessionStatusHeader
         status={status}
         elapsedSeconds={elapsedSeconds}
@@ -104,7 +135,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       />
 
       {/* Event stream */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {renderGroups.map((group, i) => {
           if (group.type === 'tool_group') {
             return <SessionToolGroup key={`group-${i}`} events={group.events} />;
@@ -116,7 +147,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
           }
           if (event.type === 'event.stderr') {
             return (
-              <div key={event.id || `stderr-${i}`} className="ml-8 px-3 py-1.5 rounded bg-red-500/10 text-[11px] text-red-400 font-mono whitespace-pre-wrap break-all">
+              <div key={event.id || `stderr-${i}`} className="ml-7 px-3 py-1.5 rounded bg-red-500/10 text-[11px] text-red-400 font-mono whitespace-pre-wrap break-all">
                 {event.content}
               </div>
             );
@@ -125,10 +156,10 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
           return null;
         })}
 
-        {/* Live thinking indicator — only shown when Claude is actively thinking */}
+        {/* Live thinking indicator */}
         {status === 'running' && events.length > 0 && events[events.length - 1].type === 'event.thinking' && (
-          <div className="ml-8 flex items-center gap-1.5 py-1">
-            <Loader2 className="w-3 h-3 text-violet-500 animate-spin" />
+          <div className="ml-7 flex items-center gap-1.5 py-1">
+            <Loader2 className="w-3 h-3 text-[var(--text-tertiary)] animate-spin" />
             <span className="text-[11px] text-[var(--text-tertiary)]">Thinking...</span>
           </div>
         )}
@@ -138,6 +169,72 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       {status === 'completed' && summary && (
         <div className="mt-4">
           <SessionSummary summary={summary} />
+        </div>
+      )}
+
+      <div ref={bottomRef} />
+    </div>
+  );
+}
+
+/** Shown when the backend rejects because the ticket isn't approved yet */
+function NeedsApprovalView({ ticketId, ticketStatus, onReset }: { ticketId: string; ticketStatus: string; onReset: () => void }) {
+  const { approveTicket } = useTicketsStore();
+  const [approving, setApproving] = useState(false);
+  const [approved, setApproved] = useState(false);
+
+  // Can approve from draft, defined, or refined
+  const canApprove = ['draft', 'defined', 'refined'].includes(ticketStatus);
+
+  const handleApprove = async () => {
+    setApproving(true);
+    const success = await approveTicket(ticketId);
+    setApproving(false);
+    if (success) {
+      setApproved(true);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-16 px-6">
+      <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10">
+        <ShieldCheck className="w-5 h-5 text-amber-500" />
+      </div>
+
+      <div className="text-center space-y-1.5">
+        <p className="text-[14px] font-medium text-[var(--text)]">
+          Ticket needs approval
+        </p>
+        <p className="text-[12px] text-[var(--text-secondary)] max-w-xs leading-relaxed">
+          Approve this ticket to start development.
+        </p>
+      </div>
+
+      {approved ? (
+        <div className="space-y-3 w-full max-w-xs">
+          <p className="text-[12px] text-emerald-500 font-medium text-center">Approved</p>
+          <button
+            onClick={onReset}
+            className="w-full px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[13px] font-medium transition-colors"
+          >
+            Start Development
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleApprove}
+            disabled={approving}
+            className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[12px] font-medium transition-colors disabled:opacity-50"
+          >
+            {approving ? 'Approving...' : 'Approve & Develop'}
+          </button>
+          <button
+            onClick={onReset}
+            className="px-4 py-1.5 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[12px] text-[var(--text-secondary)] font-medium transition-colors"
+          >
+            Go back
+          </button>
         </div>
       )}
     </div>

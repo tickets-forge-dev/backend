@@ -62,7 +62,7 @@ export function SessionToolCard({ event }: SessionToolCardProps) {
   );
 
   return (
-    <div className="ml-8">
+    <div className="ml-7">
       <ExpandableCard header={header}>
         {event.output && (
           <div className="p-3 max-h-48 overflow-y-auto scrollbar-thin">

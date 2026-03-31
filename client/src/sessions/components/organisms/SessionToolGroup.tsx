@@ -26,7 +26,7 @@ export function SessionToolGroup({ events }: SessionToolGroupProps) {
   const label = `Explored ${parts.join(', ')}`;
 
   return (
-    <div className="ml-8">
+    <div className="ml-7">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"

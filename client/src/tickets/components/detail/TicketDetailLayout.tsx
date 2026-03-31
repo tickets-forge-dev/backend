@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, type ReactPortal } from 'react';
-import { createPortal } from 'react-dom';
-import { useUIStore } from '@/stores/ui.store';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
@@ -30,9 +28,6 @@ import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 import { ReviewSessionSection } from './ReviewSessionSection';
 import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
-import { DevelopSessionBlade } from '@/src/sessions/components/organisms/DevelopSessionBlade';
-import { TicketDevelopButton } from '@/src/sessions/components/atoms/TicketDevelopButton';
-import { useSessionStore } from '@/src/sessions/stores/session.store';
 import { TICKET_STATUS_CONFIG, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { toast } from 'sonner';
@@ -120,8 +115,6 @@ export function TicketDetailLayout({
   const hasTechSpec = !!ticket.techSpec;
   const { approveTicket, reEnrichTicket } = useTicketsStore();
   const { ticketService } = useServices();
-  const { sidebarCollapsed } = useUIStore();
-  const sideNavLeft = sidebarCollapsed ? 'left-[calc(4rem+1rem)]' : 'left-[calc(var(--nav-width)+1rem)]';
   const [isApproving, setIsApproving] = useState(false);
   const [isReEnriching, setIsReEnriching] = useState(false);
   const [cliCopied, setCliCopied] = useState(false);
@@ -133,8 +126,6 @@ export function TicketDetailLayout({
   const assignedDuringNudge = useRef(false);
   const assignAttempted = useRef(false);
 
-  const [developBladeOpen, setDevelopBladeOpen] = useState(false);
-  const sessionStatus = useSessionStore(state => state.status);
 
   const validTabs = ['spec', 'technical', 'design', 'delivered', 'notes'];
   const tabParam = searchParams.get('tab');
@@ -175,25 +166,36 @@ export function TicketDetailLayout({
     document.getElementById(`${tabPrefix}-${sectionId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Track scroll position for scroll spy
+  // Track scroll position for scroll spy (debounced, single setState)
   useEffect(() => {
-    const handleScroll = () => {
-      const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
-      const sections = activeTab === 'spec' ? specSections : techSections;
+    let rafId: number | null = null;
 
-      for (const section of sections) {
-        const element = document.getElementById(`${currentTab}-${section.id}`);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 100) {
-            setActiveSection(`${currentTab}-${section.id}`);
+    const handleScroll = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
+        const sections = activeTab === 'spec' ? specSections : techSections;
+
+        let best: string | null = null;
+        for (const section of sections) {
+          const element = document.getElementById(`${currentTab}-${section.id}`);
+          if (element) {
+            const rect = element.getBoundingClientRect();
+            if (rect.top <= 100) {
+              best = `${currentTab}-${section.id}`;
+            }
           }
         }
-      }
+        setActiveSection((prev) => (prev === best ? prev : best));
+      });
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
@@ -461,17 +463,7 @@ export function TicketDetailLayout({
         assignDialogOpen={assignDialogOpen}
         onAssignDialogOpenChange={handleAssignDialogOpenChange}
         pendingApproval={pendingApproval}
-        actionSlot={['approved', 'executing', 'delivered'].includes(ticket.status) ? (
-          <TicketDevelopButton
-            onClick={() => setDevelopBladeOpen(true)}
-            disabled={false}
-            status={
-              sessionStatus === 'running' || sessionStatus === 'provisioning' ? 'running'
-              : ticket.status === 'delivered' || sessionStatus === 'completed' ? 'completed'
-              : 'idle'
-            }
-          />
-        ) : undefined}
+        actionSlot={undefined}
       />
 
       {/* Develop button removed from here — now passed via OverviewCard actionSlot */}
@@ -793,25 +785,6 @@ export function TicketDetailLayout({
             />
           </div>
 
-          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
-          <div className={`hidden xl:block fixed ${sideNavLeft} top-32 w-[88px] z-10`}>
-            <nav className="space-y-0.5">
-              {specSections.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => scrollTo('spec', s.id)}
-                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
-                    activeSection === `spec-${s.id}`
-                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
-                      : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
-                  }`}
-                  title={s.label}
-                >
-                  {s.short}
-                </button>
-              ))}
-            </nav>
-          </div>
         </TabsContent>
 
         <TabsContent value="technical" className="mt-6">
@@ -983,25 +956,6 @@ export function TicketDetailLayout({
             />
           </div>
 
-          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
-          <div className={`hidden xl:block fixed ${sideNavLeft} top-32 w-[88px] z-10`}>
-            <nav className="space-y-0.5">
-              {techSections.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => scrollTo('technical', s.id)}
-                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
-                    activeSection === `technical-${s.id}`
-                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
-                    : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
-                  }`}
-                  title={s.label}
-                >
-                  {s.short}
-                </button>
-              ))}
-            </nav>
-          </div>
         </TabsContent>
 
         <TabsContent value="design" className="mt-6">
@@ -1098,20 +1052,6 @@ export function TicketDetailLayout({
         </TabsContent>
       </Tabs>
 
-      {/* Develop blade (slide-over panel) — rendered via portal for full viewport coverage */}
-      {typeof window !== 'undefined' && createPortal(
-        <DevelopSessionBlade
-          open={developBladeOpen}
-          onClose={() => setDevelopBladeOpen(false)}
-          ticketId={ticket.id}
-          ticketTitle={ticket.title}
-          ticketStatus={ticket.status}
-          repoFullName={ticket.repositoryContext?.repositoryFullName}
-          branch={`feat/${ticket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
-          fileChangeCount={ticket.techSpec?.fileChanges?.length}
-        />,
-        document.body
-      )}
     </div>
   );
 }

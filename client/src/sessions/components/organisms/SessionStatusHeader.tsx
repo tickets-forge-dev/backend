@@ -12,17 +12,19 @@ interface SessionStatusHeaderProps {
 
 export function SessionStatusHeader({ status, elapsedSeconds, onCancel }: SessionStatusHeaderProps) {
   return (
-    <div className="flex items-center justify-between py-2 mb-2">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between py-2.5 px-1 mb-2">
+      <div className="flex items-center gap-2.5">
         {status === 'running' ? (
           <>
-            <ProgressDots color="blue" />
-            <span className="text-[12px] text-red-500 font-medium">Agent is working...</span>
+            <ProgressDots color="emerald" />
+            <span className="text-[12px] text-[var(--text-secondary)] font-medium">Working...</span>
           </>
         ) : status === 'completed' ? (
           <>
-            <span className="text-emerald-500 text-[13px]">&#10003;</span>
-            <span className="text-[12px] text-emerald-500 font-medium">Development complete</span>
+            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/15">
+              <span className="text-emerald-500 text-[10px]">&#10003;</span>
+            </span>
+            <span className="text-[12px] text-emerald-500 font-medium">Complete</span>
           </>
         ) : status === 'cancelled' ? (
           <span className="text-[12px] text-[var(--text-tertiary)]">Cancelled</span>
@@ -33,8 +35,11 @@ export function SessionStatusHeader({ status, elapsedSeconds, onCancel }: Sessio
       <div className="flex items-center gap-3">
         <ElapsedTimer seconds={elapsedSeconds} />
         {status === 'running' && onCancel && (
-          <button onClick={onCancel} className="text-[11px] text-red-500 hover:text-red-400">
-            Cancel
+          <button
+            onClick={onCancel}
+            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+          >
+            Stop
           </button>
         )}
       </div>

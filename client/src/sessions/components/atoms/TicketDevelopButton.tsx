@@ -1,5 +1,5 @@
 'use client';
-import { Play, Loader2, CheckCircle2 } from 'lucide-react';
+import { Play, Loader2, CheckCircle2, Zap } from 'lucide-react';
 
 interface TicketDevelopButtonProps {
   onClick: () => void;
@@ -36,9 +36,9 @@ export function TicketDevelopButton({ onClick, disabled = false, status = 'idle'
     <button
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500 text-white text-[12px] font-medium hover:bg-emerald-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--bg-hover)] border border-[var(--border-subtle)] text-[var(--text)] text-[12px] font-medium hover:bg-[var(--bg-active)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      <Play className="w-3.5 h-3.5" fill="currentColor" />
+      <Zap className="w-3.5 h-3.5 text-emerald-500" />
       Develop
     </button>
   );

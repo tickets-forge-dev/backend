@@ -47,12 +47,14 @@ export function SessionSummary({ summary }: SessionSummaryProps) {
         <ElapsedTimer seconds={totalSeconds} />
       </div>
 
-      <div className="flex gap-5 text-[12px]">
-        <div>
-          <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Files</div>
-          <div className="text-[var(--text-primary)] font-medium">{summary.filesChanged}</div>
+      {summary.filesChanged > 0 && (
+        <div className="flex gap-5 text-[12px]">
+          <div>
+            <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Files</div>
+            <div className="text-[var(--text-primary)] font-medium">{summary.filesChanged}</div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* PR Link */}
       {summary.prUrl && (
@@ -78,7 +80,16 @@ export function SessionSummary({ summary }: SessionSummaryProps) {
 
       {/* Branch */}
       {summary.branch && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)]">
+        <a
+          href={summary.repoFullName
+            ? `https://github.com/${summary.repoFullName}/tree/${summary.branch}`
+            : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)] ${
+            summary.repoFullName ? 'hover:bg-[var(--bg-active)] transition-colors cursor-pointer' : ''
+          }`}
+        >
           <GitBranch className="w-4 h-4 text-blue-500 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="text-[12px] text-[var(--text-secondary)] font-mono truncate">
@@ -91,7 +102,10 @@ export function SessionSummary({ summary }: SessionSummaryProps) {
             )}
           </div>
           <CopyButton text={summary.branch} label="branch name" />
-        </div>
+          {summary.repoFullName && (
+            <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
+          )}
+        </a>
       )}
 
       {/* Share section */}
