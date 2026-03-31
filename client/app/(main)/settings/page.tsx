@@ -8,7 +8,6 @@ import { LinearIntegration } from '@/src/settings/components/LinearIntegration';
 import { JiraIntegration } from '@/src/settings/components/JiraIntegration';
 import { FigmaIntegration } from '@/src/settings/components/FigmaIntegration';
 import { RoleSettings } from '@/src/settings/components/RoleSettings';
-import { ProfileManagement } from '@/project-profiles/components/ProfileManagement';
 import { useTheme, type Theme } from '@/src/hooks/useTheme';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useSessionStore } from '@/src/sessions/stores/session.store';
@@ -216,14 +215,13 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Connected Repositories — Epic 15 */}
-      <ProfileManagement />
-
       {/* Integrations Section */}
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-[var(--text)]">Integrations</h2>
         <div className="rounded-lg border border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
-          <div className="px-5 py-4"><GitHubIntegration /></div>
+          <div className="px-5 py-4">
+            <GitHubIntegration />
+          </div>
           <div className="px-5 py-4"><LinearIntegration /></div>
           <div className="px-5 py-4"><JiraIntegration /></div>
           <div className="px-5 py-4"><FigmaIntegration /></div>

@@ -21,6 +21,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useProjectProfileStore } from '@/project-profiles/stores/project-profile.store';
 import { GitHubRepositoryItem } from '@/services/github.service';
 import { Github, Check, AlertCircle, Loader2, Search, Square, CheckSquare2 } from 'lucide-react';
+import { ProfileManagement } from '@/project-profiles/components/ProfileManagement';
 
 interface GitHubIntegrationProps {
   onBeforeConnect?: () => void;
@@ -393,6 +394,9 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
                   <>Save{localSelectedRepos.size > 0 ? ` (${localSelectedRepos.size})` : ''}</>
                 )}
               </Button>
+
+              {/* Connected repo profiles */}
+              <ProfileManagement />
             </div>
           </details>
         </div>
