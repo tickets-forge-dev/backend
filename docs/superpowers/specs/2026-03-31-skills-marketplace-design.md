@@ -18,7 +18,7 @@ Pluggable skills for the Cloud Develop sandbox. Users browse a curated skill cat
 | Storage | Baked into Docker image from repo | Fast startup, no downloads, version controlled |
 | Metadata catalog | Firestore `skills` collection | UI reads catalog, decoupled from filesystem |
 | User selection | Collapsible section in Develop blade | Zero friction for quick flow, power for those who want it |
-| Selection memory | localStorage | Remembers last picks, no backend persistence needed |
+| Selection memory | sessionStorage per session | Auto recommendations cached per session, fresh on new session |
 | Max skills | 3 per session | Prevents conflicting instructions and context bloat |
 | Auto mode | Forge auto-selects recommended skills based on ticket | Zero-friction default, user can override |
 | Context7 | Always-on MCP server, not user-selectable | Every session benefits from up-to-date library docs |
@@ -232,7 +232,7 @@ POST /sessions/:ticketId/start?skills=clean-architecture,tdd
 
 ## Auto Mode
 
-The skills section has a toggle at the top: **Auto** (default) / **Manual**.
+The skills section has a toggle at the top: **Auto** (default) / **Manual**. Auto is always the default — every new session starts in Auto mode.
 
 **In Auto mode:**
 - Forge calls a lightweight AI endpoint to recommend skills for this ticket
@@ -256,7 +256,11 @@ The skills section has a toggle at the top: **Auto** (default) / **Manual**.
 }
 ```
 
-The LLM prompt is thin — just the ticket summary + skill catalog as a menu. Haiku responds in <1s. Cached per ticket (no re-call if user re-opens the blade).
+The LLM prompt is thin — just the ticket summary + skill catalog as a menu. Haiku responds in <1s.
+
+**Caching:** Recommendations are cached **per session** (sessionStorage, keyed by ticketId). Each new development session triggers a fresh AI recommendation — because the ticket may have changed since the last session. If the user re-opens the blade within the same browser session without starting a new development, the cached recommendation is reused.
+
+**No localStorage for Auto mode.** Auto is always the default. Manual mode preference is NOT persisted — every session starts fresh in Auto.
 
 **In Manual mode:**
 - No auto-selection, user picks from scratch
