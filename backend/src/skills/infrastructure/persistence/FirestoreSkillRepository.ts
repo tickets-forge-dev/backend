@@ -12,13 +12,13 @@ export class FirestoreSkillRepository implements SkillRepository {
 
   async findAllEnabled(): Promise<Skill[]> {
     const firestore = this.firebaseService.getFirestore();
-    const snapshot = await firestore
-      .collection('skills')
-      .where('enabled', '==', true)
-      .orderBy('order')
-      .get();
+    // Simple query — no composite index needed. Filter and sort in memory.
+    const snapshot = await firestore.collection('skills').get();
 
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Skill));
+    return snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as Skill))
+      .filter(s => s.enabled)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 
   async findByIds(ids: string[]): Promise<Skill[]> {
@@ -33,14 +33,15 @@ export class FirestoreSkillRepository implements SkillRepository {
   }
 
   async seedIfEmpty(): Promise<void> {
-    const existing = await this.findAllEnabled();
-    if (existing.length > 0) {
-      this.logger.log(`Skill catalog already has ${existing.length} entries, skipping seed`);
+    const firestore = this.firebaseService.getFirestore();
+    const snapshot = await firestore.collection('skills').limit(1).get();
+
+    if (!snapshot.empty) {
+      this.logger.log('Skill catalog already seeded, skipping');
       return;
     }
 
     this.logger.log(`Seeding ${SEED_SKILLS.length} skills into Firestore...`);
-    const firestore = this.firebaseService.getFirestore();
     const batch = firestore.batch();
 
     for (const skill of SEED_SKILLS) {
