@@ -10,7 +10,31 @@ import {
   MinLength,
   MaxLength,
   Matches,
+  ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class RepositoryEntryDto {
+  @IsString()
+  @Matches(/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/, {
+    message: 'repositoryFullName must be in format "owner/repo"',
+  })
+  repositoryFullName!: string;
+
+  @IsString()
+  @Matches(/^[a-zA-Z0-9/_-]+$/, {
+    message: 'branchName must contain only alphanumeric, /, -, _',
+  })
+  branchName!: string;
+
+  @IsBoolean()
+  isPrimary!: boolean;
+
+  @IsOptional()
+  @IsString()
+  role?: string;
+}
 
 export class CreateTicketDto {
   @IsString()
@@ -35,6 +59,14 @@ export class CreateTicketDto {
     message: 'branchName must contain only alphanumeric, /, -, _',
   })
   branchName?: string;
+
+  // Multi-repo support (max 2)
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(2)
+  @ValidateNested({ each: true })
+  @Type(() => RepositoryEntryDto)
+  repositories?: RepositoryEntryDto[];
 
   @IsOptional()
   @IsInt()

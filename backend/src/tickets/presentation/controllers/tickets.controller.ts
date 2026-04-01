@@ -451,6 +451,7 @@ export class TicketsController {
         description: dto.description,
         repositoryFullName: dto.repositoryFullName,
         branchName: dto.branchName,
+        repositories: dto.repositories,
         maxRounds: dto.maxRounds,
         type: dto.type,
         priority: dto.priority,
