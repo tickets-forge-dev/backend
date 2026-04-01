@@ -11,7 +11,8 @@ import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3, GripVertical, Tag } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3, GripVertical, Tag, Play } from 'lucide-react';
+import { PreviewPanel } from '@/src/preview/components/PreviewPanel';
 import { TagPicker } from '@/tickets/components/TagPicker';
 import { getTagColor } from '@/tickets/config/tagColors';
 import {
@@ -83,6 +84,7 @@ export default function TicketsListPage() {
   const [sortBy, setSortBy] = useState<SortBy>((listPreferences?.sortBy as any) || 'updated');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [previewRepo, setPreviewRepo] = useState<{ fullName: string; branch: string } | null>(null);
   const [draggingTicketId, setDraggingTicketId] = useState<string | null>(null);
   const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const [folderDropTargetId, setFolderDropTargetId] = useState<string | null>(null);
@@ -621,7 +623,7 @@ export default function TicketsListPage() {
       {/* Tickets list */}
       {!isLoading && !isInitialLoad && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
         <div>
-          <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
+          <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
           {isCreatingFolder && (
             <form
               className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]"
@@ -849,7 +851,7 @@ export default function TicketsListPage() {
                         {folderTickets.length > 0 && (
                           <div>
                             {folderTickets.map((ticket) => (
-                              <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
+                              <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
                             ))}
                           </div>
                         )}
@@ -922,7 +924,7 @@ export default function TicketsListPage() {
                     {folderTickets.length > 0 && (
                       <div>
                         {folderTickets.map((ticket) => (
-                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
+                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
                         ))}
                       </div>
                     )}
@@ -942,7 +944,7 @@ export default function TicketsListPage() {
           {unfiledTickets.length > 0 && (
             <div>
               {unfiledTickets.map((ticket) => (
-                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
+                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
               ))}
             </div>
           )}
@@ -1023,6 +1025,16 @@ export default function TicketsListPage() {
     </div>
     </div>
     <JobsPanel />
+
+    {/* WebContainer Preview Panel */}
+    {previewRepo && (
+      <PreviewPanel
+        open={!!previewRepo}
+        onClose={() => setPreviewRepo(null)}
+        repoFullName={previewRepo.fullName}
+        branch={previewRepo.branch}
+      />
+    )}
     </div>
   );
 }
@@ -1730,7 +1742,7 @@ function ArchivedSection({
 }
 
 // Grid-based ticket row
-function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, currentUserId, visibleColumns, mdGridTemplate }: {
+function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, currentUserId, visibleColumns, mdGridTemplate, onPreview }: {
   ticket: any;
   folders?: FolderResponse[];
   onDragStart?: (ticketId: string) => void;
@@ -1739,6 +1751,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
   currentUserId?: string | null;
   visibleColumns?: ColumnId[];
   mdGridTemplate?: string;
+  onPreview?: (repoFullName: string, branch: string) => void;
 }) {
   const router = useRouter();
   const { deleteTicket, archiveTicket, loadTickets } = useTicketsStore();
@@ -1902,7 +1915,24 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
       {cols.map(renderColumn)}
 
       {/* Actions */}
-      <div className="flex items-center justify-center py-3">
+      <div className="flex items-center justify-center gap-0.5 py-3">
+        {/* Preview button — shown for tickets with a connected repo */}
+        {onPreview && ticket.repositoryContext && (
+          <button
+            className="p-1 rounded-md sm:opacity-0 sm:group-hover:opacity-100 hover:bg-emerald-500/10 text-[var(--text-tertiary)] hover:text-emerald-500 transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onPreview(
+                ticket.repositoryContext.repositoryFullName,
+                ticket.repositoryContext.branchName || 'main',
+              );
+            }}
+            title="Preview project"
+          >
+            <Play className="h-3.5 w-3.5" fill="currentColor" />
+          </button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

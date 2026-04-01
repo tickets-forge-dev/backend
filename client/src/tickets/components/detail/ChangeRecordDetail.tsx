@@ -3,7 +3,7 @@
 import type { AECResponse } from '@/services/ticket.service';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { DivergenceCard } from './DivergenceCard';
-import { ExternalLink, CheckCircle2, FileCode2, GitBranch, GitCompareArrows } from 'lucide-react';
+import { ExternalLink, CheckCircle2, FileCode2, GitBranch, GitCompareArrows, Play } from 'lucide-react';
 
 /**
  * Unified change record detail — single source of truth for record display.
@@ -19,6 +19,7 @@ interface ChangeRecordDetailProps {
   ticket: AECResponse;
   variant?: 'standalone' | 'embedded';
   showNames?: 'creator' | 'developer' | 'both' | 'none' | 'off';
+  onPreview?: (repoFullName: string, branch: string) => void;
 }
 
 function useResolveName() {
@@ -42,7 +43,7 @@ function formatDuration(startIso: string | null, endIso: string): string | null 
   return `${mins}m`;
 }
 
-export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = 'none' }: ChangeRecordDetailProps) {
+export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = 'none', onPreview }: ChangeRecordDetailProps) {
   const cr = ticket.changeRecord!;
   const resolveName = useResolveName();
   const isStandalone = variant === 'standalone';
@@ -273,6 +274,18 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
                 <GitCompareArrows className="w-3 h-3" />
                 <span>View diff</span>
               </a>
+            )}
+            {onPreview && (
+              <button
+                onClick={() => onPreview(
+                  ticket.repositoryContext!.repositoryFullName,
+                  ticket.implementationBranch || ticket.repositoryContext!.branchName || 'main',
+                )}
+                className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors ml-auto"
+              >
+                <Play className="w-3 h-3" fill="currentColor" />
+                <span>Preview</span>
+              </button>
             )}
           </div>
         )}

@@ -40,7 +40,7 @@ export function LandingHeader() {
             href="/tickets"
             className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--text)] px-4 text-sm font-medium text-[var(--bg)] transition-colors hover:opacity-90"
           >
-            Go to App
+            Get Started
           </Link>
         </div>
       </div>

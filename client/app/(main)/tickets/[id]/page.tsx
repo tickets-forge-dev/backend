@@ -1090,6 +1090,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         isDescriptionDirty={isDescriptionDirty}
         isSavingDescription={isSavingDescription}
         onSaveDescription={handleSaveDescription}
+        onPreview={currentTicket.repositoryContext ? () => setPreviewOpen(true) : undefined}
       />
 
       {/* Footer with actions */}

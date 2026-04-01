@@ -76,6 +76,8 @@ interface TicketDetailLayoutProps {
   isDescriptionDirty: boolean;
   isSavingDescription: boolean;
   onSaveDescription: () => void;
+  // Preview
+  onPreview?: (repoFullName: string, branch: string) => void;
 }
 
 export function TicketDetailLayout({
@@ -110,6 +112,7 @@ export function TicketDetailLayout({
   isDescriptionDirty,
   isSavingDescription,
   onSaveDescription,
+  onPreview,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -916,6 +919,7 @@ export function TicketDetailLayout({
             {ticket.changeRecord ? (
               <ChangeRecordTab
                 ticket={ticket}
+                onPreview={onPreview}
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
