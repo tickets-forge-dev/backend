@@ -25,7 +25,17 @@ const STATUS_LABELS: Record<PreviewStatus, string> = {
 };
 
 // Singleton WebContainer instance (only one allowed per page)
-let webcontainerInstance: WebContainer | null = null;
+// Stored on window to survive Next.js hot reloads
+function getWebContainer(): WebContainer | null {
+  if (typeof window === 'undefined') return null;
+  return (window as any).__webcontainer ?? null;
+}
+
+function setWebContainer(instance: WebContainer) {
+  if (typeof window !== 'undefined') {
+    (window as any).__webcontainer = instance;
+  }
+}
 
 export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPanelProps) {
   const { gitHubService } = useServices();
@@ -114,10 +124,11 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
       setStatus('booting');
       addLog('Booting WebContainer...');
 
-      if (!webcontainerInstance) {
-        webcontainerInstance = await WebContainer.boot();
+      let container = getWebContainer();
+      if (!container) {
+        container = await WebContainer.boot();
+        setWebContainer(container);
       }
-      const container = webcontainerInstance;
 
       if (abortRef.current) return;
 
