@@ -102,7 +102,7 @@ function UsageSection() {
             </div>
             {sessionQuota ? (
               <span className="text-[var(--text-secondary)] text-[12px] shrink-0">
-                {sessionQuota.used} / {sessionQuota.limit}
+                {sessionQuota.limit - sessionQuota.remaining} / {sessionQuota.limit}
               </span>
             ) : (
               <span className="text-[var(--text-tertiary)] text-[12px] shrink-0">—</span>
