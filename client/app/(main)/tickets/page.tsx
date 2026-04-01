@@ -62,7 +62,7 @@ function getTypeIcon(type: string | null) {
 
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences, archivedTickets, isLoadingArchived, showArchived, toggleShowArchived, unarchiveTicket } = useTicketsStore();
-  const { currentTeam, loadTeamMembers, teamMembers } = useTeamStore();
+  const { currentTeam, loadTeamMembers, teamMembers, teamRepositories } = useTeamStore();
   const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder, updateFolderScope, reorderFolders } = useFoldersStore();
   const { tags, loadTags } = useTagsStore();
   const { user } = useAuthStore();
@@ -1027,14 +1027,17 @@ export default function TicketsListPage() {
     <JobsPanel />
 
     {/* WebContainer Preview Panel */}
-    {previewRepo && (
-      <PreviewPanel
-        open={!!previewRepo}
-        onClose={() => setPreviewRepo(null)}
-        repoFullName={previewRepo.fullName}
-        branch={previewRepo.branch}
-      />
-    )}
+    {previewRepo && (() => {
+      const frontendRepo = teamRepositories.find(r => r.role === 'frontend');
+      return (
+        <PreviewPanel
+          open={!!previewRepo}
+          onClose={() => setPreviewRepo(null)}
+          repoFullName={frontendRepo?.repositoryFullName || previewRepo.fullName}
+          branch={previewRepo.branch}
+        />
+      );
+    })()}
     </div>
   );
 }

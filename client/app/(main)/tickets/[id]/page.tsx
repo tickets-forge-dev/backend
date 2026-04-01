@@ -101,7 +101,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, refreshTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment } = useTicketsStore();
   const { ticketService } = useServices();
-  const { currentTeam, teamMembers, loadTeamMembers } = useTeamStore();
+  const { currentTeam, teamMembers, loadTeamMembers, teamRepositories, loadTeamRepositories } = useTeamStore();
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -155,6 +155,14 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       loadTeamMembers(currentTeam.id);
     }
   }, [currentTeam?.id, teamMembers.length, loadTeamMembers]);
+
+  // Load team repositories for preview panel repo resolution
+  useEffect(() => {
+    if (currentTeam?.id && teamRepositories.length === 0) {
+      loadTeamRepositories(currentTeam.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTeam?.id]);
 
 
   // Sync description draft when ticket loads
@@ -1712,14 +1720,24 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       <FlowOnboardingDialog />
 
       {/* WebContainer Preview Panel */}
-      {currentTicket.repositoryContext && (
-        <PreviewPanel
-          open={previewOpen}
-          onClose={() => setPreviewOpen(false)}
-          repoFullName={currentTicket.repositoryContext.repositoryFullName}
-          branch={currentTicket.repositoryContext.branchName || 'main'}
-        />
-      )}
+      {(() => {
+        const frontendRepo = teamRepositories.find(r => r.role === 'frontend');
+        const previewRepoFullName = frontendRepo?.repositoryFullName
+          || currentTicket?.repositoryContext?.repositoryFullName;
+        const previewBranch = currentTicket?.implementationBranch
+          || frontendRepo?.defaultBranch
+          || currentTicket?.repositoryContext?.branchName
+          || 'main';
+
+        return previewRepoFullName && previewOpen ? (
+          <PreviewPanel
+            open={previewOpen}
+            onClose={() => setPreviewOpen(false)}
+            repoFullName={previewRepoFullName}
+            branch={previewBranch}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
