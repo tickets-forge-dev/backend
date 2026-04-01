@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Maximize2, Minimize2, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, Maximize2, Minimize2, Loader2, RefreshCw, AlertCircle, GitBranch, ChevronDown } from 'lucide-react';
 import { WebContainer } from '@webcontainer/api';
 import { useServices } from '@/hooks/useServices';
 
@@ -37,11 +37,31 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const abortRef = useRef(false);
 
+  // Branch selection
+  const [activeBranch, setActiveBranch] = useState(branch);
+  const [branches, setBranches] = useState<Array<{ name: string; isDefault: boolean }>>([]);
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+
+  // Fetch branches when panel opens
+  useEffect(() => {
+    if (!open || !repoFullName) return;
+    setActiveBranch(branch);
+    const [owner, repo] = repoFullName.split('/');
+    if (!owner || !repo) return;
+    gitHubService.getBranches(owner, repo)
+      .then((res: any) => {
+        const list = res.branches || res;
+        setBranches(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setBranches([]));
+  }, [open, repoFullName]);
+
   const addLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev.slice(-50), msg]);
   }, []);
 
-  const startPreview = useCallback(async () => {
+  const startPreview = useCallback(async (branchOverride?: string) => {
+    const targetBranch = branchOverride || activeBranch;
     abortRef.current = false;
     setStatus('fetching');
     setError(null);
@@ -57,8 +77,8 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
 
     try {
       // 1. Fetch repo files
-      addLog(`Fetching files from ${repoFullName}@${branch}...`);
-      const { files, truncated } = await gitHubService.getRepoContents(owner, repo, branch);
+      addLog(`Fetching files from ${repoFullName}@${targetBranch}...`);
+      const { files, truncated } = await gitHubService.getRepoContents(owner, repo, targetBranch);
       const fileCount = Object.keys(files).length;
       addLog(`Fetched ${fileCount} files${truncated ? ' (truncated)' : ''}`);
 
@@ -150,7 +170,7 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
         addLog(`Error: ${err.message}`);
       }
     }
-  }, [repoFullName, branch, gitHubService, addLog]);
+  }, [repoFullName, activeBranch, gitHubService, addLog]);
 
   // Start preview when panel opens
   useEffect(() => {
@@ -306,12 +326,47 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
           )}
         </div>
 
-        {/* Footer — repo info */}
+        {/* Footer — repo info + branch selector */}
         <div className="px-4 py-2 border-t border-[var(--border-subtle)] flex items-center gap-2">
-          <svg className="w-3 h-3 text-[var(--text-tertiary)]" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <svg className="w-3 h-3 text-[var(--text-tertiary)] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           <span className="text-[11px] text-[var(--text-tertiary)] font-mono truncate">{repoFullName}</span>
-          <span className="text-[var(--text-tertiary)]/30">@</span>
-          <span className="text-[11px] text-[var(--text-tertiary)] font-mono truncate">{branch}</span>
+          <span className="text-zinc-600 mx-0.5">/</span>
+          {/* Branch selector */}
+          <div className="relative">
+            <button
+              onClick={() => setBranchMenuOpen(!branchMenuOpen)}
+              className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors"
+              disabled={isLoading}
+            >
+              <GitBranch className="w-3 h-3" />
+              {activeBranch}
+              <ChevronDown className="w-2.5 h-2.5 text-[var(--text-tertiary)]" />
+            </button>
+            {branchMenuOpen && branches.length > 0 && (
+              <div className="absolute bottom-full left-0 mb-1 w-56 max-h-48 overflow-y-auto bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-lg shadow-lg z-50">
+                {branches.map((b) => (
+                  <button
+                    key={b.name}
+                    onClick={() => {
+                      setBranchMenuOpen(false);
+                      if (b.name !== activeBranch) {
+                        setActiveBranch(b.name);
+                        startPreview(b.name);
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-[11px] font-mono transition-colors ${
+                      b.name === activeBranch
+                        ? 'text-[var(--text)] bg-[var(--bg-hover)]'
+                        : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                    }`}
+                  >
+                    {b.name}
+                    {b.isDefault && <span className="ml-1.5 text-[9px] text-[var(--text-tertiary)]">default</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
