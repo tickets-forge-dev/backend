@@ -30,7 +30,7 @@ const COMMON_WORDS = new Set([
   'does', 'did', 'its', 'we', 'i', 'you',
 ]);
 
-const MIN_SIGNIFICANT_WORD_MATCHES = 3;
+const MIN_SIGNIFICANT_WORD_MATCHES = 2;
 
 // --- Pure matching logic ---
 
