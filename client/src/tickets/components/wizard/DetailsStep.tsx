@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { validateTitle } from '@/tickets/utils/validateTitle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
-import { Lightbulb, Bug, ClipboardList, Folder, PenLine, FileUp, Mic, MicOff } from 'lucide-react';
+import { Lightbulb, Bug, ClipboardList, Folder, PenLine, FileUp, Mic, MicOff, ChevronDown, Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useFoldersStore } from '@/stores/folders.store';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { MarkdownInput } from './MarkdownInput';
@@ -30,9 +31,12 @@ export function DetailsStep() {
 
   const { currentTeam } = useTeamStore();
   const { folders, loadFolders } = useFoldersStore();
+  const router = useRouter();
   const [editorOpen, setEditorOpen] = useState(false);
   const handleEditorClose = useCallback(() => setEditorOpen(false), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importMenuOpen, setImportMenuOpen] = useState(false);
+  const importMenuRef = useRef<HTMLDivElement>(null);
 
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -347,22 +351,52 @@ export function DetailsStep() {
                 )}
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text)] border border-[var(--border-subtle)] hover:border-[var(--border)] rounded-md transition-colors hover:bg-[var(--bg-hover)]"
-              title="Import a text file (.md, .txt, .csv, .json, .xml, .yaml) into the description"
-            >
-              <FileUp className="h-3.5 w-3.5" />
-              Import
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".md,.txt,.markdown,.text,.csv,.json,.xml,.yaml,.yml"
-              onChange={handleImportFile}
-              className="hidden"
-            />
+            <div className="relative" ref={importMenuRef}>
+              <button
+                type="button"
+                onClick={() => setImportMenuOpen(!importMenuOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text)] border border-[var(--border-subtle)] hover:border-[var(--border)] rounded-md transition-colors hover:bg-[var(--bg-hover)]"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Import
+                <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" />
+              </button>
+              {importMenuOpen && (
+                <div className="absolute top-full left-0 mt-1 w-48 bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-lg shadow-lg z-50">
+                  <button
+                    type="button"
+                    onClick={() => { fileInputRef.current?.click(); setImportMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors rounded-t-lg"
+                  >
+                    <FileUp className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                    From File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { router.push('/tickets/create?mode=import&source=jira'); setImportMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M11.53 2c0 2.4 1.97 4.35 4.35 4.35h1.78v1.7c0 2.4 1.94 4.34 4.34 4.35V2.84a.84.84 0 0 0-.84-.84h-9.63zm.05 6.67c0 2.4 1.97 4.35 4.35 4.35h1.78v1.7c0 2.4 1.94 4.34 4.34 4.35V9.51a.84.84 0 0 0-.84-.84h-9.63zm0 6.68c0 2.4 1.97 4.35 4.35 4.35h1.78v1.7c0 2.4 1.94 4.34 4.34 4.35v-9.56a.84.84 0 0 0-.84-.84h-9.63z"/></svg>
+                    From Jira
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { router.push('/tickets/create?mode=import&source=linear'); setImportMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors rounded-b-lg"
+                  >
+                    <svg className="h-3.5 w-3.5 text-violet-500" viewBox="0 0 24 24" fill="currentColor"><path d="M2.29 13.91a10.15 10.15 0 0 0 7.8 7.8l-7.8-7.8zm-.86-2.15a10.17 10.17 0 0 0 12.81 12.81L1.43 11.76zM12 1.43 1.43 12l10.56 10.56A10.18 10.18 0 0 0 12 1.44zm1.8-.23 8.96 8.96a10.18 10.18 0 0 0-8.96-8.96zm5.1 3.77L13.1 22.6a10.15 10.15 0 0 0 5.8-17.63z"/></svg>
+                    From Linear
+                  </button>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".md,.txt,.markdown,.text,.csv,.json,.xml,.yaml,.yml"
+                onChange={handleImportFile}
+                className="hidden"
+              />
+            </div>
             <button
               type="button"
               onClick={() => setEditorOpen(true)}

@@ -1,42 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useServices } from '@/hooks/useServices';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/core/components/ui/button';
-import { Plus, Upload, FileText, Bug, Lightbulb, ClipboardList } from 'lucide-react';
+import { Plus, Bug, Lightbulb, ClipboardList } from 'lucide-react';
 
 /**
- * CreationMenu - Unified entry point for all ticket creation workflows
- *
- * Shows a dropdown menu with three options:
- * 1. Create New Ticket - Single ticket with analysis
- * 2. Import from Jira/Linear - Import existing issue
- * 3. PRD Breakdown - Bulk create from PRD analysis
+ * CreationMenu - Entry point for ticket creation workflows.
+ * Import options (Jira/Linear/File) are available inside the wizard's Import button.
  */
 export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
   const router = useRouter();
-  const { jiraService, linearService } = useServices();
   const [isOpen, setIsOpen] = useState(false);
-  const [hasImportOptions, setHasImportOptions] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  // Load import availability
-  useEffect(() => {
-    loadAvailability();
-  }, []);
-
-  const loadAvailability = async () => {
-    try {
-      const [jiraStatus, linearStatus] = await Promise.all([
-        jiraService.getConnectionStatus(),
-        linearService.getConnectionStatus(),
-      ]);
-      setHasImportOptions(jiraStatus.connected || linearStatus.connected);
-    } catch (err) {
-      console.error('Failed to load platform availability', err);
-    }
-  };
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -66,7 +42,7 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
 
       {/* Floating Menu */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg shadow-lg dark:shadow-xl z-50">
+        <div className="absolute top-full right-0 mt-2 w-64 bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-lg shadow-lg dark:shadow-xl z-50">
           {/* Create Feature */}
           <button
             onClick={() => {
@@ -111,23 +87,6 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
               <p className="text-xs text-[var(--text-secondary)]">Task with requirements</p>
             </div>
           </button>
-
-          {/* Import from Jira/Linear */}
-          {hasImportOptions && (
-            <button
-              onClick={() => {
-                router.push('/tickets/create?mode=import');
-                setIsOpen(false);
-              }}
-              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)] last:border-b-0"
-            >
-              <Upload className="w-5 h-5 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
-              <div className="text-left">
-                <p className="font-medium text-sm text-[var(--text)]">Import Ticket</p>
-                <p className="text-xs text-[var(--text-secondary)]">From Jira or Linear issue</p>
-              </div>
-            </button>
-          )}
 
           {/* PRD Breakdown - hidden until feature is ready */}
         </div>
