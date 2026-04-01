@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus, Copy, Hash, Plus, Lock } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus, Copy, Hash, Plus, Lock, Play } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -37,6 +37,7 @@ import { useSessionStore } from '@/src/sessions/stores/session.store';
 import { DevelopSessionBlade } from '@/src/sessions/components/organisms/DevelopSessionBlade';
 import { TicketDevelopButton } from '@/src/sessions/components/atoms/TicketDevelopButton';
 import { FlowOnboardingDialog } from '@/src/tickets/components/FlowOnboardingDialog';
+import { PreviewPanel } from '@/src/preview/components/PreviewPanel';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -105,6 +106,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [developBladeOpen, setDevelopBladeOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [repoDialogOpen, setRepoDialogOpen] = useState(false);
   const { tags } = useTagsStore();
   const [localTagIds, setLocalTagIds] = useState<string[]>(currentTicket?.tagIds ?? []);
@@ -848,6 +850,18 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                 Export
               </Button>
             </>
+          )}
+          {currentTicket.repositoryContext && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPreviewOpen(true)}
+              className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+              title="Preview project"
+            >
+              <Play className="h-3.5 w-3.5 mr-1.5" fill="currentColor" />
+              Preview
+            </Button>
           )}
           <TicketDevelopButton
             onClick={() => setDevelopBladeOpen(true)}
@@ -1695,6 +1709,16 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
       {/* First-time flow onboarding */}
       <FlowOnboardingDialog />
+
+      {/* WebContainer Preview Panel */}
+      {currentTicket.repositoryContext && (
+        <PreviewPanel
+          open={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+          repoFullName={currentTicket.repositoryContext.repositoryFullName}
+          branch={currentTicket.repositoryContext.branchName || 'main'}
+        />
+      )}
     </div>
   );
 }

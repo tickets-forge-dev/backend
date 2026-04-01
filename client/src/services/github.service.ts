@@ -258,6 +258,18 @@ export class GitHubService {
   /**
    * Parse repository full name into owner and repo
    */
+  /**
+   * Get repository file contents for WebContainer preview.
+   * Returns a flat map of { path: content } for all text files.
+   */
+  async getRepoContents(owner: string, repo: string, branch: string): Promise<{ files: Record<string, string>; truncated: boolean }> {
+    const response = await this.client.get<{ files: Record<string, string>; truncated: boolean }>(
+      `/github/repos/${owner}/${repo}/contents`,
+      { params: { branch } },
+    );
+    return response.data;
+  }
+
   static parseRepoFullName(fullName: string): { owner: string; repo: string } | null {
     const parts = fullName.split('/');
     if (parts.length !== 2) {

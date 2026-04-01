@@ -12,6 +12,7 @@ import {
   Controller,
   Get,
   Param,
+  Query,
   UseGuards,
   Logger,
   NotFoundException,
@@ -20,6 +21,7 @@ import {
   UnauthorizedException,
   Inject,
 } from '@nestjs/common';
+import { Octokit } from '@octokit/rest';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
@@ -148,6 +150,102 @@ export class GitHubController {
         throw new ForbiddenException(`Access denied to repository ${owner}/${repo}`);
       }
 
+      throw error;
+    }
+  }
+
+  /**
+   * Get repository file contents for WebContainer preview.
+   * Returns a flat map of { path: content } for all text files.
+   * Skips node_modules, .git, binaries, and files > 100KB.
+   */
+  @Get('repos/:owner/:repo/contents')
+  @ApiOperation({ summary: 'Get repository file contents for preview' })
+  async getContents(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Query('branch') branch: string = 'main',
+    @Req() req: any,
+  ): Promise<{ files: Record<string, string>; truncated: boolean }> {
+    this.logger.log(`Fetching contents for preview: ${owner}/${repo}@${branch}`);
+
+    const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+    const octokit = new Octokit({ auth: accessToken });
+
+    const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'coverage', '.turbo', '__pycache__']);
+    const SKIP_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
+    const MAX_FILE_SIZE = 100_000; // 100KB
+    const MAX_FILES = 500;
+
+    try {
+      // 1. Get file tree
+      const treeResponse = await octokit.git.getTree({
+        owner,
+        repo,
+        tree_sha: branch,
+        recursive: '1',
+      });
+
+      // 2. Filter to text files only
+      const entries = treeResponse.data.tree.filter((entry) => {
+        if (entry.type !== 'blob') return false;
+        if (!entry.path) return false;
+        if ((entry.size ?? 0) > MAX_FILE_SIZE) return false;
+
+        // Skip directories
+        const parts = entry.path.split('/');
+        if (parts.some((p) => SKIP_DIRS.has(p))) return false;
+
+        // Skip binary extensions
+        const ext = '.' + entry.path.split('.').pop()?.toLowerCase();
+        if (SKIP_EXTENSIONS.has(ext)) return false;
+
+        return true;
+      });
+
+      const filesToFetch = entries.slice(0, MAX_FILES);
+
+      // 3. Fetch file contents in parallel (batched)
+      const files: Record<string, string> = {};
+      const BATCH_SIZE = 20;
+
+      for (let i = 0; i < filesToFetch.length; i += BATCH_SIZE) {
+        const batch = filesToFetch.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(async (entry) => {
+            const response = await octokit.repos.getContent({
+              owner,
+              repo,
+              path: entry.path!,
+              ref: branch,
+            });
+            const data = response.data as any;
+            if (data.encoding === 'base64' && data.content) {
+              return { path: entry.path!, content: Buffer.from(data.content, 'base64').toString('utf-8') };
+            }
+            return null;
+          }),
+        );
+
+        for (const result of results) {
+          if (result.status === 'fulfilled' && result.value) {
+            files[result.value.path] = result.value.content;
+          }
+        }
+      }
+
+      return {
+        files,
+        truncated: entries.length > MAX_FILES || treeResponse.data.truncated || false,
+      };
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch contents for ${owner}/${repo}:`, error.message);
+      if (error.status === 404) {
+        throw new NotFoundException(`Repository or branch not found: ${owner}/${repo}@${branch}`);
+      }
+      if (error.status === 403) {
+        throw new ForbiddenException(`Access denied to ${owner}/${repo}`);
+      }
       throw error;
     }
   }

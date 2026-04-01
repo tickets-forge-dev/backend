@@ -238,6 +238,9 @@ importers:
       '@vercel/analytics':
         specifier: ^1.6.1
         version: 1.6.1(next@15.5.11)(react@19.2.4)
+      '@webcontainer/api':
+        specifier: ^1.6.1
+        version: 1.6.1
       axios:
         specifier: ^1.6.5
         version: 1.13.4
@@ -5465,6 +5468,10 @@ packages:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
     dev: true
+
+  /@webcontainer/api@1.6.1:
+    resolution: {integrity: sha512-2RS2KiIw32BY1Icf6M1DvqSmcon9XICZCDgS29QJb2NmF12ZY2V5Ia+949hMKB3Wno+P/Y8W+sPP59PZeXSELg==}
+    dev: false
 
   /@xtuc/ieee754@1.2.0:
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
