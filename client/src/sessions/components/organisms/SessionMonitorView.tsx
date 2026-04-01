@@ -5,6 +5,7 @@ import { Loader2, ShieldCheck, AlertCircle, CheckCircle2, Send } from 'lucide-re
 import { useSessionStore } from '../../stores/session.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 import type { SessionEvent } from '../../types/session.types';
+import { useSkillsStore } from '../../stores/skills.store';
 import { DevelopButton } from './DevelopButton';
 import { SessionProvisioningView } from './SessionProvisioningView';
 import { SessionMessage } from './SessionMessage';
@@ -181,6 +182,9 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         onToggleVerbose={() => setVerbose(v => !v)}
       />
 
+      {/* Active skills banner */}
+      <ActiveSkillsBanner />
+
       {/* Event stream */}
       <div className="space-y-4">
         {renderGroups.map((group, i) => {
@@ -201,9 +205,10 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
             );
           }
           if (event.type === 'event.thinking') {
-            if (!verbose || !event.content?.trim()) return null;
+            if (!event.content?.trim()) return null;
+            // Always show thinking — it's the most interesting part for users
             return (
-              <div key={event.id || `thinking-${i}`} className="ml-7 px-3 py-1.5 rounded bg-[var(--bg-hover)] text-[10px] text-[var(--text-tertiary)] italic whitespace-pre-wrap break-all line-clamp-3">
+              <div key={event.id || `thinking-${i}`} className="ml-7 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] italic leading-relaxed line-clamp-2">
                 {event.content}
               </div>
             );
@@ -239,6 +244,31 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       )}
 
       <div ref={bottomRef} />
+    </div>
+  );
+}
+
+/** Shows which skills are active for this session */
+function ActiveSkillsBanner() {
+  const { catalog, getEffectiveSkillIds } = useSkillsStore();
+  const activeIds = getEffectiveSkillIds();
+
+  if (activeIds.length === 0) return null;
+
+  const activeSkills = catalog.filter(s => activeIds.includes(s.id));
+  if (activeSkills.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap py-1.5">
+      <span className="text-[10px] text-[var(--text-tertiary)]">Skills:</span>
+      {activeSkills.map(skill => (
+        <span
+          key={skill.id}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-[var(--text-tertiary)] bg-[var(--bg-hover)]"
+        >
+          {skill.name}
+        </span>
+      ))}
     </div>
   );
 }
