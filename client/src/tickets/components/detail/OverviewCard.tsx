@@ -182,9 +182,9 @@ export function OverviewCard({
           )}
         </div>
 
-        {/* Lifecycle bar — fills the space between assign and status */}
+        {/* Lifecycle bar — inline on large screens, hidden on small */}
         {lifecycleSlot ? (
-          <div className="flex-1 min-w-0 flex justify-center">
+          <div className="hidden lg:flex flex-1 min-w-0 justify-center">
             <div className="w-full max-w-xl">{lifecycleSlot}</div>
           </div>
         ) : (
@@ -203,6 +203,12 @@ export function OverviewCard({
         )}
       </div>
 
+      {/* Lifecycle bar — own row on small/medium screens */}
+      {lifecycleSlot && (
+        <div className="lg:hidden pt-2">
+          {lifecycleSlot}
+        </div>
+      )}
 
       {/* Connect Repository Dialog */}
       <Dialog open={repoDialogOpen} onOpenChange={setRepoDialogOpen}>
