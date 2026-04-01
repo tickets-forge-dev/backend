@@ -119,11 +119,10 @@ export class E2BSandboxAdapter implements SandboxPort {
             },
           },
           context7: {
-            type: 'http',
-            url: 'https://mcp.context7.com/mcp',
-            headers: {
-              'Content-Type': 'application/json',
-              'CONTEXT7_API_KEY': process.env.CONTEXT7_API_KEY || '',
+            command: 'npx',
+            args: ['-y', '@upstash/context7-mcp@latest'],
+            env: {
+              CONTEXT7_API_KEY: process.env.CONTEXT7_API_KEY || '',
             },
           },
         },
