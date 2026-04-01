@@ -30,6 +30,19 @@ function isToolEvent(type: string): boolean {
   return ['event.tool_use', 'event.file_diff', 'event.file_create', 'event.bash', 'event.search', 'event.unknown_tool'].includes(type);
 }
 
+// Exploration tools are noise — hide from the stream
+const HIDDEN_TOOLS = new Set(['Read', 'Glob', 'Grep', 'ToolSearch', 'Search']);
+
+function isVisibleEvent(event: SessionEvent): boolean {
+  // Always show file changes and bash commands
+  if (event.type === 'event.file_diff' || event.type === 'event.file_create' || event.type === 'event.bash') return true;
+  // Hide exploration tools
+  if (event.type === 'event.tool_use' && event.tool && HIDDEN_TOOLS.has(event.tool)) return false;
+  if (event.type === 'event.search') return false;
+  if (event.type === 'event.unknown_tool' && event.tool && HIDDEN_TOOLS.has(event.tool)) return false;
+  return true;
+}
+
 interface RenderGroup {
   type: 'single' | 'tool_group';
   events: SessionEvent[];
@@ -41,7 +54,10 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
 
   for (const event of events) {
     if (isToolEvent(event.type)) {
-      currentToolGroup.push(event);
+      // Only include visible tool events
+      if (isVisibleEvent(event)) {
+        currentToolGroup.push(event);
+      }
     } else {
       if (currentToolGroup.length > 0) {
         groups.push({ type: 'tool_group', events: [...currentToolGroup] });
