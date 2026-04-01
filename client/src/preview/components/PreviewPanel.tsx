@@ -76,11 +76,31 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
     }
 
     try {
-      // 1. Fetch repo files
+      // 1. Fetch repo files — fall back to default branch if target branch doesn't exist
+      let usedBranch = targetBranch;
+      let files: Record<string, string>;
+      let truncated: boolean;
+
       addLog(`Fetching files from ${repoFullName}@${targetBranch}...`);
-      const { files, truncated } = await gitHubService.getRepoContents(owner, repo, targetBranch);
+      try {
+        const result = await gitHubService.getRepoContents(owner, repo, targetBranch);
+        files = result.files;
+        truncated = result.truncated;
+      } catch (branchErr: any) {
+        if (branchErr?.response?.status === 404 || branchErr?.message?.includes('404') || branchErr?.message?.includes('not found')) {
+          addLog(`Branch "${targetBranch}" not found, falling back to main...`);
+          usedBranch = 'main';
+          setActiveBranch('main');
+          const result = await gitHubService.getRepoContents(owner, repo, 'main');
+          files = result.files;
+          truncated = result.truncated;
+        } else {
+          throw branchErr;
+        }
+      }
+
       const fileCount = Object.keys(files).length;
-      addLog(`Fetched ${fileCount} files${truncated ? ' (truncated)' : ''}`);
+      addLog(`Fetched ${fileCount} files from ${usedBranch}${truncated ? ' (truncated)' : ''}`);
 
       if (abortRef.current) return;
 
