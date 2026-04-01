@@ -37,7 +37,6 @@ import { useSessionStore } from '@/src/sessions/stores/session.store';
 import { DevelopSessionBlade } from '@/src/sessions/components/organisms/DevelopSessionBlade';
 import { TicketDevelopButton } from '@/src/sessions/components/atoms/TicketDevelopButton';
 import { FlowOnboardingDialog } from '@/src/tickets/components/FlowOnboardingDialog';
-import { TicketLifecycleBar } from '@/src/tickets/components/detail/TicketLifecycleBar';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -896,7 +895,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           ) : (
             <div className="group flex items-start gap-2">
               <h1 
-                className="text-xl font-semibold text-[var(--text)] leading-tight line-clamp-2 cursor-pointer hover:text-[var(--blue)] transition-colors"
+                className="text-[15px] font-medium text-[var(--text-secondary)] leading-snug line-clamp-2 cursor-pointer hover:text-[var(--text)] transition-colors"
                 onClick={() => {
                   setTitleDraft(currentTicket.title);
                   setIsEditingTitle(true);
@@ -1040,20 +1039,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         </div>
       )}
 
-      {/* Full title (shown when title is long and would be truncated) */}
-      {currentTicket.title.length > 80 && !isEditingTitle && (
-        <div className="px-1 pb-2">
-          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-            <span className="text-xs font-medium text-[var(--text-tertiary)] mr-2">Full title:</span>
-            {currentTicket.title}
-          </p>
-        </div>
-      )}
-
-      {/* Lifecycle progress bar */}
-      <div className="px-1">
-        <TicketLifecycleBar currentStatus={currentTicket.status} />
-      </div>
 
       {/* Main Content — TicketDetailLayout handles tabs vs pre-spec */}
       <TicketDetailLayout

@@ -12,14 +12,14 @@ export function TicketLifecycleBar({ currentStatus }: TicketLifecycleBarProps) {
   const [hoveredStep, setHoveredStep] = useState<string | null>(null);
 
   return (
-    <div className="flex items-center gap-1 w-full relative">
+    <div className="flex items-center gap-2 w-full relative">
       {LIFECYCLE_STEPS.map((step, i) => {
         const isPast = currentIdx >= 0 && i < currentIdx;
         const isCurrent = step.key === currentStatus;
         const statusCfg = TICKET_STATUS_CONFIG[step.key];
 
         return (
-          <div key={step.key} className="flex items-center gap-1 flex-1 min-w-0">
+          <div key={step.key} className="flex items-center gap-2 flex-1 min-w-0">
             {/* Step */}
             <div
               className="relative flex items-center gap-1.5 min-w-0 cursor-default"

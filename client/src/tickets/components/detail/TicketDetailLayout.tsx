@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/t
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { ImageAttachmentsGrid } from '@/src/tickets/components/ImageAttachmentsGrid';
 import { OverviewCard } from './OverviewCard';
+import { TicketLifecycleBar } from './TicketLifecycleBar';
 import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
@@ -319,6 +320,7 @@ export function TicketDetailLayout({
           assignDialogOpen={assignDialogOpen}
           onAssignDialogOpenChange={handleAssignDialogOpenChange}
           pendingApproval={pendingApproval}
+          lifecycleSlot={<TicketLifecycleBar currentStatus={ticket.status} />}
         />
 
         {/* Pending Questions */}
@@ -464,6 +466,7 @@ export function TicketDetailLayout({
         onAssignDialogOpenChange={handleAssignDialogOpenChange}
         pendingApproval={pendingApproval}
         actionSlot={undefined}
+        lifecycleSlot={<TicketLifecycleBar currentStatus={ticket.status} />}
       />
 
       {/* Develop button removed from here — now passed via OverviewCard actionSlot */}

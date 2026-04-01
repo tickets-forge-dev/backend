@@ -70,6 +70,8 @@ interface OverviewCardProps {
   pendingApproval?: boolean;
   /** Optional action slot rendered in the bottom row (e.g., Develop button) */
   actionSlot?: React.ReactNode;
+  /** Lifecycle bar rendered between assignee and status */
+  lifecycleSlot?: React.ReactNode;
   /** External control for the repo dialog */
   repoDialogOpen?: boolean;
   onRepoDialogOpenChange?: (open: boolean) => void;
@@ -84,6 +86,7 @@ export function OverviewCard({
   onAssignDialogOpenChange,
   pendingApproval,
   actionSlot,
+  lifecycleSlot,
   repoDialogOpen: externalRepoDialogOpen,
   onRepoDialogOpenChange,
 }: OverviewCardProps) {
@@ -157,9 +160,9 @@ export function OverviewCard({
 
   return (
     <div className="px-4 py-2.5">
-      {/* Top row: Assignee ... Status badge */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative">
+      {/* Top row: Assignee — Lifecycle — Status */}
+      <div className="relative flex items-center justify-between gap-4">
+        <div className="relative z-10">
           <AssigneeSelector
             assignedTo={ticket.assignedTo}
             onAssign={onAssignTicket}
@@ -179,7 +182,14 @@ export function OverviewCard({
           )}
         </div>
 
-        <div className="flex-1" />
+        {/* Lifecycle bar — fills the space between assign and status */}
+        {lifecycleSlot ? (
+          <div className="flex-1 min-w-0 flex justify-center">
+            <div className="w-full max-w-xl">{lifecycleSlot}</div>
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
 
         {/* Status badge — clicking opens lifecycle panel */}
         {ticket.status && (
