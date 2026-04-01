@@ -193,7 +193,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
             return <SessionMessage key={event.id} content={event.content ?? ''} />;
           }
           if (event.type === 'event.stderr') {
-            if (!verbose) return null;
+            if (!verbose || !event.content?.trim()) return null;
             return (
               <div key={event.id || `stderr-${i}`} className="ml-7 px-3 py-1.5 rounded bg-[var(--bg-hover)] text-[10px] text-[var(--text-tertiary)] font-mono whitespace-pre-wrap break-all">
                 {event.content}
@@ -201,7 +201,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
             );
           }
           if (event.type === 'event.thinking') {
-            if (!verbose) return null;
+            if (!verbose || !event.content?.trim()) return null;
             return (
               <div key={event.id || `thinking-${i}`} className="ml-7 px-3 py-1.5 rounded bg-[var(--bg-hover)] text-[10px] text-[var(--text-tertiary)] italic whitespace-pre-wrap break-all line-clamp-3">
                 {event.content}
