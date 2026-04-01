@@ -3,9 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { useImportWizardStore } from '@/tickets/stores/import-wizard.store';
-import { Button } from '@/core/components/ui/button';
-import { Input } from '@/core/components/ui/input';
-import { Loader2, Check, ChevronDown, Link2 } from 'lucide-react';
+import { Loader2, Check, Link2 } from 'lucide-react';
 
 interface Props {
   onError: (message: string) => void;
@@ -22,16 +20,6 @@ interface IssueOption {
   title: string;
 }
 
-/**
- * ImportStage1Selector
- *
- * Enhanced with autocomplete: Ask user to paste issue key/ID
- * - Platform selection: Jira or Linear
- * - Issue key/ID input with real-time autocomplete suggestions
- * - Shows matching issues as user types with full details
- * - Keyboard navigation (↑/↓/Enter/Esc)
- * - User can select from dropdown or continue with manual entry
- */
 export function ImportStage1Selector({ onError, availability }: Props) {
   const { jiraService, linearService } = useServices();
   const { platform, setPlatform, setSelectedIssue, goToStage } = useImportWizardStore();
@@ -46,7 +34,15 @@ export function ImportStage1Selector({ onError, availability }: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // Handle autocomplete search
+  // Auto-select platform if only one is available
+  useEffect(() => {
+    if (!platform) {
+      if (availability?.jira && !availability?.linear) setPlatform('jira');
+      else if (availability?.linear && !availability?.jira) setPlatform('linear');
+    }
+  }, [availability, platform, setPlatform]);
+
+  // Autocomplete search
   useEffect(() => {
     if (!platform || !issueKey.trim() || issueKey.length < 2) {
       setAutocompleteOptions([]);
@@ -61,11 +57,9 @@ export function ImportStage1Selector({ onError, availability }: Props) {
         const results = platform === 'jira'
           ? await jiraService.searchIssues(query)
           : await linearService.searchIssues(query);
-
         setAutocompleteOptions(results);
         setShowDropdown(results.length > 0);
-      } catch (err) {
-        // Silently fail on autocomplete - don't show error banner
+      } catch {
         setAutocompleteOptions([]);
       } finally {
         setIsSearching(false);
@@ -76,48 +70,37 @@ export function ImportStage1Selector({ onError, availability }: Props) {
     return () => clearTimeout(debounceTimer);
   }, [issueKey, platform, jiraService, linearService]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Keyboard navigation for dropdown
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showDropdown || autocompleteOptions.length === 0) {
-      if (e.key === 'Enter' && issueKey.trim()) {
-        handleContinue();
-      }
+      if (e.key === 'Enter' && issueKey.trim()) handleContinue();
       return;
     }
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev < autocompleteOptions.length - 1 ? prev + 1 : prev
-        );
+        setHighlightedIndex(prev => prev < autocompleteOptions.length - 1 ? prev + 1 : prev);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        setHighlightedIndex(prev => prev > 0 ? prev - 1 : -1);
         break;
       case 'Enter':
         e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < autocompleteOptions.length) {
-          handleSelectOption(autocompleteOptions[highlightedIndex]);
-        } else if (issueKey.trim()) {
-          handleContinue();
-        }
+        if (highlightedIndex >= 0) handleSelectOption(autocompleteOptions[highlightedIndex]);
+        else if (issueKey.trim()) handleContinue();
         break;
       case 'Escape':
-        e.preventDefault();
         setShowDropdown(false);
         setHighlightedIndex(-1);
         break;
@@ -126,59 +109,32 @@ export function ImportStage1Selector({ onError, availability }: Props) {
 
   const validateAndNormalizeIssueKey = (): string | null => {
     setValidationError(null);
-
-    if (!issueKey.trim()) {
-      setValidationError('Issue key/ID is required');
-      return null;
-    }
-
+    if (!issueKey.trim()) { setValidationError('Issue key is required'); return null; }
     const trimmed = issueKey.trim();
-
     if (platform === 'jira') {
-      // Jira format: PROJECT-123 or PROJECT123 (auto-correct)
       const jiraKeyRegex = /^[A-Z][A-Z0-9]*-?\d+$/;
-      if (!jiraKeyRegex.test(trimmed)) {
-        setValidationError('Invalid Jira issue key. Expected format: PROJECT-123 or PROJECT123');
-        return null;
-      }
-
-      // Auto-correct: Convert "PROJECT123" to "PROJECT-123"
-      const normalized = trimmed.replace(/^([A-Z][A-Z0-9]*?)(\d+)$/, '$1-$2');
-      return normalized;
+      if (!jiraKeyRegex.test(trimmed)) { setValidationError('Expected format: PROJ-123'); return null; }
+      return trimmed.replace(/^([A-Z][A-Z0-9]*?)(\d+)$/, '$1-$2');
     } else if (platform === 'linear') {
-      // Linear format: FOR-123 or UUID
       const linearKeyRegex = /^([A-Z]+-\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
-      if (!linearKeyRegex.test(trimmed)) {
-        setValidationError('Invalid Linear issue ID. Expected format: TEAM-123 or UUID');
-        return null;
-      }
+      if (!linearKeyRegex.test(trimmed)) { setValidationError('Expected format: TEAM-123'); return null; }
       return trimmed;
     }
-
     return null;
   };
 
   const handleSelectOption = async (option: IssueOption) => {
     const selectedKey = platform === 'jira' ? (option.key || '') : (option.identifier || '');
+    if (!selectedKey) { setValidationError('No valid issue key'); return; }
 
-    // Validate that we have a key before proceeding
-    if (!selectedKey) {
-      setValidationError('No valid issue key/ID selected');
-      return;
-    }
-
-    // Normalize the key (for Jira, convert PROJECT123 to PROJECT-123)
     let normalizedKey = selectedKey;
-    if (platform === 'jira') {
-      normalizedKey = selectedKey.replace(/^([A-Z][A-Z0-9]*?)(\d+)$/, '$1-$2');
-    }
+    if (platform === 'jira') normalizedKey = selectedKey.replace(/^([A-Z][A-Z0-9]*?)(\d+)$/, '$1-$2');
 
     setIssueKey(normalizedKey);
     setShowDropdown(false);
     setValidationError(null);
-
-    // Auto-import selected issue
     setIsLoading(true);
+
     try {
       const issue = platform === 'jira'
         ? await jiraService.importIssue(normalizedKey)
@@ -194,22 +150,9 @@ export function ImportStage1Selector({ onError, availability }: Props) {
         mappedType: issue.type || 'task',
         mappedPriority: issue.priority || 'medium',
       });
-
       goToStage(2);
     } catch (err: any) {
-      // Extract backend error message
-      let message = 'Failed to import issue';
-
-      if (err.response?.data?.message) {
-        message = err.response.data.message;
-      } else if (err.response?.data?.error) {
-        message = err.response.data.error;
-      } else if (err.message) {
-        message = err.message;
-      }
-
-      console.error('Import error:', { status: err.response?.status, data: err.response?.data, error: err });
-      onError(message);
+      onError(err.response?.data?.message || err.message || 'Failed to import issue');
     } finally {
       setIsLoading(false);
     }
@@ -221,7 +164,6 @@ export function ImportStage1Selector({ onError, availability }: Props) {
 
     setIsLoading(true);
     try {
-      // Import issue and get full details from backend
       const issue = platform === 'jira'
         ? await jiraService.importIssue(normalizedKey)
         : await linearService.importIssue(normalizedKey);
@@ -236,191 +178,159 @@ export function ImportStage1Selector({ onError, availability }: Props) {
         mappedType: issue.type || 'task',
         mappedPriority: issue.priority || 'medium',
       });
-
       goToStage(2);
     } catch (err: any) {
-      // Extract backend error message more reliably
-      let message = 'Failed to import issue';
-
-      if (err.response?.data?.message) {
-        message = err.response.data.message;
-      } else if (err.response?.data?.error) {
-        message = err.response.data.error;
-      } else if (err.message) {
-        message = err.message;
-      }
-
-      console.error('Import error:', { status: err.response?.status, data: err.response?.data, error: err });
-      onError(message);
+      onError(err.response?.data?.message || err.message || 'Failed to import issue');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const hasBothPlatforms = availability?.jira && availability?.linear;
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-md mx-auto space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold mb-2">Import Ticket</h1>
-        <p className="text-sm text-[var(--text-tertiary)]">
-          Select which platform to import from, then enter the issue key or ID
+        <h2 className="text-[15px] font-semibold text-[var(--text)]">Import ticket</h2>
+        <p className="text-[12px] text-[var(--text-tertiary)] mt-1">
+          Search or paste an issue key to import
         </p>
       </div>
 
-      {/* Platform selector - Jira only */}
-      <div>
-        <button
-          onClick={() => {
-            setPlatform('jira');
-            setValidationError(null);
-          }}
-          className={`w-full px-4 py-6 rounded-lg border-2 transition-colors ${
-            platform === 'jira'
-              ? 'border-blue-500 bg-blue-500/10'
-              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-blue-500/50'
-          } ${!availability?.jira && platform !== 'jira' ? 'opacity-60' : ''}`}
-        >
-          <div className="flex flex-col items-center gap-3">
-            {/* Jira Logo */}
-            <img src="/assets/jira_logo.png" alt="Jira" className="h-12 w-auto" />
-            <div className="text-lg font-semibold text-[var(--text)]">Import from Jira</div>
-            {availability?.jira ? (
-              <div className="text-xs px-3 py-1.5 rounded bg-green-500/20 text-green-700 font-medium">
-                ✓ Connected
-              </div>
-            ) : (
-              <div className="text-xs px-3 py-1.5 rounded bg-gray-500/20 text-gray-600">
-                Connect in Settings
-              </div>
-            )}
-          </div>
-        </button>
-      </div>
-
-      {platform && (
-        <div className="space-y-4">
-          {/* Instructions */}
-          <div className="p-4 bg-[var(--bg-hover)] rounded-lg">
-            <p className="text-sm text-[var(--text-secondary)]">
-              {platform === 'jira'
-                ? 'Enter the Jira issue key (e.g., PROJ-123 or PROJ123 - both formats accepted)'
-                : 'Enter the Linear issue ID (e.g., FOR-123 or UUID)'}
-            </p>
-          </div>
-
-          {/* Issue key input with autocomplete */}
-          <div className="space-y-2 relative">
-            <label className="block text-sm font-medium">
-              {platform === 'jira' ? 'Jira Issue Key or Title' : 'Linear Issue ID or Title'}
-            </label>
-            <div className="relative" ref={dropdownRef}>
-              <Input
-                ref={inputRef}
-                type="text"
-                value={issueKey}
-                onChange={(e) => {
-                  setIssueKey(e.target.value);
-                  setValidationError(null);
-                  setShowDropdown(true);
-                  setHighlightedIndex(-1);
-                }}
-                onKeyDown={handleKeyDown}
-                onFocus={() => {
-                  if (issueKey.trim().length >= 2 && autocompleteOptions.length > 0) {
-                    setShowDropdown(true);
-                  }
-                }}
-                placeholder={platform === 'jira' ? 'e.g., KAN-2 or KAN2' : 'e.g., FOR-123 or UUID'}
-                className={validationError ? 'border-red-500/50 focus:border-red-500' : ''}
-                disabled={isLoading}
-                autoComplete="off"
-              />
-
-              {/* Autocomplete dropdown with enhanced styling */}
-              {showDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-subtle)] rounded-lg shadow-xl ring-1 ring-black/5 dark:ring-white/5 z-50 max-h-80 overflow-y-auto">
-                  {isSearching && (
-                    <div className="px-4 py-8 flex items-center justify-center">
-                      <Loader2 className="h-4 w-4 animate-spin text-[var(--text-tertiary)]" />
-                    </div>
-                  )}
-
-                  {!isSearching && autocompleteOptions.length === 0 && issueKey.trim().length >= 2 && (
-                    <div className="px-4 py-8 text-center">
-                      <p className="text-sm text-[var(--text-tertiary)]">No matching issues found</p>
-                      <p className="text-xs text-[var(--text-tertiary)]/70 mt-1">
-                        Try a different search term
-                      </p>
-                    </div>
-                  )}
-
-                  {!isSearching && autocompleteOptions.length > 0 && (
-                    <>
-                      {autocompleteOptions.map((option, index) => (
-                        <button
-                          key={option.id}
-                          onClick={() => handleSelectOption(option)}
-                          disabled={isLoading}
-                          onMouseEnter={() => setHighlightedIndex(index)}
-                          onMouseLeave={() => setHighlightedIndex(-1)}
-                          className={`w-full text-left px-4 py-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            index === highlightedIndex
-                              ? 'bg-[var(--primary)]/10 border-l-2 border-[var(--primary)]'
-                              : 'hover:bg-[var(--bg-hover)] border-l-2 border-transparent'
-                          } ${index < autocompleteOptions.length - 1 ? 'border-b border-[var(--border)]/20' : ''}`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1 min-w-0">
-                              {/* Issue Key/Identifier */}
-                              <div className="font-semibold text-sm text-[var(--text)]">
-                                {option.key || option.identifier}
-                              </div>
-                              {/* Issue Title */}
-                              <div className="text-xs text-[var(--text-secondary)] truncate mt-0.5">
-                                {option.title}
-                              </div>
-                            </div>
-                            {/* Checkmark on selection */}
-                            {index === highlightedIndex && (
-                              <Check className="h-4 w-4 text-[var(--primary)] flex-shrink-0 mt-0.5" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </div>
+      {/* Platform selector — only show if both are available */}
+      {hasBothPlatforms && (
+        <div className="inline-flex rounded-lg bg-[var(--bg-hover)] p-0.5">
+          {[
+            { value: 'jira' as const, label: 'Jira', available: availability?.jira },
+            { value: 'linear' as const, label: 'Linear', available: availability?.linear },
+          ].map(({ value, label, available }) => (
+            <button
+              key={value}
+              onClick={() => { setPlatform(value); setValidationError(null); setIssueKey(''); }}
+              disabled={!available}
+              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${
+                platform === value
+                  ? 'bg-[var(--bg)] text-[var(--text)] shadow-sm'
+                  : available
+                    ? 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                    : 'text-[var(--text-tertiary)]/30 cursor-not-allowed'
+              }`}
+            >
+              {label}
+              {available && platform === value && (
+                <span className="ml-1.5 text-[9px] text-emerald-500">connected</span>
               )}
+            </button>
+          ))}
+        </div>
+      )}
 
-            </div>
+      {/* Single platform indicator */}
+      {!hasBothPlatforms && platform && (
+        <div className="flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]">
+          <Check className="w-3 h-3 text-emerald-500" />
+          <span>{platform === 'jira' ? 'Jira' : 'Linear'} connected</span>
+        </div>
+      )}
 
-            {validationError && (
-              <p className="text-xs text-red-600">{validationError}</p>
+      {/* Search input */}
+      {platform && (
+        <div className="space-y-3">
+          <div className="relative" ref={dropdownRef}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={issueKey}
+              onChange={(e) => {
+                setIssueKey(e.target.value);
+                setValidationError(null);
+                setShowDropdown(true);
+                setHighlightedIndex(-1);
+              }}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (issueKey.trim().length >= 2 && autocompleteOptions.length > 0) setShowDropdown(true);
+              }}
+              placeholder={platform === 'jira' ? 'Search or enter key (e.g. KAN-2)' : 'Search or enter ID (e.g. FOR-123)'}
+              disabled={isLoading}
+              autoComplete="off"
+              autoFocus
+              className={`w-full rounded-lg border bg-[var(--bg)] px-3 py-2.5 text-[13px] text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none transition-colors ${
+                validationError
+                  ? 'border-red-500/50 focus:border-red-500'
+                  : 'border-[var(--border-subtle)] focus:border-[var(--text-tertiary)]'
+              }`}
+            />
+
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="w-3.5 h-3.5 text-[var(--text-tertiary)] animate-spin" />
+              </div>
+            )}
+
+            {/* Autocomplete dropdown */}
+            {showDropdown && !isSearching && autocompleteOptions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--bg)] rounded-lg border border-[var(--border-subtle)] shadow-lg z-50 max-h-64 overflow-y-auto scrollbar-thin">
+                {autocompleteOptions.map((option, index) => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleSelectOption(option)}
+                    disabled={isLoading}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    className={`w-full text-left px-3 py-2.5 transition-colors disabled:opacity-50 ${
+                      index === highlightedIndex ? 'bg-[var(--bg-hover)]' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-mono font-medium text-[var(--text-secondary)] shrink-0">
+                        {option.key || option.identifier}
+                      </span>
+                      <span className="text-[12px] text-[var(--text-tertiary)] truncate">
+                        {option.title}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              variant="outline"
+          {validationError && (
+            <p className="text-[11px] text-red-400">{validationError}</p>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2">
+            <button
               onClick={() => window.history.back()}
               disabled={isLoading}
+              className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
             >
-              Back
-            </Button>
-            <Button
+              Cancel
+            </button>
+            <button
               onClick={handleContinue}
               disabled={!issueKey.trim() || isLoading}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:bg-[var(--bg-active)] text-[var(--text)] text-[12px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
-                </>
+                <><Loader2 className="w-3 h-3 animate-spin" /> Importing...</>
               ) : (
-                'Continue'
+                <><Link2 className="w-3 h-3" /> Import</>
               )}
-            </Button>
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Not connected state */}
+      {!platform && !availability?.jira && !availability?.linear && (
+        <div className="text-center py-8">
+          <p className="text-[13px] text-[var(--text-secondary)]">No integrations connected</p>
+          <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
+            Connect Jira or Linear in Settings to import tickets
+          </p>
         </div>
       )}
     </div>
