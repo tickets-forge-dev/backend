@@ -11,7 +11,8 @@ export class StubSandboxAdapter implements SandboxPort {
     this.logger.log(`[STUB] Creating sandbox ${sandboxId} for ticket ${config.ticketId}`);
 
     let stdoutHandler: ((line: string) => void) | null = null;
-    let _stderrHandler: ((line: string) => void) | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let stderrHandler: ((line: string) => void) | null = null;
     let exitHandler: ((code: number) => void) | null = null;
     let destroyed = false;
 
@@ -76,7 +77,7 @@ export class StubSandboxAdapter implements SandboxPort {
         stdoutHandler = handler;
       },
       onStderr(handler: (line: string) => void): void {
-        _stderrHandler = handler;
+        stderrHandler = handler;
       },
       onExit(handler: (code: number) => void): void {
         exitHandler = handler;

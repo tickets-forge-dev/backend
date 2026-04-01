@@ -1,7 +1,6 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
 import { ChangeRecordStatus } from '../../../domain/value-objects/ChangeRecord';
-import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { Attachment } from '../../../domain/value-objects/Attachment';
 import { DesignReference } from '../../../domain/value-objects/DesignReference';
