@@ -6,6 +6,7 @@ import { Question } from '../value-objects/Question';
 import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
+import { RepositoryEntry } from '../value-objects/RepositoryEntry';
 import { Attachment, MAX_ATTACHMENTS } from '../value-objects/Attachment';
 import {
   DesignReference,
@@ -71,7 +72,7 @@ export class AEC {
     private _driftDetectedAt: Date | null,
     private _driftReason: string | null,
     private _approvedAt: Date | null,
-    private _repositoryContext: RepositoryContext | null,
+    private _repositories: RepositoryEntry[],
     public readonly createdAt: Date,
     private _updatedAt: Date,
     // Simple question tracking (no rounds)
@@ -105,13 +106,36 @@ export class AEC {
     private _changeRecord: ChangeRecord | null = null,
   ) {}
 
+  /**
+   * Convert a RepositoryContext (legacy) or RepositoryEntry[] to RepositoryEntry[].
+   * Ensures backward compatibility for call sites still passing a single RepositoryContext.
+   */
+  private static toRepositoryEntries(
+    input?: RepositoryContext | RepositoryEntry[] | null,
+  ): RepositoryEntry[] {
+    if (!input) return [];
+    if (Array.isArray(input)) return input;
+
+    // Legacy RepositoryContext — wrap into a single-entry array as primary
+    return [
+      {
+        repositoryFullName: input.repositoryFullName,
+        branchName: input.branchName,
+        commitSha: input.commitSha,
+        isDefaultBranch: input.isDefaultBranch,
+        isPrimary: true,
+        selectedAt: input.selectedAt,
+      },
+    ];
+  }
+
   // Factory method for creating new draft
   static createDraft(
     teamId: string,
     createdBy: string,
     title: string,
     description?: string,
-    repositoryContext?: RepositoryContext,
+    repositoryContextOrEntries?: RepositoryContext | RepositoryEntry[],
     type?: TicketType,
     priority?: TicketPriority,
     assignedTo?: string | null,
@@ -156,7 +180,7 @@ export class AEC {
       null,
       null,
       null, // _approvedAt
-      repositoryContext ?? null,
+      AEC.toRepositoryEntries(repositoryContextOrEntries), // _repositories
       new Date(),
       new Date(),
       [], // _clarificationQuestions
@@ -209,7 +233,7 @@ export class AEC {
     externalIssue: ExternalIssue | null,
     driftDetectedAt: Date | null,
     driftReason: string | null,
-    repositoryContext: RepositoryContext | null,
+    repositoryContextOrEntries: RepositoryContext | RepositoryEntry[] | null,
     createdAt: Date,
     updatedAt: Date,
     clarificationQuestions?: ClarificationQuestion[],
@@ -265,7 +289,7 @@ export class AEC {
       driftDetectedAt,
       driftReason,
       approvedAt ?? null,
-      repositoryContext,
+      AEC.toRepositoryEntries(repositoryContextOrEntries), // _repositories
       createdAt,
       updatedAt,
       clarificationQuestions ?? [],
@@ -710,8 +734,99 @@ export class AEC {
     this._updatedAt = new Date();
   }
 
+  /**
+   * Backward-compatible setter — converts a RepositoryContext to a RepositoryEntry
+   * and replaces the primary repo (or adds as the first).
+   * Many call sites still use this; it delegates to the array model internally.
+   */
   setRepositoryContext(repositoryContext: RepositoryContext): void {
-    this._repositoryContext = repositoryContext;
+    const entry: RepositoryEntry = {
+      repositoryFullName: repositoryContext.repositoryFullName,
+      branchName: repositoryContext.branchName,
+      commitSha: repositoryContext.commitSha,
+      isDefaultBranch: repositoryContext.isDefaultBranch,
+      isPrimary: true,
+      selectedAt: repositoryContext.selectedAt,
+    };
+
+    // Clear previous primary
+    this._repositories = this._repositories.map((r) => ({ ...r, isPrimary: false }));
+
+    // Replace existing entry for same repo, or add new
+    const existingIndex = this._repositories.findIndex(
+      (r) => r.repositoryFullName === entry.repositoryFullName,
+    );
+    if (existingIndex >= 0) {
+      this._repositories[existingIndex] = entry;
+    } else {
+      this._repositories.push(entry);
+    }
+
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Add a repository to the ticket's repository list.
+   * The first repository added is automatically set as primary.
+   */
+  addRepository(entry: RepositoryEntry): void {
+    // If this is the first repo, force isPrimary
+    if (this._repositories.length === 0) {
+      entry = { ...entry, isPrimary: true };
+    }
+
+    // Prevent duplicates
+    const existing = this._repositories.findIndex(
+      (r) => r.repositoryFullName === entry.repositoryFullName,
+    );
+    if (existing >= 0) {
+      this._repositories[existing] = entry;
+    } else {
+      this._repositories.push(entry);
+    }
+
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Remove a repository by full name.
+   * If the removed repo was primary, the first remaining repo becomes primary.
+   */
+  removeRepository(repoFullName: string): void {
+    const removed = this._repositories.find(
+      (r) => r.repositoryFullName === repoFullName,
+    );
+    this._repositories = this._repositories.filter(
+      (r) => r.repositoryFullName !== repoFullName,
+    );
+
+    // If we removed the primary and there are remaining repos, reassign primary
+    if (removed?.isPrimary && this._repositories.length > 0) {
+      this._repositories[0] = { ...this._repositories[0], isPrimary: true };
+    }
+
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Set a specific repository as the primary. Clears isPrimary on all others.
+   * Throws if the repository is not in the list.
+   */
+  setPrimaryRepository(repoFullName: string): void {
+    const target = this._repositories.find(
+      (r) => r.repositoryFullName === repoFullName,
+    );
+    if (!target) {
+      throw new Error(
+        `Repository ${repoFullName} is not attached to this ticket`,
+      );
+    }
+
+    this._repositories = this._repositories.map((r) => ({
+      ...r,
+      isPrimary: r.repositoryFullName === repoFullName,
+    }));
+
     this._updatedAt = new Date();
   }
 
@@ -883,8 +998,28 @@ export class AEC {
   get approvedAt(): Date | null {
     return this._approvedAt;
   }
+  /**
+   * Backward-compatible getter — returns the primary repository as a RepositoryContext,
+   * or null if no repositories are attached.
+   */
   get repositoryContext(): RepositoryContext | null {
-    return this._repositoryContext;
+    const primary = this._repositories.find((r) => r.isPrimary) ?? this._repositories[0] ?? null;
+    if (!primary) return null;
+
+    return RepositoryContext.create({
+      repositoryFullName: primary.repositoryFullName,
+      branchName: primary.branchName,
+      commitSha: primary.commitSha,
+      isDefaultBranch: primary.isDefaultBranch,
+      selectedAt: primary.selectedAt,
+    });
+  }
+
+  /**
+   * Returns the full list of attached repositories.
+   */
+  get repositories(): RepositoryEntry[] {
+    return [...this._repositories];
   }
   get updatedAt(): Date {
     return this._updatedAt;
