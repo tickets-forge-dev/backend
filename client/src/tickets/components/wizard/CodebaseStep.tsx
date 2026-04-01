@@ -7,7 +7,6 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { GitBranch, X, Plus } from 'lucide-react';
 import { useProjectProfileStore, type ProjectProfileSummary } from '@/project-profiles/stores/project-profile.store';
-import { ProfileStatusBadge } from '@/project-profiles/components/ProfileStatusBadge';
 
 /**
  * CodebaseStep — Repository connection step.
@@ -134,58 +133,55 @@ export function CodebaseStep() {
       {includeRepository ? (
         <div className="space-y-3">
           {/* Primary repo row */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedRepository || ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val) {
-                    ticketsStore.setRepository(val);
-                    const [o, n] = val.split('/');
-                    if (o && n) setRepository(o, n);
-                  }
-                }}
-                className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)] appearance-none"
-              >
-                <option value="">Select repository...</option>
-                {selectedRepositories.map((r) => (
-                  <option key={r.id} value={r.fullName}>{r.fullName}</option>
-                ))}
-              </select>
-              <select
-                value={ticketsStore.selectedBranch || ticketsStore.defaultBranch || 'main'}
-                onChange={(e) => ticketsStore.setBranch(e.target.value)}
-                className="w-32 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)] appearance-none"
-              >
-                {ticketsStore.availableBranches.length > 0 ? (
-                  ticketsStore.availableBranches.map((b) => (
-                    <option key={b.name} value={b.name}>{b.name}</option>
-                  ))
-                ) : (
-                  <option value="main">main</option>
-                )}
-              </select>
-              {hasSecondary && (
-                <select
-                  value={input.primaryRole || ''}
-                  onChange={(e) => setPrimaryRole(e.target.value)}
-                  className="w-24 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
-                >
-                  <option value="">role</option>
-                  <option value="backend">backend</option>
-                  <option value="frontend">frontend</option>
-                  <option value="shared">shared</option>
-                </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedRepository || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val) {
+                  ticketsStore.setRepository(val);
+                  const [o, n] = val.split('/');
+                  if (o && n) setRepository(o, n);
+                }
+              }}
+              className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)]"
+            >
+              <option value="">Select repository...</option>
+              {selectedRepositories.map((r) => (
+                <option key={r.id} value={r.fullName}>{r.fullName}</option>
+              ))}
+            </select>
+            <select
+              value={ticketsStore.selectedBranch || ticketsStore.defaultBranch || 'main'}
+              onChange={(e) => ticketsStore.setBranch(e.target.value)}
+              className="w-28 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-2.5 py-2 focus:outline-none focus:border-[var(--border-hover)]"
+            >
+              {ticketsStore.availableBranches.length > 0 ? (
+                ticketsStore.availableBranches.map((b) => (
+                  <option key={b.name} value={b.name}>{b.name}</option>
+                ))
+              ) : (
+                <option value="main">main</option>
               )}
-            </div>
-            {/* Profile badge inline */}
-            {input.repoOwner && input.repoName && (
-              <ProfileStatusBadge
-                status={profileStatus?.status ?? null}
-                techStack={profileStatus?.techStack}
-                onRescan={handleRescan}
-              />
+            </select>
+            {hasSecondary && (
+              <select
+                value={input.primaryRole || ''}
+                onChange={(e) => setPrimaryRole(e.target.value)}
+                className="w-24 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
+              >
+                <option value="">role</option>
+                <option value="backend">backend</option>
+                <option value="frontend">frontend</option>
+                <option value="shared">shared</option>
+              </select>
+            )}
+            {/* Profile status — compact inline */}
+            {input.repoOwner && input.repoName && profileStatus?.status === 'ready' && (
+              <span className="text-[10px] text-emerald-500 shrink-0">✓ profiled</span>
+            )}
+            {input.repoOwner && input.repoName && profileStatus?.status === 'scanning' && (
+              <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">scanning...</span>
             )}
           </div>
 
@@ -234,26 +230,31 @@ export function CodebaseStep() {
             </div>
           )}
 
-          {/* Add repo button */}
-          {input.repoOwner && input.repoName && !hasSecondary && !showSecondaryPicker && availableSecondaryRepos.length > 0 && (
+          {/* Actions row */}
+          <div className="flex items-center justify-between pt-1">
+            {/* Add repo — left side */}
+            {input.repoOwner && input.repoName && !hasSecondary && !showSecondaryPicker && availableSecondaryRepos.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowSecondaryPicker(true)}
+                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                Add repository
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {/* Skip — right side */}
             <button
               type="button"
-              onClick={() => setShowSecondaryPicker(true)}
-              className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors pl-1"
+              onClick={() => setIncludeRepository(false)}
+              className="text-[10px] text-[var(--text-tertiary)]/60 hover:text-[var(--text-tertiary)] transition-colors"
             >
-              <Plus className="w-3 h-3" />
-              Add repository
+              Skip
             </button>
-          )}
-
-          {/* Skip repo link */}
-          <button
-            type="button"
-            onClick={() => setIncludeRepository(false)}
-            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors pl-1"
-          >
-            Skip — create without repository
-          </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
