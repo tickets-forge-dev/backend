@@ -31,18 +31,7 @@ function isToolEvent(type: string): boolean {
   return ['event.tool_use', 'event.file_diff', 'event.file_create', 'event.bash', 'event.search', 'event.unknown_tool'].includes(type);
 }
 
-// Exploration tools are noise — hide from the stream
-const HIDDEN_TOOLS = new Set(['Read', 'Glob', 'Grep', 'ToolSearch', 'Search']);
-
-function isVisibleEvent(event: SessionEvent): boolean {
-  // Always show file changes and bash commands
-  if (event.type === 'event.file_diff' || event.type === 'event.file_create' || event.type === 'event.bash') return true;
-  // Hide exploration tools
-  if (event.type === 'event.tool_use' && event.tool && HIDDEN_TOOLS.has(event.tool)) return false;
-  if (event.type === 'event.search') return false;
-  if (event.type === 'event.unknown_tool' && event.tool && HIDDEN_TOOLS.has(event.tool)) return false;
-  return true;
-}
+// All tool events are visible — exploration tools are grouped into compact summaries by SessionToolGroup
 
 interface RenderGroup {
   type: 'single' | 'tool_group';
@@ -55,10 +44,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
 
   for (const event of events) {
     if (isToolEvent(event.type)) {
-      // Only include visible tool events
-      if (isVisibleEvent(event)) {
-        currentToolGroup.push(event);
-      }
+      currentToolGroup.push(event);
     } else {
       if (currentToolGroup.length > 0) {
         groups.push({ type: 'tool_group', events: [...currentToolGroup] });
@@ -254,7 +240,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         </div>
       )}
 
-      {/* Follow-up input — shown after completion */}
+      {/* Follow-up input — sticky at bottom of scroll container */}
       {status === 'completed' && (
         <FollowUpInput
           ticketId={ticketId}
@@ -311,7 +297,7 @@ function FollowUpInput({ ticketId, onSubmit }: { ticketId: string; onSubmit: (re
   };
 
   return (
-    <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
+    <div className="sticky bottom-0 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] pt-3 pb-1 -mx-4 px-4">
       <p className="text-[11px] text-[var(--text-tertiary)] mb-2">Request changes or continue developing</p>
       <div className="flex items-end gap-2">
         <textarea
