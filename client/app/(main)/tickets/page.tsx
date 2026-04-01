@@ -1911,8 +1911,8 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
 
       {/* Actions */}
       <div className="flex items-center justify-center gap-0.5 py-3">
-        {/* Preview button — only shown when ticket has an implementation branch (was developed) */}
-        {onPreview && ticket.implementationBranch && ticket.repositoryContext && (
+        {/* Preview button — shown when ticket has a connected repo */}
+        {onPreview && ticket.repositoryContext && (
           <button
             className="p-1 rounded-md sm:opacity-0 sm:group-hover:opacity-100 hover:bg-emerald-500/10 text-[var(--text-tertiary)] hover:text-emerald-500 transition-all"
             onClick={(e) => {
@@ -1920,10 +1920,10 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
               e.preventDefault();
               onPreview(
                 ticket.repositoryContext.repositoryFullName,
-                ticket.implementationBranch,
+                ticket.repositoryContext.branchName || 'main',
               );
             }}
-            title="Preview implementation"
+            title="Preview project"
           >
             <Play className="h-3.5 w-3.5" fill="currentColor" />
           </button>
