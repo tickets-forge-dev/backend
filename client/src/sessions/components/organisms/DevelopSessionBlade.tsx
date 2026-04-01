@@ -16,9 +16,11 @@ interface DevelopSessionBladeProps {
   repositories?: Array<{ repositoryFullName: string; isPrimary: boolean; role?: string }>;
   /** Callback to open repo connection dialog */
   onConnectRepo?: () => void;
+  /** Callback to open preview panel */
+  onPreview?: (repoFullName: string, branch: string) => void;
 }
 
-export function DevelopSessionBlade({ open, onClose, ticketId, ticketTitle, ticketStatus, repoFullName, branch, fileChangeCount, repositories, onConnectRepo }: DevelopSessionBladeProps) {
+export function DevelopSessionBlade({ open, onClose, ticketId, ticketTitle, ticketStatus, repoFullName, branch, fileChangeCount, repositories, onConnectRepo, onPreview }: DevelopSessionBladeProps) {
   return (
     <SlideOverPanel
       open={open}
@@ -36,6 +38,7 @@ export function DevelopSessionBlade({ open, onClose, ticketId, ticketTitle, tick
         branch={branch}
         repositories={repositories}
         onConnectRepo={onConnectRepo}
+        onPreview={onPreview}
       />
     </SlideOverPanel>
   );

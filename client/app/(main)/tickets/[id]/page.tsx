@@ -1712,6 +1712,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               isPrimary: true,
             }] : undefined)}
           onConnectRepo={() => { setDevelopBladeOpen(false); setRepoDialogOpen(true); }}
+          onPreview={(repo, branch) => { setDevelopBladeOpen(false); setPreviewOpen(true); }}
         />,
         document.body
       )}

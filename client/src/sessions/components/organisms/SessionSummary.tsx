@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { ExternalLink, GitPullRequest, GitBranch, Copy, Check } from 'lucide-react';
+import { ExternalLink, GitPullRequest, GitBranch, Copy, Check, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import type { SessionSummary as SummaryType } from '../../types/session.types';
 import { ElapsedTimer } from '../atoms/ElapsedTimer';
 
 interface SessionSummaryProps {
   summary: SummaryType;
+  onPreview?: (repoFullName: string, branch: string) => void;
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -36,7 +37,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-export function SessionSummary({ summary }: SessionSummaryProps) {
+export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
   const totalSeconds = Math.floor((summary.durationMs || 0) / 1000);
 
   return (
@@ -107,6 +108,20 @@ export function SessionSummary({ summary }: SessionSummaryProps) {
             <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
           )}
         </a>
+      )}
+
+      {/* Preview button */}
+      {onPreview && summary.branch && summary.repoFullName && (
+        <button
+          onClick={() => onPreview(summary.repoFullName!, summary.branch!)}
+          className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
+        >
+          <Play className="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" />
+          <div className="flex-1 text-left">
+            <div className="text-[13px] text-emerald-500 font-medium">Preview</div>
+            <div className="text-[11px] text-emerald-500/60">Run the implementation in browser</div>
+          </div>
+        </button>
       )}
 
       {/* Share section */}

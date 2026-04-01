@@ -27,6 +27,8 @@ interface SessionMonitorViewProps {
   repositories?: Array<{ repositoryFullName: string; isPrimary: boolean; role?: string }>;
   /** Callback to open repo connection dialog */
   onConnectRepo?: () => void;
+  /** Callback to open preview panel */
+  onPreview?: (repoFullName: string, branch: string) => void;
 }
 
 function isToolEvent(type: string): boolean {
@@ -61,7 +63,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
   return groups;
 }
 
-export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, repositories, onConnectRepo }: SessionMonitorViewProps) {
+export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, repositories, onConnectRepo, onPreview }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
   const currentTicket = useTicketsStore(state => state.currentTicket);
 
@@ -239,7 +241,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       {/* Summary */}
       {status === 'completed' && summary && (
         <div className="mt-4">
-          <SessionSummary summary={summary} />
+          <SessionSummary summary={summary} onPreview={onPreview} />
         </div>
       )}
 
