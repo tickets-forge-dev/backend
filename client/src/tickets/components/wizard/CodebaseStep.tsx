@@ -156,106 +156,128 @@ export function CodebaseStep() {
       {includeRepository ? (
         <div className="space-y-3">
           {/* Primary repo row */}
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedRepository || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val) {
-                  ticketsStore.setRepository(val);
-                  const [o, n] = val.split('/');
-                  if (o && n) setRepository(o, n);
-                }
-              }}
-              className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)]"
-            >
-              <option value="">Select repository...</option>
-              {selectedRepositories.map((r) => (
-                <option key={r.id} value={r.fullName}>{r.fullName}</option>
-              ))}
-            </select>
-            <select
-              value={ticketsStore.selectedBranch || ticketsStore.defaultBranch || 'main'}
-              onChange={(e) => ticketsStore.setBranch(e.target.value)}
-              className="w-28 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-2.5 py-2 focus:outline-none focus:border-[var(--border-hover)]"
-            >
-              {ticketsStore.availableBranches.length > 0 ? (
-                ticketsStore.availableBranches.map((b) => (
-                  <option key={b.name} value={b.name}>{b.name}</option>
-                ))
-              ) : (
-                <option value="main">main</option>
+          <div className="rounded-lg border border-[var(--border-subtle)] p-3 space-y-2.5">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <label className="text-[10px] text-[var(--text-tertiary)] mb-1 block">Repository</label>
+                <select
+                  value={selectedRepository || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      ticketsStore.setRepository(val);
+                      const [o, n] = val.split('/');
+                      if (o && n) setRepository(o, n);
+                    }
+                  }}
+                  className="w-full rounded-md bg-transparent text-[13px] text-[var(--text)] py-0.5 focus:outline-none cursor-pointer"
+                >
+                  <option value="">Select...</option>
+                  {selectedRepositories.map((r) => (
+                    <option key={r.id} value={r.fullName}>{r.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-40 shrink-0">
+                <label className="text-[10px] text-[var(--text-tertiary)] mb-1 block">Branch</label>
+                <select
+                  value={ticketsStore.selectedBranch || ticketsStore.defaultBranch || 'main'}
+                  onChange={(e) => ticketsStore.setBranch(e.target.value)}
+                  className="w-full rounded-md bg-transparent text-[13px] text-[var(--text)] py-0.5 focus:outline-none cursor-pointer"
+                >
+                  {ticketsStore.availableBranches.length > 0 ? (
+                    ticketsStore.availableBranches.map((b) => (
+                      <option key={b.name} value={b.name}>{b.name}</option>
+                    ))
+                  ) : (
+                    <option value="main">main</option>
+                  )}
+                </select>
+              </div>
+              {hasSecondary && (
+                <div className="w-20 shrink-0">
+                  <label className="text-[10px] text-[var(--text-tertiary)] mb-1 block">Role</label>
+                  <select
+                    value={input.primaryRole || ''}
+                    onChange={(e) => setPrimaryRole(e.target.value)}
+                    className="w-full rounded-md bg-transparent text-[11px] text-[var(--text-tertiary)] py-0.5 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">—</option>
+                    <option value="backend">backend</option>
+                    <option value="frontend">frontend</option>
+                    <option value="shared">shared</option>
+                  </select>
+                </div>
               )}
-            </select>
-            {hasSecondary && (
-              <select
-                value={input.primaryRole || ''}
-                onChange={(e) => setPrimaryRole(e.target.value)}
-                className="w-24 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
-              >
-                <option value="">role</option>
-                <option value="backend">backend</option>
-                <option value="frontend">frontend</option>
-                <option value="shared">shared</option>
-              </select>
-            )}
-            {/* Profile status — compact inline */}
+            </div>
+            {/* Profile status inline */}
             {input.repoOwner && input.repoName && profileStatus?.status === 'ready' && (
-              <span className="text-[10px] text-emerald-500 shrink-0">✓ profiled</span>
+              <span className="text-[10px] text-[var(--text-tertiary)]">✓ {profileStatus.techStack?.join(', ') || 'profiled'}</span>
             )}
             {input.repoOwner && input.repoName && profileStatus?.status === 'scanning' && (
-              <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">scanning...</span>
+              <span className="text-[10px] text-[var(--text-tertiary)]">Scanning...</span>
             )}
           </div>
 
           {/* Secondary repo row */}
           {(showSecondaryPicker || hasSecondary) && (
-            <div className="flex items-center gap-2">
-              <select
-                value={hasSecondary ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (!val) { removeSecondaryRepository(); return; }
-                  const [owner, name] = val.split('/');
-                  if (owner && name) setSecondaryRepository(owner, name);
-                }}
-                className="flex-1 min-w-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)]"
-              >
-                <option value="">Select repository...</option>
-                {availableSecondaryRepos.map((r) => (
-                  <option key={r.id} value={r.fullName}>{r.fullName}</option>
-                ))}
-              </select>
-              <select
-                value={input.secondaryBranch || ''}
-                onChange={(e) => setSecondaryBranch(e.target.value)}
-                className="w-28 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-2.5 py-2 focus:outline-none focus:border-[var(--border-hover)]"
-              >
-                {secondaryBranches.length > 0 ? (
-                  secondaryBranches.map((b) => (
-                    <option key={b.name} value={b.name}>{b.name}</option>
-                  ))
-                ) : (
-                  <option value="main">main</option>
-                )}
-              </select>
-              <select
-                value={input.secondaryRole || ''}
-                onChange={(e) => setSecondaryRole(e.target.value)}
-                className="w-24 shrink-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
-              >
-                <option value="">role</option>
-                <option value="backend">backend</option>
-                <option value="frontend">frontend</option>
-                <option value="shared">shared</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => { removeSecondaryRepository(); setShowSecondaryPicker(false); }}
-                className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+            <div className="rounded-lg border border-[var(--border-subtle)] p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <label className="text-[10px] text-[var(--text-tertiary)] mb-1 block">Repository</label>
+                  <select
+                    value={hasSecondary ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) { removeSecondaryRepository(); return; }
+                      const [owner, name] = val.split('/');
+                      if (owner && name) setSecondaryRepository(owner, name);
+                    }}
+                    className="w-full rounded-md bg-transparent text-[13px] text-[var(--text)] py-0.5 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">Select...</option>
+                    {availableSecondaryRepos.map((r) => (
+                      <option key={r.id} value={r.fullName}>{r.fullName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-28 shrink-0">
+                  <label className="text-[10px] text-[var(--text-tertiary)] mb-1 block">Branch</label>
+                  <select
+                    value={input.secondaryBranch || ''}
+                    onChange={(e) => setSecondaryBranch(e.target.value)}
+                    className="w-full rounded-md bg-transparent text-[13px] text-[var(--text)] py-0.5 focus:outline-none cursor-pointer"
+                  >
+                    {secondaryBranches.length > 0 ? (
+                      secondaryBranches.map((b) => (
+                        <option key={b.name} value={b.name}>{b.name}</option>
+                      ))
+                    ) : (
+                      <option value="main">main</option>
+                    )}
+                  </select>
+                </div>
+                <div className="w-20 shrink-0">
+                  <label className="text-[10px] text-[var(--text-tertiary)] mb-1 block">Role</label>
+                  <select
+                    value={input.secondaryRole || ''}
+                    onChange={(e) => setSecondaryRole(e.target.value)}
+                    className="w-full rounded-md bg-transparent text-[11px] text-[var(--text-tertiary)] py-0.5 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">—</option>
+                    <option value="backend">backend</option>
+                    <option value="frontend">frontend</option>
+                    <option value="shared">shared</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { removeSecondaryRepository(); setShowSecondaryPicker(false); }}
+                  className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0 mt-3"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           )}
 
