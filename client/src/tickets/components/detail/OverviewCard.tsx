@@ -32,7 +32,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { toast } from 'sonner';
 
 /** Maps current status → hint with and without a developer assigned. */
-const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> = {
+const NEXT_STEP_HINTS: Record<string, { assigned: string | null; unassigned: string | null }> = {
   draft: {
     assigned: 'Fill in details, then send to the developer for code-aware refinement',
     unassigned: 'Assign a developer for code-aware refinement, or approve as-is',
