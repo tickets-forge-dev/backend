@@ -203,13 +203,16 @@ export function CodebaseStep() {
                   <option key={r.id} value={r.fullName}>{r.fullName}</option>
                 ))}
               </select>
-              <input
-                type="text"
-                value={input.secondaryBranch || ''}
+              <select
+                value={input.secondaryBranch || 'main'}
                 onChange={(e) => setSecondaryBranch(e.target.value)}
-                placeholder="main"
-                className="w-36 shrink-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)]"
-              />
+                className="w-28 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-2.5 py-2 focus:outline-none focus:border-[var(--border-hover)]"
+              >
+                <option value="main">main</option>
+                <option value="master">master</option>
+                <option value="develop">develop</option>
+                <option value="staging">staging</option>
+              </select>
               <select
                 value={input.secondaryRole || ''}
                 onChange={(e) => setSecondaryRole(e.target.value)}
