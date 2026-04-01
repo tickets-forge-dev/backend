@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Cloud, GitBranch, Sparkles } from 'lucide-react';
 import { StepIndicator } from '../molecules/StepIndicator';
+import { useSessionStore } from '../../stores/session.store';
 
 interface SessionProvisioningViewProps {
   onCancel: () => void;
@@ -14,23 +14,16 @@ const STEPS = [
   { key: 'agent', label: 'Starting AI agent', icon: Sparkles },
 ];
 
-// Approximate timing for each step — sandbox ~5s, clone ~8s, agent ~3s
-const STEP_DELAYS = [5000, 8000];
+// Step thresholds in seconds — derived from the store's elapsedSeconds timer
+const STEP_THRESHOLDS = [5, 12]; // sandbox ~5s, clone ~12s total
 
 export function SessionProvisioningView({ onCancel }: SessionProvisioningViewProps) {
-  const [activeStep, setActiveStep] = useState(0);
+  const elapsedSeconds = useSessionStore((s) => s.elapsedSeconds);
 
-  useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    let elapsed = 0;
-
-    for (let i = 0; i < STEP_DELAYS.length; i++) {
-      elapsed += STEP_DELAYS[i];
-      timers.push(setTimeout(() => setActiveStep(i + 1), elapsed));
-    }
-
-    return () => timers.forEach(clearTimeout);
-  }, []);
+  // Derive active step from elapsed time — no internal timers to get out of sync
+  const activeStep = elapsedSeconds >= STEP_THRESHOLDS[1] ? 2
+    : elapsedSeconds >= STEP_THRESHOLDS[0] ? 1
+    : 0;
 
   return (
     <div className="flex flex-col items-center py-16">

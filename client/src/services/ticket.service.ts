@@ -106,6 +106,7 @@ export interface AECResponse {
   // Multi-repo support
   repositories?: Array<{
     repositoryFullName: string;
+    branchName?: string;
     isPrimary: boolean;
     role?: string;
   }>;

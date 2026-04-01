@@ -32,8 +32,8 @@ export function MembersTab({ teamId }: MembersTabProps) {
       {/* Header + Invite Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-[var(--text)]">Project Members</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+          <h3 className="text-[var(--text-lg)] font-semibold text-[var(--text)]">Project Members</h3>
+          <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
             Manage project members and their roles
           </p>
         </div>
@@ -50,7 +50,7 @@ export function MembersTab({ teamId }: MembersTabProps) {
 
       {/* Active Members Table */}
       <div>
-        <h4 className="mb-3 text-sm font-medium text-[var(--text)]">
+        <h4 className="mb-3 text-[13px] font-medium text-[var(--text-secondary)]">
           Active Members ({activeMembers.length})
         </h4>
         <TeamMembersList
@@ -64,7 +64,7 @@ export function MembersTab({ teamId }: MembersTabProps) {
       {/* Pending Invites */}
       {pendingInvites.length > 0 && (
         <div>
-          <h4 className="mb-3 text-sm font-medium text-[var(--text)]">
+          <h4 className="mb-3 text-[13px] font-medium text-[var(--text-secondary)]">
             Pending Invites ({pendingInvites.length})
           </h4>
           <TeamMembersList

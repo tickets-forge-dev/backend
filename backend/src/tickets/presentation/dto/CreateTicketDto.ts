@@ -14,6 +14,7 @@ import {
   ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsMeaningfulTitle } from '../validators/IsMeaningfulTitle';
 
 export class RepositoryEntryDto {
   @IsString()
@@ -39,7 +40,8 @@ export class RepositoryEntryDto {
 export class CreateTicketDto {
   @IsString()
   @MinLength(3)
-  @MaxLength(500)
+  @MaxLength(5000)
+  @IsMeaningfulTitle()
   title!: string;
 
   @IsString()

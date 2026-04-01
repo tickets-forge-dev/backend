@@ -157,7 +157,7 @@ export function CodebaseStep() {
         <div className="space-y-2">
           {/* Column headers — only show when secondary exists for alignment clarity */}
           {hasSecondary && (
-            <div className="grid grid-cols-[1fr_140px_auto_28px] gap-2 px-3">
+            <div className="grid grid-cols-[1fr_minmax(160px,1fr)_auto_28px] gap-2 px-3">
               <span className="text-[10px] text-[var(--text-tertiary)]">Repository</span>
               <span className="text-[10px] text-[var(--text-tertiary)]">Branch</span>
               <span className="text-[10px] text-[var(--text-tertiary)]">Role</span>
@@ -167,7 +167,7 @@ export function CodebaseStep() {
 
           {/* Primary repo row */}
           <div className="rounded-lg border border-[var(--border-subtle)] px-3 py-2.5">
-            <div className={`grid gap-2 items-center ${hasSecondary ? 'grid-cols-[1fr_140px_auto_28px]' : 'grid-cols-[1fr_140px]'}`}>
+            <div className={`grid gap-2 items-center ${hasSecondary ? 'grid-cols-[1fr_minmax(160px,1fr)_auto_28px]' : 'grid-cols-[1fr_minmax(160px,1fr)]'}`}>
               <select
                 value={selectedRepository || ''}
                 onChange={(e) => {
@@ -215,7 +215,7 @@ export function CodebaseStep() {
           {/* Secondary repo row */}
           {(showSecondaryPicker || hasSecondary) && (
             <div className="rounded-lg border border-[var(--border-subtle)] px-3 py-2.5">
-              <div className="grid grid-cols-[1fr_140px_auto_28px] gap-2 items-center">
+              <div className="grid grid-cols-[1fr_minmax(160px,1fr)_auto_28px] gap-2 items-center">
                 <select
                   value={hasSecondary ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
                   onChange={(e) => {

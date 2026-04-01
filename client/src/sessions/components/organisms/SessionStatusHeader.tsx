@@ -54,7 +54,7 @@ export function SessionStatusHeader({ status, elapsedSeconds, onCancel, verbose,
         {status === 'running' && onCancel && (
           <button
             onClick={onCancel}
-            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+            className="text-[11px] px-2 py-0.5 rounded-md text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-colors"
           >
             Stop
           </button>

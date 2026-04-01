@@ -7,6 +7,7 @@ import { ValidationResult } from '../value-objects/ValidationResult';
 import { ExternalIssue } from '../value-objects/ExternalIssue';
 import { RepositoryContext } from '../value-objects/RepositoryContext';
 import { RepositoryEntry } from '../value-objects/RepositoryEntry';
+import { TitleValidator } from '../value-objects/TitleValidator';
 import { Attachment, MAX_ATTACHMENTS } from '../value-objects/Attachment';
 import {
   DesignReference,
@@ -152,9 +153,10 @@ export class AEC {
     folderId?: string | null,
     tagIds?: string[],
   ): AEC {
-    // Domain validation
-    if (title.length < 3 || title.length > 500) {
-      throw new Error('Title must be 3-500 characters');
+    // Domain validation — length + quality
+    const titleCheck = TitleValidator.validate(title);
+    if (!titleCheck.valid) {
+      throw new Error(titleCheck.reason ?? 'Invalid title');
     }
 
     return new AEC(

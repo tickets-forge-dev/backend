@@ -79,39 +79,39 @@ export function TeamMembersList({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--text-tertiary)]" />
       </div>
     );
   }
 
   if (members.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--background-soft)] p-8 text-center">
-        <p className="text-sm text-[var(--text-muted)]">No members to display</p>
+      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)]/40 p-8 text-center">
+        <p className="text-sm text-[var(--text-tertiary)]">No members to display</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+      <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)]">
         <table className="w-full">
-          <thead className="bg-[var(--background-soft)]">
+          <thead className="bg-[var(--bg-hover)]/40">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">
+              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-tertiary)]">
                 Name
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">
+              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-tertiary)]">
                 Email
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">
+              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-tertiary)]">
                 Role
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">
+              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-tertiary)]">
                 Status
               </th>
               {isOwner && (
-                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-tertiary)]">
                   Actions
                 </th>
               )}
@@ -129,17 +129,17 @@ export function TeamMembersList({
                   className={
                     isAdmin
                       ? 'bg-amber-50/30 dark:bg-amber-950/20'
-                      : 'bg-[var(--background)]'
+                      : 'bg-transparent'
                   }
                 >
                   {/* Name */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {isAdmin && <Crown className="h-4 w-4 text-amber-600" />}
-                      <span className="text-sm font-medium text-[var(--text)]">
+                      <span className="text-[13px] font-medium text-[var(--text-secondary)]">
                         {member.displayName || 'Pending'}
                         {isCurrentUser && (
-                          <span className="ml-1 text-xs text-[var(--text-muted)]">
+                          <span className="ml-1 text-xs text-[var(--text-tertiary)]">
                             (You)
                           </span>
                         )}
@@ -149,7 +149,7 @@ export function TeamMembersList({
 
                   {/* Email */}
                   <td className="px-4 py-3">
-                    <span className="text-sm text-[var(--text-muted)]">{member.email}</span>
+                    <span className="text-[13px] text-[var(--text-tertiary)]">{member.email}</span>
                   </td>
 
                   {/* Role Badge */}
@@ -190,7 +190,7 @@ export function TeamMembersList({
                         </div>
                       ) : (
                         <div className="text-right">
-                          <span className="text-xs text-[var(--text-muted)]">—</span>
+                          <span className="text-xs text-[var(--text-tertiary)]">—</span>
                         </div>
                       )}
                     </td>

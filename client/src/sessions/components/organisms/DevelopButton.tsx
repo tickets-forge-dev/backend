@@ -51,7 +51,7 @@ export function DevelopButton({ ticketId, ticketStatus, onStart, repoFullName, o
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-6">
+    <div className="flex flex-col items-center h-full min-h-[400px] pt-[15%] px-6">
       <div className="w-full max-w-sm space-y-5">
         {/* Header */}
         <div className="text-center space-y-2">

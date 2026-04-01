@@ -75,8 +75,8 @@ function TeamPage() {
     <div className="container mx-auto max-w-6xl px-4 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-[var(--text)]">{fullTeam.name}</h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
+        <h1 className="text-[var(--text-xl)] font-semibold text-[var(--text)]">{fullTeam.name}</h1>
+        <p className="mt-1.5 text-[13px] text-[var(--text-tertiary)]">
           Manage your project members, settings, and permissions
         </p>
       </div>

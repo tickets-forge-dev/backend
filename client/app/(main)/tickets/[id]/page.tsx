@@ -946,26 +946,46 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             const repos = currentTicket.repositories ||
               (currentTicket.repositoryContext ? [{
                 repositoryFullName: currentTicket.repositoryContext.repositoryFullName,
+                branchName: currentTicket.repositoryContext.branchName,
                 isPrimary: true,
               }] : []);
             return repos.length > 0 ? (
-              repos.map((repo, i) => (
-                <React.Fragment key={repo.repositoryFullName}>
-                  <span className="text-[var(--text-tertiary)]/30">{'\u00b7'}</span>
-                  <button
-                    onClick={() => setRepoDialogOpen(true)}
-                    className={`inline-flex items-center gap-1 text-[11px] transition-colors ${
-                      repo.isPrimary
-                        ? 'text-[var(--text-secondary)] hover:text-[var(--text)]'
-                        : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-                    }`}
-                  >
-                    {i === 0 && <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>}
-                    {repo.repositoryFullName.split('/').pop()}
-                    {repo.role && <span className="text-[9px] text-[var(--text-tertiary)]/50 ml-0.5">{repo.role}</span>}
-                  </button>
-                </React.Fragment>
-              ))
+              <>
+                <span className="text-[var(--text-tertiary)]/30">{'\u00b7'}</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
+                      <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                      {repos[0].repositoryFullName.split('/').pop()}
+                      {repos.length > 1 && <span className="text-[9px] text-[var(--text-tertiary)]">+{repos.length - 1}</span>}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-72">
+                    <div className="px-2 py-1.5 text-[10px] text-[var(--text-tertiary)] font-normal">Connected Repositories</div>
+                    {repos.map((repo) => (
+                      <a
+                        key={repo.repositoryFullName}
+                        href={`https://github.com/${repo.repositoryFullName}${repo.branchName ? `/tree/${repo.branchName}` : ''}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-2 py-2 rounded-sm text-xs hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[var(--text-secondary)] truncate">{repo.repositoryFullName}</span>
+                            {repo.role && <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)]">{repo.role}</span>}
+                          </div>
+                          {repo.branchName && (
+                            <span className="text-[10px] text-[var(--text-tertiary)] font-mono truncate block mt-0.5">{repo.branchName}</span>
+                          )}
+                        </div>
+                        <ExternalLink className="w-3 h-3 text-[var(--text-tertiary)] flex-shrink-0" />
+                      </a>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             ) : (
               <>
                 <span className="text-[var(--text-tertiary)]/30">{'\u00b7'}</span>
