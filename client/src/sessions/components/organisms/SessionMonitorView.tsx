@@ -59,6 +59,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
 
   const restorationAttempted = useRef(false);
+  const [verbose, setVerbose] = useState(false);
 
   useEffect(() => {
     fetchQuota();
@@ -176,6 +177,8 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         status={status}
         elapsedSeconds={elapsedSeconds}
         onCancel={cancelSession}
+        verbose={verbose}
+        onToggleVerbose={() => setVerbose(v => !v)}
       />
 
       {/* Event stream */}
@@ -190,13 +193,21 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
             return <SessionMessage key={event.id} content={event.content ?? ''} />;
           }
           if (event.type === 'event.stderr') {
+            if (!verbose) return null;
             return (
-              <div key={event.id || `stderr-${i}`} className="ml-7 px-3 py-1.5 rounded bg-red-500/10 text-[11px] text-red-400 font-mono whitespace-pre-wrap break-all">
+              <div key={event.id || `stderr-${i}`} className="ml-7 px-3 py-1.5 rounded bg-[var(--bg-hover)] text-[10px] text-[var(--text-tertiary)] font-mono whitespace-pre-wrap break-all">
                 {event.content}
               </div>
             );
           }
-          // Skip thinking events in the list — shown as live indicator below
+          if (event.type === 'event.thinking') {
+            if (!verbose) return null;
+            return (
+              <div key={event.id || `thinking-${i}`} className="ml-7 px-3 py-1.5 rounded bg-[var(--bg-hover)] text-[10px] text-[var(--text-tertiary)] italic whitespace-pre-wrap break-all line-clamp-3">
+                {event.content}
+              </div>
+            );
+          }
           return null;
         })}
 

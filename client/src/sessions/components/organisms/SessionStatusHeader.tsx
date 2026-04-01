@@ -8,9 +8,11 @@ interface SessionStatusHeaderProps {
   status: SessionStatus;
   elapsedSeconds: number;
   onCancel?: () => void;
+  verbose?: boolean;
+  onToggleVerbose?: () => void;
 }
 
-export function SessionStatusHeader({ status, elapsedSeconds, onCancel }: SessionStatusHeaderProps) {
+export function SessionStatusHeader({ status, elapsedSeconds, onCancel, verbose, onToggleVerbose }: SessionStatusHeaderProps) {
   return (
     <div className="flex items-center justify-between py-2.5 px-1 mb-2">
       <div className="flex items-center gap-2.5">
@@ -34,6 +36,16 @@ export function SessionStatusHeader({ status, elapsedSeconds, onCancel }: Sessio
       </div>
       <div className="flex items-center gap-3">
         <ElapsedTimer seconds={elapsedSeconds} />
+        {onToggleVerbose && (
+          <button
+            onClick={onToggleVerbose}
+            className={`text-[10px] transition-colors ${
+              verbose ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {verbose ? 'Hide logs' : 'Verbose'}
+          </button>
+        )}
         {status === 'running' && onCancel && (
           <button
             onClick={onCancel}
