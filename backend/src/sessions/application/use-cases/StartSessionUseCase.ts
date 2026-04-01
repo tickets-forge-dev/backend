@@ -11,7 +11,6 @@ import { SessionRepository, SESSION_REPOSITORY } from '../ports/SessionRepositor
 import { USAGE_QUOTA_REPOSITORY } from '../../../billing/application/ports';
 import type { UsageQuotaRepository } from '../../../billing/application/ports/UsageQuotaRepository.port';
 import { AECRepository, AEC_REPOSITORY } from '../../../tickets/application/ports/AECRepository';
-import { AECStatus } from '../../../tickets/domain/value-objects/AECStatus';
 import { InvalidStateTransitionError } from '../../../shared/domain/exceptions/DomainExceptions';
 import { Session } from '../../domain/Session';
 import { analyzeComplexity } from '../services/ComplexityAnalyzer';
@@ -43,9 +42,7 @@ export class StartSessionUseCase {
     if (aec.teamId !== teamId) {
       throw new ForbiddenException('Ticket does not belong to your team');
     }
-    if (aec.status !== AECStatus.APPROVED) {
-      throw new ConflictException(`Ticket must be approved, currently: ${aec.status}`);
-    }
+    // Quick flow: allow starting from any status — domain handles auto-approval
 
     // 2. Check quota
     const period = new Date().toISOString().slice(0, 7);
