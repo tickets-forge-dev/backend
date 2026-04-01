@@ -240,7 +240,9 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         </div>
       )}
 
-      {/* Follow-up input — sticky at bottom of scroll container */}
+      <div ref={bottomRef} />
+
+      {/* Follow-up input — after everything so auto-scroll reveals it */}
       {status === 'completed' && (
         <FollowUpInput
           ticketId={ticketId}
@@ -250,8 +252,6 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
           }}
         />
       )}
-
-      <div ref={bottomRef} />
     </div>
   );
 }
@@ -297,8 +297,8 @@ function FollowUpInput({ ticketId, onSubmit }: { ticketId: string; onSubmit: (re
   };
 
   return (
-    <div className="sticky bottom-0 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] pt-3 pb-1 -mx-4 px-4">
-      <p className="text-[11px] text-[var(--text-tertiary)] mb-2">Request changes or continue developing</p>
+    <div className="mt-6 border-t border-[var(--border-subtle)] pt-4 pb-2">
+      <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2">Continue developing</p>
       <div className="flex items-end gap-2">
         <textarea
           ref={inputRef}
@@ -310,16 +310,16 @@ function FollowUpInput({ ticketId, onSubmit }: { ticketId: string; onSubmit: (re
               handleSend();
             }
           }}
-          placeholder="e.g. Add retry logic to the webhook sender..."
+          placeholder="Describe what to change or add..."
           rows={2}
-          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-hover)] resize-none scrollbar-thin"
+          className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[13px] text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-tertiary)] resize-none scrollbar-thin"
         />
         <button
           onClick={handleSend}
           disabled={!input.trim()}
-          className="p-2 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[var(--text-secondary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+          className="p-2.5 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[var(--text)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
         >
-          <Send className="w-3.5 h-3.5" />
+          <Send className="w-4 h-4" />
         </button>
       </div>
     </div>
