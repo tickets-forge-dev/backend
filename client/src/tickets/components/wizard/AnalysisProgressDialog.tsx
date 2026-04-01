@@ -146,13 +146,13 @@ export function AnalysisProgressDialog({
 
   return (
     <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-50 flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
-      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-xl">
+      <div className="bg-[var(--bg-subtle)] rounded-lg max-w-lg w-full mx-4 shadow-xl border border-[var(--border-subtle)]">
         {/* Header */}
-        <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+        <div className="px-6 py-6 border-b border-[var(--border-subtle)]">
+          <h2 className="text-lg font-semibold text-[var(--text)]">
             {hasRepository ? 'Analyzing Your Codebase' : 'Preparing Your Ticket'}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-[var(--text-tertiary)] mt-1">
             {hasRepository
               ? "Please stay on this page — we're analyzing your repository."
               : "Please stay on this page — we're setting up your ticket."}
@@ -173,28 +173,20 @@ export function AnalysisProgressDialog({
                 ref={isActive ? activePhaseRef : null}
                 className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-300 ${
                   isActive
-                    ? 'bg-blue-50 dark:bg-blue-950/30'
+                    ? 'bg-blue-500/15 border border-blue-500/20'
                     : isComplete
-                      ? 'bg-green-50 dark:bg-green-950/20'
-                      : 'bg-gray-50 dark:bg-gray-800/40'
+                      ? 'bg-emerald-500/10'
+                      : 'bg-zinc-800/40'
                 }`}
               >
                 {/* Icon/Status */}
                 <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center mt-0.5">
                   {isComplete ? (
-                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <Check className="w-5 h-5 text-emerald-400" />
                   ) : isActive ? (
-                    <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
                   ) : (
-                    <Icon
-                      className={`w-5 h-5 ${
-                        isActive
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : isComplete
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-gray-400 dark:text-gray-600'
-                      }`}
-                    />
+                    <Icon className="w-5 h-5 text-zinc-600" />
                   )}
                 </div>
 
@@ -203,10 +195,10 @@ export function AnalysisProgressDialog({
                   <p
                     className={`text-sm font-medium ${
                       isActive
-                        ? 'text-blue-900 dark:text-blue-100'
+                        ? 'text-blue-400'
                         : isComplete
-                          ? 'text-green-900 dark:text-green-100'
-                          : 'text-gray-700 dark:text-gray-300'
+                          ? 'text-emerald-400'
+                          : 'text-zinc-500'
                     }`}
                   >
                     {phase.label}
@@ -229,19 +221,19 @@ export function AnalysisProgressDialog({
         </div>
 
         {/* Progress Bar & Stats */}
-        <div className="px-6 py-6 border-t border-gray-200 dark:border-gray-800 space-y-3">
+        <div className="px-6 py-6 border-t border-[var(--border-subtle)] space-y-3">
           {/* Progress bar */}
-          <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500 ease-out"
               style={{ width: `${percent}%` }}
             />
           </div>
 
           {/* Percent and elapsed time */}
           <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-600 dark:text-gray-400 font-medium">{percent}%</span>
-            <span className="text-gray-500 dark:text-gray-500">{elapsedSeconds}s</span>
+            <span className="text-[var(--text-secondary)] font-medium">{percent}%</span>
+            <span className="text-[var(--text-tertiary)]">{elapsedSeconds}s</span>
           </div>
 
           {/* Action buttons for background finalization */}
@@ -250,7 +242,7 @@ export function AnalysisProgressDialog({
               {onCancel && (
                 <button
                   onClick={onCancel}
-                  className="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   Cancel
                 </button>
