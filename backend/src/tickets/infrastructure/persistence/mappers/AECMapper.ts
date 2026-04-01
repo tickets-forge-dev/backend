@@ -223,16 +223,8 @@ export interface AECDocument {
 
 export class AECMapper {
   static toDomain(doc: AECDocument): AEC {
-    // Reconstitute repository context if present
-    const repositoryContext = doc.repositoryContext
-      ? RepositoryContext.create({
-          repositoryFullName: doc.repositoryContext.repositoryFullName,
-          branchName: doc.repositoryContext.branchName,
-          commitSha: doc.repositoryContext.commitSha,
-          isDefaultBranch: doc.repositoryContext.isDefaultBranch,
-          selectedAt: toDate(doc.repositoryContext.selectedAt),
-        })
-      : null;
+    // Reconstitute repositories (lazy migration: old single → new array)
+    const repositories = repositoryEntriesFromFirestore(doc);
 
     // Reconstitute validation results with comprehensive safety checks
     const validationResults = (doc.validationResults || [])
@@ -323,7 +315,7 @@ export class AECMapper {
       doc.externalIssue,
       doc.driftDetectedAt ? toDate(doc.driftDetectedAt) : null,
       doc.driftReason ?? null,
-      repositoryContext,
+      repositories,
       toDate(doc.createdAt),
       toDate(doc.updatedAt),
       doc.clarificationQuestions ?? [],
@@ -389,16 +381,8 @@ export class AECMapper {
   }
 
   static toFirestore(aec: AEC): AECDocument {
-    // Map repository context if present
-    const repositoryContext: RepositoryContextDocument | null = aec.repositoryContext
-      ? {
-          repositoryFullName: aec.repositoryContext.repositoryFullName,
-          branchName: aec.repositoryContext.branchName,
-          commitSha: aec.repositoryContext.commitSha,
-          isDefaultBranch: aec.repositoryContext.isDefaultBranch,
-          selectedAt: Timestamp.fromDate(aec.repositoryContext.selectedAt),
-        }
-      : null;
+    // Map repositories (writes both new array + backward-compat single field)
+    const { repositories, repositoryContext } = repositoryEntriesToFirestore(aec.repositories);
 
     return {
       id: aec.id,
@@ -422,6 +406,7 @@ export class AECMapper {
       externalIssue: aec.externalIssue,
       driftDetectedAt: aec.driftDetectedAt ? Timestamp.fromDate(aec.driftDetectedAt) : null,
       driftReason: aec.driftReason,
+      repositories,
       repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),
       updatedAt: Timestamp.fromDate(aec.updatedAt),
