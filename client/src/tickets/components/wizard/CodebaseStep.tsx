@@ -116,224 +116,138 @@ export function CodebaseStep() {
     }
   };
 
+  const hasSecondary = !!(input.secondaryRepoOwner && input.secondaryRepoName);
+  const availableSecondaryRepos = selectedRepositories.filter(
+    (r) => r.fullName !== `${input.repoOwner}/${input.repoName}`
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text)]">Connect Your Codebase</h2>
-        <p className="text-sm text-[var(--text-secondary)] mt-1">
-          Link a repository to get smarter, more accurate tickets.
+        <h2 className="text-[15px] font-semibold text-[var(--text)]">Connect repositories</h2>
+        <p className="text-[12px] text-[var(--text-tertiary)] mt-1">
+          Link your codebase for smarter, code-aware tickets.
         </p>
       </div>
 
-      {/* Toggle Card */}
-      <button
-        type="button"
-        onClick={() => setIncludeRepository(!includeRepository)}
-        className={`w-full text-left rounded-lg border-2 p-5 transition-all ${
-          includeRepository
-            ? 'border-purple-500/50 bg-purple-50/50 dark:bg-purple-950/10 shadow-sm'
-            : 'border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[var(--border)]'
-        }`}
-      >
-        <div className="flex items-start gap-4">
-          <div className={`mt-0.5 flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
-            includeRepository ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'
-          }`}>
-            <div className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-              includeRepository ? 'translate-x-4' : 'translate-x-0.5'
-            }`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <GitBranch className={`h-4 w-4 flex-shrink-0 ${includeRepository ? 'text-purple-500' : 'text-[var(--text-tertiary)]'}`} />
-              <span className="text-sm font-semibold text-[var(--text)]">
-                Analyze my repository
-              </span>
+      {/* Repository rows */}
+      {includeRepository ? (
+        <div className="space-y-2">
+          {/* Primary repo row */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <RepositorySelector />
             </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
-              We&apos;ll read your code structure to generate tickets that reference the right files, APIs, and patterns.
-              Your code stays on GitHub — nothing is downloaded or stored.
-            </p>
-          </div>
-        </div>
-      </button>
-
-      {/* Benefits — shown when enabled */}
-      {includeRepository && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="flex items-start gap-2.5 rounded-md bg-[var(--bg-subtle)] p-3">
-            <Sparkles className="h-3.5 w-3.5 text-purple-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Tickets reference actual files and functions in your project</p>
-          </div>
-          <div className="flex items-start gap-2.5 rounded-md bg-[var(--bg-subtle)] p-3">
-            <Shield className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Read-only access — your code is never cloned or stored</p>
-          </div>
-          <div className="flex items-start gap-2.5 rounded-md bg-[var(--bg-subtle)] p-3">
-            <Users className="h-3.5 w-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">No access? A team member can connect the repo for everyone</p>
-          </div>
-        </div>
-      )}
-
-      {/* Repository & Branch Selection — only when enabled */}
-      {includeRepository && (
-        <div className="space-y-3">
-          <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-4">
-            <RepositorySelector />
-
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-[var(--text-secondary)]">
-                Branch
-              </p>
+            <div className="w-36 shrink-0">
               <BranchSelector hideLabel={true} />
             </div>
-
-            {/* Primary role — only shown when secondary repo is active */}
-            {input.secondaryRepoOwner && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-[var(--text-secondary)]">Role</p>
-                <div className="flex gap-2">
-                  {['backend', 'frontend', 'shared'].map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setPrimaryRole(input.primaryRole === role ? '' : role)}
-                      className={`px-2.5 py-1 text-[11px] rounded-md border transition-colors ${
-                        input.primaryRole === role
-                          ? 'border-purple-500/50 bg-purple-500/10 text-purple-500'
-                          : 'border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
-                      }`}
-                    >
-                      {role}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Profile status badge — shows after repo selection */}
-            {input.repoOwner && input.repoName && (
-              <div className="pt-1">
-                <ProfileStatusBadge
-                  status={profileStatus?.status ?? null}
-                  techStack={profileStatus?.techStack}
-                  onRescan={handleRescan}
-                />
-              </div>
+            {hasSecondary && (
+              <select
+                value={input.primaryRole || ''}
+                onChange={(e) => setPrimaryRole(e.target.value)}
+                className="w-24 shrink-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
+              >
+                <option value="">role</option>
+                <option value="backend">backend</option>
+                <option value="frontend">frontend</option>
+                <option value="shared">shared</option>
+              </select>
             )}
           </div>
 
-          {/* Add second repository button */}
-          {input.repoOwner && input.repoName && !input.secondaryRepoOwner && !showSecondaryPicker && (
+          {/* Profile badge */}
+          {input.repoOwner && input.repoName && (
+            <div className="pl-1">
+              <ProfileStatusBadge
+                status={profileStatus?.status ?? null}
+                techStack={profileStatus?.techStack}
+                onRescan={handleRescan}
+              />
+            </div>
+          )}
+
+          {/* Secondary repo row */}
+          {(showSecondaryPicker || hasSecondary) && (
+            <div className="flex items-center gap-2">
+              <select
+                value={hasSecondary ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) { removeSecondaryRepository(); return; }
+                  const [owner, name] = val.split('/');
+                  if (owner && name) setSecondaryRepository(owner, name);
+                }}
+                className="flex-1 min-w-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)]"
+              >
+                <option value="">Select repository...</option>
+                {availableSecondaryRepos.map((r) => (
+                  <option key={r.id} value={r.fullName}>{r.fullName}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={input.secondaryBranch || ''}
+                onChange={(e) => setSecondaryBranch(e.target.value)}
+                placeholder="main"
+                className="w-36 shrink-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)]"
+              />
+              <select
+                value={input.secondaryRole || ''}
+                onChange={(e) => setSecondaryRole(e.target.value)}
+                className="w-24 shrink-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
+              >
+                <option value="">role</option>
+                <option value="backend">backend</option>
+                <option value="frontend">frontend</option>
+                <option value="shared">shared</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => { removeSecondaryRepository(); setShowSecondaryPicker(false); }}
+                className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Add repo button */}
+          {input.repoOwner && input.repoName && !hasSecondary && !showSecondaryPicker && availableSecondaryRepos.length > 0 && (
             <button
               type="button"
               onClick={() => setShowSecondaryPicker(true)}
-              className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors pl-1"
             >
               <Plus className="w-3 h-3" />
-              Add second repository
+              Add repository
             </button>
           )}
 
-          {/* Secondary repository picker */}
-          {(showSecondaryPicker || input.secondaryRepoOwner) && (
-            <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--text-secondary)]">Second Repository</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    removeSecondaryRepository();
-                    setShowSecondaryPicker(false);
-                  }}
-                  className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <select
-                value={input.secondaryRepoOwner && input.secondaryRepoName ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (!val) {
-                    removeSecondaryRepository();
-                    return;
-                  }
-                  const [owner, name] = val.split('/');
-                  if (owner && name) {
-                    setSecondaryRepository(owner, name);
-                  }
-                }}
-                className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[13px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500/40"
-              >
-                <option value="">Select a repository...</option>
-                {selectedRepositories
-                  .filter((r) => r.fullName !== `${input.repoOwner}/${input.repoName}`)
-                  .map((r) => (
-                    <option key={r.id} value={r.fullName}>
-                      {r.fullName}
-                    </option>
-                  ))}
-              </select>
-
-              {/* Secondary branch */}
-              {input.secondaryRepoOwner && input.secondaryRepoName && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-[var(--text-secondary)]">Branch</p>
-                  <input
-                    type="text"
-                    value={input.secondaryBranch || ''}
-                    onChange={(e) => setSecondaryBranch(e.target.value)}
-                    placeholder="main"
-                    className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[13px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500/40"
-                  />
-                </div>
-              )}
-
-              {/* Secondary role */}
-              {input.secondaryRepoOwner && input.secondaryRepoName && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-[var(--text-secondary)]">Role</p>
-                  <div className="flex gap-2">
-                    {['backend', 'frontend', 'shared'].map((role) => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => setSecondaryRole(input.secondaryRole === role ? '' : role)}
-                        className={`px-2.5 py-1 text-[11px] rounded-md border transition-colors ${
-                          input.secondaryRole === role
-                            ? 'border-purple-500/50 bg-purple-500/10 text-purple-500'
-                            : 'border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
-                        }`}
-                      >
-                        {role}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Skip repo link */}
+          <button
+            type="button"
+            onClick={() => setIncludeRepository(false)}
+            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors pl-1"
+          >
+            Skip — create without repository
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-[12px] text-[var(--text-tertiary)]">
+            Tickets will be based on your description only.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIncludeRepository(true)}
+            className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+          >
+            <GitBranch className="w-3 h-3" />
+            Connect a repository
+          </button>
         </div>
       )}
-
-      {/* Off state message */}
-      {!includeRepository && (
-        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5 text-center space-y-2">
-          <p className="text-sm text-[var(--text-secondary)]">
-            No problem — you can still create great tickets without a repository.
-          </p>
-          <p className="text-xs text-[var(--text-tertiary)]">
-            Tickets will be based on your description only. A developer can later refine the ticket with real code context using the CLI — adding file references, APIs, and patterns from your actual codebase.
-          </p>
-        </div>
-      )}
-
-      {/* Help — ticket lifecycle */}
-      <TicketLifecycleHelp />
     </div>
   );
 }
