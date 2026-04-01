@@ -202,10 +202,10 @@ export function CodebaseStep() {
                     onChange={(e) => setPrimaryRole(e.target.value)}
                     className="w-full rounded-md bg-transparent text-[11px] text-[var(--text-tertiary)] py-0.5 focus:outline-none cursor-pointer"
                   >
-                    <option value="">—</option>
-                    <option value="backend">backend</option>
-                    <option value="frontend">frontend</option>
-                    <option value="shared">shared</option>
+                    <option value="">role</option>
+                    <option value="backend">⚙ backend</option>
+                    <option value="frontend">🖥 frontend</option>
+                    <option value="shared">📦 shared</option>
                   </select>
                 </div>
               )}
@@ -264,10 +264,10 @@ export function CodebaseStep() {
                     onChange={(e) => setSecondaryRole(e.target.value)}
                     className="w-full rounded-md bg-transparent text-[11px] text-[var(--text-tertiary)] py-0.5 focus:outline-none cursor-pointer"
                   >
-                    <option value="">—</option>
-                    <option value="backend">backend</option>
-                    <option value="frontend">frontend</option>
-                    <option value="shared">shared</option>
+                    <option value="">role</option>
+                    <option value="backend">⚙ backend</option>
+                    <option value="frontend">🖥 frontend</option>
+                    <option value="shared">📦 shared</option>
                   </select>
                 </div>
                 <button
