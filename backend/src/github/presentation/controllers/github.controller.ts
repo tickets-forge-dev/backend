@@ -175,7 +175,7 @@ export class GitHubController {
     const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'coverage', '.turbo', '__pycache__']);
     const SKIP_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
     const MAX_FILE_SIZE = 100_000; // 100KB
-    const MAX_FILES = 500;
+    const MAX_FILES = 200; // Keep under rate limits
 
     try {
       // 1. Resolve branch to commit SHA (git.getTree needs a SHA, not a branch name)
@@ -209,23 +209,22 @@ export class GitHubController {
 
       const filesToFetch = entries.slice(0, MAX_FILES);
 
-      // 3. Fetch file contents in parallel (batched)
+      // 3. Fetch file contents using git.getBlob (uses SHA from tree, no branch resolution per file)
       const files: Record<string, string> = {};
-      const BATCH_SIZE = 20;
+      const BATCH_SIZE = 15;
 
       for (let i = 0; i < filesToFetch.length; i += BATCH_SIZE) {
         const batch = filesToFetch.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(
           batch.map(async (entry) => {
-            const response = await octokit.repos.getContent({
+            if (!entry.sha) return null;
+            const response = await octokit.git.getBlob({
               owner,
               repo,
-              path: entry.path!,
-              ref: branch,
+              file_sha: entry.sha,
             });
-            const data = response.data as any;
-            if (data.encoding === 'base64' && data.content) {
-              return { path: entry.path!, content: Buffer.from(data.content, 'base64').toString('utf-8') };
+            if (response.data.encoding === 'base64' && response.data.content) {
+              return { path: entry.path!, content: Buffer.from(response.data.content, 'base64').toString('utf-8') };
             }
             return null;
           }),
@@ -248,7 +247,10 @@ export class GitHubController {
         throw new NotFoundException(`Repository or branch not found: ${owner}/${repo}@${branch}`);
       }
       if (error.status === 403) {
-        throw new ForbiddenException(`Access denied to ${owner}/${repo}`);
+        const isRateLimit = error.message?.includes('rate limit');
+        throw new ForbiddenException(isRateLimit
+          ? 'GitHub API rate limit exceeded. Please wait a few minutes and try again.'
+          : `Access denied to ${owner}/${repo}`);
       }
       throw error;
     }
