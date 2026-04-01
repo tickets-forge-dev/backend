@@ -4,6 +4,7 @@ import { Team } from '../../domain/Team';
 import { TeamId } from '../../domain/TeamId';
 import { TeamSettings } from '../../domain/TeamSettings';
 import { TeamFactory } from '../../domain/TeamFactory';
+import { TeamRepository } from '../../domain/TeamRepository';
 
 /**
  * TeamRepository - Firestore Implementation
@@ -173,9 +174,21 @@ export class FirestoreTeamRepository {
         ? data.deletedAt.toDate()
         : data.deletedAt;
 
+      const repositories = (data.settings?.repositories || []).map((r: any) =>
+        TeamRepository.reconstitute(
+          r.repositoryFullName,
+          r.role,
+          r.defaultBranch,
+          r.profileId ?? null,
+          r.addedBy,
+          r.addedAt ? (r.addedAt.toDate ? r.addedAt.toDate() : new Date(r.addedAt)) : new Date(),
+        ),
+      );
+
       const settings = TeamSettings.create(
         data.settings?.defaultWorkspaceId,
         data.settings?.allowMemberInvites ?? true,
+        repositories,
       );
 
       return TeamFactory.fromPersistence({
