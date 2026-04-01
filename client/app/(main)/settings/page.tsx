@@ -39,7 +39,7 @@ function UsageSection() {
         : String(n);
 
   const tokenPercent = ticketQuota?.usagePercent ?? 0;
-  const sessionPercent = sessionQuota ? Math.round((sessionQuota.used / sessionQuota.limit) * 100) : 0;
+  const sessionPercent = sessionQuota ? Math.round(((sessionQuota.limit - sessionQuota.remaining) / sessionQuota.limit) * 100) : 0;
 
   return (
     <section className="space-y-3">
