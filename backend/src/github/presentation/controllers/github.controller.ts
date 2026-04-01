@@ -178,11 +178,15 @@ export class GitHubController {
     const MAX_FILES = 500;
 
     try {
-      // 1. Get file tree
+      // 1. Resolve branch to commit SHA (git.getTree needs a SHA, not a branch name)
+      const branchInfo = await octokit.repos.getBranch({ owner, repo, branch });
+      const commitSha = branchInfo.data.commit.sha;
+
+      // 2. Get file tree using the resolved SHA
       const treeResponse = await octokit.git.getTree({
         owner,
         repo,
-        tree_sha: branch,
+        tree_sha: commitSha,
         recursive: '1',
       });
 
