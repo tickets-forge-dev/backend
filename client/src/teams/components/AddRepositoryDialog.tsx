@@ -116,7 +116,7 @@ export function AddRepositoryDialog({ open, onOpenChange, teamId }: AddRepositor
                 value={selectedRepo}
                 onChange={(e) => setSelectedRepo(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-[13px] text-[var(--text-secondary)] outline-none focus:border-zinc-600 disabled:opacity-50"
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-[13px] text-[var(--text-secondary)] outline-none focus:border-zinc-600 disabled:opacity-50 [&>option]:bg-zinc-800 [&>option]:text-[var(--text-secondary)]"
               >
                 <option value="" disabled>
                   Select a repository...
