@@ -1125,7 +1125,7 @@ const MD_COLUMNS: Set<ColumnId> = new Set(['assignee', 'creator', 'updated']);
 
 // Grid column header row
 function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { visibleColumns?: ColumnId[]; mdGridTemplate?: string; onContextMenu?: (e: React.MouseEvent) => void }) {
-  const cols = visibleColumns || ['status', 'priority', 'assignee', 'creator', 'updated', 'score'] as ColumnId[];
+  const cols = visibleColumns || ['status', 'priority', 'assignee', 'creator', 'updated'] as ColumnId[];
 
   return (
     <div
@@ -1784,7 +1784,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
     return true;
   });
 
-  const cols = visibleColumns || ['status', 'priority', 'assignee', 'creator', 'updated', 'score'] as ColumnId[];
+  const cols = visibleColumns || ['status', 'priority', 'assignee', 'creator', 'updated'] as ColumnId[];
 
   // Column rendering map
   const renderColumn = (col: ColumnId) => {
