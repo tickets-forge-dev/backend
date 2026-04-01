@@ -7,7 +7,7 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { RepositorySelector } from '../RepositorySelector';
 import { BranchSelector } from '../BranchSelector';
-import { GitBranch, Sparkles, Shield, Users, HelpCircle, X, Terminal, CheckCircle2, MessageSquare, FileCode, Rocket } from 'lucide-react';
+import { GitBranch, Sparkles, Shield, Users, HelpCircle, X, Terminal, CheckCircle2, MessageSquare, FileCode, Rocket, Plus } from 'lucide-react';
 import { useProjectProfileStore, type ProjectProfileSummary } from '@/project-profiles/stores/project-profile.store';
 import { ProfileStatusBadge } from '@/project-profiles/components/ProfileStatusBadge';
 
@@ -26,10 +26,17 @@ export function CodebaseStep() {
     includeRepository,
     setIncludeRepository,
     setRepository,
+    setSecondaryRepository,
+    removeSecondaryRepository,
+    setSecondaryBranch,
+    setSecondaryRole,
+    setPrimaryRole,
   } = useWizardStore();
+  const { selectedRepositories } = useSettingsStore();
 
   const { findByRepo, triggerScan, startPolling, stopPolling } = useProjectProfileStore();
   const [profileStatus, setProfileStatus] = useState<ProjectProfileSummary | null>(null);
+  const [showSecondaryPicker, setShowSecondaryPicker] = useState(false);
 
   // Load GitHub status on mount
   useEffect(() => {
@@ -172,24 +179,142 @@ export function CodebaseStep() {
 
       {/* Repository & Branch Selection — only when enabled */}
       {includeRepository && (
-        <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-4">
-          <RepositorySelector />
+        <div className="space-y-3">
+          <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-4">
+            <RepositorySelector />
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-[var(--text-secondary)]">
-              Branch
-            </p>
-            <BranchSelector hideLabel={true} />
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-[var(--text-secondary)]">
+                Branch
+              </p>
+              <BranchSelector hideLabel={true} />
+            </div>
+
+            {/* Primary role — only shown when secondary repo is active */}
+            {input.secondaryRepoOwner && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-[var(--text-secondary)]">Role</p>
+                <div className="flex gap-2">
+                  {['backend', 'frontend', 'shared'].map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setPrimaryRole(input.primaryRole === role ? '' : role)}
+                      className={`px-2.5 py-1 text-[11px] rounded-md border transition-colors ${
+                        input.primaryRole === role
+                          ? 'border-purple-500/50 bg-purple-500/10 text-purple-500'
+                          : 'border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
+                      }`}
+                    >
+                      {role}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Profile status badge — shows after repo selection */}
+            {input.repoOwner && input.repoName && (
+              <div className="pt-1">
+                <ProfileStatusBadge
+                  status={profileStatus?.status ?? null}
+                  techStack={profileStatus?.techStack}
+                  onRescan={handleRescan}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Profile status badge — shows after repo selection */}
-          {input.repoOwner && input.repoName && (
-            <div className="pt-1">
-              <ProfileStatusBadge
-                status={profileStatus?.status ?? null}
-                techStack={profileStatus?.techStack}
-                onRescan={handleRescan}
-              />
+          {/* Add second repository button */}
+          {input.repoOwner && input.repoName && !input.secondaryRepoOwner && !showSecondaryPicker && (
+            <button
+              type="button"
+              onClick={() => setShowSecondaryPicker(true)}
+              className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+            >
+              <Plus className="w-3 h-3" />
+              Add second repository
+            </button>
+          )}
+
+          {/* Secondary repository picker */}
+          {(showSecondaryPicker || input.secondaryRepoOwner) && (
+            <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Second Repository</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeSecondaryRepository();
+                    setShowSecondaryPicker(false);
+                  }}
+                  className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <select
+                value={input.secondaryRepoOwner && input.secondaryRepoName ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) {
+                    removeSecondaryRepository();
+                    return;
+                  }
+                  const [owner, name] = val.split('/');
+                  if (owner && name) {
+                    setSecondaryRepository(owner, name);
+                  }
+                }}
+                className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[13px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500/40"
+              >
+                <option value="">Select a repository...</option>
+                {selectedRepositories
+                  .filter((r) => r.fullName !== `${input.repoOwner}/${input.repoName}`)
+                  .map((r) => (
+                    <option key={r.id} value={r.fullName}>
+                      {r.fullName}
+                    </option>
+                  ))}
+              </select>
+
+              {/* Secondary branch */}
+              {input.secondaryRepoOwner && input.secondaryRepoName && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Branch</p>
+                  <input
+                    type="text"
+                    value={input.secondaryBranch || ''}
+                    onChange={(e) => setSecondaryBranch(e.target.value)}
+                    placeholder="main"
+                    className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[13px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500/40"
+                  />
+                </div>
+              )}
+
+              {/* Secondary role */}
+              {input.secondaryRepoOwner && input.secondaryRepoName && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Role</p>
+                  <div className="flex gap-2">
+                    {['backend', 'frontend', 'shared'].map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => setSecondaryRole(input.secondaryRole === role ? '' : role)}
+                        className={`px-2.5 py-1 text-[11px] rounded-md border transition-colors ${
+                          input.secondaryRole === role
+                            ? 'border-purple-500/50 bg-purple-500/10 text-purple-500'
+                            : 'border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
