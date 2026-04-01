@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TeamsController } from './presentation/controllers/teams.controller';
+import { TeamRepositoriesController } from './presentation/controllers/team-repositories.controller';
 import { FirestoreTeamRepository } from './infrastructure/persistence/FirestoreTeamRepository';
 import { FirestoreTeamMemberRepository } from './infrastructure/persistence/FirestoreTeamMemberRepository';
 import { FirestoreUserRepository } from '../users/infrastructure/persistence/FirestoreUserRepository';
@@ -26,7 +27,7 @@ import { InviteTokenService } from './application/services/InviteTokenService';
  * Provides team management functionality.
  */
 @Module({
-  controllers: [TeamsController],
+  controllers: [TeamsController, TeamRepositoriesController],
   providers: [
     // Repositories
     {

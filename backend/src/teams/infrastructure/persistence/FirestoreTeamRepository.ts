@@ -33,6 +33,14 @@ export class FirestoreTeamRepository {
       settings: {
         defaultWorkspaceId: teamObj.settings.defaultWorkspaceId ?? null,
         allowMemberInvites: teamObj.settings.allowMemberInvites,
+        repositories: (teamObj.settings.repositories ?? []).map((r) => ({
+          repositoryFullName: r.repositoryFullName,
+          role: r.role,
+          defaultBranch: r.defaultBranch,
+          profileId: r.profileId ?? null,
+          addedBy: r.addedBy,
+          addedAt: new Date(r.addedAt),
+        })),
       },
       createdAt: new Date(teamObj.createdAt),
       updatedAt: new Date(teamObj.updatedAt),
@@ -113,6 +121,14 @@ export class FirestoreTeamRepository {
         settings: {
           defaultWorkspaceId: teamObj.settings.defaultWorkspaceId ?? null,
           allowMemberInvites: teamObj.settings.allowMemberInvites,
+          repositories: (teamObj.settings.repositories ?? []).map((r) => ({
+            repositoryFullName: r.repositoryFullName,
+            role: r.role,
+            defaultBranch: r.defaultBranch,
+            profileId: r.profileId ?? null,
+            addedBy: r.addedBy,
+            addedAt: new Date(r.addedAt),
+          })),
         },
         updatedAt: new Date(teamObj.updatedAt),
         deletedAt: teamObj.deletedAt ? new Date(teamObj.deletedAt) : null,
