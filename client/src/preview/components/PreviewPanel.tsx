@@ -104,53 +104,26 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
 
       if (abortRef.current) return;
 
-      // Detect project root — handle monorepos by finding the web app subdirectory
-      let projectRoot = '';
-      if (files['package.json']) {
-        // Root has package.json — use it
-        projectRoot = '';
-      } else {
-        // Look for common monorepo web app directories
-        const webDirs = ['client', 'frontend', 'web', 'app', 'apps/web', 'packages/web', 'packages/client'];
-        const found = webDirs.find(dir => files[`${dir}/package.json`]);
-        if (found) {
-          projectRoot = found;
-          addLog(`Monorepo detected — using ${found}/ as project root`);
-        } else {
-          // Last resort: find any package.json with a "dev" or "start" script
-          const pkgFiles = Object.keys(files).filter(f => f.endsWith('/package.json') && f.split('/').length === 2);
-          for (const pkgPath of pkgFiles) {
-            try {
-              const pkg = JSON.parse(files[pkgPath]);
-              if (pkg.scripts?.dev || pkg.scripts?.start) {
-                projectRoot = pkgPath.replace('/package.json', '');
-                addLog(`Found web app at ${projectRoot}/`);
-                break;
-              }
-            } catch {}
-          }
-          if (!projectRoot && pkgFiles.length === 0) {
-            setError('No package.json found — not a Node.js project');
-            setStatus('error');
-            return;
-          }
-        }
+      // Find the previewable web app — works for any project structure
+      const detected = detectWebAppRoot(files);
+      if (!detected) {
+        setError('No previewable web app found — needs package.json with a dev/start script');
+        setStatus('error');
+        return;
+      }
+      if (detected.root) {
+        addLog(`Detected web app at ${detected.root}/ (score: ${detected.score})`);
       }
 
-      // If using a subdirectory, strip prefix from file paths
+      // Extract only the web app's files, stripping the subdirectory prefix
       let mountFiles = files;
-      if (projectRoot) {
-        const prefix = projectRoot + '/';
+      if (detected.root) {
+        const prefix = detected.root + '/';
         mountFiles = {};
         for (const [path, content] of Object.entries(files)) {
           if (path.startsWith(prefix)) {
             mountFiles[path.slice(prefix.length)] = content;
           }
-        }
-        if (!mountFiles['package.json']) {
-          setError(`No package.json found in ${projectRoot}/`);
-          setStatus('error');
-          return;
         }
       }
 
@@ -434,6 +407,89 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
       </div>
     </>
   );
+}
+
+/**
+ * Detect the previewable web app root in any project structure.
+ *
+ * Algorithm:
+ * 1. Find ALL package.json files in the repo
+ * 2. Parse each one and score it based on:
+ *    - Has dev/start script (required — can't preview without it)
+ *    - Has web framework dependencies (react, next, vue, angular, svelte, etc.)
+ *    - Is NOT a workspace root (has "workspaces" field = coordinator, not an app)
+ *    - Depth in tree (prefer shallower — "client/package.json" over "packages/shared/utils/package.json")
+ * 3. Return the highest-scoring one
+ *
+ * This works for ANY project structure — no directory name guessing.
+ */
+const WEB_DEPS = new Set([
+  'react', 'react-dom', 'next', 'vue', 'nuxt', '@angular/core', 'svelte',
+  '@sveltejs/kit', 'astro', 'remix', '@remix-run/react', 'gatsby', 'vite',
+  'solid-js', 'preact', 'lit', 'qwik', '@builder.io/qwik',
+]);
+
+interface DetectedApp {
+  root: string; // '' for repo root, 'client' for client/, etc.
+  score: number;
+}
+
+function detectWebAppRoot(files: Record<string, string>): DetectedApp | null {
+  // Find all package.json files
+  const pkgPaths = Object.keys(files).filter(f => f === 'package.json' || f.endsWith('/package.json'));
+
+  if (pkgPaths.length === 0) return null;
+
+  const candidates: DetectedApp[] = [];
+
+  for (const pkgPath of pkgPaths) {
+    let pkg: any;
+    try {
+      pkg = JSON.parse(files[pkgPath]);
+    } catch {
+      continue;
+    }
+
+    // Must have a dev or start script — can't preview without one
+    const hasDev = !!pkg.scripts?.dev;
+    const hasStart = !!pkg.scripts?.start;
+    if (!hasDev && !hasStart) continue;
+
+    // Skip workspace roots (coordinators, not apps)
+    if (pkg.workspaces) continue;
+
+    // Calculate directory root
+    const root = pkgPath === 'package.json' ? '' : pkgPath.replace('/package.json', '');
+    const depth = root ? root.split('/').length : 0;
+
+    // Score based on web framework presence
+    let score = 0;
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    for (const dep of Object.keys(allDeps || {})) {
+      if (WEB_DEPS.has(dep)) {
+        score += 10; // Each web dep adds 10 points
+      }
+    }
+
+    // Prefer "dev" script over just "start" (dev = development server, more likely web)
+    if (hasDev) score += 5;
+    if (hasStart) score += 2;
+
+    // Prefer shallower directories (root > client/ > packages/web/)
+    score -= depth * 2;
+
+    // Root package gets a small bonus (if it's not a workspace root, it's a single-package project)
+    if (root === '') score += 3;
+
+    candidates.push({ root, score });
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Sort by score descending, then by path length ascending (prefer shallower)
+  candidates.sort((a, b) => b.score - a.score || a.root.length - b.root.length);
+
+  return candidates[0];
 }
 
 /**
