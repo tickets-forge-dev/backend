@@ -35,6 +35,29 @@ export function CodebaseStep() {
   const { findByRepo, triggerScan, startPolling, stopPolling } = useProjectProfileStore();
   const [profileStatus, setProfileStatus] = useState<ProjectProfileSummary | null>(null);
   const [showSecondaryPicker, setShowSecondaryPicker] = useState(false);
+  const [secondaryBranches, setSecondaryBranches] = useState<Array<{ name: string; isDefault: boolean }>>([]);
+
+  // Fetch branches when secondary repo changes
+  useEffect(() => {
+    if (!input.secondaryRepoOwner || !input.secondaryRepoName) {
+      setSecondaryBranches([]);
+      return;
+    }
+    let cancelled = false;
+    gitHubService.getBranches(input.secondaryRepoOwner, input.secondaryRepoName)
+      .then((res) => {
+        if (cancelled) return;
+        const branches = (res as any).branches || res;
+        setSecondaryBranches(Array.isArray(branches) ? branches : []);
+        // Auto-select default branch
+        const defaultBranch = Array.isArray(branches) ? branches.find((b: any) => b.isDefault) : null;
+        if (defaultBranch && !input.secondaryBranch) {
+          setSecondaryBranch(defaultBranch.name);
+        }
+      })
+      .catch(() => setSecondaryBranches([]));
+    return () => { cancelled = true; };
+  }, [input.secondaryRepoOwner, input.secondaryRepoName]);
 
   // Load GitHub status on mount
   useEffect(() => {
@@ -204,14 +227,17 @@ export function CodebaseStep() {
                 ))}
               </select>
               <select
-                value={input.secondaryBranch || 'main'}
+                value={input.secondaryBranch || ''}
                 onChange={(e) => setSecondaryBranch(e.target.value)}
                 className="w-28 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-2.5 py-2 focus:outline-none focus:border-[var(--border-hover)]"
               >
-                <option value="main">main</option>
-                <option value="master">master</option>
-                <option value="develop">develop</option>
-                <option value="staging">staging</option>
+                {secondaryBranches.length > 0 ? (
+                  secondaryBranches.map((b) => (
+                    <option key={b.name} value={b.name}>{b.name}</option>
+                  ))
+                ) : (
+                  <option value="main">main</option>
+                )}
               </select>
               <select
                 value={input.secondaryRole || ''}
