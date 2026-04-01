@@ -100,27 +100,14 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
 
       if (abortRef.current) return;
 
-      // Find the previewable web app — works for any project structure
-      const detected = detectWebAppRoot(files);
-      if (!detected) {
+      // Backend already detects the web app root and returns files relative to it
+      const mountFiles = files;
+
+      // Verify we have a package.json (backend should always include one)
+      if (!mountFiles['package.json']) {
         setError('No previewable web app found — needs package.json with a dev/start script');
         setStatus('error');
         return;
-      }
-      if (detected.root) {
-        addLog(`Detected web app at ${detected.root}/ (score: ${detected.score})`);
-      }
-
-      // Extract only the web app's files, stripping the subdirectory prefix
-      let mountFiles = files;
-      if (detected.root) {
-        const prefix = detected.root + '/';
-        mountFiles = {};
-        for (const [path, content] of Object.entries(files)) {
-          if (path.startsWith(prefix)) {
-            mountFiles[path.slice(prefix.length)] = content;
-          }
-        }
       }
 
       // 2. Boot WebContainer
