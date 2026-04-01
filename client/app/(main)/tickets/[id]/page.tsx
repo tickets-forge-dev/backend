@@ -859,13 +859,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               </Button>
             </>
           )}
-          {currentTicket.repositoryContext && (
+          {currentTicket.implementationBranch && currentTicket.repositoryContext && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setPreviewOpen(true)}
               className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-              title="Preview project"
+              title="Preview implementation"
             >
               <Play className="h-3.5 w-3.5 mr-1.5" fill="currentColor" />
               Preview
