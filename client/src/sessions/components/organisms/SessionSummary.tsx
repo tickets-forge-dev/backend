@@ -82,15 +82,15 @@ export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
 
       {/* Branch */}
       {summary.branch && (
-        <a
-          href={summary.repoFullName
-            ? `https://github.com/${summary.repoFullName}/tree/${summary.branch}`
-            : undefined}
-          target="_blank"
-          rel="noopener noreferrer"
+        <div
           className={`flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)] ${
-            summary.repoFullName ? 'hover:bg-[var(--bg-active)] transition-colors cursor-pointer' : ''
+            summary.prUrl && summary.repoFullName ? 'cursor-pointer hover:bg-[var(--bg-active)] transition-colors' : ''
           }`}
+          onClick={() => {
+            if (summary.prUrl && summary.repoFullName) {
+              window.open(`https://github.com/${summary.repoFullName}/tree/${summary.branch}`, '_blank');
+            }
+          }}
         >
           <GitBranch className="w-4 h-4 text-blue-500 shrink-0" />
           <div className="flex-1 min-w-0">
@@ -104,14 +104,21 @@ export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
             )}
           </div>
           <CopyButton text={summary.branch} label="branch name" />
-          {summary.repoFullName && (
+          {summary.prUrl && summary.repoFullName && (
             <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
           )}
-        </a>
+        </div>
       )}
 
-      {/* Preview button */}
-      {onPreview && summary.branch && summary.repoFullName && (
+      {/* Simulated warning — when no PR was created, the sandbox likely didn't push */}
+      {summary.branch && !summary.prUrl && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 border border-amber-500/15">
+          <span className="text-[11px] text-amber-500">Simulated — branch not pushed to GitHub. Connect a real sandbox to create branches and PRs.</span>
+        </div>
+      )}
+
+      {/* Preview button — only when PR exists (branch was actually pushed) */}
+      {onPreview && summary.branch && summary.repoFullName && summary.prUrl && (
         <button
           onClick={() => onPreview(summary.repoFullName!, summary.branch!)}
           className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
