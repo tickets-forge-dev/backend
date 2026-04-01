@@ -196,18 +196,22 @@ export class SessionOrchestrator {
       // 4b. Ensure ticket is delivered with a change record
       try {
         const aecForDelivery = await this.aecRepository.findById(config.ticketId);
-        if (aecForDelivery && aecForDelivery.status === AECStatus.EXECUTING) {
-          // Agent didn't call submit_settlement — create a minimal change record
-          this.logger.log(`Session ${sessionId}: agent didn't settle — auto-delivering ticket`);
+        if (!aecForDelivery) {
+          this.logger.warn(`Session ${sessionId}: ticket ${config.ticketId} not found for auto-deliver`);
+        } else if (aecForDelivery.status === AECStatus.EXECUTING) {
+          this.logger.log(`Session ${sessionId}: auto-delivering ticket (agent didn't call submit_settlement)`);
           aecForDelivery.deliver({
             executionSummary: 'Development session completed. Changes committed and pushed.',
             filesChanged: [],
             divergences: [],
           });
           await this.aecRepository.save(aecForDelivery);
+          this.logger.log(`Session ${sessionId}: ticket delivered successfully`);
+        } else {
+          this.logger.log(`Session ${sessionId}: ticket already ${aecForDelivery.status}, skipping auto-deliver`);
         }
       } catch (deliverError) {
-        this.logger.warn(`Failed to auto-deliver ticket for session ${sessionId}: ${deliverError}`);
+        this.logger.error(`Session ${sessionId}: auto-deliver failed: ${deliverError}`);
       }
 
       // Mark session as completed (with PR info if available)

@@ -140,9 +140,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   }, [ticketId, refreshTicket]);
 
   // Refresh ticket when session completes — updates status badge and lifecycle bar
+  // Small delay to ensure backend has persisted the delivery + PR
   useEffect(() => {
     if (sessionStatus === 'completed' && ticketId) {
-      refreshTicket(ticketId);
+      const timer = setTimeout(() => refreshTicket(ticketId), 1500);
+      return () => clearTimeout(timer);
     }
   }, [sessionStatus, ticketId, refreshTicket]);
 
