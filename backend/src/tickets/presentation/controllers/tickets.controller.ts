@@ -1590,6 +1590,15 @@ export class TicketsController {
             selectedAt: aec.repositoryContext.selectedAt,
           }
         : null,
+      repositories: (aec.repositories ?? []).map((r: any) => ({
+        repositoryFullName: r.repositoryFullName,
+        branchName: r.branchName,
+        commitSha: r.commitSha,
+        isDefaultBranch: r.isDefaultBranch,
+        isPrimary: r.isPrimary,
+        role: r.role || null,
+        selectedAt: r.selectedAt?.toISOString() ?? null,
+      })),
       // Iterative refinement workflow fields
       questionRounds: aec.questionRounds,
       currentRound: aec.currentRound,

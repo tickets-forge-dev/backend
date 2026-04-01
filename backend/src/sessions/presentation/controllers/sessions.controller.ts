@@ -42,6 +42,7 @@ export class SessionsController {
     @Param('ticketId') ticketId: string,
     @Query('skills') skillsParam: string | undefined,
     @Query('followUp') followUpParam: string | undefined,
+    @Query('repo') repoParam: string | undefined,
     @TeamId() teamId: string,
     @WorkspaceId() workspaceId: string,
     @UserId() userId: string,
