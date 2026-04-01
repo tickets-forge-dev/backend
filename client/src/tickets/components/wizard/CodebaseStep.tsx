@@ -7,6 +7,7 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { GitBranch, X, Plus } from 'lucide-react';
 import { useProjectProfileStore, type ProjectProfileSummary } from '@/project-profiles/stores/project-profile.store';
+import { useTeamStore } from '@/teams/stores/team.store';
 
 /**
  * CodebaseStep — Repository connection step.
@@ -31,6 +32,7 @@ export function CodebaseStep() {
     setPrimaryRole,
   } = useWizardStore();
   const { selectedRepositories } = useSettingsStore();
+  const { currentTeam, teamRepositories, loadTeamRepositories } = useTeamStore();
 
   const { findByRepo, triggerScan, startPolling, stopPolling } = useProjectProfileStore();
   const [profileStatus, setProfileStatus] = useState<ProjectProfileSummary | null>(null);
@@ -64,6 +66,40 @@ export function CodebaseStep() {
     loadGitHubStatus(gitHubService);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load team repositories on mount
+  useEffect(() => {
+    if (currentTeam?.id && teamRepositories.length === 0) {
+      loadTeamRepositories(currentTeam.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTeam?.id]);
+
+  // Auto-populate wizard when team repos are available and wizard repos are empty
+  useEffect(() => {
+    if (teamRepositories.length > 0 && !input.repoOwner) {
+      const primary = teamRepositories.find(r => r.role === 'backend') || teamRepositories[0];
+      if (primary) {
+        const [owner, name] = primary.repositoryFullName.split('/');
+        if (owner && name) {
+          setRepository(owner, name);
+          ticketsStore.setRepository(primary.repositoryFullName);
+        }
+      }
+
+      const secondary = teamRepositories.find(r => r.repositoryFullName !== primary?.repositoryFullName);
+      if (secondary) {
+        const [sOwner, sName] = secondary.repositoryFullName.split('/');
+        if (sOwner && sName) {
+          setSecondaryRepository(sOwner, sName);
+          setSecondaryRole(secondary.role);
+        }
+      }
+
+      if (primary) setPrimaryRole(primary.role);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamRepositories]);
 
   // Sync tickets store repository selection to wizard store
   useEffect(() => {
@@ -138,9 +174,13 @@ export function CodebaseStep() {
   };
 
   const hasSecondary = !!(input.secondaryRepoOwner && input.secondaryRepoName);
-  const availableSecondaryRepos = selectedRepositories.filter(
-    (r) => r.fullName !== `${input.repoOwner}/${input.repoName}`
-  );
+  const availableRepos = teamRepositories.length > 0
+    ? teamRepositories.map(r => ({ id: r.repositoryFullName, fullName: r.repositoryFullName }))
+    : selectedRepositories;
+  const availableSecondaryRepos = (teamRepositories.length > 0
+    ? teamRepositories.map(r => ({ id: r.repositoryFullName, fullName: r.repositoryFullName }))
+    : selectedRepositories
+  ).filter((r) => r.fullName !== `${input.repoOwner}/${input.repoName}`);
 
   return (
     <div className="space-y-5">
@@ -181,7 +221,7 @@ export function CodebaseStep() {
                 className="w-full bg-transparent text-[13px] text-[var(--text)] focus:outline-none cursor-pointer truncate [&>option]:bg-[var(--bg-hover)] [&>option]:text-[var(--text)]"
               >
                 <option value="">Select repository...</option>
-                {selectedRepositories.map((r) => (
+                {availableRepos.map((r) => (
                   <option key={r.id} value={r.fullName}>{r.fullName}</option>
                 ))}
               </select>
