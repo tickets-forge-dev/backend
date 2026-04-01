@@ -181,7 +181,7 @@ export function DesignTab({
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 <p className="text-sm text-[var(--text-secondary)]">No wireframes yet</p>
                 <p className="text-[11px] text-[var(--text-tertiary)] max-w-sm">
-                  Generate screen specifications from the ticket's acceptance criteria and solution.
+                  Generate screen specifications from the ticket&apos;s acceptance criteria and solution.
                 </p>
                 <Button onClick={handleGenerateWireframes} disabled={isGeneratingWireframes} variant="outline" size="sm" className="mt-1">
                   {isGeneratingWireframes ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generating...</> : <><Sparkles className="w-3.5 h-3.5 mr-1.5" />Generate Wireframes</>}

@@ -21,7 +21,7 @@ export class RecommendSkillsUseCase {
     private readonly configService: ConfigService,
   ) {}
 
-  async execute(ticketId: string, teamId: string): Promise<{ recommended: SkillRecommendation[] }> {
+  async execute(ticketId: string, _teamId: string): Promise<{ recommended: SkillRecommendation[] }> {
     const [skills, aec] = await Promise.all([
       this.skillRepository.findAllEnabled(),
       this.aecRepository.findById(ticketId),
