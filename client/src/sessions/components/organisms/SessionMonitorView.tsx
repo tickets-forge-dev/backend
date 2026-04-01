@@ -298,7 +298,6 @@ function FollowUpInput({ ticketId, onSubmit }: { ticketId: string; onSubmit: (re
 
   return (
     <div className="mt-6 border-t border-[var(--border-subtle)] pt-4 pb-2">
-      <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2">Continue developing</p>
       <div className="flex items-end gap-2">
         <textarea
           ref={inputRef}
