@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Zap, ArrowRight } from 'lucide-react';
+import { Play, Zap, ArrowRight, GitBranch } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { useSkillsStore } from '../../stores/skills.store';
 import { SkillPicker } from '../molecules/SkillPicker';
@@ -15,13 +15,16 @@ interface DevelopButtonProps {
   repoFullName?: string;
   /** Branch that will be created */
   branch?: string;
+  /** Callback to open the repo connection dialog */
+  onConnectRepo?: () => void;
 }
 
-export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButtonProps) {
+export function DevelopButton({ ticketId, ticketStatus, onStart, repoFullName, onConnectRepo }: DevelopButtonProps) {
   const { status } = useSessionStore();
   const { getEffectiveSkillIds } = useSkillsStore();
   const isLoading = status === 'provisioning' || status === 'running';
   const isDisabled = isLoading;
+  const hasRepo = !!repoFullName;
 
   const handleStart = () => {
     const skillIds = getEffectiveSkillIds();
@@ -44,13 +47,39 @@ export function DevelopButton({ ticketId, ticketStatus, onStart }: DevelopButton
           </p>
         </div>
 
+        {/* Repo connection prompt */}
+        {!hasRepo && (
+          <div className="rounded-lg border border-amber-500/15 bg-amber-500/5 p-3.5">
+            <div className="flex items-start gap-2.5">
+              <GitBranch className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="text-[12px] font-medium text-[var(--text)]">
+                  Connect a repository
+                </p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                  A GitHub repository is required for the AI agent to clone, implement, and push changes.
+                </p>
+                {onConnectRepo && (
+                  <button
+                    onClick={onConnectRepo}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[11px] font-medium text-[var(--text)] transition-colors"
+                  >
+                    <GitBranch className="w-3 h-3" />
+                    Connect Repository
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Skill Picker */}
         <SkillPicker ticketId={ticketId} />
 
         {/* Start button */}
         <button
           onClick={handleStart}
-          disabled={isDisabled}
+          disabled={isDisabled || !hasRepo}
           className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:bg-[var(--bg-active)] text-[var(--text)] text-[13px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Play className="w-3.5 h-3.5" fill="currentColor" />

@@ -12,9 +12,11 @@ interface DevelopSessionBladeProps {
   branch?: string;
   /** Number of file changes from the ticket's tech spec — passed to complexity warning */
   fileChangeCount?: number;
+  /** Callback to open repo connection dialog */
+  onConnectRepo?: () => void;
 }
 
-export function DevelopSessionBlade({ open, onClose, ticketId, ticketTitle, ticketStatus, repoFullName, branch, fileChangeCount }: DevelopSessionBladeProps) {
+export function DevelopSessionBlade({ open, onClose, ticketId, ticketTitle, ticketStatus, repoFullName, branch, fileChangeCount, onConnectRepo }: DevelopSessionBladeProps) {
   return (
     <SlideOverPanel
       open={open}
@@ -30,6 +32,7 @@ export function DevelopSessionBlade({ open, onClose, ticketId, ticketTitle, tick
         fileChangeCount={fileChangeCount}
         repoFullName={repoFullName}
         branch={branch}
+        onConnectRepo={onConnectRepo}
       />
     </SlideOverPanel>
   );

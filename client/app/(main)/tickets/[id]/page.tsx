@@ -1662,6 +1662,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           repoFullName={currentTicket.repositoryContext?.repositoryFullName}
           branch={`feat/${currentTicket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
           fileChangeCount={currentTicket.techSpec?.fileChanges?.length}
+          onConnectRepo={() => { setDevelopBladeOpen(false); setRepoDialogOpen(true); }}
         />,
         document.body
       )}

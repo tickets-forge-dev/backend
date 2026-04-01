@@ -21,6 +21,8 @@ interface SessionMonitorViewProps {
   repoFullName?: string;
   /** Branch that will be created */
   branch?: string;
+  /** Callback to open repo connection dialog */
+  onConnectRepo?: () => void;
 }
 
 function isToolEvent(type: string): boolean {
@@ -53,7 +55,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
   return groups;
 }
 
-export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch }: SessionMonitorViewProps) {
+export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, onConnectRepo }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
 
   const restorationAttempted = useRef(false);
@@ -130,6 +132,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         fileChangeCount={fileChangeCount}
         repoFullName={repoFullName}
         branch={branch}
+        onConnectRepo={onConnectRepo}
       />
     );
   }
