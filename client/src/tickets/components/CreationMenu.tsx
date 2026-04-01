@@ -34,7 +34,7 @@ export function CreationMenu({ disabled = false }: { disabled?: boolean }) {
       <Button
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 border border-[var(--border-subtle)] bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text)] hover:border-[var(--border-hover)]"
+        className="flex items-center gap-2 border border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--text)] hover:border-[var(--border-hover)]"
       >
         <Plus className="w-4 h-4 text-[var(--text-tertiary)]" />
         Create
