@@ -1131,7 +1131,6 @@ const COLUMN_LABELS: Record<ColumnId, string> = {
   assignee: 'Assignee',
   creator: 'Creator',
   updated: 'Updated',
-  score: 'Score',
 };
 
 // Breakpoint visibility: sm columns vs md columns
@@ -1150,7 +1149,6 @@ function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { v
     >
       <span className="pl-6">Title</span>
       {cols.map((col) => {
-        if (col === 'score') return <span key={col} className="text-center">{COLUMN_LABELS[col]}</span>;
         const hiddenClass = SM_COLUMNS.has(col) ? 'hidden sm:block' : MD_COLUMNS.has(col) ? 'hidden md:block' : '';
         return <span key={col} className={hiddenClass}>{COLUMN_LABELS[col]}</span>;
       })}
@@ -1838,12 +1836,6 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
             <span className="text-[11px] text-[var(--text-tertiary)]">{getRelativeTime(ticket.updatedAt)}</span>
           </Link>
         );
-      case 'score':
-        return (
-          <Link key={col} href={href} className="flex items-center justify-center py-3">
-            <ProgressRing ticket={ticket} />
-          </Link>
-        );
       default:
         return null;
     }
@@ -2098,55 +2090,3 @@ function CreatorCell({ ticket, teamMembers }: { ticket: any; teamMembers: any[] 
   );
 }
 
-// Extract progress ring to a separate component
-function ProgressRing({ ticket }: { ticket: any }) {
-  const readinessScore = ticket.techSpec?.qualityScore ?? ticket.readinessScore ?? 0;
-
-  // Get progress color based on score
-  const getProgressColor = () => {
-    return 'var(--text-tertiary)';
-  };
-
-  const progressColor = getProgressColor();
-
-  // Get progress tooltip
-  const getProgressTooltip = () => {
-    if (readinessScore === 0) return 'Not started';
-    if (ticket.questions && ticket.questions.length > 0) {
-      return "";
-    }
-    return `${readinessScore}% complete`;
-  };
-
-  return (
-    <div className="flex-shrink-0 relative h-6 w-6 sm:h-8 sm:w-8 group/progress" title={getProgressTooltip()}>
-      <svg className="h-6 w-6 sm:h-8 sm:w-8 -rotate-90" viewBox="0 0 32 32">
-        <circle
-          cx="16" cy="16" r="13"
-          fill="none"
-          stroke="var(--border)"
-          strokeWidth="2.5"
-          opacity="0.3"
-        />
-        <circle
-          cx="16" cy="16" r="13"
-          fill="none"
-          stroke={progressColor}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeDasharray={`${(readinessScore / 100) * 81.68} 81.68`}
-          opacity={readinessScore > 0 ? 1 : 0.2}
-        />
-      </svg>
-      <span className={`absolute inset-0 flex items-center justify-center text-[7px] sm:text-[9px] font-medium ${
-        readinessScore === 0 ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'
-      }`}>
-        {readinessScore}
-      </span>
-      {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/progress:block whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2 py-1 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg z-50">
-        {getProgressTooltip()}
-      </div>
-    </div>
-  );
-}
