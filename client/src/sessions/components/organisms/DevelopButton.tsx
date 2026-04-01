@@ -1,34 +1,53 @@
 'use client';
 
-import { Play, Zap, ArrowRight, GitBranch } from 'lucide-react';
+import { useState } from 'react';
+import { Play, Zap, ArrowRight, GitBranch, ChevronDown } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { useSkillsStore } from '../../stores/skills.store';
 import { SkillPicker } from '../molecules/SkillPicker';
 
+interface RepoInfo {
+  repositoryFullName: string;
+  isPrimary: boolean;
+  role?: string;
+}
+
 interface DevelopButtonProps {
   ticketId: string;
   ticketStatus: string;
-  onStart: (skillIds?: string[]) => void;
+  onStart: (skillIds?: string[], repoFullName?: string) => void;
   /** Number of file changes from the ticket's tech spec */
   fileChangeCount?: number;
-  /** Repository full name (owner/repo) */
+  /** Repository full name (owner/repo) — single repo fallback */
   repoFullName?: string;
   /** Branch that will be created */
   branch?: string;
+  /** All repositories linked to this ticket */
+  repositories?: RepoInfo[];
   /** Callback to open the repo connection dialog */
   onConnectRepo?: () => void;
 }
 
-export function DevelopButton({ ticketId, ticketStatus, onStart, repoFullName, onConnectRepo }: DevelopButtonProps) {
+export function DevelopButton({ ticketId, ticketStatus, onStart, repoFullName, onConnectRepo, repositories }: DevelopButtonProps) {
   const { status } = useSessionStore();
   const { getEffectiveSkillIds } = useSkillsStore();
   const isLoading = status === 'provisioning' || status === 'running';
   const isDisabled = isLoading;
-  const hasRepo = !!repoFullName;
+
+  // Normalize repos list — fall back to single repoFullName
+  const repos: RepoInfo[] = repositories && repositories.length > 0
+    ? repositories
+    : repoFullName
+      ? [{ repositoryFullName: repoFullName, isPrimary: true }]
+      : [];
+
+  const hasRepo = repos.length > 0;
+  const primaryRepo = repos.find(r => r.isPrimary) || repos[0];
+  const [selectedRepo, setSelectedRepo] = useState<string>(primaryRepo?.repositoryFullName || '');
 
   const handleStart = () => {
     const skillIds = getEffectiveSkillIds();
-    onStart(skillIds);
+    onStart(skillIds, repos.length > 1 ? selectedRepo : undefined);
   };
 
   return (
@@ -69,6 +88,31 @@ export function DevelopButton({ ticketId, ticketStatus, onStart, repoFullName, o
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Repo picker — only when multiple repos */}
+        {repos.length > 1 && (
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+              Target repository
+            </label>
+            <div className="relative">
+              <select
+                value={selectedRepo}
+                onChange={(e) => setSelectedRepo(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2 pr-8 text-[12px] text-[var(--text)] transition-colors hover:bg-[var(--bg-active)] focus:outline-none focus:border-[var(--text-tertiary)]"
+              >
+                {repos.map((repo) => (
+                  <option key={repo.repositoryFullName} value={repo.repositoryFullName}>
+                    {repo.repositoryFullName.split('/').pop()}
+                    {repo.isPrimary ? ' (primary)' : ''}
+                    {repo.role ? ` — ${repo.role}` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)] pointer-events-none" />
             </div>
           </div>
         )}

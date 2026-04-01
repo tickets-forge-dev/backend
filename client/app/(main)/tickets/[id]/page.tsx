@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
@@ -942,28 +942,42 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               <Copy className="h-3 w-3" />
             </button>
           )}
-          {currentTicket.repositoryContext ? (
-            <>
-              <span className="text-[var(--text-tertiary)]/30">·</span>
-              <button
-                onClick={() => setRepoDialogOpen(true)}
-                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-              >
-                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-                {currentTicket.repositoryContext.repositoryFullName.split('/').pop()}
-              </button>
-            </>
-          ) : (
-            <>
-              <span className="text-[var(--text-tertiary)]/30">·</span>
-              <button
-                onClick={() => setRepoDialogOpen(true)}
-                className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-              >
-                Connect repo
-              </button>
-            </>
-          )}
+          {(() => {
+            const repos = currentTicket.repositories ||
+              (currentTicket.repositoryContext ? [{
+                repositoryFullName: currentTicket.repositoryContext.repositoryFullName,
+                isPrimary: true,
+              }] : []);
+            return repos.length > 0 ? (
+              repos.map((repo, i) => (
+                <React.Fragment key={repo.repositoryFullName}>
+                  <span className="text-[var(--text-tertiary)]/30">{'\u00b7'}</span>
+                  <button
+                    onClick={() => setRepoDialogOpen(true)}
+                    className={`inline-flex items-center gap-1 text-[11px] transition-colors ${
+                      repo.isPrimary
+                        ? 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                        : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {i === 0 && <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>}
+                    {repo.repositoryFullName.split('/').pop()}
+                    {repo.role && <span className="text-[9px] text-[var(--text-tertiary)]/50 ml-0.5">{repo.role}</span>}
+                  </button>
+                </React.Fragment>
+              ))
+            ) : (
+              <>
+                <span className="text-[var(--text-tertiary)]/30">{'\u00b7'}</span>
+                <button
+                  onClick={() => setRepoDialogOpen(true)}
+                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  Connect repo
+                </button>
+              </>
+            );
+          })()}
           {/* Tags */}
           <span className="text-[var(--text-tertiary)]/30">·</span>
           {tags.filter(t => localTagIds.includes(t.id)).map(tag => (
@@ -1664,6 +1678,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           repoFullName={currentTicket.repositoryContext?.repositoryFullName}
           branch={`feat/${currentTicket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
           fileChangeCount={currentTicket.techSpec?.fileChanges?.length}
+          repositories={currentTicket.repositories ||
+            (currentTicket.repositoryContext ? [{
+              repositoryFullName: currentTicket.repositoryContext.repositoryFullName,
+              isPrimary: true,
+            }] : undefined)}
           onConnectRepo={() => { setDevelopBladeOpen(false); setRepoDialogOpen(true); }}
         />,
         document.body

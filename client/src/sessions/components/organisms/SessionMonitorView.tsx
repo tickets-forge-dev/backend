@@ -23,6 +23,8 @@ interface SessionMonitorViewProps {
   repoFullName?: string;
   /** Branch that will be created */
   branch?: string;
+  /** All repositories linked to this ticket */
+  repositories?: Array<{ repositoryFullName: string; isPrimary: boolean; role?: string }>;
   /** Callback to open repo connection dialog */
   onConnectRepo?: () => void;
 }
@@ -59,7 +61,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
   return groups;
 }
 
-export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, onConnectRepo }: SessionMonitorViewProps) {
+export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, repositories, onConnectRepo }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
   const currentTicket = useTicketsStore(state => state.currentTicket);
 
@@ -134,10 +136,11 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       <DevelopButton
         ticketId={ticketId}
         ticketStatus={ticketStatus}
-        onStart={(skillIds) => startSession(ticketId, skillIds)}
+        onStart={(skillIds, selectedRepo) => startSession(ticketId, skillIds, undefined, selectedRepo)}
         fileChangeCount={fileChangeCount}
         repoFullName={repoFullName}
         branch={branch}
+        repositories={repositories}
         onConnectRepo={onConnectRepo}
       />
     );
