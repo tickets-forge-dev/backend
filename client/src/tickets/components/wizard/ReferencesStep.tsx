@@ -75,18 +75,6 @@ export function ReferencesStep() {
         </div>
       </div>
 
-      {/* Skip hint */}
-      {!hasAnyReferences && (
-        <p className="text-center">
-          <button
-            type="button"
-            onClick={nextStage}
-            className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-          >
-            No attachments? Skip to next step →
-          </button>
-        </p>
-      )}
     </div>
   );
 }
