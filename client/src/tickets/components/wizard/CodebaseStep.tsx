@@ -5,9 +5,7 @@ import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
-import { RepositorySelector } from '../RepositorySelector';
-import { BranchSelector } from '../BranchSelector';
-import { GitBranch, Sparkles, Shield, Users, HelpCircle, X, Terminal, CheckCircle2, MessageSquare, FileCode, Rocket, Plus } from 'lucide-react';
+import { GitBranch, X, Plus } from 'lucide-react';
 import { useProjectProfileStore, type ProjectProfileSummary } from '@/project-profiles/stores/project-profile.store';
 import { ProfileStatusBadge } from '@/project-profiles/components/ProfileStatusBadge';
 
@@ -21,6 +19,7 @@ export function CodebaseStep() {
   const { gitHubService } = useServices();
   const { loadGitHubStatus } = useSettingsStore();
   const { selectedRepository } = useTicketsStore();
+  const ticketsStore = useTicketsStore();
   const {
     input,
     includeRepository,
@@ -133,39 +132,62 @@ export function CodebaseStep() {
 
       {/* Repository rows */}
       {includeRepository ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Primary repo row */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0">
-              <RepositorySelector />
-            </div>
-            <div className="w-36 shrink-0">
-              <BranchSelector hideLabel={true} />
-            </div>
-            {hasSecondary && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
               <select
-                value={input.primaryRole || ''}
-                onChange={(e) => setPrimaryRole(e.target.value)}
-                className="w-24 shrink-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
+                value={selectedRepository || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    ticketsStore.setRepository(val);
+                    const [o, n] = val.split('/');
+                    if (o && n) setRepository(o, n);
+                  }
+                }}
+                className="flex-1 min-w-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)] appearance-none"
               >
-                <option value="">role</option>
-                <option value="backend">backend</option>
-                <option value="frontend">frontend</option>
-                <option value="shared">shared</option>
+                <option value="">Select repository...</option>
+                {selectedRepositories.map((r) => (
+                  <option key={r.id} value={r.fullName}>{r.fullName}</option>
+                ))}
               </select>
-            )}
-          </div>
-
-          {/* Profile badge */}
-          {input.repoOwner && input.repoName && (
-            <div className="pl-1">
+              <select
+                value={ticketsStore.selectedBranch || ticketsStore.defaultBranch || 'main'}
+                onChange={(e) => ticketsStore.setBranch(e.target.value)}
+                className="w-32 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] text-[var(--text)] px-3 py-2 focus:outline-none focus:border-[var(--border-hover)] appearance-none"
+              >
+                {ticketsStore.availableBranches.length > 0 ? (
+                  ticketsStore.availableBranches.map((b) => (
+                    <option key={b.name} value={b.name}>{b.name}</option>
+                  ))
+                ) : (
+                  <option value="main">main</option>
+                )}
+              </select>
+              {hasSecondary && (
+                <select
+                  value={input.primaryRole || ''}
+                  onChange={(e) => setPrimaryRole(e.target.value)}
+                  className="w-24 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] px-2 py-2 focus:outline-none"
+                >
+                  <option value="">role</option>
+                  <option value="backend">backend</option>
+                  <option value="frontend">frontend</option>
+                  <option value="shared">shared</option>
+                </select>
+              )}
+            </div>
+            {/* Profile badge inline */}
+            {input.repoOwner && input.repoName && (
               <ProfileStatusBadge
                 status={profileStatus?.status ?? null}
                 techStack={profileStatus?.techStack}
                 onRescan={handleRescan}
               />
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Secondary repo row */}
           {(showSecondaryPicker || hasSecondary) && (
