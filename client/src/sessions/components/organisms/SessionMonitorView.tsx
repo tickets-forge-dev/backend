@@ -182,9 +182,6 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         onToggleVerbose={() => setVerbose(v => !v)}
       />
 
-      {/* Active skills banner */}
-      <ActiveSkillsBanner />
-
       {/* Event stream */}
       <div className="space-y-4">
         {renderGroups.map((group, i) => {
