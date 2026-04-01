@@ -7,7 +7,7 @@ import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Label } from '@/core/components/ui/label';
 import { Badge } from '@/core/components/ui/badge';
-import { AlertCircle, Save, Trash2 } from 'lucide-react';
+import { AlertCircle, Pencil, Save, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -155,6 +155,7 @@ export function TeamSettings() {
         </div>
         {isOwner && !isEditing && (
           <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+            <Pencil className="h-3.5 w-3.5 mr-1.5" />
             Edit Project
           </Button>
         )}

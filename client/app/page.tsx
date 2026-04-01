@@ -6,6 +6,7 @@ import { HeroSection } from '@/landing/components/HeroSection';
 import { HowItWorks } from '@/landing/components/HowItWorks';
 import { ProductShowcaseWeb } from '@/landing/components/ProductShowcaseWeb';
 import { ProductShowcaseCLI } from '@/landing/components/ProductShowcaseCLI';
+import { CloudDevelopShowcase } from '@/landing/components/CloudDevelopShowcase';
 import { BeforeAfter } from '@/landing/components/BeforeAfter';
 import { CTASection } from '@/landing/components/CTASection';
 import { BackgroundMesh } from '@/landing/components/BackgroundMesh';
@@ -25,6 +26,7 @@ export default function LandingPage() {
           <HowItWorks />
           <ProductShowcaseWeb />
           <ProductShowcaseCLI />
+          <CloudDevelopShowcase />
           <BeforeAfter />
           <CTASection />
         </main>

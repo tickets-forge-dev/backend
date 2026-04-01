@@ -36,7 +36,7 @@ const STEPS = [
     number: '4',
     title: 'Develop',
     subtitle:
-      'Developer picks up a fully-scoped ticket with file paths, acceptance criteria, and implementation plan.',
+      'Click Develop — AI implements in a cloud sandbox, runs tests, and opens a PR. You review the code, not write it.',
     dotColor: 'bg-emerald-400',
     borderColor: 'border-emerald-400/30',
   },
