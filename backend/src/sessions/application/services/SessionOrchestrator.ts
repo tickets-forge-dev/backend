@@ -193,6 +193,23 @@ export class SessionOrchestrator {
         }
       }
 
+      // 4b. Ensure ticket is delivered with a change record
+      try {
+        const aecForDelivery = await this.aecRepository.findById(config.ticketId);
+        if (aecForDelivery && aecForDelivery.status === AECStatus.EXECUTING) {
+          // Agent didn't call submit_settlement — create a minimal change record
+          this.logger.log(`Session ${sessionId}: agent didn't settle — auto-delivering ticket`);
+          aecForDelivery.deliver({
+            executionSummary: 'Development session completed. Changes committed and pushed.',
+            filesChanged: [],
+            divergences: [],
+          });
+          await this.aecRepository.save(aecForDelivery);
+        }
+      } catch (deliverError) {
+        this.logger.warn(`Failed to auto-deliver ticket for session ${sessionId}: ${deliverError}`);
+      }
+
       // Mark session as completed (with PR info if available)
       const completedSession = await this.sessionRepository.findById(sessionId, teamId);
       if (completedSession && completedSession.isActive()) {
