@@ -213,7 +213,7 @@ export function GenerationOptionsStep() {
                 onChange={(e) => setWireframeContext(e.target.value)}
                 placeholder="e.g. A dashboard with a sidebar nav, header with search, and a main content area showing a data table with filters..."
                 rows={3}
-                className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--border-hover)] resize-none"
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--border-hover)] resize-none"
               />
               <p className="text-[11px] text-[var(--text-tertiary)] mt-1">Optional — helps the AI generate more accurate wireframes</p>
             </div>
@@ -289,7 +289,7 @@ export function GenerationOptionsStep() {
               <select
                 value={newMethod}
                 onChange={(e) => setNewMethod(e.target.value)}
-                className="h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2 text-xs font-mono text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
+                className="h-8 rounded-md border border-zinc-700 bg-zinc-800/50 px-2 text-xs font-mono text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] [&>option]:bg-zinc-800 [&>option]:text-[var(--text)]"
               >
                 {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -301,7 +301,7 @@ export function GenerationOptionsStep() {
                 onChange={(e) => setNewRoute(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEndpoint(); } }}
                 placeholder="/api/..."
-                className="flex-1 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 text-xs font-mono text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
+                className="flex-1 h-8 rounded-md border border-zinc-700 bg-zinc-800/50 px-2.5 text-xs font-mono text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
               />
               <button
                 type="button"
