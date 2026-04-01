@@ -1,5 +1,6 @@
 'use client';
 
+import { Terminal } from 'lucide-react';
 import { ProgressDots } from '../atoms/ProgressDots';
 import { ElapsedTimer } from '../atoms/ElapsedTimer';
 import type { SessionStatus } from '../../types/session.types';
@@ -39,11 +40,15 @@ export function SessionStatusHeader({ status, elapsedSeconds, onCancel, verbose,
         {onToggleVerbose && (
           <button
             onClick={onToggleVerbose}
-            className={`text-[10px] transition-colors ${
-              verbose ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+              verbose
+                ? 'bg-[var(--bg-active)] text-[var(--text-secondary)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
             }`}
+            title={verbose ? 'Hide CLI logs' : 'Show CLI logs'}
           >
-            {verbose ? 'Hide logs' : 'Verbose'}
+            <Terminal className="w-3 h-3" />
+            {verbose ? 'Logs' : 'Logs'}
           </button>
         )}
         {status === 'running' && onCancel && (
