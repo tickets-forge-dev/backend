@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageSquare, Clock } from 'lucide-react';
+import { MessageSquare, Clock, UserCheck } from 'lucide-react';
 
 interface QAItem {
   question: string;
@@ -10,16 +10,16 @@ interface QAItem {
 interface ReviewSessionSectionProps {
   qaItems: QAItem[];
   submittedAt: string;
+  developerName?: string | null;
 }
 
 /**
  * ReviewSessionSection (Story 6-12 / 7-6)
  *
  * Displays the Q&A pairs submitted by a developer via `forge review`.
- * Shown when ticket status is REVIEW.
- * Read-only — the PM reviews these answers before re-baking.
+ * Shows who reviewed, when, and the impact of each answer.
  */
-export function ReviewSessionSection({ qaItems, submittedAt }: ReviewSessionSectionProps) {
+export function ReviewSessionSection({ qaItems, submittedAt, developerName }: ReviewSessionSectionProps) {
   const formattedDate = new Date(submittedAt).toLocaleString(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -27,26 +27,44 @@ export function ReviewSessionSection({ qaItems, submittedAt }: ReviewSessionSect
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
-        <Clock className="h-3.5 w-3.5" />
-        <span>Submitted by developer on {formattedDate}</span>
+      {/* Reviewer header */}
+      <div className="flex items-center gap-3 rounded-lg bg-[var(--bg-hover)]/40 border border-[var(--border-subtle)] px-4 py-3">
+        <div className="w-7 h-7 rounded-full bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+          <UserCheck className="h-3.5 w-3.5 text-violet-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] text-[var(--text-secondary)]">
+            {developerName ? (
+              <><span className="font-medium text-[var(--text)]">{developerName}</span> reviewed this ticket</>
+            ) : (
+              'Developer reviewed this ticket'
+            )}
+          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Clock className="h-3 w-3 text-[var(--text-tertiary)]" />
+            <span className="text-[11px] text-[var(--text-tertiary)]">{formattedDate}</span>
+            <span className="text-[var(--text-tertiary)]/30 mx-1">&middot;</span>
+            <span className="text-[11px] text-[var(--text-tertiary)]">{qaItems.length} question{qaItems.length !== 1 ? 's' : ''} answered</span>
+          </div>
+        </div>
       </div>
 
+      {/* Q&A pairs */}
       <div className="space-y-3">
         {qaItems.map((item, idx) => (
           <div
             key={idx}
-            className="rounded-lg border border-[var(--border)] overflow-hidden"
+            className="rounded-lg border border-[var(--border-subtle)] overflow-hidden"
           >
             {/* Question */}
-            <div className="flex items-start gap-3 px-4 py-3 bg-[var(--bg-secondary)]">
-              <MessageSquare className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
-              <p className="text-sm font-medium text-[var(--text)]">{item.question}</p>
+            <div className="flex items-start gap-3 px-4 py-3 bg-[var(--bg-hover)]/30">
+              <MessageSquare className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
+              <p className="text-[13px] text-[var(--text-secondary)]">{item.question}</p>
             </div>
 
             {/* Answer */}
-            <div className="px-4 py-3 bg-[var(--bg)]">
-              <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
+            <div className="px-4 py-3">
+              <p className="text-[13px] text-[var(--text)] whitespace-pre-wrap leading-relaxed">
                 {item.answer || <span className="italic text-[var(--text-tertiary)]">No answer provided</span>}
               </p>
             </div>

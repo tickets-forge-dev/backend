@@ -31,6 +31,7 @@ import { ReviewSessionSection } from './ReviewSessionSection';
 import { ReEnrichProgressDialog } from './ReEnrichProgressDialog';
 import { TICKET_STATUS_CONFIG, EXECUTE_STATUSES } from '../../config/ticketStatusConfig';
 import { useTicketsStore } from '@/stores/tickets.store';
+import { useTeamStore } from '@/teams/stores/team.store';
 import { toast } from 'sonner';
 
 interface TicketDetailLayoutProps {
@@ -119,6 +120,11 @@ export function TicketDetailLayout({
   const hasTechSpec = !!ticket.techSpec;
   const { approveTicket, reEnrichTicket } = useTicketsStore();
   const { ticketService } = useServices();
+  const teamMembers = useTeamStore((s) => s.teamMembers);
+  const developerName = ticket.assignedTo
+    ? (teamMembers.find((m) => m.userId === ticket.assignedTo)?.displayName ||
+       teamMembers.find((m) => m.userId === ticket.assignedTo)?.email?.split('@')[0] || null)
+    : null;
   const [isApproving, setIsApproving] = useState(false);
   const [isReEnriching, setIsReEnriching] = useState(false);
   const [cliCopied, setCliCopied] = useState(false);
@@ -401,7 +407,7 @@ export function TicketDetailLayout({
         {hasReviewSession && (
           <CollapsibleSection
             id="review-session"
-            title="Developer Review Q&A"
+            title={developerName ? `${developerName}'s Review` : 'Developer Review'}
             badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
             defaultExpanded={false}
             variant={isWaitingForApproval ? 'attention' : 'default'}
@@ -410,6 +416,7 @@ export function TicketDetailLayout({
             <ReviewSessionSection
               qaItems={ticket.reviewSession!.qaItems}
               submittedAt={ticket.reviewSession!.submittedAt}
+              developerName={developerName}
             />
             {/* Approve & Forge — single action: re-bake with dev context + approve */}
             {isWaitingForApproval && (

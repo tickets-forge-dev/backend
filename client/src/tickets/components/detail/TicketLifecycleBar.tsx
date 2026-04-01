@@ -30,14 +30,14 @@ export function TicketLifecycleBar({ currentStatus }: TicketLifecycleBarProps) {
                 className={`w-2 h-2 rounded-full shrink-0 ${
                   isCurrent ? statusCfg?.dotClass ?? 'bg-[var(--text-secondary)]'
                   : isPast ? 'bg-emerald-500'
-                  : 'bg-[var(--text-tertiary)]/30'
+                  : 'bg-zinc-600'
                 }`}
               />
               <span
                 className={`text-[11px] whitespace-nowrap ${
                   isCurrent ? 'text-[var(--text)] font-medium'
                   : isPast ? 'text-[var(--text-secondary)]'
-                  : 'text-[var(--text-tertiary)]/60'
+                  : 'text-zinc-600'
                 }`}
               >
                 {step.label}
@@ -59,7 +59,7 @@ export function TicketLifecycleBar({ currentStatus }: TicketLifecycleBarProps) {
             {i < LIFECYCLE_STEPS.length - 1 && (
               <div
                 className={`flex-1 h-[1.5px] min-w-[12px] rounded-full ${
-                  isPast ? 'bg-emerald-500/40' : 'bg-[var(--text-tertiary)]/15'
+                  isPast ? 'bg-emerald-500/40' : 'bg-zinc-700'
                 }`}
               />
             )}
