@@ -12,6 +12,7 @@ import { SessionMessage } from './SessionMessage';
 import { SessionToolGroup } from './SessionToolGroup';
 import { SessionSummary } from './SessionSummary';
 import { SessionStatusHeader } from './SessionStatusHeader';
+import { StreamEnrichment } from '../atoms/StreamEnrichment';
 
 interface SessionMonitorViewProps {
   ticketId: string;
@@ -74,6 +75,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
 
 export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, onConnectRepo }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
+  const currentTicket = useTicketsStore(state => state.currentTicket);
 
   const restorationAttempted = useRef(false);
   const [verbose, setVerbose] = useState(false);
@@ -207,7 +209,14 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
 
           const event = group.events[0];
           if (event.type === 'event.message') {
-            return <SessionMessage key={event.id} content={event.content ?? ''} />;
+            return (
+              <div key={event.id}>
+                <SessionMessage content={event.content ?? ''} />
+                {currentTicket && (
+                  <StreamEnrichment messageContent={event.content ?? ''} ticket={currentTicket} />
+                )}
+              </div>
+            );
           }
           if (event.type === 'event.stderr') {
             if (!verbose || !event.content?.trim()) return null;
