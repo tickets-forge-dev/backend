@@ -69,6 +69,26 @@ export interface ChangeMemberRoleRequest {
   role: 'developer' | 'pm' | 'qa';
 }
 
+export interface TeamRepositoryResponse {
+  repositoryFullName: string;
+  role: 'backend' | 'frontend' | 'shared';
+  defaultBranch: string;
+  profileId: string | null;
+  addedBy: string;
+  addedAt: string;
+}
+
+export interface AddTeamRepositoryRequest {
+  repositoryFullName: string;
+  role: 'backend' | 'frontend' | 'shared';
+  defaultBranch: string;
+}
+
+export interface UpdateTeamRepositoryRequest {
+  role?: 'backend' | 'frontend' | 'shared';
+  defaultBranch?: string;
+}
+
 class TeamService {
   private baseUrl: string;
 
@@ -342,6 +362,114 @@ class TeamService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to remove member');
+    }
+  }
+
+  /**
+   * Get team repositories
+   */
+  async getTeamRepositories(teamId: string): Promise<TeamRepositoryResponse[]> {
+    this.validateApiUrl();
+    const token = await this.getAuthToken();
+
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}/repositories`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch team repositories');
+    }
+
+    const data = await response.json();
+    return data.repositories;
+  }
+
+  /**
+   * Add a repository to the team
+   */
+  async addTeamRepository(
+    teamId: string,
+    request: AddTeamRepositoryRequest,
+  ): Promise<TeamRepositoryResponse> {
+    this.validateApiUrl();
+    const token = await this.getAuthToken();
+
+    const response = await this.fetchWithRetry(`${this.baseUrl}/${teamId}/repositories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to add repository');
+    }
+
+    const data = await response.json();
+    return data.repository;
+  }
+
+  /**
+   * Update a team repository
+   */
+  async updateTeamRepository(
+    teamId: string,
+    repoFullName: string,
+    request: UpdateTeamRepositoryRequest,
+  ): Promise<TeamRepositoryResponse> {
+    this.validateApiUrl();
+    const token = await this.getAuthToken();
+
+    const encodedRepo = repoFullName.replace('/', '--');
+    const response = await this.fetchWithRetry(
+      `${this.baseUrl}/${teamId}/repositories/${encodedRepo}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(request),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update repository');
+    }
+
+    const data = await response.json();
+    return data.repository;
+  }
+
+  /**
+   * Remove a repository from the team
+   */
+  async removeTeamRepository(teamId: string, repoFullName: string): Promise<void> {
+    this.validateApiUrl();
+    const token = await this.getAuthToken();
+
+    const encodedRepo = repoFullName.replace('/', '--');
+    const response = await this.fetchWithRetry(
+      `${this.baseUrl}/${teamId}/repositories/${encodedRepo}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to remove repository');
     }
   }
 }

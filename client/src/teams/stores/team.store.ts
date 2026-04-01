@@ -10,6 +10,9 @@ import type {
   TeamMember,
   InviteMemberRequest,
   ChangeMemberRoleRequest,
+  TeamRepositoryResponse,
+  AddTeamRepositoryRequest,
+  UpdateTeamRepositoryRequest,
 } from '../services/team.service';
 
 const STORAGE_KEY = 'forge_currentTeamId';
@@ -32,6 +35,9 @@ interface TeamState {
   lastCurrentTeamFetch: number | null;
   isTeamsLoading: boolean;
   isCurrentTeamLoading: boolean;
+  // Repository management
+  teamRepositories: TeamRepositoryResponse[];
+  isLoadingRepos: boolean;
 }
 
 /**
@@ -55,6 +61,11 @@ interface TeamActions {
   changeMemberRole: (teamId: string, userId: string, request: ChangeMemberRoleRequest) => Promise<void>;
   removeMember: (teamId: string, userId: string) => Promise<void>;
   clearMembersError: () => void;
+  // Repository management actions
+  loadTeamRepositories: (teamId: string) => Promise<void>;
+  addTeamRepository: (teamId: string, repo: AddTeamRepositoryRequest) => Promise<void>;
+  updateTeamRepository: (teamId: string, repoFullName: string, update: UpdateTeamRepositoryRequest) => Promise<void>;
+  removeTeamRepository: (teamId: string, repoFullName: string) => Promise<void>;
 }
 
 /**
@@ -116,6 +127,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
   lastCurrentTeamFetch: null,
   isTeamsLoading: false,
   isCurrentTeamLoading: false,
+  // Repository management state
+  teamRepositories: [],
+  isLoadingRepos: false,
 
   // Computed property for currentTeamId
   get currentTeamId() {
@@ -574,5 +588,72 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    */
   clearMembersError: () => {
     set({ membersError: null });
+  },
+
+  /**
+   * Load team repositories
+   */
+  loadTeamRepositories: async (teamId: string) => {
+    set({ isLoadingRepos: true });
+    try {
+      const { teamService } = useServices();
+      const repositories = await teamService.getTeamRepositories(teamId);
+      set({ teamRepositories: repositories, isLoadingRepos: false });
+    } catch (error) {
+      console.error('[TeamStore] Failed to load team repositories:', error);
+      set({ isLoadingRepos: false });
+    }
+  },
+
+  /**
+   * Add a repository to the team
+   */
+  addTeamRepository: async (teamId: string, repo: AddTeamRepositoryRequest) => {
+    try {
+      const { teamService } = useServices();
+      const newRepo = await teamService.addTeamRepository(teamId, repo);
+      const { teamRepositories } = get();
+      set({ teamRepositories: [...teamRepositories, newRepo] });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Update a team repository
+   */
+  updateTeamRepository: async (
+    teamId: string,
+    repoFullName: string,
+    update: UpdateTeamRepositoryRequest,
+  ) => {
+    try {
+      const { teamService } = useServices();
+      const updatedRepo = await teamService.updateTeamRepository(teamId, repoFullName, update);
+      const { teamRepositories } = get();
+      set({
+        teamRepositories: teamRepositories.map((r) =>
+          r.repositoryFullName === repoFullName ? updatedRepo : r,
+        ),
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Remove a repository from the team
+   */
+  removeTeamRepository: async (teamId: string, repoFullName: string) => {
+    try {
+      const { teamService } = useServices();
+      await teamService.removeTeamRepository(teamId, repoFullName);
+      const { teamRepositories } = get();
+      set({
+        teamRepositories: teamRepositories.filter((r) => r.repositoryFullName !== repoFullName),
+      });
+    } catch (error) {
+      throw error;
+    }
   },
 }));
