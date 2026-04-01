@@ -104,11 +104,54 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
 
       if (abortRef.current) return;
 
-      // Check for package.json
-      if (!files['package.json']) {
-        setError('No package.json found — not a Node.js project');
-        setStatus('error');
-        return;
+      // Detect project root — handle monorepos by finding the web app subdirectory
+      let projectRoot = '';
+      if (files['package.json']) {
+        // Root has package.json — use it
+        projectRoot = '';
+      } else {
+        // Look for common monorepo web app directories
+        const webDirs = ['client', 'frontend', 'web', 'app', 'apps/web', 'packages/web', 'packages/client'];
+        const found = webDirs.find(dir => files[`${dir}/package.json`]);
+        if (found) {
+          projectRoot = found;
+          addLog(`Monorepo detected — using ${found}/ as project root`);
+        } else {
+          // Last resort: find any package.json with a "dev" or "start" script
+          const pkgFiles = Object.keys(files).filter(f => f.endsWith('/package.json') && f.split('/').length === 2);
+          for (const pkgPath of pkgFiles) {
+            try {
+              const pkg = JSON.parse(files[pkgPath]);
+              if (pkg.scripts?.dev || pkg.scripts?.start) {
+                projectRoot = pkgPath.replace('/package.json', '');
+                addLog(`Found web app at ${projectRoot}/`);
+                break;
+              }
+            } catch {}
+          }
+          if (!projectRoot && pkgFiles.length === 0) {
+            setError('No package.json found — not a Node.js project');
+            setStatus('error');
+            return;
+          }
+        }
+      }
+
+      // If using a subdirectory, strip prefix from file paths
+      let mountFiles = files;
+      if (projectRoot) {
+        const prefix = projectRoot + '/';
+        mountFiles = {};
+        for (const [path, content] of Object.entries(files)) {
+          if (path.startsWith(prefix)) {
+            mountFiles[path.slice(prefix.length)] = content;
+          }
+        }
+        if (!mountFiles['package.json']) {
+          setError(`No package.json found in ${projectRoot}/`);
+          setStatus('error');
+          return;
+        }
       }
 
       // 2. Boot WebContainer
@@ -123,8 +166,8 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
       if (abortRef.current) return;
 
       // 3. Mount files
-      addLog('Mounting files...');
-      const mountStructure = buildMountStructure(files);
+      addLog(`Mounting ${Object.keys(mountFiles).length} files...`);
+      const mountStructure = buildMountStructure(mountFiles);
       await container.mount(mountStructure);
 
       if (abortRef.current) return;
@@ -159,7 +202,7 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
       addLog('Starting dev server...');
 
       // Detect start command from package.json
-      const pkg = JSON.parse(files['package.json']);
+      const pkg = JSON.parse(mountFiles['package.json']);
       const startScript = pkg.scripts?.dev ? 'dev' : pkg.scripts?.start ? 'start' : null;
       if (!startScript) {
         setError('No "dev" or "start" script found in package.json');
