@@ -88,15 +88,11 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
         truncated = result.truncated;
       } catch (branchErr: any) {
         if (branchErr?.response?.status === 404 || branchErr?.message?.includes('404') || branchErr?.message?.includes('not found')) {
-          addLog(`Branch "${targetBranch}" not found, falling back to main...`);
-          usedBranch = 'main';
-          setActiveBranch('main');
-          const result = await gitHubService.getRepoContents(owner, repo, 'main');
-          files = result.files;
-          truncated = result.truncated;
-        } else {
-          throw branchErr;
+          setError(`Branch "${targetBranch}" does not exist on GitHub. The code may not have been pushed yet.`);
+          setStatus('error');
+          return;
         }
+        throw branchErr;
       }
 
       const fileCount = Object.keys(files).length;
