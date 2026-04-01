@@ -106,7 +106,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [developBladeOpen, setDevelopBladeOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<{ fullName: string; branch: string } | null>(null);
   const [repoDialogOpen, setRepoDialogOpen] = useState(false);
   const { tags } = useTagsStore();
   const [localTagIds, setLocalTagIds] = useState<string[]>(currentTicket?.tagIds ?? []);
@@ -863,7 +863,10 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setPreviewOpen(true)}
+              onClick={() => setPreviewTarget({
+                fullName: currentTicket.repositoryContext!.repositoryFullName,
+                branch: currentTicket.implementationBranch || currentTicket.repositoryContext!.branchName || 'main',
+              })}
               className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               title="Preview implementation"
             >
@@ -1098,7 +1101,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         isDescriptionDirty={isDescriptionDirty}
         isSavingDescription={isSavingDescription}
         onSaveDescription={handleSaveDescription}
-        onPreview={currentTicket.repositoryContext ? () => setPreviewOpen(true) : undefined}
+        onPreview={currentTicket.repositoryContext ? (repo, branch) => setPreviewTarget({ fullName: repo || currentTicket.repositoryContext!.repositoryFullName, branch: branch || 'main' }) : undefined}
       />
 
       {/* Footer with actions */}
@@ -1712,7 +1715,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               isPrimary: true,
             }] : undefined)}
           onConnectRepo={() => { setDevelopBladeOpen(false); setRepoDialogOpen(true); }}
-          onPreview={(repo, branch) => { setDevelopBladeOpen(false); setPreviewOpen(true); }}
+          onPreview={(repo, branch) => { setDevelopBladeOpen(false); setPreviewTarget({ fullName: repo, branch }); }}
         />,
         document.body
       )}
@@ -1721,24 +1724,14 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       <FlowOnboardingDialog />
 
       {/* WebContainer Preview Panel */}
-      {(() => {
-        const frontendRepo = teamRepositories.find(r => r.role === 'frontend');
-        const previewRepoFullName = frontendRepo?.repositoryFullName
-          || currentTicket?.repositoryContext?.repositoryFullName;
-        const previewBranch = currentTicket?.implementationBranch
-          || frontendRepo?.defaultBranch
-          || currentTicket?.repositoryContext?.branchName
-          || 'main';
-
-        return previewRepoFullName && previewOpen ? (
-          <PreviewPanel
-            open={previewOpen}
-            onClose={() => setPreviewOpen(false)}
-            repoFullName={previewRepoFullName}
-            branch={previewBranch}
-          />
-        ) : null;
-      })()}
+      {previewTarget && (
+        <PreviewPanel
+          open={!!previewTarget}
+          onClose={() => setPreviewTarget(null)}
+          repoFullName={previewTarget.fullName}
+          branch={previewTarget.branch}
+        />
+      )}
     </div>
   );
 }
