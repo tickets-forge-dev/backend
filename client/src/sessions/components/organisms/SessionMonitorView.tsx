@@ -56,11 +56,14 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
 export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
 
+  const restorationAttempted = useRef(false);
+
   useEffect(() => {
     fetchQuota();
     // Restore session from sessionStorage if the store is empty but ticket is executing/delivered
     if (status === 'idle' && (ticketStatus === 'executing' || ticketStatus === 'delivered')) {
       restoreSessionState(ticketId);
+      restorationAttempted.current = true;
     }
   }, [fetchQuota, ticketId, ticketStatus]);
 
@@ -84,8 +87,9 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
     }
   }, [events.length]);
 
-  // If store is idle but ticket is executing/delivered, show a resumed state
-  if (status === 'idle' && (ticketStatus === 'executing' || ticketStatus === 'delivered')) {
+  // If store is idle but ticket is executing/delivered AND we have restored events, show resumed state
+  // If restoration was attempted but found nothing, fall through to DevelopButton
+  if (status === 'idle' && (ticketStatus === 'executing' || ticketStatus === 'delivered') && events.length > 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-6">
         <div className="w-full max-w-sm space-y-5 text-center">
