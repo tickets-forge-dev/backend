@@ -54,6 +54,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
     prevStage,
     activeJobId,
     cancelAnalysis,
+    analyzeRepository,
   } = useWizardStore();
 
   // Subscribe to job progress when an active job is running
@@ -256,7 +257,19 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       );
     }
 
-    // Options and Generate steps handle their own navigation
+    // Options step — Back + Next (triggers repository analysis)
+    if (currentStage === 'options') {
+      return (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={prevStage} disabled={loading}>Back</Button>
+          <Button onClick={analyzeRepository} disabled={loading} size="sm" className="min-w-[96px]">
+            {loading ? 'Analyzing...' : 'Next'}
+          </Button>
+        </div>
+      );
+    }
+
+    // Generate step handles its own navigation
     return null;
   };
 

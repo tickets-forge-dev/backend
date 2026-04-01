@@ -122,18 +122,6 @@ export function GenerationOptionsStep() {
   // ── Hi-res wireframe preview ──
   const [showWireframePreview, setShowWireframePreview] = useState(false);
 
-  // ── Continue ──
-
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  useEffect(() => {
-    if (!loading) { setElapsedSeconds(0); return; }
-    const interval = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
-    return () => clearInterval(interval);
-  }, [loading]);
-
-  const handleContinue = useCallback(() => {
-    analyzeRepository();
-  }, [analyzeRepository]);
 
   return (
     <div className="space-y-6">
@@ -367,20 +355,6 @@ export function GenerationOptionsStep() {
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="flex items-center justify-between pt-2">
-        <Button variant="ghost" size="sm" onClick={prevStage} disabled={loading}>
-          ← Back
-        </Button>
-        <Button onClick={handleContinue} disabled={loading} size="sm" className="min-w-[96px]">
-          {loading ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              Analyzing... <span className="text-[var(--text-tertiary)] ml-0.5">({elapsedSeconds}s)</span>
-            </>
-          ) : 'Continue'}
-        </Button>
-      </div>
 
       {/* Hi-res wireframe example preview */}
       {showWireframePreview && (
