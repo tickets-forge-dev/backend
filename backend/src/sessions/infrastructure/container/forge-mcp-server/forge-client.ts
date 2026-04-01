@@ -33,9 +33,25 @@ export async function getTicketContext(): Promise<unknown> {
 }
 
 export async function getRepositoryContext(): Promise<unknown> {
-  // The ticket response includes project profile info
-  const ticket = await forgeRequest('GET', `/tickets/${TICKET_ID}`);
-  return ticket;
+  // Fetch ticket to get repo info, then fetch the project profile
+  const ticket = (await forgeRequest('GET', `/tickets/${TICKET_ID}`)) as Record<string, any>;
+  const repoFullName = ticket?.repositoryContext?.repositoryFullName;
+
+  if (!repoFullName) {
+    return { message: 'No repository connected to this ticket. Explore the codebase directly.' };
+  }
+
+  try {
+    const profile = await forgeRequest('GET', `/project-profiles?repo=${encodeURIComponent(repoFullName)}`);
+    return profile;
+  } catch {
+    // Profile may not exist — return basic repo info
+    return {
+      repository: repoFullName,
+      branch: ticket?.repositoryContext?.branchName || 'main',
+      message: 'No codebase profile available. Explore the repository structure directly.',
+    };
+  }
 }
 
 export async function startImplementation(branchName: string): Promise<void> {
