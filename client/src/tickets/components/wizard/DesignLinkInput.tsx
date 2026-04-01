@@ -86,7 +86,7 @@ export function DesignLinkInput({
           onChange={(e) => { setUrl(e.target.value); setError(null); }}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
           disabled={disabled || links.length >= maxLinks}
-          className="flex-1 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] disabled:opacity-40"
+          className="flex-1 h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-hover)]/40 px-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)] disabled:opacity-40"
         />
         <button
           type="button"
@@ -106,7 +106,7 @@ export function DesignLinkInput({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
-          className="w-full h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
+          className="w-full h-8 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-hover)]/40 px-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--blue)]"
         />
       )}
 

@@ -106,7 +106,7 @@ export function TeamSettings() {
   // Loading state
   if (isLoading && !currentTeam) {
     return (
-      <div className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+      <div className="text-[12px] text-[var(--text-tertiary)]">
         Loading project settings...
       </div>
     );
@@ -115,7 +115,7 @@ export function TeamSettings() {
   // Error state
   if (error && !currentTeam) {
     return (
-      <div className="flex items-center gap-2 text-[var(--text-sm)] text-red-500">
+      <div className="flex items-center gap-2 text-[12px] text-red-500">
         <AlertCircle className="h-4 w-4" />
         {error}
       </div>
@@ -125,7 +125,7 @@ export function TeamSettings() {
   // No team state
   if (!currentTeam) {
     return (
-      <div className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+      <div className="text-[12px] text-[var(--text-tertiary)]">
         No project selected. Please select a project from the sidebar.
       </div>
     );
@@ -142,14 +142,14 @@ export function TeamSettings() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-[var(--text-md)] font-medium text-[var(--text)]">
+            <h3 className="text-[14px] font-medium text-[var(--text)]">
               {currentTeam.name}
             </h3>
             <Badge variant={isOwner ? 'default' : 'secondary'} className="text-[10px]">
               {isOwner ? 'Owner' : 'Member'}
             </Badge>
           </div>
-          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          <p className="text-[12px] text-[var(--text-tertiary)]">
             /{currentTeam.slug}
           </p>
         </div>
@@ -162,7 +162,7 @@ export function TeamSettings() {
 
       {/* Edit Form (Owner only) */}
       {isOwner && isEditing && (
-        <div className="space-y-4 rounded-lg border border-[var(--border)] p-4 bg-[var(--bg)]">
+        <div className="space-y-4 rounded-lg border border-[var(--border-subtle)] p-4 bg-[var(--bg-hover)]/30">
           {/* Team Name */}
           <div className="space-y-2">
             <Label htmlFor="team-name">Project Name</Label>
@@ -174,7 +174,7 @@ export function TeamSettings() {
               minLength={3}
               maxLength={50}
             />
-            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+            <p className="text-[11px] text-[var(--text-tertiary)]">
               3-50 characters. Slug will be auto-generated.
             </p>
           </div>
@@ -183,7 +183,7 @@ export function TeamSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="allow-invites">Allow Member Invites</Label>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+              <p className="text-[11px] text-[var(--text-tertiary)]">
                 Let project members invite others
               </p>
             </div>
@@ -198,7 +198,7 @@ export function TeamSettings() {
 
           {/* Error Message */}
           {saveError && (
-            <div className="flex items-center gap-2 text-[var(--text-sm)] text-red-500">
+            <div className="flex items-center gap-2 text-[12px] text-red-500">
               <AlertCircle className="h-4 w-4" />
               {saveError}
             </div>
@@ -223,8 +223,8 @@ export function TeamSettings() {
 
       {/* Read-only view (Member) */}
       {!isOwner && (
-        <div className="rounded-lg border border-[var(--border)] p-4 bg-[var(--bg-subtle)]">
-          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+        <div className="rounded-lg border border-[var(--border-subtle)] p-4 bg-[var(--bg-hover)]/30">
+          <p className="text-[12px] text-[var(--text-tertiary)]">
             Only project owners can edit project settings.
           </p>
         </div>
@@ -234,10 +234,10 @@ export function TeamSettings() {
       {isOwner && (
         <div className="space-y-4 rounded-lg border border-red-200 dark:border-red-900/30 p-4 bg-red-50 dark:bg-red-950/20">
           <div>
-            <h3 className="text-[var(--text-sm)] font-medium text-red-600 dark:text-red-400">
+            <h3 className="text-[12px] font-medium text-red-600 dark:text-red-400">
               Danger Zone
             </h3>
-            <p className="mt-1 text-[var(--text-xs)] text-red-600/70 dark:text-red-400/70">
+            <p className="mt-1 text-[11px] text-red-600/70 dark:text-red-400/70">
               Irreversible actions that affect your entire project
             </p>
           </div>

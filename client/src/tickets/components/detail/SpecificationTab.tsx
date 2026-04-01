@@ -46,7 +46,7 @@ export function SpecificationTab({
   const isBugTicket = ticket.type === 'bug';
 
   return (
-    <div className="space-y-8">
+    <div className="divide-y divide-[var(--border-subtle)] [&>*]:py-3 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
       {/* 1. Reproduction Steps — FIRST for bug tickets */}
       {isBugTicket && techSpec?.bugDetails && (
         <div id="spec-reproduction-steps">
@@ -102,7 +102,7 @@ export function SpecificationTab({
             id="acceptance-criteria"
             title="Acceptance Criteria"
             badge={`${techSpec.acceptanceCriteria.length}`}
-            defaultExpanded={true}
+            defaultExpanded={false}
           >
             <ul className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)]">
               {techSpec.acceptanceCriteria.map((ac: any, idx: number) => (
@@ -170,7 +170,7 @@ export function SpecificationTab({
       {/* 6. Solution */}
       {techSpec?.solution && (
         <div id="spec-solution">
-          <CollapsibleSection id="solution" title="Solution" defaultExpanded={true}>
+          <CollapsibleSection id="solution" title="Solution" defaultExpanded={false}>
             <div className="space-y-3">
               {typeof techSpec.solution === 'string' ? (
                 <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
@@ -226,7 +226,7 @@ export function SpecificationTab({
             id="assets"
             title="Assets"
             badge={ticket.attachments?.length ? `${ticket.attachments.length} files` : undefined}
-            defaultExpanded={true}
+            defaultExpanded={false}
           >
             <AssetsSection
               ticketId={ticketId}

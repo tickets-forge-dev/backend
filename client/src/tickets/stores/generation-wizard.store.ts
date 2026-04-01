@@ -222,6 +222,13 @@ export interface WizardState {
     repoName: string;
     description?: string;
     branch?: string;
+    // Primary repository role label (when multi-repo)
+    primaryRole?: string; // "backend" | "frontend" | "shared"
+    // Secondary repository (max 2 total)
+    secondaryRepoOwner?: string;
+    secondaryRepoName?: string;
+    secondaryBranch?: string;
+    secondaryRole?: string; // "backend" | "frontend" | "shared"
   };
   type: string;
   priority: string;
@@ -314,6 +321,11 @@ export interface WizardActions {
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
   setRepository: (owner: string, name: string) => void;
+  setSecondaryRepository: (owner: string, name: string) => void;
+  removeSecondaryRepository: () => void;
+  setSecondaryBranch: (branch: string) => void;
+  setSecondaryRole: (role: string) => void;
+  setPrimaryRole: (role: string) => void;
   setType: (type: string) => void;
   setPriority: (priority: string) => void;
   setIncludeRepository: (include: boolean) => void; // AC#3: Toggle repository inclusion
@@ -519,6 +531,38 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
   setRepository: (owner: string, name: string) =>
     set((state) => ({
       input: { ...state.input, repoOwner: owner, repoName: name },
+    })),
+
+  setSecondaryRepository: (owner: string, name: string) =>
+    set((state) => ({
+      input: { ...state.input, secondaryRepoOwner: owner, secondaryRepoName: name },
+    })),
+
+  removeSecondaryRepository: () =>
+    set((state) => ({
+      input: {
+        ...state.input,
+        secondaryRepoOwner: undefined,
+        secondaryRepoName: undefined,
+        secondaryBranch: undefined,
+        secondaryRole: undefined,
+        primaryRole: undefined,
+      },
+    })),
+
+  setSecondaryBranch: (branch: string) =>
+    set((state) => ({
+      input: { ...state.input, secondaryBranch: branch },
+    })),
+
+  setSecondaryRole: (role: string) =>
+    set((state) => ({
+      input: { ...state.input, secondaryRole: role },
+    })),
+
+  setPrimaryRole: (role: string) =>
+    set((state) => ({
+      input: { ...state.input, primaryRole: role },
     })),
 
   setType: (type: string) => set({
@@ -1027,8 +1071,26 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       // Only include repository fields if we have a repository
       if (state.hasRepository && repoOwner && repoName) {
+        const branch = state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
+        requestBody.repositories = [{
+          repositoryFullName: `${repoOwner}/${repoName}`,
+          branchName: branch,
+          isPrimary: true,
+          role: state.input.primaryRole || undefined,
+        }];
+        // Keep backward compat
         requestBody.repositoryFullName = `${repoOwner}/${repoName}`;
-        requestBody.branchName = state.input.branch || ticketsState.selectedBranch || ticketsState.defaultBranch || 'main';
+        requestBody.branchName = branch;
+
+        // Secondary repo
+        if (state.input.secondaryRepoOwner && state.input.secondaryRepoName) {
+          requestBody.repositories.push({
+            repositoryFullName: `${state.input.secondaryRepoOwner}/${state.input.secondaryRepoName}`,
+            branchName: state.input.secondaryBranch || 'main',
+            isPrimary: false,
+            role: state.input.secondaryRole || undefined,
+          });
+        }
       }
 
       // Create draft AEC with adaptive maxRounds + taskAnalysis from deep analysis
@@ -1608,6 +1670,11 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         repoName: '',
         description: undefined,
         branch: undefined,
+        primaryRole: undefined,
+        secondaryRepoOwner: undefined,
+        secondaryRepoName: undefined,
+        secondaryBranch: undefined,
+        secondaryRole: undefined,
       },
       type: 'feature',
       priority: 'low',

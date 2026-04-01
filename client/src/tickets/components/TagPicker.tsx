@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Lock, Globe, Check, Search } from 'lucide-react';
+import { Lock, Globe, Check, Search, X } from 'lucide-react';
 import { useTagsStore } from '@/stores/tags.store';
 import { useTeamStore } from '@/teams/stores/team.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { TAG_COLORS, getTagColor } from '@/tickets/config/tagColors';
 
 interface TagPickerProps {
@@ -13,8 +14,9 @@ interface TagPickerProps {
 }
 
 export function TagPicker({ ticketId, currentTagIds, onTagsChange }: TagPickerProps) {
-  const { tags, createTag } = useTagsStore();
+  const { tags, createTag, deleteTag } = useTagsStore();
   const { currentTeam } = useTeamStore();
+  const { user } = useAuthStore();
   const [search, setSearch] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [newTagColor, setNewTagColor] = useState<string>('blue');
@@ -46,6 +48,17 @@ export function TagPicker({ ticketId, currentTagIds, onTagsChange }: TagPickerPr
       : [...selectedIds, tagId];
     setSelectedIds(next);
     onTagsChange(next);
+  };
+
+  const handleDeleteTag = async (e: React.MouseEvent, tagId: string) => {
+    e.stopPropagation();
+    if (!currentTeam?.id) return;
+    const removed = await deleteTag(currentTeam.id, tagId);
+    if (removed && selectedIds.includes(tagId)) {
+      const next = selectedIds.filter(id => id !== tagId);
+      setSelectedIds(next);
+      onTagsChange(next);
+    }
   };
 
   const handleCreate = async () => {
@@ -91,19 +104,33 @@ export function TagPicker({ ticketId, currentTagIds, onTagsChange }: TagPickerPr
         {filteredTags.map(tag => {
           const color = getTagColor(tag.color);
           const isSelected = selectedIds.includes(tag.id);
+          const canDelete = tag.createdBy === user?.uid;
           return (
-            <button
+            <div
               key={tag.id}
-              onClick={() => handleToggleTag(tag.id)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+              className="group flex items-center gap-1 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
             >
-              <span className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${color.dot}`} />
-              <span className="flex-1 text-left truncate">{tag.name}</span>
-              {tag.scope === 'private' && <Lock className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />}
-              <span className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
-                {isSelected && <Check className="h-3 w-3 text-white" />}
-              </span>
-            </button>
+              <button
+                onClick={() => handleToggleTag(tag.id)}
+                className="flex-1 min-w-0 flex items-center gap-2 px-2 py-1.5 text-xs text-[var(--text-secondary)]"
+              >
+                <span className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${color.dot}`} />
+                <span className="flex-1 text-left truncate">{tag.name}</span>
+                {tag.scope === 'private' && <Lock className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />}
+                <span className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
+                  {isSelected && <Check className="h-3 w-3 text-white" />}
+                </span>
+              </button>
+              {canDelete && (
+                <button
+                  onClick={(e) => handleDeleteTag(e, tag.id)}
+                  className="hidden group-hover:flex items-center justify-center h-5 w-5 mr-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10 transition-colors flex-shrink-0"
+                  title="Delete tag"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

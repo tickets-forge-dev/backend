@@ -1,7 +1,6 @@
 import { AEC } from '../../../domain/aec/AEC';
 import { AECStatus, TicketType, TicketPriority } from '../../../domain/value-objects/AECStatus';
 import { ChangeRecordStatus } from '../../../domain/value-objects/ChangeRecord';
-import { RepositoryContext } from '../../../domain/value-objects/RepositoryContext';
 import { ValidationResult, ValidatorType } from '../../../domain/value-objects/ValidationResult';
 import { Attachment } from '../../../domain/value-objects/Attachment';
 import { DesignReference } from '../../../domain/value-objects/DesignReference';
@@ -15,6 +14,98 @@ function toDate(value: any): Date {
   if (typeof value.toDate === 'function') return value.toDate();
   if (typeof value._seconds === 'number') return new Date(value._seconds * 1000);
   return new Date(value);
+}
+
+/**
+ * Deserialize repository entries from a Firestore document.
+ * Handles lazy migration: old single-repo docs get wrapped into an array.
+ *
+ * - If `repositories` (new format) exists → use directly, converting timestamps
+ * - Else if `repositoryContext` (old format) exists → wrap as single-entry array with isPrimary: true
+ * - Else → empty array
+ */
+export function repositoryEntriesFromFirestore(doc: {
+  repositoryContext?: RepositoryContextDocument | null;
+  repositories?: RepositoryEntryDocument[];
+}): Array<{
+  repositoryFullName: string;
+  branchName: string;
+  commitSha: string;
+  isDefaultBranch: boolean;
+  isPrimary: boolean;
+  role?: string;
+  selectedAt: Date;
+}> {
+  if (Array.isArray(doc.repositories) && doc.repositories.length > 0) {
+    return doc.repositories.map((entry) => ({
+      repositoryFullName: entry.repositoryFullName,
+      branchName: entry.branchName,
+      commitSha: entry.commitSha,
+      isDefaultBranch: entry.isDefaultBranch,
+      isPrimary: entry.isPrimary ?? false,
+      role: entry.role,
+      selectedAt: toDate(entry.selectedAt),
+    }));
+  }
+
+  if (doc.repositoryContext) {
+    return [
+      {
+        repositoryFullName: doc.repositoryContext.repositoryFullName,
+        branchName: doc.repositoryContext.branchName,
+        commitSha: doc.repositoryContext.commitSha,
+        isDefaultBranch: doc.repositoryContext.isDefaultBranch,
+        isPrimary: true,
+        selectedAt: toDate(doc.repositoryContext.selectedAt),
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * Serialize repository entries to Firestore format.
+ * Returns both `repositories` (new) and `repositoryContext` (backward compat).
+ *
+ * - `repositories` is always the full array with Firestore Timestamps
+ * - `repositoryContext` is set to the primary entry (or first, or null) for old-code compat
+ */
+export function repositoryEntriesToFirestore(entries: Array<{
+  repositoryFullName: string;
+  branchName: string;
+  commitSha: string;
+  isDefaultBranch: boolean;
+  isPrimary: boolean;
+  role?: string;
+  selectedAt: Date;
+}>): {
+  repositories: RepositoryEntryDocument[];
+  repositoryContext: RepositoryContextDocument | null;
+} {
+  const repositories: RepositoryEntryDocument[] = entries.map((entry) => ({
+    repositoryFullName: entry.repositoryFullName,
+    branchName: entry.branchName,
+    commitSha: entry.commitSha,
+    isDefaultBranch: entry.isDefaultBranch,
+    isPrimary: entry.isPrimary,
+    ...(entry.role ? { role: entry.role } : {}),
+    selectedAt: Timestamp.fromDate(entry.selectedAt),
+  }));
+
+  // Backward compat: write the primary entry as repositoryContext
+  const primary = entries.find((e) => e.isPrimary) ?? entries[0] ?? null;
+  const repositoryContext: RepositoryContextDocument | null = primary
+    ? {
+        repositoryFullName: primary.repositoryFullName,
+        branchName: primary.branchName,
+        commitSha: primary.commitSha,
+        isDefaultBranch: primary.isDefaultBranch,
+        selectedAt: Timestamp.fromDate(primary.selectedAt),
+      }
+    : null;
+
+  return { repositories, repositoryContext };
 }
 
 export interface ValidationResultDocument {
@@ -32,6 +123,16 @@ export interface RepositoryContextDocument {
   branchName: string;
   commitSha: string;
   isDefaultBranch: boolean;
+  selectedAt: Timestamp;
+}
+
+export interface RepositoryEntryDocument {
+  repositoryFullName: string;
+  branchName: string;
+  commitSha: string;
+  isDefaultBranch: boolean;
+  isPrimary: boolean;
+  role?: string;
   selectedAt: Timestamp;
 }
 
@@ -68,6 +169,7 @@ export interface AECDocument {
   driftDetectedAt?: Timestamp | null;
   driftReason?: string | null;
   repositoryContext: RepositoryContextDocument | null;
+  repositories?: RepositoryEntryDocument[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
   // Simplified question refinement workflow
@@ -120,16 +222,8 @@ export interface AECDocument {
 
 export class AECMapper {
   static toDomain(doc: AECDocument): AEC {
-    // Reconstitute repository context if present
-    const repositoryContext = doc.repositoryContext
-      ? RepositoryContext.create({
-          repositoryFullName: doc.repositoryContext.repositoryFullName,
-          branchName: doc.repositoryContext.branchName,
-          commitSha: doc.repositoryContext.commitSha,
-          isDefaultBranch: doc.repositoryContext.isDefaultBranch,
-          selectedAt: toDate(doc.repositoryContext.selectedAt),
-        })
-      : null;
+    // Reconstitute repositories (lazy migration: old single → new array)
+    const repositories = repositoryEntriesFromFirestore(doc);
 
     // Reconstitute validation results with comprehensive safety checks
     const validationResults = (doc.validationResults || [])
@@ -220,7 +314,7 @@ export class AECMapper {
       doc.externalIssue,
       doc.driftDetectedAt ? toDate(doc.driftDetectedAt) : null,
       doc.driftReason ?? null,
-      repositoryContext,
+      repositories,
       toDate(doc.createdAt),
       toDate(doc.updatedAt),
       doc.clarificationQuestions ?? [],
@@ -286,16 +380,8 @@ export class AECMapper {
   }
 
   static toFirestore(aec: AEC): AECDocument {
-    // Map repository context if present
-    const repositoryContext: RepositoryContextDocument | null = aec.repositoryContext
-      ? {
-          repositoryFullName: aec.repositoryContext.repositoryFullName,
-          branchName: aec.repositoryContext.branchName,
-          commitSha: aec.repositoryContext.commitSha,
-          isDefaultBranch: aec.repositoryContext.isDefaultBranch,
-          selectedAt: Timestamp.fromDate(aec.repositoryContext.selectedAt),
-        }
-      : null;
+    // Map repositories (writes both new array + backward-compat single field)
+    const { repositories, repositoryContext } = repositoryEntriesToFirestore(aec.repositories);
 
     return {
       id: aec.id,
@@ -319,6 +405,7 @@ export class AECMapper {
       externalIssue: aec.externalIssue,
       driftDetectedAt: aec.driftDetectedAt ? Timestamp.fromDate(aec.driftDetectedAt) : null,
       driftReason: aec.driftReason,
+      repositories,
       repositoryContext,
       createdAt: Timestamp.fromDate(aec.createdAt),
       updatedAt: Timestamp.fromDate(aec.updatedAt),

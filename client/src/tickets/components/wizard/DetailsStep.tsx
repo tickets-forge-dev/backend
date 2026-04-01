@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
+import { validateTitle } from '@/tickets/utils/validateTitle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
 import { Lightbulb, Bug, ClipboardList, Folder, PenLine, FileUp, Mic, MicOff } from 'lucide-react';
 import { useFoldersStore } from '@/stores/folders.store';
@@ -377,30 +378,24 @@ export function DetailsStep() {
           value={input.title}
           onChange={setTitle}
           placeholder="e.g. As a user, I want to reset my password so that I can regain access to my account if I forget it."
-          maxLength={2000}
+          maxLength={5000}
           rows={8}
           autoFocus={true}
           externalEditorButton
           fullscreenOpen={editorOpen}
           onFullscreenClose={handleEditorClose}
         />
-        {input.title.length > 0 && input.title.trim().split(/\s+/).filter(Boolean).length < 2 && (
-          <span
-            role="alert"
-            className="text-xs text-[var(--text-tertiary)]"
-          >
-            Description must be at least 2 words
-          </span>
-        )}
-        {input.title.length > 2000 && (
-          <span
-            id="title-error"
-            role="alert"
-            className="text-xs text-red-600 dark:text-red-400"
-          >
-            Description must be 2000 characters or less
-          </span>
-        )}
+        {input.title.length > 0 && (() => {
+          const result = validateTitle(input.title);
+          return !result.valid ? (
+            <span
+              role="alert"
+              className="text-xs text-amber-500"
+            >
+              {result.reason}
+            </span>
+          ) : null;
+        })()}
       </div>
     </div>
   );

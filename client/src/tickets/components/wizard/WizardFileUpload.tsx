@@ -68,7 +68,7 @@ export function WizardFileUpload({ files, onAdd, onRemove }: WizardFileUploadPro
           rounded-md p-4 text-center transition-all cursor-pointer border border-dashed
           ${dragOver
             ? 'border-purple-500 bg-purple-500/5'
-            : 'border-[var(--border-subtle)] hover:border-[var(--border)] bg-[var(--bg)]'
+            : 'border-[var(--border-subtle)] hover:border-[var(--border)] bg-[var(--bg-hover)]/40'
           }
           ${files.length >= MAX_FILES ? 'opacity-40 cursor-not-allowed' : ''}
         `}

@@ -67,7 +67,7 @@ function makeAEC(overrides: { status?: AECStatus; approvedAt?: Date | null } = {
 describe('AEC — approvedAt timestamp', () => {
   describe('createDraft', () => {
     it('initializes approvedAt as null', () => {
-      const aec = AEC.createDraft('team_t1', 'user_creator', 'New ticket');
+      const aec = AEC.createDraft('team_t1', 'user_creator', 'Add password reset feature');
       expect(aec.approvedAt).toBeNull();
     });
   });

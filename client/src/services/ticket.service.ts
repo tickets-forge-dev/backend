@@ -103,6 +103,13 @@ export interface AECResponse {
     isDefaultBranch: boolean;
     selectedAt: string;
   } | null;
+  // Multi-repo support
+  repositories?: Array<{
+    repositoryFullName: string;
+    branchName?: string;
+    isPrimary: boolean;
+    role?: string;
+  }>;
   // Story 6-12: Review session submitted by CLI reviewer agent
   reviewSession?: {
     qaItems: Array<{ question: string; answer: string }>;
@@ -131,6 +138,7 @@ export class TicketService {
 
   constructor() {
     this.client = createApiClient();
+    this.client.defaults.timeout = 120000; // LLM operations (wireframes, enrichment) need time
 
     // Add team context header
     this.client.interceptors.request.use(async (config) => {
@@ -337,6 +345,15 @@ export class TicketService {
 
   async updateTicketTags(ticketId: string, tagIds: string[]): Promise<void> {
     await this.client.patch(`/tickets/${ticketId}/tags`, { tagIds });
+  }
+
+  async updateTicketRepository(
+    ticketId: string,
+    repositoryFullName: string,
+    branchName: string,
+  ): Promise<{ success: boolean }> {
+    const response = await this.client.patch(`/tickets/${ticketId}/repository`, { repositoryFullName, branchName });
+    return response.data;
   }
 
   // Excalidraw wireframe refinement via AI

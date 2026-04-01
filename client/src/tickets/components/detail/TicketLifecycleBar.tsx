@@ -1,0 +1,71 @@
+'use client';
+
+import { useState } from 'react';
+import { LIFECYCLE_STEPS, TICKET_STATUS_CONFIG } from '../../config/ticketStatusConfig';
+
+interface TicketLifecycleBarProps {
+  currentStatus: string;
+}
+
+export function TicketLifecycleBar({ currentStatus }: TicketLifecycleBarProps) {
+  const currentIdx = LIFECYCLE_STEPS.findIndex(s => s.key === currentStatus);
+  const [hoveredStep, setHoveredStep] = useState<string | null>(null);
+
+  return (
+    <div className="flex items-center gap-2 w-full relative">
+      {LIFECYCLE_STEPS.map((step, i) => {
+        const isPast = currentIdx >= 0 && i < currentIdx;
+        const isCurrent = step.key === currentStatus;
+        const statusCfg = TICKET_STATUS_CONFIG[step.key];
+
+        return (
+          <div key={step.key} className="flex items-center gap-2 flex-1 min-w-0">
+            {/* Step */}
+            <div
+              className="relative flex items-center gap-1.5 min-w-0 cursor-default"
+              onMouseEnter={() => setHoveredStep(step.key)}
+              onMouseLeave={() => setHoveredStep(null)}
+            >
+              <div
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  isCurrent ? statusCfg?.dotClass ?? 'bg-[var(--text-secondary)]'
+                  : isPast ? 'bg-emerald-500/50'
+                  : 'bg-[var(--border)]'
+                }`}
+              />
+              <span
+                className={`text-[10px] truncate ${
+                  isCurrent ? 'text-[var(--text-secondary)] font-medium'
+                  : isPast ? 'text-[var(--text-tertiary)]'
+                  : 'text-[var(--text-tertiary)]/50'
+                }`}
+              >
+                {step.label}
+              </span>
+
+              {/* Tooltip */}
+              {hoveredStep === step.key && (
+                <div className="absolute left-0 top-full mt-2 z-50 px-2.5 py-1.5 rounded-md bg-[var(--bg)] border border-[var(--border-subtle)] shadow-md whitespace-nowrap animate-fade-in">
+                  <p className="text-[11px] font-medium text-[var(--text)]">{step.label}</p>
+                  <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{step.description}</p>
+                  {step.note && (
+                    <p className="text-[9px] text-[var(--text-tertiary)]/60 mt-0.5 italic">{step.note}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Connector line */}
+            {i < LIFECYCLE_STEPS.length - 1 && (
+              <div
+                className={`flex-1 h-px min-w-[8px] ${
+                  isPast ? 'bg-emerald-500/30' : 'bg-[var(--border-subtle)]'
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

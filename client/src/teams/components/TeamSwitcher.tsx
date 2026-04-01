@@ -93,40 +93,33 @@ export function TeamSwitcher() {
           Project
         </span>
       )}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center">
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               disabled={isSwitching}
               className={cn(
-                'flex-1 min-w-0 gap-2 py-1 h-auto',
-                sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-2'
+                'flex-1 min-w-0 gap-1 py-1 h-auto',
+                sidebarCollapsed ? 'justify-center px-0' : 'justify-start px-2'
               )}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                {isSwitching && sidebarCollapsed ? (
-                  <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
-                ) : (
-                  <Users className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
-                )}
-                {!sidebarCollapsed && (
-                  <span className="text-[13px] text-[var(--text-tertiary)] truncate">
+              {isSwitching && sidebarCollapsed ? (
+                <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
+              ) : sidebarCollapsed ? (
+                <Users className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
+              ) : null}
+              {!sidebarCollapsed && (
+                <>
+                  <span className="text-[13px] text-[var(--text-secondary)] truncate">
                     {currentTeamName}
                   </span>
-                )}
-              </div>
-              {!sidebarCollapsed && (
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-[10px] text-[var(--text-tertiary)]">
-                    {currentTeam ? (isOwner ? 'Owner' : 'Member') : 'Private'}
-                  </span>
                   {isSwitching ? (
-                    <Loader2 className="h-3 w-3 text-[var(--text-tertiary)] animate-spin" />
+                    <Loader2 className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
                   ) : (
-                    <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" />
+                    <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
                   )}
-                </div>
+                </>
               )}
             </Button>
           </DropdownMenuTrigger>
@@ -148,7 +141,7 @@ export function TeamSwitcher() {
           >
             <div className="flex items-center gap-2 min-w-0">
               {!teams.some((t) => t.isCurrent) && <Check className="h-4 w-4 text-[var(--primary)]" />}
-              <span className="text-[var(--text-sm)] truncate">Personal Workspace</span>
+              <span className="text-[13px] text-[var(--text-secondary)] truncate">Personal Workspace</span>
             </div>
             <Badge
               variant="outline"
@@ -172,11 +165,11 @@ export function TeamSwitcher() {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {team.isCurrent && <Check className="h-4 w-4 text-[var(--primary)]" />}
-                  <span className="text-[var(--text-sm)] truncate">{team.name}</span>
+                  <span className="text-[13px] text-[var(--text-secondary)] truncate">{team.name}</span>
                 </div>
                 <Badge
                   variant="outline"
-                  className="text-[10px] px-1.5 py-0 flex-shrink-0 text-[var(--text-secondary)]"
+                  className="text-[10px] px-1.5 py-0 flex-shrink-0"
                 >
                   {team.isOwner ? 'Owner' : 'Member'}
                 </Badge>
@@ -192,7 +185,7 @@ export function TeamSwitcher() {
                 className="cursor-pointer"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                <span className="text-[var(--text-sm)]">Create Project</span>
+                <span className="text-[13px] text-[var(--text-secondary)]">Create Project</span>
               </DropdownMenuItem>
             }
             onSuccess={() => {
@@ -207,7 +200,7 @@ export function TeamSwitcher() {
           href={`/teams/${currentTeam.id}`}
           title="Project settings"
           className={cn(
-            'flex items-center justify-center rounded-md p-1.5 flex-shrink-0 transition-colors',
+            'flex items-center justify-center rounded-md p-1 flex-shrink-0 transition-colors',
             'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
           )}
         >

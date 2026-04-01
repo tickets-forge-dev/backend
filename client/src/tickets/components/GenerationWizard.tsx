@@ -8,6 +8,7 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { DetailsStep } from './wizard/DetailsStep';
 import { CodebaseStep } from './wizard/CodebaseStep';
 import { ReferencesStep } from './wizard/ReferencesStep';
+import { validateTitle } from '@/tickets/utils/validateTitle';
 import { Stage2ReproSteps } from './wizard/Stage2ReproSteps';
 import { GenerationOptionsStep } from './wizard/GenerationOptionsStep';
 import { Stage3Draft } from './wizard/Stage3Draft';
@@ -62,8 +63,23 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
 
+  // On mount: reset if forceNew is true (e.g., mode=new URL param)
+  // IMPORTANT: This must run before the activeJob redirect effect to prevent
+  // stale draftAecId from triggering a redirect to the previous ticket.
+  useEffect(() => {
+    if (forceNew) {
+      reset();
+      // Pre-fill description from query param (e.g., from quick draft)
+      const desc = searchParams.get('description');
+      if (desc) {
+        setTitle(desc);
+      }
+    }
+  }, [forceNew, reset, searchParams, setTitle]);
+
   // When the active job completes, navigate to the ticket detail page
   useEffect(() => {
+    if (forceNew) return; // Guard: reset effect hasn't cleared state yet on first render
     if (activeJob?.status === 'completed' && draftAecId) {
       // Job completed — navigate to ticket detail
       const slug = draftAecSlug || draftAecId;
@@ -98,19 +114,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         progressPercent: activeJob.percent,
       });
     }
-  }, [activeJob, draftAecId, draftAecSlug, router]);
-
-  // On mount: reset if forceNew is true (e.g., mode=new URL param)
-  useEffect(() => {
-    if (forceNew) {
-      reset();
-      // Pre-fill description from query param (e.g., from quick draft)
-      const desc = searchParams.get('description');
-      if (desc) {
-        setTitle(desc);
-      }
-    }
-  }, [forceNew, reset, searchParams, setTitle]);
+  }, [activeJob, draftAecId, draftAecSlug, forceNew, router]);
 
   // On mount: set initial type if provided
   useEffect(() => {
@@ -184,8 +188,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   const isBranchesLoading = useTicketsStore((s) => s.isBranchesLoading);
 
   // Validation for the Details step
-  const wordCount = input.title.trim().split(/\s+/).filter(Boolean).length;
-  const isTitleValid = wordCount >= 2 && input.title.length <= 2000;
+  const titleValidation = validateTitle(input.title);
+  const isTitleValid = titleValidation.valid;
   const isRepoValid = !includeRepository || (input.repoOwner.length > 0 && input.repoName.length > 0);
 
   // Determine if the progress dialog is for a background job (shows extra buttons)

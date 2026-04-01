@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/core/components/ui/badge';
 import { Button } from '@/core/components/ui/button';
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/core/components/ui/dialog';
-import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus, Copy, Hash } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, AlertTriangle, CheckCircle, Save, FileText, Pencil, Eye, ExternalLink, Upload, UserPlus, Copy, Hash, Plus, Lock } from 'lucide-react';
 import { MarkdownHooks as Markdown } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTicketsStore } from '@/stores/tickets.store';
@@ -24,6 +24,19 @@ import { TicketDetailLayout } from '@/src/tickets/components/detail/TicketDetail
 import { getStatusLabel } from '@/src/tickets/config/ticketStatusConfig';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { toast } from 'sonner';
+import { useTagsStore } from '@/stores/tags.store';
+import { TagPicker } from '@/src/tickets/components/TagPicker';
+import { getTagColor } from '@/tickets/config/tagColors';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/core/components/ui/dropdown-menu';
+import { createPortal } from 'react-dom';
+import { useSessionStore } from '@/src/sessions/stores/session.store';
+import { DevelopSessionBlade } from '@/src/sessions/components/organisms/DevelopSessionBlade';
+import { TicketDevelopButton } from '@/src/sessions/components/atoms/TicketDevelopButton';
+import { FlowOnboardingDialog } from '@/src/tickets/components/FlowOnboardingDialog';
 
 interface TicketDetailPageProps {
   params: Promise<{ id: string }>;
@@ -91,6 +104,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [developBladeOpen, setDevelopBladeOpen] = useState(false);
+  const [repoDialogOpen, setRepoDialogOpen] = useState(false);
+  const { tags } = useTagsStore();
+  const [localTagIds, setLocalTagIds] = useState<string[]>(currentTicket?.tagIds ?? []);
+  const sessionStatus = useSessionStore(state => state.status);
   
   // Title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -119,6 +137,15 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
     }, 15_000);
     return () => clearInterval(interval);
   }, [ticketId, refreshTicket]);
+
+  // Refresh ticket when session completes — updates status badge and lifecycle bar
+  // Small delay to ensure backend has persisted the delivery + PR
+  useEffect(() => {
+    if (sessionStatus === 'completed' && ticketId) {
+      const timer = setTimeout(() => refreshTicket(ticketId), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [sessionStatus, ticketId, refreshTicket]);
 
   // Ensure team members are loaded (needed for "Created by" name resolution)
   useEffect(() => {
@@ -801,26 +828,36 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
         </div>
         
-        {currentTicket?.techSpec && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPreviewDialog(true)}
-            >
-              <Eye className="h-3.5 w-3.5 mr-2" />
-              Preview
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowExportDialog(true)}
-            >
-              <Upload className="h-3.5 w-3.5 mr-2" />
-              Export
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {currentTicket?.techSpec && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPreviewDialog(true)}
+              >
+                <Eye className="h-3.5 w-3.5 mr-2" />
+                Preview
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExportDialog(true)}
+              >
+                <Upload className="h-3.5 w-3.5 mr-2" />
+                Export
+              </Button>
+            </>
+          )}
+          <TicketDevelopButton
+            onClick={() => setDevelopBladeOpen(true)}
+            status={
+              sessionStatus === 'completed' || currentTicket.status === 'delivered' ? 'completed'
+              : sessionStatus === 'running' || sessionStatus === 'provisioning' || currentTicket.status === 'executing' ? 'running'
+              : 'idle'
+            }
+/>
+        </div>
       </div>
 
       {/* Hero Header — Title */}
@@ -858,7 +895,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           ) : (
             <div className="group flex items-start gap-2">
               <h1 
-                className="text-xl font-semibold text-[var(--text)] leading-tight line-clamp-2 cursor-pointer hover:text-[var(--blue)] transition-colors"
+                className="text-[15px] font-medium text-[var(--text-secondary)] leading-snug line-clamp-2 cursor-pointer hover:text-[var(--text)] transition-colors"
                 onClick={() => {
                   setTitleDraft(currentTicket.title);
                   setIsEditingTitle(true);
@@ -881,9 +918,9 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         </div>
       </div>
 
-      {/* Ticket ID — click to reveal, click to copy */}
+      {/* Ticket ID + Git repo */}
       {!isEditingTitle && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowTicketIdVisible(!showTicketIdVisible)}
             className="inline-flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
@@ -904,18 +941,104 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               <Copy className="h-3 w-3" />
             </button>
           )}
+          {(() => {
+            const repos = currentTicket.repositories ||
+              (currentTicket.repositoryContext ? [{
+                repositoryFullName: currentTicket.repositoryContext.repositoryFullName,
+                branchName: currentTicket.repositoryContext.branchName,
+                isPrimary: true,
+              }] : []);
+            return repos.length > 0 ? (
+              <>
+                <span className="text-[var(--text-tertiary)]/30">{'\u00b7'}</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors">
+                      <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                      {repos[0].repositoryFullName.split('/').pop()}
+                      {repos.length > 1 && <span className="text-[9px] text-[var(--text-tertiary)]">+{repos.length - 1}</span>}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-72">
+                    <div className="px-2 py-1.5 text-[10px] text-[var(--text-tertiary)] font-normal">Connected Repositories</div>
+                    {repos.map((repo) => (
+                      <a
+                        key={repo.repositoryFullName}
+                        href={`https://github.com/${repo.repositoryFullName}${repo.branchName ? `/tree/${repo.branchName}` : ''}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-2 py-2 rounded-sm text-xs hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[var(--text-secondary)] truncate">{repo.repositoryFullName}</span>
+                            {repo.role && <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-tertiary)]">{repo.role}</span>}
+                          </div>
+                          {repo.branchName && (
+                            <span className="text-[10px] text-[var(--text-tertiary)] font-mono truncate block mt-0.5">{repo.branchName}</span>
+                          )}
+                        </div>
+                        <ExternalLink className="w-3 h-3 text-[var(--text-tertiary)] flex-shrink-0" />
+                      </a>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <span className="text-[var(--text-tertiary)]/30">{'\u00b7'}</span>
+                <button
+                  onClick={() => setRepoDialogOpen(true)}
+                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                >
+                  Connect repo
+                </button>
+              </>
+            );
+          })()}
+          {/* Tags */}
+          <span className="text-[var(--text-tertiary)]/30">·</span>
+          {tags.filter(t => localTagIds.includes(t.id)).map(tag => (
+            <span key={tag.id} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${getTagColor(tag.color).pill}`}>
+              {tag.scope === 'private' && <Lock className="h-2 w-2" />}
+              {tag.name}
+            </span>
+          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="inline-flex items-center gap-0.5 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">
+                <Plus className="h-2.5 w-2.5" />
+                Add tag
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 p-0">
+              <TagPicker
+                ticketId={currentTicket.id}
+                currentTagIds={localTagIds}
+                onTagsChange={async (tagIds) => {
+                  setLocalTagIds(tagIds);
+                  try {
+                    await ticketService.updateTicketTags(currentTicket.id, tagIds);
+                    refreshTicket(currentTicket.id);
+                  } catch {
+                    setLocalTagIds(currentTicket.tagIds ?? []);
+                  }
+                }}
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {currentTicket.createdBy && (
+            <>
+              <span className="text-[var(--text-tertiary)]/30">·</span>
+              <span className="text-[10px] text-[var(--text-tertiary)]">
+                {currentTicket.createdByName || teamMembers?.find(m => m.userId === currentTicket.createdBy)?.displayName || 'Unknown'}
+              </span>
+            </>
+          )}
         </div>
       )}
 
-      {/* Full title (shown when title is long and would be truncated) */}
-      {currentTicket.title.length > 80 && !isEditingTitle && (
-        <div className="px-1 pb-2">
-          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-            <span className="text-xs font-medium text-[var(--text-tertiary)] mr-2">Full title:</span>
-            {currentTicket.title}
-          </p>
-        </div>
-      )}
 
       {/* Main Content — TicketDetailLayout handles tabs vs pre-spec */}
       <TicketDetailLayout
@@ -945,62 +1068,18 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         onStatusTransition={handleStatusTransition}
         assignDialogOpen={forceAssignOpen}
         onAssignDialogOpenChange={setForceAssignOpen}
-
+        descriptionDraft={descriptionDraft}
+        onDescriptionChange={(value) => {
+          setDescriptionDraft(value);
+          setIsDescriptionDirty(value !== (currentTicket?.description || ''));
+        }}
+        isDescriptionDirty={isDescriptionDirty}
+        isSavingDescription={isSavingDescription}
+        onSaveDescription={handleSaveDescription}
       />
 
-      {/* Notes Section */}
-      <div className="px-1">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-[var(--text)]">Notes</h3>
-          <div className="flex items-center gap-1">
-            {isDescriptionDirty && (
-              <span className="text-[10px] text-[var(--text-tertiary)] mr-2">Unsaved</span>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!isDescriptionDirty || isSavingDescription}
-              onClick={handleSaveDescription}
-              className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
-            >
-              {isSavingDescription ? (
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              ) : (
-                <Save className="h-3 w-3 mr-1" />
-              )}
-              Save
-            </Button>
-          </div>
-        </div>
-        <textarea
-          value={descriptionDraft}
-          onChange={(e) => {
-            setDescriptionDraft(e.target.value);
-            setIsDescriptionDirty(e.target.value !== (currentTicket?.description || ''));
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              if (isDescriptionDirty) handleSaveDescription();
-            }
-          }}
-          placeholder="Add notes... (supports Markdown)"
-          rows={3}
-          className="w-full bg-[var(--bg-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed rounded-lg px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 transition-colors resize-y"
-        />
-      </div>
-
       {/* Footer with actions */}
-      <div className="flex items-center justify-between pt-6 border-t border-[var(--border)]">
-        <Button
-          variant="ghost"
-          onClick={() => setShowDeleteConfirm(true)}
-          className="text-[var(--red)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete Ticket
-        </Button>
-
+      <div className="flex items-center justify-end gap-3 pt-6 pb-8 border-t border-[var(--border)]">
         {techSpec && currentTicket.externalIssue && (
           <a
             href={currentTicket.externalIssue.issueUrl}
@@ -1012,6 +1091,13 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
             View in {currentTicket.externalIssue.platform === 'linear' ? 'Linear' : 'Jira'}
           </a>
         )}
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--red)] transition-colors"
+        >
+          <Trash2 className="h-3 w-3" />
+          Delete
+        </button>
       </div>
 
       {/* Lifecycle Transition Confirmation Dialog */}
@@ -1585,6 +1671,30 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Develop session blade — always available */}
+      {typeof window !== 'undefined' && createPortal(
+        <DevelopSessionBlade
+          open={developBladeOpen}
+          onClose={() => setDevelopBladeOpen(false)}
+          ticketId={currentTicket.id}
+          ticketTitle={currentTicket.title}
+          ticketStatus={currentTicket.status}
+          repoFullName={currentTicket.repositoryContext?.repositoryFullName}
+          branch={`feat/${currentTicket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+          fileChangeCount={currentTicket.techSpec?.fileChanges?.length}
+          repositories={currentTicket.repositories ||
+            (currentTicket.repositoryContext ? [{
+              repositoryFullName: currentTicket.repositoryContext.repositoryFullName,
+              isPrimary: true,
+            }] : undefined)}
+          onConnectRepo={() => { setDevelopBladeOpen(false); setRepoDialogOpen(true); }}
+        />,
+        document.body
+      )}
+
+      {/* First-time flow onboarding */}
+      <FlowOnboardingDialog />
     </div>
   );
 }

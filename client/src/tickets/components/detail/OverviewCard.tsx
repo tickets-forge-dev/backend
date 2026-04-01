@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { AlertTriangle, ArrowRight, Lock, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Lock, Plus, GitBranch, Pencil, Loader2 } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS } from '../../config/ticketStatusConfig';
@@ -18,9 +18,21 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/core/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/core/components/ui/dialog';
+import { Button } from '@/core/components/ui/button';
+import { RepositorySelector } from '../RepositorySelector';
+import { BranchSelector } from '../BranchSelector';
+import { useSettingsStore } from '@/stores/settings.store';
+import { toast } from 'sonner';
 
 /** Maps current status → hint with and without a developer assigned. */
-const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> = {
+const NEXT_STEP_HINTS: Record<string, { assigned: string | null; unassigned: string | null }> = {
   draft: {
     assigned: 'Fill in details, then send to the developer for code-aware refinement',
     unassigned: 'Assign a developer for code-aware refinement, or approve as-is',
@@ -34,16 +46,16 @@ const NEXT_STEP_HINTS: Record<string, { assigned: string; unassigned: string }> 
     unassigned: 'PM reviews the developer\'s changes before marking Ready',
   },
   approved: {
-    assigned: 'Spec is ready — execute or export to your issue tracker',
-    unassigned: 'Spec is ready — export to Jira, download, or use however you like',
+    assigned: null,
+    unassigned: null,
   },
   executing: {
-    assigned: 'Being built or pushed to your issue tracker',
-    unassigned: 'Being built or pushed to your issue tracker',
+    assigned: null,
+    unassigned: null,
   },
   delivered: {
-    assigned: 'Implementation is complete',
-    unassigned: 'Implementation is complete',
+    assigned: null,
+    unassigned: null,
   },
 };
 
@@ -56,6 +68,13 @@ interface OverviewCardProps {
   onAssignDialogOpenChange?: (open: boolean) => void;
   /** When true, the assign dialog was opened as part of the approval nudge flow */
   pendingApproval?: boolean;
+  /** Optional action slot rendered in the bottom row (e.g., Develop button) */
+  actionSlot?: React.ReactNode;
+  /** Lifecycle bar rendered between assignee and status */
+  lifecycleSlot?: React.ReactNode;
+  /** External control for the repo dialog */
+  repoDialogOpen?: boolean;
+  onRepoDialogOpenChange?: (open: boolean) => void;
 }
 
 export function OverviewCard({
@@ -66,6 +85,10 @@ export function OverviewCard({
   assignDialogOpen,
   onAssignDialogOpenChange,
   pendingApproval,
+  actionSlot,
+  lifecycleSlot,
+  repoDialogOpen: externalRepoDialogOpen,
+  onRepoDialogOpenChange,
 }: OverviewCardProps) {
   const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
   const isUnassigned = !ticket.assignedTo;
@@ -82,6 +105,28 @@ export function OverviewCard({
     || creatorMember?.displayName
     || creatorMember?.email
     || (ticket.createdBy && ticket.createdBy === user?.uid ? (user?.displayName || user?.email || null) : null);
+
+  // Repository connect dialog — supports external control
+  const [internalRepoOpen, setInternalRepoOpen] = useState(false);
+  const repoDialogOpen = externalRepoDialogOpen ?? internalRepoOpen;
+  const setRepoDialogOpen = onRepoDialogOpenChange ?? setInternalRepoOpen;
+  const [isSavingRepo, setIsSavingRepo] = useState(false);
+  const { selectedRepository, selectedBranch } = useTicketsStore();
+
+  const handleSaveRepository = async () => {
+    if (!selectedRepository || !selectedBranch) return;
+    setIsSavingRepo(true);
+    try {
+      await ticketService.updateTicketRepository(ticket.id, selectedRepository, selectedBranch);
+      await refreshTicket(ticket.id);
+      setRepoDialogOpen(false);
+      toast.success('Repository connected');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to connect repository');
+    } finally {
+      setIsSavingRepo(false);
+    }
+  };
 
   // Optimistic local tag IDs so pills render immediately after selection
   const [localTagIds, setLocalTagIds] = useState<string[]>(ticket.tagIds ?? []);
@@ -114,10 +159,10 @@ export function OverviewCard({
   );
 
   return (
-    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-3">
-      {/* Top row: Assignee ... Status badge */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative">
+    <div className="px-4 py-2.5">
+      {/* Top row: Assignee — Lifecycle — Status */}
+      <div className="relative flex items-center justify-between gap-4">
+        <div className="relative z-10">
           <AssigneeSelector
             assignedTo={ticket.assignedTo}
             onAssign={onAssignTicket}
@@ -137,38 +182,20 @@ export function OverviewCard({
           )}
         </div>
 
-        {/* Created by — read only */}
-        {ticket.createdBy && (
-          <span className="text-[11px] text-[var(--text-tertiary)]">
-            Created by <span className="text-[var(--text-secondary)]">{creatorName ?? '—'}</span>
-          </span>
+        {/* Lifecycle bar — fills the space between assign and status */}
+        {lifecycleSlot ? (
+          <div className="flex-1 min-w-0 flex justify-center">
+            <div className="w-full max-w-xl">{lifecycleSlot}</div>
+          </div>
+        ) : (
+          <div className="flex-1" />
         )}
-
-        {/* Tag pills + add tag */}
-        <div className="flex items-center gap-1 flex-1 min-w-0 justify-center">
-          {visibleTicketTags.map(tag => (
-            <span key={tag.id} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${getTagColor(tag.color).pill}`}>
-              {tag.scope === 'private' && <Lock className="h-2 w-2" />}
-              {tag.name}
-            </span>
-          ))}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors">
-                <Plus className="h-3 w-3" />
-                {visibleTicketTags.length === 0 && <span>Add tag</span>}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-56 p-0">
-              <TagPicker ticketId={ticket.id} currentTagIds={localTagIds} onTagsChange={handleTagsChange} />
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
 
         {/* Status badge — clicking opens lifecycle panel */}
         {ticket.status && (
           <TicketLifecycleInfo currentStatus={ticket.status} onTransition={onTransition} hasAssignee={!isUnassigned}>
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
+              <span className="text-[10px] opacity-60 font-normal">Status</span>
               {cfg.label}
               <svg className="h-3 w-3 opacity-50" viewBox="0 0 12 12" fill="none"><path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </span>
@@ -176,8 +203,40 @@ export function OverviewCard({
         )}
       </div>
 
-      {/* Bottom row: progress dots + next step hint */}
-      {hint && (
+
+      {/* Connect Repository Dialog */}
+      <Dialog open={repoDialogOpen} onOpenChange={setRepoDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">
+              {ticket.repositoryContext ? 'Change Repository' : 'Connect Repository'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--text-tertiary)]">
+              Link a GitHub repository for code-aware development.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <RepositorySelector />
+            <BranchSelector />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setRepoDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!selectedRepository || !selectedBranch || isSavingRepo}
+                onClick={handleSaveRepository}
+              >
+                {isSavingRepo && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                {isSavingRepo ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bottom row: progress dots + next step hint or action slot */}
+      {(hint || actionSlot) && (
         <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center gap-3">
           {/* Mini progress dots */}
           <div className="flex items-center gap-1 shrink-0">
@@ -193,12 +252,18 @@ export function OverviewCard({
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5 min-w-0">
-            <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
-            <p className="text-[11px] text-[var(--text-tertiary)] leading-tight truncate">
-              {hint}
-            </p>
-          </div>
+          {actionSlot ? (
+            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+              {actionSlot}
+            </div>
+          ) : hint ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
+              <p className="text-[11px] text-[var(--text-tertiary)] leading-tight truncate">
+                {hint}
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

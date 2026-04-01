@@ -31,6 +31,7 @@ import { UpdateAECDto } from '../dto/UpdateAECDto';
 import { SubmitAnswersDto } from '../dto/SubmitAnswersDto';
 import { AnalyzeRepositoryDto } from '../dto/AnalyzeRepositoryDto';
 import { AECRepository, AEC_REPOSITORY } from '../../application/ports/AECRepository';
+import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
 import {
   InvalidStateTransitionError,
   QuotaExceededError,
@@ -450,6 +451,7 @@ export class TicketsController {
         description: dto.description,
         repositoryFullName: dto.repositoryFullName,
         branchName: dto.branchName,
+        repositories: dto.repositories,
         maxRounds: dto.maxRounds,
         type: dto.type,
         priority: dto.priority,
@@ -644,6 +646,83 @@ export class TicketsController {
 
     await this.aecRepository.updateTicketTags(aecId, teamId, tagIds);
     return { success: true };
+  }
+
+  /**
+   * PATCH /tickets/:id/repository
+   * Connect or change the repository linked to a ticket.
+   * Builds a RepositoryContext from the provided repo/branch, verifying access via GitHub API.
+   * Blocked when ticket is in 'executing' status (active session would break).
+   */
+  @Patch(':id/repository')
+  async updateTicketRepository(
+    @TeamId() teamId: string,
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() body: { repositoryFullName: string; branchName: string },
+  ) {
+    const { repositoryFullName, branchName } = body;
+
+    if (!repositoryFullName || !branchName) {
+      throw new BadRequestException('repositoryFullName and branchName are required');
+    }
+
+    const [owner, repo] = repositoryFullName.split('/');
+    if (!owner || !repo) {
+      throw new BadRequestException('Invalid repository format. Expected "owner/repo"');
+    }
+
+    const aecId = await this.resolveTicketId(id, teamId);
+    const aec = await this.aecRepository.findById(aecId);
+    if (!aec) {
+      throw new NotFoundException(`Ticket ${id} not found`);
+    }
+
+    if (aec.status === 'executing') {
+      throw new BadRequestException('Cannot change repository while ticket is in development');
+    }
+
+    // Get GitHub token
+    const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
+    if (!integration) {
+      throw new BadRequestException('No GitHub integration found. Install the GitHub App in Settings.');
+    }
+
+    const accessToken = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+    const octokit = new Octokit({ auth: accessToken });
+
+    // Verify repo access
+    try {
+      await octokit.rest.repos.get({ owner, repo });
+    } catch {
+      throw new BadRequestException(`Repository ${repositoryFullName} not found or access denied`);
+    }
+
+    // Get branch info
+    let commitSha: string;
+    let defaultBranch: string;
+    try {
+      const { data: branchData } = await octokit.rest.repos.getBranch({ owner, repo, branch: branchName });
+      commitSha = branchData.commit.sha;
+      const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+      defaultBranch = repoData.default_branch;
+    } catch {
+      throw new BadRequestException(`Branch "${branchName}" not found in ${repositoryFullName}`);
+    }
+
+    // Build and set repository context
+    const repositoryContext = RepositoryContext.create({
+      repositoryFullName,
+      branchName,
+      commitSha,
+      isDefaultBranch: branchName === defaultBranch,
+      selectedAt: new Date(),
+    });
+
+    aec.setRepositoryContext(repositoryContext);
+    await this.aecRepository.save(aec);
+
+    return { success: true, repositoryContext: { repositoryFullName, branchName, commitSha } };
   }
 
   @Patch(':id')
@@ -1512,6 +1591,15 @@ export class TicketsController {
             selectedAt: aec.repositoryContext.selectedAt,
           }
         : null,
+      repositories: (aec.repositories ?? []).map((r: any) => ({
+        repositoryFullName: r.repositoryFullName,
+        branchName: r.branchName,
+        commitSha: r.commitSha,
+        isDefaultBranch: r.isDefaultBranch,
+        isPrimary: r.isPrimary,
+        role: r.role || null,
+        selectedAt: r.selectedAt?.toISOString() ?? null,
+      })),
       // Iterative refinement workflow fields
       questionRounds: aec.questionRounds,
       currentRound: aec.currentRound,

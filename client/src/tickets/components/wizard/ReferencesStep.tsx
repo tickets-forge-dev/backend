@@ -47,7 +47,7 @@ export function ReferencesStep() {
       {/* Two-column grid on desktop */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* File Attachments */}
-        <div className="border border-[var(--border-subtle)] rounded-lg p-4 space-y-3">
+        <div className="border border-[var(--border-subtle)] rounded-lg p-4 space-y-3 bg-[var(--bg-hover)]/20">
           <div className="flex items-center gap-2">
             <Paperclip className="h-4 w-4 text-[var(--text-tertiary)]" />
             <span className="text-xs font-medium text-[var(--text-secondary)]">Files</span>
@@ -61,7 +61,7 @@ export function ReferencesStep() {
         </div>
 
         {/* Design Links */}
-        <div className="border border-[var(--border-subtle)] rounded-lg p-4 space-y-3">
+        <div className="border border-[var(--border-subtle)] rounded-lg p-4 space-y-3 bg-[var(--bg-hover)]/20">
           <div className="flex items-center gap-2">
             <Link2 className="h-4 w-4 text-[var(--text-tertiary)]" />
             <span className="text-xs font-medium text-[var(--text-secondary)]">Design Links</span>
@@ -75,18 +75,6 @@ export function ReferencesStep() {
         </div>
       </div>
 
-      {/* Skip hint */}
-      {!hasAnyReferences && (
-        <p className="text-center">
-          <button
-            type="button"
-            onClick={nextStage}
-            className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-          >
-            No attachments? Skip to next step →
-          </button>
-        </p>
-      )}
     </div>
   );
 }

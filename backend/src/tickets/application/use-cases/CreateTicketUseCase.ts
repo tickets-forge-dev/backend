@@ -8,6 +8,7 @@ import {
 } from '../../../github/domain/GitHubIntegrationRepository';
 import { GitHubTokenService } from '../../../github/application/services/github-token.service';
 import { RepositoryContext } from '../../domain/value-objects/RepositoryContext';
+import { RepositoryEntry } from '../../domain/value-objects/RepositoryEntry';
 import {
   UsageBudgetRepository,
   USAGE_BUDGET_REPOSITORY,
@@ -22,6 +23,13 @@ import { TeamId } from '../../../teams/domain/TeamId';
 export const TICKET_LIMITS: Record<string, number> = {};
 export const DEFAULT_TICKET_LIMIT = Infinity;
 
+export interface CreateTicketRepositoryInput {
+  repositoryFullName: string;
+  branchName: string;
+  isPrimary: boolean;
+  role?: string;
+}
+
 export interface CreateTicketCommand {
   teamId: string;
   workspaceId?: string; // Workspace ID for integration lookups (ws_*)
@@ -31,6 +39,7 @@ export interface CreateTicketCommand {
   description?: string;
   repositoryFullName?: string;
   branchName?: string;
+  repositories?: CreateTicketRepositoryInput[]; // Multi-repo (max 2)
   maxRounds?: number;
   type?: 'feature' | 'bug' | 'task';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
@@ -79,28 +88,50 @@ export class CreateTicketUseCase {
       throw new QuotaExceededError(ticketsToday, budget.dailyTicketLimit);
     }
 
-    // Build repository context if repository info provided
-    let repositoryContext: RepositoryContext | undefined;
+    // Validate multi-repo limit
+    if (command.repositories && command.repositories.length > 2) {
+      throw new BadRequestException('Maximum 2 repositories per ticket');
+    }
 
-    if (command.repositoryFullName && command.branchName && command.workspaceId) {
-      // Try to fetch GitHub access token from OAuth integration
-      // Uses workspaceId (ws_*) — not teamId — to look up the integration
+    // Resolve GitHub access token (shared by both single- and multi-repo paths)
+    let accessToken: string | undefined;
+    if (command.workspaceId) {
       const integration = await this.githubIntegrationRepository.findByWorkspaceId(
         command.workspaceId,
       );
-
       if (integration) {
-        const accessToken = await this.githubTokenService.decryptToken(
+        accessToken = await this.githubTokenService.decryptToken(
           integration.encryptedAccessToken,
         );
-        repositoryContext = await this.buildRepositoryContext(
-          command.repositoryFullName,
-          command.branchName,
+      }
+    }
+
+    // Build repository context (single-repo backward compat) or entries (multi-repo)
+    let repositoryContext: RepositoryContext | undefined;
+    let repositoryEntries: RepositoryEntry[] | undefined;
+
+    if (command.repositories?.length && accessToken) {
+      // Multi-repo path: validate each repo, build RepositoryEntry[]
+      repositoryEntries = [];
+      for (const repo of command.repositories) {
+        const entry = await this.buildRepositoryEntry(
+          repo.repositoryFullName,
+          repo.branchName,
+          repo.isPrimary,
+          repo.role,
           accessToken,
         );
+        repositoryEntries.push(entry);
       }
-      // No OAuth integration - code will be read on-demand via GitHubFileService
+    } else if (command.repositoryFullName && command.branchName && accessToken) {
+      // Single-repo backward-compat path
+      repositoryContext = await this.buildRepositoryContext(
+        command.repositoryFullName,
+        command.branchName,
+        accessToken,
+      );
     }
+    // No OAuth integration or no repo info - code will be read on-demand via GitHubFileService
 
     // Generate human-friendly slug: {team-slug}-{number}
     let slug: string | undefined;
@@ -116,13 +147,13 @@ export class CreateTicketUseCase {
       console.warn('⚠️ [CreateTicketUseCase] Failed to generate slug:', error);
     }
 
-    // Create domain entity
+    // Create domain entity — pass repositoryEntries if multi-repo, otherwise single context
     const aec = AEC.createDraft(
       command.teamId,
       command.userId,
       command.title,
       command.description,
-      repositoryContext,
+      repositoryEntries ?? repositoryContext,
       command.type,
       command.priority,
       undefined, // assignedTo
@@ -158,6 +189,70 @@ export class CreateTicketUseCase {
     await this.userUsageBudgetRepository.incrementDailyTickets(command.userId, today);
 
     return aec;
+  }
+
+  /**
+   * Build a single RepositoryEntry for multi-repo tickets.
+   * Reuses the same GitHub validation as buildRepositoryContext.
+   */
+  private async buildRepositoryEntry(
+    repositoryFullName: string,
+    branchName: string,
+    isPrimary: boolean,
+    role: string | undefined,
+    githubAccessToken: string,
+  ): Promise<RepositoryEntry> {
+    const [owner, repo] = repositoryFullName.split('/');
+
+    if (!owner || !repo) {
+      throw new BadRequestException('Invalid repository format. Expected "owner/repo"');
+    }
+
+    // Verify repository access
+    const hasAccess = await this.gitHubApiService.verifyRepositoryAccess(
+      owner,
+      repo,
+      githubAccessToken,
+    );
+    if (!hasAccess) {
+      throw new ForbiddenException(`Repository ${repositoryFullName} not found or access revoked`);
+    }
+
+    // Verify branch exists
+    const branchExists = await this.gitHubApiService.verifyBranchExists(
+      owner,
+      repo,
+      branchName,
+      githubAccessToken,
+    );
+    if (!branchExists) {
+      throw new BadRequestException(`Branch "${branchName}" not found in ${repositoryFullName}`);
+    }
+
+    // Get HEAD commit SHA
+    const commitSha = await this.gitHubApiService.getBranchHead(
+      owner,
+      repo,
+      branchName,
+      githubAccessToken,
+    );
+
+    // Check if this is the default branch
+    const defaultBranch = await this.gitHubApiService.getDefaultBranch(
+      owner,
+      repo,
+      githubAccessToken,
+    );
+
+    return {
+      repositoryFullName,
+      branchName,
+      commitSha,
+      isDefaultBranch: branchName === defaultBranch,
+      isPrimary,
+      role,
+      selectedAt: new Date(),
+    };
   }
 
   /**

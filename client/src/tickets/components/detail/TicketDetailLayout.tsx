@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useUIStore } from '@/stores/ui.store';
+import { useState, useEffect, useRef, useMemo, type ReactPortal } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/core/components/ui/tabs';
 import { CollapsibleSection } from '@/src/tickets/components/CollapsibleSection';
 import { ImageAttachmentsGrid } from '@/src/tickets/components/ImageAttachmentsGrid';
 import { OverviewCard } from './OverviewCard';
+import { TicketLifecycleBar } from './TicketLifecycleBar';
 import { SpecificationTab } from './SpecificationTab';
 import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, Lightbulb, Bug, ClipboardList, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, StickyNote, Save } from 'lucide-react';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -70,6 +70,12 @@ interface TicketDetailLayoutProps {
   assignDialogOpen?: boolean;
   onAssignDialogOpenChange?: (open: boolean) => void;
   // Delivery review
+  // Notes
+  descriptionDraft: string;
+  onDescriptionChange: (value: string) => void;
+  isDescriptionDirty: boolean;
+  isSavingDescription: boolean;
+  onSaveDescription: () => void;
 }
 
 export function TicketDetailLayout({
@@ -99,14 +105,17 @@ export function TicketDetailLayout({
   onStatusTransition,
   assignDialogOpen,
   onAssignDialogOpenChange,
+  descriptionDraft,
+  onDescriptionChange,
+  isDescriptionDirty,
+  isSavingDescription,
+  onSaveDescription,
 }: TicketDetailLayoutProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasTechSpec = !!ticket.techSpec;
   const { approveTicket, reEnrichTicket } = useTicketsStore();
   const { ticketService } = useServices();
-  const { sidebarCollapsed } = useUIStore();
-  const sideNavLeft = sidebarCollapsed ? 'left-[calc(4rem+1rem)]' : 'left-[calc(var(--nav-width)+1rem)]';
   const [isApproving, setIsApproving] = useState(false);
   const [isReEnriching, setIsReEnriching] = useState(false);
   const [cliCopied, setCliCopied] = useState(false);
@@ -118,7 +127,10 @@ export function TicketDetailLayout({
   const assignedDuringNudge = useRef(false);
   const assignAttempted = useRef(false);
 
-  const initialTab = searchParams.get('tab') === 'technical' ? 'technical' : 'spec';
+
+  const validTabs = ['spec', 'technical', 'design', 'delivered', 'notes'];
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam && validTabs.includes(tabParam) ? tabParam : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
@@ -149,32 +161,42 @@ export function TicketDetailLayout({
     { id: 'api-endpoints', label: 'API Endpoints', short: 'APIs' },
     { id: 'dependencies', label: 'Dependencies', short: 'Deps' },
     { id: 'test-plan', label: 'Test Plan', short: 'Tests' },
-    { id: 'stack', label: 'Stack', short: 'Stack' },
   ];
 
   const scrollTo = (tabPrefix: string, sectionId: string) => {
     document.getElementById(`${tabPrefix}-${sectionId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Track scroll position for scroll spy
+  // Track scroll position for scroll spy (debounced, single setState)
   useEffect(() => {
-    const handleScroll = () => {
-      const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
-      const sections = activeTab === 'spec' ? specSections : techSections;
+    let rafId: number | null = null;
 
-      for (const section of sections) {
-        const element = document.getElementById(`${currentTab}-${section.id}`);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 100) {
-            setActiveSection(`${currentTab}-${section.id}`);
+    const handleScroll = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const currentTab = activeTab === 'spec' ? 'spec' : 'technical';
+        const sections = activeTab === 'spec' ? specSections : techSections;
+
+        let best: string | null = null;
+        for (const section of sections) {
+          const element = document.getElementById(`${currentTab}-${section.id}`);
+          if (element) {
+            const rect = element.getBoundingClientRect();
+            if (rect.top <= 100) {
+              best = `${currentTab}-${section.id}`;
+            }
           }
         }
-      }
+        setActiveSection((prev) => (prev === best ? prev : best));
+      });
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [activeTab]);
 
   const hasReviewSession = !!ticket.reviewSession?.qaItems?.length;
@@ -298,6 +320,7 @@ export function TicketDetailLayout({
           assignDialogOpen={assignDialogOpen}
           onAssignDialogOpenChange={handleAssignDialogOpenChange}
           pendingApproval={pendingApproval}
+          lifecycleSlot={<TicketLifecycleBar currentStatus={ticket.status} />}
         />
 
         {/* Pending Questions */}
@@ -306,7 +329,7 @@ export function TicketDetailLayout({
             id="pending-questions"
             title="Questions to Answer"
             badge={`${ticket.questions.length} question${ticket.questions.length !== 1 ? 's' : ''}`}
-            defaultExpanded={true}
+            defaultExpanded={false}
           >
             <div className="space-y-6">
               {ticket.questions.map((question: any, idx: number) => (
@@ -377,7 +400,7 @@ export function TicketDetailLayout({
             id="review-session"
             title="Developer Review Q&A"
             badge={`${ticket.reviewSession!.qaItems.length} answer${ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''}`}
-            defaultExpanded={true}
+            defaultExpanded={false}
             variant={isWaitingForApproval ? 'attention' : 'default'}
             attentionLabel={isWaitingForApproval ? 'Action needed' : undefined}
           >
@@ -414,7 +437,7 @@ export function TicketDetailLayout({
           id="assets-attachments"
           title="Attachments"
           badge={ticket.attachments?.length ? `${ticket.attachments.length} files` : undefined}
-          defaultExpanded={true}
+          defaultExpanded={false}
         >
           <ImageAttachmentsGrid
             attachments={ticket.attachments || []}
@@ -442,7 +465,11 @@ export function TicketDetailLayout({
         assignDialogOpen={assignDialogOpen}
         onAssignDialogOpenChange={handleAssignDialogOpenChange}
         pendingApproval={pendingApproval}
+        actionSlot={undefined}
+        lifecycleSlot={<TicketLifecycleBar currentStatus={ticket.status} />}
       />
+
+      {/* Develop button removed from here — now passed via OverviewCard actionSlot */}
 
       {/* Approval banner — always visible when ticket is in review with developer Q&A */}
       {isWaitingForApproval && hasReviewSession && (
@@ -683,7 +710,7 @@ export function TicketDetailLayout({
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+        <div className="border-b border-gray-200 dark:border-gray-800">
           <TabsList className="flex bg-transparent h-auto p-0 border-b-0">
 
           <TabsTrigger
@@ -714,55 +741,17 @@ export function TicketDetailLayout({
             <GitPullRequest className="h-3.5 w-3.5" />
             Record
           </TabsTrigger>
+          <TabsTrigger
+            value="notes"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+          >
+            <StickyNote className="h-3.5 w-3.5" />
+            Notes
+          </TabsTrigger>
           </TabsList>
-
-          {/* Metadata chips — type, priority, quality */}
-          <div className="flex items-center gap-2 pb-1">
-            {ticket.type && (
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                {ticket.type === 'feature' && <Lightbulb className="h-3 w-3" />}
-                {ticket.type === 'bug' && <Bug className="h-3 w-3" />}
-                {ticket.type === 'task' && <ClipboardList className="h-3 w-3" />}
-                {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
-              </span>
-            )}
-            {ticket.priority && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                <span className={`h-1.5 w-1.5 rounded-full ${
-                  ticket.priority === 'critical' ? 'bg-red-500' :
-                  ticket.priority === 'high' ? 'bg-orange-500' :
-                  ticket.priority === 'medium' ? 'bg-yellow-500' :
-                  'bg-gray-400'
-                }`} />
-                {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
-              </span>
-            )}
-            {qualityScore !== undefined && (
-              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium bg-[var(--bg-hover)] text-[var(--text-secondary)]">
-                {qualityScore}%
-              </span>
-            )}
-          </div>
         </div>
 
         <TabsContent value="spec" className="mt-6">
-          {/* Mobile section pills — shown below xl only */}
-          <div className="hidden sm:flex xl:hidden gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-            {specSections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollTo('spec', s.id)}
-                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
-                  activeSection === `spec-${s.id}`
-                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
-                }`}
-              >
-                {s.short}
-              </button>
-            ))}
-          </div>
-
           <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <SpecificationTab
               ticket={ticket}
@@ -782,25 +771,6 @@ export function TicketDetailLayout({
             />
           </div>
 
-          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
-          <div className={`hidden xl:block fixed ${sideNavLeft} top-32 w-[88px] z-10`}>
-            <nav className="space-y-0.5">
-              {specSections.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => scrollTo('spec', s.id)}
-                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
-                    activeSection === `spec-${s.id}`
-                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
-                      : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
-                  }`}
-                  title={s.label}
-                >
-                  {s.short}
-                </button>
-              ))}
-            </nav>
-          </div>
         </TabsContent>
 
         <TabsContent value="technical" className="mt-6">
@@ -821,7 +791,7 @@ export function TicketDetailLayout({
                         Agent Execution Contract
                       </p>
                       <p className="text-[10px] text-[var(--text-tertiary)]">
-                        {isForged ? 'Verified and ready for execution' : 'Draft — pending approval'}
+                        {isForged ? 'Instructions for the AI development agent' : 'Instructions for the AI development agent'}
                       </p>
                     </div>
                   </div>
@@ -893,69 +863,6 @@ export function TicketDetailLayout({
           })()}
 
           {/* Stats summary */}
-          {(() => {
-            const ts = ticket.techSpec;
-            const ac = ts?.acceptanceCriteria?.length || 0;
-            const api = ts?.apiChanges?.endpoints?.length || 0;
-            const files = ts?.fileChanges?.length || 0;
-            const tests = (ts?.testPlan?.unitTests?.length || 0) +
-              (ts?.testPlan?.integrationTests?.length || 0) +
-              (ts?.testPlan?.edgeCases?.length || 0);
-            const scope = (ts?.inScope?.length > 0 || ts?.outOfScope?.length > 0);
-            const hasAny = ac > 0 || api > 0 || files > 0 || tests > 0 || scope;
-            if (!hasAny) return null;
-            return (
-              <div className="max-w-3xl xl:max-w-4xl mx-auto mb-5 flex flex-wrap gap-x-5 gap-y-2 px-1">
-                {ac > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{ac} acceptance criteria</span>
-                  </div>
-                )}
-                {api > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <GitPullRequest className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{api} API endpoints</span>
-                  </div>
-                )}
-                {files > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <FileCode2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{files} files affected</span>
-                  </div>
-                )}
-                {tests > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <TestTube className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{tests} tests</span>
-                  </div>
-                )}
-                {scope && (
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">Scope defined</span>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Mobile section pills — shown below xl only */}
-          <div className="hidden sm:flex xl:hidden gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-            {techSections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollTo('technical', s.id)}
-                className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
-                  activeSection === `technical-${s.id}`
-                    ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text)]'
-                }`}
-              >
-                {s.short}
-              </button>
-            ))}
-          </div>
 
           <div className="max-w-3xl xl:max-w-4xl mx-auto">
             <ImplementationTab
@@ -972,25 +879,6 @@ export function TicketDetailLayout({
             />
           </div>
 
-          {/* Side scroll spy — xl+ (compact, fits between sidebar and content at 1280px) */}
-          <div className={`hidden xl:block fixed ${sideNavLeft} top-32 w-[88px] z-10`}>
-            <nav className="space-y-0.5">
-              {techSections.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => scrollTo('technical', s.id)}
-                  className={`block text-[11px] leading-tight py-1 px-1.5 rounded transition-colors text-left w-full border-l-2 truncate ${
-                    activeSection === `technical-${s.id}`
-                      ? 'border-[var(--primary)] text-[var(--primary)] font-medium bg-[var(--primary)]/5'
-                    : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-subtle)]'
-                  }`}
-                  title={s.label}
-                >
-                  {s.short}
-                </button>
-              ))}
-            </nav>
-          </div>
         </TabsContent>
 
         <TabsContent value="design" className="mt-6">
@@ -1046,7 +934,47 @@ export function TicketDetailLayout({
             )}
           </div>
         </TabsContent>
+
+        <TabsContent value="notes" className="mt-6">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1">
+                {isDescriptionDirty && (
+                  <span className="text-[10px] text-[var(--text-tertiary)] mr-2">Unsaved</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!isDescriptionDirty || isSavingDescription}
+                  onClick={onSaveDescription}
+                  className={`h-7 px-2.5 text-xs ${isDescriptionDirty ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}
+                >
+                  {isSavingDescription ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : (
+                    <Save className="h-3 w-3 mr-1" />
+                  )}
+                  Save
+                </Button>
+              </div>
+            </div>
+            <textarea
+              value={descriptionDraft}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  if (isDescriptionDirty) onSaveDescription();
+                }
+              }}
+              placeholder="Add notes... (supports Markdown)"
+              rows={8}
+              className="w-full bg-[var(--bg-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed rounded-lg px-3 py-2 placeholder:text-[var(--text-tertiary)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30 transition-colors resize-y"
+            />
+          </div>
+        </TabsContent>
       </Tabs>
+
     </div>
   );
 }

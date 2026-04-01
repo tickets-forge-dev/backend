@@ -118,11 +118,12 @@ export function AssigneeSelector({
         <button
           onClick={() => setDialogOpen(true)}
           disabled={disabled}
-          className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--bg-hover)] border border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg)] text-[var(--text)] transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:bg-[var(--bg)] text-[var(--text)] transition-colors disabled:opacity-50"
         >
           <div className="h-5 w-5 rounded-full bg-[var(--blue)] flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
             {initials}
           </div>
+          <span className="text-[10px] text-[var(--text-tertiary)] mr-0.5">Assigned</span>
           <span className="text-xs font-medium truncate max-w-[120px]">
             {assignedDev.displayName || assignedDev.email}
           </span>

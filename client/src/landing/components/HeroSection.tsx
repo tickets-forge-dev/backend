@@ -70,12 +70,12 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Hero text — left-aligned, massive title like Linear */}
-      <div className="relative w-full max-w-6xl self-start px-4 sm:px-8">
-        {/* Headline — massive */}
+      {/* Hero text — centered */}
+      <div className="relative w-full max-w-4xl text-center px-4 sm:px-8">
+        {/* Headline */}
         <motion.h1
-          className="text-[var(--text)] font-medium tracking-[-0.04em] max-w-4xl"
-          style={{ fontSize: 'clamp(48px, 7vw, 88px)', lineHeight: 1.05 }}
+          className="text-[var(--text)] font-medium tracking-[-0.03em]"
+          style={{ fontSize: 'clamp(36px, 5vw, 64px)', lineHeight: 1.1 }}
           variants={fadeUp}
           initial="hidden"
           animate="visible"
@@ -86,9 +86,9 @@ export function HeroSection() {
           That devs actually understand.
         </motion.h1>
 
-        {/* Subtitle — small, muted */}
+        {/* Subtitle */}
         <motion.p
-          className="text-[var(--text-tertiary)] mt-5 mb-8 max-w-lg"
+          className="text-[var(--text-tertiary)] mt-5 mb-8 mx-auto max-w-lg"
           style={{ fontSize: '15px', lineHeight: 1.5 }}
           variants={fadeUp}
           initial="hidden"
@@ -120,9 +120,9 @@ export function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Hero Screenshot — stretches edge-to-edge */}
+      {/* Hero Screenshot */}
       <motion.div
-        className="relative w-full mt-10 sm:mt-16 px-0 sm:w-[100vw] sm:-mx-4 sm:px-2"
+        className="relative w-full mt-10 sm:mt-16 px-4 sm:px-12 lg:px-24 xl:px-32"
         variants={scaleUp}
         initial="hidden"
         animate="visible"
@@ -154,6 +154,16 @@ export function HeroSection() {
             height={1080}
             priority
             className="w-full h-auto"
+          />
+
+          {/* Bottom glow */}
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[40%] pointer-events-none"
+            aria-hidden="true"
+            style={{
+              background:
+                'linear-gradient(to top, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.06) 40%, transparent 100%)',
+            }}
           />
         </motion.div>
       </motion.div>

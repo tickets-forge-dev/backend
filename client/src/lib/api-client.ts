@@ -30,7 +30,7 @@ export function createApiClient(baseURL?: string): AxiosInstance {
   const client = axios.create({
     baseURL: baseURL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
     headers: { 'Content-Type': 'application/json' },
-    timeout: 30000,
+    timeout: 120000,
   });
 
   // Attach Firebase ID token to every request
