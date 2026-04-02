@@ -121,4 +121,16 @@ export const SEED_SKILLS: Omit<Skill, 'id'>[] = [
     enabled: true,
     order: 10,
   },
+  {
+    name: 'Verify Before Push',
+    description: 'Build, test, and lint before pushing code',
+    expandedDescription:
+      'Runs a mandatory verification gate before committing: build check, type check, lint, and tests must all pass. If any fail, the AI fixes the issues and re-runs. Broken code never reaches the PR.',
+    icon: 'ShieldCheck',
+    category: 'quality',
+    version: '1.0.0',
+    pluginDirName: 'verify-before-push',
+    enabled: true,
+    order: 11,
+  },
 ];

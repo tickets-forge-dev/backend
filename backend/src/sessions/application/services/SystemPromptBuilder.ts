@@ -42,8 +42,11 @@ RULES:
 - Use TDD: write failing tests first, then implement, then verify.
 - Verify your work before claiming completion.
 - Run the full test suite after making changes. Fix failures.
-- When done, commit your changes, push to the remote branch, and call MCP submit_settlement.
-- STOP as soon as tests pass and changes are committed. Do not refactor,
+- BEFORE committing: run build (npm run build), typecheck (tsc --noEmit),
+  lint (npm run lint), and tests (npm test). If any fail, fix and re-run.
+  Do NOT push code that fails any check. Max 3 fix attempts.
+- When all checks pass, commit your changes, push to the remote branch, and call MCP submit_settlement.
+- STOP as soon as checks pass and changes are committed. Do not refactor,
   optimize, or add features beyond what was specified.
 - Be concise. Minimize exploration.
 
