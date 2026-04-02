@@ -750,7 +750,7 @@ export function TicketDetailLayout({
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
           >
             <GitPullRequest className="h-3.5 w-3.5" />
-            Record
+            Runs
           </TabsTrigger>
           <TabsTrigger
             value="exports"
@@ -941,13 +941,11 @@ export function TicketDetailLayout({
                 <div className="w-10 h-10 rounded-full bg-[var(--bg-hover)] flex items-center justify-center mb-3">
                   <GitPullRequest className="h-5 w-5 text-[var(--text-tertiary)]" />
                 </div>
-                <p className="text-sm text-[var(--text-secondary)] mb-1">No Change Record yet</p>
+                <p className="text-sm text-[var(--text-secondary)] mb-1">No runs yet</p>
                 <p className="text-[13px] text-[var(--text-tertiary)] max-w-sm">
                   {ticket.status === 'executing'
-                    ? 'A developer is working on this ticket. The Change Record will appear here when they deliver their work.'
-                    : ticket.status === 'approved'
-                      ? 'The Change Record will be created when a developer starts and completes implementation.'
-                      : 'The Change Record is created when the ticket is implemented and delivered for review.'}
+                    ? 'Development is in progress. Results will appear here when complete.'
+                    : 'Click Develop to start an AI development session. The run results, changes, and decisions will appear here.'}
                 </p>
               </div>
             )}
