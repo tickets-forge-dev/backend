@@ -400,12 +400,14 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                           : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] group-hover:translate-y-[2px]'
                       }`}
                     >
-                      <div className={`text-[11px] max-w-[120px] truncate ${isSelected ? 'font-medium' : ''}`}>
+                      <div className={`text-[11px] max-w-[160px] leading-tight ${isSelected ? 'font-medium' : ''}`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal' }}>
                         {t.title}
                       </div>
-                      <div className="text-[9px] opacity-60">
-                        {cr.filesChanged.length} files
-                      </div>
+                      {cr.filesChanged.length > 0 && (
+                        <div className="text-[9px] opacity-60">
+                          {cr.filesChanged.length} files
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
