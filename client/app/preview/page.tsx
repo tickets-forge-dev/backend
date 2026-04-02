@@ -238,7 +238,14 @@ function buildMountStructure(files: Record<string, string>): Record<string, any>
       if (!current[parts[i]]) current[parts[i]] = { directory: {} };
       current = current[parts[i]].directory;
     }
-    current[parts[parts.length - 1]] = { file: { contents: content } };
+    // Binary files are prefixed with "base64:" — mount as Uint8Array
+    if (content.startsWith('base64:')) {
+      const b64 = content.slice(7);
+      const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      current[parts[parts.length - 1]] = { file: { contents: binary } };
+    } else {
+      current[parts[parts.length - 1]] = { file: { contents: content } };
+    }
   }
   return root;
 }

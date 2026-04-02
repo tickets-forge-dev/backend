@@ -173,8 +173,9 @@ export class GitHubController {
     const octokit = new Octokit({ auth: accessToken });
 
     const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'coverage', '.turbo', '__pycache__']);
-    const SKIP_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
-    const MAX_FILE_SIZE = 100_000; // 100KB
+    const SKIP_EXTENSIONS = new Set(['.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
+    const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.bmp', '.svg']);
+    const MAX_FILE_SIZE = 500_000; // 500KB — allows larger images for better preview experience
     const MAX_FILES = 200; // Keep under rate limits
 
     try {
@@ -268,8 +269,12 @@ export class GitHubController {
             if (!entry.sha) return null;
             const response = await octokit.git.getBlob({ owner, repo, file_sha: entry.sha });
             if (response.data.encoding === 'base64' && response.data.content) {
-              // Strip the prefix so files are relative to the web app root
               const relativePath = prefix ? entry.path!.slice(prefix.length) : entry.path!;
+              const ext = '.' + relativePath.split('.').pop()?.toLowerCase();
+              // Binary files: keep as base64 with prefix so frontend can mount as Uint8Array
+              if (BINARY_EXTENSIONS.has(ext)) {
+                return { path: relativePath, content: `base64:${response.data.content}` };
+              }
               return { path: relativePath, content: Buffer.from(response.data.content, 'base64').toString('utf-8') };
             }
             return null;
