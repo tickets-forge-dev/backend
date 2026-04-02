@@ -23,7 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/components/ui/alert-dialog';
-import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, StickyNote, Save } from 'lucide-react';
+import { HelpCircle, MessageSquare, CheckCircle2, Loader2, RefreshCw, ShieldCheck, FileCode2, GitPullRequest, TestTube, Target, ChevronDown, ChevronUp, ChevronRight, FileText, Palette, Code2, UserPlus, ArrowRight, Copy, Check, StickyNote, Save, Download } from 'lucide-react';
+import { ExportsSection } from './ExportsSection';
 import type { AECResponse, AttachmentResponse } from '@/services/ticket.service';
 import { useServices } from '@/services/index';
 import type { ApiEndpointSpec } from '@/types/question-refinement';
@@ -137,7 +138,7 @@ export function TicketDetailLayout({
   const assignAttempted = useRef(false);
 
 
-  const validTabs = ['spec', 'technical', 'design', 'delivered', 'notes'];
+  const validTabs = ['spec', 'technical', 'design', 'delivered', 'exports', 'notes'];
   const tabParam = searchParams.get('tab');
   const initialTab = tabParam && validTabs.includes(tabParam) ? tabParam : 'spec';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -752,6 +753,13 @@ export function TicketDetailLayout({
             Record
           </TabsTrigger>
           <TabsTrigger
+            value="exports"
+            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exports
+          </TabsTrigger>
+          <TabsTrigger
             value="notes"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
           >
@@ -943,6 +951,16 @@ export function TicketDetailLayout({
                 </p>
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="exports" className="mt-6">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto">
+            <ExportsSection
+              ticketId={ticketId}
+              ticketTitle={ticket.title}
+              ticketUpdatedAt={ticket.updatedAt}
+            />
           </div>
         </TabsContent>
 
