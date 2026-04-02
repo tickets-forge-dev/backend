@@ -317,23 +317,23 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
 
             {/* ── Minor tick pins (like clock minute marks) ── */}
             {zoom === 'hour' && ticks.map((tick, i) => {
-              // 5-minute interval pins between each hour tick
-              return [10, 20, 30, 40, 50].map((min) => {
+              // 5-minute interval pins: 10min=medium, 5min=small
+              return [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((min) => {
                 const minDate = new Date(tick.date.getTime() + min * 60_000);
                 if (minDate > rangeEnd) return null;
                 const mx = dateToX(minDate, rangeStart, zoom) + 30;
-                const is15 = min === 15 || min === 30 || min === 45;
+                const is10 = min % 10 === 0;
                 return (
                   <div
                     key={`minor-${i}-${min}`}
                     className="absolute"
                     style={{
                       left: mx,
-                      top: LINE_Y - (is15 ? 5 : 3),
+                      top: LINE_Y - (is10 ? 5 : 3),
                       transform: 'translateX(-50%)',
                       width: 1,
-                      height: is15 ? 10 : 6,
-                      background: is15 ? '#3f3f46' : '#27272a',
+                      height: is10 ? 10 : 6,
+                      background: is10 ? '#3f3f46' : '#27272a',
                     }}
                   />
                 );
