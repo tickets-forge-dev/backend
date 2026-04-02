@@ -53,9 +53,23 @@ function PreviewRunner() {
       // Install
       setStatus('installing');
       setMessage('Installing dependencies...');
-      const install = await container.spawn('npm', ['install', '--prefer-offline']);
+      const install = await container.spawn('npm', ['install']);
+      const installOutput: string[] = [];
+      install.output.pipeTo(new WritableStream({
+        write(chunk) {
+          installOutput.push(chunk);
+          // Show last meaningful line
+          const line = chunk.trim();
+          if (line && !line.startsWith('npm warn')) {
+            setMessage(`Installing... ${line.slice(0, 60)}`);
+          }
+        },
+      }));
       const code = await install.exit;
-      if (code !== 0) throw new Error(`npm install failed (exit ${code})`);
+      if (code !== 0) {
+        const errLines = installOutput.filter(l => l.includes('ERR') || l.includes('error')).join('\n').slice(0, 200);
+        throw new Error(`npm install failed:\n${errLines || 'Check console for details'}`);
+      }
 
       // Start dev server
       setStatus('starting');
