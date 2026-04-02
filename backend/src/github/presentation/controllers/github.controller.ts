@@ -175,7 +175,7 @@ export class GitHubController {
     const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'coverage', '.turbo', '__pycache__']);
     const SKIP_EXTENSIONS = new Set(['.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
     const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.bmp', '.svg']);
-    const MAX_FILE_SIZE = 100_000; // 100KB
+    const MAX_FILE_SIZE = 500_000; // 500KB — allows larger images for better preview experience
     const MAX_FILES = 200; // Keep under rate limits
 
     try {
