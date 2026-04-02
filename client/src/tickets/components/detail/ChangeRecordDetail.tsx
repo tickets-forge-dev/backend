@@ -105,18 +105,22 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
         </div>
       )}
 
-      {/* Quick stats bar — standalone only */}
-      {isStandalone && (
+      {/* Quick stats bar — standalone only, hidden when no file data */}
+      {isStandalone && (cr.filesChanged.length > 0 || canLink) && (
         <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center gap-5 text-[10px] text-[var(--text-tertiary)]">
-          <div className="flex items-center gap-1.5">
-            <FileCode2 className="w-3 h-3" />
-            <span className="text-[var(--text-secondary)] font-medium">{cr.filesChanged.length}</span>
-            <span>files</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-medium">+{totalAdded}</span>
-            <span className="font-medium">-{totalRemoved}</span>
-          </div>
+          {cr.filesChanged.length > 0 && (
+            <>
+              <div className="flex items-center gap-1.5">
+                <FileCode2 className="w-3 h-3" />
+                <span className="text-[var(--text-secondary)] font-medium">{cr.filesChanged.length}</span>
+                <span>files</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">+{totalAdded}</span>
+                <span className="font-medium">-{totalRemoved}</span>
+              </div>
+            </>
+          )}
           {cr.hasDivergence && (
             <div className="flex items-center gap-1">
               <span>{cr.divergences.length} divergence{cr.divergences.length !== 1 ? 's' : ''}</span>
