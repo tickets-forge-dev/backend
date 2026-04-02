@@ -3,7 +3,7 @@
 import type { AECResponse } from '@/services/ticket.service';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { DivergenceCard } from './DivergenceCard';
-import { ExternalLink, CheckCircle2, FileCode2, GitBranch, GitCompareArrows, GitPullRequest, Play } from 'lucide-react';
+import { ExternalLink, CheckCircle2, FileCode2, GitBranch, GitCompareArrows, GitPullRequest, Play, Clock, User } from 'lucide-react';
 
 /**
  * Unified change record detail — single source of truth for record display.
@@ -106,42 +106,49 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
       )}
 
       {/* Quick stats bar — standalone only, hidden when no file data */}
-      {isStandalone && (cr.filesChanged.length > 0 || canLink) && (
+      {isStandalone && cr.filesChanged.length > 0 && (
         <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center gap-5 text-[10px] text-[var(--text-tertiary)]">
-          {cr.filesChanged.length > 0 && (
-            <>
-              <div className="flex items-center gap-1.5">
-                <FileCode2 className="w-3 h-3" />
-                <span className="text-[var(--text-secondary)] font-medium">{cr.filesChanged.length}</span>
-                <span>files</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">+{totalAdded}</span>
-                <span className="font-medium">-{totalRemoved}</span>
-              </div>
-            </>
-          )}
+          <div className="flex items-center gap-1.5">
+            <FileCode2 className="w-3 h-3" />
+            <span className="text-[var(--text-secondary)] font-medium">{cr.filesChanged.length}</span>
+            <span>files</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-emerald-500/70">+{totalAdded}</span>
+            <span className="font-medium text-red-500/70">-{totalRemoved}</span>
+          </div>
           {cr.hasDivergence && (
             <div className="flex items-center gap-1">
               <span>{cr.divergences.length} divergence{cr.divergences.length !== 1 ? 's' : ''}</span>
             </div>
-          )}
-          {canLink && (
-            <a
-              href={`https://github.com/${ticket.repositoryContext!.repositoryFullName}/tree/${ticket.implementationBranch}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 hover:text-[var(--text-secondary)] transition-colors ml-auto"
-            >
-              <GitBranch className="w-3 h-3" />
-              <span className="font-mono truncate max-w-[140px]">{ticket.implementationBranch}</span>
-            </a>
           )}
         </div>
       )}
 
       {/* ── Content (identical in both variants) ── */}
       <div className={isStandalone ? 'px-4 py-3 space-y-4' : 'px-5 py-4 space-y-5'}>
+        {/* Metadata row */}
+        <div className="flex items-center gap-4 flex-wrap text-[11px] text-[var(--text-tertiary)]">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3 h-3" />
+            <span>{new Date(cr.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span className="opacity-40">·</span>
+            <span>{new Date(cr.submittedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          {turnaround && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[var(--text-secondary)] font-medium">{turnaround}</span>
+              <span>turnaround</span>
+            </div>
+          )}
+          {(devName || creatorName) && (
+            <div className="flex items-center gap-1.5">
+              <User className="w-3 h-3" />
+              <span>{devName || creatorName}</span>
+            </div>
+          )}
+        </div>
+
         {/* Summary */}
         <div>
           <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium mb-1">Summary</div>
