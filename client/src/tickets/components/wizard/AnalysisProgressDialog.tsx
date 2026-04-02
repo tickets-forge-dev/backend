@@ -133,6 +133,11 @@ export function AnalysisProgressDialog({
     }
   }, [normalizedPhase]);
 
+  // Debug: log phase changes
+  useEffect(() => {
+    console.log('[AnalysisDialog] phase:', currentPhase, '→ normalized:', normalizedPhase, 'percent:', percent);
+  }, [currentPhase, normalizedPhase, percent]);
+
   // Determine which phases are complete, in-progress, and pending
   const getPhaseStatus = (phaseKey: string): 'pending' | 'in_progress' | 'complete' => {
     if (phaseKey === normalizedPhase) return 'in_progress';
