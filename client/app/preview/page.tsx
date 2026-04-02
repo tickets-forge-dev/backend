@@ -46,6 +46,24 @@ function PreviewRunner() {
       const container = await WebContainer.boot();
       (window as any).__wc = container;
 
+      // Clean package.json — strip workspace: protocol (pnpm-only, npm can't handle it)
+      if (files['package.json']) {
+        try {
+          const pkg = JSON.parse(files['package.json']);
+          const cleanDeps = (deps: Record<string, string> | undefined) => {
+            if (!deps) return;
+            for (const [key, value] of Object.entries(deps)) {
+              if (typeof value === 'string' && value.startsWith('workspace:')) {
+                delete deps[key]; // Remove workspace deps — they're internal packages not available here
+              }
+            }
+          };
+          cleanDeps(pkg.dependencies);
+          cleanDeps(pkg.devDependencies);
+          files['package.json'] = JSON.stringify(pkg, null, 2);
+        } catch {}
+      }
+
       // Mount files
       setMessage('Mounting files...');
       await container.mount(buildMountStructure(files));
