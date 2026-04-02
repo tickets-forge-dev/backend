@@ -13,7 +13,61 @@ import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { ChangeRecordTab } from './ChangeRecordTab';
 import { Button } from '@/core/components/ui/button';
-import DOMPurify from 'isomorphic-dompurify';
+/** Highlight XML syntax using React elements — no dangerouslySetInnerHTML needed. */
+function highlightXmlLine(line: string): React.ReactNode[] {
+  const tokens: React.ReactNode[] = [];
+  let remaining = line;
+  let key = 0;
+
+  const patterns: Array<{ re: RegExp; render: (m: RegExpMatchArray) => React.ReactNode }> = [
+    // Processing instructions: <?xml ...?>
+    { re: /^(<\?.*?\?>)/, render: (m) => <span key={key++} className="text-[#71717a]">{m[1]}</span> },
+    // Comments: <!-- ... -->
+    { re: /^(<!--.*?-->)/, render: (m) => <span key={key++} className="text-[#525252]">{m[1]}</span> },
+    // CDATA: <![CDATA[ ... ]]>
+    { re: /^(<!\[CDATA\[)(.*?)(\]\]>)/, render: (m) => <>{<span key={key++} className="text-[#71717a]">{m[1]}</span>}{<span key={key++} className="text-amber-300/80">{m[2]}</span>}{<span key={key++} className="text-[#71717a]">{m[3]}</span>}</> },
+    // Closing tags: </tag>
+    { re: /^(<\/)([\w-]+)(>)/, render: (m) => <>{<span key={key++} className="text-[#525252]">{m[1]}</span>}{<span key={key++} className="text-blue-400/80">{m[2]}</span>}{<span key={key++} className="text-[#525252]">{m[3]}</span>}</> },
+    // Opening/self-closing tags with attributes
+    { re: /^(<)([\w-]+)((?:\s+[\w-]+="[^"]*")*)(\/?>)/, render: (m) => {
+      const attrParts: React.ReactNode[] = [];
+      const attrStr = m[3];
+      let attrRem = attrStr;
+      while (attrRem) {
+        const am = attrRem.match(/^(\s+)([\w-]+)(=")([^"]*)(")/);
+        if (!am) { attrParts.push(<span key={key++}>{attrRem}</span>); break; }
+        attrParts.push(<span key={key++}>{am[1]}</span>);
+        attrParts.push(<span key={key++} className="text-purple-400/70">{am[2]}</span>);
+        attrParts.push(<span key={key++}>{am[3]}</span>);
+        attrParts.push(<span key={key++} className="text-green-400/70">{am[4]}</span>);
+        attrParts.push(<span key={key++}>{am[5]}</span>);
+        attrRem = attrRem.slice(am[0].length);
+      }
+      return <>{<span key={key++} className="text-[#525252]">{m[1]}</span>}{<span key={key++} className="text-blue-400/80">{m[2]}</span>}{...attrParts}{<span key={key++} className="text-[#525252]">{m[4]}</span>}</>;
+    }},
+  ];
+
+  while (remaining.length > 0) {
+    let matched = false;
+    for (const { re, render } of patterns) {
+      const m = remaining.match(re);
+      if (m) {
+        tokens.push(render(m));
+        remaining = remaining.slice(m[0].length);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      // Consume one character of plain text
+      const nextTag = remaining.indexOf('<', 1);
+      const chunk = nextTag === -1 ? remaining : remaining.slice(0, nextTag);
+      tokens.push(<span key={key++}>{chunk}</span>);
+      remaining = remaining.slice(chunk.length);
+    }
+  }
+  return tokens;
+}
 import {
   AlertDialog,
   AlertDialogAction,
@@ -855,24 +909,12 @@ export function TicketDetailLayout({
                   <div className="border-t border-[var(--border-subtle)]">
                     <div className="relative">
                       <pre className="px-5 py-4 overflow-x-auto text-[12px] leading-relaxed font-mono max-h-[500px] overflow-y-auto scrollbar-thin">
-                        {aecXml.split('\n').map((line, i) => {
-                          const highlighted = line
-                            .replace(/(<\?.*?\?>)/g, '<span class="text-[#71717a]">$1</span>')
-                            .replace(/(<!--.*?-->)/g, '<span class="text-[#525252]">$1</span>')
-                            .replace(/(<!\[CDATA\[)(.*?)(\]\]>)/g, '<span class="text-[#71717a]">$1</span><span class="text-amber-300/80">$2</span><span class="text-[#71717a]">$3</span>')
-                            .replace(/(<\/)([\w-]+)(>)/g, '<span class="text-[#525252]">$1</span><span class="text-blue-400/80">$2</span><span class="text-[#525252]">$3</span>')
-                            .replace(/(<)([\w-]+)((?:\s+[\w-]+="[^"]*")*)(\/?>)/g, (_m, lt, tag, attrs, gt) => {
-                              const highlightedAttrs = attrs.replace(/([\w-]+)=("(?:[^"])*")/g, '<span class="text-purple-400/70">$1</span>=<span class="text-green-400/70">$2</span>');
-                              return `<span class="text-[#525252]">${lt}</span><span class="text-blue-400/80">${tag}</span>${highlightedAttrs}<span class="text-[#525252]">${gt}</span>`;
-                            });
-
-                          return (
-                            <div key={i} className="flex">
-                              <span className="select-none text-[#3f3f46] w-8 text-right mr-4 flex-shrink-0">{i + 1}</span>
-                              <span className="text-[var(--text-secondary)]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlighted) }} />
-                            </div>
-                          );
-                        })}
+                        {aecXml.split('\n').map((line, i) => (
+                          <div key={i} className="flex">
+                            <span className="select-none text-[#3f3f46] w-8 text-right mr-4 flex-shrink-0">{i + 1}</span>
+                            <span className="text-[var(--text-secondary)]">{highlightXmlLine(line)}</span>
+                          </div>
+                        ))}
                       </pre>
                     </div>
                   </div>
