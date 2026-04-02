@@ -294,7 +294,7 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
                   ticket.repositoryContext!.repositoryFullName,
                   ticket.implementationBranch || ticket.repositoryContext!.branchName || 'main',
                 )}
-                className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors ml-auto"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors ml-auto text-[11px] font-medium"
                 title="Run project in browser"
               >
                 <Play className="w-3 h-3" fill="currentColor" />
