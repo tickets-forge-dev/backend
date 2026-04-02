@@ -117,16 +117,16 @@ export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
         </div>
       )}
 
-      {/* Preview button — only when PR exists (branch was actually pushed) */}
-      {onPreview && summary.branch && summary.repoFullName && summary.prUrl && (
+      {/* Run button — only when PR exists (branch was actually pushed) */}
+      {onPreview && summary.repoFullName && summary.prUrl && (
         <button
-          onClick={() => onPreview(summary.repoFullName!, summary.branch!)}
+          onClick={() => onPreview(summary.repoFullName!, summary.branch || 'main')}
           className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
         >
           <Play className="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" />
           <div className="flex-1 text-left">
-            <div className="text-[13px] text-emerald-500 font-medium">Preview</div>
-            <div className="text-[11px] text-emerald-500/60">Run the implementation in browser</div>
+            <div className="text-[13px] text-emerald-500 font-medium">Run</div>
+            <div className="text-[11px] text-emerald-500/60">Launch the project in your browser</div>
           </div>
         </button>
       )}

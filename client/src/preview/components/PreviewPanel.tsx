@@ -20,8 +20,8 @@ const STATUS_LABELS: Record<PreviewStatus, string> = {
   booting: 'Booting WebContainer...',
   installing: 'Installing dependencies...',
   starting: 'Starting dev server...',
-  ready: 'Preview ready',
-  error: 'Preview failed',
+  ready: 'Running',
+  error: 'Failed to start',
 };
 
 // Singleton WebContainer instance (only one allowed per page)

@@ -1923,7 +1923,7 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
                 ticket.repositoryContext.branchName || 'main',
               );
             }}
-            title="Preview project"
+            title="Run project in browser"
           >
             <Play className="h-3.5 w-3.5" fill="currentColor" />
           </button>
