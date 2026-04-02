@@ -236,7 +236,7 @@ export class GitHubController {
           score -= depth * 2;
           if (dir === '') score += 3;
           if (score > bestScore) { bestScore = score; bestRoot = dir; }
-        } catch {}
+        } catch { /* ignore non-JSON package.json */ }
       }
 
       this.logger.log(`Preview: detected web app root="${bestRoot || '(repo root)'}" score=${bestScore}`);
