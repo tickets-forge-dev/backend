@@ -941,11 +941,13 @@ export function TicketDetailLayout({
                 <div className="w-10 h-10 rounded-full bg-[var(--bg-hover)] flex items-center justify-center mb-3">
                   <GitPullRequest className="h-5 w-5 text-[var(--text-tertiary)]" />
                 </div>
-                <p className="text-sm text-[var(--text-secondary)] mb-1">No runs yet</p>
-                <p className="text-[13px] text-[var(--text-tertiary)] max-w-sm">
+                <p className="text-[14px] text-[var(--text-secondary)] mb-2">
+                  {ticket.status === 'executing' ? 'Development in progress...' : 'No runs yet'}
+                </p>
+                <p className="text-[12px] text-[var(--text-tertiary)] max-w-md leading-relaxed">
                   {ticket.status === 'executing'
-                    ? 'Development is in progress. Results will appear here when complete.'
-                    : 'Click Develop to start an AI development session. The run results, changes, and decisions will appear here.'}
+                    ? 'AI is implementing your ticket. The run record will appear here when complete — including every file changed, decision made, and test run.'
+                    : 'When you run development — via Cloud Develop or the CLI — a full record is created here: files changed, decisions made, tests run, and the PR link. You can review, re-run, or roll back.'}
                 </p>
               </div>
             )}
