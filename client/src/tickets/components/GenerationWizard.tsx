@@ -336,8 +336,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {renderStage()}
       </div>
 
-      {/* Progress Dialog — shown during both foreground analysis and background job generation */}
-      {loading && (resolvedPhase || currentPhase) && (
+      {/* Progress Dialog — shown during analysis, hidden once complete */}
+      {loading && (resolvedPhase || currentPhase) && currentPhase !== 'complete' && (
         <AnalysisProgressDialog
           currentPhase={resolvedPhase}
           message={loadingMessage}
