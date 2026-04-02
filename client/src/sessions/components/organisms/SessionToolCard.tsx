@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Terminal, Search, Wrench } from 'lucide-react';
+import { FileText, Terminal, Search, Wrench, FilePlus, ChevronDown, ChevronRight } from 'lucide-react';
 import type { SessionEvent } from '../../types/session.types';
 import { StatusIcon } from '../atoms/StatusIcon';
 import { DiffStats } from '../atoms/DiffStats';
-import { ExpandableCard } from '../molecules/ExpandableCard';
 
 interface SessionToolCardProps {
   event: SessionEvent;
@@ -14,14 +13,18 @@ interface SessionToolCardProps {
 const TOOL_ICONS: Record<string, typeof FileText> = {
   Read: FileText,
   Edit: FileText,
-  Write: FileText,
+  Write: FilePlus,
   Bash: Terminal,
   Glob: Search,
   Grep: Search,
 };
 
 export function SessionToolCard({ event }: SessionToolCardProps) {
-  const [expanded, setExpanded] = useState(false);
+  const isDiff = event.type === 'event.file_diff' && event.oldString && event.newString;
+  const isCreate = event.type === 'event.file_create';
+
+  // Diffs and new files are expanded by default — they're the most valuable
+  const [expanded, setExpanded] = useState(isDiff || isCreate);
   const completed = !!event.completed;
   const Icon = TOOL_ICONS[event.tool ?? ''] ?? Wrench;
 
@@ -31,54 +34,86 @@ export function SessionToolCard({ event }: SessionToolCardProps) {
       ? `$ ${event.command}`
       : event.tool ?? 'Working...';
 
-  const additions = event.type === 'event.file_diff' && event.newString
+  const additions = isDiff && event.newString
     ? event.newString.split('\n').length
-    : event.type === 'event.file_create'
-      ? undefined
-      : undefined;
+    : undefined;
 
-  const deletions = event.type === 'event.file_diff' && event.oldString
+  const deletions = isDiff && event.oldString
     ? event.oldString.split('\n').length
     : undefined;
 
-  const detail = event.type === 'event.file_create'
-    ? <span className="text-[11px] text-emerald-500">new</span>
-    : <DiffStats additions={additions} deletions={deletions} />;
-
-  const hasExpandableContent = !!(event.output || (event.type === 'event.file_diff' && event.oldString && event.newString));
-
-  const header = (
-    <>
-      <Icon className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
-      <span className="text-[var(--text-secondary)] truncate flex-1 text-left font-mono">
-        {label}
-      </span>
-      {detail}
-      <StatusIcon
-        status={completed ? 'completed' : 'loading'}
-        color={completed ? 'emerald' : 'blue'}
-      />
-    </>
-  );
+  const hasContent = !!(event.output || isDiff || (isCreate && event.content));
+  const Chevron = expanded ? ChevronDown : ChevronRight;
 
   return (
     <div className="ml-7">
-      <ExpandableCard header={header}>
-        {event.output && (
-          <div className="p-3 max-h-48 overflow-y-auto scrollbar-thin">
-            <pre className="text-[11px] font-mono text-[var(--text-tertiary)] whitespace-pre-wrap break-all">
-              {event.output}
-            </pre>
-          </div>
+      {/* Header — always visible */}
+      <button
+        onClick={() => hasContent && setExpanded(!expanded)}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-[12px] transition-colors ${
+          hasContent ? 'hover:bg-[var(--bg-hover)] cursor-pointer' : 'cursor-default'
+        } ${expanded ? 'bg-[var(--bg-hover)]/50' : ''}`}
+      >
+        {hasContent && <Chevron className="w-3 h-3 text-[var(--text-tertiary)] flex-shrink-0" />}
+        <Icon className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
+        <span className="text-[var(--text-secondary)] truncate flex-1 text-left font-mono text-[11px]">
+          {label}
+        </span>
+        {isCreate && (
+          <span className="text-[10px] font-medium text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">new</span>
         )}
+        {isDiff && <DiffStats additions={additions} deletions={deletions} />}
+        <StatusIcon
+          status={completed ? 'completed' : 'loading'}
+          color={completed ? 'emerald' : 'blue'}
+        />
+      </button>
 
-        {event.type === 'event.file_diff' && event.oldString && event.newString && (
-          <div className="p-3 font-mono text-[11px] leading-relaxed">
-            <div className="text-red-500">- {event.oldString}</div>
-            <div className="text-emerald-500">+ {event.newString}</div>
-          </div>
-        )}
-      </ExpandableCard>
+      {/* Expanded content */}
+      {expanded && hasContent && (
+        <div className="ml-5 mt-1 rounded-md border border-[var(--border-subtle)] overflow-hidden">
+          {/* Diff view */}
+          {isDiff && event.oldString && event.newString && (
+            <div className="font-mono text-[11px] leading-relaxed overflow-x-auto">
+              {event.oldString.split('\n').map((line, i) => (
+                <div key={`old-${i}`} className="px-3 py-0.5 bg-red-500/5 text-red-400">
+                  <span className="select-none text-red-500/40 mr-2">-</span>{line}
+                </div>
+              ))}
+              {event.newString.split('\n').map((line, i) => (
+                <div key={`new-${i}`} className="px-3 py-0.5 bg-emerald-500/5 text-emerald-400">
+                  <span className="select-none text-emerald-500/40 mr-2">+</span>{line}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* New file content */}
+          {isCreate && event.content && (
+            <div className="font-mono text-[11px] leading-relaxed overflow-x-auto max-h-64 overflow-y-auto">
+              {event.content.split('\n').slice(0, 50).map((line, i) => (
+                <div key={i} className="px-3 py-0.5 bg-emerald-500/5 text-emerald-400">
+                  <span className="select-none text-emerald-500/20 mr-2 text-[9px] w-4 inline-block text-right">{i + 1}</span>{line}
+                </div>
+              ))}
+              {event.content.split('\n').length > 50 && (
+                <div className="px-3 py-1 text-[10px] text-[var(--text-tertiary)] bg-[var(--bg-hover)]">
+                  +{event.content.split('\n').length - 50} more lines
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Command output */}
+          {event.output && (
+            <div className="p-3 max-h-48 overflow-y-auto">
+              <pre className="text-[11px] font-mono text-[var(--text-tertiary)] whitespace-pre-wrap break-all">
+                {event.output}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
