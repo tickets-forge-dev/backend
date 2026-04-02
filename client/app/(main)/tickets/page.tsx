@@ -206,7 +206,7 @@ export default function TicketsListPage() {
 
   // Compute visible columns and grid template
   const visibleColumns = useMemo(() => columnConfig.order.filter(c => !columnConfig.hidden.has(c)), [columnConfig]);
-  const columnWidths: Record<ColumnId, string> = { status: '120px', priority: '72px', assignee: '100px', creator: '80px', updated: '64px', score: '44px' };
+  const columnWidths: Record<ColumnId, string> = { status: '120px', priority: '72px', assignee: '100px', creator: '80px', updated: '64px' };
   const mdGridTemplate = useMemo(() => `minmax(0, 1fr) ${visibleColumns.map(c => columnWidths[c]).join(' ')} 32px`, [visibleColumns]);
 
   // Split folders into private and team sections
