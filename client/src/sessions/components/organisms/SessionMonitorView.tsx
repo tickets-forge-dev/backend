@@ -148,9 +148,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
     );
   }
 
-  if (status === 'provisioning') {
-    return <SessionProvisioningView onCancel={cancelSession} />;
-  }
+  // Provisioning is shown inline in the session thread below (not a separate view)
 
   if (status === 'failed') {
     const needsApproval = (error?.toLowerCase().includes('must be approved') || error?.toLowerCase().includes('approved status'))
@@ -190,6 +188,20 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         verbose={verbose}
         onToggleVerbose={() => setVerbose(v => !v)}
       />
+
+      {/* Provisioning — inline in the thread */}
+      {status === 'provisioning' && (
+        <div className="flex items-center gap-3 py-6 justify-center">
+          <Loader2 className="w-4 h-4 text-[var(--text-tertiary)] animate-spin" />
+          <span className="text-[13px] text-[var(--text-secondary)]">Setting up environment...</span>
+          <button
+            onClick={cancelSession}
+            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] ml-2"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Event stream */}
       <div className="space-y-4">
