@@ -129,9 +129,15 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
     }
   }, [repoFullName, activeBranch, gitHubService, addLog]);
 
-  // Start preview when panel opens
+  // Start preview when panel opens — also cleanup any old WebContainer from parent
   useEffect(() => {
     if (open && status === 'idle') {
+      // Teardown any WebContainer that was booted directly in the parent page (legacy)
+      const oldWc = (window as any).__webcontainer;
+      if (oldWc) {
+        try { oldWc.teardown(); } catch {}
+        delete (window as any).__webcontainer;
+      }
       startPreview();
     }
     return () => { abortRef.current = true; };

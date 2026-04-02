@@ -48,16 +48,19 @@ function PreviewRunner() {
         throw new Error('No package.json found');
       }
 
-      // 2. Boot WebContainer
+      // 2. Boot WebContainer (teardown existing if any)
       setStatus('booting');
       setMessage('Booting environment...');
       notifyParent({ type: 'status', status: 'booting' });
 
       let container = getContainer();
-      if (!container) {
-        container = await WebContainer.boot();
-        setContainer(container);
+      if (container) {
+        try { container.teardown(); } catch {}
+        setContainer(null as any);
+        container = null;
       }
+      container = await WebContainer.boot();
+      setContainer(container);
 
       // 3. Mount files
       setMessage('Mounting files...');
