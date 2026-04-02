@@ -270,11 +270,11 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
 
   if (tickets.length === 0) return null;
 
-  const LINE_Y = 38; // vertical position of the timeline line
+  const LINE_Y = 48; // vertical position of the timeline line
 
   return (
     <div
-      className="rounded-[10px] border border-[#8b5cf620] overflow-hidden"
+      className="rounded-[10px] border border-[#8b5cf620] overflow-x-clip overflow-y-visible relative"
       style={{ background: 'linear-gradient(180deg, #110d1c 0%, #13101e 50%, var(--bg-subtle) 100%)' }}
     >
       <div className="relative">
@@ -284,40 +284,88 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
         </div>
 
         <div ref={scrollRef} onMouseDown={onMouseDown} className="overflow-x-auto timeline-scroll cursor-grab">
-          <div className="relative" style={{ width: totalWidth, height: 72, minWidth: '100%' }}>
+          <div className="relative" style={{ width: totalWidth, height: 110, minWidth: '100%' }}>
             {/* ── Date tick marks ── */}
             {ticks.map((tick, i) => {
               const x = dateToX(tick.date, rangeStart, zoom) + 30; // 30px left pad
               return (
-                <div key={i} className="absolute" style={{ left: x, top: 0, transform: 'translateX(-50%)' }}>
+                <div key={`tick-${i}`} className="absolute" style={{ left: x, top: 0, transform: 'translateX(-50%)' }}>
                   {/* Tick label */}
                   <div
                     className={`text-center whitespace-nowrap select-none ${
                       tick.isMonth
-                        ? 'text-[9px] font-medium text-[#52525b]'
-                        : 'text-[8px] text-[#3f3f46]'
+                        ? 'text-[11px] font-medium text-[#71717a]'
+                        : 'text-[10px] text-[#52525b]'
                     }`}
-                    style={{ marginTop: 6 }}
+                    style={{ marginTop: 8 }}
                   >
                     {tick.label}
                   </div>
-                  {/* Tick line */}
+                  {/* Tick line — major */}
                   <div
                     className="mx-auto"
                     style={{
                       width: 1,
-                      height: tick.isMonth ? 8 : 4,
-                      marginTop: 2,
-                      background: tick.isMonth ? '#3f3f46' : '#27272a',
+                      height: tick.isMonth ? 10 : 6,
+                      marginTop: 3,
+                      background: tick.isMonth ? '#52525b' : '#3f3f46',
                     }}
                   />
                 </div>
               );
             })}
 
+            {/* ── Minor tick pins (like clock minute marks) ── */}
+            {zoom === 'hour' && ticks.map((tick, i) => {
+              // 5-minute interval pins: 10min=medium, 5min=small
+              return [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((min) => {
+                const minDate = new Date(tick.date.getTime() + min * 60_000);
+                if (minDate > rangeEnd) return null;
+                const mx = dateToX(minDate, rangeStart, zoom) + 30;
+                const is10 = min % 10 === 0;
+                return (
+                  <div
+                    key={`minor-${i}-${min}`}
+                    className="absolute"
+                    style={{
+                      left: mx,
+                      top: LINE_Y - (is10 ? 5 : 3),
+                      transform: 'translateX(-50%)',
+                      width: 1,
+                      height: is10 ? 10 : 6,
+                      background: is10 ? '#3f3f46' : '#27272a',
+                    }}
+                  />
+                );
+              });
+            })}
+            {zoom === 'day' && ticks.map((tick, i) => {
+              // 6-hour interval pins between each day tick
+              return [6, 12, 18].map((h) => {
+                const hDate = new Date(tick.date.getTime() + h * 3_600_000);
+                if (hDate > rangeEnd) return null;
+                const hx = dateToX(hDate, rangeStart, zoom) + 30;
+                const isNoon = h === 12;
+                return (
+                  <div
+                    key={`minor-${i}-${h}`}
+                    className="absolute"
+                    style={{
+                      left: hx,
+                      top: LINE_Y - (isNoon ? 4 : 3),
+                      transform: 'translateX(-50%)',
+                      width: 1,
+                      height: isNoon ? 8 : 6,
+                      background: isNoon ? '#3f3f46' : '#27272a',
+                    }}
+                  />
+                );
+              });
+            })}
+
             {/* ── The purple timeline line ── */}
             <div
-              className="absolute left-0 right-0 h-[1.5px]"
+              className="absolute left-0 right-0 h-[2px]"
               style={{
                 top: LINE_Y,
                 background:
@@ -364,6 +412,26 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                         background: '#8b5cf60a',
                       }}
                     />
+                    {/* Hover tooltip — above the dot */}
+                    <div className="hidden group-hover:block absolute bottom-[16px] left-1/2 -translate-x-1/2 z-50 pb-1 pointer-events-none">
+                      <div className="bg-[#1c1c24] border border-[#2a2a35] rounded-lg shadow-xl px-3 py-2.5 min-w-[180px] max-w-[240px]">
+                        <div className="text-[11px] font-medium text-[#e4e4e7] leading-tight mb-1.5">{t.title}</div>
+                        <div className="flex items-center gap-2 text-[10px] text-[#71717a]">
+                          <span>{new Date(cr.submittedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="opacity-40">·</span>
+                          <span>{new Date(cr.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          {cr.filesChanged.length > 0 && (
+                            <>
+                              <span className="opacity-40">·</span>
+                              <span>{cr.filesChanged.length} files</span>
+                            </>
+                          )}
+                        </div>
+                        {cr.executionSummary && (
+                          <div className="text-[10px] text-[#52525b] mt-1.5 leading-snug line-clamp-2">{cr.executionSummary}</div>
+                        )}
+                      </div>
+                    </div>
                     {/* Pulse ring on latest record */}
                     {isLatest && !isSelected && (
                       <div
@@ -383,8 +451,8 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                     <div
                       className="rounded-full transition-all duration-200 group-hover:scale-[1.4]"
                       style={{
-                        width: isSelected ? 10 : 7,
-                        height: isSelected ? 10 : 7,
+                        width: isSelected ? 12 : 9,
+                        height: isSelected ? 12 : 9,
                         background: isSelected ? '#a78bfa' : '#8b5cf6',
                         boxShadow: isSelected
                           ? '0 0 0 2px #13101e, 0 0 0 3.5px #8b5cf644, 0 0 14px #8b5cf644'
@@ -394,18 +462,20 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                     />
                     {/* Label below */}
                     <div
-                      className={`absolute top-[14px] left-1/2 -translate-x-1/2 whitespace-nowrap text-center transition-all duration-200 ${
+                      className={`absolute top-[16px] left-1/2 -translate-x-1/2 whitespace-nowrap text-center transition-all duration-200 ${
                         isSelected
                           ? 'text-[#c4b5fd]'
                           : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] group-hover:translate-y-[2px]'
                       }`}
                     >
-                      <div className={`text-[9px] max-w-[80px] truncate ${isSelected ? 'font-medium' : ''}`}>
+                      <div className={`text-[11px] max-w-[160px] leading-tight ${isSelected ? 'font-medium' : ''}`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal' }}>
                         {t.title}
                       </div>
-                      <div className="text-[7px] opacity-60">
-                        {cr.filesChanged.length} files
-                      </div>
+                      {cr.filesChanged.length > 0 && (
+                        <div className="text-[9px] opacity-60">
+                          {cr.filesChanged.length} files
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
@@ -471,7 +541,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                   </button>
                   {/* Label below */}
                   <div className="absolute top-[14px] left-1/2 -translate-x-1/2 whitespace-nowrap text-center pointer-events-none">
-                    <div className={`text-[9px] font-medium ${containsSelected ? 'text-[#c4b5fd]' : 'text-[var(--text-tertiary)]'}`}>
+                    <div className={`text-[11px] font-medium ${containsSelected ? 'text-[#c4b5fd]' : 'text-[var(--text-tertiary)]'}`}>
                       {group.tickets.length} records
                     </div>
                   </div>
@@ -486,8 +556,8 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                 const x = dateToX(today, rangeStart, zoom) + 30;
                 return (
                   <div className="absolute pointer-events-none" style={{ left: x, top: LINE_Y - 16, transform: 'translateX(-50%)' }}>
-                    <div className="text-[7px] text-emerald-500/60 font-medium text-center mb-[2px]">today</div>
-                    <div className="w-px h-[18px] bg-emerald-500/20 mx-auto" />
+                    <div className="text-[9px] text-emerald-500/70 font-medium text-center mb-[2px]">today</div>
+                    <div className="w-px h-[22px] bg-emerald-500/25 mx-auto" />
                   </div>
                 );
               }
