@@ -75,20 +75,26 @@ function PreviewRunner() {
 
       // Install
       setStatus('installing');
-      setMessage('Installing dependencies...');
+      const installStart = Date.now();
+      const timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - installStart) / 1000);
+        setMessage(`Installing dependencies... (${elapsed}s)`);
+      }, 1000);
+
       const install = await container.spawn('npm', ['install', '--legacy-peer-deps', '--no-package-lock']);
       const installOutput: string[] = [];
       install.output.pipeTo(new WritableStream({
         write(chunk) {
           installOutput.push(chunk);
-          // Show last meaningful line
           const line = chunk.trim();
-          if (line && !line.startsWith('npm warn')) {
-            setMessage(`Installing... ${line.slice(0, 60)}`);
+          if (line.length > 3 && !line.startsWith('npm warn') && !/^[/\\|\\-]$/.test(line)) {
+            const elapsed = Math.floor((Date.now() - installStart) / 1000);
+            setMessage(`Installing (${elapsed}s)... ${line.slice(0, 50)}`);
           }
         },
       }));
       const code = await install.exit;
+      clearInterval(timerInterval);
       if (code !== 0) {
         const errLines = installOutput.filter(l => l.includes('ERR') || l.includes('error')).join('\n').slice(0, 200);
         throw new Error(`npm install failed:\n${errLines || 'Check console for details'}`);
