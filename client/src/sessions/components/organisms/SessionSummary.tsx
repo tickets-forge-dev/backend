@@ -110,13 +110,6 @@ export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
         </div>
       )}
 
-      {/* Simulated warning — when no PR was created, the sandbox likely didn't push */}
-      {summary.branch && !summary.prUrl && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 border border-amber-500/15">
-          <span className="text-[11px] text-amber-500">Simulated — branch not pushed to GitHub. Connect a real sandbox to create branches and PRs.</span>
-        </div>
-      )}
-
       {/* Run button — available when repo is known */}
       {onPreview && summary.repoFullName && (
         <button
