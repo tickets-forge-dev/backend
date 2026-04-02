@@ -274,7 +274,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
 
   return (
     <div
-      className="rounded-[10px] border border-[#8b5cf620] overflow-hidden"
+      className="rounded-[10px] border border-[#8b5cf620] overflow-x-clip overflow-y-visible relative"
       style={{ background: 'linear-gradient(180deg, #110d1c 0%, #13101e 50%, var(--bg-subtle) 100%)' }}
     >
       <div className="relative">
@@ -413,7 +413,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                       }}
                     />
                     {/* Hover tooltip — above the dot */}
-                    <div className="hidden group-hover:block absolute bottom-[16px] left-1/2 -translate-x-1/2 z-30 pb-1 pointer-events-none">
+                    <div className="hidden group-hover:block absolute bottom-[16px] left-1/2 -translate-x-1/2 z-50 pb-1 pointer-events-none">
                       <div className="bg-[#1c1c24] border border-[#2a2a35] rounded-lg shadow-xl px-3 py-2.5 min-w-[180px] max-w-[240px]">
                         <div className="text-[11px] font-medium text-[#e4e4e7] leading-tight mb-1.5">{t.title}</div>
                         <div className="flex items-center gap-2 text-[10px] text-[#71717a]">
