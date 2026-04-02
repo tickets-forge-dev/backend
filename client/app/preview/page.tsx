@@ -1,93 +1,68 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { WebContainer } from '@webcontainer/api';
-import { Suspense } from 'react';
 
 /**
- * Standalone Preview Page — runs at /preview?repo=owner/name&branch=main
+ * Standalone Preview Page — /preview?repo=owner/name&branch=main
  *
- * This page has COEP/COOP headers (via next.config.js) that enable
- * SharedArrayBuffer for WebContainer. It's loaded inside an iframe
- * from the PreviewPanel slide-over.
+ * This page has COEP/COOP headers (via next.config.js) enabling
+ * SharedArrayBuffer for WebContainer. It runs in its own tab
+ * (not iframe) because cross-origin isolation can't be inherited.
  *
- * Communicates with the parent via postMessage:
- * - parent → iframe: { type: 'start', repo, branch, files }
- * - iframe → parent: { type: 'status', status, message }
- * - iframe → parent: { type: 'ready', url }
- * - iframe → parent: { type: 'error', message }
+ * Files are passed via sessionStorage (set by PreviewPanel).
  */
 
-type Status = 'waiting' | 'booting' | 'installing' | 'starting' | 'ready' | 'error';
-
-// Persist WebContainer on window to survive React re-renders
-function getContainer(): WebContainer | null {
-  return (window as any).__wc ?? null;
-}
-function setContainer(wc: WebContainer) {
-  (window as any).__wc = wc;
-}
+type Status = 'loading' | 'booting' | 'installing' | 'starting' | 'ready' | 'error';
 
 function PreviewRunner() {
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<Status>('waiting');
-  const [message, setMessage] = useState('Waiting for files...');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const repo = searchParams.get('repo') || '';
+  const branch = searchParams.get('branch') || 'main';
 
-  const notifyParent = useCallback((data: any) => {
-    window.parent?.postMessage(data, '*');
-  }, []);
+  const [status, setStatus] = useState<Status>('loading');
+  const [message, setMessage] = useState('Loading project files...');
+  const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const runPreview = useCallback(async (files: Record<string, string>) => {
     try {
-      // 1. Check for package.json
       if (!files['package.json']) {
         throw new Error('No package.json found');
       }
 
-      // 2. Boot WebContainer (teardown existing if any)
+      // Boot WebContainer
       setStatus('booting');
-      setMessage('Booting environment...');
-      notifyParent({ type: 'status', status: 'booting' });
+      setMessage('Starting environment...');
 
-      let container = getContainer();
-      if (container) {
-        try { container.teardown(); } catch {}
-        setContainer(null as any);
-        container = null;
+      // Teardown any existing instance
+      const existing = (window as any).__wc;
+      if (existing) {
+        try { existing.teardown(); } catch {}
       }
-      container = await WebContainer.boot();
-      setContainer(container);
 
-      // 3. Mount files
+      const container = await WebContainer.boot();
+      (window as any).__wc = container;
+
+      // Mount files
       setMessage('Mounting files...');
-      const mountStructure = buildMountStructure(files);
-      await container.mount(mountStructure);
+      await container.mount(buildMountStructure(files));
 
-      // 4. Install
+      // Install
       setStatus('installing');
       setMessage('Installing dependencies...');
-      notifyParent({ type: 'status', status: 'installing' });
-
       const install = await container.spawn('npm', ['install', '--prefer-offline']);
-      const installCode = await install.exit;
-      if (installCode !== 0) {
-        throw new Error(`npm install failed (exit ${installCode})`);
-      }
+      const code = await install.exit;
+      if (code !== 0) throw new Error(`npm install failed (exit ${code})`);
 
-      // 5. Start dev server
+      // Start dev server
       setStatus('starting');
       setMessage('Starting dev server...');
-      notifyParent({ type: 'status', status: 'starting' });
-
       const pkg = JSON.parse(files['package.json']);
       const script = pkg.scripts?.dev ? 'dev' : pkg.scripts?.start ? 'start' : null;
-      if (!script) {
-        throw new Error('No dev or start script in package.json');
-      }
+      if (!script) throw new Error('No dev or start script found');
 
       await container.spawn('npm', ['run', script]);
 
@@ -95,58 +70,89 @@ function PreviewRunner() {
         setPreviewUrl(url);
         setStatus('ready');
         setMessage('Running');
-        notifyParent({ type: 'ready', url });
       });
 
-      // Timeout
       setTimeout(() => {
         if (!previewUrl) {
-          setError('Dev server did not start within 60s');
+          setError('Dev server did not start within 60 seconds');
           setStatus('error');
-          notifyParent({ type: 'error', message: 'Timeout — dev server did not start' });
         }
       }, 60000);
     } catch (err: any) {
       setError(err.message);
       setStatus('error');
-      notifyParent({ type: 'error', message: err.message });
     }
-  }, [notifyParent]);
+  }, []);
 
-  // Listen for files from parent
+  // Read files from sessionStorage on mount
   useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'start' && e.data.files) {
-        runPreview(e.data.files);
+    const raw = sessionStorage.getItem('forge:preview-files');
+    if (!raw) {
+      setError('No project files found. Please run the preview from a ticket.');
+      setStatus('error');
+      return;
+    }
+
+    try {
+      const files = JSON.parse(raw);
+      // Clean up sessionStorage after reading
+      sessionStorage.removeItem('forge:preview-files');
+      sessionStorage.removeItem('forge:preview-meta');
+      runPreview(files);
+    } catch {
+      setError('Failed to parse project files');
+      setStatus('error');
+    }
+  }, [runPreview]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      const wc = (window as any).__wc;
+      if (wc) {
+        try { wc.teardown(); } catch {}
+        delete (window as any).__wc;
       }
     };
-    window.addEventListener('message', handler);
-
-    // Also check for inline data via URL params (fallback)
-    const repo = searchParams.get('repo');
-    const branch = searchParams.get('branch');
-    if (repo && branch) {
-      // Notify parent we're ready to receive files
-      notifyParent({ type: 'status', status: 'waiting' });
-    }
-
-    return () => window.removeEventListener('message', handler);
-  }, [searchParams, runPreview, notifyParent]);
+  }, []);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', color: '#e8e8e8', fontFamily: 'system-ui' }}>
+    <div style={{
+      width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column',
+      background: '#0a0a0a', color: '#e8e8e8', fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12, color: '#a1a1aa',
+      }}>
+        <div style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: status === 'ready' ? '#22c55e' : status === 'error' ? '#ef4444' : '#f59e0b',
+          animation: status !== 'ready' && status !== 'error' ? 'pulse 1.5s infinite' : 'none',
+        }} />
+        <span>{message}</span>
+        {repo && (
+          <span style={{ marginLeft: 'auto', fontFamily: 'monospace', fontSize: 11, color: '#71717a' }}>
+            {repo} @ {branch}
+          </span>
+        )}
+      </div>
+
+      {/* Content */}
       {status !== 'ready' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           {status === 'error' ? (
             <>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 20 }}>!</span>
-              </div>
-              <p style={{ fontSize: 13, color: '#a1a1aa' }}>{error}</p>
+              <div style={{ fontSize: 24 }}>!</div>
+              <p style={{ fontSize: 13, color: '#a1a1aa', maxWidth: 400, textAlign: 'center' }}>{error}</p>
             </>
           ) : (
             <>
-              <div style={{ width: 20, height: 20, border: '2px solid #3f3f46', borderTopColor: '#a1a1aa', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{
+                width: 24, height: 24, border: '2px solid #3f3f46', borderTopColor: '#a1a1aa',
+                borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+              }} />
               <p style={{ fontSize: 13, color: '#a1a1aa' }}>{message}</p>
             </>
           )}
@@ -162,7 +168,10 @@ function PreviewRunner() {
         />
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
     </div>
   );
 }
