@@ -197,17 +197,16 @@ export function CodebaseStep() {
         <div className="space-y-2">
           {/* Column headers — only show when secondary exists for alignment clarity */}
           {hasSecondary && (
-            <div className="grid grid-cols-[1fr_minmax(160px,1fr)_auto_28px] gap-2 px-3">
+            <div className="grid grid-cols-[1fr_minmax(160px,1fr)_28px] gap-2 px-3">
               <span className="text-[10px] text-[var(--text-tertiary)]">Repository</span>
               <span className="text-[10px] text-[var(--text-tertiary)]">Branch</span>
-              <span className="text-[10px] text-[var(--text-tertiary)]">Role</span>
               <span />
             </div>
           )}
 
           {/* Primary repo row */}
           <div className="rounded-lg border border-[var(--border-subtle)] px-3 py-2.5">
-            <div className={`grid gap-2 items-center ${hasSecondary ? 'grid-cols-[1fr_minmax(160px,1fr)_auto_28px]' : 'grid-cols-[1fr_minmax(160px,1fr)]'}`}>
+            <div className={`grid gap-2 items-center ${hasSecondary ? 'grid-cols-[1fr_minmax(160px,1fr)_28px]' : 'grid-cols-[1fr_minmax(160px,1fr)]'}`}>
               <select
                 value={selectedRepository || ''}
                 onChange={(e) => {
@@ -239,9 +238,6 @@ export function CodebaseStep() {
                   <option value="main">main</option>
                 )}
               </select>
-              {hasSecondary && (
-                <RolePicker value={input.primaryRole || ''} onChange={setPrimaryRole} />
-              )}
               {hasSecondary && <span />}
             </div>
             {input.repoOwner && input.repoName && profileStatus?.status === 'ready' && (
@@ -255,7 +251,7 @@ export function CodebaseStep() {
           {/* Secondary repo row */}
           {(showSecondaryPicker || hasSecondary) && (
             <div className="rounded-lg border border-[var(--border-subtle)] px-3 py-2.5">
-              <div className="grid grid-cols-[1fr_minmax(160px,1fr)_auto_28px] gap-2 items-center">
+              <div className="grid grid-cols-[1fr_minmax(160px,1fr)_28px] gap-2 items-center">
                 <select
                   value={hasSecondary ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
                   onChange={(e) => {
@@ -284,7 +280,6 @@ export function CodebaseStep() {
                     <option value="main">main</option>
                   )}
                 </select>
-                <RolePicker value={input.secondaryRole || ''} onChange={setSecondaryRole} />
                 <button
                   type="button"
                   onClick={() => { removeSecondaryRepository(); setShowSecondaryPicker(false); }}
@@ -355,30 +350,3 @@ export function CodebaseStep() {
   );
 }
 
-/** Compact role picker — cycles through backend/frontend/shared */
-function RolePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const roles = [
-    { id: 'backend', label: 'backend' },
-    { id: 'frontend', label: 'frontend' },
-    { id: 'shared', label: 'shared' },
-  ];
-
-  return (
-    <div className="flex gap-0.5">
-      {roles.map(r => (
-        <button
-          key={r.id}
-          type="button"
-          onClick={() => onChange(value === r.id ? '' : r.id)}
-          className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
-            value === r.id
-              ? 'bg-[var(--bg-active)] text-[var(--text-secondary)]'
-              : 'text-[var(--text-tertiary)]/50 hover:text-[var(--text-tertiary)]'
-          }`}
-        >
-          {r.label}
-        </button>
-      ))}
-    </div>
-  );
-}
