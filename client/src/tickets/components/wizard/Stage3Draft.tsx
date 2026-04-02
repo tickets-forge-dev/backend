@@ -160,9 +160,11 @@ export function Stage3Draft() {
     const init = async () => {
       try {
         const storeState = useWizardStore.getState();
+        console.log('[Stage3Draft] init()', { draftAecId: storeState.draftAecId, maxRounds: storeState.maxRounds, activeJobId: storeState.activeJobId });
 
         // Create draft if needed (always — even when skipping questions)
         if (!storeState.draftAecId) {
+          console.log('[Stage3Draft] calling confirmContextContinue...');
           await confirmContextContinue();
           const newState = useWizardStore.getState();
           if (!newState.draftAecId) return;
