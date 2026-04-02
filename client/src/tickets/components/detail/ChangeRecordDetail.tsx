@@ -279,12 +279,13 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
               <button
                 onClick={() => onPreview(
                   ticket.repositoryContext!.repositoryFullName,
-                  ticket.implementationBranch || ticket.repositoryContext!.branchName || 'main',
+                  ticket.repositoryContext!.branchName || 'main',
                 )}
                 className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors ml-auto"
+                title="Run project in browser"
               >
                 <Play className="w-3 h-3" fill="currentColor" />
-                <span>Preview</span>
+                <span>Run</span>
               </button>
             )}
           </div>

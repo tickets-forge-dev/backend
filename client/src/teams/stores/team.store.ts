@@ -10,9 +10,59 @@ import type {
   TeamMember,
   InviteMemberRequest,
   ChangeMemberRoleRequest,
+  TeamRepositoryResponse,
+  AddTeamRepositoryRequest,
+  UpdateTeamRepositoryRequest,
 } from '../services/team.service';
 
 const STORAGE_KEY = 'forge_currentTeamId';
+
+/**
+ * Reset all team-scoped stores when switching teams.
+ * Prevents stale data from the previous team leaking into the new context.
+ * Uses lazy imports to avoid circular dependencies.
+ */
+function resetTeamScopedStores() {
+  // Tickets store — clear tickets, current ticket, quota
+  try {
+    const { useTicketsStore } = require('@/stores/tickets.store');
+    useTicketsStore.setState({
+      tickets: [],
+      currentTicket: null,
+      quota: null,
+    });
+  } catch { /* store not loaded yet */ }
+
+  // Jobs store — clear active jobs list
+  try {
+    const { useJobsStore } = require('@/stores/jobs.store');
+    useJobsStore.setState({ jobs: [] });
+  } catch { /* store not loaded yet */ }
+
+  // Folders store — clear folders
+  try {
+    const { useFoldersStore } = require('@/stores/folders.store');
+    useFoldersStore.setState({ folders: [] });
+  } catch { /* store not loaded yet */ }
+
+  // Tags store — clear tags
+  try {
+    const { useTagsStore } = require('@/stores/tags.store');
+    useTagsStore.setState({ tags: [] });
+  } catch { /* store not loaded yet */ }
+
+  // Settings store — clear cached GitHub repos so they reload for new team context
+  try {
+    const { useSettingsStore } = require('@/stores/settings.store');
+    useSettingsStore.setState({
+      repositoriesFetchedAt: null,
+      githubConnected: false,
+      githubConnectionStatus: null,
+      selectedRepositories: [],
+      isLoadingConnection: false,
+    });
+  } catch { /* store not loaded yet */ }
+}
 
 /**
  * Team state interface
@@ -32,6 +82,9 @@ interface TeamState {
   lastCurrentTeamFetch: number | null;
   isTeamsLoading: boolean;
   isCurrentTeamLoading: boolean;
+  // Repository management
+  teamRepositories: TeamRepositoryResponse[];
+  isLoadingRepos: boolean;
 }
 
 /**
@@ -55,6 +108,11 @@ interface TeamActions {
   changeMemberRole: (teamId: string, userId: string, request: ChangeMemberRoleRequest) => Promise<void>;
   removeMember: (teamId: string, userId: string) => Promise<void>;
   clearMembersError: () => void;
+  // Repository management actions
+  loadTeamRepositories: (teamId: string) => Promise<void>;
+  addTeamRepository: (teamId: string, repo: AddTeamRepositoryRequest) => Promise<void>;
+  updateTeamRepository: (teamId: string, repoFullName: string, update: UpdateTeamRepositoryRequest) => Promise<void>;
+  removeTeamRepository: (teamId: string, repoFullName: string) => Promise<void>;
 }
 
 /**
@@ -116,6 +174,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
   lastCurrentTeamFetch: null,
   isTeamsLoading: false,
   isCurrentTeamLoading: false,
+  // Repository management state
+  teamRepositories: [],
+  isLoadingRepos: false,
 
   // Computed property for currentTeamId
   get currentTeamId() {
@@ -261,6 +322,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    * Switch to a different team
    */
   switchTeam: async (teamId: string) => {
+    // Clear stale data from all team-scoped stores before switching
+    resetTeamScopedStores();
+
     // Invalidate cache when switching teams to force fresh data
     set({
       isLoading: true,
@@ -305,6 +369,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    * Switch to personal workspace (no team)
    */
   switchToPersonal: async () => {
+    // Clear stale data from all team-scoped stores before switching
+    resetTeamScopedStores();
+
     set({
       isLoading: true,
       isSwitching: true,
@@ -574,5 +641,72 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    */
   clearMembersError: () => {
     set({ membersError: null });
+  },
+
+  /**
+   * Load team repositories
+   */
+  loadTeamRepositories: async (teamId: string) => {
+    set({ isLoadingRepos: true });
+    try {
+      const { teamService } = useServices();
+      const repositories = await teamService.getTeamRepositories(teamId);
+      set({ teamRepositories: repositories, isLoadingRepos: false });
+    } catch (error) {
+      console.error('[TeamStore] Failed to load team repositories:', error);
+      set({ isLoadingRepos: false });
+    }
+  },
+
+  /**
+   * Add a repository to the team
+   */
+  addTeamRepository: async (teamId: string, repo: AddTeamRepositoryRequest) => {
+    try {
+      const { teamService } = useServices();
+      const newRepo = await teamService.addTeamRepository(teamId, repo);
+      const { teamRepositories } = get();
+      set({ teamRepositories: [...teamRepositories, newRepo] });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Update a team repository
+   */
+  updateTeamRepository: async (
+    teamId: string,
+    repoFullName: string,
+    update: UpdateTeamRepositoryRequest,
+  ) => {
+    try {
+      const { teamService } = useServices();
+      const updatedRepo = await teamService.updateTeamRepository(teamId, repoFullName, update);
+      const { teamRepositories } = get();
+      set({
+        teamRepositories: teamRepositories.map((r) =>
+          r.repositoryFullName === repoFullName ? updatedRepo : r,
+        ),
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Remove a repository from the team
+   */
+  removeTeamRepository: async (teamId: string, repoFullName: string) => {
+    try {
+      const { teamService } = useServices();
+      await teamService.removeTeamRepository(teamId, repoFullName);
+      const { teamRepositories } = get();
+      set({
+        teamRepositories: teamRepositories.filter((r) => r.repositoryFullName !== repoFullName),
+      });
+    } catch (error) {
+      throw error;
+    }
   },
 }));

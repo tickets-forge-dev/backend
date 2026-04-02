@@ -8,7 +8,7 @@ import session = require('express-session');
 async function bootstrap() {
   // Validate critical environment variables before app startup
   const isProduction = process.env.NODE_ENV === 'production';
-  const requiredEnvVars = ['SESSION_SECRET', 'FRONTEND_URL'];
+  const requiredEnvVars = ['SESSION_SECRET', 'FRONTEND_URL', 'GITHUB_ENCRYPTION_KEY', 'JWT_INVITE_SECRET'];
 
   if (isProduction) {
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);

@@ -33,6 +33,7 @@ import { Octokit } from '@octokit/rest';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
+import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
 import { GitHubTokenService } from '../../application/services/github-token.service';
 import {
   GitHubIntegrationRepository,
@@ -281,11 +282,19 @@ export class GitHubOAuthController {
     status: 200,
     description: 'Repository list retrieved successfully',
   })
-  async listRepositories(@WorkspaceId() workspaceId: string, @Query('page') page?: string) {
+  async listRepositories(@WorkspaceId() workspaceId: string, @UserId() userId: string, @Query('page') page?: string) {
     try {
       this.logger.debug(`Fetching repositories for workspace ${workspaceId}`);
 
-      const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+      let integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+
+      // Fallback to user's personal workspace (GitHub is connected per-user)
+      if (!integration && userId) {
+        const personalWorkspaceId = `ws_${userId.substring(0, 12)}`;
+        if (personalWorkspaceId !== workspaceId) {
+          integration = await this.integrationRepository.findByWorkspaceId(personalWorkspaceId);
+        }
+      }
 
       if (!integration) {
         this.logger.warn(`GitHub not connected for workspace ${workspaceId}`);
@@ -399,6 +408,7 @@ export class GitHubOAuthController {
   })
   async selectRepositories(
     @WorkspaceId() workspaceId: string,
+    @UserId() userId: string,
     @Body()
     body: {
       repositories: Array<{
@@ -422,7 +432,15 @@ export class GitHubOAuthController {
         throw new InternalServerErrorException('GitHub integration repository not available');
       }
 
-      const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+      let integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+
+      // Fallback to user's personal workspace (GitHub is connected per-user)
+      if (!integration && userId) {
+        const personalWorkspaceId = `ws_${userId.substring(0, 12)}`;
+        if (personalWorkspaceId !== workspaceId) {
+          integration = await this.integrationRepository.findByWorkspaceId(personalWorkspaceId);
+        }
+      }
 
       if (!integration) {
         this.logger.warn(`GitHub not connected for workspace ${workspaceId}`);
@@ -482,7 +500,7 @@ export class GitHubOAuthController {
     status: 200,
     description: 'GitHub disconnected successfully',
   })
-  async disconnect(@WorkspaceId() workspaceId: string) {
+  async disconnect(@WorkspaceId() workspaceId: string, @UserId() userId: string) {
     try {
       this.logger.log(`🔌 Disconnecting GitHub for workspace ${workspaceId}`);
 
@@ -491,18 +509,29 @@ export class GitHubOAuthController {
         throw new InternalServerErrorException('GitHub integration repository not available');
       }
 
+      // Determine which workspace actually holds the integration
+      let effectiveWorkspaceId = workspaceId;
       this.logger.debug(`Looking for GitHub integration for workspace ${workspaceId}`);
-      const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+      let integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+
+      // Fallback to user's personal workspace
+      if (!integration && userId) {
+        const personalWorkspaceId = `ws_${userId.substring(0, 12)}`;
+        if (personalWorkspaceId !== workspaceId) {
+          integration = await this.integrationRepository.findByWorkspaceId(personalWorkspaceId);
+          if (integration) effectiveWorkspaceId = personalWorkspaceId;
+        }
+      }
 
       if (!integration) {
         this.logger.warn(`No GitHub integration found for workspace ${workspaceId}`);
         throw new NotFoundException('GitHub not connected for this workspace');
       }
 
-      this.logger.debug(`Found integration for workspace ${workspaceId}, deleting...`);
+      this.logger.debug(`Found integration for workspace ${effectiveWorkspaceId}, deleting...`);
 
       // Use direct delete by workspace ID to avoid collection group query
-      await this.integrationRepository.deleteByWorkspaceId(workspaceId);
+      await this.integrationRepository.deleteByWorkspaceId(effectiveWorkspaceId);
 
       this.logger.log(`✓ GitHub disconnected successfully for workspace ${workspaceId}`);
 
@@ -536,11 +565,21 @@ export class GitHubOAuthController {
     status: 200,
     description: 'Connection status retrieved',
   })
-  async getConnectionStatus(@WorkspaceId() workspaceId: string) {
+  async getConnectionStatus(@WorkspaceId() workspaceId: string, @UserId() userId: string) {
     try {
       this.logger.debug(`Checking GitHub connection status for workspace ${workspaceId}`);
 
-      const integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+      let integration = await this.integrationRepository.findByWorkspaceId(workspaceId);
+
+      // Fallback: if no integration found for the team workspace,
+      // check the user's personal workspace (GitHub is connected per-user, shared across teams)
+      if (!integration && userId) {
+        const personalWorkspaceId = `ws_${userId.substring(0, 12)}`;
+        if (personalWorkspaceId !== workspaceId) {
+          this.logger.debug(`Falling back to personal workspace ${personalWorkspaceId}`);
+          integration = await this.integrationRepository.findByWorkspaceId(personalWorkspaceId);
+        }
+      }
 
       if (!integration) {
         this.logger.debug(`No GitHub integration found for workspace ${workspaceId}`);

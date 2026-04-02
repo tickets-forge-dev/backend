@@ -7,6 +7,7 @@ import { useTicketsStore } from '@/stores/tickets.store';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
 import { GitBranch, X, Plus } from 'lucide-react';
 import { useProjectProfileStore, type ProjectProfileSummary } from '@/project-profiles/stores/project-profile.store';
+import { useTeamStore } from '@/teams/stores/team.store';
 
 /**
  * CodebaseStep — Repository connection step.
@@ -31,6 +32,7 @@ export function CodebaseStep() {
     setPrimaryRole,
   } = useWizardStore();
   const { selectedRepositories } = useSettingsStore();
+  const { currentTeam, teamRepositories, loadTeamRepositories } = useTeamStore();
 
   const { findByRepo, triggerScan, startPolling, stopPolling } = useProjectProfileStore();
   const [profileStatus, setProfileStatus] = useState<ProjectProfileSummary | null>(null);
@@ -64,6 +66,40 @@ export function CodebaseStep() {
     loadGitHubStatus(gitHubService);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load team repositories on mount
+  useEffect(() => {
+    if (currentTeam?.id && teamRepositories.length === 0) {
+      loadTeamRepositories(currentTeam.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTeam?.id]);
+
+  // Auto-populate wizard when team repos are available and wizard repos are empty
+  useEffect(() => {
+    if (teamRepositories.length > 0 && !input.repoOwner) {
+      const primary = teamRepositories.find(r => r.role === 'backend') || teamRepositories[0];
+      if (primary) {
+        const [owner, name] = primary.repositoryFullName.split('/');
+        if (owner && name) {
+          setRepository(owner, name);
+          ticketsStore.setRepository(primary.repositoryFullName);
+        }
+      }
+
+      const secondary = teamRepositories.find(r => r.repositoryFullName !== primary?.repositoryFullName);
+      if (secondary) {
+        const [sOwner, sName] = secondary.repositoryFullName.split('/');
+        if (sOwner && sName) {
+          setSecondaryRepository(sOwner, sName);
+          setSecondaryRole(secondary.role);
+        }
+      }
+
+      if (primary) setPrimaryRole(primary.role);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamRepositories]);
 
   // Sync tickets store repository selection to wizard store
   useEffect(() => {
@@ -138,9 +174,13 @@ export function CodebaseStep() {
   };
 
   const hasSecondary = !!(input.secondaryRepoOwner && input.secondaryRepoName);
-  const availableSecondaryRepos = selectedRepositories.filter(
-    (r) => r.fullName !== `${input.repoOwner}/${input.repoName}`
-  );
+  const availableRepos = teamRepositories.length > 0
+    ? teamRepositories.map(r => ({ id: r.repositoryFullName, fullName: r.repositoryFullName }))
+    : selectedRepositories;
+  const availableSecondaryRepos = (teamRepositories.length > 0
+    ? teamRepositories.map(r => ({ id: r.repositoryFullName, fullName: r.repositoryFullName }))
+    : selectedRepositories
+  ).filter((r) => r.fullName !== `${input.repoOwner}/${input.repoName}`);
 
   return (
     <div className="space-y-5">
@@ -148,7 +188,7 @@ export function CodebaseStep() {
       <div>
         <h2 className="text-[15px] font-semibold text-[var(--text)]">Connect repositories</h2>
         <p className="text-[12px] text-[var(--text-tertiary)] mt-1">
-          Link your codebase for smarter, code-aware tickets.
+          Link your codebase and select the branch that code will be generated from.
         </p>
       </div>
 
@@ -157,17 +197,16 @@ export function CodebaseStep() {
         <div className="space-y-2">
           {/* Column headers — only show when secondary exists for alignment clarity */}
           {hasSecondary && (
-            <div className="grid grid-cols-[1fr_minmax(160px,1fr)_auto_28px] gap-2 px-3">
+            <div className="grid grid-cols-[1fr_minmax(160px,1fr)_28px] gap-2 px-3">
               <span className="text-[10px] text-[var(--text-tertiary)]">Repository</span>
               <span className="text-[10px] text-[var(--text-tertiary)]">Branch</span>
-              <span className="text-[10px] text-[var(--text-tertiary)]">Role</span>
               <span />
             </div>
           )}
 
           {/* Primary repo row */}
           <div className="rounded-lg border border-[var(--border-subtle)] px-3 py-2.5">
-            <div className={`grid gap-2 items-center ${hasSecondary ? 'grid-cols-[1fr_minmax(160px,1fr)_auto_28px]' : 'grid-cols-[1fr_minmax(160px,1fr)]'}`}>
+            <div className={`grid gap-2 items-center ${hasSecondary ? 'grid-cols-[1fr_minmax(160px,1fr)_28px]' : 'grid-cols-[1fr_minmax(160px,1fr)]'}`}>
               <select
                 value={selectedRepository || ''}
                 onChange={(e) => {
@@ -181,7 +220,7 @@ export function CodebaseStep() {
                 className="w-full bg-transparent text-[13px] text-[var(--text)] focus:outline-none cursor-pointer truncate [&>option]:bg-[var(--bg-hover)] [&>option]:text-[var(--text)]"
               >
                 <option value="">Select repository...</option>
-                {selectedRepositories.map((r) => (
+                {availableRepos.map((r) => (
                   <option key={r.id} value={r.fullName}>{r.fullName}</option>
                 ))}
               </select>
@@ -199,9 +238,6 @@ export function CodebaseStep() {
                   <option value="main">main</option>
                 )}
               </select>
-              {hasSecondary && (
-                <RolePicker value={input.primaryRole || ''} onChange={setPrimaryRole} />
-              )}
               {hasSecondary && <span />}
             </div>
             {input.repoOwner && input.repoName && profileStatus?.status === 'ready' && (
@@ -215,7 +251,7 @@ export function CodebaseStep() {
           {/* Secondary repo row */}
           {(showSecondaryPicker || hasSecondary) && (
             <div className="rounded-lg border border-[var(--border-subtle)] px-3 py-2.5">
-              <div className="grid grid-cols-[1fr_minmax(160px,1fr)_auto_28px] gap-2 items-center">
+              <div className="grid grid-cols-[1fr_minmax(160px,1fr)_28px] gap-2 items-center">
                 <select
                   value={hasSecondary ? `${input.secondaryRepoOwner}/${input.secondaryRepoName}` : ''}
                   onChange={(e) => {
@@ -244,7 +280,6 @@ export function CodebaseStep() {
                     <option value="main">main</option>
                   )}
                 </select>
-                <RolePicker value={input.secondaryRole || ''} onChange={setSecondaryRole} />
                 <button
                   type="button"
                   onClick={() => { removeSecondaryRepository(); setShowSecondaryPicker(false); }}
@@ -254,6 +289,20 @@ export function CodebaseStep() {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Hint: set default repos in project settings */}
+          {teamRepositories.length === 0 && (
+            <p className="text-[11px] text-[var(--text-tertiary)] px-1">
+              Tip: Set default repositories in your{' '}
+              <a
+                href={currentTeam?.id ? `/teams/${currentTeam.id}?tab=repositories` : '#'}
+                className="underline hover:text-[var(--text-secondary)] transition-colors"
+              >
+                project settings
+              </a>
+              {' '}to auto-populate this step next time.
+            </p>
           )}
 
           {/* Actions row */}
@@ -301,30 +350,3 @@ export function CodebaseStep() {
   );
 }
 
-/** Compact role picker — cycles through backend/frontend/shared */
-function RolePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const roles = [
-    { id: 'backend', label: 'backend' },
-    { id: 'frontend', label: 'frontend' },
-    { id: 'shared', label: 'shared' },
-  ];
-
-  return (
-    <div className="flex gap-0.5">
-      {roles.map(r => (
-        <button
-          key={r.id}
-          type="button"
-          onClick={() => onChange(value === r.id ? '' : r.id)}
-          className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
-            value === r.id
-              ? 'bg-[var(--bg-active)] text-[var(--text-secondary)]'
-              : 'text-[var(--text-tertiary)]/50 hover:text-[var(--text-tertiary)]'
-          }`}
-        >
-          {r.label}
-        </button>
-      ))}
-    </div>
-  );
-}

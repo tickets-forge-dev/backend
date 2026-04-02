@@ -12,7 +12,11 @@ export class JiraTokenService {
   private readonly encryptionKey: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.encryptionKey = this.configService.get<string>('GITHUB_ENCRYPTION_KEY') || '';
+    const key = this.configService.get<string>('GITHUB_ENCRYPTION_KEY');
+    if (!key) {
+      throw new Error('GITHUB_ENCRYPTION_KEY environment variable is required');
+    }
+    this.encryptionKey = key;
   }
 
   async encryptToken(token: string): Promise<string> {
@@ -36,7 +40,6 @@ export class JiraTokenService {
   }
 
   private async getDerivedKey(): Promise<Buffer> {
-    const key = this.encryptionKey || 'default-insecure-key-change-me';
-    return (await scryptAsync(key, 'salt', 32)) as Buffer;
+    return (await scryptAsync(this.encryptionKey, 'salt', 32)) as Buffer;
   }
 }

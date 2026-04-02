@@ -11,7 +11,7 @@ import type { FolderResponse } from '@/services/folder.service';
 import { TicketSkeletonRow } from '@/tickets/components/TicketSkeletonRow';
 import { CreationMenu } from '@/tickets/components/CreationMenu';
 import { useTeamStore } from '@/teams/stores/team.store';
-import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3, GripVertical, Tag, Play } from 'lucide-react';
+import { Loader2, SlidersHorizontal, Lightbulb, Bug, ClipboardList, Ban, X, ChevronDown, ChevronRight, ChevronUp, Search, FileText, Plus, MoreVertical, ExternalLink, Archive, ArchiveRestore, Trash2, UserPlus, FolderOpen, FolderPlus, Pencil, FolderInput, Globe, Lock, Columns3, GripVertical, Tag } from 'lucide-react';
 import { PreviewPanel } from '@/src/preview/components/PreviewPanel';
 import { TagPicker } from '@/tickets/components/TagPicker';
 import { getTagColor } from '@/tickets/config/tagColors';
@@ -62,7 +62,7 @@ function getTypeIcon(type: string | null) {
 
 export default function TicketsListPage() {
   const { tickets, isLoading, isInitialLoad, loadError, loadTickets, quota, fetchQuota, listPreferences, setListPreferences, archivedTickets, isLoadingArchived, showArchived, toggleShowArchived, unarchiveTicket } = useTicketsStore();
-  const { currentTeam, loadTeamMembers, teamMembers } = useTeamStore();
+  const { currentTeam, loadTeamMembers, teamMembers, teamRepositories } = useTeamStore();
   const { folders, loadFolders, createFolder, renameFolder, deleteFolder, moveTicket, expandedFolders, toggleFolder, updateFolderScope, reorderFolders } = useFoldersStore();
   const { tags, loadTags } = useTagsStore();
   const { user } = useAuthStore();
@@ -206,7 +206,7 @@ export default function TicketsListPage() {
 
   // Compute visible columns and grid template
   const visibleColumns = useMemo(() => columnConfig.order.filter(c => !columnConfig.hidden.has(c)), [columnConfig]);
-  const columnWidths: Record<ColumnId, string> = { status: '120px', priority: '72px', assignee: '100px', creator: '80px', updated: '64px', score: '44px' };
+  const columnWidths: Record<ColumnId, string> = { status: '120px', priority: '72px', assignee: '100px', creator: '80px', updated: '64px' };
   const mdGridTemplate = useMemo(() => `minmax(0, 1fr) ${visibleColumns.map(c => columnWidths[c]).join(' ')} 32px`, [visibleColumns]);
 
   // Split folders into private and team sections
@@ -623,7 +623,7 @@ export default function TicketsListPage() {
       {/* Tickets list */}
       {!isLoading && !isInitialLoad && !loadError && filteredTickets.length === 0 && folders.length === 0 && (
         <div>
-          <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
+          <TicketGridHeader visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
           {isCreatingFolder && (
             <form
               className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)]"
@@ -851,7 +851,7 @@ export default function TicketsListPage() {
                         {folderTickets.length > 0 && (
                           <div>
                             {folderTickets.map((ticket) => (
-                              <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
+                              <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
                             ))}
                           </div>
                         )}
@@ -924,7 +924,7 @@ export default function TicketsListPage() {
                     {folderTickets.length > 0 && (
                       <div>
                         {folderTickets.map((ticket) => (
-                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
+                          <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} nested currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
                         ))}
                       </div>
                     )}
@@ -944,7 +944,7 @@ export default function TicketsListPage() {
           {unfiledTickets.length > 0 && (
             <div>
               {unfiledTickets.map((ticket) => (
-                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} onPreview={(fullName, branch) => setPreviewRepo({ fullName, branch })} />
+                <TicketRow key={ticket.id} ticket={ticket} folders={folders} onDragStart={handleDragStart} onDragEnd={handleDragEnd} currentUserId={currentUserId} visibleColumns={visibleColumns} mdGridTemplate={mdGridTemplate} />
               ))}
             </div>
           )}
@@ -1027,14 +1027,17 @@ export default function TicketsListPage() {
     <JobsPanel />
 
     {/* WebContainer Preview Panel */}
-    {previewRepo && (
-      <PreviewPanel
-        open={!!previewRepo}
-        onClose={() => setPreviewRepo(null)}
-        repoFullName={previewRepo.fullName}
-        branch={previewRepo.branch}
-      />
-    )}
+    {previewRepo && (() => {
+      const frontendRepo = teamRepositories.find(r => r.role === 'frontend');
+      return (
+        <PreviewPanel
+          open={!!previewRepo}
+          onClose={() => setPreviewRepo(null)}
+          repoFullName={frontendRepo?.repositoryFullName || previewRepo.fullName}
+          branch={previewRepo.branch}
+        />
+      );
+    })()}
     </div>
   );
 }
@@ -1128,7 +1131,6 @@ const COLUMN_LABELS: Record<ColumnId, string> = {
   assignee: 'Assignee',
   creator: 'Creator',
   updated: 'Updated',
-  score: 'Score',
 };
 
 // Breakpoint visibility: sm columns vs md columns
@@ -1147,7 +1149,6 @@ function TicketGridHeader({ visibleColumns, mdGridTemplate, onContextMenu }: { v
     >
       <span className="pl-6">Title</span>
       {cols.map((col) => {
-        if (col === 'score') return <span key={col} className="text-center">{COLUMN_LABELS[col]}</span>;
         const hiddenClass = SM_COLUMNS.has(col) ? 'hidden sm:block' : MD_COLUMNS.has(col) ? 'hidden md:block' : '';
         return <span key={col} className={hiddenClass}>{COLUMN_LABELS[col]}</span>;
       })}
@@ -1742,7 +1743,7 @@ function ArchivedSection({
 }
 
 // Grid-based ticket row
-function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, currentUserId, visibleColumns, mdGridTemplate, onPreview }: {
+function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, currentUserId, visibleColumns, mdGridTemplate }: {
   ticket: any;
   folders?: FolderResponse[];
   onDragStart?: (ticketId: string) => void;
@@ -1751,7 +1752,6 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
   currentUserId?: string | null;
   visibleColumns?: ColumnId[];
   mdGridTemplate?: string;
-  onPreview?: (repoFullName: string, branch: string) => void;
 }) {
   const router = useRouter();
   const { deleteTicket, archiveTicket, loadTickets } = useTicketsStore();
@@ -1835,12 +1835,6 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
             <span className="text-[11px] text-[var(--text-tertiary)]">{getRelativeTime(ticket.updatedAt)}</span>
           </Link>
         );
-      case 'score':
-        return (
-          <Link key={col} href={href} className="flex items-center justify-center py-3">
-            <ProgressRing ticket={ticket} />
-          </Link>
-        );
       default:
         return null;
     }
@@ -1916,23 +1910,6 @@ function TicketRow({ ticket, folders = [], onDragStart, onDragEnd, nested, curre
 
       {/* Actions */}
       <div className="flex items-center justify-center gap-0.5 py-3">
-        {/* Preview button — shown for tickets with a connected repo */}
-        {onPreview && ticket.repositoryContext && (
-          <button
-            className="p-1 rounded-md sm:opacity-0 sm:group-hover:opacity-100 hover:bg-emerald-500/10 text-[var(--text-tertiary)] hover:text-emerald-500 transition-all"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onPreview(
-                ticket.repositoryContext.repositoryFullName,
-                ticket.repositoryContext.branchName || 'main',
-              );
-            }}
-            title="Preview project"
-          >
-            <Play className="h-3.5 w-3.5" fill="currentColor" />
-          </button>
-        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -2095,55 +2072,3 @@ function CreatorCell({ ticket, teamMembers }: { ticket: any; teamMembers: any[] 
   );
 }
 
-// Extract progress ring to a separate component
-function ProgressRing({ ticket }: { ticket: any }) {
-  const readinessScore = ticket.techSpec?.qualityScore ?? ticket.readinessScore ?? 0;
-
-  // Get progress color based on score
-  const getProgressColor = () => {
-    return 'var(--text-tertiary)';
-  };
-
-  const progressColor = getProgressColor();
-
-  // Get progress tooltip
-  const getProgressTooltip = () => {
-    if (readinessScore === 0) return 'Not started';
-    if (ticket.questions && ticket.questions.length > 0) {
-      return "";
-    }
-    return `${readinessScore}% complete`;
-  };
-
-  return (
-    <div className="flex-shrink-0 relative h-6 w-6 sm:h-8 sm:w-8 group/progress" title={getProgressTooltip()}>
-      <svg className="h-6 w-6 sm:h-8 sm:w-8 -rotate-90" viewBox="0 0 32 32">
-        <circle
-          cx="16" cy="16" r="13"
-          fill="none"
-          stroke="var(--border)"
-          strokeWidth="2.5"
-          opacity="0.3"
-        />
-        <circle
-          cx="16" cy="16" r="13"
-          fill="none"
-          stroke={progressColor}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeDasharray={`${(readinessScore / 100) * 81.68} 81.68`}
-          opacity={readinessScore > 0 ? 1 : 0.2}
-        />
-      </svg>
-      <span className={`absolute inset-0 flex items-center justify-center text-[7px] sm:text-[9px] font-medium ${
-        readinessScore === 0 ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'
-      }`}>
-        {readinessScore}
-      </span>
-      {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 hidden group-hover/progress:block whitespace-nowrap rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2 py-1 text-[10px] sm:text-[11px] text-[var(--text-secondary)] shadow-lg z-50">
-        {getProgressTooltip()}
-      </div>
-    </div>
-  );
-}

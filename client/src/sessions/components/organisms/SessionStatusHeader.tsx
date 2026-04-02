@@ -15,7 +15,7 @@ interface SessionStatusHeaderProps {
 
 export function SessionStatusHeader({ status, elapsedSeconds, onCancel, verbose, onToggleVerbose }: SessionStatusHeaderProps) {
   return (
-    <div className="flex items-center justify-between py-2.5 px-1 mb-2">
+    <div className="flex items-center justify-between py-2.5 px-1 mb-2 sticky top-0 z-10 bg-[var(--bg)]">
       <div className="flex items-center gap-2.5">
         {status === 'running' ? (
           <>

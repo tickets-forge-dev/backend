@@ -101,12 +101,11 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
   const expandedDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const { currentTicket, isLoading, fetchError, isUpdating, isDeleting, isUploadingAttachment, fetchTicket, refreshTicket, updateTicket, deleteTicket, assignTicket, uploadAttachment, deleteAttachment } = useTicketsStore();
   const { ticketService } = useServices();
-  const { currentTeam, teamMembers, loadTeamMembers } = useTeamStore();
+  const { currentTeam, teamMembers, loadTeamMembers, teamRepositories, loadTeamRepositories } = useTeamStore();
   const [showTicketIdVisible, setShowTicketIdVisible] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
-  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [developBladeOpen, setDevelopBladeOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<{ fullName: string; branch: string } | null>(null);
   const [repoDialogOpen, setRepoDialogOpen] = useState(false);
   const { tags } = useTagsStore();
   const [localTagIds, setLocalTagIds] = useState<string[]>(currentTicket?.tagIds ?? []);
@@ -155,6 +154,14 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       loadTeamMembers(currentTeam.id);
     }
   }, [currentTeam?.id, teamMembers.length, loadTeamMembers]);
+
+  // Load team repositories for preview panel repo resolution
+  useEffect(() => {
+    if (currentTeam?.id && teamRepositories.length === 0) {
+      loadTeamRepositories(currentTeam.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTeam?.id]);
 
 
   // Sync description draft when ticket loads
@@ -836,32 +843,12 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowPreviewDialog(true)}
-              >
-                <Eye className="h-3.5 w-3.5 mr-2" />
-                Preview
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={() => setShowExportDialog(true)}
               >
                 <Upload className="h-3.5 w-3.5 mr-2" />
                 Export
               </Button>
             </>
-          )}
-          {currentTicket.repositoryContext && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPreviewOpen(true)}
-              className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-              title="Preview project"
-            >
-              <Play className="h-3.5 w-3.5 mr-1.5" fill="currentColor" />
-              Preview
-            </Button>
           )}
           <TicketDevelopButton
             onClick={() => setDevelopBladeOpen(true)}
@@ -1090,7 +1077,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
         isDescriptionDirty={isDescriptionDirty}
         isSavingDescription={isSavingDescription}
         onSaveDescription={handleSaveDescription}
-        onPreview={currentTicket.repositoryContext ? () => setPreviewOpen(true) : undefined}
+        onPreview={currentTicket.repositoryContext ? (repo, branch) => setPreviewTarget({ fullName: repo || currentTicket.repositoryContext!.repositoryFullName, branch: branch || 'main' }) : undefined}
       />
 
       {/* Footer with actions */}
@@ -1309,346 +1296,6 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       {/* Export Dialog */}
       <ExportDialog open={showExportDialog} onOpenChange={setShowExportDialog} ticketId={ticketId} />
 
-      {/* Preview Dialog */}
-      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Ticket Preview</DialogTitle>
-            <DialogDescription>
-              This is a comprehensive preview of your ticket. All sections below will be exported as markdown and JSON files.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            {/* Jira-style ticket preview */}
-            <div className="border border-[var(--border)] rounded-lg p-6 bg-[var(--bg-subtle)]">
-              {/* Header with title and key */}
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wide">
-                      {currentTicket?.type || 'Task'}
-                    </span>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {currentTicket?.priority || 'Medium'}
-                    </Badge>
-                  </div>
-                  <h2 className="text-xl font-semibold text-[var(--text)]">{currentTicket?.title}</h2>
-                </div>
-              </div>
-
-              {/* Main content sections */}
-              <div className="space-y-6">
-                {/* Problem Statement */}
-                {currentTicket?.techSpec?.problemStatement?.narrative && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Problem Statement</h3>
-                    <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
-                      {currentTicket.techSpec.problemStatement.narrative}
-                    </p>
-                  </div>
-                )}
-
-                {/* Solution */}
-                {currentTicket?.techSpec?.solution && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Solution</h3>
-                    {typeof currentTicket.techSpec.solution === 'string' ? (
-                      <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">
-                        {currentTicket.techSpec.solution}
-                      </p>
-                    ) : Array.isArray(currentTicket.techSpec.solution) ? (
-                      <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
-                        {currentTicket.techSpec.solution.map((step: any, idx: number) => (
-                          <li key={idx} className="ml-4">
-                            <span className="font-medium">{idx + 1}.</span> {typeof step === 'string' ? step : step.description || JSON.stringify(step)}
-                          </li>
-                        ))}
-                      </ol>
-                    ) : typeof currentTicket.techSpec.solution === 'object' && currentTicket.techSpec.solution.overview ? (
-                      <div className="space-y-3">
-                        <p className="text-sm text-[var(--text-secondary)]">{currentTicket.techSpec.solution.overview}</p>
-                        {Array.isArray(currentTicket.techSpec.solution.steps) && currentTicket.techSpec.solution.steps.length > 0 && (
-                          <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
-                            {currentTicket.techSpec.solution.steps.map((step: any, idx: number) => (
-                              <li key={idx} className="ml-4">
-                                <span className="font-medium">{idx + 1}.</span> {step.description || JSON.stringify(step)}
-                              </li>
-                            ))}
-                          </ol>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {/* Acceptance Criteria */}
-                {currentTicket?.techSpec?.acceptanceCriteria && currentTicket.techSpec.acceptanceCriteria.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Acceptance Criteria</h3>
-                    <ul className="space-y-2">
-                      {currentTicket.techSpec.acceptanceCriteria.map((criterion: any, i: number) => (
-                        <li key={i} className="text-sm text-[var(--text-secondary)] flex gap-2">
-                          <span className="text-[var(--text-tertiary)]">•</span>
-                          <span>
-                            {typeof criterion === 'string'
-                              ? criterion
-                              : criterion.given ? `Given ${criterion.given}, When ${criterion.when}, Then ${criterion.then}`
-                              : JSON.stringify(criterion)
-                            }
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* File Changes */}
-                {currentTicket?.techSpec?.fileChanges && currentTicket.techSpec.fileChanges.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">File Changes</h3>
-                    <ul className="space-y-2">
-                      {currentTicket.techSpec.fileChanges.slice(0, 5).map((file: any, i: number) => (
-                        <li key={i} className="text-sm text-[var(--text-secondary)] flex gap-2">
-                          <span className="text-[var(--text-tertiary)]">📄</span>
-                          <span className="font-mono text-xs">{file.path}</span>
-                        </li>
-                      ))}
-                      {currentTicket.techSpec.fileChanges.length > 5 && (
-                        <li className="text-sm text-[var(--text-tertiary)]">
-                          +{currentTicket.techSpec.fileChanges.length - 5} more files
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Tech Stack */}
-                {currentTicket?.techSpec?.stack && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Technology Stack</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(currentTicket.techSpec.stack).map(([key, value]: [string, any]) => (
-                        value && (
-                          <Badge key={key} variant="outline" className="text-xs">
-                            {value}
-                          </Badge>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Description/Notes */}
-                {currentTicket?.description && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Description</h3>
-                    <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{currentTicket.description}</p>
-                  </div>
-                )}
-
-                {/* Reproduction Steps (Bug only) */}
-                {currentTicket?.type === 'bug' && currentTicket?.techSpec?.bugDetails?.reproductionSteps && currentTicket.techSpec.bugDetails.reproductionSteps.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Reproduction Steps</h3>
-                    <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
-                      {currentTicket.techSpec.bugDetails.reproductionSteps.map((step: any, idx: number) => (
-                        <li key={idx} className="ml-4">
-                          <span className="font-medium">{idx + 1}.</span> {step.action}
-                          {step.expectedBehavior && (
-                            <div className="ml-4 mt-1 text-xs text-[var(--text-tertiary)]">
-                              Expected: {step.expectedBehavior}
-                            </div>
-                          )}
-                          {step.actualBehavior && (
-                            <div className="ml-4 text-xs text-[var(--text-tertiary)]">
-                              Actual: {step.actualBehavior}
-                            </div>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {/* Assumptions */}
-                {currentTicket?.techSpec?.problemStatement?.assumptions && currentTicket.techSpec.problemStatement.assumptions.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Assumptions</h3>
-                    <ul className="space-y-1 text-sm text-[var(--text-secondary)]">
-                      {currentTicket.techSpec.problemStatement.assumptions.map((assumption: string, i: number) => (
-                        <li key={i} className="flex gap-2">
-                          <span className="text-[var(--text-tertiary)]">•</span>
-                          <span>{assumption}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Visual QA Expectations */}
-                {currentTicket?.techSpec?.visualExpectations && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Visual QA Expectations</h3>
-                    <p className="text-sm text-[var(--text-secondary)] mb-2">{currentTicket.techSpec.visualExpectations.summary}</p>
-                    {currentTicket.techSpec.visualExpectations.expectations && currentTicket.techSpec.visualExpectations.expectations.length > 0 && (
-                      <div className="space-y-2 text-xs text-[var(--text-secondary)]">
-                        {currentTicket.techSpec.visualExpectations.expectations.slice(0, 3).map((exp: any, idx: number) => (
-                          <div key={idx} className="p-2 bg-[var(--bg-hover)] rounded">
-                            <p className="font-medium text-[var(--text)]">{exp.screen}</p>
-                            <p>{exp.description}</p>
-                          </div>
-                        ))}
-                        {currentTicket.techSpec.visualExpectations.expectations.length > 3 && (
-                          <p className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.visualExpectations.expectations.length - 3} more visual expectations</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Scope */}
-                {(currentTicket?.techSpec?.inScope?.length > 0 || currentTicket?.techSpec?.outOfScope?.length > 0) && (
-                  <div className="grid grid-cols-2 gap-4">
-                    {currentTicket?.techSpec?.inScope?.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-[var(--text)] mb-2">In Scope</h3>
-                        <ul className="space-y-1 text-xs text-[var(--text-secondary)]">
-                          {currentTicket.techSpec.inScope.slice(0, 3).map((item: string, i: number) => (
-                            <li key={i} className="flex gap-2">
-                              <span>•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                          {currentTicket.techSpec.inScope.length > 3 && (
-                            <li className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.inScope.length - 3} more</li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                    {currentTicket?.techSpec?.outOfScope?.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-[var(--text-tertiary)] mb-2">Out of Scope</h3>
-                        <ul className="space-y-1 text-xs text-[var(--text-secondary)]">
-                          {currentTicket.techSpec.outOfScope.slice(0, 3).map((item: string, i: number) => (
-                            <li key={i} className="flex gap-2">
-                              <span>•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                          {currentTicket.techSpec.outOfScope.length > 3 && (
-                            <li className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.outOfScope.length - 3} more</li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* API Endpoints */}
-                {currentTicket?.techSpec?.apiChanges?.endpoints && currentTicket.techSpec.apiChanges.endpoints.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">API Endpoints</h3>
-                    <div className="space-y-2 text-xs text-[var(--text-secondary)]">
-                      {currentTicket.techSpec.apiChanges.endpoints.slice(0, 3).map((endpoint: any, i: number) => (
-                        <div key={i} className="p-2 bg-[var(--bg-hover)] rounded font-mono">
-                          <p className="font-medium text-[var(--text)]">
-                            <span className="text-[var(--text-secondary)]">{endpoint.method}</span> {endpoint.route}
-                          </p>
-                          <p className="text-[var(--text-tertiary)]">{endpoint.description}</p>
-                        </div>
-                      ))}
-                      {currentTicket.techSpec.apiChanges.endpoints.length > 3 && (
-                        <p className="text-[var(--text-tertiary)]">+{currentTicket.techSpec.apiChanges.endpoints.length - 3} more endpoints</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Test Plan */}
-                {currentTicket?.techSpec?.testPlan && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Test Plan</h3>
-                    <p className="text-sm text-[var(--text-secondary)] mb-2">{currentTicket.techSpec.testPlan.summary}</p>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="p-2 bg-[var(--bg-hover)] rounded">
-                        <p className="font-medium text-[var(--text)]">{currentTicket.techSpec.testPlan.unitTests?.length || 0}</p>
-                        <p className="text-[var(--text-tertiary)]">Unit Tests</p>
-                      </div>
-                      <div className="p-2 bg-[var(--bg-hover)] rounded">
-                        <p className="font-medium text-[var(--text)]">{currentTicket.techSpec.testPlan.integrationTests?.length || 0}</p>
-                        <p className="text-[var(--text-tertiary)]">Integration Tests</p>
-                      </div>
-                      <div className="p-2 bg-[var(--bg-hover)] rounded">
-                        <p className="font-medium text-[var(--text)]">{currentTicket.techSpec.testPlan.edgeCases?.length || 0}</p>
-                        <p className="text-[var(--text-tertiary)]">Edge Cases</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* File Changes Summary */}
-                {currentTicket?.techSpec?.fileChanges && currentTicket.techSpec.fileChanges.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">File Changes Summary</h3>
-                    <div className="text-sm text-[var(--text-secondary)] space-y-1">
-                      <p>Total files: <span className="font-medium text-[var(--text)]">{currentTicket.techSpec.fileChanges.length}</span></p>
-                      <p>Create: <span className="font-medium text-[var(--text-secondary)]">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'create').length}</span></p>
-                      <p>Modify: <span className="font-medium text-[var(--text-secondary)]">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'modify').length}</span></p>
-                      <p>Delete: <span className="font-medium text-[var(--text-secondary)]">{currentTicket.techSpec.fileChanges.filter((f: any) => f.action === 'delete').length}</span></p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Estimate */}
-                {currentTicket?.estimate && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Estimate</h3>
-                    <p className="text-sm text-[var(--text)]">
-                      <span className="font-medium">{currentTicket.estimate.value}</span> {currentTicket.estimate.unit || 'points'}
-                    </p>
-                    {currentTicket.estimate.range && (
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        Range: {currentTicket.estimate.range.min} - {currentTicket.estimate.range.max}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Quality Score */}
-                <div className="border-t border-[var(--border)] pt-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[var(--text-secondary)]">Quality Score</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-[var(--text)]">
-                        {currentTicket?.techSpec?.qualityScore || 0}%
-                      </span>
-                      <div className="h-1.5 w-24 bg-[var(--border)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[var(--text-tertiary)]"
-                          style={{ width: `${currentTicket?.techSpec?.qualityScore || 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-xs text-[var(--text-tertiary)]">
-              ℹ️ This preview includes all ticket sections. When exported to Jira, you will receive three files:
-              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec.md</code> (markdown description)
-              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_aec.xml</code> (full AEC domain object)
-              <br/>• <code className="text-[10px] bg-[var(--bg-hover)] px-1 rounded">{currentTicket?.id}_tech-spec</code> (structured specification)
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent>
@@ -1696,7 +1343,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           ticketTitle={currentTicket.title}
           ticketStatus={currentTicket.status}
           repoFullName={currentTicket.repositoryContext?.repositoryFullName}
-          branch={`feat/${currentTicket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+          branch={`feat/${(currentTicket.slug || currentTicket.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)}`}
           fileChangeCount={currentTicket.techSpec?.fileChanges?.length}
           repositories={currentTicket.repositories ||
             (currentTicket.repositoryContext ? [{
@@ -1704,6 +1351,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
               isPrimary: true,
             }] : undefined)}
           onConnectRepo={() => { setDevelopBladeOpen(false); setRepoDialogOpen(true); }}
+          onPreview={(repo, branch) => { setDevelopBladeOpen(false); setPreviewTarget({ fullName: repo, branch }); }}
         />,
         document.body
       )}
@@ -1712,12 +1360,12 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       <FlowOnboardingDialog />
 
       {/* WebContainer Preview Panel */}
-      {currentTicket.repositoryContext && (
+      {previewTarget && (
         <PreviewPanel
-          open={previewOpen}
-          onClose={() => setPreviewOpen(false)}
-          repoFullName={currentTicket.repositoryContext.repositoryFullName}
-          branch={currentTicket.repositoryContext.branchName || 'main'}
+          open={!!previewTarget}
+          onClose={() => setPreviewTarget(null)}
+          repoFullName={previewTarget.fullName}
+          branch={previewTarget.branch}
         />
       )}
     </div>

@@ -27,6 +27,8 @@ interface SessionMonitorViewProps {
   repositories?: Array<{ repositoryFullName: string; isPrimary: boolean; role?: string }>;
   /** Callback to open repo connection dialog */
   onConnectRepo?: () => void;
+  /** Callback to open preview panel */
+  onPreview?: (repoFullName: string, branch: string) => void;
 }
 
 function isToolEvent(type: string): boolean {
@@ -61,7 +63,7 @@ function groupEvents(events: SessionEvent[]): RenderGroup[] {
   return groups;
 }
 
-export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, repositories, onConnectRepo }: SessionMonitorViewProps) {
+export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, repoFullName, branch, repositories, onConnectRepo, onPreview }: SessionMonitorViewProps) {
   const { status, events, summary, error, elapsedSeconds, startSession, cancelSession, fetchQuota, reset, restoreSession: restoreSessionState } = useSessionStore();
   const currentTicket = useTicketsStore(state => state.currentTicket);
 
@@ -97,35 +99,26 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
     }
   }, [events.length]);
 
-  // If store is idle but ticket is executing/delivered AND we have restored events, show resumed state
-  // If restoration was attempted but found nothing, fall through to DevelopButton
-  if (status === 'idle' && (ticketStatus === 'executing' || ticketStatus === 'delivered') && events.length > 0) {
+  // If store is idle but ticket is executing AND we have restored events, show resumed state
+  if (status === 'idle' && ticketStatus === 'executing' && events.length > 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-6">
         <div className="w-full max-w-sm space-y-5 text-center">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/10 mb-1">
-            {ticketStatus === 'executing' ? (
-              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            )}
+            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
           </div>
           <h3 className="text-[15px] font-semibold text-[var(--text)]">
-            {ticketStatus === 'executing' ? 'Development in progress' : 'Development complete'}
+            Development in progress
           </h3>
           <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">
-            {ticketStatus === 'executing'
-              ? 'The AI agent is working on this ticket. The session was started before this page loaded.'
-              : 'This ticket has been developed. Check the Record tab for details.'}
+            The AI agent is working on this ticket. The session was started before this page loaded.
           </p>
-          {ticketStatus === 'executing' && (
-            <button
-              onClick={() => startSession(ticketId)}
-              className="px-4 py-2 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[12px] font-medium text-[var(--text)] transition-colors"
-            >
-              Restart Development
-            </button>
-          )}
+          <button
+            onClick={() => startSession(ticketId)}
+            className="px-4 py-2 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[12px] font-medium text-[var(--text)] transition-colors"
+          >
+            Restart Development
+          </button>
         </div>
       </div>
     );
@@ -146,9 +139,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
     );
   }
 
-  if (status === 'provisioning') {
-    return <SessionProvisioningView onCancel={cancelSession} />;
-  }
+  // Provisioning is shown inline in the session thread below (not a separate view)
 
   if (status === 'failed') {
     const needsApproval = (error?.toLowerCase().includes('must be approved') || error?.toLowerCase().includes('approved status'))
@@ -188,6 +179,20 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
         verbose={verbose}
         onToggleVerbose={() => setVerbose(v => !v)}
       />
+
+      {/* Provisioning — inline in the thread */}
+      {status === 'provisioning' && (
+        <div className="flex items-center gap-3 py-6 justify-center">
+          <Loader2 className="w-4 h-4 text-[var(--text-tertiary)] animate-spin" />
+          <span className="text-[13px] text-[var(--text-secondary)]">Setting up environment...</span>
+          <button
+            onClick={cancelSession}
+            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] ml-2"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Event stream */}
       <div className="space-y-4">
@@ -239,7 +244,7 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
       {/* Summary */}
       {status === 'completed' && summary && (
         <div className="mt-4">
-          <SessionSummary summary={summary} />
+          <SessionSummary summary={summary} onPreview={onPreview} />
         </div>
       )}
 

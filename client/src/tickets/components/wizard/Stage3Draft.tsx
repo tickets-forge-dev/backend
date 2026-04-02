@@ -132,6 +132,7 @@ export function Stage3Draft() {
 
   // Step 1: Create draft (if needed) then fetch first/next question
   useEffect(() => {
+    console.log('[Stage3Draft] init effect', { init: initRef.current, spec: !!spec, questionsComplete, activeJobId, loading: useWizardStore.getState().loading });
     if (initRef.current) return;
     if (spec || questionsComplete) return;
     // If a background job is already running, nothing to do
@@ -159,9 +160,11 @@ export function Stage3Draft() {
     const init = async () => {
       try {
         const storeState = useWizardStore.getState();
+        console.log('[Stage3Draft] init()', { draftAecId: storeState.draftAecId, maxRounds: storeState.maxRounds, activeJobId: storeState.activeJobId });
 
         // Create draft if needed (always — even when skipping questions)
         if (!storeState.draftAecId) {
+          console.log('[Stage3Draft] calling confirmContextContinue...');
           await confirmContextContinue();
           const newState = useWizardStore.getState();
           if (!newState.draftAecId) return;

@@ -99,7 +99,7 @@ export class StartSessionUseCase {
       ticketTitle: aec.title,
       repoOwner,
       repoName,
-      branch: `feat/${ticketId.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      branch: `feat/${(aec.slug || aec.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)}`,
     });
 
     await this.sessionRepository.save(session);

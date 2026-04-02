@@ -61,19 +61,13 @@ export class RateLimitGuard implements CanActivate {
   }
 
   /**
-   * Extract client IP address from request
-   * Handles proxies (X-Forwarded-For header)
+   * Extract client IP address from request.
+   * Uses req.ip which respects Express trust proxy settings,
+   * preventing X-Forwarded-For spoofing.
    */
   private getClientIp(request: any): string {
-    // Check X-Forwarded-For header (for proxies)
-    const forwardedFor = request.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      // X-Forwarded-For can contain multiple IPs, take the first one
-      return forwardedFor.split(',')[0].trim();
-    }
-    
-    // Fall back to socket address
-    return request.socket?.remoteAddress || 'unknown';
+    // Prefer req.ip (respects Express trust proxy setting)
+    return request.ip || request.connection?.remoteAddress || 'unknown';
   }
 
   /**

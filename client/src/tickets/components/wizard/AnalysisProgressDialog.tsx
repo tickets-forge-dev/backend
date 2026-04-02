@@ -75,16 +75,18 @@ function normalizePhase(backendPhase: string | null, hasRepository: boolean): st
       'fetching_tree': 'fetching_tree',
       'reading_configs': 'reading_configs',
       'fingerprinting': 'fingerprinting',
+      'detecting_stack': 'fingerprinting', // BackgroundScanService uses this name
       'selecting_files': 'selecting_files',
       'reading_files': 'reading_files',
       'analyzing': 'analyzing',
       'complete': 'complete',
+      'completed': 'complete', // Background jobs use 'completed' (with 'd')
     };
     return repoPhaseMap[backendPhase] || null;
   }
 
-  // For non-repository tickets, map backend 'complete' to our phases
-  if (backendPhase === 'complete') return 'complete';
+  // For non-repository tickets, map backend 'complete'/'completed' to our phases
+  if (backendPhase === 'complete' || backendPhase === 'completed') return 'complete';
   // Default to 'preparing' for non-repo case
   return 'preparing';
 }
@@ -132,6 +134,11 @@ export function AnalysisProgressDialog({
       });
     }
   }, [normalizedPhase]);
+
+  // Debug: log phase changes
+  useEffect(() => {
+    console.log('[AnalysisDialog] phase:', currentPhase, '→ normalized:', normalizedPhase, 'percent:', percent);
+  }, [currentPhase, normalizedPhase, percent]);
 
   // Determine which phases are complete, in-progress, and pending
   const getPhaseStatus = (phaseKey: string): 'pending' | 'in_progress' | 'complete' => {

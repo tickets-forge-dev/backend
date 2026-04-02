@@ -17,6 +17,7 @@ import { SessionOrchestrator } from '../../application/services/SessionOrchestra
 import { buildSystemPrompt } from '../../application/services/SystemPromptBuilder';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
+import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
 import { TeamId } from '../../../shared/presentation/decorators/TeamId.decorator';
 import { UserId } from '../../../shared/presentation/decorators/UserId.decorator';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
@@ -37,6 +38,7 @@ export class SessionsController {
     private readonly githubIntegrationRepository: GitHubIntegrationRepository,
   ) {}
 
+  @UseGuards(RateLimitGuard)
   @Post(':ticketId/start')
   async startSession(
     @Param('ticketId') ticketId: string,
@@ -84,9 +86,14 @@ export class SessionsController {
       repoOwner && repoName ? `https://github.com/${repoOwner}/${repoName}.git` : '';
 
     // Generate session-scoped JWT so the sandbox MCP server can call the Forge API
+    const jwtInviteSecret = process.env.JWT_INVITE_SECRET;
+    if (!jwtInviteSecret) {
+      throw new Error('JWT_INVITE_SECRET environment variable is required');
+    }
+
     const sessionJwt = jwt.sign(
       { sessionId, teamId, ticketId, type: 'session' },
-      process.env.JWT_INVITE_SECRET || 'forge-session-secret',
+      jwtInviteSecret,
       { expiresIn: '2h', algorithm: 'HS256' },
     );
 

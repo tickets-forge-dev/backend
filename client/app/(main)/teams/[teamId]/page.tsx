@@ -7,6 +7,7 @@ import { useServices } from '@/services/index';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/core/components/ui/tabs';
 import { OverviewTab } from '@/teams/components/OverviewTab';
 import { MembersTab } from '@/teams/components/MembersTab';
+import { RepositoriesTab } from '@/teams/components/RepositoriesTab';
 import { SettingsTab } from '@/teams/components/SettingsTab';
 import { Loader2 } from 'lucide-react';
 import type { Team } from '@/teams/services/team.service';
@@ -23,7 +24,7 @@ function TeamPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const teamId = params.teamId as string;
-  const tab = (searchParams.get('tab') as 'overview' | 'members' | 'settings') || 'overview';
+  const tab = (searchParams.get('tab') as 'overview' | 'members' | 'repositories' | 'settings') || 'overview';
 
   const { teams, isLoading, loadTeams, loadTeamMembers } = useTeamStore();
   const { teamService } = useServices();
@@ -86,6 +87,7 @@ function TeamPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="repositories">Repositories</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -95,6 +97,10 @@ function TeamPage() {
 
         <TabsContent value="members">
           <MembersTab teamId={teamId} />
+        </TabsContent>
+
+        <TabsContent value="repositories">
+          <RepositoriesTab teamId={teamId} isOwner={fullTeam?.isOwner ?? false} />
         </TabsContent>
 
         <TabsContent value="settings">

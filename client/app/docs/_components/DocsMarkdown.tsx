@@ -139,7 +139,7 @@ const components: Components = {
           )}
           <iframe
             src={imgSrc}
-            sandbox=""
+            sandbox="allow-same-origin"
             title={alt || 'Embedded preview'}
             className="w-full border-0"
             style={{ minHeight: '600px' }}

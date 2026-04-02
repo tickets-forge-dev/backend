@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useWizardStore } from '@/tickets/stores/generation-wizard.store';
-import { Paintbrush, Zap, SkipForward, Plus, Trash2, Sparkles, Loader2, Eye, X } from 'lucide-react';
+import { Paintbrush, Zap, MessageSquare, Plus, Trash2, Sparkles, Loader2, Eye, X } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { ToggleOptionCard } from './ToggleOptionCard';
 import { auth } from '@/lib/firebase';
@@ -148,48 +148,37 @@ export function GenerationOptionsStep() {
           forceExpanded={true}
         >
           <div className="space-y-4">
-            {/* Sub-switches */}
-            <div className="space-y-2">
-              <label className="flex items-center justify-between cursor-pointer group">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">Basic wireframes</span>
-                  <span className="text-[10px] text-[var(--text-tertiary)]">ASCII layout specs for developers</span>
-                </div>
-                <div className="relative w-8 h-[18px] rounded-full bg-[var(--text-tertiary)] flex-shrink-0 cursor-not-allowed opacity-60" title="Always included with wireframe guidance">
-                  <div className="absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm translate-x-[14px]" />
-                </div>
-              </label>
-              <div className="flex items-center justify-between">
-                <div
-                  className="flex items-center gap-2 cursor-pointer flex-1"
-                  onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}
-                  role="switch"
-                  aria-checked={includeHtmlWireframes}
+            {/* Interactive prototype toggle */}
+            <div className="flex items-center justify-between">
+              <div
+                className="flex items-center gap-2 cursor-pointer flex-1"
+                onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}
+                role="switch"
+                aria-checked={includeHtmlWireframes}
+              >
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Interactive prototype</span>
+                <span className="text-[10px] text-[var(--text-tertiary)]">Small working POC to interact with</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowWireframePreview(true); }}
+                  className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                 >
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">Hi-res wireframes</span>
-                  <span className="text-[10px] text-[var(--text-tertiary)]">Interactive HTML/CSS preview</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setShowWireframePreview(true); }}
-                    className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-                  >
-                    <Eye className="h-3 w-3" />
-                    Example
-                  </button>
-                  <div
-                    onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}
-                    className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 cursor-pointer ${includeHtmlWireframes ? 'bg-[var(--text-tertiary)]' : 'bg-gray-300 dark:bg-gray-600'}`}
-                  >
-                    <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${includeHtmlWireframes ? 'translate-x-[14px]' : 'translate-x-[3px]'}`} />
-                  </div>
+                  <Eye className="h-3 w-3" />
+                  Example
+                </button>
+                <div
+                  onClick={() => setIncludeHtmlWireframes(!includeHtmlWireframes)}
+                  className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 cursor-pointer ${includeHtmlWireframes ? 'bg-[var(--text-tertiary)]' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${includeHtmlWireframes ? 'translate-x-[14px]' : 'translate-x-[3px]'}`} />
                 </div>
               </div>
             </div>
 
-            {/* UI Description */}
-            <div>
+            {/* UI Description — only when interactive prototype is on */}
+            {includeHtmlWireframes && <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">
                   Describe the UI
@@ -215,8 +204,8 @@ export function GenerationOptionsStep() {
                 rows={3}
                 className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--border-hover)] resize-none"
               />
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">Optional — helps the AI generate more accurate wireframes</p>
-            </div>
+              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">Optional — helps the AI generate a more accurate prototype</p>
+            </div>}
           </div>
         </ToggleOptionCard>
 
@@ -239,7 +228,7 @@ export function GenerationOptionsStep() {
               ? 'border-[var(--border-hover)]'
               : undefined
           }
-          footer={
+          footer={(includeApiSpec || apiSpecDeferred) ? (
             <div className="px-4 pb-3 space-y-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -258,7 +247,7 @@ export function GenerationOptionsStep() {
                 </p>
               )}
             </div>
-          }
+          ) : undefined}
         >
           <div className="space-y-3">
             <label className="block text-xs font-medium text-[var(--text-secondary)]">
@@ -324,32 +313,35 @@ export function GenerationOptionsStep() {
 
       {/* Validation Error Banner */}
 
-      {/* Skip Questions Toggle */}
+      {/* Clarification Questions — Highlighted as a key quality step */}
       <div
         onClick={() => setSkipQuestions(!skipQuestions)}
-        className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-all ${
-          skipQuestions
-            ? 'border-blue-500/40 bg-blue-50/30 dark:bg-blue-950/10'
+        className={`flex items-center gap-3 rounded-lg border px-4 py-3.5 cursor-pointer transition-all sm:w-[calc(50%-0.5rem)] ${
+          !skipQuestions
+            ? 'border-emerald-500/30 bg-emerald-500/5'
             : 'border-[var(--border-subtle)] hover:border-[var(--border)]'
         }`}
       >
-        <SkipForward className={`h-4 w-4 flex-shrink-0 ${skipQuestions ? 'text-blue-500' : 'text-[var(--text-tertiary)]'}`} />
+        <MessageSquare className={`h-5 w-5 flex-shrink-0 ${!skipQuestions ? 'text-emerald-500' : 'text-[var(--text-tertiary)]'}`} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[var(--text)]">Skip clarification questions</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-[var(--text)]">Refine with AI questions</p>
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">Recommended</span>
+          </div>
           <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
-            {skipQuestions
-              ? <>The spec will be generated from your description. You or a developer can refine it anytime from the ticket or via the{' '}<a href="/docs" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-secondary)] transition-colors">CLI / MCP tools</a>.</>
-              : 'The AI will ask a few questions to improve the spec quality.'}
+            {!skipQuestions
+              ? 'The AI will ask targeted questions to produce a significantly better spec.'
+              : 'The spec will be generated directly — you can still refine it later.'}
           </p>
         </div>
         <div
           className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${
-            skipQuestions ? 'bg-blue-500' : 'bg-[var(--border)]'
+            !skipQuestions ? 'bg-emerald-500/60' : 'bg-[var(--border)]'
           }`}
         >
           <div
             className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-              skipQuestions ? 'translate-x-4' : 'translate-x-0.5'
+              !skipQuestions ? 'translate-x-4' : 'translate-x-0.5'
             }`}
           />
         </div>
@@ -372,7 +364,7 @@ export function GenerationOptionsStep() {
             <div className="flex-1 overflow-hidden">
               <iframe
                 src="/assets/2026-03-23-ticket-tags-wireframes.html"
-                sandbox=""
+                sandbox="allow-scripts allow-same-origin"
                 title="Hi-res Wireframe Example"
                 className="w-full h-full border-0"
                 style={{ minHeight: '500px' }}

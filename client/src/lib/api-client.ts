@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { auth } from '@/lib/firebase';
+import { useTeamStore } from '@/teams/stores/team.store';
 
 /**
  * Shared token refresh promise to prevent concurrent 401s from each
@@ -33,13 +34,20 @@ export function createApiClient(baseURL?: string): AxiosInstance {
     timeout: 120000,
   });
 
-  // Attach Firebase ID token to every request
+  // Attach Firebase ID token and team context to every request
   client.interceptors.request.use(async (config) => {
     const user = auth.currentUser;
     if (user) {
       const token = await user.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Attach current team ID so the backend resolves the correct workspace
+    const teamId = useTeamStore.getState().currentTeam?.id;
+    if (teamId && !config.headers['x-team-id']) {
+      config.headers['x-team-id'] = teamId;
+    }
+
     return config;
   });
 

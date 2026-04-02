@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 
-export type ColumnId = 'status' | 'priority' | 'assignee' | 'creator' | 'updated' | 'score';
+export type ColumnId = 'status' | 'priority' | 'assignee' | 'creator' | 'updated';
 
 interface ColumnConfig {
   order: ColumnId[];
   hidden: Set<ColumnId>;
 }
 
-const DEFAULT_ORDER: ColumnId[] = ['status', 'priority', 'assignee', 'creator', 'updated', 'score'];
+const DEFAULT_ORDER: ColumnId[] = ['status', 'priority', 'assignee', 'creator', 'updated'];
 
 function loadConfig(teamId: string): ColumnConfig {
   if (typeof window === 'undefined') return { order: DEFAULT_ORDER, hidden: new Set() };

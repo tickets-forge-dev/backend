@@ -20,6 +20,13 @@ export class WorkspaceGuard implements CanActivate {
       throw new UnauthorizedException('User not authenticated');
     }
 
+    // Session JWT (sandbox MCP) — teamId is already in the token, skip user lookups
+    if (firebaseUser.isSessionToken) {
+      request.teamId = firebaseUser.teamId;
+      request.workspaceId = `ws_team_${firebaseUser.teamId.substring(5, 17)}`;
+      return true;
+    }
+
     // --- Resolve teamId ---
     // Priority 1: explicit x-team-id header (used by CLI and web client)
     const headerTeamId = request.headers['x-team-id'] as string | undefined;

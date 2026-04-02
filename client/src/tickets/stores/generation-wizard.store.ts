@@ -1012,7 +1012,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   confirmContextContinue: async () => {
     const state = get();
-    if (state.loading) return; // Guard against double-click
+    console.log('[confirmContextContinue] called', { loading: state.loading, draftAecId: state.draftAecId, title: state.input.title?.slice(0, 30) });
+    if (state.loading) { console.log('[confirmContextContinue] SKIPPED — loading is true'); return; }
     const ticketsState = useTicketsStore.getState();
 
     // Resolve owner/repo with fallback to tickets store
@@ -1169,73 +1170,63 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
         loadingMessage: null,
       });
 
-      // Upload pending files in background (best-effort, don't block wizard)
-      // Use state captured at function start to avoid stale reads
-      const filesToUpload = state.pendingFiles;
-      if (filesToUpload.length > 0) {
-        set({ pendingFiles: [] });
-        for (const file of filesToUpload) {
-          try {
-            const formData = new FormData();
-            formData.append('file', file);
-            // Use native fetch for multipart — authFetch would add Content-Type
-            const uploadUser = auth.currentUser;
-            const uploadHeaders: Record<string, string> = {};
-            if (uploadUser) {
-              uploadHeaders['Authorization'] = `Bearer ${await uploadUser.getIdToken()}`;
+      saveSnapshot(get());
+
+      // Fire-and-forget: upload pending files + design links in background.
+      // These MUST NOT block confirmContextContinue — the wizard needs to proceed immediately.
+      const aecId = aec.id;
+      void (async () => {
+        // Upload pending files
+        const filesToUpload = state.pendingFiles;
+        if (filesToUpload.length > 0) {
+          set({ pendingFiles: [] });
+          for (const file of filesToUpload) {
+            try {
+              const formData = new FormData();
+              formData.append('file', file);
+              const uploadUser = auth.currentUser;
+              const uploadHeaders: Record<string, string> = {};
+              if (uploadUser) {
+                uploadHeaders['Authorization'] = `Bearer ${await uploadUser.getIdToken()}`;
+              }
+              await fetch(`${API_URL}/tickets/${aecId}/attachments`, {
+                method: 'POST',
+                headers: uploadHeaders,
+                body: formData,
+              });
+            } catch (uploadError) {
+              console.warn('Failed to upload file:', file.name, uploadError);
             }
-            await fetch(`${API_URL}/tickets/${aec.id}/attachments`, {
-              method: 'POST',
-              headers: uploadHeaders,
-              body: formData,
-            });
-          } catch (uploadError) {
-            console.warn('Failed to upload file:', file.name, uploadError);
           }
         }
-      }
 
-      // Upload pending design references in background (best-effort, don't block wizard)
-      const linksToUpload = state.pendingDesignLinks;
-      if (linksToUpload.length > 0) {
-        const failedLinks: typeof linksToUpload = [];
-
-        for (const link of linksToUpload) {
-          try {
-            const response = await authFetch(`/tickets/${aec.id}/design-references`, {
-              method: 'POST',
-              body: JSON.stringify({
-                url: link.url,
-                title: link.title,
-              }),
-            });
-
-            if (!response.ok) {
-              console.warn(`Failed to upload design link (${response.status}):`, link.url);
+        // Upload pending design references
+        const linksToUpload = state.pendingDesignLinks;
+        if (linksToUpload.length > 0) {
+          const failedLinks: typeof linksToUpload = [];
+          for (const link of linksToUpload) {
+            try {
+              const response = await authFetch(`/tickets/${aecId}/design-references`, {
+                method: 'POST',
+                body: JSON.stringify({ url: link.url, title: link.title }),
+              });
+              if (!response.ok) {
+                console.warn(`Failed to upload design link (${response.status}):`, link.url);
+                failedLinks.push(link);
+              }
+            } catch (uploadError) {
+              console.warn('Failed to upload design link:', link.url, uploadError);
               failedLinks.push(link);
             }
-          } catch (uploadError) {
-            console.warn('Failed to upload design link:', link.url, uploadError);
-            failedLinks.push(link);
           }
-        }
-
-        // Clear successfully uploaded links, keep failed ones for retry
-        if (failedLinks.length < linksToUpload.length) {
-          set({ pendingDesignLinks: failedLinks });
-        } else {
-          // All failed or all succeeded - only clear if all succeeded
           if (failedLinks.length === 0) {
             set({ pendingDesignLinks: [] });
+          } else {
+            set({ pendingDesignLinks: failedLinks });
+            console.warn(`${failedLinks.length} design links failed to upload, kept for retry`);
           }
         }
-
-        if (failedLinks.length > 0) {
-          console.warn(`${failedLinks.length} design links failed to upload, kept for retry`);
-        }
-      }
-
-      saveSnapshot(get());
+      })();
       // Stage3Draft component will auto-start the first question round via useEffect
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

@@ -910,6 +910,7 @@ export class TicketsController {
    * Takes current Excalidraw elements + natural language instruction,
    * returns modified elements. Does NOT persist — user must click Save.
    */
+  @UseGuards(RateLimitGuard)
   @Post(':id/refine-wireframe')
   @HttpCode(HttpStatus.OK)
   async refineWireframe(
@@ -949,6 +950,7 @@ export class TicketsController {
    * Allows users to add wireframes after ticket creation, even if they
    * initially chose to skip wireframe generation.
    */
+  @UseGuards(RateLimitGuard)
   @Post(':id/generate-wireframes')
   @HttpCode(HttpStatus.OK)
   async generateWireframes(
@@ -982,6 +984,7 @@ export class TicketsController {
    * then updates ticket's techSpec and acceptanceCriteria.
    * Status stays REFINED (approve is Story 7-8).
    */
+  @UseGuards(RateLimitGuard)
   @Post(':id/re-enrich')
   async reEnrichTicket(
     @TeamId() teamId: string,
@@ -1022,6 +1025,7 @@ export class TicketsController {
 
   /**
    * Generate clarification questions (simplified single-call flow)
+   * No rate limit — part of interactive Q&A wizard, bounded by maxRounds.
    */
   @Post(':id/generate-questions')
   async generateQuestions(
@@ -1082,6 +1086,7 @@ export class TicketsController {
 
   /**
    * Submit question answers and finalize technical specification
+   * No rate limit — part of interactive Q&A wizard, bounded by maxRounds.
    */
   @Post(':id/submit-answers')
   async submitQuestionAnswers(
@@ -1131,6 +1136,7 @@ export class TicketsController {
   /**
    * Finalize spec - generate final technical specification (deprecated, use /submit-answers)
    */
+  @UseGuards(RateLimitGuard)
   @Post(':id/finalize')
   async finalizeSpec(@TeamId() teamId: string, @UserId() userId: string, @Param('id') id: string) {
     const aecId = await this.resolveTicketId(id, teamId);
@@ -1222,6 +1228,7 @@ export class TicketsController {
    * Detect APIs from the ticket's repository by scanning controller files.
    * Resolves per-user GitHub token (same pattern as analyzeRepository).
    */
+  @UseGuards(RateLimitGuard)
   @Post(':id/detect-apis')
   async detectApis(@TeamId() teamId: string, @WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const aec = await this.resolveTicket(id, teamId);

@@ -69,7 +69,7 @@ export class GitHubController {
     this.logger.log(`Getting repository: ${owner}/${repo}`);
 
     try {
-      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId, req.user?.uid);
       const repository = await this.gitHubApiService.getRepository(owner, repo, accessToken);
 
       return {
@@ -116,7 +116,7 @@ export class GitHubController {
     this.logger.log(`Getting branches for: ${owner}/${repo}`);
 
     try {
-      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId, req.user?.uid);
       // listBranches already resolves isDefault per branch — extract default from there
       // (avoids a redundant repos.get API call that was causing timeouts)
       const branches = await this.gitHubApiService.listBranches(owner, repo, accessToken);
@@ -169,59 +169,108 @@ export class GitHubController {
   ): Promise<{ files: Record<string, string>; truncated: boolean }> {
     this.logger.log(`Fetching contents for preview: ${owner}/${repo}@${branch}`);
 
-    const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+    const accessToken = await this.getWorkspaceAccessToken(req.workspaceId, req.user?.uid);
     const octokit = new Octokit({ auth: accessToken });
 
     const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'coverage', '.turbo', '__pycache__']);
     const SKIP_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
     const MAX_FILE_SIZE = 100_000; // 100KB
-    const MAX_FILES = 500;
+    const MAX_FILES = 200; // Keep under rate limits
 
     try {
-      // 1. Get file tree
+      // 1. Resolve branch to commit SHA
+      const branchInfo = await octokit.repos.getBranch({ owner, repo, branch });
+      const commitSha = branchInfo.data.commit.sha;
+
+      // 2. Get full file tree
       const treeResponse = await octokit.git.getTree({
         owner,
         repo,
-        tree_sha: branch,
+        tree_sha: commitSha,
         recursive: '1',
       });
 
-      // 2. Filter to text files only
-      const entries = treeResponse.data.tree.filter((entry) => {
+      const allEntries = treeResponse.data.tree;
+
+      // 3. Fetch ALL package.json files first (tiny, few API calls) to detect web app root
+      const pkgEntries = allEntries.filter(
+        (e) => e.type === 'blob' && e.path?.endsWith('package.json') && !e.path.includes('node_modules'),
+      );
+
+      const pkgFiles: Record<string, string> = {};
+      const pkgResults = await Promise.allSettled(
+        pkgEntries.map(async (entry) => {
+          if (!entry.sha) return null;
+          const response = await octokit.git.getBlob({ owner, repo, file_sha: entry.sha });
+          if (response.data.encoding === 'base64' && response.data.content) {
+            return { path: entry.path!, content: Buffer.from(response.data.content, 'base64').toString('utf-8') };
+          }
+          return null;
+        }),
+      );
+      for (const result of pkgResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          pkgFiles[result.value.path] = result.value.content;
+        }
+      }
+
+      // 4. Detect web app root from package.json files
+      // Score each package.json: web framework deps = high, workspace root = skip
+      const WEB_DEPS = new Set(['react', 'react-dom', 'next', 'vue', 'nuxt', '@angular/core', 'svelte', '@sveltejs/kit', 'astro', 'remix', 'vite', 'solid-js', 'preact']);
+      let bestRoot = '';
+      let bestScore = -1;
+
+      for (const [pkgPath, content] of Object.entries(pkgFiles)) {
+        try {
+          const pkg = JSON.parse(content);
+          if (pkg.workspaces) continue; // Skip workspace roots
+          if (!pkg.scripts?.dev && !pkg.scripts?.start) continue; // Must be runnable
+          const dir = pkgPath === 'package.json' ? '' : pkgPath.replace('/package.json', '');
+          const depth = dir ? dir.split('/').length : 0;
+          let score = 0;
+          const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+          for (const dep of Object.keys(allDeps || {})) {
+            if (WEB_DEPS.has(dep)) score += 10;
+          }
+          if (pkg.scripts?.dev) score += 5;
+          score -= depth * 2;
+          if (dir === '') score += 3;
+          if (score > bestScore) { bestScore = score; bestRoot = dir; }
+        } catch { /* ignore non-JSON package.json */ }
+      }
+
+      this.logger.log(`Preview: detected web app root="${bestRoot || '(repo root)'}" score=${bestScore}`);
+
+      // 5. Filter tree to only the winning directory's files
+      const prefix = bestRoot ? bestRoot + '/' : '';
+      const entries = allEntries.filter((entry) => {
         if (entry.type !== 'blob') return false;
         if (!entry.path) return false;
+        if (prefix && !entry.path.startsWith(prefix)) return false;
         if ((entry.size ?? 0) > MAX_FILE_SIZE) return false;
-
-        // Skip directories
         const parts = entry.path.split('/');
         if (parts.some((p) => SKIP_DIRS.has(p))) return false;
-
-        // Skip binary extensions
         const ext = '.' + entry.path.split('.').pop()?.toLowerCase();
         if (SKIP_EXTENSIONS.has(ext)) return false;
-
         return true;
       });
 
       const filesToFetch = entries.slice(0, MAX_FILES);
 
-      // 3. Fetch file contents in parallel (batched)
+      // 6. Fetch only those files
       const files: Record<string, string> = {};
-      const BATCH_SIZE = 20;
+      const BATCH_SIZE = 15;
 
       for (let i = 0; i < filesToFetch.length; i += BATCH_SIZE) {
         const batch = filesToFetch.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(
           batch.map(async (entry) => {
-            const response = await octokit.repos.getContent({
-              owner,
-              repo,
-              path: entry.path!,
-              ref: branch,
-            });
-            const data = response.data as any;
-            if (data.encoding === 'base64' && data.content) {
-              return { path: entry.path!, content: Buffer.from(data.content, 'base64').toString('utf-8') };
+            if (!entry.sha) return null;
+            const response = await octokit.git.getBlob({ owner, repo, file_sha: entry.sha });
+            if (response.data.encoding === 'base64' && response.data.content) {
+              // Strip the prefix so files are relative to the web app root
+              const relativePath = prefix ? entry.path!.slice(prefix.length) : entry.path!;
+              return { path: relativePath, content: Buffer.from(response.data.content, 'base64').toString('utf-8') };
             }
             return null;
           }),
@@ -231,6 +280,14 @@ export class GitHubController {
           if (result.status === 'fulfilled' && result.value) {
             files[result.value.path] = result.value.content;
           }
+        }
+      }
+
+      // Include package.json files that were already fetched (in case they're in the web app root)
+      for (const [pkgPath, content] of Object.entries(pkgFiles)) {
+        const relativePath = prefix ? (pkgPath.startsWith(prefix) ? pkgPath.slice(prefix.length) : null) : pkgPath;
+        if (relativePath && !files[relativePath]) {
+          files[relativePath] = content;
         }
       }
 
@@ -244,17 +301,30 @@ export class GitHubController {
         throw new NotFoundException(`Repository or branch not found: ${owner}/${repo}@${branch}`);
       }
       if (error.status === 403) {
-        throw new ForbiddenException(`Access denied to ${owner}/${repo}`);
+        const isRateLimit = error.message?.includes('rate limit');
+        throw new ForbiddenException(isRateLimit
+          ? 'GitHub API rate limit exceeded. Please wait a few minutes and try again.'
+          : `Access denied to ${owner}/${repo}`);
       }
       throw error;
     }
   }
 
   /**
-   * Helper: Get and decrypt GitHub access token for workspace
+   * Helper: Get and decrypt GitHub access token for workspace.
+   * Falls back to the user's personal workspace if not found under the team workspace,
+   * since GitHub integration is connected per-user and shared across teams.
    */
-  private async getWorkspaceAccessToken(workspaceId: string): Promise<string> {
-    const integration = await this.gitHubIntegrationRepository.findByWorkspaceId(workspaceId);
+  private async getWorkspaceAccessToken(workspaceId: string, userId?: string): Promise<string> {
+    let integration = await this.gitHubIntegrationRepository.findByWorkspaceId(workspaceId);
+
+    // Fallback to user's personal workspace
+    if (!integration && userId) {
+      const personalWorkspaceId = `ws_${userId.substring(0, 12)}`;
+      if (personalWorkspaceId !== workspaceId) {
+        integration = await this.gitHubIntegrationRepository.findByWorkspaceId(personalWorkspaceId);
+      }
+    }
 
     if (!integration) {
       throw new UnauthorizedException('GitHub integration not found. Please connect GitHub first.');
