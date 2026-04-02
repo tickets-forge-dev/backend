@@ -64,6 +64,11 @@ function PreviewRunner() {
         } catch {}
       }
 
+      // Remove lock files that confuse npm in WebContainer
+      delete files['pnpm-lock.yaml'];
+      delete files['yarn.lock'];
+      delete files['package-lock.json'];
+
       // Mount files
       setMessage('Mounting files...');
       await container.mount(buildMountStructure(files));
@@ -71,7 +76,7 @@ function PreviewRunner() {
       // Install
       setStatus('installing');
       setMessage('Installing dependencies...');
-      const install = await container.spawn('npm', ['install']);
+      const install = await container.spawn('npm', ['install', '--legacy-peer-deps', '--no-package-lock']);
       const installOutput: string[] = [];
       install.output.pipeTo(new WritableStream({
         write(chunk) {
