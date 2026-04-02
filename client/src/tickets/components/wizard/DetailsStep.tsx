@@ -189,13 +189,11 @@ export function DetailsStep() {
 
   const hasSpeechSupport = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
-  // 'S' hotkey to toggle dictation (only when not typing in an input/textarea)
+  // 'Alt' hotkey to toggle dictation
   useEffect(() => {
     if (!hasSpeechSupport) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 's' || e.key === 'S') {
-        const tag = (e.target as HTMLElement)?.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === 'Alt') {
         e.preventDefault();
         toggleSpeechToText();
         // Scroll description into view when starting
@@ -334,19 +332,20 @@ export function DetailsStep() {
                     ? 'text-red-500 border-red-500/40 bg-red-500/10 hover:bg-red-500/20'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text)] border-[var(--border-subtle)] hover:border-[var(--border)] hover:bg-[var(--bg-hover)]'
                 }`}
-                title={isListening ? 'Stop recording (S)' : 'Speak description (S)'}
+                title={isListening ? 'Stop recording (Alt)' : 'Speak description (Alt)'}
               >
                 {isListening ? (
                   <>
                     <MicOff className="h-3.5 w-3.5 flex-shrink-0" />
                     <VoiceWaveform stream={micStream} />
                     <span>Stop</span>
+                    <kbd className="hidden sm:inline-flex items-center px-1 py-0 text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded leading-tight">Alt</kbd>
                   </>
                 ) : (
                   <>
                     <Mic className="h-3.5 w-3.5" />
                     Speak
-                    <kbd className="hidden sm:inline-flex items-center px-1 py-0 text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded leading-tight">S</kbd>
+                    <kbd className="hidden sm:inline-flex items-center px-1 py-0 text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded leading-tight">Alt</kbd>
                   </>
                 )}
               </button>
