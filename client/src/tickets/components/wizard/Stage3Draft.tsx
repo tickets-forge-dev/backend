@@ -132,6 +132,7 @@ export function Stage3Draft() {
 
   // Step 1: Create draft (if needed) then fetch first/next question
   useEffect(() => {
+    console.log('[Stage3Draft] init effect', { init: initRef.current, spec: !!spec, questionsComplete, activeJobId, loading: useWizardStore.getState().loading });
     if (initRef.current) return;
     if (spec || questionsComplete) return;
     // If a background job is already running, nothing to do

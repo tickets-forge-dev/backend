@@ -1012,7 +1012,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   confirmContextContinue: async () => {
     const state = get();
-    if (state.loading) return; // Guard against double-click
+    console.log('[confirmContextContinue] called', { loading: state.loading, draftAecId: state.draftAecId, title: state.input.title?.slice(0, 30) });
+    if (state.loading) { console.log('[confirmContextContinue] SKIPPED — loading is true'); return; }
     const ticketsState = useTicketsStore.getState();
 
     // Resolve owner/repo with fallback to tickets store
