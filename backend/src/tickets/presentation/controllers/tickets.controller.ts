@@ -1013,7 +1013,6 @@ export class TicketsController {
    * Transitions REFINED → APPROVED so the developer can execute the ticket.
    * Returns 400 if ticket is not in REFINED status.
    */
-  @UseGuards(RateLimitGuard)
   @Post(':id/approve')
   async approveTicket(
     @TeamId() teamId: string,
@@ -1026,8 +1025,8 @@ export class TicketsController {
 
   /**
    * Generate clarification questions (simplified single-call flow)
+   * No rate limit — part of interactive Q&A wizard, bounded by maxRounds.
    */
-  @UseGuards(RateLimitGuard)
   @Post(':id/generate-questions')
   async generateQuestions(
     @TeamId() teamId: string,
@@ -1060,7 +1059,6 @@ export class TicketsController {
    * Returns { question, assumptions } where question is null when the LLM
    * has enough info to generate a spec.
    */
-  @UseGuards(RateLimitGuard)
   @Post(':id/next-question')
   async generateNextQuestion(
     @TeamId() teamId: string,
@@ -1088,8 +1086,8 @@ export class TicketsController {
 
   /**
    * Submit question answers and finalize technical specification
+   * No rate limit — part of interactive Q&A wizard, bounded by maxRounds.
    */
-  @UseGuards(RateLimitGuard)
   @Post(':id/submit-answers')
   async submitQuestionAnswers(
     @TeamId() teamId: string,

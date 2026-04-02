@@ -99,35 +99,26 @@ export function SessionMonitorView({ ticketId, ticketStatus, fileChangeCount, re
     }
   }, [events.length]);
 
-  // If store is idle but ticket is executing/delivered AND we have restored events, show resumed state
-  // If restoration was attempted but found nothing, fall through to DevelopButton
-  if (status === 'idle' && (ticketStatus === 'executing' || ticketStatus === 'delivered') && events.length > 0) {
+  // If store is idle but ticket is executing AND we have restored events, show resumed state
+  if (status === 'idle' && ticketStatus === 'executing' && events.length > 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-6">
         <div className="w-full max-w-sm space-y-5 text-center">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/10 mb-1">
-            {ticketStatus === 'executing' ? (
-              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            )}
+            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
           </div>
           <h3 className="text-[15px] font-semibold text-[var(--text)]">
-            {ticketStatus === 'executing' ? 'Development in progress' : 'Development complete'}
+            Development in progress
           </h3>
           <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">
-            {ticketStatus === 'executing'
-              ? 'The AI agent is working on this ticket. The session was started before this page loaded.'
-              : 'This ticket has been developed. Check the Record tab for details.'}
+            The AI agent is working on this ticket. The session was started before this page loaded.
           </p>
-          {ticketStatus === 'executing' && (
-            <button
-              onClick={() => startSession(ticketId)}
-              className="px-4 py-2 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[12px] font-medium text-[var(--text)] transition-colors"
-            >
-              Restart Development
-            </button>
-          )}
+          <button
+            onClick={() => startSession(ticketId)}
+            className="px-4 py-2 rounded-lg bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] text-[12px] font-medium text-[var(--text)] transition-colors"
+          >
+            Restart Development
+          </button>
         </div>
       </div>
     );

@@ -110,8 +110,10 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       });
     } else if (activeJob && (activeJob.status === 'running' || activeJob.status === 'retrying')) {
       // Job in progress — sync progress from job to wizard state
+      // Normalize 'completed' → 'complete' (backend jobs use 'completed')
+      const phase = activeJob.phase === 'completed' ? 'complete' : activeJob.phase;
       useWizardStore.setState({
-        currentPhase: activeJob.phase,
+        currentPhase: phase,
         progressPercent: activeJob.percent,
       });
     }
@@ -336,15 +338,15 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
         {renderStage()}
       </div>
 
-      {/* Progress Dialog — shown during analysis, hidden once complete */}
-      {loading && (resolvedPhase || currentPhase) && currentPhase !== 'complete' && (
+      {/* Progress Dialog — shown during repo analysis only (not background finalization jobs).
+          Background job progress is handled by SpecGenerationProgressDialog in Stage3Draft. */}
+      {loading && !isBackgroundJob && (resolvedPhase || currentPhase) && !currentPhase?.startsWith('complete') && (
         <AnalysisProgressDialog
           currentPhase={resolvedPhase}
           message={loadingMessage}
           percent={resolvedPercent}
           hasRepository={hasRepository}
-          onSendToBackground={isBackgroundJob ? handleSendToBackground : undefined}
-          onCancel={isBackgroundJob ? handleCancelJob : handleCancelAnalysis}
+          onCancel={handleCancelAnalysis}
         />
       )}
 

@@ -228,7 +228,7 @@ export function GenerationOptionsStep() {
               ? 'border-[var(--border-hover)]'
               : undefined
           }
-          footer={
+          footer={(includeApiSpec || apiSpecDeferred) ? (
             <div className="px-4 pb-3 space-y-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -247,7 +247,7 @@ export function GenerationOptionsStep() {
                 </p>
               )}
             </div>
-          }
+          ) : undefined}
         >
           <div className="space-y-3">
             <label className="block text-xs font-medium text-[var(--text-secondary)]">

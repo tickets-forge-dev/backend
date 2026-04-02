@@ -130,6 +130,7 @@ export class GitHubAppTokenService {
         throw new Error('Invalid repository owner or name');
       }
 
+      this.logger.log(`Creating PR: ${params.owner}/${params.repo} head=${params.head} base=${params.base} installationId=${params.installationId}`);
       const token = await this.getInstallationToken(params.installationId);
 
       const response = await fetch(

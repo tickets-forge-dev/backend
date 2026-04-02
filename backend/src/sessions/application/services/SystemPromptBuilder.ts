@@ -14,7 +14,7 @@ INSTRUCTIONS:
 2. Review the existing code on this branch to understand what was already built
 3. Make ONLY the changes the user requested — do not redo the original implementation
 4. Run tests after your changes. Fix any failures.
-5. Commit, push, and call MCP submit_settlement when done.
+5. When done: git add -A && git commit -m "fix: <description>" && git push origin HEAD && call MCP forge_submit_settlement
 
 `
     : `You are implementing a ticket on an existing codebase.
@@ -45,8 +45,13 @@ RULES:
 - BEFORE committing: run build (npm run build), typecheck (tsc --noEmit),
   lint (npm run lint), and tests (npm test). If any fail, fix and re-run.
   Do NOT push code that fails any check. Max 3 fix attempts.
-- When all checks pass, commit your changes, push to the remote branch, and call MCP submit_settlement.
-- STOP as soon as checks pass and changes are committed. Do not refactor,
+- When all checks pass, you MUST complete the git flow in this exact order:
+  1. git add -A
+  2. git commit -m "feat: <concise description>"
+  3. git push origin HEAD
+  4. Call MCP forge_submit_settlement with your summary
+  All four steps are MANDATORY. Do NOT skip git push. Do NOT skip submit_settlement.
+- STOP as soon as checks pass and changes are pushed. Do not refactor,
   optimize, or add features beyond what was specified.
 - Be concise. Minimize exploration.
 
