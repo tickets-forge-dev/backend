@@ -191,7 +191,7 @@ export function ExportsSection({ ticketId, ticketTitle, ticketUpdatedAt }: Expor
 
             {/* Description */}
             <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-              Structured XML format optimized for AI coding agents like Claude, Cursor, or Copilot. Copy and paste into your agent's context, or download to include in your repo.
+              Structured XML format optimized for AI coding agents like Claude, Cursor, or Copilot. Copy and paste into your agent&apos;s context, or download to include in your repo.
             </p>
 
             {/* Actions */}
