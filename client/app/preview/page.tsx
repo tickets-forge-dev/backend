@@ -87,9 +87,11 @@ function PreviewRunner() {
         write(chunk) {
           installOutput.push(chunk);
           const line = chunk.trim();
-          if (line.length > 3 && !line.startsWith('npm warn') && !/^[/\\|\\-]$/.test(line)) {
+          // Strip ANSI escape codes and control sequences
+          const clean = line.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07/g, '').trim();
+          if (clean.length > 3 && !clean.startsWith('npm warn')) {
             const elapsed = Math.floor((Date.now() - installStart) / 1000);
-            setMessage(`Installing (${elapsed}s)... ${line.slice(0, 50)}`);
+            setMessage(`Installing (${elapsed}s)... ${clean.slice(0, 50)}`);
           }
         },
       }));
