@@ -173,7 +173,7 @@ export class GitHubController {
     const octokit = new Octokit({ auth: accessToken });
 
     const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'coverage', '.turbo', '__pycache__']);
-    const SKIP_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
+    const SKIP_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.mp3', '.zip', '.tar', '.gz', '.lock']);
     const MAX_FILE_SIZE = 100_000; // 100KB
     const MAX_FILES = 200; // Keep under rate limits
 

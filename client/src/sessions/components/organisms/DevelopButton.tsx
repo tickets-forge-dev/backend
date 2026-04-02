@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, Zap, ArrowRight, GitBranch, ChevronDown } from 'lucide-react';
+import { Play, Flame, ArrowRight, GitBranch, ChevronDown } from 'lucide-react';
 import { useSessionStore } from '../../stores/session.store';
 import { useSkillsStore } from '../../stores/skills.store';
 import { SkillPicker } from '../molecules/SkillPicker';
@@ -55,8 +55,8 @@ export function DevelopButton({ ticketId, ticketStatus, onStart, repoFullName, o
       <div className="w-full max-w-sm space-y-5">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 mb-1">
-            <Zap className="w-5 h-5 text-emerald-500" />
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--bg-hover)] mb-1">
+            <Flame className="w-5 h-5 text-[var(--text-tertiary)]" />
           </div>
           <h3 className="text-[15px] font-semibold text-[var(--text)]">
             Start development

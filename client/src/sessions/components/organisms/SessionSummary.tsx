@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ExternalLink, GitPullRequest, GitBranch, Copy, Check, Play } from 'lucide-react';
+import { ExternalLink, GitPullRequest, GitBranch, Copy, Check, Play, Loader2 } from 'lucide-react';
 import type { SessionSummary as SummaryType } from '../../types/session.types';
 import { ElapsedTimer } from '../atoms/ElapsedTimer';
 
@@ -58,6 +58,14 @@ export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
             <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Files</div>
             <div className="text-[var(--text-primary)] font-medium">{summary.filesChanged}</div>
           </div>
+        </div>
+      )}
+
+      {/* Finalizing indicator — shows while waiting for PR/branch info */}
+      {!summary.prUrl && !summary.branch && (
+        <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-md bg-[var(--bg-hover)] border border-[var(--border-subtle)]">
+          <Loader2 className="w-4 h-4 text-[var(--text-tertiary)] animate-spin shrink-0" />
+          <span className="text-[12px] text-[var(--text-secondary)]">Finalizing — creating pull request...</span>
         </div>
       )}
 
@@ -124,7 +132,7 @@ export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
       {/* Run button — available when repo is known */}
       {onPreview && summary.repoFullName && (
         <button
-          onClick={() => onPreview(summary.repoFullName!, 'main')}
+          onClick={() => onPreview(summary.repoFullName!, summary.branch || 'main')}
           className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
         >
           <Play className="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" />
