@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { AECResponse } from '@/services/ticket.service';
 import { useChangeRecordsStore } from '@/tickets/stores/change-records.store';
 import { ChangeRecordDetail } from '../detail/ChangeRecordDetail';
-import { PreviewPanel } from '@/preview/components/PreviewPanel';
+import { PreviewPanel } from '@/src/preview/components/PreviewPanel';
 
 interface RecordDetailPanelProps {
   ticket: AECResponse;
