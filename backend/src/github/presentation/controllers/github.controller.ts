@@ -69,7 +69,7 @@ export class GitHubController {
     this.logger.log(`Getting repository: ${owner}/${repo}`);
 
     try {
-      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId, req.user?.uid);
       const repository = await this.gitHubApiService.getRepository(owner, repo, accessToken);
 
       return {
@@ -116,7 +116,7 @@ export class GitHubController {
     this.logger.log(`Getting branches for: ${owner}/${repo}`);
 
     try {
-      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+      const accessToken = await this.getWorkspaceAccessToken(req.workspaceId, req.user?.uid);
       // listBranches already resolves isDefault per branch — extract default from there
       // (avoids a redundant repos.get API call that was causing timeouts)
       const branches = await this.gitHubApiService.listBranches(owner, repo, accessToken);
@@ -169,7 +169,7 @@ export class GitHubController {
   ): Promise<{ files: Record<string, string>; truncated: boolean }> {
     this.logger.log(`Fetching contents for preview: ${owner}/${repo}@${branch}`);
 
-    const accessToken = await this.getWorkspaceAccessToken(req.workspaceId);
+    const accessToken = await this.getWorkspaceAccessToken(req.workspaceId, req.user?.uid);
     const octokit = new Octokit({ auth: accessToken });
 
     const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'coverage', '.turbo', '__pycache__']);
@@ -311,10 +311,20 @@ export class GitHubController {
   }
 
   /**
-   * Helper: Get and decrypt GitHub access token for workspace
+   * Helper: Get and decrypt GitHub access token for workspace.
+   * Falls back to the user's personal workspace if not found under the team workspace,
+   * since GitHub integration is connected per-user and shared across teams.
    */
-  private async getWorkspaceAccessToken(workspaceId: string): Promise<string> {
-    const integration = await this.gitHubIntegrationRepository.findByWorkspaceId(workspaceId);
+  private async getWorkspaceAccessToken(workspaceId: string, userId?: string): Promise<string> {
+    let integration = await this.gitHubIntegrationRepository.findByWorkspaceId(workspaceId);
+
+    // Fallback to user's personal workspace
+    if (!integration && userId) {
+      const personalWorkspaceId = `ws_${userId.substring(0, 12)}`;
+      if (personalWorkspaceId !== workspaceId) {
+        integration = await this.gitHubIntegrationRepository.findByWorkspaceId(personalWorkspaceId);
+      }
+    }
 
     if (!integration) {
       throw new UnauthorizedException('GitHub integration not found. Please connect GitHub first.');

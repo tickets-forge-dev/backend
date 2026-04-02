@@ -18,6 +18,53 @@ import type {
 const STORAGE_KEY = 'forge_currentTeamId';
 
 /**
+ * Reset all team-scoped stores when switching teams.
+ * Prevents stale data from the previous team leaking into the new context.
+ * Uses lazy imports to avoid circular dependencies.
+ */
+function resetTeamScopedStores() {
+  // Tickets store — clear tickets, current ticket, quota
+  try {
+    const { useTicketsStore } = require('@/stores/tickets.store');
+    useTicketsStore.setState({
+      tickets: [],
+      currentTicket: null,
+      quota: null,
+    });
+  } catch { /* store not loaded yet */ }
+
+  // Jobs store — clear active jobs list
+  try {
+    const { useJobsStore } = require('@/stores/jobs.store');
+    useJobsStore.setState({ jobs: [] });
+  } catch { /* store not loaded yet */ }
+
+  // Folders store — clear folders
+  try {
+    const { useFoldersStore } = require('@/stores/folders.store');
+    useFoldersStore.setState({ folders: [] });
+  } catch { /* store not loaded yet */ }
+
+  // Tags store — clear tags
+  try {
+    const { useTagsStore } = require('@/stores/tags.store');
+    useTagsStore.setState({ tags: [] });
+  } catch { /* store not loaded yet */ }
+
+  // Settings store — clear cached GitHub repos so they reload for new team context
+  try {
+    const { useSettingsStore } = require('@/stores/settings.store');
+    useSettingsStore.setState({
+      repositoriesFetchedAt: null,
+      githubConnected: false,
+      githubConnectionStatus: null,
+      selectedRepositories: [],
+      isLoadingConnection: false,
+    });
+  } catch { /* store not loaded yet */ }
+}
+
+/**
  * Team state interface
  */
 interface TeamState {
@@ -275,6 +322,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    * Switch to a different team
    */
   switchTeam: async (teamId: string) => {
+    // Clear stale data from all team-scoped stores before switching
+    resetTeamScopedStores();
+
     // Invalidate cache when switching teams to force fresh data
     set({
       isLoading: true,
@@ -319,6 +369,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
    * Switch to personal workspace (no team)
    */
   switchToPersonal: async () => {
+    // Clear stale data from all team-scoped stores before switching
+    resetTeamScopedStores();
+
     set({
       isLoading: true,
       isSwitching: true,

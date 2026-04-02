@@ -188,7 +188,7 @@ export function CodebaseStep() {
       <div>
         <h2 className="text-[15px] font-semibold text-[var(--text)]">Connect repositories</h2>
         <p className="text-[12px] text-[var(--text-tertiary)] mt-1">
-          Link your codebase for smarter, code-aware tickets.
+          Link your codebase and select the branch that code will be generated from.
         </p>
       </div>
 
@@ -294,6 +294,20 @@ export function CodebaseStep() {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Hint: set default repos in project settings */}
+          {teamRepositories.length === 0 && (
+            <p className="text-[11px] text-[var(--text-tertiary)] px-1">
+              Tip: Set default repositories in your{' '}
+              <a
+                href={currentTeam?.id ? `/teams/${currentTeam.id}?tab=repositories` : '#'}
+                className="underline hover:text-[var(--text-secondary)] transition-colors"
+              >
+                project settings
+              </a>
+              {' '}to auto-populate this step next time.
+            </p>
           )}
 
           {/* Actions row */}

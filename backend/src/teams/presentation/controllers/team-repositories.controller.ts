@@ -15,7 +15,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
+import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
 import { FirestoreTeamRepository } from '../../infrastructure/persistence/FirestoreTeamRepository';
+import { FirestoreTeamMemberRepository } from '../../infrastructure/persistence/FirestoreTeamMemberRepository';
 import { TeamRepository as TeamRepo, RepositoryRole } from '../../domain/TeamRepository';
 import { TeamId } from '../../domain/TeamId';
 
@@ -24,11 +26,29 @@ import { TeamId } from '../../domain/TeamId';
  *
  * REST API for managing repositories attached to a team.
  * Routes: /teams/:teamId/repositories
+ *
+ * Uses WorkspaceGuard to validate the requesting user is a member of the team.
  */
 @Controller('teams/:teamId/repositories')
-@UseGuards(FirebaseAuthGuard)
+@UseGuards(FirebaseAuthGuard, WorkspaceGuard)
 export class TeamRepositoriesController {
-  constructor(private readonly teamRepository: FirestoreTeamRepository) {}
+  constructor(
+    private readonly teamRepository: FirestoreTeamRepository,
+    private readonly teamMemberRepository: FirestoreTeamMemberRepository,
+  ) {}
+
+  /**
+   * Validate the requesting user is a member (or owner) of the team.
+   * WorkspaceGuard validates via x-team-id header, but the teamId here
+   * comes from URL params — we must verify independently.
+   */
+  private async validateMembership(userId: string, teamId: string, team: any): Promise<void> {
+    if (team.isOwnedBy(userId)) return;
+    const member = await this.teamMemberRepository.findByUserAndTeam(userId, teamId);
+    if (!member || !member.isActive()) {
+      throw new ForbiddenException('You are not a member of this team');
+    }
+  }
 
   /**
    * GET /teams/:teamId/repositories
@@ -36,10 +56,13 @@ export class TeamRepositoriesController {
    */
   @Get()
   async listRepositories(@Request() req: any, @Param('teamId') teamId: string) {
+    const userId: string = req.user.uid;
     const team = await this.teamRepository.getById(TeamId.create(teamId));
     if (!team) {
       throw new NotFoundException(`Team ${teamId} not found`);
     }
+
+    await this.validateMembership(userId, teamId, team);
 
     return {
       success: true,
