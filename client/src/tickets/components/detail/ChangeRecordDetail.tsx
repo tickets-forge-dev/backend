@@ -3,7 +3,7 @@
 import type { AECResponse } from '@/services/ticket.service';
 import { useTeamStore } from '@/teams/stores/team.store';
 import { DivergenceCard } from './DivergenceCard';
-import { ExternalLink, CheckCircle2, FileCode2, GitBranch, GitCompareArrows, Play } from 'lucide-react';
+import { ExternalLink, CheckCircle2, FileCode2, GitBranch, GitCompareArrows, GitPullRequest, Play } from 'lucide-react';
 
 /**
  * Unified change record detail — single source of truth for record display.
@@ -256,6 +256,15 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
         {canLink && (
           <div className="border-t border-[var(--border-subtle)] pt-3 flex items-center gap-4 text-[11px] text-[var(--text-tertiary)]">
             <a
+              href={`https://github.com/${ticket.repositoryContext!.repositoryFullName}/pulls?q=is%3Apr+head%3A${ticket.implementationBranch}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-violet-400 transition-colors"
+            >
+              <GitPullRequest className="w-3 h-3" />
+              <span>Pull Request</span>
+            </a>
+            <a
               href={`https://github.com/${ticket.repositoryContext!.repositoryFullName}/tree/${ticket.implementationBranch}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -279,7 +288,7 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
               <button
                 onClick={() => onPreview(
                   ticket.repositoryContext!.repositoryFullName,
-                  ticket.repositoryContext!.branchName || 'main',
+                  ticket.implementationBranch || ticket.repositoryContext!.branchName || 'main',
                 )}
                 className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors ml-auto"
                 title="Run project in browser"
