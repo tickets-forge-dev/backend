@@ -14,6 +14,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { FirebaseAuthGuard } from '../../../shared/presentation/guards/FirebaseAuthGuard';
 import { WorkspaceGuard } from '../../../shared/presentation/guards/WorkspaceGuard';
+import { RateLimitGuard } from '../../../shared/presentation/guards/RateLimitGuard';
 import { WorkspaceId } from '../../../shared/presentation/decorators/WorkspaceId.decorator';
 import { LinearTokenService } from '../../application/services/linear-token.service';
 import { LinearApiClient } from '../../application/services/linear-api-client';
@@ -61,6 +62,7 @@ export class LinearOAuthController {
     return { oauthUrl, state };
   }
 
+  @UseGuards(RateLimitGuard)
   @Get('callback')
   @Redirect()
   async callback(

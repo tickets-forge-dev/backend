@@ -24,7 +24,11 @@ export class LinearTokenService {
   private readonly encryptionKey: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.encryptionKey = this.configService.get<string>('GITHUB_ENCRYPTION_KEY') || '';
+    const key = this.configService.get<string>('GITHUB_ENCRYPTION_KEY');
+    if (!key) {
+      throw new Error('GITHUB_ENCRYPTION_KEY environment variable is required');
+    }
+    this.encryptionKey = key;
   }
 
   async exchangeCodeForToken(code: string, redirectUri: string): Promise<LinearTokenResponse> {
@@ -122,12 +126,10 @@ export class LinearTokenService {
   }
 
   private computeHmac(data: string): string {
-    const secret = this.encryptionKey || 'default-insecure-key-change-me';
-    return createHmac('sha256', secret).update(data).digest('hex');
+    return createHmac('sha256', this.encryptionKey).update(data).digest('hex');
   }
 
   private async getDerivedKey(): Promise<Buffer> {
-    const key = this.encryptionKey || 'default-insecure-key-change-me';
-    return (await scryptAsync(key, 'salt', 32)) as Buffer;
+    return (await scryptAsync(this.encryptionKey, 'salt', 32)) as Buffer;
   }
 }

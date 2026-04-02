@@ -364,7 +364,7 @@ export function GenerationOptionsStep() {
             <div className="flex-1 overflow-hidden">
               <iframe
                 src="/assets/2026-03-23-ticket-tags-wireframes.html"
-                sandbox=""
+                sandbox="allow-scripts allow-same-origin"
                 title="Hi-res Wireframe Example"
                 className="w-full h-full border-0"
                 style={{ minHeight: '500px' }}

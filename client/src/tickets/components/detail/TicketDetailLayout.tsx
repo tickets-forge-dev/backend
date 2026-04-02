@@ -13,6 +13,7 @@ import { ImplementationTab } from './ImplementationTab';
 import { DesignTab } from './DesignTab';
 import { ChangeRecordTab } from './ChangeRecordTab';
 import { Button } from '@/core/components/ui/button';
+import DOMPurify from 'isomorphic-dompurify';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -868,7 +869,7 @@ export function TicketDetailLayout({
                           return (
                             <div key={i} className="flex">
                               <span className="select-none text-[#3f3f46] w-8 text-right mr-4 flex-shrink-0">{i + 1}</span>
-                              <span className="text-[var(--text-secondary)]" dangerouslySetInnerHTML={{ __html: highlighted }} />
+                              <span className="text-[var(--text-secondary)]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlighted) }} />
                             </div>
                           );
                         })}

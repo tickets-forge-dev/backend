@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 
 const POSTHOG_HOST = 'https://us.i.posthog.com';
+const ALLOWED_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://app.forgetickets.dev';
 
 export async function POST(
   request: NextRequest,
@@ -63,7 +64,7 @@ export async function POST(
       return new NextResponse(null, {
         status: 204,
         headers: {
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
         },
       });
     }
@@ -74,9 +75,9 @@ export async function POST(
       status: response.status,
       headers: {
         'Content-Type': response.headers.get('content-type') || 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type',
       },
     });
   } catch (error: any) {
@@ -124,9 +125,9 @@ export async function GET(
       status: response.status,
       headers: {
         'Content-Type': response.headers.get('content-type') || 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type',
       },
     });
   } catch (error: any) {
@@ -142,7 +143,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
       'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },

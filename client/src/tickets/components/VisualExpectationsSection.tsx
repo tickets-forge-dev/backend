@@ -261,7 +261,7 @@ export function VisualExpectationsSection({
             <div className="flex-1 overflow-hidden">
               <iframe
                 srcDoc={wireframeHtml}
-                sandbox=""
+                sandbox="allow-scripts allow-same-origin"
                 title="Wireframe Preview"
                 className="w-full h-full border-0"
                 style={{ minHeight: '70vh' }}

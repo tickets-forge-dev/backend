@@ -124,6 +124,12 @@ export class GitHubAppTokenService {
     body: string;
   }): Promise<{ prUrl: string; prNumber: number } | null> {
     try {
+      // Validate owner/repo to prevent SSRF via path traversal
+      const SAFE_REPO_PATTERN = /^[a-zA-Z0-9._-]+$/;
+      if (!SAFE_REPO_PATTERN.test(params.owner) || !SAFE_REPO_PATTERN.test(params.repo)) {
+        throw new Error('Invalid repository owner or name');
+      }
+
       const token = await this.getInstallationToken(params.installationId);
 
       const response = await fetch(

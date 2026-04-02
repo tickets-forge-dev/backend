@@ -413,7 +413,9 @@ export class JiraApiClient {
       }
 
       // Fallback to JQL search for partial matches
-      const jql = `issuekey ~ "${queryUpper}"`;
+      // Escape JQL special characters to prevent injection
+      const escapedQuery = queryUpper.replace(/[\\"\[\](){}~*?^!|&]/g, '\\$&');
+      const jql = `issuekey ~ "${escapedQuery}"`;
       const url = new URL(this.buildApiUrl(jiraUrl, 'search'));
       url.searchParams.append('jql', jql);
       url.searchParams.append('maxResults', '20');
