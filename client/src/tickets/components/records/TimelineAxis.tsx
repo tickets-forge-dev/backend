@@ -270,7 +270,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
 
   if (tickets.length === 0) return null;
 
-  const LINE_Y = 38; // vertical position of the timeline line
+  const LINE_Y = 48; // vertical position of the timeline line
 
   return (
     <div
@@ -284,7 +284,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
         </div>
 
         <div ref={scrollRef} onMouseDown={onMouseDown} className="overflow-x-auto timeline-scroll cursor-grab">
-          <div className="relative" style={{ width: totalWidth, height: 72, minWidth: '100%' }}>
+          <div className="relative" style={{ width: totalWidth, height: 110, minWidth: '100%' }}>
             {/* ── Date tick marks ── */}
             {ticks.map((tick, i) => {
               const x = dateToX(tick.date, rangeStart, zoom) + 30; // 30px left pad
@@ -294,10 +294,10 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                   <div
                     className={`text-center whitespace-nowrap select-none ${
                       tick.isMonth
-                        ? 'text-[9px] font-medium text-[#52525b]'
-                        : 'text-[8px] text-[#3f3f46]'
+                        ? 'text-[11px] font-medium text-[#71717a]'
+                        : 'text-[10px] text-[#52525b]'
                     }`}
-                    style={{ marginTop: 6 }}
+                    style={{ marginTop: 8 }}
                   >
                     {tick.label}
                   </div>
@@ -306,9 +306,9 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                     className="mx-auto"
                     style={{
                       width: 1,
-                      height: tick.isMonth ? 8 : 4,
-                      marginTop: 2,
-                      background: tick.isMonth ? '#3f3f46' : '#27272a',
+                      height: tick.isMonth ? 10 : 5,
+                      marginTop: 3,
+                      background: tick.isMonth ? '#52525b' : '#3f3f46',
                     }}
                   />
                 </div>
@@ -317,7 +317,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
 
             {/* ── The purple timeline line ── */}
             <div
-              className="absolute left-0 right-0 h-[1.5px]"
+              className="absolute left-0 right-0 h-[2px]"
               style={{
                 top: LINE_Y,
                 background:
@@ -383,8 +383,8 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                     <div
                       className="rounded-full transition-all duration-200 group-hover:scale-[1.4]"
                       style={{
-                        width: isSelected ? 10 : 7,
-                        height: isSelected ? 10 : 7,
+                        width: isSelected ? 12 : 9,
+                        height: isSelected ? 12 : 9,
                         background: isSelected ? '#a78bfa' : '#8b5cf6',
                         boxShadow: isSelected
                           ? '0 0 0 2px #13101e, 0 0 0 3.5px #8b5cf644, 0 0 14px #8b5cf644'
@@ -394,16 +394,16 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                     />
                     {/* Label below */}
                     <div
-                      className={`absolute top-[14px] left-1/2 -translate-x-1/2 whitespace-nowrap text-center transition-all duration-200 ${
+                      className={`absolute top-[16px] left-1/2 -translate-x-1/2 whitespace-nowrap text-center transition-all duration-200 ${
                         isSelected
                           ? 'text-[#c4b5fd]'
                           : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] group-hover:translate-y-[2px]'
                       }`}
                     >
-                      <div className={`text-[9px] max-w-[80px] truncate ${isSelected ? 'font-medium' : ''}`}>
+                      <div className={`text-[11px] max-w-[120px] truncate ${isSelected ? 'font-medium' : ''}`}>
                         {t.title}
                       </div>
-                      <div className="text-[7px] opacity-60">
+                      <div className="text-[9px] opacity-60">
                         {cr.filesChanged.length} files
                       </div>
                     </div>
@@ -471,7 +471,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                   </button>
                   {/* Label below */}
                   <div className="absolute top-[14px] left-1/2 -translate-x-1/2 whitespace-nowrap text-center pointer-events-none">
-                    <div className={`text-[9px] font-medium ${containsSelected ? 'text-[#c4b5fd]' : 'text-[var(--text-tertiary)]'}`}>
+                    <div className={`text-[11px] font-medium ${containsSelected ? 'text-[#c4b5fd]' : 'text-[var(--text-tertiary)]'}`}>
                       {group.tickets.length} records
                     </div>
                   </div>
@@ -486,8 +486,8 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                 const x = dateToX(today, rangeStart, zoom) + 30;
                 return (
                   <div className="absolute pointer-events-none" style={{ left: x, top: LINE_Y - 16, transform: 'translateX(-50%)' }}>
-                    <div className="text-[7px] text-emerald-500/60 font-medium text-center mb-[2px]">today</div>
-                    <div className="w-px h-[18px] bg-emerald-500/20 mx-auto" />
+                    <div className="text-[9px] text-emerald-500/70 font-medium text-center mb-[2px]">today</div>
+                    <div className="w-px h-[22px] bg-emerald-500/25 mx-auto" />
                   </div>
                 );
               }
