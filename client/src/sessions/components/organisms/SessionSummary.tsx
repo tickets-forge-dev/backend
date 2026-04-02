@@ -117,10 +117,10 @@ export function SessionSummary({ summary, onPreview }: SessionSummaryProps) {
         </div>
       )}
 
-      {/* Run button — only when PR exists (branch was actually pushed) */}
-      {onPreview && summary.repoFullName && summary.prUrl && (
+      {/* Run button — available when repo is known */}
+      {onPreview && summary.repoFullName && (
         <button
-          onClick={() => onPreview(summary.repoFullName!, summary.branch || 'main')}
+          onClick={() => onPreview(summary.repoFullName!, 'main')}
           className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
         >
           <Play className="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" />
