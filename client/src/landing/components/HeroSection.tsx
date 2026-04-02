@@ -150,8 +150,9 @@ export function HeroSection() {
           <Image
             src="/images/ticket-screenshot.png"
             alt="Forge ticket management interface showing AI-enriched tickets with quality scores"
-            width={1920}
-            height={1080}
+            width={1200}
+            height={750}
+            quality={95}
             priority
             className="w-full h-auto"
           />

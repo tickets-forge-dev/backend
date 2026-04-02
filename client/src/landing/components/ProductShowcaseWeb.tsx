@@ -79,9 +79,11 @@ export function ProductShowcaseWeb() {
               <Image
                 src="/images/aec-screenshot.png"
                 alt="Forge web app showing an AI-enriched ticket spec with problem statement, acceptance criteria, and quality score"
-                width={1920}
-                height={1080}
+                width={1200}
+                height={750}
+                quality={95}
                 className="w-full h-auto"
+                style={{ maxWidth: '560px' }}
               />
             </motion.div>
           </motion.div>
