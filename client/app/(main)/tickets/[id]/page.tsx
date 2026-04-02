@@ -1343,7 +1343,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
           ticketTitle={currentTicket.title}
           ticketStatus={currentTicket.status}
           repoFullName={currentTicket.repositoryContext?.repositoryFullName}
-          branch={`feat/${currentTicket.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+          branch={`feat/${(currentTicket.slug || currentTicket.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)}`}
           fileChangeCount={currentTicket.techSpec?.fileChanges?.length}
           repositories={currentTicket.repositories ||
             (currentTicket.repositoryContext ? [{
