@@ -231,11 +231,24 @@ export function ExportsSection({ ticketId, ticketTitle, ticketUpdatedAt }: Expor
         </div>
 
         {/* How to use hint */}
-        <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg bg-[var(--bg-hover)]/40 border border-[var(--border-subtle)]">
-          <ArrowRight className="h-3.5 w-3.5 text-[var(--text-tertiary)] mt-0.5 flex-shrink-0" />
+        <div className="px-4 py-3 rounded-lg bg-[var(--bg-hover)]/40 border border-[var(--border-subtle)] space-y-2">
           <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
-            <span className="text-[var(--text-secondary)] font-medium">Tip:</span> Use the Tech Spec for team reviews and handoffs. Copy the AEC Contract into your AI coding agent to implement the ticket with full context.
+            These documents stay in sync with your ticket — every edit, refinement, or review update is reflected automatically.
           </p>
+          <div className="flex flex-col gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+            <div className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-emerald-500 flex-shrink-0" />
+              <span><span className="text-[var(--text-secondary)]">Cloud Develop</span> — click Develop and the AEC Contract is used automatically</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-blue-500 flex-shrink-0" />
+              <span><span className="text-[var(--text-secondary)]">MCP Bridge</span> — assign a developer and they receive it via CLI</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-violet-500 flex-shrink-0" />
+              <span><span className="text-[var(--text-secondary)]">Manual</span> — copy the AEC Contract into any AI coding agent</span>
+            </div>
+          </div>
         </div>
       </div>
 
