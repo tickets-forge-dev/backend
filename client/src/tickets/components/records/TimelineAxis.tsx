@@ -412,6 +412,26 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                         background: '#8b5cf60a',
                       }}
                     />
+                    {/* Hover tooltip — above the dot */}
+                    <div className="hidden group-hover:block absolute bottom-[16px] left-1/2 -translate-x-1/2 z-30 pb-1 pointer-events-none">
+                      <div className="bg-[#1c1c24] border border-[#2a2a35] rounded-lg shadow-xl px-3 py-2.5 min-w-[180px] max-w-[240px]">
+                        <div className="text-[11px] font-medium text-[#e4e4e7] leading-tight mb-1.5">{t.title}</div>
+                        <div className="flex items-center gap-2 text-[10px] text-[#71717a]">
+                          <span>{new Date(cr.submittedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="opacity-40">·</span>
+                          <span>{new Date(cr.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          {cr.filesChanged.length > 0 && (
+                            <>
+                              <span className="opacity-40">·</span>
+                              <span>{cr.filesChanged.length} files</span>
+                            </>
+                          )}
+                        </div>
+                        {cr.executionSummary && (
+                          <div className="text-[10px] text-[#52525b] mt-1.5 leading-snug line-clamp-2">{cr.executionSummary}</div>
+                        )}
+                      </div>
+                    </div>
                     {/* Pulse ring on latest record */}
                     {isLatest && !isSelected && (
                       <div
