@@ -289,7 +289,7 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
             {ticks.map((tick, i) => {
               const x = dateToX(tick.date, rangeStart, zoom) + 30; // 30px left pad
               return (
-                <div key={i} className="absolute" style={{ left: x, top: 0, transform: 'translateX(-50%)' }}>
+                <div key={`tick-${i}`} className="absolute" style={{ left: x, top: 0, transform: 'translateX(-50%)' }}>
                   {/* Tick label */}
                   <div
                     className={`text-center whitespace-nowrap select-none ${
@@ -301,18 +301,66 @@ export function TimelineAxis({ tickets, selectedId, onSelect, zoom }: TimelineAx
                   >
                     {tick.label}
                   </div>
-                  {/* Tick line */}
+                  {/* Tick line — major */}
                   <div
                     className="mx-auto"
                     style={{
                       width: 1,
-                      height: tick.isMonth ? 10 : 5,
+                      height: tick.isMonth ? 10 : 6,
                       marginTop: 3,
                       background: tick.isMonth ? '#52525b' : '#3f3f46',
                     }}
                   />
                 </div>
               );
+            })}
+
+            {/* ── Minor tick pins (like clock minute marks) ── */}
+            {zoom === 'hour' && ticks.map((tick, i) => {
+              // 5-minute interval pins between each hour tick
+              return [10, 20, 30, 40, 50].map((min) => {
+                const minDate = new Date(tick.date.getTime() + min * 60_000);
+                if (minDate > rangeEnd) return null;
+                const mx = dateToX(minDate, rangeStart, zoom) + 30;
+                const is15 = min === 15 || min === 30 || min === 45;
+                return (
+                  <div
+                    key={`minor-${i}-${min}`}
+                    className="absolute"
+                    style={{
+                      left: mx,
+                      top: LINE_Y - (is15 ? 5 : 3),
+                      transform: 'translateX(-50%)',
+                      width: 1,
+                      height: is15 ? 10 : 6,
+                      background: is15 ? '#3f3f46' : '#27272a',
+                    }}
+                  />
+                );
+              });
+            })}
+            {zoom === 'day' && ticks.map((tick, i) => {
+              // 6-hour interval pins between each day tick
+              return [6, 12, 18].map((h) => {
+                const hDate = new Date(tick.date.getTime() + h * 3_600_000);
+                if (hDate > rangeEnd) return null;
+                const hx = dateToX(hDate, rangeStart, zoom) + 30;
+                const isNoon = h === 12;
+                return (
+                  <div
+                    key={`minor-${i}-${h}`}
+                    className="absolute"
+                    style={{
+                      left: hx,
+                      top: LINE_Y - (isNoon ? 4 : 3),
+                      transform: 'translateX(-50%)',
+                      width: 1,
+                      height: isNoon ? 8 : 6,
+                      background: isNoon ? '#3f3f46' : '#27272a',
+                    }}
+                  />
+                );
+              });
             })}
 
             {/* ── The purple timeline line ── */}
