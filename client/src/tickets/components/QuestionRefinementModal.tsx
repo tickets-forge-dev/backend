@@ -110,7 +110,7 @@ export function QuestionRefinementModal({
   return (
     <>
       {/* Modal Overlay */}
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1100] p-4 backdrop-blur-md">
         {/* Modal Card */}
         <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           {/* Header */}
@@ -143,7 +143,7 @@ export function QuestionRefinementModal({
           <div className="px-6 pb-4">
             <div className="h-1 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 transition-all duration-300"
+                className="h-full bg-blue-400/50 transition-all duration-300"
                 style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }}
               />
             </div>
@@ -165,8 +165,8 @@ export function QuestionRefinementModal({
             />
 
             {currentQuestion.impact && (
-              <div className="mt-6 p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/50 rounded">
-                <p className="text-[var(--text-xs)] text-blue-900 dark:text-blue-100">
+              <div className="mt-6 p-3 bg-blue-50/30 dark:bg-blue-400/5 border border-blue-200/30 dark:border-blue-400/10 rounded">
+                <p className="text-[var(--text-xs)] text-blue-800 dark:text-blue-200/80">
                   <strong>Impact:</strong> {currentQuestion.impact}
                 </p>
               </div>
@@ -215,7 +215,7 @@ export function QuestionRefinementModal({
                 size="sm"
                 onClick={handleSubmit}
                 disabled={!isAnswered || isLocalSubmitting}
-                className={isAnswered ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                className={isAnswered ? 'bg-blue-400/15 text-blue-300 border border-blue-400/20 hover:bg-blue-400/25' : ''}
               >
                 {isLastQuestion ? 'Finalize' : 'Next'}
               </Button>

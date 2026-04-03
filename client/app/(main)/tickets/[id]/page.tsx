@@ -831,12 +831,12 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push('/tickets')} className="-ml-2">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Tickets
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Tickets</span>
           </Button>
 
         </div>
-        
+
         <div className="flex items-center gap-2">
           {currentTicket?.techSpec && (
             <>
@@ -845,8 +845,8 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
                 size="sm"
                 onClick={() => setShowExportDialog(true)}
               >
-                <Upload className="h-3.5 w-3.5 mr-2" />
-                Export
+                <Upload className="h-3.5 w-3.5 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </>
           )}
@@ -921,7 +921,7 @@ function TicketDetailContent({ params }: TicketDetailPageProps) {
 
       {/* Ticket ID + Git repo */}
       {!isEditingTitle && (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowTicketIdVisible(!showTicketIdVisible)}
             className="inline-flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"

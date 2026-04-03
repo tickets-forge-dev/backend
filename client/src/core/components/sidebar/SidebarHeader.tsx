@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
 import { useUserStore } from '@/stores/user-store';
+import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 // Get user initials for avatar
@@ -66,11 +67,12 @@ export function SidebarHeader() {
               </div>
             )}
             {/* Name only — email in dropdown */}
-            {!sidebarCollapsed && (
-              <span className="text-[13px] font-medium text-[var(--text-secondary)] truncate">
-                {user.displayName || 'User'}
-              </span>
-            )}
+            <span className={cn(
+              'text-[13px] font-medium text-[var(--text-secondary)] truncate whitespace-nowrap transition-[opacity,transform] duration-200',
+              sidebarCollapsed ? 'opacity-0 -translate-x-1' : 'opacity-100 translate-x-0'
+            )}>
+              {user.displayName || 'User'}
+            </span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent

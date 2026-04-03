@@ -52,7 +52,7 @@ const STATUS_CONTENT: Record<string, { badge: string; badgeColor: string; featur
   delivered: {
     badge: 'Delivered',
     badgeColor: 'bg-violet-500/15 text-violet-400',
-    features: ['Pull Request #5 opened', 'Change Record with all decisions', 'Preview available — Run in browser'],
+    features: ['Pull Request #5 opened', 'Decision Log with all decisions', 'Preview available — Run in browser'],
   },
 };
 

@@ -203,9 +203,9 @@ export function OverviewCard({
         )}
       </div>
 
-      {/* Lifecycle bar — own row on small/medium screens */}
+      {/* Lifecycle bar — own row on medium screens only (hidden on mobile, inline on lg+) */}
       {lifecycleSlot && (
-        <div className="lg:hidden pt-2">
+        <div className="hidden md:block lg:hidden pt-2">
           {lifecycleSlot}
         </div>
       )}

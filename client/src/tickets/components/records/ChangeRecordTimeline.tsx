@@ -8,7 +8,6 @@ import { RecordDetailPanel } from './RecordDetailPanel';
 import { RecordSidebar } from './RecordSidebar';
 import { DateRangeFilter } from './DateRangeFilter';
 import { ZoomToggle } from './ZoomToggle';
-import { RecordHelpButton } from './RecordHelpButton';
 import { RecordFilters, ActiveFilterPills, hasActiveFilters } from './RecordFilters';
 import { ClipboardList, Search } from 'lucide-react';
 
@@ -81,9 +80,9 @@ export function ChangeRecordTimeline() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
         <ClipboardList className="w-10 h-10 text-[var(--text-tertiary)] mb-3 opacity-40" />
-        <div className="text-sm text-[var(--text-secondary)] mb-1">No Change Records yet</div>
+        <div className="text-sm text-[var(--text-secondary)] mb-1">No Decision Logs yet</div>
         <div className="text-[13px] text-[var(--text-tertiary)]">
-          Change Records appear here when tickets are delivered.
+          Decision Logs appear here when tickets are delivered.
         </div>
       </div>
     );
@@ -97,10 +96,9 @@ export function ChangeRecordTimeline() {
         <div className="space-y-2">
           <div className="flex items-center gap-1">
             <div className="shrink-0">
-              <h1 className="text-sm font-semibold text-[var(--text-primary)]">Change Records</h1>
-              <p className="text-[10px] text-[var(--text-tertiary)] -mt-0.5">Click a record on the timeline to view details</p>
+              <h1 className="text-sm font-semibold text-[var(--text-primary)]">Decision Logs</h1>
+              <p className="text-[10px] text-[var(--text-tertiary)] -mt-0.5">Click a log on the timeline to view details</p>
             </div>
-            <RecordHelpButton />
 
             {/* Search — centered */}
             <div className="flex-1 flex justify-center">

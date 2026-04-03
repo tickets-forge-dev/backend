@@ -14,7 +14,7 @@ import {
 import type { ApiEndpointSpec } from '@/types/question-refinement';
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  GET: 'bg-blue-400/8 text-blue-500 dark:text-blue-300/70 border-blue-400/10',
   POST: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
   PUT: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
   PATCH: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',

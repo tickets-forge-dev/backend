@@ -38,7 +38,7 @@ export function SidebarNav() {
 
   const navigationItems = [
     { label: 'Workspace', href: '/tickets', icon: LayoutGrid },
-    { label: 'Records', href: '/records', icon: ClipboardList },
+    { label: 'Decision Logs', href: '/records', icon: ClipboardList },
     { label: 'Settings', href: '/settings', icon: Settings, attention: hasProfileAttention },
   ];
 
@@ -70,9 +70,10 @@ export function SidebarNav() {
                     <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[var(--text-tertiary)]" />
                   )}
                 </span>
-                {!sidebarCollapsed && (
-                  <span className="truncate">{item.label}</span>
-                )}
+                <span className={cn(
+                  'truncate whitespace-nowrap transition-[opacity,transform] duration-200',
+                  sidebarCollapsed ? 'opacity-0 -translate-x-1' : 'opacity-100 translate-x-0'
+                )}>{item.label}</span>
               </Link>
             </li>
           );
@@ -90,14 +91,16 @@ export function SidebarNav() {
             )}
           >
             <Search className="h-3.5 w-3.5 flex-shrink-0" />
-            {!sidebarCollapsed && (
-              <span className="flex-1 text-left truncate">Command</span>
-            )}
-            {!sidebarCollapsed && (
-              <kbd className="ml-auto text-[10px] font-medium text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
-                {isMac ? '⌘K' : 'Ctrl K'}
-              </kbd>
-            )}
+            <span className={cn(
+              'flex-1 text-left truncate whitespace-nowrap transition-[opacity,transform] duration-200',
+              sidebarCollapsed ? 'opacity-0 -translate-x-1' : 'opacity-100 translate-x-0'
+            )}>Command</span>
+            <kbd className={cn(
+              'ml-auto text-[10px] font-medium text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5 whitespace-nowrap transition-opacity duration-200',
+              sidebarCollapsed ? 'opacity-0' : 'opacity-100'
+            )}>
+              {isMac ? '⌘K' : 'Ctrl K'}
+            </kbd>
           </button>
         </li>
 
@@ -116,9 +119,10 @@ export function SidebarNav() {
             )}
           >
             <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
-            {!sidebarCollapsed && (
-              <span className="truncate">Feedback</span>
-            )}
+            <span className={cn(
+              'truncate whitespace-nowrap transition-[opacity,transform] duration-200',
+              sidebarCollapsed ? 'opacity-0 -translate-x-1' : 'opacity-100 translate-x-0'
+            )}>Feedback</span>
           </button>
         </li>
       </ul>

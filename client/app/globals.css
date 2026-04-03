@@ -341,6 +341,15 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Hidden scrollbar — for horizontal tab strips etc. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Smooth transitions between themes */
 * {
   transition: background-color 200ms ease-in-out,

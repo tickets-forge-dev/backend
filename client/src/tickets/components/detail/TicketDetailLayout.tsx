@@ -222,7 +222,6 @@ export function TicketDetailLayout({
   ].filter(s => !s.bugOnly || ticket.type === 'bug');
 
   const techSections = [
-    { id: 'file-changes', label: 'File Changes', short: 'Files' },
     { id: 'api-endpoints', label: 'API Endpoints', short: 'APIs' },
     { id: 'dependencies', label: 'Dependencies', short: 'Deps' },
     { id: 'test-plan', label: 'Test Plan', short: 'Tests' },
@@ -539,8 +538,8 @@ export function TicketDetailLayout({
 
       {/* Approval banner — always visible when ticket is in review with developer Q&A */}
       {isWaitingForApproval && hasReviewSession && (
-        <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
-          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 sm:px-5 py-3 sm:py-4">
+          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0 hidden sm:block" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Developer review complete — {ticket.reviewSession!.qaItems.length} question{ticket.reviewSession!.qaItems.length !== 1 ? 's' : ''} answered
@@ -553,7 +552,7 @@ export function TicketDetailLayout({
             onClick={handleApprove}
             disabled={isApproving}
             variant="outline"
-            className="flex-shrink-0"
+            className="flex-shrink-0 w-full sm:w-auto"
           >
             {isApproving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -569,10 +568,10 @@ export function TicketDetailLayout({
       {isDraft && hasTechSpecContent && (
         <div>
         <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)]/50 mb-2">Next Action</p>
-        <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 sm:px-5 py-3 sm:py-4">
           {ticket.assignedTo ? (
             <>
-              <ArrowRight className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <ArrowRight className="h-5 w-5 text-blue-500 flex-shrink-0 hidden sm:block" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[var(--text-primary)]">
                   Ready for developer review
@@ -581,17 +580,18 @@ export function TicketDetailLayout({
                   Send the spec to the developer for code-aware refinement
                 </p>
               </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
                 <button
                   onClick={handleApprove}
                   disabled={isApproving}
-                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors text-center sm:text-left"
                 >
                   {isApproving ? 'Approving...' : 'or approve directly →'}
                 </button>
                 <Button
                   onClick={handleSendToReview}
                   variant="outline"
+                  className="w-full sm:w-auto"
                 >
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Send to Review
@@ -600,7 +600,7 @@ export function TicketDetailLayout({
             </>
           ) : (
             <>
-              <UserPlus className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
+              <UserPlus className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0 hidden sm:block" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[var(--text-primary)]">
                   Ready for developer review
@@ -609,17 +609,18 @@ export function TicketDetailLayout({
                   Assign a developer to refine the spec with code context
                 </p>
               </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
                 <button
                   onClick={handleApprove}
                   disabled={isApproving}
-                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors text-center sm:text-left"
                 >
                   {isApproving ? 'Approving...' : 'or approve without review →'}
                 </button>
                 <Button
                   onClick={handleSendToReview}
                   variant="outline"
+                  className="w-full sm:w-auto"
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
                   Assign Developer
@@ -633,8 +634,8 @@ export function TicketDetailLayout({
 
       {/* Approve without developer review — for DEV_REFINING tickets with a spec */}
       {isDevRefining && hasTechSpecContent && !hasReviewSession && (
-        <div className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4">
-          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 sm:px-5 py-3 sm:py-4">
+          <ShieldCheck className="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0 hidden sm:block" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Spec is ready — approve without developer review?
@@ -676,7 +677,7 @@ export function TicketDetailLayout({
             onClick={handleApprove}
             disabled={isApproving}
             variant="outline"
-            className="flex-shrink-0"
+            className="flex-shrink-0 w-full sm:w-auto"
           >
             {isApproving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -721,15 +722,15 @@ export function TicketDetailLayout({
 
       {/* Refine with Questions — shown only when the creator skipped clarification questions */}
       {ticket.status === 'draft' && hasTechSpec && ticket.maxRounds === 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3">
-          <MessageSquare className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3">
+          <MessageSquare className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 hidden sm:block" />
           <div className="flex-1 min-w-0">
             <p className="text-sm text-[var(--text-secondary)]">
               Want a better spec? Answer clarification questions to refine it.
             </p>
           </div>
-          <Link href={`/tickets/create?resume=${ticketId}`}>
-            <Button variant="outline" size="sm">
+          <Link href={`/tickets/create?resume=${ticketId}`} className="w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               Refine with Questions
             </Button>
           </Link>
@@ -776,49 +777,49 @@ export function TicketDetailLayout({
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <div className="border-b border-gray-200 dark:border-gray-800">
-          <TabsList className="flex bg-transparent h-auto p-0 border-b-0">
+        <div className="border-b border-gray-200 dark:border-gray-800 -mx-4 sm:mx-0">
+          <TabsList className="flex bg-transparent h-auto p-0 border-b-0 overflow-x-auto scrollbar-none px-4 sm:px-0">
 
           <TabsTrigger
             value="spec"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+            className="text-[13px] sm:text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5 shrink-0"
           >
-            <FileText className="h-3.5 w-3.5" />
+            <FileText className="h-3.5 w-3.5 hidden sm:block" />
             Spec
           </TabsTrigger>
           <TabsTrigger
             value="design"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+            className="text-[13px] sm:text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5 shrink-0"
           >
-            <Palette className="h-3.5 w-3.5" />
+            <Palette className="h-3.5 w-3.5 hidden sm:block" />
             Design
           </TabsTrigger>
           <TabsTrigger
             value="technical"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+            className="text-[13px] sm:text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5 shrink-0"
           >
-            <Code2 className="h-3.5 w-3.5" />
+            <Code2 className="h-3.5 w-3.5 hidden sm:block" />
             Technical
           </TabsTrigger>
           <TabsTrigger
             value="delivered"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+            className="text-[13px] sm:text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5 shrink-0"
           >
-            <GitPullRequest className="h-3.5 w-3.5" />
+            <GitPullRequest className="h-3.5 w-3.5 hidden sm:block" />
             Runs
           </TabsTrigger>
           <TabsTrigger
             value="exports"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+            className="text-[13px] sm:text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5 shrink-0"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="h-3.5 w-3.5 hidden sm:block" />
             Exports
           </TabsTrigger>
           <TabsTrigger
             value="notes"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5"
+            className="text-[13px] sm:text-sm font-medium text-gray-600 dark:text-gray-400 border-b-2 border-transparent data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-50 data-[state=active]:border-[var(--text)] transition-all rounded-none gap-1.5 shrink-0"
           >
-            <StickyNote className="h-3.5 w-3.5" />
+            <StickyNote className="h-3.5 w-3.5 hidden sm:block" />
             Notes
           </TabsTrigger>
           </TabsList>
@@ -989,8 +990,8 @@ export function TicketDetailLayout({
                 </p>
                 <p className="text-[12px] text-[var(--text-tertiary)] max-w-md leading-relaxed">
                   {ticket.status === 'executing'
-                    ? 'AI is implementing your ticket. The run record will appear here when complete — including every file changed, decision made, and test run.'
-                    : 'When you run development — via Cloud Develop or the CLI — a full record is created here: files changed, decisions made, tests run, and the PR link. You can review, re-run, or roll back.'}
+                    ? 'AI is implementing your ticket. The decision log will appear here when complete — including every file changed, decision made, and test run.'
+                    : 'When you run development — via Cloud Develop or the CLI — a decision log is created here: files changed, decisions made, tests run, and the PR link. You can review, re-run, or roll back.'}
                 </p>
               </div>
             )}

@@ -33,7 +33,7 @@ const CAPABILITIES = [
   {
     label: 'Track',
     title: 'Every decision documented',
-    description: 'Change Records capture what was built, why decisions were made, and how the spec diverged. Full audit trail.',
+    description: 'Decision Logs capture what was built, why decisions were made, and how the spec diverged. Full audit trail.',
     color: 'violet',
   },
 ];

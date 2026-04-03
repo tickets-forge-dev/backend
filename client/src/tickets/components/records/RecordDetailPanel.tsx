@@ -11,7 +11,7 @@ interface RecordDetailPanelProps {
 }
 
 /**
- * Thin wrapper for the Change Records timeline page.
+ * Thin wrapper for the Decision Logs timeline page.
  * Delegates to the shared ChangeRecordDetail in standalone mode,
  * passing the showNames preference from the store.
  */

@@ -75,7 +75,7 @@ export function ChangeRecordDetail({ ticket, variant = 'embedded', showNames = '
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-              <span className="text-[9px] uppercase tracking-wider text-purple-500/60 font-medium">Selected Record</span>
+              <span className="text-[9px] uppercase tracking-wider text-purple-500/60 font-medium">Selected Log</span>
             </div>
             <a
               href={`/tickets/${ticket.slug || ticket.id}`}

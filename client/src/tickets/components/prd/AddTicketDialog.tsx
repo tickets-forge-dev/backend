@@ -84,7 +84,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1100] p-4 backdrop-blur-md">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 flex items-center justify-between p-6 border-b border-slate-200 bg-white">
@@ -109,7 +109,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., User authentication with email"
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/30/30"
             />
           </div>
 
@@ -123,7 +123,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
               onChange={(e) => setDescription(e.target.value)}
               placeholder="User story: As a... I want... So that..."
               rows={3}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/30/30"
             />
           </div>
 
@@ -136,7 +136,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/30/30"
               >
                 <option value="feature">Feature</option>
                 <option value="bug">Bug</option>
@@ -150,7 +150,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/30/30"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -186,7 +186,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
                       value={criterion.given}
                       onChange={(e) => handleCriteriaChange(idx, 'given', e.target.value)}
                       placeholder="Given (precondition)"
-                      className="w-full px-3 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="w-full px-3 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                     />
                   </div>
                   <div>
@@ -195,7 +195,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
                       value={criterion.when}
                       onChange={(e) => handleCriteriaChange(idx, 'when', e.target.value)}
                       placeholder="When (action)"
-                      className="w-full px-3 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="w-full px-3 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -204,7 +204,7 @@ export function AddTicketDialog({ epicIndex, epicName }: { epicIndex: number; ep
                       value={criterion.then}
                       onChange={(e) => handleCriteriaChange(idx, 'then', e.target.value)}
                       placeholder="Then (expected outcome)"
-                      className="flex-1 px-3 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="flex-1 px-3 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                     />
                     {criteria.length > 1 && (
                       <Button

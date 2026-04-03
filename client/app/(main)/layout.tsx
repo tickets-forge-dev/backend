@@ -78,7 +78,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main content with margin for sidebar */}
       <div
         className={cn(
-          'min-h-screen transition-all duration-200',
+          'min-h-screen transition-[margin] duration-200 ease-in-out',
           'md:mt-0 mt-14',
           sidebarCollapsed ? 'ml-0 md:ml-16' : 'ml-0 md:ml-[var(--nav-width)]',
           'p-0 md:p-2'

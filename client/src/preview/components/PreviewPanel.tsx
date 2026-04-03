@@ -63,7 +63,12 @@ export function PreviewPanel({ open, onClose, repoFullName, branch }: PreviewPan
       // Close the panel after a short delay
       setTimeout(() => onClose(), 500);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch repository');
+      const msg = err?.response?.data?.message || err.message || '';
+      if (err?.response?.status === 404 || /branch not found/i.test(msg)) {
+        setError('Preview unavailable — this branch has been removed');
+      } else {
+        setError(msg || 'Failed to fetch repository');
+      }
       setStatus('error');
     }
   }, [repoFullName, branch, gitHubService, onClose]);

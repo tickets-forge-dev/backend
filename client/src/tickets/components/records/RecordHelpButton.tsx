@@ -21,14 +21,14 @@ export function RecordHelpButton() {
       <button
         onClick={() => setOpen(!open)}
         className="h-7 w-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
-        aria-label="What are Change Records?"
+        aria-label="What are Decision Logs?"
       >
         <HelpCircle className="w-3.5 h-3.5" />
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 w-[280px] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-lg p-3 shadow-lg z-50">
           <div className="text-[11px] font-medium text-[var(--text-primary)] mb-1">
-            Change Records
+            Decision Logs
           </div>
           <div className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
             A timeline of everything that happened across your project — deliveries, decisions, and code changes over time.

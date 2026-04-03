@@ -71,7 +71,6 @@ export function RecordSidebar({ tickets, selectedId, onSelect }: RecordSidebarPr
           <span>Files <span className="text-[var(--text-primary)] font-semibold">{totalFiles}</span></span>
           <span>Added <span className="text-green-500 font-semibold">+{totalAdded}</span></span>
           <span>Removed <span className="text-red-500 font-semibold">-{totalRemoved}</span></span>
-          <span>Divergences <span className="text-[var(--text-primary)] font-semibold">{totalDivergences}</span></span>
         </div>
       </div>
     </>
@@ -92,7 +91,6 @@ function SidebarContent({
     { label: 'Files', value: String(totalFiles), color: 'text-[var(--text-primary)]' },
     { label: 'Added', value: `+${totalAdded}`, color: 'text-green-500' },
     { label: 'Removed', value: `-${totalRemoved}`, color: 'text-red-500' },
-    { label: 'Divergences', value: String(totalDivergences), color: 'text-[var(--text-primary)]' },
   ];
 
   return (

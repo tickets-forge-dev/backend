@@ -88,11 +88,12 @@ export function TeamSwitcher() {
 
   return (
     <div className="px-2.5 pb-2">
-      {!sidebarCollapsed && (
-        <span className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]/50 px-2 mb-1 block">
-          Project
-        </span>
-      )}
+      <span className={cn(
+        'text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]/50 px-2 mb-1 block whitespace-nowrap transition-[opacity,transform] duration-200',
+        sidebarCollapsed ? 'opacity-0 -translate-x-1' : 'opacity-100 translate-x-0'
+      )}>
+        Project
+      </span>
       <div className="flex items-center">
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
@@ -104,23 +105,34 @@ export function TeamSwitcher() {
                 sidebarCollapsed ? 'justify-center px-0' : 'justify-start px-2'
               )}
             >
-              {isSwitching && sidebarCollapsed ? (
-                <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
-              ) : sidebarCollapsed ? (
-                <Users className="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
-              ) : null}
-              {!sidebarCollapsed && (
-                <>
-                  <span className="text-[13px] text-[var(--text-secondary)] truncate">
-                    {currentTeamName}
-                  </span>
-                  {isSwitching ? (
-                    <Loader2 className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0 animate-spin" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)] flex-shrink-0" />
-                  )}
-                </>
-              )}
+              {/* Icon shown only when collapsed */}
+              <span className={cn(
+                'flex-shrink-0 transition-opacity duration-200',
+                sidebarCollapsed ? 'opacity-100 w-3.5' : 'opacity-0 w-0 overflow-hidden'
+              )}>
+                {isSwitching ? (
+                  <Loader2 className="h-3.5 w-3.5 text-[var(--text-tertiary)] animate-spin" />
+                ) : (
+                  <Users className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                )}
+              </span>
+              {/* Text shown when expanded */}
+              <span className={cn(
+                'text-[13px] text-[var(--text-secondary)] truncate whitespace-nowrap transition-[opacity,transform] duration-200',
+                sidebarCollapsed ? 'opacity-0 -translate-x-1' : 'opacity-100 translate-x-0'
+              )}>
+                {currentTeamName}
+              </span>
+              <span className={cn(
+                'flex-shrink-0 transition-opacity duration-200',
+                sidebarCollapsed ? 'opacity-0' : 'opacity-100'
+              )}>
+                {isSwitching ? (
+                  <Loader2 className="h-3 w-3 text-[var(--text-tertiary)] animate-spin" />
+                ) : (
+                  <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" />
+                )}
+              </span>
             </Button>
           </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -194,14 +206,15 @@ export function TeamSwitcher() {
           />
         </DropdownMenuContent>
       </DropdownMenu>
-      {/* Team settings gear icon - only shown when a team is selected and sidebar is expanded */}
-      {currentTeam && !sidebarCollapsed && (
+      {/* Team settings gear icon - only shown when a team is selected */}
+      {currentTeam && (
         <Link
           href={`/teams/${currentTeam.id}`}
           title="Project settings"
           className={cn(
-            'flex items-center justify-center rounded-md p-1 flex-shrink-0 transition-colors',
-            'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+            'flex items-center justify-center rounded-md p-1 flex-shrink-0 transition-[opacity,colors] duration-200',
+            'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]',
+            sidebarCollapsed ? 'opacity-0 pointer-events-none w-0 overflow-hidden' : 'opacity-100'
           )}
         >
           <Settings className="h-3.5 w-3.5" />

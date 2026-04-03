@@ -171,7 +171,7 @@ export function HowItWorks() {
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
-                  Change Record
+                  Decision Log
                 </span>
               </div>
             </motion.div>

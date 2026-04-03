@@ -5,7 +5,7 @@ import { Button } from '@/core/components/ui/button';
 
 export function EditAnalysisModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/20 dark:bg-black/40 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/20 dark:bg-black/40 z-[1100] flex items-center justify-center p-4 backdrop-blur-md">
       <div className="bg-white dark:bg-gray-950 rounded-lg max-w-md w-full shadow-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">

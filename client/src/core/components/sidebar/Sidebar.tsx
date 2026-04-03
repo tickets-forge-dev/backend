@@ -24,13 +24,14 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Backdrop for mobile */}
-      {!sidebarCollapsed && (
-        <div
-          className="fixed inset-0 bg-black/50 z-[var(--z-modal-backdrop)] md:hidden"
-          onClick={() => setSidebarCollapsed(true)}
-        />
-      )}
+      {/* Backdrop for mobile — always mounted, opacity-animated */}
+      <div
+        className={cn(
+          'fixed inset-0 bg-black/50 z-[var(--z-modal-backdrop)] md:hidden transition-opacity duration-200',
+          sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        )}
+        onClick={() => setSidebarCollapsed(true)}
+      />
 
       {/* Sidebar */}
       <aside
@@ -38,8 +39,9 @@ export function Sidebar() {
         className={cn(
           'fixed left-0 top-0 h-screen bg-[var(--bg)]',
           'flex flex-col',
-          'transition-all duration-200 ease-in-out',
+          'transition-[width,transform] duration-200 ease-in-out',
           'z-[var(--z-sticky)]',
+          'overflow-hidden',
           // Mobile: slide in/out with full width
           sidebarCollapsed
             ? '-translate-x-full md:translate-x-0'

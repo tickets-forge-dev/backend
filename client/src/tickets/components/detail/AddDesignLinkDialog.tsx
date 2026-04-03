@@ -63,7 +63,7 @@ export function AddDesignLinkDialog({ onAdd, onClose }: AddDesignLinkDialogProps
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1100] p-4 backdrop-blur-md">
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-md w-full p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -104,7 +104,7 @@ export function AddDesignLinkDialog({ onAdd, onClose }: AddDesignLinkDialogProps
                     ? 'border-red-500 focus:ring-red-500'
                     : url && isUrlValid
                       ? 'border-green-500 focus:ring-green-500'
-                      : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-blue-400/30'
                 }`}
             />
             {url && !isUrlValid && (
@@ -132,7 +132,7 @@ export function AddDesignLinkDialog({ onAdd, onClose }: AddDesignLinkDialogProps
                 text-gray-900 dark:text-gray-100
                 placeholder-gray-400 dark:placeholder-gray-500
                 disabled:opacity-50
-                focus:outline-none focus:ring-2 focus:ring-blue-500"
+                focus:outline-none focus:ring-2 focus:ring-blue-400/30"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Auto-generated from URL if left blank
@@ -155,7 +155,7 @@ export function AddDesignLinkDialog({ onAdd, onClose }: AddDesignLinkDialogProps
             onClick={handleAdd}
             disabled={loading || !isUrlValid}
             title={isUrlValid ? 'Add this design link' : 'Enter a valid HTTPS URL'}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium
+            className="px-4 py-2 bg-blue-400/15 hover:bg-blue-400/25 text-blue-300 border border-blue-400/20 rounded-md text-sm font-medium
               disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Adding...' : 'Add Link'}

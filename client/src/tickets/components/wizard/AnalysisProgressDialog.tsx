@@ -152,7 +152,7 @@ export function AnalysisProgressDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-50 flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
+    <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-[1100] flex items-center justify-center backdrop-blur-md" style={{ pointerEvents: 'auto' }}>
       <div className="bg-[var(--bg-subtle)] rounded-lg max-w-lg w-full mx-4 shadow-xl border border-[var(--border-subtle)]">
         {/* Header */}
         <div className="px-6 py-6 border-b border-[var(--border-subtle)]">
@@ -180,7 +180,7 @@ export function AnalysisProgressDialog({
                 ref={isActive ? activePhaseRef : null}
                 className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-300 ${
                   isActive
-                    ? 'bg-blue-500/15 border border-blue-500/20'
+                    ? 'bg-blue-400/8 border border-blue-400/10'
                     : isComplete
                       ? 'bg-emerald-500/10'
                       : 'bg-zinc-800/40'
@@ -191,7 +191,7 @@ export function AnalysisProgressDialog({
                   {isComplete ? (
                     <Check className="w-5 h-5 text-emerald-400" />
                   ) : isActive ? (
-                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-blue-300/70 animate-spin" />
                   ) : (
                     <Icon className="w-5 h-5 text-zinc-600" />
                   )}
@@ -202,7 +202,7 @@ export function AnalysisProgressDialog({
                   <p
                     className={`text-sm font-medium ${
                       isActive
-                        ? 'text-blue-400'
+                        ? 'text-blue-300/70'
                         : isComplete
                           ? 'text-emerald-400'
                           : 'text-zinc-500'
@@ -232,7 +232,7 @@ export function AnalysisProgressDialog({
           {/* Progress bar */}
           <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-blue-400/50 to-blue-300/60 transition-all duration-500 ease-out"
               style={{ width: `${percent}%` }}
             />
           </div>
@@ -257,7 +257,7 @@ export function AnalysisProgressDialog({
               {onSendToBackground && (
                 <button
                   onClick={onSendToBackground}
-                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-400/15 text-blue-300 border border-blue-400/20 hover:bg-blue-400/25 transition-colors"
                 >
                   Send to Background
                 </button>

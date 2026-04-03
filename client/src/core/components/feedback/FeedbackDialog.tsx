@@ -71,12 +71,12 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
     <>
       {/* Backdrop with blur */}
       <div
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-md"
+        className="fixed inset-0 z-[1100] bg-black/30 backdrop-blur-md"
         onClick={handleClose}
       />
 
       {/* Dialog */}
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-[var(--card-bg)] p-6 shadow-2xl border border-[var(--border)]">
+      <div className="fixed left-1/2 top-1/2 z-[1100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-[var(--card-bg)] p-6 shadow-2xl border border-[var(--border)]">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between pb-3 border-b border-[var(--border)]">
           <h2 className="text-xl font-bold text-[var(--text)]">
@@ -119,7 +119,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
                     disabled={isSubmitting}
                     className={`rounded px-3 py-2 text-sm font-medium transition ${
                       type === t
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-blue-400/15 text-blue-300 border border-blue-400/20'
                         : 'border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text)] hover:bg-[var(--bg-tertiary)]'
                     } disabled:opacity-50`}
                   >
@@ -142,7 +142,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
                 }}
                 disabled={isSubmitting}
                 placeholder="Tell us what you think..."
-                className="w-full resize-none rounded border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-secondary)] outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full resize-none rounded border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-secondary)] outline-none transition focus:border-blue-400/40 focus:ring-1 focus:ring-blue-400/30 disabled:opacity-50"
                 rows={4}
               />
               {errorMessage && (
@@ -157,7 +157,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
             <button
               type="submit"
               disabled={isSubmitting || !message.trim()}
-              className="flex w-full items-center justify-center gap-2 rounded bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded bg-blue-400/15 px-4 py-2 font-medium text-blue-300 border border-blue-400/20 transition hover:bg-blue-400/25 disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
               {isSubmitting ? 'Sending...' : 'Send Feedback'}

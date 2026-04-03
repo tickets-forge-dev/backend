@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/core/components/ui/button';
 import { Package, ExternalLink, X, Plus, Copy, Check } from 'lucide-react';
 import type { PackageDependency } from '@/types/question-refinement';
-import { toast } from 'sonner';
+import { NpmPackageSearchDialog } from './NpmPackageSearchDialog';
 
 interface DependenciesSectionProps {
   dependencies: PackageDependency[];
@@ -13,38 +12,13 @@ interface DependenciesSectionProps {
 }
 
 export function DependenciesSection({ dependencies, onRemove, onAdd }: DependenciesSectionProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
-  const [newDep, setNewDep] = useState<Partial<PackageDependency>>({
-    name: '',
-    purpose: '',
-    type: 'production',
-  });
 
   const handleCopy = (text: string, idx: number) => {
     navigator.clipboard.writeText(text);
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 1500);
-  };
-
-  const handleAdd = () => {
-    if (!newDep.name?.trim()) {
-      toast.error('Package name is required');
-      return;
-    }
-    if (!newDep.purpose?.trim()) {
-      toast.error('Purpose is required');
-      return;
-    }
-    onAdd?.({
-      name: newDep.name.trim(),
-      purpose: newDep.purpose.trim(),
-      version: newDep.version?.trim() || undefined,
-      installCommand: newDep.installCommand?.trim() || `npm install ${newDep.name.trim()}`,
-      type: newDep.type || 'production',
-    });
-    setNewDep({ name: '', purpose: '', type: 'production' });
-    setShowAddForm(false);
   };
 
   if ((!dependencies || dependencies.length === 0) && !onAdd) {
@@ -122,10 +96,10 @@ export function DependenciesSection({ dependencies, onRemove, onAdd }: Dependenc
         </div>
       ))}
 
-      {/* Add Dependency */}
-      {onAdd && !showAddForm && (
+      {/* Add Dependency — opens npm search dialog */}
+      {onAdd && (
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => setShowSearch(true)}
           className="flex items-center gap-1.5 px-3 py-2 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
         >
           <Plus className="w-3 h-3" />
@@ -133,39 +107,11 @@ export function DependenciesSection({ dependencies, onRemove, onAdd }: Dependenc
         </button>
       )}
 
-      {onAdd && showAddForm && (
-        <div className="px-3 py-3 space-y-2 rounded-md bg-[var(--bg-hover)]">
-          <div className="flex gap-2">
-            <input
-              value={newDep.name || ''}
-              onChange={(e) => setNewDep({ ...newDep, name: e.target.value })}
-              placeholder="Package name"
-              className="flex-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] font-mono text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-hover)]"
-            />
-            <select
-              value={newDep.type || 'production'}
-              onChange={(e) => setNewDep({ ...newDep, type: e.target.value as 'production' | 'development' })}
-              className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2 py-1.5 text-[11px] text-[var(--text)] focus:outline-none"
-            >
-              <option value="production">prod</option>
-              <option value="development">dev</option>
-            </select>
-          </div>
-          <input
-            value={newDep.purpose || ''}
-            onChange={(e) => setNewDep({ ...newDep, purpose: e.target.value })}
-            placeholder="Why is this needed?"
-            className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-hover)]"
-          />
-          <div className="flex items-center gap-2 pt-1">
-            <Button onClick={handleAdd} size="sm" variant="outline" className="h-7 text-[11px]">
-              Add
-            </Button>
-            <Button onClick={() => { setShowAddForm(false); setNewDep({ name: '', purpose: '', type: 'production' }); }} size="sm" variant="ghost" className="h-7 text-[11px]">
-              Cancel
-            </Button>
-          </div>
-        </div>
+      {onAdd && showSearch && (
+        <NpmPackageSearchDialog
+          onAdd={onAdd}
+          onClose={() => setShowSearch(false)}
+        />
       )}
     </div>
   );

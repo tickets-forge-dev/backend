@@ -204,7 +204,7 @@ function StepWelcome() {
         {[
           { icon: <Sparkles className="w-4 h-4 text-violet-400" />, label: 'AI-powered specs', sub: 'Structured & complete' },
           { icon: <Cloud className="w-4 h-4 text-emerald-400" />, label: 'Cloud Develop', sub: 'One-click implementation' },
-          { icon: <ClipboardList className="w-4 h-4 text-blue-400" />, label: 'Change Records', sub: 'Full audit trail' },
+          { icon: <ClipboardList className="w-4 h-4 text-blue-300/70" />, label: 'Decision Logs', sub: 'Full audit trail' },
         ].map((item) => (
           <div key={item.label} className="rounded-lg bg-[var(--bg-subtle)] p-3 text-center">
             <div className="flex justify-center mb-2">{item.icon}</div>
@@ -256,7 +256,7 @@ function StepCreateTicket() {
         <p className="text-[11px] text-[var(--text-tertiary)] mb-2">Supports all ticket types:</p>
         <div className="flex items-center gap-2">
           {[
-            { label: 'Feature', color: 'bg-blue-500/10 text-blue-400' },
+            { label: 'Feature', color: 'bg-blue-400/8 text-blue-300/70' },
             { label: 'Bug', color: 'bg-red-500/10 text-red-400' },
             { label: 'Task', color: 'bg-amber-500/10 text-amber-400' },
           ].map((t) => (
@@ -367,26 +367,26 @@ function StepDevelop() {
         </div>
 
         {/* Developer CLI */}
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.03] p-4 relative overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-blue-500/5 blur-xl pointer-events-none" />
+        <div className="rounded-xl border border-blue-400/10 bg-blue-400/[0.03] p-4 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-blue-400/5 blur-xl pointer-events-none" />
           <div className="flex items-center gap-2 mb-3">
-            <Terminal className="w-4 h-4 text-blue-400" />
+            <Terminal className="w-4 h-4 text-blue-300/70" />
             <span className="text-[13px] font-medium text-[var(--text)]">Developer CLI</span>
           </div>
-          <span className="inline-block px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-medium mb-3">
+          <span className="inline-block px-2 py-0.5 rounded-full bg-blue-400/8 text-blue-300/70 text-[10px] font-medium mb-3">
             For developers
           </span>
           <div className="space-y-2 text-[11px] text-[var(--text-tertiary)]">
             <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-blue-500/50" />
+              <span className="w-1 h-1 rounded-full bg-blue-400/30" />
               Pick up tickets from terminal
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-blue-500/50" />
+              <span className="w-1 h-1 rounded-full bg-blue-400/30" />
               Claude Code + MCP bridge
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-blue-500/50" />
+              <span className="w-1 h-1 rounded-full bg-blue-400/30" />
               Full local dev environment
             </div>
           </div>
@@ -413,11 +413,11 @@ function StepTrackPreview() {
       </div>
 
       <div className="max-w-[440px] mx-auto space-y-4">
-        {/* Change Record mock */}
+        {/* Decision Log mock */}
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/50 p-4">
           <div className="flex items-center gap-2 mb-3">
             <ClipboardList className="w-4 h-4 text-violet-400" />
-            <span className="text-[13px] font-medium text-[var(--text)]">Change Records</span>
+            <span className="text-[13px] font-medium text-[var(--text)]">Decision Logs</span>
           </div>
           <div className="space-y-2">
             {[

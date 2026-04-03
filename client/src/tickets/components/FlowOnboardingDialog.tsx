@@ -28,12 +28,12 @@ export function FlowOnboardingDialog() {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] animate-fade-in"
+        className="fixed inset-0 z-[1100] bg-black/30 backdrop-blur-md animate-fade-in"
         onClick={dismiss}
       />
 
       {/* Dialog */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 pointer-events-none">
         <div
           className="relative w-full max-w-md bg-[var(--bg)] border border-[var(--border-subtle)] rounded-xl pointer-events-auto animate-scale-in"
           onClick={(e) => e.stopPropagation()}
