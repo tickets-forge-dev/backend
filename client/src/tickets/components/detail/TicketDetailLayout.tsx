@@ -189,6 +189,7 @@ export function TicketDetailLayout({
   const [aecXml, setAecXml] = useState<string | null>(null);
   const [isLoadingXml, setIsLoadingXml] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const [overviewExpanded, setOverviewExpanded] = useState(false);
   const assignedDuringNudge = useRef(false);
   const assignAttempted = useRef(false);
 
@@ -385,6 +386,8 @@ export function TicketDetailLayout({
           onAssignDialogOpenChange={handleAssignDialogOpenChange}
           pendingApproval={pendingApproval}
           lifecycleSlot={<TicketLifecycleBar currentStatus={ticket.status} />}
+          isExpanded={overviewExpanded}
+          onExpandedChange={setOverviewExpanded}
         />
 
         {/* Pending Questions */}
@@ -532,6 +535,8 @@ export function TicketDetailLayout({
         pendingApproval={pendingApproval}
         actionSlot={undefined}
         lifecycleSlot={<TicketLifecycleBar currentStatus={ticket.status} />}
+        isExpanded={overviewExpanded}
+        onExpandedChange={setOverviewExpanded}
       />
 
       {/* Develop button removed from here — now passed via OverviewCard actionSlot */}
@@ -565,7 +570,7 @@ export function TicketDetailLayout({
       )}
 
       {/* Draft CTA — guide PM toward developer review (refine-first flow) */}
-      {isDraft && hasTechSpecContent && (
+      {overviewExpanded && isDraft && hasTechSpecContent && (
         <div>
         <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)]/50 mb-2">Next Action</p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 sm:px-5 py-3 sm:py-4">

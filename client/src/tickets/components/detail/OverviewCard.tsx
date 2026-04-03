@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { AlertTriangle, ArrowRight, Lock, Plus, GitBranch, Pencil, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Lock, Plus, GitBranch, Pencil, Loader2, ChevronDown } from 'lucide-react';
 import { AssigneeSelector } from './AssigneeSelector';
 import { TicketLifecycleInfo } from './TicketLifecycleInfo';
 import { TICKET_STATUS_CONFIG, LIFECYCLE_STEPS } from '../../config/ticketStatusConfig';
@@ -75,6 +75,10 @@ interface OverviewCardProps {
   /** External control for the repo dialog */
   repoDialogOpen?: boolean;
   onRepoDialogOpenChange?: (open: boolean) => void;
+  /** Whether the detail panel is expanded (externally controlled) */
+  isExpanded?: boolean;
+  /** Callback when expanded state changes */
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function OverviewCard({
@@ -89,6 +93,8 @@ export function OverviewCard({
   lifecycleSlot,
   repoDialogOpen: externalRepoDialogOpen,
   onRepoDialogOpenChange,
+  isExpanded: controlledExpanded,
+  onExpandedChange,
 }: OverviewCardProps) {
   const cfg = TICKET_STATUS_CONFIG[ticket.status] ?? TICKET_STATUS_CONFIG.draft;
   const isUnassigned = !ticket.assignedTo;
@@ -105,6 +111,14 @@ export function OverviewCard({
     || creatorMember?.displayName
     || creatorMember?.email
     || (ticket.createdBy && ticket.createdBy === user?.uid ? (user?.displayName || user?.email || null) : null);
+
+  // Collapsible state — collapsed by default to reduce noise
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+  const setExpanded = (val: boolean) => {
+    if (controlledExpanded === undefined) setInternalExpanded(val);
+    onExpandedChange?.(val);
+  };
 
   // Repository connect dialog — supports external control
   const [internalRepoOpen, setInternalRepoOpen] = useState(false);
@@ -160,7 +174,7 @@ export function OverviewCard({
 
   return (
     <div className="px-4 py-2.5">
-      {/* Top row: Assignee — Lifecycle — Status */}
+      {/* Always-visible row: Assignee — Status — Expand toggle */}
       <div className="relative flex items-center justify-between gap-4">
         <div className="relative z-10">
           <AssigneeSelector
@@ -182,31 +196,70 @@ export function OverviewCard({
           )}
         </div>
 
-        {/* Lifecycle bar — inline on large screens, hidden on small */}
-        {lifecycleSlot ? (
-          <div className="hidden lg:flex flex-1 min-w-0 justify-center">
-            <div className="w-full max-w-xl">{lifecycleSlot}</div>
+        <div className="flex items-center gap-2">
+          {/* Mini progress dots — always visible as a compact summary */}
+          <div className="flex items-center gap-1 shrink-0">
+            {LIFECYCLE_STEPS.map((step, i) => (
+              <div
+                key={step.key}
+                className={`h-1.5 rounded-full transition-colors ${
+                  i <= currentIdx
+                    ? 'w-4 bg-blue-500'
+                    : 'w-1.5 bg-[var(--text-tertiary)]/20'
+                }`}
+              />
+            ))}
           </div>
-        ) : (
-          <div className="flex-1" />
-        )}
 
-        {/* Status badge — clicking opens lifecycle panel */}
-        {ticket.status && (
-          <TicketLifecycleInfo currentStatus={ticket.status} onTransition={onTransition} hasAssignee={!isUnassigned}>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
-              <span className="text-[10px] opacity-60 font-normal">Status</span>
-              {cfg.label}
-              <svg className="h-3 w-3 opacity-50" viewBox="0 0 12 12" fill="none"><path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </span>
-          </TicketLifecycleInfo>
-        )}
+          {/* Status badge — clicking opens lifecycle panel */}
+          {ticket.status && (
+            <TicketLifecycleInfo currentStatus={ticket.status} onTransition={onTransition} hasAssignee={!isUnassigned}>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border border-transparent hover:border-current/20 hover:shadow-sm transition-all ${cfg.badgeClass}`}>
+                <span className="text-[10px] opacity-60 font-normal">Status</span>
+                {cfg.label}
+                <svg className="h-3 w-3 opacity-50" viewBox="0 0 12 12" fill="none"><path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+            </TicketLifecycleInfo>
+          )}
+
+          {/* Expand/collapse toggle */}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+            title={expanded ? 'Collapse details' : 'Expand details'}
+          >
+            <ChevronDown className={`h-3.5 w-3.5 text-[var(--text-tertiary)] transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Lifecycle bar — own row on medium screens only (hidden on mobile, inline on lg+) */}
-      {lifecycleSlot && (
-        <div className="hidden md:block lg:hidden pt-2">
-          {lifecycleSlot}
+      {/* Expandable details — lifecycle bar, hint, next action */}
+      {expanded && (
+        <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] animate-fade-in">
+          {/* Lifecycle bar — full stepper */}
+          {lifecycleSlot && (
+            <div className="mb-2">
+              {lifecycleSlot}
+            </div>
+          )}
+
+          {/* Hint row */}
+          {(hint || actionSlot) && (
+            <div className="flex items-center gap-3">
+              {actionSlot ? (
+                <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                  {actionSlot}
+                </div>
+              ) : hint ? (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
+                  <p className="text-[11px] text-[var(--text-tertiary)] leading-tight truncate">
+                    {hint}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       )}
 
@@ -240,38 +293,6 @@ export function OverviewCard({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Bottom row: progress dots + next step hint or action slot */}
-      {(hint || actionSlot) && (
-        <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center gap-3">
-          {/* Mini progress dots */}
-          <div className="flex items-center gap-1 shrink-0">
-            {LIFECYCLE_STEPS.map((step, i) => (
-              <div
-                key={step.key}
-                className={`h-1.5 rounded-full transition-colors ${
-                  i <= currentIdx
-                    ? 'w-4 bg-blue-500'
-                    : 'w-1.5 bg-[var(--text-tertiary)]/20'
-                }`}
-              />
-            ))}
-          </div>
-
-          {actionSlot ? (
-            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-              {actionSlot}
-            </div>
-          ) : hint ? (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
-              <p className="text-[11px] text-[var(--text-tertiary)] leading-tight truncate">
-                {hint}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      )}
     </div>
   );
 }
