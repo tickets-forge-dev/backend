@@ -117,13 +117,13 @@ export function SpecGenerationProgressDialog({
 
   return (
     <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-[1100] flex items-center justify-center backdrop-blur-md" style={{ pointerEvents: 'auto' }}>
-      <div className="bg-white dark:bg-gray-950 rounded-lg max-w-lg w-full mx-4 shadow-xl">
+      <div className="bg-[var(--bg-subtle)] rounded-lg max-w-lg w-full mx-4 shadow-xl border border-[var(--border-subtle)]">
         {/* Header */}
-        <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+        <div className="px-6 py-6 border-b border-[var(--border-subtle)]">
+          <h2 className="text-lg font-semibold text-[var(--text)]">
             {isSubmitting ? 'Generating Your Specification' : 'Generating Clarification Questions'}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-[13px] text-[var(--text-tertiary)] mt-1">
             {isSubmitting
               ? 'Processing your answers and building the final spec. This may take a minute or two.'
               : 'Analyzing your codebase and preparing clarifying questions. This may take a minute or two.'}
@@ -131,7 +131,7 @@ export function SpecGenerationProgressDialog({
         </div>
 
         {/* Phase Checklist */}
-        <div className="px-6 py-6 space-y-3">
+        <div className="px-6 py-6 space-y-2">
           {phases.map((phase, index) => {
             const status = getPhaseStatus(index);
             const Icon = phase.icon;
@@ -141,79 +141,69 @@ export function SpecGenerationProgressDialog({
             return (
               <div
                 key={phase.key}
-                className={`flex items-start gap-3 p-3 rounded-md transition-colors duration-300 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors duration-300 ${
                   isActive
-                    ? 'bg-blue-50/50 dark:bg-blue-400/5'
+                    ? 'bg-blue-400/8 border border-blue-400/10'
                     : isComplete
-                      ? 'bg-green-50 dark:bg-green-950/20'
-                      : 'bg-gray-50 dark:bg-gray-800/40'
+                      ? 'bg-emerald-500/10'
+                      : 'bg-[var(--bg-hover)]/50'
                 }`}
               >
                 {/* Icon/Status */}
-                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center mt-0.5">
+                <div className="flex-shrink-0 w-4.5 h-4.5 flex items-center justify-center">
                   {isComplete ? (
-                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <Check className="w-4 h-4 text-emerald-400" />
                   ) : isActive ? (
-                    <Loader2 className="w-5 h-5 text-blue-500 dark:text-blue-300/70 animate-spin" />
+                    <Loader2 className="w-4 h-4 text-blue-300/70 animate-spin" />
                   ) : (
-                    <Icon
-                      className={`w-5 h-5 ${
-                        isActive
-                          ? 'text-blue-500 dark:text-blue-300/70'
-                          : isComplete
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-gray-400 dark:text-gray-600'
-                      }`}
-                    />
+                    <Icon className={`w-4 h-4 text-[var(--text-tertiary)]/40`} />
                   )}
                 </div>
 
                 {/* Phase info */}
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`text-sm font-medium ${
-                      isActive
-                        ? 'text-blue-800 dark:text-blue-200/80'
-                        : isComplete
-                          ? 'text-green-900 dark:text-green-100'
-                          : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {phase.label}
-                  </p>
-                </div>
+                <p
+                  className={`text-[13px] font-medium ${
+                    isActive
+                      ? 'text-[var(--text)]'
+                      : isComplete
+                        ? 'text-emerald-400'
+                        : 'text-[var(--text-tertiary)]'
+                  }`}
+                >
+                  {phase.label}
+                </p>
               </div>
             );
           })}
         </div>
 
         {/* Progress Bar & Stats */}
-        <div className="px-6 py-6 border-t border-gray-200 dark:border-gray-800 space-y-3">
+        <div className="px-6 py-5 border-t border-[var(--border-subtle)] space-y-3">
           {/* Progress bar */}
-          <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-[var(--bg-hover)] rounded-full h-1.5 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-400/60 to-blue-500/50 dark:from-blue-400/50 dark:to-blue-300/60 transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-blue-400/50 to-blue-300/60 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${Math.min(progressPercent, 100)}%` }}
             />
           </div>
 
           {/* Stats row */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-600 dark:text-gray-400 font-medium">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-[var(--text-secondary)] font-medium tabular-nums">
               {Math.min(Math.floor(progressPercent), 99)}%
             </span>
-            <span className="text-gray-500 dark:text-gray-500 tabular-nums">
-              {Math.floor(elapsedSeconds)}s elapsed
+            <span className="text-[var(--text-tertiary)] tabular-nums">
+              {Math.floor(elapsedSeconds)}s
             </span>
           </div>
 
           {/* Background / Cancel actions */}
           {(onSendToBackground || onCancel) && (
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-2 pt-1">
               {onCancel && (
                 <button
                   onClick={onCancel}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                  className="px-3 py-1.5 text-[11px] font-medium rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   Cancel
                 </button>
@@ -221,7 +211,7 @@ export function SpecGenerationProgressDialog({
               {onSendToBackground && (
                 <button
                   onClick={onSendToBackground}
-                  className="text-xs px-3 py-1.5 rounded-md bg-blue-400/15 text-blue-300 border border-blue-400/20 hover:bg-blue-400/25 transition-colors font-medium"
+                  className="px-3 py-1.5 text-[11px] font-medium rounded-md bg-blue-400/10 text-blue-300/80 border border-blue-400/15 hover:bg-blue-400/20 transition-colors"
                 >
                   Send to Background
                 </button>
