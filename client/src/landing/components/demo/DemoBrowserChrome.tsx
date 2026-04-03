@@ -96,9 +96,10 @@ export function DemoBrowserChrome({ screen, children }: Props) {
               onClick={() => setExpanded(false)}
             />
             {/* Modal window */}
-            {/* Modal — starts below the header */}
+            {/* Modal — starts well below the fixed header (64px + padding) */}
             <motion.div
-              className="fixed inset-4 sm:inset-8 lg:inset-12 top-20 z-[101] flex items-center justify-center"
+              className="fixed left-4 right-4 bottom-4 sm:left-8 sm:right-8 sm:bottom-8 lg:left-12 lg:right-12 lg:bottom-12 z-[101] flex items-center justify-center"
+              style={{ top: 'calc(64px + 1rem)' }}
               initial={{ opacity: 0, scale: 0.85, y: 40 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
