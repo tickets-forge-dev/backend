@@ -1,30 +1,17 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   fadeUp,
   scaleUp,
   defaultTransition,
   heroTransition,
 } from '@/landing/lib/motion-variants';
+import { InteractiveDemo } from './demo/InteractiveDemo';
 
 export function HeroSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start start', 'end start'],
-  });
-
-  // Parallax: screenshot tilt flattens as user scrolls
-  const rotateX = useTransform(scrollYProgress, [0, 1], [5, 0]);
-  const screenshotY = useTransform(scrollYProgress, [0, 1], [0, -40]);
-
   return (
     <section
-      ref={sectionRef}
       className="relative flex flex-col items-center px-4 overflow-x-hidden overflow-hidden pt-12 sm:pt-16 pb-10 sm:pb-14"
     >
       {/* Background glows with subtle drift animation */}
@@ -116,54 +103,17 @@ export function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Hero Screenshot */}
-      <motion.div
-        className="relative w-full max-w-5xl mt-8 sm:mt-10 px-4 sm:px-8"
-        variants={scaleUp}
-        initial="hidden"
-        animate="visible"
-        transition={{ ...heroTransition, delay: 0.5 }}
-        style={{ y: screenshotY, perspective: '2000px' }}
-      >
-        {/* Ambient glow behind screenshot */}
-        <div
-          className="absolute -inset-20 pointer-events-none"
-          aria-hidden="true"
-          style={{
-            background:
-              'radial-gradient(ellipse at 50% 60%, rgba(16,185,129,0.12) 0%, rgba(99,102,241,0.06) 40%, transparent 70%)',
-            filter: 'blur(40px)',
-          }}
-        />
-
+      {/* Interactive Demo */}
+      <div className="relative w-full max-w-[1180px] mt-8 sm:mt-10 px-4 sm:px-8">
         <motion.div
-          className="relative rounded-xl border border-[var(--border-subtle)] overflow-hidden"
-          style={{
-            rotateX,
-            boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
-          }}
+          variants={scaleUp}
+          initial="hidden"
+          animate="visible"
+          transition={{ ...heroTransition, delay: 0.5 }}
         >
-          <Image
-            src="/images/ticket-screenshot.png"
-            alt="Forge ticket management interface showing AI-enriched tickets with quality scores"
-            width={1200}
-            height={750}
-            quality={95}
-            priority
-            className="w-full h-auto"
-          />
-
-          {/* Bottom glow */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-[40%] pointer-events-none"
-            aria-hidden="true"
-            style={{
-              background:
-                'linear-gradient(to top, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.06) 40%, transparent 100%)',
-            }}
-          />
+          <InteractiveDemo />
         </motion.div>
-      </motion.div>
+      </div>
     </section>
   );
 }

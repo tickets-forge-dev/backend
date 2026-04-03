@@ -26,7 +26,7 @@ export function DemoDevelopSession({ onComplete, onClose }: Props) {
   const [isComplete, setIsComplete] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const eventTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
