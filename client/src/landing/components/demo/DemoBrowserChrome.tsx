@@ -99,7 +99,7 @@ export function DemoBrowserChrome({ screen, children }: Props) {
             {/* Modal — starts well below the fixed header (64px + padding) */}
             <motion.div
               className="fixed left-4 right-4 bottom-4 sm:left-8 sm:right-8 sm:bottom-8 lg:left-12 lg:right-12 lg:bottom-12 z-[101] flex items-center justify-center"
-              style={{ top: 'calc(64px + 1rem)' }}
+              style={{ top: 'calc(64px + 2rem)' }}
               initial={{ opacity: 0, scale: 0.85, y: 40 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
