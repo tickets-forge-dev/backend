@@ -95,8 +95,8 @@ export function DemoPreview({ onBack }: Props) {
             <div className="bg-[#0d1117] px-4 py-3 font-mono text-[11px] leading-relaxed">
               <div><span className="text-blue-400">X-RateLimit-Limit:</span> <span className="text-[var(--text-secondary)]">100</span></div>
               <div><span className="text-blue-400">X-RateLimit-Remaining:</span> <span className="text-[var(--text-secondary)]">73</span></div>
-              <div><span className="text-blue-400">X-RateLimit-Reset:</span> <span className="text-[var(--text-secondary)]">1712150460</span> <span className="text-[var(--text-tertiary)] italic">// resets in 38s</span></div>
-              <div><span className="text-blue-400">Retry-After:</span> <span className="text-[var(--text-secondary)]">60</span> <span className="text-[var(--text-tertiary)] italic">// only on 429</span></div>
+              <div><span className="text-blue-400">X-RateLimit-Reset:</span> <span className="text-[var(--text-secondary)]">1712150460</span> <span className="text-[var(--text-tertiary)] italic">{'// resets in 38s'}</span></div>
+              <div><span className="text-blue-400">Retry-After:</span> <span className="text-[var(--text-secondary)]">60</span> <span className="text-[var(--text-tertiary)] italic">{'// only on 429'}</span></div>
             </div>
           </div>
 
