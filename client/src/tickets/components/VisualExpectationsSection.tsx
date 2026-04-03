@@ -179,8 +179,8 @@ export function VisualExpectationsSection({
             <Monitor className="w-5 h-5 text-purple-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--text)]">Hi-res Wireframe Preview</p>
-            <p className="text-[11px] text-[var(--text-tertiary)]">Interactive HTML/CSS mockup of the screens — click to open</p>
+            <p className="text-sm font-medium text-[var(--text)]">Interactive Prototype</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Production-quality UI mockup with interactions — click to open</p>
           </div>
           <div className="flex items-center gap-1.5 text-purple-400 text-xs font-medium flex-shrink-0">
             <Eye className="w-4 h-4" />
@@ -247,12 +247,12 @@ export function VisualExpectationsSection({
 
       {/* Hi-res wireframe dialog */}
       {showHtmlPreview && wireframeHtml && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowHtmlPreview(false)}>
+        <div className="fixed inset-0 bg-black/60 z-[1100] backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShowHtmlPreview(false)}>
           <div className="bg-[var(--bg)] rounded-xl border border-[var(--border-subtle)] shadow-2xl w-[90vw] max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)] flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Monitor className="h-4 w-4 text-purple-400" />
-                <h3 className="text-sm font-medium text-[var(--text)]">Hi-res Wireframe Preview</h3>
+                <h3 className="text-sm font-medium text-[var(--text)]">Interactive Prototype</h3>
               </div>
               <button onClick={() => setShowHtmlPreview(false)} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--text)] transition-colors">
                 <X className="h-4 w-4" />

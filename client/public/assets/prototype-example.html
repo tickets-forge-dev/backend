@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototype: Team Settings Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg-page: #0a0a0f;
+      --bg-card: #12131a;
+      --bg-elevated: #1a1b24;
+      --bg-hover: #1f2029;
+      --bg-active: #252630;
+      --border: rgba(255,255,255,0.06);
+      --border-hover: rgba(255,255,255,0.12);
+      --text-primary: #e8e8ec;
+      --text-secondary: #8b8b9e;
+      --text-tertiary: #55556a;
+      --accent: #6366f1;
+      --accent-soft: rgba(99,102,241,0.12);
+      --accent-text: #a5b4fc;
+      --success: #10b981;
+      --success-soft: rgba(16,185,129,0.12);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245,158,11,0.12);
+      --error: #ef4444;
+      --error-soft: rgba(239,68,68,0.12);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.5;
+      overflow-y: auto;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Section dividers */
+    .screen-section {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+    }
+    .screen-section:first-child { border-top: none; padding-top: 32px; }
+
+    .screen-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-text);
+      margin-bottom: 8px;
+    }
+    .screen-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .screen-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    /* Annotation bar */
+    .annotation {
+      margin-top: 20px;
+      background: rgba(245,158,11,0.08);
+      border-left: 3px solid #f59e0b;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .annotation strong { color: var(--warning); font-weight: 600; }
+
+    /* Mockup frame */
+    .mockup-frame {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Top Nav */
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+    .topnav-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .topnav-logo .icon {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 6px;
+    }
+    .topnav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .topnav-link {
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .topnav-link:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .topnav-link.active { color: var(--text-primary); background: var(--accent-soft); }
+    .topnav-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+    }
+
+    /* Layout with sidebar */
+    .layout { display: flex; min-height: 500px; }
+
+    .sidebar {
+      width: 220px;
+      background: var(--bg-elevated);
+      border-right: 1px solid var(--border);
+      padding: 16px 12px;
+      flex-shrink: 0;
+    }
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      padding: 0 8px;
+      margin-bottom: 6px;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .sidebar-item:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .sidebar-item.active { color: var(--text-primary); background: var(--accent-soft); }
+    .sidebar-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      background: var(--bg-active);
+      flex-shrink: 0;
+    }
+    .sidebar-item.active .sidebar-icon { background: var(--accent); }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      padding: 24px 28px;
+      min-width: 0;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .page-title { font-size: 18px; font-weight: 600; }
+    .page-subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover { background: #5558e6; transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { color: var(--text-primary); border-color: var(--border-hover); background: var(--bg-hover); }
+    .btn-danger {
+      background: var(--error-soft);
+      color: var(--error);
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+    /* Cards */
+    .card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--border-hover); }
+    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .card-desc { font-size: 12px; color: var(--text-secondary); }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    /* Table */
+    .table-wrap {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { transition: background 0.1s ease; }
+    tbody tr:hover { background: var(--bg-hover); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 20px;
+    }
+    .badge-success { background: var(--success-soft); color: var(--success); }
+    .badge-warning { background: var(--warning-soft); color: var(--warning); }
+    .badge-error { background: var(--error-soft); color: var(--error); }
+    .badge-accent { background: var(--accent-soft); color: var(--accent-text); }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Form elements */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .form-input::placeholder { color: var(--text-tertiary); }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+    .toggle {
+      width: 36px;
+      height: 20px;
+      background: var(--bg-active);
+      border-radius: 20px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle-knob {
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .toggle.on .toggle-knob { transform: translateX(16px); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--text-primary); }
+    .tab.active { color: var(--text-primary); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Avatar */
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .card-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ======================== SCREEN 1: Team Members ======================== -->
+  <div class="screen-section">
+    <div class="screen-label">Screen 1 — Default View</div>
+    <h2 class="screen-title">Team Members</h2>
+    <p class="screen-desc">Manage who has access to this project workspace</p>
+
+    <div class="mockup-frame">
+      <div class="topnav">
+        <div class="topnav-logo">
+          <div class="icon"></div>
+          forge
+        </div>
+        <div class="topnav-links">
+          <a class="topnav-link" href="#">Workspace</a>
+          <a class="topnav-link" href="#">Decision Logs</a>
+          <a class="topnav-link active" href="#">Settings</a>
+        </div>
+        <div class="topnav-avatar">DA</div>
+      </div>
+
+      <div class="layout">
+        <div class="sidebar">
+          <div class="sidebar-section">
+            <div class="sidebar-label">Project</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> General</div>
+            <div class="sidebar-item active"><div class="sidebar-icon"></div> Members</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> Repositories</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> Integrations</div>
+          </div>
+          <div class="sidebar-section">
+            <div class="sidebar-label">Account</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> Profile</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> Billing</div>
+          </div>
+        </div>
+
+        <div class="main-content">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Members</h1>
+              <p class="page-subtitle">3 members in this project</p>
+            </div>
+            <button class="btn btn-primary" onclick="document.getElementById('invite-modal').style.display='flex'">+ Invite Member</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <div class="avatar" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">DA</div>
+                      <div>
+                        <div style="font-weight:500">Dan Ayalon</div>
+                        <div style="font-size:11px;color:var(--text-tertiary)">dan@forge.dev</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="badge badge-accent">Owner</span></td>
+                  <td><span class="badge badge-success"><span class="badge-dot"></span> Active</span></td>
+                  <td style="color:var(--text-secondary)">Jan 15, 2026</td>
+                  <td style="color:var(--text-tertiary);font-size:12px">—</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <div class="avatar" style="background:linear-gradient(135deg,#10b981,#059669)">SK</div>
+                      <div>
+                        <div style="font-weight:500">Sarah Kim</div>
+                        <div style="font-size:11px;color:var(--text-tertiary)">sarah.kim@company.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="badge badge-success">Admin</span></td>
+                  <td><span class="badge badge-success"><span class="badge-dot"></span> Active</span></td>
+                  <td style="color:var(--text-secondary)">Feb 3, 2026</td>
+                  <td><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px">Edit</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <div class="avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706)">MR</div>
+                      <div>
+                        <div style="font-weight:500">Mike Rodriguez</div>
+                        <div style="font-size:11px;color:var(--text-tertiary)">mike.r@company.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="badge" style="background:var(--bg-active);color:var(--text-secondary)">Member</span></td>
+                  <td><span class="badge badge-warning"><span class="badge-dot"></span> Pending</span></td>
+                  <td style="color:var(--text-secondary)">Mar 28, 2026</td>
+                  <td>
+                    <div style="display:flex;gap:6px">
+                      <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px">Resend</button>
+                      <button class="btn btn-danger" style="padding:4px 10px;font-size:11px">Revoke</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Interactions:</strong> "Invite Member" opens a modal dialog (see Screen 2). The "Edit" button on each row opens an inline role dropdown. "Resend" re-sends the invitation email. "Revoke" shows a confirmation tooltip before removing the pending invite. Rows highlight on hover. The sidebar "Members" link is active (accent background).
+    </div>
+  </div>
+
+  <!-- ======================== SCREEN 2: Invite Modal ======================== -->
+  <div class="screen-section">
+    <div class="screen-label">Screen 2 — Invite Flow</div>
+    <h2 class="screen-title">Invite Member Modal</h2>
+    <p class="screen-desc">Invite a new team member by email with role selection</p>
+
+    <div class="mockup-frame" style="max-width:480px;margin:0 auto">
+      <div style="padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h3 style="font-size:16px;font-weight:600">Invite to Project</h3>
+          <div style="width:24px;height:24px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-tertiary);background:var(--bg-hover);font-size:14px">✕</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input class="form-input" type="email" placeholder="colleague@company.com" value="alex.chen@company.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <div style="display:flex;gap:8px">
+            <div class="card" style="flex:1;padding:12px;cursor:pointer;text-align:center;border-color:var(--border)">
+              <div style="font-size:13px;font-weight:500;color:var(--text-secondary)">Member</div>
+              <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">View & create tickets</div>
+            </div>
+            <div class="card" style="flex:1;padding:12px;cursor:pointer;text-align:center;border-color:var(--accent);background:var(--accent-soft)">
+              <div style="font-size:13px;font-weight:500;color:var(--accent-text)">Admin</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">Full project access</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Personal message (optional)</label>
+          <input class="form-input" placeholder="Hey Alex, join our project...">
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-primary">Send Invite</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Interactions:</strong> Role selection is a card-toggle — clicking a role card deselects the other (radio behavior). The "Send Invite" button is disabled until a valid email is entered. On success, the modal closes and a toast notification confirms "Invite sent to alex.chen@company.com". The new member appears in the table with "Pending" status.
+    </div>
+  </div>
+
+  <!-- ======================== SCREEN 3: Project Settings ======================== -->
+  <div class="screen-section">
+    <div class="screen-label">Screen 3 — Settings</div>
+    <h2 class="screen-title">Project Settings</h2>
+    <p class="screen-desc">General project configuration with danger zone</p>
+
+    <div class="mockup-frame">
+      <div class="topnav">
+        <div class="topnav-logo">
+          <div class="icon"></div>
+          forge
+        </div>
+        <div class="topnav-links">
+          <a class="topnav-link" href="#">Workspace</a>
+          <a class="topnav-link" href="#">Decision Logs</a>
+          <a class="topnav-link active" href="#">Settings</a>
+        </div>
+        <div class="topnav-avatar">DA</div>
+      </div>
+
+      <div class="layout">
+        <div class="sidebar">
+          <div class="sidebar-section">
+            <div class="sidebar-label">Project</div>
+            <div class="sidebar-item active"><div class="sidebar-icon"></div> General</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> Members</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> Repositories</div>
+            <div class="sidebar-item"><div class="sidebar-icon"></div> Integrations</div>
+          </div>
+        </div>
+
+        <div class="main-content">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">General</h1>
+              <p class="page-subtitle">Project information and preferences</p>
+            </div>
+          </div>
+
+          <div class="tabs" id="settings-tabs">
+            <div class="tab active" onclick="switchTab('details')">Details</div>
+            <div class="tab" onclick="switchTab('notifications')">Notifications</div>
+            <div class="tab" onclick="switchTab('danger')">Danger Zone</div>
+          </div>
+
+          <div class="tab-content active" id="tab-details">
+            <div style="max-width:480px">
+              <div class="form-group">
+                <label class="form-label">Project name</label>
+                <input class="form-input" value="Forge Backend">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description</label>
+                <input class="form-input" placeholder="What is this project about?" value="Main backend API and worker services">
+              </div>
+              <div class="form-group">
+                <div class="toggle-wrap">
+                  <div class="toggle on" onclick="this.classList.toggle('on')">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  <div>
+                    <div style="font-size:13px;font-weight:500">Auto-assign tickets</div>
+                    <div style="font-size:11px;color:var(--text-tertiary)">New tickets assigned to creator by default</div>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:20px">
+                <button class="btn btn-primary">Save Changes</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-notifications">
+            <div style="max-width:480px">
+              <div class="form-group">
+                <div class="toggle-wrap">
+                  <div class="toggle on" onclick="this.classList.toggle('on')">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  <div>
+                    <div style="font-size:13px;font-weight:500">Email notifications</div>
+                    <div style="font-size:11px;color:var(--text-tertiary)">Get notified when tickets are assigned or updated</div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="toggle-wrap">
+                  <div class="toggle" onclick="this.classList.toggle('on')">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  <div>
+                    <div style="font-size:13px;font-weight:500">Slack integration</div>
+                    <div style="font-size:11px;color:var(--text-tertiary)">Post updates to a Slack channel</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-danger">
+            <div style="max-width:480px">
+              <div class="card" style="border-color:rgba(239,68,68,0.2)">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div>
+                    <div class="card-title" style="color:var(--error)">Delete Project</div>
+                    <div class="card-desc">Permanently delete this project and all its tickets. This cannot be undone.</div>
+                  </div>
+                  <button class="btn btn-danger">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Interactions:</strong> Tabs switch content sections with JavaScript. Toggle switches animate between on/off states on click. "Save Changes" button shows a success toast. The Danger Zone tab has a red-themed delete card — clicking "Delete" opens a confirmation dialog requiring the project name to be typed before deletion proceeds.
+    </div>
+  </div>
+
+</div>
+
+<!-- Invite modal (hidden by default) -->
+<div id="invite-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:420px;max-width:90vw;box-shadow:var(--shadow-lg)" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:16px;font-weight:600">Invite to Project</h3>
+      <div style="cursor:pointer;color:var(--text-tertiary)" onclick="document.getElementById('invite-modal').style.display='none'">✕</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email address</label>
+      <input class="form-input" type="email" placeholder="colleague@company.com">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-secondary" onclick="document.getElementById('invite-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary">Send Invite</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  function switchTab(tabId) {
+    document.querySelectorAll('#settings-tabs .tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+  }
+</script>
+
+</body>
+</html>

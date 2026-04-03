@@ -2663,7 +2663,109 @@ Output ONLY this JSON:
     }
 
     try {
-      const systemPrompt = `You are a wireframe rendering agent. Convert ASCII wireframes into a single self-contained HTML document. Output ONLY the HTML — no markdown fences, no explanation, no preamble. Start with <!DOCTYPE html>.`;
+      const systemPrompt = `You are a world-class UI prototype engineer. You transform ASCII wireframes into stunning, production-quality interactive HTML prototypes that look like real applications — not flat wireframes.
+
+Output ONLY the HTML — no markdown fences, no explanation, no preamble. Start with <!DOCTYPE html>.
+
+## Your Design DNA
+
+You create prototypes that are INDISTINGUISHABLE from real shipped products. Every prototype must:
+
+1. **Feel alive** — hover states, smooth transitions, focus rings, subtle shadows that respond to interaction
+2. **Look polished** — consistent spacing rhythm, careful typography hierarchy, cohesive color palette
+3. **Tell a story** — each screen flows naturally, states are clear, the user journey is obvious
+4. **Use real patterns** — navigation bars, sidebars, data tables, form layouts, card grids, modals — all should look like production components
+
+## CSS Framework (embed in every prototype)
+
+Always include this CSS foundation in your <style> block, then build on top of it:
+
+\`\`\`
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-page: #0a0a0f;
+  --bg-card: #12131a;
+  --bg-elevated: #1a1b24;
+  --bg-hover: #1f2029;
+  --bg-active: #252630;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --text-primary: #e8e8ec;
+  --text-secondary: #8b8b9e;
+  --text-tertiary: #55556a;
+  --accent: #6366f1;
+  --accent-soft: rgba(99,102,241,0.12);
+  --accent-text: #a5b4fc;
+  --success: #10b981;
+  --success-soft: rgba(16,185,129,0.12);
+  --warning: #f59e0b;
+  --warning-soft: rgba(245,158,11,0.12);
+  --error: #ef4444;
+  --error-soft: rgba(239,68,68,0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
+}
+\`\`\`
+
+## Component Patterns (use these as building blocks)
+
+**Navigation bars:** Sticky top, backdrop-blur, border-bottom, logo + nav links + user avatar
+**Sidebars:** Fixed left, 220-260px wide, subtle bg difference, active state with accent-soft bg
+**Cards:** bg-card, border, radius-md, padding 20-24px, shadow-sm, hover lift (translateY -1px)
+**Buttons:** Primary = accent bg, Secondary = transparent + border, Ghost = just text + hover bg
+**Badges/Pills:** Colored bg at 10-15% opacity + matching text color, radius-full, text 11-12px
+**Tables:** Header row with text-tertiary uppercase 11px, rows with border-bottom, hover bg
+**Form inputs:** bg-elevated, border, radius-sm, 13px text, focus ring with accent-soft
+**Status dots:** 8px circles (success/warning/error), often next to text labels
+**Empty states:** Centered icon + heading + description + CTA button
+**Modals:** Centered card with backdrop blur, clear header/body/footer sections
+**Tabs:** Underline style (border-bottom-2px on active), or pill style (active bg)
+
+## Interaction & Motion
+
+Use JavaScript for:
+- Tab switching (show/hide sections)
+- Accordion/collapsible sections
+- Hover tooltips on truncated text
+- Toggle switches that visually flip
+- Dropdown menus (click to open/close)
+- Smooth scroll between sections
+
+CSS transitions on EVERYTHING interactive:
+\`transition: all 0.15s ease;\` on cards, buttons, links, inputs
+
+## Layout Rules
+
+- Max-width container: 1200px centered, with 24px side padding
+- Section spacing: 48-64px between major sections
+- Card grid: CSS Grid with auto-fit, minmax(300px, 1fr), gap 16-20px
+- Typography scale: 28px h1, 20px h2, 15px h3, 13px body, 11px caption/label
+- Every interactive element must have a visible hover state
+- Use CSS Grid or Flexbox — never floats
+
+## Screen Sections
+
+For EACH screen in the wireframes:
+1. A clear section heading with a subtle top border separator
+2. The fully designed screen mockup
+3. Below the mockup: an annotation bar explaining behaviors and interactions
+   - Style: background rgba(245,158,11,0.08), border-left 3px solid #f59e0b, padding 12px 16px
+   - 12px text, text-secondary color, describes what happens on click/hover/submit`;
 
       // Build design context from tech spec if available
       let designBlock = '';
@@ -2674,39 +2776,37 @@ Output ONLY this JSON:
         if (dt.typography?.length) parts.push(`Typography: ${dt.typography.map(t => `${t.name}: ${t.value}`).join(', ')}`);
         if (dt.spacing?.length) parts.push(`Spacing: ${dt.spacing.map(s => `${s.name}: ${s.value}`).join(', ')}`);
         if (dt.shadows?.length) parts.push(`Shadows: ${dt.shadows.map(s => `${s.name}: ${s.value}`).join(', ')}`);
-        if (parts.length) designBlock = `\n\n## Project Design Tokens (use these instead of defaults)\n${parts.join('\n')}`;
+        if (parts.length) designBlock = `\n\n## Project Design Tokens (override the default theme with these)\n${parts.join('\n')}`;
       }
 
       let stackBlock = '';
       if (designContext?.stack?.framework) {
-        stackBlock = `\n\n## Tech Stack\nFramework: ${designContext.stack.framework}${designContext.stack.language ? `, Language: ${designContext.stack.language}` : ''}`;
+        stackBlock = `\n\n## Tech Stack Context\nFramework: ${designContext.stack.framework}${designContext.stack.language ? `, Language: ${designContext.stack.language}` : ''}\nMatch the visual conventions of this framework's ecosystem (e.g., Material for Angular, shadcn/ui for Next.js, Vuetify for Vue).`;
       }
 
-      const defaultTheme = !designContext?.designTokens?.colors?.length
-        ? '\n- Dark theme: background #0f1117, cards #1a1d27, borders #2a2d3a, text #e0e0e0, headings #ffffff, accent #6366f1'
-        : '\n- Use the project design tokens above for colors, typography, and spacing. Fall back to a dark theme if tokens are incomplete.';
+      const tokenOverride = designContext?.designTokens?.colors?.length
+        ? '\nIMPORTANT: Override the default CSS variables with the project design tokens above. The prototype should match the project\'s actual visual style.'
+        : '';
 
-      const userPrompt = `Convert these ASCII wireframes into an interactive HTML preview.
+      const userPrompt = `Create a stunning interactive prototype from these wireframes.
 
 ## Ticket: ${title}
 
-## ASCII Wireframes
+## ASCII Wireframes (source of truth for layout and content)
 ${asciiWireframes}
 
 ## Solution Context
 ${solutionContext}${designBlock}${stackBlock}
 
-## Requirements
-- Self-contained HTML with all CSS in a <style> block — no external dependencies${defaultTheme}
-- One section per screen/view from the wireframes
-- Below each section, add an amber callout bar (background #78350f/#fef3c7 text) explaining behaviors and interactions
-- Responsive fluid layout that looks good at any width
-- No JavaScript — pure HTML/CSS only
-- Use system font stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif
-- Cards with subtle border-radius (8px) and the border color above
-- Generous padding and spacing for readability
-- Body must have overflow-y: auto to allow scrolling within an iframe
-- If project design tokens are provided, match the project's visual style closely`;
+## Final Checklist
+- Self-contained HTML with embedded <style> and <script> — Google Fonts via @import is allowed
+- Include the CSS framework from the system prompt as your foundation, then customize
+- Every screen from the wireframes gets its own section with annotation bar below it
+- Responsive fluid layout (looks great from 375px to 1440px)
+- JavaScript is encouraged for tabs, toggles, accordions, dropdowns — make it feel interactive
+- Body must have overflow-y: auto (rendered inside an iframe)
+- Populate with realistic placeholder data (real names, realistic numbers, plausible content)
+- Add micro-interactions: button hover lifts, card hover glows, input focus rings, smooth transitions${tokenOverride}`;
 
       const modelId = this.configService.get<string>('ANTHROPIC_MODEL') || DEFAULT_MODEL;
 
@@ -2714,8 +2814,8 @@ ${solutionContext}${designBlock}${stackBlock}
         model,
         system: systemPrompt,
         prompt: userPrompt,
-        maxOutputTokens: 8192,
-        temperature: 0.3,
+        maxOutputTokens: 16384,
+        temperature: 0.4,
       });
 
       // Track token usage if context provided
