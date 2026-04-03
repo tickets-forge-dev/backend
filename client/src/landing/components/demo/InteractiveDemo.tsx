@@ -121,6 +121,7 @@ export function InteractiveDemo() {
               >
                 <DemoDevelopSession
                   onComplete={() => dispatch({ type: 'DEVELOP_COMPLETE' })}
+                  onViewPreview={() => dispatch({ type: 'VIEW_PREVIEW' })}
                   onClose={() => dispatch({ type: 'GO_BACK' })}
                 />
               </motion.div>

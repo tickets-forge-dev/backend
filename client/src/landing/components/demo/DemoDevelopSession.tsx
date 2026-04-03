@@ -2,12 +2,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Terminal, FilePlus, FileText, Search, Check, Sparkles, X } from 'lucide-react';
+import { Loader2, Terminal, FilePlus, FileText, Search, Check, Sparkles, X, Play } from 'lucide-react';
 import { DEMO_SESSION_EVENTS, DEMO_SESSION_SUMMARY } from './demo-data';
 import type { DemoSessionEvent } from './demo-data';
 
 interface Props {
   onComplete: () => void;
+  onViewPreview: () => void;
   onClose: () => void;
 }
 
@@ -21,7 +22,7 @@ function ToolIcon({ tool }: { tool?: DemoSessionEvent['tool'] }) {
   }
 }
 
-export function DemoDevelopSession({ onComplete, onClose }: Props) {
+export function DemoDevelopSession({ onComplete, onViewPreview, onClose }: Props) {
   const [visibleEvents, setVisibleEvents] = useState<DemoSessionEvent[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -173,12 +174,21 @@ export function DemoDevelopSession({ onComplete, onClose }: Props) {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={onComplete}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors text-[12px] font-medium text-emerald-400 mt-1"
-                >
-                  View Change Record →
-                </button>
+                <div className="flex gap-2 mt-1">
+                  <button
+                    onClick={onComplete}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors text-[12px] font-medium text-emerald-400"
+                  >
+                    View Change Record →
+                  </button>
+                  <button
+                    onClick={onViewPreview}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 transition-colors text-[12px] font-medium text-violet-400"
+                  >
+                    <Play className="w-3 h-3" fill="currentColor" />
+                    Preview
+                  </button>
+                </div>
               </div>
             );
           }
