@@ -1,6 +1,8 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import type { DemoScreen } from './demo-state';
 
 const SCREEN_URLS: Record<DemoScreen, string> = {
@@ -13,14 +15,23 @@ const SCREEN_URLS: Record<DemoScreen, string> = {
   'decision-log-detail': 'app.forge-ai.dev/records',
 };
 
+const COMPACT_HEIGHT = 520;
+const EXPANDED_HEIGHT = Math.round(COMPACT_HEIGHT * 1.3); // 30% larger
+
 interface Props {
   screen: DemoScreen;
   children: ReactNode;
 }
 
 export function DemoBrowserChrome({ screen, children }: Props) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] overflow-hidden bg-[var(--bg)] shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+    <motion.div
+      className="rounded-xl border border-[var(--border-subtle)] overflow-hidden bg-[var(--bg)] shadow-[0_20px_50px_rgba(0,0,0,0.4)]"
+      layout
+      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       {/* Title bar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
         {/* Traffic lights */}
@@ -35,13 +46,27 @@ export function DemoBrowserChrome({ screen, children }: Props) {
             {SCREEN_URLS[screen]}
           </div>
         </div>
-        {/* Spacer to balance traffic lights */}
-        <div className="w-[52px]" />
+        {/* Expand/collapse button */}
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+          title={expanded ? 'Collapse' : 'Expand'}
+        >
+          {expanded ? (
+            <Minimize2 className="w-3.5 h-3.5" />
+          ) : (
+            <Maximize2 className="w-3.5 h-3.5" />
+          )}
+        </button>
       </div>
       {/* Content */}
-      <div className="relative overflow-hidden" style={{ height: '520px' }}>
+      <motion.div
+        className="relative overflow-hidden"
+        animate={{ height: expanded ? EXPANDED_HEIGHT : COMPACT_HEIGHT }}
+        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         {children}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
