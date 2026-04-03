@@ -202,10 +202,20 @@ export function DemoTicketDetail({ onBack, onStartDevelop, hasInteracted, develo
           )}
 
           {activeTab === 'design' && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Palette className="h-8 w-8 text-[var(--text-tertiary)]/30 mb-3" />
-              <p className="text-[13px] text-[var(--text-secondary)]">Design References</p>
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">No design references attached</p>
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-[var(--text)] pl-3 border-l-2 border-[var(--text-tertiary)]">
+                Design References <span className="text-[var(--text-tertiary)] font-normal">(1)</span>
+              </h3>
+              <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+                <img
+                  src="/images/demo/demo-prototype.png"
+                  alt="API Rate Limiter Settings Panel mockup"
+                  className="w-full h-auto"
+                />
+              </div>
+              <p className="text-[10px] text-[var(--text-tertiary)]">
+                Settings panel mockup — configuration view for the rate limiter
+              </p>
             </div>
           )}
 
