@@ -41,6 +41,9 @@ coverage/
 # Turbo
 .turbo/
 
+# Playwright MCP
+.playwright-mcp/
+
 # Misc
 .cache/
 *.tsbuildinfo

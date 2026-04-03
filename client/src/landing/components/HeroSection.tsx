@@ -25,11 +25,7 @@ export function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative flex flex-col items-center px-4 overflow-x-hidden overflow-hidden"
-      style={{
-        paddingTop: 'var(--landing-section-gap)',
-        paddingBottom: 'var(--landing-section-gap)',
-      }}
+      className="relative flex flex-col items-center px-4 overflow-x-hidden overflow-hidden pt-12 sm:pt-16 pb-10 sm:pb-14"
     >
       {/* Background glows with subtle drift animation */}
       <div
@@ -88,7 +84,7 @@ export function HeroSection() {
 
         {/* Subtitle */}
         <motion.p
-          className="text-[var(--text-tertiary)] mt-5 mb-8 mx-auto max-w-lg"
+          className="text-[var(--text-tertiary)] mt-4 mb-6 mx-auto max-w-lg"
           style={{ fontSize: '15px', lineHeight: 1.5 }}
           variants={fadeUp}
           initial="hidden"
@@ -122,7 +118,7 @@ export function HeroSection() {
 
       {/* Hero Screenshot */}
       <motion.div
-        className="relative w-full mt-10 sm:mt-16 px-4 sm:px-12 lg:px-24 xl:px-32"
+        className="relative w-full max-w-5xl mt-8 sm:mt-10 px-4 sm:px-8"
         variants={scaleUp}
         initial="hidden"
         animate="visible"
@@ -141,10 +137,10 @@ export function HeroSection() {
         />
 
         <motion.div
-          className="relative rounded-2xl border border-[var(--border-subtle)] overflow-hidden"
+          className="relative rounded-xl border border-[var(--border-subtle)] overflow-hidden"
           style={{
             rotateX,
-            boxShadow: '0 40px 80px rgba(0,0,0,0.5)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
           }}
         >
           <Image

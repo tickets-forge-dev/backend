@@ -21,7 +21,7 @@ export default function LandingPage() {
       >
         <BackgroundMesh />
         <LandingHeader />
-        <main className="relative z-10 flex-1">
+        <main className="relative z-10 flex-1 pt-16">
           <HeroSection />
           <HowItWorks />
           <ProductShowcaseWeb />
