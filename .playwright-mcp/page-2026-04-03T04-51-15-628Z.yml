@@ -1,0 +1,137 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: Screen 1 — Default View
+    - heading "Team Members" [level=2] [ref=e5]
+    - paragraph [ref=e6]: Manage who has access to this project workspace
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: forge
+        - generic [ref=e11]:
+          - link "Workspace" [ref=e12] [cursor=pointer]:
+            - /url: "#"
+          - link "Decision Logs" [ref=e13] [cursor=pointer]:
+            - /url: "#"
+          - link "Settings" [ref=e14] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=e15]: DA
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - heading "Members" [level=1] [ref=e37]
+            - paragraph [ref=e38]: 3 members in this project
+          - button "+ Invite Member" [ref=e39] [cursor=pointer]
+        - table [ref=e41]:
+          - rowgroup [ref=e42]:
+            - row "Member Role Status Joined" [ref=e43]:
+              - columnheader "Member" [ref=e44]
+              - columnheader "Role" [ref=e45]
+              - columnheader "Status" [ref=e46]
+              - columnheader "Joined" [ref=e47]
+              - columnheader [ref=e48]
+          - rowgroup [ref=e49]:
+            - row "DA Dan Ayalon dan@forge.dev Owner Active Jan 15, 2026 —" [ref=e50]:
+              - cell "DA Dan Ayalon dan@forge.dev" [ref=e51]:
+                - generic [ref=e52]:
+                  - generic [ref=e53]: DA
+                  - generic [ref=e54]:
+                    - generic [ref=e55]: Dan Ayalon
+                    - generic [ref=e56]: dan@forge.dev
+              - cell "Owner" [ref=e57]:
+                - generic [ref=e58]: Owner
+              - cell "Active" [ref=e59]:
+                - generic [ref=e60]: Active
+              - cell "Jan 15, 2026" [ref=e62]
+              - cell "—" [ref=e63]
+            - row "SK Sarah Kim sarah.kim@company.com Admin Active Feb 3, 2026 Edit" [ref=e64]:
+              - cell "SK Sarah Kim sarah.kim@company.com" [ref=e65]:
+                - generic [ref=e66]:
+                  - generic [ref=e67]: SK
+                  - generic [ref=e68]:
+                    - generic [ref=e69]: Sarah Kim
+                    - generic [ref=e70]: sarah.kim@company.com
+              - cell "Admin" [ref=e71]:
+                - generic [ref=e72]: Admin
+              - cell "Active" [ref=e73]:
+                - generic [ref=e74]: Active
+              - cell "Feb 3, 2026" [ref=e76]
+              - cell "Edit" [ref=e77]:
+                - button "Edit" [ref=e78] [cursor=pointer]
+            - row "MR Mike Rodriguez mike.r@company.com Member Pending Mar 28, 2026 Resend Revoke" [ref=e79]:
+              - cell "MR Mike Rodriguez mike.r@company.com" [ref=e80]:
+                - generic [ref=e81]:
+                  - generic [ref=e82]: MR
+                  - generic [ref=e83]:
+                    - generic [ref=e84]: Mike Rodriguez
+                    - generic [ref=e85]: mike.r@company.com
+              - cell "Member" [ref=e86]:
+                - generic [ref=e87]: Member
+              - cell "Pending" [ref=e88]:
+                - generic [ref=e89]: Pending
+              - cell "Mar 28, 2026" [ref=e91]
+              - cell "Resend Revoke" [ref=e92]:
+                - generic [ref=e93]:
+                  - button "Resend" [ref=e94] [cursor=pointer]
+                  - button "Revoke" [ref=e95] [cursor=pointer]
+    - generic [ref=e96]:
+      - strong [ref=e97]: "Interactions:"
+      - text: "\"Invite Member\" opens a modal dialog (see Screen 2). The \"Edit\" button on each row opens an inline role dropdown. \"Resend\" re-sends the invitation email. \"Revoke\" shows a confirmation tooltip before removing the pending invite. Rows highlight on hover. The sidebar \"Members\" link is active (accent background)."
+  - generic [ref=e98]:
+    - generic [ref=e99]: Screen 2 — Invite Flow
+    - heading "Invite Member Modal" [level=2] [ref=e100]
+    - paragraph [ref=e101]: Invite a new team member by email with role selection
+    - generic [ref=e103]:
+      - generic [ref=e104]:
+        - heading "Invite to Project" [level=3] [ref=e105]
+        - generic [ref=e106] [cursor=pointer]: ✕
+      - generic [ref=e107]:
+        - generic [ref=e108]: Email address
+        - textbox "colleague@company.com" [ref=e109]: alex.chen@company.com
+      - generic [ref=e110]:
+        - generic [ref=e111]: Role
+        - generic [ref=e112]:
+          - generic [ref=e113] [cursor=pointer]:
+            - generic [ref=e114]: Member
+            - generic [ref=e115]: View & create tickets
+          - generic [ref=e116] [cursor=pointer]:
+            - generic [ref=e117]: Admin
+            - generic [ref=e118]: Full project access
+      - generic [ref=e119]:
+        - generic [ref=e120]: Personal message (optional)
+        - textbox "Hey Alex, join our project..." [ref=e121]
+      - generic [ref=e122]:
+        - button "Cancel" [ref=e123] [cursor=pointer]
+        - button "Send Invite" [ref=e124] [cursor=pointer]
+    - generic [ref=e125]:
+      - strong [ref=e126]: "Interactions:"
+      - text: Role selection is a card-toggle — clicking a role card deselects the other (radio behavior). The "Send Invite" button is disabled until a valid email is entered. On success, the modal closes and a toast notification confirms "Invite sent to alex.chen@company.com". The new member appears in the table with "Pending" status.
+  - generic [ref=e127]:
+    - generic [ref=e128]: Screen 3 — Settings
+    - heading "Project Settings" [level=2] [ref=e129]
+    - paragraph [ref=e130]: General project configuration with danger zone
+    - generic [ref=e131]:
+      - generic [ref=e132]:
+        - generic [ref=e133]: forge
+        - generic [ref=e135]:
+          - link "Workspace" [ref=e136] [cursor=pointer]:
+            - /url: "#"
+          - link "Decision Logs" [ref=e137] [cursor=pointer]:
+            - /url: "#"
+          - link "Settings" [ref=e138] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=e139]: DA
+      - generic [ref=e152]:
+        - generic [ref=e154]:
+          - heading "General" [level=1] [ref=e155]
+          - paragraph [ref=e156]: Project information and preferences
+        - generic [ref=e157]:
+          - generic [ref=e158] [cursor=pointer]: Details
+          - generic [ref=e159] [cursor=pointer]: Notifications
+          - generic [ref=e160] [cursor=pointer]: Danger Zone
+        - generic [ref=e183]:
+          - generic [ref=e184]:
+            - generic [ref=e185]: Delete Project
+            - generic [ref=e186]: Permanently delete this project and all its tickets. This cannot be undone.
+          - button "Delete" [ref=e187] [cursor=pointer]
+    - generic [ref=e178]:
+      - strong [ref=e179]: "Interactions:"
+      - text: Tabs switch content sections with JavaScript. Toggle switches animate between on/off states on click. "Save Changes" button shows a success toast. The Danger Zone tab has a red-themed delete card — clicking "Delete" opens a confirmation dialog requiring the project name to be typed before deletion proceeds.
