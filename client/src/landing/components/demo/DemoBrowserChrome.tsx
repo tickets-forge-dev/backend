@@ -86,9 +86,9 @@ export function DemoBrowserChrome({ screen, children }: Props) {
       <AnimatePresence>
         {expanded && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop — below the landing header (h-16 = 64px, z-50) */}
             <motion.div
-              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 top-16 z-[100] bg-black/60 backdrop-blur-md"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -96,8 +96,9 @@ export function DemoBrowserChrome({ screen, children }: Props) {
               onClick={() => setExpanded(false)}
             />
             {/* Modal window */}
+            {/* Modal — starts below the header */}
             <motion.div
-              className="fixed inset-4 sm:inset-8 lg:inset-12 z-[101] flex items-center justify-center"
+              className="fixed inset-4 sm:inset-8 lg:inset-12 top-20 z-[101] flex items-center justify-center"
               initial={{ opacity: 0, scale: 0.85, y: 40 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
