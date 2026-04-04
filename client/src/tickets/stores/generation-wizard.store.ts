@@ -68,6 +68,9 @@ interface WizardSnapshot {
   apiContext: string;
 }
 
+/** Track whether we've already warned about localStorage failure this session */
+let _localStorageWarned = false;
+
 function saveSnapshot(state: WizardState): void {
   try {
     const snapshot: WizardSnapshot = {
@@ -92,8 +95,16 @@ function saveSnapshot(state: WizardState): void {
       apiContext: state.apiContext,
     };
     localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(snapshot));
-  } catch {
-    // localStorage may be full or unavailable
+  } catch (err) {
+    // localStorage may be full or unavailable — warn once per session
+    console.error('[Wizard] Failed to save snapshot:', err);
+    if (!_localStorageWarned) {
+      _localStorageWarned = true;
+      // Surface the warning into store state so the UI can show it
+      useWizardStore?.setState?.({
+        error: 'Could not save progress — your browser storage may be full. Progress won\'t survive a page refresh.',
+      });
+    }
   }
 }
 
@@ -144,7 +155,8 @@ async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   }
 
   if (user) {
-    const token = await user.getIdToken();
+    // Force refresh the token to avoid expired-token failures during long sessions
+    const token = await user.getIdToken(/* forceRefresh */ true);
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -153,7 +165,14 @@ async function authFetch(path: string, init?: RequestInit): Promise<Response> {
     headers['x-team-id'] = teamId;
   }
 
-  return fetch(`${API_URL}${path}`, { ...init, headers });
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+
+  // Surface auth failures with a specific message so the UI can guide the user
+  if (response.status === 401) {
+    throw new Error('Your session has expired. Please refresh the page and sign in again.');
+  }
+
+  return response;
 }
 
 /**
@@ -763,7 +782,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
    */
   analyzeRepository: async () => {
     const state = get();
-    if (state.loading) return; // Guard against double-click / concurrent SSE streams
+    if (state.loading || _analysisAbortController) return; // Guard against double-click / concurrent SSE streams
     const ticketsState = useTicketsStore.getState();
 
     // Determine if repository is being analyzed
@@ -1101,7 +1120,15 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       });
 
       if (!createResponse.ok) {
-        throw new Error(`Failed to create ticket: ${createResponse.statusText}`);
+        const body = await createResponse.json().catch(() => ({}));
+        const detail = (body as Record<string, string>).message || createResponse.statusText;
+        if (createResponse.status === 403) {
+          throw new Error(`Quota exceeded — ${detail}`);
+        }
+        if (createResponse.status === 429) {
+          throw new Error('Too many requests — please wait a moment and try again.');
+        }
+        throw new Error(`Failed to create ticket: ${detail}`);
       }
 
       const aec = await createResponse.json();
@@ -1172,61 +1199,72 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
       saveSnapshot(get());
 
-      // Fire-and-forget: upload pending files + design links in background.
-      // These MUST NOT block confirmContextContinue — the wizard needs to proceed immediately.
+      // Upload pending files + design links. Await them so failures are surfaced.
       const aecId = aec.id;
-      void (async () => {
-        // Upload pending files
-        const filesToUpload = state.pendingFiles;
-        if (filesToUpload.length > 0) {
-          set({ pendingFiles: [] });
-          for (const file of filesToUpload) {
-            try {
-              const formData = new FormData();
-              formData.append('file', file);
-              const uploadUser = auth.currentUser;
-              const uploadHeaders: Record<string, string> = {};
-              if (uploadUser) {
-                uploadHeaders['Authorization'] = `Bearer ${await uploadUser.getIdToken()}`;
-              }
-              await fetch(`${API_URL}/tickets/${aecId}/attachments`, {
-                method: 'POST',
-                headers: uploadHeaders,
-                body: formData,
-              });
-            } catch (uploadError) {
-              console.warn('Failed to upload file:', file.name, uploadError);
-            }
-          }
-        }
+      const failedUploads: string[] = [];
 
-        // Upload pending design references
-        const linksToUpload = state.pendingDesignLinks;
-        if (linksToUpload.length > 0) {
-          const failedLinks: typeof linksToUpload = [];
-          for (const link of linksToUpload) {
-            try {
-              const response = await authFetch(`/tickets/${aecId}/design-references`, {
-                method: 'POST',
-                body: JSON.stringify({ url: link.url, title: link.title }),
-              });
-              if (!response.ok) {
-                console.warn(`Failed to upload design link (${response.status}):`, link.url);
-                failedLinks.push(link);
-              }
-            } catch (uploadError) {
-              console.warn('Failed to upload design link:', link.url, uploadError);
-              failedLinks.push(link);
+      // Upload pending files
+      const filesToUpload = state.pendingFiles;
+      if (filesToUpload.length > 0) {
+        set({ pendingFiles: [] });
+        for (const file of filesToUpload) {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const uploadUser = auth.currentUser;
+            const uploadHeaders: Record<string, string> = {};
+            if (uploadUser) {
+              uploadHeaders['Authorization'] = `Bearer ${await uploadUser.getIdToken(true)}`;
             }
-          }
-          if (failedLinks.length === 0) {
-            set({ pendingDesignLinks: [] });
-          } else {
-            set({ pendingDesignLinks: failedLinks });
-            console.warn(`${failedLinks.length} design links failed to upload, kept for retry`);
+            const teamId = useTeamStore.getState().currentTeam?.id;
+            if (teamId) {
+              uploadHeaders['x-team-id'] = teamId;
+            }
+            const uploadRes = await fetch(`${API_URL}/tickets/${aecId}/attachments`, {
+              method: 'POST',
+              headers: uploadHeaders,
+              body: formData,
+            });
+            if (!uploadRes.ok) {
+              failedUploads.push(file.name);
+            }
+          } catch {
+            failedUploads.push(file.name);
           }
         }
-      })();
+      }
+
+      // Upload pending design references
+      const linksToUpload = state.pendingDesignLinks;
+      if (linksToUpload.length > 0) {
+        const failedLinks: typeof linksToUpload = [];
+        for (const link of linksToUpload) {
+          try {
+            const response = await authFetch(`/tickets/${aecId}/design-references`, {
+              method: 'POST',
+              body: JSON.stringify({ url: link.url, title: link.title }),
+            });
+            if (!response.ok) {
+              failedLinks.push(link);
+              failedUploads.push(link.title || link.url);
+            }
+          } catch {
+            failedLinks.push(link);
+            failedUploads.push(link.title || link.url);
+          }
+        }
+        if (failedLinks.length === 0) {
+          set({ pendingDesignLinks: [] });
+        } else {
+          set({ pendingDesignLinks: failedLinks });
+        }
+      }
+
+      // Surface upload failures as a non-blocking warning
+      if (failedUploads.length > 0) {
+        console.warn(`[Wizard] Failed to upload: ${failedUploads.join(', ')}`);
+        set({ error: `Some attachments failed to upload: ${failedUploads.join(', ')}. The ticket was created but these files are missing.` });
+      }
       // Stage3Draft component will auto-start the first question round via useEffect
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -1299,7 +1337,12 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       return;
     }
 
+    // Guard: prevent double-submit while already submitting
+    if (state.roundStatus === 'submitting') return;
+
     set({ roundStatus: 'submitting', error: null });
+
+    let answersSaved = false;
 
     try {
       // Step 1: Submit answers only (saveOnly=true skips synchronous finalization)
@@ -1309,12 +1352,15 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       });
 
       if (!answersResponse.ok) {
-        throw new Error(`Failed to submit answers: ${answersResponse.statusText}`);
+        // Parse backend error for more specific messaging
+        const body = await answersResponse.json().catch(() => ({}));
+        const detail = (body as Record<string, string>).message || answersResponse.statusText;
+        throw new Error(`Failed to submit answers: ${detail}`);
       }
 
+      answersSaved = true;
+
       // Step 2: Start background finalization job
-      // Always use the background job path for consistent UX (progress in jobs panel,
-      // cancel/background buttons, survives browser close)
       const { jobId } = await useJobsStore.getState().startFinalization(state.draftAecId);
 
       // Store jobId for progress dialog and set loading state
@@ -1332,8 +1378,12 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       localStorage.removeItem('wizard-question-answers');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      // If answers were saved but job startup failed, tell the user they can retry safely
+      const message = answersSaved
+        ? `Your answers were saved, but spec generation failed to start: ${errorMessage}. Click retry — your answers are safe.`
+        : errorMessage;
       set({
-        error: errorMessage,
+        error: message,
         roundStatus: 'idle',
         activeJobId: null,
       });
@@ -1365,7 +1415,12 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate next question: ${response.statusText}`);
+        const body = await response.json().catch(() => ({}));
+        const detail = (body as Record<string, string>).message || response.statusText;
+        if (response.status === 429) {
+          throw new Error('Too many requests — please wait a moment and try again.');
+        }
+        throw new Error(`Failed to generate next question: ${detail}`);
       }
 
       const { question, assumptions, reasoning } = await response.json();

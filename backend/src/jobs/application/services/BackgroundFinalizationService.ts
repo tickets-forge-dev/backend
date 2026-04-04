@@ -16,9 +16,18 @@ import {
 import { NotificationService } from '../../../notifications/notification.service';
 import { GenerationProgressCallback } from '../ports/GenerationProgressCallback';
 import { AEC } from '../../../tickets/domain/aec/AEC';
+import {
+  GitHubIntegrationRepository,
+  GITHUB_INTEGRATION_REPOSITORY,
+} from '../../../github/domain/GitHubIntegrationRepository';
+import { GitHubTokenService } from '../../../github/application/services/github-token.service';
+import { Octokit } from '@octokit/rest';
 
 /** Retry backoff for auto-retry (attempt 1 -> attempt 2) */
 const AUTO_RETRY_BACKOFF_MS = 2000;
+
+/** Maximum time allowed for a single LLM generation call (5 minutes) */
+const LLM_TIMEOUT_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class BackgroundFinalizationService {
@@ -32,6 +41,8 @@ export class BackgroundFinalizationService {
     @Inject(PROJECT_STACK_DETECTOR) private readonly stackDetector: ProjectStackDetector,
     @Inject(GITHUB_FILE_SERVICE) private readonly githubFileService: GitHubFileService,
     @Inject(USAGE_BUDGET_REPOSITORY) private readonly usageBudgetRepository: UsageBudgetRepository,
+    @Inject(GITHUB_INTEGRATION_REPOSITORY) private readonly githubIntegrationRepository: GitHubIntegrationRepository,
+    private readonly githubTokenService: GitHubTokenService,
     private readonly notificationService: NotificationService,
   ) {}
 
@@ -118,10 +129,17 @@ export class BackgroundFinalizationService {
     // Check cancellation
     if (await progressCallback.isCancelled()) return;
 
-    // Phase 3: Build codebase context
+    // Phase 3: Build codebase context (with timeout — GitHub API can hang)
     await progressCallback.onPhaseUpdate('analyzing', 20);
 
-    const codebaseContext = await this.buildCodebaseContext(aec);
+    const codebaseContext = await this.withTimeout(
+      this.buildCodebaseContext(aec),
+      60_000, // 60s timeout for GitHub API calls
+      `Codebase analysis timed out for ${aec.repositoryContext?.repositoryFullName || 'unknown repo'}`,
+    ).catch((err) => {
+      this.logger.warn(`Codebase context failed, using minimal: ${err instanceof Error ? err.message : String(err)}`);
+      return this.createMinimalContext();
+    });
 
     // Check cancellation
     if (await progressCallback.isCancelled()) return;
@@ -146,21 +164,37 @@ export class BackgroundFinalizationService {
     // Phase 5: Generate tech spec via LLM
     await progressCallback.onPhaseUpdate('generating', 40);
 
-    const techSpec = await this.techSpecGenerator.generateWithAnswers({
-      title: aec.title,
-      description: aec.description ?? undefined,
-      context: codebaseContext,
-      answers: allAnswers,
-      ticketType: (aec.type as 'feature' | 'bug' | 'task') ?? undefined,
-      reproductionSteps:
-        aec.reproductionSteps.length > 0 ? aec.reproductionSteps : undefined,
-      includeWireframes: aec.includeWireframes,
-      includeApiSpec: aec.includeApiSpec,
-      wireframeContext: aec.wireframeContext ?? undefined,
-      wireframeImageUrls: wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
-      apiContext: aec.apiContext ?? undefined,
-      trackingContext: { userId: aec.createdBy, teamId, ticketId: aecId },
-    }, progressCallback);
+    // Create a scoped progress callback for the LLM call.
+    // Maps the LLM's internal 0-100% range into the overall 40-90% range
+    // so the progress bar advances smoothly without jumping backwards.
+    const llmProgressCallback: GenerationProgressCallback = {
+      onPhaseUpdate: async (phase: string, percent: number): Promise<void> => {
+        const mappedPercent = 40 + Math.round((percent / 100) * 50);
+        await progressCallback.onPhaseUpdate(phase, Math.min(mappedPercent, 90));
+      },
+      isCancelled: progressCallback.isCancelled,
+    };
+
+    // Wrap the LLM call with a timeout to prevent infinite hangs
+    const techSpec = await this.withTimeout(
+      this.techSpecGenerator.generateWithAnswers({
+        title: aec.title,
+        description: aec.description ?? undefined,
+        context: codebaseContext,
+        answers: allAnswers,
+        ticketType: (aec.type as 'feature' | 'bug' | 'task') ?? undefined,
+        reproductionSteps:
+          aec.reproductionSteps.length > 0 ? aec.reproductionSteps : undefined,
+        includeWireframes: aec.includeWireframes,
+        includeApiSpec: aec.includeApiSpec,
+        wireframeContext: aec.wireframeContext ?? undefined,
+        wireframeImageUrls: wireframeImageUrls.length > 0 ? wireframeImageUrls : undefined,
+        apiContext: aec.apiContext ?? undefined,
+        trackingContext: { userId: aec.createdBy, teamId, ticketId: aecId },
+      }, llmProgressCallback),
+      LLM_TIMEOUT_MS,
+      `LLM generation timed out after ${LLM_TIMEOUT_MS / 1000}s for ticket ${aecId}`,
+    );
 
     // Check cancellation after expensive LLM call
     if (await progressCallback.isCancelled()) return;
@@ -273,8 +307,32 @@ export class BackgroundFinalizationService {
   }
 
   /**
+   * Resolve the team's GitHub OAuth token from Firestore.
+   * Background jobs have no HTTP request context, so we look up the
+   * encrypted token from the GitHubIntegration entity for this workspace.
+   */
+  private async resolveGitHubToken(teamId: string): Promise<string | null> {
+    try {
+      // Derive workspace ID from teamId (same logic as WorkspaceGuard)
+      const workspaceId = `ws_team_${teamId.substring(5, 17)}`;
+      const integration = await this.githubIntegrationRepository.findByWorkspaceId(workspaceId);
+      if (!integration) {
+        this.logger.warn(`No GitHub integration found for workspace ${workspaceId}`);
+        return null;
+      }
+
+      const token = await this.githubTokenService.decryptToken(integration.encryptedAccessToken);
+      this.logger.log(`Resolved GitHub OAuth token for workspace ${workspaceId}`);
+      return token;
+    } catch (error) {
+      this.logger.warn(`Failed to resolve GitHub token: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
    * Build codebase context from AEC repository context.
-   * Mirrors FinalizeSpecUseCase.buildCodebaseContext logic.
+   * Uses the team's OAuth token for GitHub API access (not the static env var).
    */
   private async buildCodebaseContext(aec: AEC): Promise<CodebaseContext> {
     const repoContext = aec.repositoryContext;
@@ -288,53 +346,70 @@ export class BackgroundFinalizationService {
       const [owner, repo] = repoContext.repositoryFullName.split('/');
       this.logger.log(`Analyzing repository: ${repoContext.repositoryFullName}`);
 
-      const fileTree = await this.githubFileService.getTree(
-        owner,
-        repo,
-        repoContext.branchName,
-      );
+      // Resolve the team's OAuth token for authenticated GitHub access
+      const token = await this.resolveGitHubToken(aec.teamId);
 
+      if (token) {
+        // Use the team's OAuth token via ad-hoc Octokit (bypasses singleton)
+        const octokit = new Octokit({ auth: token });
+
+        const treeResponse = await octokit.git.getTree({
+          owner, repo, tree_sha: repoContext.branchName, recursive: '1',
+        });
+        const fileTree = {
+          sha: treeResponse.data.sha,
+          url: treeResponse.data.url,
+          tree: treeResponse.data.tree as any[],
+          truncated: treeResponse.data.truncated || false,
+        };
+
+        const filesMap = new Map<string, string>();
+        const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
+
+        for (const fileName of keyFiles) {
+          try {
+            const fileResponse = await octokit.repos.getContent({
+              owner, repo, path: fileName, ref: repoContext.branchName,
+            });
+            if ('content' in fileResponse.data && fileResponse.data.content) {
+              filesMap.set(fileName, Buffer.from(fileResponse.data.content, 'base64').toString('utf-8'));
+            }
+          } catch {
+            // File may not exist — expected
+          }
+        }
+
+        const stack = await this.stackDetector.detectStack(filesMap);
+        const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
+
+        this.logger.log(`Repository context built with OAuth token (framework: ${stack.framework?.name || 'unknown'})`);
+
+        return { stack, analysis, fileTree, files: filesMap, taskAnalysis: aec.taskAnalysis };
+      }
+
+      // Fallback: try the singleton GitHubFileService (uses static GITHUB_TOKEN env var)
+      this.logger.warn('No OAuth token resolved, trying static GITHUB_TOKEN...');
+
+      const fileTree = await this.githubFileService.getTree(owner, repo, repoContext.branchName);
       const filesMap = new Map<string, string>();
-      const keyFiles = [
-        'package.json',
-        'tsconfig.json',
-        'requirements.txt',
-        'Dockerfile',
-        'pom.xml',
-      ];
+      const keyFiles = ['package.json', 'tsconfig.json', 'requirements.txt', 'Dockerfile', 'pom.xml'];
 
       for (const fileName of keyFiles) {
         try {
-          const content = await this.githubFileService.readFile(
-            owner,
-            repo,
-            fileName,
-            repoContext.branchName,
-          );
+          const content = await this.githubFileService.readFile(owner, repo, fileName, repoContext.branchName);
           filesMap.set(fileName, content);
         } catch {
-          // File may not exist — this is expected
+          // File may not exist — expected
         }
       }
 
       const stack = await this.stackDetector.detectStack(filesMap);
       const analysis = await this.codebaseAnalyzer.analyzeStructure(filesMap, fileTree);
 
-      this.logger.log(
-        `Repository context built with framework: ${stack.framework?.name || 'unknown'}`,
-      );
-
-      return {
-        stack,
-        analysis,
-        fileTree,
-        files: filesMap,
-        taskAnalysis: aec.taskAnalysis,
-      };
+      this.logger.log(`Repository context built with static token (framework: ${stack.framework?.name || 'unknown'})`);
+      return { stack, analysis, fileTree, files: filesMap, taskAnalysis: aec.taskAnalysis };
     } catch (error) {
-      this.logger.error(
-        `Error building context: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      this.logger.error(`Error building context: ${error instanceof Error ? error.message : String(error)}`);
       return this.createMinimalContext();
     }
   }
@@ -380,6 +455,19 @@ export class BackgroundFinalizationService {
       fileTree: { sha: '', url: '', tree: [], truncated: false },
       files: new Map(),
     };
+  }
+
+  /**
+   * Wrap a promise with a timeout. Rejects with the given message if the
+   * promise does not settle within `ms` milliseconds.
+   */
+  private withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(message)), ms);
+      promise
+        .then((val) => { clearTimeout(timer); resolve(val); })
+        .catch((err) => { clearTimeout(timer); reject(err); });
+    });
   }
 
   private sleep(ms: number): Promise<void> {

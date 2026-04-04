@@ -5,11 +5,11 @@ import { Dialog, DialogContent, DialogTitle } from '@/core/components/ui/dialog'
 import { Button } from '@/core/components/ui/button';
 import { useUIStore } from '@/stores/ui.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { GitHubIntegration } from '@/src/settings/components/GitHubIntegration';
+import { useServices } from '@/hooks/useServices';
 import {
   Pencil, MessageCircle, ShieldCheck, FileCode, Globe, Terminal,
   Shield, ChevronDown, Sparkles, Cloud, GitPullRequest, Play,
-  ClipboardList, ArrowRight, Zap, Eye,
+  ClipboardList, ArrowRight, Zap, Eye, Github, Loader2, Check,
 } from 'lucide-react';
 
 const STEPS = [
@@ -25,11 +25,11 @@ function PrivacyNote() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="mt-4 max-w-[480px] mx-auto">
+    <div className="space-y-2">
       <div className="flex items-center gap-2 text-[var(--text-secondary)]">
         <Shield className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
         <p className="text-[12px] leading-relaxed">
-          We never clone your repository. Your code stays on GitHub.
+          We only access repos you select. Your code is never fetched or stored.
         </p>
         <button
           onClick={() => setExpanded((v) => !v)}
@@ -40,9 +40,9 @@ function PrivacyNote() {
         </button>
       </div>
       {expanded && (
-        <div className="mt-3 rounded-lg bg-[var(--bg-subtle)] p-4 text-[12px] text-[var(--text-tertiary)] leading-relaxed space-y-2">
+        <div className="rounded-lg bg-[var(--bg-subtle)] p-4 text-[12px] text-[var(--text-tertiary)] leading-relaxed space-y-2">
           <p>
-            forge uses the GitHub API to read your repository&apos;s file tree and selected source files. We request <strong className="text-[var(--text-secondary)]">read-only</strong> access and never write, push, or clone anything.
+            forge only accesses repositories you explicitly select — never your entire account. We use the GitHub API to read file trees and metadata with <strong className="text-[var(--text-secondary)]">read-only</strong> access. Your source code is never fetched, downloaded, or stored on our servers.
           </p>
           <p>
             You can disconnect at any time from Settings and we&apos;ll revoke all access immediately.
@@ -164,7 +164,7 @@ export function OnboardingDialog() {
               </Button>
             )}
             {!isLastStep ? (
-              <Button size="sm" onClick={handleNext} className="text-[12px] gap-1.5">
+              <Button size="sm" onClick={handleNext} className="text-[12px] gap-1.5 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20">
                 Next
                 <ArrowRight className="w-3 h-3" />
               </Button>
@@ -332,70 +332,91 @@ function StepDevelop() {
     <div className="animate-in fade-in duration-200 h-full flex flex-col justify-center">
       <div className="text-center mb-6">
         <h2 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mb-1">
-          Two Ways to Develop
+          From Ticket to Pull Request
         </h2>
-        <p className="text-[13px] text-[var(--text-tertiary)]">
-          Choose the path that fits your role.
+        <p className="text-[13px] text-[var(--text-tertiary)] max-w-[400px] mx-auto leading-relaxed">
+          PMs and developers work together. Tickets flow through a pipeline — each role picks up where the other left off.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 max-w-[460px] mx-auto">
-        {/* Cloud Develop */}
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4 relative overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-emerald-500/5 blur-xl pointer-events-none" />
-          <div className="flex items-center gap-2 mb-3">
-            <Cloud className="w-4 h-4 text-emerald-400" />
-            <span className="text-[13px] font-medium text-[var(--text)]">Cloud Develop</span>
+      {/* Collaborative flow */}
+      <div className="max-w-[440px] mx-auto space-y-0">
+        {/* Step 1: PM creates */}
+        <div className="flex gap-3 items-start">
+          <div className="flex flex-col items-center">
+            <div className="h-7 w-7 rounded-md bg-violet-400/10 flex items-center justify-center shrink-0">
+              <Pencil className="h-3.5 w-3.5 text-violet-400" />
+            </div>
+            <div className="w-px flex-1 min-h-[16px] bg-[var(--border-subtle)] my-1" />
           </div>
-          <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-medium mb-3">
-            For PMs & teams
-          </span>
-          <div className="space-y-2 text-[11px] text-[var(--text-tertiary)]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-emerald-500/50" />
-              One-click from the browser
+          <div className="pb-2 pt-0.5">
+            <div className="flex items-center gap-2">
+              <p className="text-[13px] font-medium text-[var(--text)]">PM creates a ticket</p>
+              <span className="px-1.5 py-0.5 rounded-full bg-violet-400/10 text-violet-400 text-[9px] font-medium">Browser</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-emerald-500/50" />
-              Auto PR with change record
+            <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">Describe the feature, AI generates the spec</p>
+          </div>
+        </div>
+
+        {/* Step 2: Refinement */}
+        <div className="flex gap-3 items-start">
+          <div className="flex flex-col items-center">
+            <div className="h-7 w-7 rounded-md bg-amber-400/10 flex items-center justify-center shrink-0">
+              <MessageCircle className="h-3.5 w-3.5 text-amber-400" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-emerald-500/50" />
-              Live preview in browser
+            <div className="w-px flex-1 min-h-[16px] bg-[var(--border-subtle)] my-1" />
+          </div>
+          <div className="pb-2 pt-0.5">
+            <div className="flex items-center gap-2">
+              <p className="text-[13px] font-medium text-[var(--text)]">Team refines together</p>
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-400 text-[9px] font-medium">Review & approve</span>
+            </div>
+            <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">Devs review, ask questions, sharpen acceptance criteria</p>
+          </div>
+        </div>
+
+        {/* Step 3: Development — two paths */}
+        <div className="flex gap-3 items-start">
+          <div className="flex flex-col items-center">
+            <div className="h-7 w-7 rounded-md bg-emerald-400/10 flex items-center justify-center shrink-0">
+              <Zap className="h-3.5 w-3.5 text-emerald-400" />
+            </div>
+            <div className="w-px flex-1 min-h-[16px] bg-[var(--border-subtle)] my-1" />
+          </div>
+          <div className="pb-2 pt-0.5">
+            <p className="text-[13px] font-medium text-[var(--text)]">Develop — pick your tool</p>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.03] p-2.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Cloud className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[11px] font-medium text-[var(--text)]">Cloud Develop</span>
+                </div>
+                <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed">One-click from browser, auto PR, live preview</p>
+              </div>
+              <div className="rounded-lg border border-blue-400/10 bg-blue-400/[0.03] p-2.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Terminal className="w-3 h-3 text-blue-300/70" />
+                  <span className="text-[11px] font-medium text-[var(--text)]">CLI / MCP</span>
+                </div>
+                <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed">Claude Code in your local environment</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Developer CLI */}
-        <div className="rounded-xl border border-blue-400/10 bg-blue-400/[0.03] p-4 relative overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-blue-400/5 blur-xl pointer-events-none" />
-          <div className="flex items-center gap-2 mb-3">
-            <Terminal className="w-4 h-4 text-blue-300/70" />
-            <span className="text-[13px] font-medium text-[var(--text)]">Developer CLI</span>
+        {/* Step 4: PR */}
+        <div className="flex gap-3 items-start">
+          <div className="flex flex-col items-center">
+            <div className="h-7 w-7 rounded-md bg-blue-400/10 flex items-center justify-center shrink-0">
+              <GitPullRequest className="h-3.5 w-3.5 text-blue-300/70" />
+            </div>
           </div>
-          <span className="inline-block px-2 py-0.5 rounded-full bg-blue-400/8 text-blue-300/70 text-[10px] font-medium mb-3">
-            For developers
-          </span>
-          <div className="space-y-2 text-[11px] text-[var(--text-tertiary)]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-blue-400/30" />
-              Pick up tickets from terminal
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-blue-400/30" />
-              Claude Code + MCP bridge
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-blue-400/30" />
-              Full local dev environment
-            </div>
+          <div className="pt-0.5">
+            <p className="text-[13px] font-medium text-[var(--text)]">Pull request ready for review</p>
+            <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">Tested code, documented decisions, full audit trail</p>
           </div>
         </div>
       </div>
-
-      <p className="text-[11px] text-[var(--text-tertiary)] text-center mt-5 max-w-[380px] mx-auto">
-        Both paths produce the same result: tested code, documented decisions, and a pull request ready for review.
-      </p>
     </div>
   );
 }
@@ -462,22 +483,97 @@ function StepTrackPreview() {
 }
 
 function StepConnect({ onBeforeConnect }: { onBeforeConnect: () => void }) {
+  const { gitHubService } = useServices();
+  const {
+    githubConnected,
+    githubConnectionStatus,
+    isConnecting,
+    initiateGitHubConnection,
+    loadGitHubStatus,
+    clearErrors,
+  } = useSettingsStore();
+
+  // Listen for OAuth callback from popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'github-oauth-callback') {
+        if (event.data.status === 'success') {
+          loadGitHubStatus(gitHubService);
+        } else {
+          clearErrors();
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [loadGitHubStatus, clearErrors, gitHubService]);
+
+  const handleConnect = async () => {
+    onBeforeConnect();
+    await initiateGitHubConnection(gitHubService);
+  };
+
   return (
-    <div className="animate-in fade-in duration-200 h-full flex flex-col justify-center">
-      <div className="text-center mb-4">
-        <h2 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mb-1">
-          Connect Your Repository
-        </h2>
-        <p className="text-[13px] text-[var(--text-tertiary)] max-w-[380px] mx-auto leading-relaxed">
-          Forge reads your codebase for deeper, more accurate specs. Read-only — your code stays on GitHub.
-        </p>
+    <div className="animate-in fade-in duration-200 h-full flex flex-col items-center justify-center">
+      {/* Title */}
+      <h2 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mb-1 text-center">
+        Context is Everything
+      </h2>
+      <p className="text-[13px] text-[var(--text-tertiary)] max-w-[380px] mx-auto leading-relaxed text-center mb-5">
+        Your repo helps Forge write precise specs, ask better questions, and generate code that actually fits.
+      </p>
+
+      {/* What context unlocks — 3 benefits */}
+      <div className="max-w-[400px] w-full space-y-2 mb-6">
+        <div className="flex items-start gap-2.5 px-1">
+          <Sparkles className="h-3.5 w-3.5 text-violet-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[12px] text-[var(--text-secondary)]">Smarter refinement</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Questions become precise — or get skipped entirely</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5 px-1">
+          <Cloud className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[12px] text-[var(--text-secondary)]">Cloud Develop</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Builds against your real codebase, not a blank slate</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5 px-1">
+          <Terminal className="h-3.5 w-3.5 text-blue-300/70 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[12px] text-[var(--text-secondary)]">CLI / MCP</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">File-level precision out of the box</p>
+          </div>
+        </div>
       </div>
-      <div className="max-w-[380px] mx-auto w-full">
-        <GitHubIntegration onBeforeConnect={onBeforeConnect} />
+
+      {/* Connect button or connected state */}
+      {githubConnected ? (
+        <div className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)] mb-4">
+          <Check className="h-4 w-4 text-emerald-500" />
+          <span>Connected as <span className="font-medium text-[var(--text)]">{githubConnectionStatus?.accountLogin}</span></span>
+        </div>
+      ) : (
+        <Button onClick={handleConnect} disabled={isConnecting} size="sm" className="mb-4">
+          {isConnecting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <Github className="mr-2 h-4 w-4" />
+              Connect GitHub
+            </>
+          )}
+        </Button>
+      )}
+
+      {/* Privacy */}
+      <div className="max-w-[400px] w-full">
         <PrivacyNote />
-        <p className="text-[10px] text-center text-[var(--text-tertiary)] mt-3">
-          You can also connect Jira, Linear, and Figma anytime from Settings.
-        </p>
       </div>
     </div>
   );
