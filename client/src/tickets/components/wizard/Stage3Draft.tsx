@@ -87,6 +87,8 @@ export function Stage3Draft() {
     reset,
     input,
     activeJobId,
+    currentPhase,
+    progressPercent,
   } = useWizardStore();
 
   const cancelJob = useJobsStore((s) => s.cancelJob);
@@ -188,21 +190,31 @@ export function Stage3Draft() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftAecId, clarificationQuestions.length, spec, questionsComplete, confirmContextContinue, fetchNextQuestion, retryCount]);
 
-  // Auto-submit when questionsComplete is set (LLM said it has enough info)
+  // Auto-submit when questionsComplete is set (LLM said it has enough info).
+  // The ref guard + roundStatus check together prevent double-submission:
+  // - autoSubmitRef prevents re-entry from this effect
+  // - roundStatus === 'submitting' guard in submitQuestionAnswers prevents concurrent calls
   useEffect(() => {
-    if (questionsComplete && !autoSubmitRef.current && !spec && roundStatus === 'idle') {
+    if (questionsComplete && !autoSubmitRef.current && !spec && roundStatus === 'idle' && !activeJobId) {
       autoSubmitRef.current = true;
       const timer = setTimeout(() => {
-        submitQuestionAnswers().catch((err) => {
-          const errorMsg = err instanceof Error ? err.message : 'Failed to finalize';
-          setLocalError(errorMsg);
-          setError(errorMsg);
-          autoSubmitRef.current = false;
-        });
+        submitQuestionAnswers()
+          .then(() => {
+            // Success — autoSubmitRef stays true to prevent re-entry
+          })
+          .catch((err) => {
+            const errorMsg = err instanceof Error ? err.message : 'Failed to finalize';
+            setLocalError(errorMsg);
+            setError(errorMsg);
+            // Allow retry after failure
+            autoSubmitRef.current = false;
+          });
       }, 600);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+      };
     }
-  }, [questionsComplete, spec, roundStatus, submitQuestionAnswers, setError]);
+  }, [questionsComplete, spec, roundStatus, activeJobId, submitQuestionAnswers, setError]);
 
   const isSubmitting = roundStatus === 'submitting' || roundStatus === 'finalizing';
   const isGenerating = roundStatus === 'generating';
@@ -552,6 +564,8 @@ export function Stage3Draft() {
         isVisible={!spec && (isSubmitting || !!activeJobId || (isSkipQuestions && !draftAecId && !error && !localError))}
         isSubmitting={isSubmitting || !!activeJobId || isSkipQuestions}
         isGenerating={false}
+        realPhase={currentPhase}
+        realPercent={progressPercent}
         onSendToBackground={() => router.push('/tickets')}
         onCancel={async () => {
           // Cancel the background job if it exists

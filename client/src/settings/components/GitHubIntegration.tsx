@@ -20,7 +20,7 @@ import { useServices } from '@/hooks/useServices';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useProjectProfileStore } from '@/project-profiles/stores/project-profile.store';
 import { GitHubRepositoryItem } from '@/services/github.service';
-import { Github, Check, AlertCircle, Loader2, Search, Square, CheckSquare2 } from 'lucide-react';
+import { Github, Check, AlertCircle, Loader2, Search, Square, CheckSquare2, Sparkles, Cloud, Terminal, Settings } from 'lucide-react';
 import { ProfileManagement } from '@/project-profiles/components/ProfileManagement';
 
 interface GitHubIntegrationProps {
@@ -198,7 +198,7 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
             </h3>
           </div>
           <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Connect your GitHub account to enable code-aware ticket generation
+            Context is everything — repo context powers better specs, smarter refinement, and faster development.
           </p>
         </div>
         {githubConnected && (
@@ -282,25 +282,54 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
       {/* Not Connected State */}
       {!isLoadingConnection && !githubConnected && (
-        <div className="rounded-lg bg-[var(--bg-hover)] p-8 text-center">
-          <Github className="mx-auto h-10 w-10 text-[var(--text-tertiary)] mb-3" />
-          <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] mb-1">Connect GitHub</h3>
-          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">
-            Read-only access to your repositories. No code writes.
-          </p>
-          <Button onClick={handleConnect} disabled={isConnecting} size="sm">
-            {isConnecting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <Github className="mr-2 h-4 w-4" />
-                Connect GitHub
-              </>
-            )}
-          </Button>
+        <div className="space-y-3">
+          {/* Context is king — value proposition */}
+          <div className="rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+            {/* Before / After comparison */}
+            <div className="grid grid-cols-2 divide-x divide-[var(--border-subtle)]">
+              <div className="p-3 space-y-1.5">
+                <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Without context</p>
+                <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">&quot;Update the API endpoint&quot;</p>
+                <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">&quot;Add tests for the feature&quot;</p>
+              </div>
+              <div className="p-3 space-y-1.5 bg-emerald-500/[0.03]">
+                <p className="text-[10px] font-medium text-emerald-500 uppercase tracking-wide">With context</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">&quot;Add validation to <span className="font-mono text-[10px] text-emerald-400">createTicket</span> handler&quot;</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">&quot;Add test in <span className="font-mono text-[10px] text-emerald-400">tickets.spec.ts</span> for edge case&quot;</p>
+              </div>
+            </div>
+            {/* How context flows */}
+            <div className="border-t border-[var(--border-subtle)] px-3 py-2.5 space-y-1.5">
+              <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Context powers the entire pipeline</p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[var(--text-tertiary)]">
+                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-violet-400" />Smarter refinement questions — or skip them entirely</span>
+                <span className="flex items-center gap-1"><Cloud className="h-3 w-3 text-emerald-400" />Cloud Develop builds against your real codebase</span>
+                <span className="flex items-center gap-1"><Terminal className="h-3 w-3 text-blue-300/70" />CLI / MCP gets file-level precision out of the box</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Connect card */}
+          <div className="rounded-lg bg-[var(--bg-hover)] p-8 text-center">
+            <Github className="mx-auto h-10 w-10 text-[var(--text-tertiary)] mb-3" />
+            <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)] mb-1">Connect GitHub</h3>
+            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">
+              We only access repos you explicitly select. Your code is never fetched or stored.
+            </p>
+            <Button onClick={handleConnect} disabled={isConnecting} size="sm">
+              {isConnecting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Github className="mr-2 h-4 w-4" />
+                  Connect GitHub
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -331,7 +360,8 @@ export function GitHubIntegration({ onBeforeConnect }: GitHubIntegrationProps = 
 
           {/* Expandable repo picker */}
           <details className="group">
-            <summary className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer transition-colors pl-5 list-none">
+            <summary className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text)] cursor-pointer transition-colors pl-5 list-none">
+              <Settings className="h-3 w-3" />
               Manage repositories
             </summary>
 

@@ -49,7 +49,7 @@ function TypeIcon({ type }: { type: DemoTicket['type'] }) {
 
 export function DemoTicketList({ onOpenTicket, hasInteracted }: Props) {
   return (
-    <div className="h-full overflow-y-auto scrollbar-thin">
+    <div className="h-full overflow-hidden">
       {/* Column headers */}
       <div className="grid grid-cols-[1fr_80px_60px] items-center px-4 py-2 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider select-none border-b border-[var(--border-subtle)]">
         <span className="pl-6">Title</span>

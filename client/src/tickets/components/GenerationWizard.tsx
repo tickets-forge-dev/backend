@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWizardStore, type RecoveryInfo, type WizardStage } from '@/tickets/stores/generation-wizard.store';
 import { useJobsStore } from '@/stores/jobs.store';
@@ -63,12 +63,17 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
 
   const [recoveryInfo, setRecoveryInfo] = useState<RecoveryInfo | null>(null);
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
+  // Track whether forceNew reset has been applied — the guard must only
+  // block the FIRST render, not permanently (otherwise job-completion
+  // redirects are blocked for the entire component lifecycle).
+  const resetAppliedRef = useRef(false);
 
   // On mount: reset if forceNew is true (e.g., mode=new URL param)
   // IMPORTANT: This must run before the activeJob redirect effect to prevent
   // stale draftAecId from triggering a redirect to the previous ticket.
   useEffect(() => {
-    if (forceNew) {
+    if (forceNew && !resetAppliedRef.current) {
+      resetAppliedRef.current = true;
       reset();
       // Pre-fill description from query param (e.g., from quick draft)
       const desc = searchParams.get('description');
@@ -80,7 +85,10 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
 
   // When the active job completes, navigate to the ticket detail page
   useEffect(() => {
-    if (forceNew) return; // Guard: reset effect hasn't cleared state yet on first render
+    // On the very first render with forceNew, skip — the reset effect above
+    // hasn't cleared stale state yet. After reset runs, resetAppliedRef is true
+    // and this guard no longer blocks.
+    if (forceNew && !resetAppliedRef.current) return;
     if (activeJob?.status === 'completed' && draftAecId) {
       // Job completed — navigate to ticket detail
       const slug = draftAecSlug || draftAecId;
@@ -203,6 +211,8 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
   const resolvedPercent = isBackgroundJob ? (activeJob?.percent ?? progressPercent) : progressPercent;
 
   // Next button logic based on current stage
+  const nextBtnClass = "min-w-[96px] bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20";
+
   const getNextButton = () => {
     // Details step — validate title
     if (currentStage === 'details') {
@@ -211,7 +221,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
           onClick={() => { if (isTitleValid) nextStage(); }}
           disabled={!isTitleValid || loading}
           size="sm"
-          className="min-w-[96px]"
+          className={nextBtnClass}
         >
           Next
         </Button>
@@ -223,7 +233,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       return (
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={prevStage}>Back</Button>
-          <Button onClick={nextStage} disabled={loading} size="sm" className="min-w-[96px]">
+          <Button onClick={nextStage} disabled={loading} size="sm" className={nextBtnClass}>
             Next
           </Button>
         </div>
@@ -239,7 +249,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
             onClick={() => { if (isRepoValid) nextStage(); }}
             disabled={!isRepoValid || loading || isBranchesLoading}
             size="sm"
-            className="min-w-[96px]"
+            className={nextBtnClass}
           >
             {isBranchesLoading ? 'Loading...' : 'Next'}
           </Button>
@@ -252,7 +262,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       return (
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={prevStage}>Back</Button>
-          <Button onClick={nextStage} disabled={loading} size="sm" className="min-w-[96px]">
+          <Button onClick={nextStage} disabled={loading} size="sm" className={nextBtnClass}>
             Next
           </Button>
         </div>
@@ -264,7 +274,7 @@ export function GenerationWizard({ resumeId, initialType, forceNew }: { resumeId
       return (
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={prevStage} disabled={loading}>Back</Button>
-          <Button onClick={analyzeRepository} disabled={loading} size="sm" className="min-w-[96px]">
+          <Button onClick={analyzeRepository} disabled={loading} size="sm" className={nextBtnClass}>
             {loading ? 'Analyzing...' : 'Next'}
           </Button>
         </div>

@@ -53,6 +53,18 @@ export const metadata: Metadata = {
     shortcut: '/forge-icon.png',
     apple: '/forge-icon.png',
   },
+  openGraph: {
+    title: 'forge',
+    description: 'Stop shipping half-baked tickets. forge turns rough ideas into complete, development-ready tickets.',
+    siteName: 'forge',
+    type: 'website',
+    url: 'https://www.forge-ai.dev',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'forge',
+    description: 'Stop shipping half-baked tickets. forge turns rough ideas into complete, development-ready tickets.',
+  },
 };
 
 export const viewport: Viewport = {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Brain,
   CheckCircle2,
@@ -15,13 +15,9 @@ import {
 /**
  * SpecGenerationProgressDialog - Real-time spec generation progress
  *
- * Shows an engaging checklist of 6 spec generation phases as they complete.
- * Each phase displays:
- * - Icon (brain, file, checkmark, etc.)
- * - Phase name (e.g., "Processing answers")
- * - Status (pending, in-progress, complete)
- * - Overall progress bar with percentage
- * - Elapsed time counter
+ * Shows a checklist of generation phases driven by real backend job progress.
+ * Falls back to simulated progress only during the brief initial submit
+ * (before the background job is created and polling begins).
  */
 
 interface SpecGenerationProgressDialogProps {
@@ -30,32 +26,49 @@ interface SpecGenerationProgressDialogProps {
   isGenerating?: boolean; // true when generating questions
   onSendToBackground?: () => void;
   onCancel?: () => void;
+  /** Real phase name from backend job polling */
+  realPhase?: string | null;
+  /** Real percent (0-100) from backend job polling */
+  realPercent?: number;
 }
 
 interface PhaseConfig {
   key: string;
   label: string;
   icon: React.ComponentType<{ className: string }>;
-  order: number;
 }
 
-// Phase configurations in order
+// Spec generation phases — displayed as a checklist
 const SPEC_GENERATION_PHASES: PhaseConfig[] = [
-  { key: 'processing', label: 'Processing your answers', icon: Brain, order: 1 },
-  { key: 'analyzing', label: 'Analyzing requirements', icon: Target, order: 2 },
-  { key: 'problem', label: 'Generating problem statement', icon: FileText, order: 3 },
-  { key: 'solution', label: 'Creating solution approach', icon: Zap, order: 4 },
-  { key: 'criteria', label: 'Building acceptance criteria', icon: CheckSquare2, order: 5 },
-  { key: 'complete', label: 'Finalizing specification', icon: CheckCircle2, order: 6 },
+  { key: 'processing', label: 'Processing your answers', icon: Brain },
+  { key: 'analyzing', label: 'Analyzing requirements', icon: Target },
+  { key: 'problem', label: 'Generating problem statement', icon: FileText },
+  { key: 'solution', label: 'Creating solution approach', icon: Zap },
+  { key: 'criteria', label: 'Building acceptance criteria', icon: CheckSquare2 },
+  { key: 'complete', label: 'Finalizing specification', icon: CheckCircle2 },
 ];
 
 const QUESTION_GENERATION_PHASES: PhaseConfig[] = [
-  { key: 'analyzing', label: 'Analyzing codebase', icon: Brain, order: 1 },
-  { key: 'context', label: 'Understanding context', icon: Target, order: 2 },
-  { key: 'generating', label: 'Generating questions', icon: Zap, order: 3 },
-  { key: 'refining', label: 'Refining questions', icon: CheckSquare2, order: 4 },
-  { key: 'complete', label: 'Ready to proceed', icon: CheckCircle2, order: 5 },
+  { key: 'analyzing', label: 'Analyzing codebase', icon: Brain },
+  { key: 'context', label: 'Understanding context', icon: Target },
+  { key: 'generating', label: 'Generating questions', icon: Zap },
+  { key: 'refining', label: 'Refining questions', icon: CheckSquare2 },
+  { key: 'complete', label: 'Ready to proceed', icon: CheckCircle2 },
 ];
+
+/**
+ * Map real backend percent to a display phase index (0-5).
+ * Backend progress ranges from the BackgroundFinalizationService (0-40%)
+ * and TechSpecGeneratorImpl (40-90%, mapped via wrapper callback).
+ */
+function phaseIndexFromPercent(percent: number): number {
+  if (percent < 15) return 0;  // Processing / loading / preparing
+  if (percent < 30) return 1;  // Analyzing codebase context
+  if (percent < 50) return 2;  // Generating problem statement
+  if (percent < 60) return 3;  // Creating solution approach
+  if (percent < 80) return 4;  // Acceptance criteria + file changes + deps
+  return 5;                     // Test plan + visual expectations + saving
+}
 
 export function SpecGenerationProgressDialog({
   isVisible,
@@ -63,51 +76,70 @@ export function SpecGenerationProgressDialog({
   isGenerating = false,
   onSendToBackground,
   onCancel,
+  realPhase,
+  realPercent,
 }: SpecGenerationProgressDialogProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [progressPercent, setProgressPercent] = useState(0);
+  const [simPercent, setSimPercent] = useState(0);
+  // Track the highest real percent seen to prevent backwards jumps
+  const highWaterRef = useRef(0);
 
   const phases = isSubmitting ? SPEC_GENERATION_PHASES : QUESTION_GENERATION_PHASES;
   const phaseCount = phases.length;
 
-  // Elapsed time counter
+  const hasRealProgress = realPercent !== undefined && realPercent > 0;
+
+  // Track high-water mark for real percent
+  useEffect(() => {
+    if (realPercent !== undefined && realPercent > highWaterRef.current) {
+      highWaterRef.current = realPercent;
+    }
+  }, [realPercent]);
+
+  // Elapsed time counter + simulated progress (fallback only)
   useEffect(() => {
     if (!isVisible) {
       setElapsedSeconds(0);
-      setProgressPercent(0);
+      setSimPercent(0);
+      highWaterRef.current = 0;
       return;
     }
 
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => prev + 0.5);
-      // Gradually increase progress (faster at start, slower near end)
-      setProgressPercent((prev) => {
-        if (prev >= 90) return prev;
-        const increment = (Math.random() * 5 + 1);
-        return Math.min(prev + increment, 90);
-      });
+      // Only advance simulated progress if we don't have real data yet
+      if (!hasRealProgress) {
+        setSimPercent((prev) => {
+          if (prev >= 8) return prev; // Cap simulated at 8% — real data takes over quickly
+          return Math.min(prev + Math.random() * 1.5 + 0.3, 8);
+        });
+      }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isVisible]);
-
-  // Reset when hidden
-  useEffect(() => {
-    if (!isVisible) {
-      setProgressPercent(0);
-    }
-  }, [isVisible]);
+  }, [isVisible, hasRealProgress]);
 
   if (!isVisible) return null;
 
-  // Estimate current phase based on elapsed time and phase count
-  // Distribute phases evenly over estimated total time
-  const estimatedTotalTime = isSubmitting ? 15 : 8; // seconds
-  const timePerPhase = estimatedTotalTime / phaseCount;
-  const currentPhaseIndex = Math.min(
-    Math.floor(elapsedSeconds / timePerPhase),
-    phaseCount - 1
-  );
+  // Once real progress arrives, use it exclusively (high-water mark prevents backwards jumps)
+  const displayPercent = hasRealProgress
+    ? highWaterRef.current
+    : simPercent;
+
+  // Determine current phase index from real data or time-based fallback
+  let currentPhaseIndex: number;
+  if (hasRealProgress) {
+    currentPhaseIndex = phaseIndexFromPercent(highWaterRef.current);
+  } else {
+    // Brief fallback: distribute over 8 seconds for question gen, 15s for spec
+    const estimatedTotalTime = isSubmitting ? 15 : 8;
+    const timePerPhase = estimatedTotalTime / phaseCount;
+    currentPhaseIndex = Math.min(
+      Math.floor(elapsedSeconds / timePerPhase),
+      // Cap at phase 1 when simulating — don't fake further without real data
+      hasRealProgress ? phaseCount - 1 : 1,
+    );
+  }
 
   const getPhaseStatus = (index: number): 'pending' | 'in_progress' | 'complete' => {
     if (index < currentPhaseIndex) return 'complete';
@@ -183,14 +215,14 @@ export function SpecGenerationProgressDialog({
           <div className="w-full bg-[var(--bg-hover)] rounded-full h-1.5 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-400/50 to-blue-300/60 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${Math.min(progressPercent, 100)}%` }}
+              style={{ width: `${Math.min(displayPercent, 100)}%` }}
             />
           </div>
 
           {/* Stats row */}
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[var(--text-secondary)] font-medium tabular-nums">
-              {Math.min(Math.floor(progressPercent), 99)}%
+              {Math.min(Math.floor(displayPercent), 99)}%
             </span>
             <span className="text-[var(--text-tertiary)] tabular-nums">
               {Math.floor(elapsedSeconds)}s
